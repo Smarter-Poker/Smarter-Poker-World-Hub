@@ -206,6 +206,13 @@ export default async function handler(req, res) {
     const rangeStartKey = getDateKey(rangeStart);
     const rangeEndKey = getDateKey(rangeEnd);
 
+    // BUG FIX: declare safeState/safeCity at handler scope (not inside try)
+    // so they are visible to all three source query blocks below.
+    // Was previously declared as `const` inside the try{} block — a ReferenceError
+    // waiting to happen if the venue cache threw before the series/tour queries ran.
+    const safeState = state ? state.replace(/[%_\\]/g, '').trim() : null;
+    const safeCity  = city  ? city.replace(/[%_\\]/g, '').trim() : null;
+
     // ──────────────────────────────────────────────────────────────
     // Build venue location cache for distance and state/city lookup
     // ──────────────────────────────────────────────────────────────
@@ -214,9 +221,6 @@ export default async function handler(req, res) {
       let venueQ = sb.from('poker_venues')
         .select('id, name, city, state, latitude, longitude')
         .eq('is_active', true);
-      // BUG FIX: sanitize city/state to block ILIKE wildcard injection
-      const safeState = state ? state.replace(/[%_\\]/g, '').trim() : null;
-      const safeCity  = city  ? city.replace(/[%_\\]/g, '').trim() : null;
       if (safeState) venueQ = venueQ.ilike('state', safeState.length === 2 ? safeState.toUpperCase() : `%${safeState}%`);
       if (safeCity)  venueQ = venueQ.ilike('city', `%${safeCity}%`);
       const { data: venueRows } = await venueQ.limit(2000);

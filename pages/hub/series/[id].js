@@ -102,7 +102,6 @@ function cleanEventName(raw) {
     .replace(/&quot;/g, '"')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>');
-  // Strip date/time patterns embedded by scraper:
   // Pattern A (mid-string): "Apr 9 Thursday 6:15pm" / "Apr 10 Friday 11:15am"
   name = name.replace(/\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}\s+(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+\d{1,2}:\d{2}\s*(am|pm)/gi, '');
   // Pattern B (trailing full day+date): "Wednesday, October 1 10 a.m"
@@ -113,6 +112,9 @@ function cleanEventName(raw) {
   name = name.replace(/\s+\d{1,2}\s*(a\.m|p\.m|am|pm)$/i, '');
   // Pattern D (trailing "Apr 8 Wednesday" — Month Day DayOfWeek at end without time)
   name = name.replace(/\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}\s+(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s*$/i, '');
+  // Pattern E: BUG FIX — name that STARTS WITH the date pattern (no leading text, so \s+ didn't match)
+  // e.g. 'Apr 9 Thursday 6:15pm' or 'Apr 9 Thursday' when scraper produced a date-only string
+  name = name.replace(/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}\s+(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)(\s+\d{1,2}:\d{2}\s*(am|pm))?\s*$/i, '');
   return name.trim();
 }
 
@@ -516,7 +518,13 @@ export default function SeriesDetailPage() {
   const status = getSeriesStatus(series.start_date, series.end_date);
   const location = getLocationParts(series);
   const venueName = series.venue_name || series.venue || '';
-  const sourceUrl = series.source_url || series.website || series.schedule_url || '';
+  // BUG FIX: compute once — was called 7x per render (3 callsites × color + 2 × category text)
+  const detailVenueBadge = deriveDetailVenueBadge(series);
+  const detailCategory = deriveDetailCategory(series);
+  const detailCategoryColor = deriveDetailCategoryColor(series);
+  // BUG FIX: sanitize source_url — block javascript:/data: XSS vectors before use in <a href>
+  const rawSourceUrl = series.source_url || series.website || series.schedule_url || '';
+  const sourceUrl = /^https?:\/\//i.test(rawSourceUrl) ? rawSourceUrl : '';
   const rawEvents = series.events || [];
   
   const sortEvents = (eventsToSort, config) => {
@@ -603,19 +611,19 @@ export default function SeriesDetailPage() {
                 borderColor: tourStyle.border,
               }}
             >
-              {deriveDetailVenueBadge(series)}
+              {detailVenueBadge}
             </span>
 
             {/* Series Type Badge */}
             <span
               className="type-badge"
               style={{
-                background: deriveDetailCategoryColor(series) + '25',
-                color: deriveDetailCategoryColor(series),
-                border: '1px solid ' + deriveDetailCategoryColor(series) + '50',
+                background: detailCategoryColor + '25',
+                color: detailCategoryColor,
+                border: '1px solid ' + detailCategoryColor + '50',
               }}
             >
-              {deriveDetailCategory(series)}
+              {detailCategory}
             </span>
 
             {/* Status Badge */}
@@ -703,8 +711,8 @@ export default function SeriesDetailPage() {
           <div className="stat-card">
             <div className="stat-label">Series Type</div>
             <div className="stat-value">
-              <span className="inline-type-dot" style={{ background: deriveDetailCategoryColor(series) }} />
-              {deriveDetailCategory(series)}
+              <span className="inline-type-dot" style={{ background: detailCategoryColor }} />
+              {detailCategory}
             </div>
           </div>
         </div>

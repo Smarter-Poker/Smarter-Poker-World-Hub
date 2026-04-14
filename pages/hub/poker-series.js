@@ -583,7 +583,9 @@ export default function PokerSeriesPage() {
         const cutoff = new Date(now);
         cutoff.setDate(cutoff.getDate() + days);
         return { start: now, end: cutoff };
-    }, [dateRange]);
+    // BUG FIX: nowTick was missing here — midnight refresh never fired
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [dateRange, nowTick]);
 
     // ─── Filtered & sorted series ───
     const filteredSeries = useMemo(() => {
@@ -981,7 +983,9 @@ export default function PokerSeriesPage() {
                                     // series.id is index-based from JSON fallback vs real DB int — unstable
                                     const isFav = !!(favorites[series.series_uid || series.id]);
                                     const favKey = series.series_uid || series.id;
-                                    const detailUrl = '/hub/series/' + (series.id || idx + 1);
+                                    // BUG FIX: idx + 1 is position-based — wrong when filtered list changes order.
+                                    // Use stable real DB id or series_uid-derived slug; omit link if neither available.
+                                    const detailUrl = series.id ? '/hub/series/' + series.id : null;
                                     const location = [series.city, series.state].filter(Boolean).join(', ') || '';
 
                                     // Build event preview (up to 5)
@@ -999,8 +1003,9 @@ export default function PokerSeriesPage() {
                                             style={{
                                                 borderColor: colors.border + 'A6',
                                                 '--card-accent': colors.border,
+                                                cursor: detailUrl ? 'pointer' : 'default',
                                             }}
-                                            onClick={() => { router.push(detailUrl); }}
+                                            onClick={() => { if (detailUrl) router.push(detailUrl); }}
                                         >
                                             {/* Favorite Button */}
                                             <button
@@ -1149,7 +1154,7 @@ export default function PokerSeriesPage() {
                                             <div className="tour-card-footer">
                                                 <span className="tour-card-established"></span>
                                                 <div className="tour-card-actions">
-                                                    <span className="tour-action-btn primary">View Schedule</span>
+                                                    {detailUrl && <span className="tour-action-btn primary">View Schedule</span>}
                                                     {series.source_url && (
                                                         <a
                                                             href={series.source_url}

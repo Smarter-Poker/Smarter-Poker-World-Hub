@@ -74,6 +74,7 @@ function mapSeriesToApi(seriesArray) {
     series_type: s.series_type,
     source_url: s.source_url,
     is_featured: s.is_featured,
+    logo_url: s.logo_url || null, // BUG FIX: was missing — JSON fallback path lost all logos
   }));
 }
 
