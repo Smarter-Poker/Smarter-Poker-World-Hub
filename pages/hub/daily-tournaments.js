@@ -217,10 +217,6 @@ export default function DailyTournaments() {
     }
 
     // Group tournaments by time slot
-    const morningTournaments = tournaments.filter(t => {
-        const time = parseTimeToMinutes(t.start_time);
-        return time < 720; // Before 12pm
-    });
     const afternoonTournaments = tournaments.filter(t => {
         const time = parseTimeToMinutes(t.start_time);
         return time >= 720 && time < 1020; // 12pm - 5pm
@@ -407,52 +403,57 @@ export default function DailyTournaments() {
                 })()}
 
                 {/* Top Level Filters Command Bar */}
-                <div className="pnm-top-filters" style={{ padding: '0 20px', marginBottom: '20px' }}>
+                <div className="pnm-top-filters">
                     <div className="pnm-top-filters-inner">
-                        <div className="pnm-search-box" style={{ flex: '1 1 200px', position: 'relative' }}>
-                            <svg style={{ position: 'absolute', left: '10px', top: '10px', color: 'rgba(255,255,255,0.4)' }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
-                            </svg>
-                            <input
-                                type="text"
-                                className="pnm-filter-select"
-                                style={{ width: '100%', paddingLeft: '34px', boxSizing: 'border-box' }}
-                                placeholder="Search Venue..."
-                                value={searchQuery}
-                                onChange={(e) => handleSearchChange(e.target.value)}
-                            />
+                        <div className="filters-left-spacer"></div>
+
+                        <div className="filters-dropdown-group">
+                            <select className="pnm-filter-select" value={selectedState ? selectedState.abbr : ''} onChange={(e) => {
+                                const st = POPULAR_STATES.find(s => s.abbr === e.target.value);
+                                setSelectedState(st || null);
+                            }}>
+                                <option value="">All States</option>
+                                {POPULAR_STATES.map(state => (
+                                    <option key={state.abbr} value={state.abbr}>{state.name}</option>
+                                ))}
+                            </select>
+                            
+                            <select className="pnm-filter-select" value={selectedType} onChange={(e) => setSelectedType(e.target.value)}>
+                                {VENUE_TYPES.map(type => (
+                                    <option key={type.value} value={type.value}>{type.label}</option>
+                                ))}
+                            </select>
+
+                            <select className="pnm-filter-select" value={selectedBuyin.label} onChange={(e) => {
+                                const range = BUYIN_RANGES.find(r => r.label === e.target.value);
+                                setSelectedBuyin(range || BUYIN_RANGES[0]);
+                            }}>
+                                {BUYIN_RANGES.map((range, i) => (
+                                    <option key={i} value={range.label}>{range.label}</option>
+                                ))}
+                            </select>
                         </div>
-                        
-                        <select className="pnm-filter-select" value={selectedState ? selectedState.abbr : ''} onChange={(e) => {
-                            const st = POPULAR_STATES.find(s => s.abbr === e.target.value);
-                            setSelectedState(st || null);
-                        }}>
-                            <option value="">All States</option>
-                            {POPULAR_STATES.map(state => (
-                                <option key={state.abbr} value={state.abbr}>{state.name}</option>
-                            ))}
-                        </select>
-                        
-                        <select className="pnm-filter-select" value={selectedType} onChange={(e) => setSelectedType(e.target.value)}>
-                            {VENUE_TYPES.map(type => (
-                                <option key={type.value} value={type.value}>{type.label}</option>
-                            ))}
-                        </select>
 
-                        <select className="pnm-filter-select" value={selectedBuyin.label} onChange={(e) => {
-                            const range = BUYIN_RANGES.find(r => r.label === e.target.value);
-                            setSelectedBuyin(range || BUYIN_RANGES[0]);
-                        }}>
-                            {BUYIN_RANGES.map((range, i) => (
-                                <option key={i} value={range.label}>{range.label}</option>
-                            ))}
-                        </select>
-
-                        {searchQuery || selectedState || selectedType || selectedBuyin.min ? (
-                            <button className="pnm-filter-select" style={{ flex: '0 0 auto', padding: '0 16px', background: 'rgba(255,0,0,0.1)', borderColor: 'rgba(255,0,0,0.3)', color: '#ff4444', cursor: 'pointer' }} onClick={clearFilters}>
-                                Clear
-                            </button>
-                        ) : null}
+                        <div className="pnm-search-wrapper">
+                            <div className="pnm-search-box" style={{ position: 'relative' }}>
+                                <svg style={{ position: 'absolute', left: '10px', top: '10px', color: 'rgba(255,255,255,0.4)' }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+                                </svg>
+                                <input
+                                    type="text"
+                                    className="pnm-filter-select"
+                                    style={{ width: '100%', paddingLeft: '34px', boxSizing: 'border-box' }}
+                                    placeholder="Search Venue..."
+                                    value={searchQuery}
+                                    onChange={(e) => handleSearchChange(e.target.value)}
+                                />
+                            </div>
+                            {searchQuery || selectedState || selectedType || selectedBuyin.min ? (
+                                <button className="pnm-filter-select pnm-clear-btn" onClick={clearFilters}>
+                                    Clear
+                                </button>
+                            ) : null}
+                        </div>
                     </div>
                 </div>
 
@@ -480,21 +481,6 @@ export default function DailyTournaments() {
                             </div>
                         ) : (
                             <div className="tournament-sections">
-                                {morningTournaments.length > 0 && (
-                                    <div className="time-section">
-                                        <h2 className="time-header">
-                                            <span className="time-icon">AM</span>
-                                            Morning Tournaments
-                                            <span className="time-count">{morningTournaments.length}</span>
-                                        </h2>
-                                        <div className="tournament-list">
-                                            {morningTournaments.map((t, i) => (
-                                                <TournamentCard key={`${t.id || t.venue_id || t.tournament_name || 'm'}-${t.start_time}-${i}`} tournament={t} />
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
                                 {afternoonTournaments.length > 0 && (
                                     <div className="time-section">
                                         <h2 className="time-header">
@@ -545,18 +531,60 @@ export default function DailyTournaments() {
                     }
 
                     
+                    .pnm-top-filters {
+                        padding: 0 20px;
+                        margin-bottom: 20px;
+                    }
                     .pnm-top-filters-inner {
                         display: flex;
-                        flex-direction: row;
-                        flex-wrap: nowrap;
-                        align-items: stretch;
-                        gap: 8px;
+                        flex-direction: column;
+                        gap: 12px;
                         max-width: 1400px;
                         margin: 0 auto;
-                        overflow-x: auto;
                         padding-bottom: 5px;
                     }
-                    .pnm-top-filters-inner::-webkit-scrollbar { display: none; }
+                    @media (min-width: 1024px) {
+                        .pnm-top-filters-inner {
+                            display: grid;
+                            grid-template-columns: 1fr auto 1fr;
+                            align-items: center;
+                        }
+                    }
+                    .filters-left-spacer {
+                        /* Empty by design for grid balance */
+                        display: none;
+                    }
+                    @media (min-width: 1024px) {
+                        .filters-left-spacer { display: block; }
+                    }
+                    .filters-dropdown-group {
+                        display: flex;
+                        gap: 8px;
+                        flex-wrap: wrap;
+                        justify-content: center;
+                    }
+                    .pnm-search-wrapper {
+                        display: flex;
+                        gap: 8px;
+                        justify-content: flex-end;
+                        flex-wrap: wrap;
+                    }
+                    .pnm-search-box {
+                        flex: 1;
+                        min-width: 180px;
+                    }
+                    @media (min-width: 1024px) {
+                        .pnm-search-box { flex: 0 1 200px; }
+                    }
+                    .pnm-clear-btn {
+                        flex: 0 0 auto;
+                        padding: 0 16px;
+                        background: rgba(255,0,0,0.1);
+                        border-color: rgba(255,0,0,0.3);
+                        color: #ff4444;
+                        cursor: pointer;
+                    }
+                    
                     .pnm-filter-select {
                         flex: 1 1 140px;
                         min-width: 120px;
@@ -615,9 +643,11 @@ export default function DailyTournaments() {
                     .dt-header {
                         padding: 24px 20px;
                         display: flex;
-                        align-items: baseline;
-                        gap: 16px;
-                        flex-wrap: wrap;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                        text-align: center;
+                        gap: 4px;
                     }
                     .dt-header h1 {
                         font-family: 'Orbitron', 'Rajdhani', sans-serif;
@@ -1048,22 +1078,22 @@ function TournamentCard({ tournament }) {
                     gap: 10px;
                 }
                 .card-logo {
-                    width: 32px;
-                    height: 32px;
+                    width: 64px;
+                    height: 64px;
                     border-radius: 6px;
                     object-fit: contain;
                     background: rgba(255, 255, 255, 0.9);
-                    padding: 2px;
+                    padding: 4px;
                     border: 1px solid rgba(255, 255, 255, 0.1);
                 }
                 .card-initials {
-                    width: 32px;
-                    height: 32px;
+                    width: 64px;
+                    height: 64px;
                     border-radius: 6px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    font-size: 16px;
+                    font-size: 28px;
                     font-weight: 700;
                     border: 1px solid;
                 }
