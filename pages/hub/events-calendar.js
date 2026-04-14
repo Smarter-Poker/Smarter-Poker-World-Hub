@@ -24,6 +24,7 @@ import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { resolveCityCoords } from '../../src/data/city-coordinates';
+import VenueMap from '../../src/components/poker-near-me/VenueMap';
 
 /* ───── Constants ───── */
 const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -163,6 +164,9 @@ function FilterIcon() {
 function ClockIcon() {
   return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>;
 }
+function MapIcon() {
+  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21 3 6" /><line x1="9" y1="3" x2="9" y2="18" /><line x1="15" y1="6" x2="15" y2="21" /></svg>;
+}
 function ChevronLeft() {
   return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6" /></svg>;
 }
@@ -186,6 +190,7 @@ const EventCard = memo(function EventCard({ event, isToday, todayKey }) {
   let href = null;
   if (event.venue_id && event.source === 'daily') href = `/hub/venues/${event.venue_id}`;
   else if (event.series_id) href = `/hub/series/${event.series_id}`;
+  else if (event.tour_code && event.source === 'tour') href = `/hub/poker-series?tour=${encodeURIComponent(event.tour_code)}`;
 
   return (
     <div className="ev-card" data-today={dateIsToday ? '1' : ''}>
@@ -279,16 +284,26 @@ function LocationModal({ isOpen, onClose, onSetLocation, currentLocation }) {
 
   if (!isOpen) return null;
 
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    return () => { isMountedRef.current = false; };
+  }, []);
+
   const handleUseGps = () => {
     setLocError('');
     setGpsLoading(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        if (!isMountedRef.current) return;
         onSetLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude, label: 'My Location (GPS)', source: 'gps' });
         setGpsLoading(false);
         onClose();
       },
-      () => { setGpsLoading(false); setLocError('GPS not available. Please enter a city.'); },
+      () => {
+        if (!isMountedRef.current) return;
+        setGpsLoading(false);
+        setLocError('GPS not available. Please enter a city.');
+      },
       { timeout: 8000 }
     );
   };
@@ -386,6 +401,9 @@ export default function EventsCalendarPage() {
   const router = useRouter(); // BUG FIX: use router.push instead of window.location.href
   const now = new Date();
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuConfig = useMemo(() => getMenuConfig(), []);
+  
+  // View states: 'list' | 'calendar' | 'map'
   const [viewMode, setViewMode] = useState('list');
   const [calYear, setCalYear] = useState(now.getFullYear());
   const [calMonth, setCalMonth] = useState(now.getMonth());
@@ -416,9 +434,11 @@ export default function EventsCalendarPage() {
 
   // Try GPS on mount
   useEffect(() => {
+    let isMounted = true;
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
+          if (!isMounted) return;
           setUserLocation({
             lat: pos.coords.latitude,
             lng: pos.coords.longitude,
@@ -430,6 +450,7 @@ export default function EventsCalendarPage() {
         { timeout: 5000 }
       );
     }
+    return () => { isMounted = false; };
   }, []);
 
   // Build API URL from filters
@@ -461,7 +482,11 @@ export default function EventsCalendarPage() {
   // SWR-backed data fetch
   const { data: apiData, error, isLoading: loading } = useSWR(
     apiUrl,
-    (url) => fetch(url).then(r => r.json()),
+    (url) => fetch(url).then(r => r.json()).then(data => {
+      // BUG FIX: SWR gracefully passes soft 200 JSON errors. Force strict extraction.
+      if (data && data.success === false) throw new Error(data.error || 'Failed to fetch API events');
+      return data;
+    }),
     { revalidateOnFocus: false, dedupingInterval: 30000 }
   );
 
@@ -515,6 +540,34 @@ export default function EventsCalendarPage() {
     if (!selectedCalDate) return [];
     return events.filter(e => e.event_date === selectedCalDate);
   }, [events, selectedCalDate]);
+
+  // Aggregate events by venue for Map View
+  const mapEvents = useMemo(() => {
+    const venueMap = {};
+    events.forEach(e => {
+      // Must have location
+      if (!e.latitude || !e.longitude) return;
+      const vKey = e.venue_name || e.event_name;
+      if (!vKey) return;
+
+      if (!venueMap[vKey]) {
+        // Create pseudo-venue object for VenueMap
+        venueMap[vKey] = {
+          id: e.venue_id || e.series_id || e.tour_event_id || Math.random().toString(),
+          name: vKey,
+          venue_type: (e.source === 'series' || e.source === 'tour') ? 'poker_tour' : 'card_room',
+          tour_code: e.tour_code,
+          logo_url: e.logo_url,
+          latitude: e.latitude,
+          longitude: e.longitude,
+          city: e.city,
+          state: e.state,
+          trust_score: 5,
+        };
+      }
+    });
+    return Object.values(venueMap);
+  }, [events]);
 
   // Clear all filters
   const clearFilters = () => {
@@ -633,8 +686,8 @@ export default function EventsCalendarPage() {
               </button>
             )}
           </div>
-          <div className="ec-toolbar">
-            <button className={`ec-filter-btn ${showFilters ? 'active' : ''}`} onClick={() => setShowFilters(!showFilters)}>
+          <div className="ec-actions-right">
+            <button className={`ec-filter-toggle ${showFilters ? 'active' : ''}`} onClick={() => setShowFilters(!showFilters)}>
               <FilterIcon />
               <span>Filters</span>
               {activeFilterCount > 0 && <span className="ec-filter-badge">{activeFilterCount}</span>}
@@ -645,6 +698,9 @@ export default function EventsCalendarPage() {
               </button>
               <button className={`ec-vt-btn ${viewMode === 'calendar' ? 'active' : ''}`} onClick={() => setViewMode('calendar')} title="Calendar View">
                 <CalendarIcon size={16} />
+              </button>
+              <button className={`ec-vt-btn ${viewMode === 'map' ? 'active' : ''}`} onClick={() => setViewMode('map')} title="Map View">
+                <MapIcon />
               </button>
             </div>
           </div>
@@ -725,6 +781,19 @@ export default function EventsCalendarPage() {
             </div>
           )}
 
+          {/* ── MAP VIEW ── */}
+          {!loading && !error && viewMode === 'map' && (
+            <div className="ec-map-view" style={{ marginTop: '16px', borderRadius: '16px', overflow: 'hidden', height: 'calc(100vh - 280px)', minHeight: '600px', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <VenueMap 
+                venues={mapEvents}
+                userLocation={userLocation}
+                fullHeight={true}
+                hideLegend={false}
+                uniformColor={true}
+              />
+            </div>
+          )}
+
           {/* ── LIST VIEW ── */}
           {!loading && !error && viewMode === 'list' && (
             <div className="ec-list">
@@ -745,9 +814,10 @@ export default function EventsCalendarPage() {
                         </span>
                         <span className="ec-date-count">{dateGroups.groups[dk].length}</span>
                       </div>
-                      {dateGroups.groups[dk].map((evt, idx) => (
-                        <EventCard key={`${dk}-${idx}`} event={evt} todayKey={todayKey} />
-                      ))}
+                      {dateGroups.groups[dk].map((evt, idx) => {
+                        const uniqueKey = `${dk}-${evt.source}-${evt.venue_id || evt.series_id || evt.tour_event_id || 'base'}-${idx}`;
+                        return <EventCard key={uniqueKey} event={evt} todayKey={todayKey} />;
+                      })}
                     </div>
                   ))}
 

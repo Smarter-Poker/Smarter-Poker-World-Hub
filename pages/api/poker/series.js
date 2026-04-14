@@ -140,7 +140,7 @@ export default async function handler(req, res) {
     res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
 
     try {
-      const {
+      let {
         id,
         upcoming,
         type,
@@ -150,6 +150,18 @@ export default async function handler(req, res) {
         end_date,
         limit = 70,
       } = req.query;
+
+      // BUG FIX: Array Query Injection Vector
+      // Protects .replace() and .trim() from throwing TypeErrors if multiple identically named params are passed
+      const safeString = (val) => Array.isArray(val) ? val[0] : val;
+      id = safeString(id);
+      upcoming = safeString(upcoming);
+      type = safeString(type);
+      tour = safeString(tour);
+      search = safeString(search);
+      start_date = safeString(start_date);
+      end_date = safeString(end_date);
+      limit = safeString(limit);
 
       const parsedLimit = Math.min(parseInt(limit, 10) || 70, 300);
 
@@ -313,8 +325,30 @@ export default async function handler(req, res) {
             .order('start_date', { ascending: true })
             .limit(999);
 
-          // NOTE: Do NOT apply upcoming filter here — this query is for merging
-          // series_uid values to link events, not for display filtering.
+          // BUG FIX: Must apply identical display filters to poker_series or it dumps all 999 
+          // remaining series into the merged result set, overriding search/tour/upcoming filters.
+          if (upcoming === 'true') {
+            const today = new Date().toISOString().split('T')[0];
+            psQuery = psQuery.gte('start_date', today);
+          }
+          if (type) {
+            const tierMap = { major: 'A', circuit: 'B', regional: 'C', 'mid-major': 'C', weekly: 'C' };
+            if (tierMap[type]) psQuery = psQuery.eq('tier', tierMap[type]);
+          }
+          if (tour) {
+            const safeTour = tour.replace(/[()'",.;%_\\)]/g, ' ').trim().slice(0, 50);
+            if (safeTour) psQuery = psQuery.or(`tour.ilike.%${safeTour}%`);
+          }
+          if (search) {
+            const safeSearch = search.replace(/[()'",.;%_\\)]/g, ' ').trim().slice(0, 100);
+            if (safeSearch) {
+              psQuery = psQuery.or(
+                `name.ilike.%${safeSearch}%,series_name.ilike.%${safeSearch}%,venue_name.ilike.%${safeSearch}%,city.ilike.%${safeSearch}%`
+              );
+            }
+          }
+          if (start_date) psQuery = psQuery.gte('start_date', start_date);
+          if (end_date) psQuery = psQuery.lte('start_date', end_date);
 
           const { data: psData } = await psQuery;
           pokerSeriesData = psData || [];
@@ -507,6 +541,7 @@ export default async function handler(req, res) {
         }
       }
 
+      res.setHeader('Cache-Control', 'public, s-maxage=900, stale-while-revalidate=86400');
       return res.status(200).json({
         success: true,
         data: limited,
@@ -516,6 +551,7 @@ export default async function handler(req, res) {
       console.error('Series API error:', error);
       // Last resort: return mapped JSON data unsorted
       const fallback = mapSeriesToApi(seriesJson.series_2026 || []);
+      res.setHeader('Cache-Control', 'public, s-maxage=900, stale-while-revalidate=86400');
       return res.status(200).json({
         success: true,
         data: fallback,

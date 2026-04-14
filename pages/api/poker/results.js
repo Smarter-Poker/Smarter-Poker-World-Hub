@@ -54,7 +54,15 @@ export default async function handler(req, res) {
 // GET handler
 // ---------------------------------------------------------------------------
 async function handleGet(req, res) {
-    const { series_id, tour_code, player_name, latest, limit } = req.query;
+    let { series_id, tour_code, player_name, latest, limit } = req.query;
+
+    // BUG FIX: Array Query Injection Vector
+    const safeString = (val) => Array.isArray(val) ? val[0] : val;
+    series_id = safeString(series_id);
+    tour_code = safeString(tour_code);
+    player_name = safeString(player_name);
+    latest = safeString(latest);
+    limit = safeString(limit);
 
     // --- Results for a specific series (+ leaderboard) ---------------------
     if (series_id) {
