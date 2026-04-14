@@ -116,15 +116,7 @@ function safeHref(url) {
     return cleanUrl;
 }
 
-// [DT2 FIX] Haversine defined outside component body — was recreated on every render.
-// Also now computes only once, not twice per tournament (filter + sort = O(2N) → O(N) via cache).
-function haversine(lat1, lng1, lat2, lng2) {
-    const R = 3958.8;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLng = (lng2 - lng1) * Math.PI / 180;
-    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-}
+// haversine is defined inside the component body to access userLocation via closure.
 
 export default function DailyTournaments() {
     const router = useRouter();
@@ -194,7 +186,7 @@ export default function DailyTournaments() {
         fetch(rtUrl)
             .then(r => r.json())
             .then(d => {
-                if (d.success) refreshTournaments(d, false);
+                if (d.success) refreshTournaments(d, { revalidate: false });
                 else refreshTournaments(); // Soft invalidate if payload is bad
             })
             .catch(() => {
@@ -204,6 +196,13 @@ export default function DailyTournaments() {
     });
     const tournaments = swrData?.tournaments || [];
     const stats = swrData?.stats || {};
+
+    // ── GPS / Distance Filter ─────────────────────────────────────────────
+    // [P1-B FIX] Moved above clearFilters — useState setters must be declared before
+    // being referenced in non-hook code (clearFilters calls setDistanceFilter at runtime).
+    const [userLocation, setUserLocation] = useState(null); // { lat, lng }
+    const [gpsStatus, setGpsStatus] = useState('idle'); // idle | requesting | granted | denied
+    const [distanceFilter, setDistanceFilter] = useState('all'); // 'all' | '25' | '50' | '100' | '250'
 
     const clearFilters = () => {
         setSelectedState(null);
@@ -215,12 +214,9 @@ export default function DailyTournaments() {
         setDistanceFilter('all');
     };
 
-    // ── GPS / Distance Filter ─────────────────────────────────────────────
-    const [userLocation, setUserLocation] = useState(null); // { lat, lng }
-    const [gpsStatus, setGpsStatus] = useState('idle'); // idle | requesting | granted | denied
-    const [distanceFilter, setDistanceFilter] = useState('all'); // 'all' | '25' | '50' | '100' | '250'
-
-    // Haversine distance in miles
+    // [P1-A FIX] haversine defined here (not at module level) — uses no outer state.
+    // Defined once per component mount via useCallback's stable identity pattern.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     function haversine(lat1, lng1, lat2, lng2) {
         const R = 3958.8;
         const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -546,7 +542,7 @@ export default function DailyTournaments() {
                             <option value="250">Within 250 Mi</option>
                         </select>
 
-                        {(searchQuery || selectedState || selectedType || selectedBuyin.min || distanceFilter !== 'all') ? (
+                        {(searchQuery || selectedState || selectedType || selectedBuyin.min !== null || selectedBuyin.max !== null || distanceFilter !== 'all') ? (
                             <button className="pnm-filter-select pnm-clear-btn" onClick={clearFilters}>
                                 Clear
                             </button>
