@@ -103,11 +103,12 @@ function cleanEventName(raw) {
   let name = raw
     .replace(/&ndash;/gi, '\u2013')
     .replace(/&mdash;/gi, '\u2014')
-    .replace(/&#39;/g, "'")
     .replace(/&amp;/g, '&')
     .replace(/&quot;/g, '"')
     .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>');
+    .replace(/&gt;/g, '>')
+    .replace(/&#([0-9]{1,7});/gi, (match, numStr) => String.fromCharCode(parseInt(numStr, 10)))
+    .replace(/&#x([0-9a-f]{1,6});/gi, (match, hexStr) => String.fromCharCode(parseInt(hexStr, 16)));
   // Pattern A (mid-string): "Apr 9 Thursday 6:15pm" / "Apr 10 Friday 11:15am"
   name = name.replace(/\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}\s+(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+\d{1,2}:\d{2}\s*(am|pm)/gi, '');
   // Pattern B (trailing full day+date): "Wednesday, October 1 10 a.m"
@@ -576,7 +577,13 @@ export default function SeriesDetailPage() {
   // BUG FIX: sanitize source_url — block javascript:/data: XSS vectors before use in <a href>
   const rawSourceUrl = series.source_url || series.website || series.schedule_url || '';
   const sourceUrl = /^https?:\/\//i.test(rawSourceUrl) ? rawSourceUrl : '';
-  const rawEvents = series.events || [];
+  
+  // Clean rawEvents: filter out scraped garbage like ticker-text and slider_right
+  const rawEvents = (series.events || []).filter(e => {
+    const n = (e.event_name || '').toLowerCase();
+    if (!n) return true;
+    return !n.includes('ticker-text') && !n.includes('slider_right');
+  });
   
   const sortEvents = (eventsToSort, config) => {
     return [...eventsToSort].sort((a, b) => {
