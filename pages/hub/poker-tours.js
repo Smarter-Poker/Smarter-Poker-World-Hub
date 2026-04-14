@@ -15,6 +15,14 @@ const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalH
 const HamburgerMenu = dynamic(() => import('../../src/components/ui/HamburgerMenu'), { ssr: false });
 const VenueMap = dynamic(() => import('../../src/components/poker-near-me/VenueMap').then(m => ({ default: m.default })), { ssr: false });
 const MapErrorBoundary = dynamic(() => import('../../src/components/poker-near-me/VenueMap').then(m => ({ default: m.MapErrorBoundary })), { ssr: false });
+const IframeModal = dynamic(() => import('../../src/components/ui/IframeModal'), { ssr: false });
+
+function safeHref(url) {
+    if (!url) return undefined;
+    const s = String(url).replace(/[\x00-\x20\x7F]/g, '');
+    if (/^(javascript|data|vbscript|file):/i.test(s)) return '#xss';
+    return s;
+}
 
 // ─── Menu Config ───
 function getMenuConfig() {
@@ -400,10 +408,10 @@ export default function PokerToursPage() {
 
     // ─── Find venue coordinates by fuzzy name + city fallback ───
     const findVenueCoords = useCallback((stop) => {
-        const venueName = (stop.venue || stop.name || '').toLowerCase();
-        const location = (stop.location || '').toLowerCase();
-        const city = (stop.city || '').toLowerCase();
-        const state = (stop.state || '').toLowerCase();
+        const venueName = (stop.venue || stop.name || '').toLowerCase().trim();
+        const location = (stop.location || '').toLowerCase().trim();
+        const city = (stop.city || '').toLowerCase().trim();
+        const state = (stop.state || '').toLowerCase().trim();
 
         // Try to extract city from location field (e.g. "Las Vegas, NV")
         const locationCity = location.split(',')[0]?.trim().toLowerCase() || '';
@@ -1167,7 +1175,7 @@ export default function PokerToursPage() {
                                 hideLegend={true}
                                 uniformColor="#ffffff"
                                 disableClustering={true}
-                                onOpenIframeModal={(url, title) => setIframeModal({ isOpen: true, url, title })}
+                                onOpenIframeModal={(url, title) => setIframeModal({ isOpen: true, url: safeHref(url), title })}
                             />
                         </MapErrorBoundary>
                         </div>
@@ -1409,7 +1417,7 @@ export default function PokerToursPage() {
                                                     <span className="tour-action-btn primary">Details</span>
                                                     {(tour.official_website) && (
                                                         <a
-                                                            href={tour.official_website.startsWith('http') ? tour.official_website : 'https://' + tour.official_website}
+                                                            href={safeHref(tour.official_website.startsWith('http') ? tour.official_website : 'https://' + tour.official_website)}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
                                                             className="tour-action-btn"
@@ -1428,12 +1436,15 @@ export default function PokerToursPage() {
                     </main>
                 </div>
 
-                <FullScreenPageOverlay
-                    isOpen={iframeModal.isOpen}
-                    onClose={() => setIframeModal({ isOpen: false, url: '', title: '' })}
-                    url={iframeModal.url}
-                    title={iframeModal.title}
-                />
+                {/* Modals */}
+                {iframeModal.isOpen && (
+                    <IframeModal
+                        isOpen={iframeModal.isOpen}
+                        onClose={() => setIframeModal({ isOpen: false, url: '', title: '' })}
+                        url={iframeModal.url}
+                        title={iframeModal.title}
+                    />
+                )}
 
                 {/* ═══════════════════════════════════════ */}
                 {/* STYLES — Reuses PNM architecture       */}
