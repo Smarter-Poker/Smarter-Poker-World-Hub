@@ -107,6 +107,13 @@ function formatMoney(amount) {
     return `$${amount.toLocaleString()}`;
 }
 
+function safeHref(url) {
+    if (!url) return '';
+    const str = String(url).toLowerCase().trim();
+    if (str.startsWith('javascript:') || str.startsWith('data:') || str.startsWith('vbscript:')) return '#';
+    return url;
+}
+
 export default function DailyTournaments() {
     const router = useRouter();
     const [menuOpen, setMenuOpen] = useState(false);
@@ -336,7 +343,7 @@ export default function DailyTournaments() {
                                         </h2>
                                         <div className="tournament-list">
                                             {morningTournaments.map((t, i) => (
-                                                <TournamentCard key={t.id || i} tournament={t} />
+                                                <TournamentCard key={`${t.id || 'm'}-${i}`} tournament={t} />
                                             ))}
                                         </div>
                                     </div>
@@ -351,7 +358,7 @@ export default function DailyTournaments() {
                                         </h2>
                                         <div className="tournament-list">
                                             {afternoonTournaments.map((t, i) => (
-                                                <TournamentCard key={t.id || i} tournament={t} />
+                                                <TournamentCard key={`${t.id || 'a'}-${i}`} tournament={t} />
                                             ))}
                                         </div>
                                     </div>
@@ -366,7 +373,7 @@ export default function DailyTournaments() {
                                         </h2>
                                         <div className="tournament-list">
                                             {eveningTournaments.map((t, i) => (
-                                                <TournamentCard key={t.id || i} tournament={t} />
+                                                <TournamentCard key={`${t.id || 'e'}-${i}`} tournament={t} />
                                             ))}
                                         </div>
                                     </div>
@@ -644,6 +651,7 @@ export default function DailyTournaments() {
 // Tournament Card Component
 function TournamentCard({ tournament }) {
     const t = tournament;
+    const isRealVenue = t.venue_id && !String(t.venue_id).startsWith('charity_') && !String(t.venue_id).startsWith('tour_event_');
 
     return (
         <div className="tournament-card">
@@ -654,7 +662,7 @@ function TournamentCard({ tournament }) {
             {t.tournament_name && t.tournament_name !== t.venue_name && !t.tournament_name.match(/Buy In$/i) && !t.tournament_name.match(/^(pdf_action|viewport|fc-head|rh-flat|cookie|null|undefined)$/i) && t.tournament_name.length < 120 && (
                 <p className="card-tournament-name">{t.tournament_name}</p>
             )}
-            {t.venue_id ? (
+            {isRealVenue ? (
                 <Link href={`/hub/venues/${t.venue_id}`} legacyBehavior>
                     <a className="card-venue card-venue-link">{t.venue_name}</a>
                 </Link>
@@ -669,13 +677,13 @@ function TournamentCard({ tournament }) {
                 {t.venueType && t.venueType !== 'Unknown' && <span className="tag venue-type">{formatVenueType(t.venueType)}</span>}
             </div>
             <div className="card-actions">
-                {t.venue_id && (
+                {isRealVenue && (
                     <Link href={`/hub/venues/${t.venue_id}`} legacyBehavior>
                         <a className="card-link venue-link">View Venue Page</a>
                     </Link>
                 )}
                 {t.pokerAtlasUrl && (
-                    <a href={t.pokerAtlasUrl} target="_blank" rel="noopener noreferrer" className="card-link">
+                    <a href={safeHref(t.pokerAtlasUrl)} target="_blank" rel="noopener noreferrer" className="card-link">
                         View Details
                     </a>
                 )}
