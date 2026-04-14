@@ -1931,6 +1931,7 @@ export default function PokerNearMePage() {
         setUserLocation(null);
         setShowCitySuggestions(false);
         setHasSearched(true);
+        globalSearchModeRef.current = false;
         trackSearchEvent('city_select', { city: city.name, state: city.state });
         // Persist selected city to localStorage for cross-session restoration
         try {
@@ -1943,6 +1944,8 @@ export default function PokerNearMePage() {
     const handleCityClick = (city) => {
         setSelectedCity(city);
         setUserLocation(null);
+        setHasSearched(true);
+        globalSearchModeRef.current = false;
         // Persist selected city to localStorage for cross-session restoration
         try {
             localStorage.setItem('pnm_last_city', city.name);
@@ -2351,6 +2354,9 @@ export default function PokerNearMePage() {
                 <LiveGamesFeed
                     venues={allVenuesWithTours.length > 0 ? allVenuesWithTours : venues}
                     userLocation={userLocation}
+                    selectedCity={selectedCity}
+                    globalFilters={filters}
+                    setGlobalFilters={setFilters}
                     favorites={favorites}
                     handleToggleFavorite={(venueId, venueData) => toggleFavorite('venue', venueId, null, venueData)}
                     router={router}

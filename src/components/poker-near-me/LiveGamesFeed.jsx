@@ -147,7 +147,10 @@ export default function LiveGamesFeed({
     router, 
     openVenueModal,
     setSelectedVenueForReview,
-    user 
+    user,
+    selectedCity = null,
+    globalFilters = null,
+    setGlobalFilters = null
 }) {
     // ─── REPORT GAME MODAL STATE ───
     const [reportModalOpen, setReportModalOpen] = useState(false);
@@ -210,31 +213,60 @@ export default function LiveGamesFeed({
         } catch { /* ignore corrupt data */ }
     }, [userLocation]);
 
-    // Effective location = prop OR restored from localStorage
-    const effectiveLocation = userLocation || restoredLocation;
+    // Effective location = prop (userLocation || selectedCity) OR restored from localStorage
+    const effectiveLocation = userLocation || (selectedCity ? { lat: selectedCity.latitude || selectedCity.lat, lng: selectedCity.longitude || selectedCity.lng } : restoredLocation);
     
-    const [filterState, setFilterState] = useState(savedFilters.filterState || 'all');
-    // When location is available and no radius was explicitly saved by the user, default to 50mi
-    // This prevents the feed from showing all 239+ global venues when the user expects local results
-    const [filterRadius, setFilterRadius] = useState(() => {
-        if (savedFilters.filterRadius && savedFilters.filterRadius !== 'any') {
-            return savedFilters.filterRadius; // Respect explicit user preference
-        }
-        // If location is available (via prop or localStorage), default to 50mi
+    // If globalFilters are provided by the parent, use them. Otherwise, fall back to internal local state.
+    const [internalFilterState, setInternalFilterState] = useState(savedFilters.filterState || 'all');
+    const [internalFilterRadius, setInternalFilterRadius] = useState(() => {
+        if (savedFilters.filterRadius && savedFilters.filterRadius !== 'any') return savedFilters.filterRadius;
         const hasLocation = !!(userLocation) || !!(typeof window !== 'undefined' && (
-            localStorage.getItem('sp-user-gps') ||
-            (localStorage.getItem('pnm_last_location') && localStorage.getItem('pnm_location_enabled') === '1')
+            localStorage.getItem('sp-user-gps') || (localStorage.getItem('pnm_last_location') && localStorage.getItem('pnm_location_enabled') === '1')
         ));
         return hasLocation ? '50' : 'any';
     });
-    const [filterSort, setFilterSort] = useState(savedFilters.filterSort || 'distance');
-    const [filterGameType, setFilterGameType] = useState(savedFilters.filterGameType || 'all');
-    const [filterStakes, setFilterStakes] = useState(savedFilters.filterStakes || 'any');
+    const [internalFilterSort, setInternalFilterSort] = useState(savedFilters.filterSort || 'distance');
+    const [internalFilterGameType, setInternalFilterGameType] = useState(savedFilters.filterGameType || 'all');
+    const [internalFilterStakes, setInternalFilterStakes] = useState(savedFilters.filterStakes || 'any');
 
-    // Persist filters on change
+    const filterState = globalFilters ? (globalFilters.selectedState || 'all') : internalFilterState;
+    const filterRadius = globalFilters ? (globalFilters.radius === 'Any' ? 'any' : String(globalFilters.radius)) : internalFilterRadius;
+    
+    // Map main UI gameType to LiveGamesFeed format if needed
+    let computedGameType = internalFilterGameType;
+    if (globalFilters) {
+        if (globalFilters.gameType === 'cash') computedGameType = 'all'; // cash games allowed
+        else if (globalFilters.gameType === 'mtt') computedGameType = 'none'; // tournaments ONLY, so hide tables
+        else computedGameType = globalFilters.gameType; // 'all', 'mixed', etc.
+    }
+    const filterGameType = computedGameType;
+
+    // Map main UI stakes ($1/2, $2/5) to LGF stakes (1, 2)
+    let computedStakes = internalFilterStakes;
+    if (globalFilters) {
+        if (globalFilters.stakes === '$1/2') computedStakes = '1';
+        else if (globalFilters.stakes === '$2/5') computedStakes = '2';
+        else if (globalFilters.stakes === '$5/10+') computedStakes = '5';
+        else computedStakes = 'any';
+    }
+    const filterStakes = computedStakes;
+
+    const filterSort = internalFilterSort;
+    const setFilterRadius = (val) => {
+        if (globalFilters && setGlobalFilters) {
+            setGlobalFilters({ ...globalFilters, radius: val === 'any' ? 'Any' : Number(val) });
+        } else {
+            setInternalFilterRadius(val);
+        }
+    };
+    const setFilterSort = setInternalFilterSort;
+
+    // Persist filters on change (only if internal)
     useEffect(() => {
-        saveFilters('lgf', { mapExpanded, filterState, filterRadius, filterSort, filterGameType, filterStakes });
-    }, [mapExpanded, filterState, filterRadius, filterSort, filterGameType, filterStakes]);
+        if (!globalFilters) {
+            saveFilters('lgf', { mapExpanded, filterState: internalFilterState, filterRadius: internalFilterRadius, filterSort: internalFilterSort, filterGameType: internalFilterGameType, filterStakes: internalFilterStakes });
+        }
+    }, [mapExpanded, internalFilterState, internalFilterRadius, internalFilterSort, internalFilterGameType, internalFilterStakes, globalFilters]);
 
     // ─── AUTO-APPLY LOCAL RADIUS when location becomes available ───
     // If filterRadius is still 'any' but we now have a location, snap to 50mi
@@ -983,37 +1015,7 @@ export default function LiveGamesFeed({
                 </div>
             )}
 
-            {/* ─── 2. HORIZONTAL CONTROL BAR ─── */}
-            {!selectedVenue && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 16, alignItems: 'center', background: 'rgba(13,17,23,0.95)', padding: '12px 14px', borderRadius: 14, border: '1px solid rgba(48,54,61,0.8)', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
-                    
-
-                    <select value={filterState} onChange={(e) => setFilterState(e.target.value)} style={{ background: '#0d1117', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '7px 10px', color: '#c9d1d9', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', height: 34 }}>
-                        <option value="all">All States</option>
-                        {availableStates.map(st => (<option key={st} value={st}>{st}</option>))}
-                    </select>
-
-                    <select value={filterRadius} onChange={(e) => setFilterRadius(e.target.value)} style={{ background: '#0d1117', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '7px 10px', color: '#c9d1d9', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', height: 34 }}>
-                        <option value="any">Any Distance</option><option value="10">10 mi</option><option value="25">25 mi</option><option value="50">50 mi</option><option value="100">100 mi</option><option value="250">250 mi</option>
-                    </select>
-
-                    <select value={filterGameType} onChange={(e) => setFilterGameType(e.target.value)} style={{ background: '#0d1117', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '7px 10px', color: '#c9d1d9', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', height: 34 }}>
-                        {[{ key: 'all', label: 'All Games' }, { key: 'nlh', label: 'NLH' }, { key: 'plo', label: 'PLO' }, { key: 'mixed', label: 'Mixed' }, { key: 'stud', label: 'Stud' }].map(f => (
-                            <option key={f.key} value={f.key}>{f.label}</option>
-                        ))}
-                    </select>
-
-                    <select value={filterStakes} onChange={(e) => setFilterStakes(e.target.value)} style={{ background: '#0d1117', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '7px 10px', color: '#c9d1d9', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', height: 34 }}>
-                        {[{ key: 'any', label: 'Any Stakes' }, { key: '1', label: '1/2+' }, { key: '2', label: '2/5+' }, { key: '5', label: '5/10+' }, { key: '10', label: '10/20+' }, { key: '25', label: '25/50+' }].map(s => (<option key={s.key} value={s.key}>{s.label}</option>))}
-                    </select>
-
-                    <select value={filterSort} onChange={(e) => setFilterSort(e.target.value)} style={{ background: '#0d1117', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '7px 10px', color: '#c9d1d9', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', height: 34 }}>
-                        <option value="tables">Most Active</option>
-                        {effectiveLocation && <option value="distance">Nearest</option>}
-                        <option value="trust">Trust Score</option>
-                    </select>
-                </div>
-            )}
+            {/* ─── 2. HORIZONTAL CONTROL BAR (Removed to unify with global filters) ─── */}
 <div className="lgf-main" style={{ flex: 1, minWidth: 0 }}>
                 {liveLoading && Object.keys(liveData).length === 0 ? (
                     renderSkeletons(4)
