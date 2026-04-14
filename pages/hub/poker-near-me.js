@@ -2246,22 +2246,27 @@ export default function PokerNearMePage() {
         const uniqueTourStops = tourStops.filter(t => !venueIds.has(String(t.id)));
         let combined = [...venues, ...uniqueTourStops];
 
-        // ─── CLIENT-SIDE: Auto-filter by gameType (cash/tournaments/mixed) ───
-        // venueType is server-side; gameType and stakes are applied here instantly
+        // ─── CLIENT-SIDE: Auto-filter by gameType (nlh/plo/mixed) ───
+        // venueType is server-side; gameType and stakes are applied client-side instantly.
+        // Values match the dropdown: 'nlh' | 'plo' | 'mixed' | 'all'
         if (filters.gameType && filters.gameType !== 'all') {
             combined = combined.filter(v => {
                 const games = v.games_offered || [];
-                const hasCash = games.some(g => {
+                const hasNLH = games.some(g => {
                     const name = (g.game_type || g.name || g || '').toString().toLowerCase();
-                    return !name.includes('tournament') && !name.includes('mtt');
+                    return name.includes('nlh') || name.includes('hold') || name.includes('holdem') || name === 'no limit holdem';
                 });
-                const hasTournament = games.some(g => {
+                const hasPLO = games.some(g => {
                     const name = (g.game_type || g.name || g || '').toString().toLowerCase();
-                    return name.includes('tournament') || name.includes('mtt');
+                    return name.includes('plo') || name.includes('omaha') || name.includes('pot limit');
                 });
-                if (filters.gameType === 'cash') return hasCash; // STRICT: must explicitly offer cash
-                if (filters.gameType === 'mtt') return hasTournament || v.has_tournaments === true;
-                if (filters.gameType === 'mixed') return hasCash && hasTournament;
+                const hasMixed = games.some(g => {
+                    const name = (g.game_type || g.name || g || '').toString().toLowerCase();
+                    return name.includes('mix') || name.includes('horse') || name.includes('hors') || name.includes('dealer');
+                });
+                if (filters.gameType === 'nlh') return hasNLH; // STRICT: must offer NLH
+                if (filters.gameType === 'plo') return hasPLO; // STRICT: must offer PLO/Omaha
+                if (filters.gameType === 'mixed') return hasMixed || (hasNLH && hasPLO); // Mixed games OR diverse offering
                 return true;
             });
         }
