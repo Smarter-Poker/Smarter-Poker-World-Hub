@@ -150,7 +150,7 @@ export default function NewSeriesVenueCard({ series: s, index, isFavorited, onFa
                 <div className="series-tags">
                     {(s.events_count || s.total_events) > 0 && <span className="series-tag">{s.events_count || s.total_events} Events</span>}
                     {s.main_event_buyin != null && <span className="series-tag">{formatMoney(s.main_event_buyin)} Main</span>}
-                    {(s.total_guaranteed || s.main_event_guaranteed) != null && <span className="series-tag" style={{ color: '#fbbf24', borderColor: 'rgba(251,191,36,0.3)' }}>{formatMoney(s.total_guaranteed || s.main_event_guaranteed)} GTD</span>}
+                    {(s.total_guaranteed || s.main_event_guaranteed) != null && <span className="series-tag" style={{ color: '#ffffff', borderColor: 'rgba(255,255,255,0.3)' }}>{formatMoney(s.total_guaranteed || s.main_event_guaranteed)} GTD</span>}
                     {isNew && <span className="series-tag" style={{ color: '#00D4FF', borderColor: 'rgba(0,212,255,0.3)', background: 'rgba(0,212,255,0.1)' }}>NEW ADDITION</span>}
                 </div>
             </div>

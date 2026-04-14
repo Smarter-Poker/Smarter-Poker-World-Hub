@@ -1025,12 +1025,12 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                                                     </span>
                                                 )}
                                                 {series.main_event_buyin && (
-                                                    <span className="tour-region-tag" style={{ background: 'rgba(212,168,83,0.1)', borderColor: 'rgba(212,168,83,0.3)', color: '#d4a853' }}>
+                                                    <span className="tour-region-tag" style={{ background: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.3)', color: '#ffffff' }}>
                                                         {formatMoney(series.main_event_buyin)} Main
                                                     </span>
                                                 )}
                                                 {(series.total_guaranteed || series.main_event_guaranteed) && (
-                                                    <span className="tour-region-tag" style={{ background: 'rgba(251,191,36,0.1)', borderColor: 'rgba(251,191,36,0.3)', color: '#fbbf24' }}>
+                                                    <span className="tour-region-tag" style={{ background: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.3)', color: '#ffffff' }}>
                                                         {formatMoney(series.total_guaranteed || series.main_event_guaranteed)} GTD
                                                     </span>
                                                 )}
@@ -1120,8 +1120,8 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                         width: 100%;
                         padding: 8px 20px 10px;
                         background: rgba(6, 14, 26, 0.6);
-                        border-top: 1px solid rgba(212,168,83,0.1);
-                        border-bottom: 1px solid rgba(212,168,83,0.1);
+                        border-top: 1px solid rgba(255,255,255,0.1);
+                        border-bottom: 1px solid rgba(255,255,255,0.1);
                         flex-shrink: 0;
                     }
                     .pnm-top-filters-inner {
@@ -1144,9 +1144,9 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                         height: 36px;
                         padding: 0 10px 0 10px;
                         background: rgba(12, 22, 40, 0.85);
-                        border: 1.5px solid rgba(212,168,83,0.25);
+                        border: 1.5px solid rgba(255,255,255,0.25);
                         border-radius: 8px;
-                        color: #d4a853;
+                        color: #ffffff;
                         font-size: 12px;
                         font-weight: 600;
                         font-family: inherit;
@@ -1160,7 +1160,7 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                         box-sizing: border-box;
                     }
                     .pnm-filter-select:hover, .pnm-filter-select:focus {
-                        border-color: rgba(212,168,83,0.55);
+                        border-color: rgba(255,255,255,0.55);
                     }
                     .pnm-filter-select option {
                         background: #0c1423;
@@ -1170,10 +1170,10 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                         flex-shrink: 0;
                         height: 36px;
                         padding: 0 14px;
-                        background: rgba(212,168,83,0.12);
-                        border: 1.5px solid rgba(212,168,83,0.3);
+                        background: rgba(255,255,255,0.12);
+                        border: 1.5px solid rgba(255,255,255,0.3);
                         border-radius: 8px;
-                        color: #d4a853;
+                        color: #ffffff;
                         font-size: 12px;
                         font-weight: 600;
                         font-family: inherit;
@@ -1182,20 +1182,20 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                         white-space: nowrap;
                     }
                     .pnm-filter-clear-btn:hover {
-                        background: rgba(212,168,83,0.22);
-                        border-color: rgba(212,168,83,0.5);
+                        background: rgba(255,255,255,0.22);
+                        border-color: rgba(255,255,255,0.5);
                     }
                     .pnm-title {
                         font-size: clamp(22px, 3.5vw, 36px);
                         font-weight: 900;
                         letter-spacing: clamp(1.5px, 0.3vw, 3px);
                         margin: 0;
-                        background: linear-gradient(135deg, #d4a853 0%, #f5d799 40%, #d4a853 60%, #b8860b 100%);
+                        background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 40%, #ffffff 60%, #94a3b8 100%);
                         -webkit-background-clip: text;
                         -webkit-text-fill-color: transparent;
                         background-clip: text;
                         text-shadow: none;
-                        filter: drop-shadow(0 0 20px rgba(212,168,83,0.3));
+                        filter: drop-shadow(0 0 20px rgba(255,255,255,0.3));
                     }
                     .pnm-subtitle {
                         margin: clamp(3px, 0.5vh, 6px) 0 0;
@@ -1221,7 +1221,7 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                         background: rgba(6, 21, 37, 0.7);
                         backdrop-filter: blur(16px);
                         -webkit-backdrop-filter: blur(16px);
-                        border: 1.5px solid rgba(212,168,83,0.2);
+                        border: 1.5px solid rgba(255,255,255,0.2);
                         border-radius: 14px;
                         transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
                         box-shadow: 0 4px 20px rgba(0,0,0,0.25);
@@ -1230,11 +1230,11 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                     }
                     .tours-search-bar-icon {
                         flex-shrink: 0;
-                        color: rgba(212,168,83,0.5);
+                        color: rgba(255,255,255,0.5);
                         transition: color 0.3s;
                     }
                     .tours-search-wrap.focused .tours-search-bar-icon {
-                        color: #d4a853;
+                        color: #ffffff;
                     }
                     .tours-search-bar-input {
                         flex: 1;
@@ -1281,14 +1281,14 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                     .tours-date-divider {
                         width: 1px;
                         height: 28px;
-                        background: rgba(212,168,83,0.2);
+                        background: rgba(255,255,255,0.2);
                         flex-shrink: 0;
                     }
                     .tours-date-select {
                         flex-shrink: 0;
                         background: transparent;
                         border: none;
-                        color: #d4a853;
+                        color: #ffffff;
                         font-size: 13px;
                         font-weight: 600;
                         font-family: inherit;
@@ -1329,10 +1329,10 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                         z-index: 50;
                         box-shadow: 4px 0 24px rgba(0,0,0,0.3);
                         scrollbar-width: thin;
-                        scrollbar-color: rgba(212,168,83,0.3) transparent;
+                        scrollbar-color: rgba(255,255,255,0.3) transparent;
                     }
                     .pnm-sidebar::-webkit-scrollbar { width: 4px; }
-                    .pnm-sidebar::-webkit-scrollbar-thumb { background: rgba(212,168,83,0.25); border-radius: 2px; }
+                    .pnm-sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.25); border-radius: 2px; }
 
                     .sidebar-nav {
                         display: flex;
@@ -1362,10 +1362,10 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                         color: rgba(200,214,229,0.85);
                     }
                     .sidebar-tab.active {
-                        background: linear-gradient(135deg, rgba(212,168,83,0.12) 0%, rgba(184,134,11,0.06) 100%);
-                        border-color: rgba(212,168,83,0.3);
-                        color: #d4a853;
-                        box-shadow: inset 0 0 12px rgba(212,168,83,0.06), 0 0 8px rgba(212,168,83,0.08);
+                        background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(148,163,184,0.06) 100%);
+                        border-color: rgba(255,255,255,0.3);
+                        color: #ffffff;
+                        box-shadow: inset 0 0 12px rgba(255,255,255,0.06), 0 0 8px rgba(255,255,255,0.08);
                     }
                     .sidebar-tab.active::before {
                         content: '';
@@ -1374,9 +1374,9 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                         top: 6px;
                         bottom: 6px;
                         width: 3px;
-                        background: #d4a853;
+                        background: #ffffff;
                         border-radius: 0 3px 3px 0;
-                        box-shadow: 0 0 8px rgba(212,168,83,0.4);
+                        box-shadow: 0 0 8px rgba(255,255,255,0.4);
                     }
                     .sidebar-tab-icon {
                         display: flex;
@@ -1399,7 +1399,7 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                         min-width: 18px;
                         text-align: center;
                     }
-                    .sidebar-tab.active .sidebar-tab-count { color: rgba(212,168,83,0.6); }
+                    .sidebar-tab.active .sidebar-tab-count { color: rgba(255,255,255,0.6); }
 
                     /* ═══ SIDEBAR FILTERS ═══ */
                     .sidebar-filters {
@@ -1431,13 +1431,13 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                         cursor: pointer;
                         appearance: auto;
                     }
-                    .sidebar-select:focus { border-color: rgba(212,168,83,0.4); outline: none; }
+                    .sidebar-select:focus { border-color: rgba(255,255,255,0.4); outline: none; }
 
                     .sidebar-active-filters {
                         margin-top: 6px;
                         padding: 8px;
-                        background: rgba(212,168,83,0.06);
-                        border: 1px solid rgba(212,168,83,0.15);
+                        background: rgba(255,255,255,0.06);
+                        border: 1px solid rgba(255,255,255,0.15);
                         border-radius: 8px;
                     }
                     .sidebar-active-filters-header {
@@ -1445,7 +1445,7 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                         align-items: center;
                         justify-content: space-between;
                         font-size: 11px;
-                        color: rgba(212,168,83,0.7);
+                        color: rgba(255,255,255,0.7);
                         font-weight: 600;
                     }
                     .sidebar-clear-btn {
@@ -1497,7 +1497,7 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                         color: rgba(148,163,184,0.7);
                     }
                     .tours-results-count strong {
-                        color: #d4a853;
+                        color: #ffffff;
                         font-weight: 800;
                     }
                     .tours-stops-count {
@@ -1506,7 +1506,7 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                         font-size: 13px;
                     }
                     .tours-results-query {
-                        color: rgba(212,168,83,0.6);
+                        color: rgba(255,255,255,0.6);
                         font-style: italic;
                         font-size: 13px;
                     }
@@ -1545,7 +1545,7 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                         background: rgba(0,0,0,0.35);
                         border: 1px solid rgba(148,163,184,0.15);
                         border-radius: 6px;
-                        color: #d4a853;
+                        color: #ffffff;
                         font-size: 12px;
                         font-weight: 600;
                         font-family: inherit;
@@ -1589,7 +1589,7 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                         transform: translateY(-2px);
                         box-shadow:
                             0 8px 32px rgba(0,0,0,0.4),
-                            0 0 18px rgba(212,168,83,0.15),
+                            0 0 18px rgba(255,255,255,0.15),
                             inset 0 1px 0 rgba(255,255,255,0.06);
                     }
 
@@ -1653,7 +1653,7 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                         align-items: center;
                         gap: 6px;
                         font-size: 12px;
-                        color: rgba(212,168,83,0.85);
+                        color: rgba(255,255,255,0.85);
                         font-weight: 600;
                         margin-bottom: 10px;
                     }
@@ -1761,14 +1761,14 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                         color: #fff;
                     }
                     .tour-action-btn.primary {
-                        background: linear-gradient(135deg, #d4a853, #b8860b);
+                        background: linear-gradient(135deg, #ffffff, #94a3b8);
                         border: none;
                         color: #000;
                         font-weight: 700;
                         letter-spacing: 0.3px;
                     }
                     .tour-action-btn.primary:hover {
-                        box-shadow: 0 4px 16px rgba(212,168,83,0.3);
+                        box-shadow: 0 4px 16px rgba(255,255,255,0.3);
                         transform: translateY(-1px);
                     }
 
@@ -1804,15 +1804,15 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                         align-items: center;
                         gap: 16px;
                         padding: 60px 20px;
-                        color: rgba(212,168,83,0.6);
+                        color: rgba(255,255,255,0.6);
                         font-size: 14px;
                         font-weight: 600;
                     }
                     .tours-spinner {
                         width: 40px;
                         height: 40px;
-                        border: 3px solid rgba(212,168,83,0.15);
-                        border-top-color: #d4a853;
+                        border: 3px solid rgba(255,255,255,0.15);
+                        border-top-color: #ffffff;
                         border-radius: 50%;
                         animation: spin 1s linear infinite;
                     }
@@ -1840,9 +1840,9 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                         margin-top: 8px;
                         padding: 10px 24px;
                         border-radius: 8px;
-                        border: 1.5px solid rgba(212,168,83,0.3);
-                        background: rgba(212,168,83,0.08);
-                        color: #d4a853;
+                        border: 1.5px solid rgba(255,255,255,0.3);
+                        background: rgba(255,255,255,0.08);
+                        color: #ffffff;
                         font-size: 13px;
                         font-weight: 600;
                         font-family: inherit;
@@ -1850,9 +1850,9 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                         transition: all 0.25s;
                     }
                     .tours-empty-reset:hover {
-                        background: rgba(212,168,83,0.15);
-                        border-color: rgba(212,168,83,0.5);
-                        box-shadow: 0 0 16px rgba(212,168,83,0.1);
+                        background: rgba(255,255,255,0.15);
+                        border-color: rgba(255,255,255,0.5);
+                        box-shadow: 0 0 16px rgba(255,255,255,0.1);
                     }
 
                     /* ═══ SKELETON ═══ */
@@ -1944,7 +1944,7 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                         }
                         .sidebar-tab.active::before { display: none; }
                         .sidebar-tab.active {
-                            box-shadow: inset 0 -2px 0 #d4a853, inset 0 0 8px rgba(212,168,83,0.08);
+                            box-shadow: inset 0 -2px 0 #ffffff, inset 0 0 8px rgba(255,255,255,0.08);
                         }
                         .sidebar-tab-label { font-size: 10px; }
                         .sidebar-tab-icon { width: 20px; height: 20px; }
