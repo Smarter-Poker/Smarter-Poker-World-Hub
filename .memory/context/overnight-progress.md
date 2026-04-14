@@ -1,5 +1,6 @@
 # Overnight progress log — 2026-04-14
 
+<<<<<<< Updated upstream
 > **CORRECTION (added after an adversarial audit caught the gap):**
 > The "Phase 1.1 complete" and "Phase 1.2 mostly done" claims below are
 > MISLEADING. What's actually true:
@@ -18,6 +19,8 @@
 > §12b/c/d/e and `.memory/SPEC-AUDIT-CHECKLIST.md` (both added
 > 2026-04-14) for the structural prevention.
 
+=======
+>>>>>>> Stashed changes
 All commits listed below are **live in production**. Morning read this
 first to see what landed.
 
@@ -53,7 +56,10 @@ first to see what landed.
 | `ea665ff6` | Phase 1.2 PR-E: DisconnectEngine FSM getters + ServerTableEngine persistence wire + 8 tests |
 | `b1c8094b` | Phase 1.2 PR-F: server emits turn_deadline_ms + disconnect_states; client reads them via mapEngineSnapshot |
 | `e43d0b95` | Phase 1.2 PR-F UX: DisconnectToast banner for MISSING/DISCONNECTED |
+<<<<<<< Updated upstream
 | `cbacaa03` | Phase 2 T1-01: PokerBros net-profit +N yellow floating text on winners |
+=======
+>>>>>>> Stashed changes
 
 **Test count:** 68/68 vitest green across DeadlineScheduler, PreciseActionTimer, DisconnectEngine, TableStateHub, EngineWebSocketServer helpers.
 
@@ -68,7 +74,10 @@ first to see what landed.
 | `6a4486d0` | Phase 1.2 PR-C migration file for history |
 | `b80af69b` | chore: rebuild to pick up Phase 1.2 PR-F client consumption |
 | `4436baed` | chore: rebuild to ship DisconnectToast |
+<<<<<<< Updated upstream
 | `d450f4fd` | chore: rebuild to ship Phase 2 T1-01 net-profit floating text |
+=======
+>>>>>>> Stashed changes
 
 ### Hetzner game engine
 
@@ -88,8 +97,11 @@ index `hand_state_snapshots_table_updated_idx`.
 
 - `.memory/specs/phase-1.1-server-authoritative-state.md` — PR-1..PR-5 breakdown, already shipped through PR-4
 - `.memory/specs/phase-1.2-deadline-timer-disconnect-grace.md` — PR-A..PR-G, shipped through PR-F
+<<<<<<< Updated upstream
 - `.memory/specs/phase-1.3-action-rejection-ux.md` — NEW this session. Validator codes + hints + toast. Ready to start after 1.2 PR-F soak.
 - `.memory/specs/phase-2-parity-ux-roadmap.md` — NEW this session. 20 PokerBros parity items across 3 tiers. T1-01 already shipped.
+=======
+>>>>>>> Stashed changes
 - `.memory/WORKING-RULES.md` — 12 binding rules (incl. rule 12a "never ask permission, answer is yes")
 
 ## What's still TODO (next sessions)
@@ -117,7 +129,11 @@ index `hand_state_snapshots_table_updated_idx`.
 - Vercel project serving smarter.poker: `hub-vanguard`
   (prj_op66GkZyZcygXQKm76iyycfVFAQx)
 - Deploy hook (POST no auth): `Tw4O1eDeVc`
+<<<<<<< Updated upstream
 - Current bundle: `index-DljaHKpS.js` (Phase 2 T1-01 net-profit float build)
+=======
+- Current bundle: `index-DDu0HIZL.js` (DisconnectToast build)
+>>>>>>> Stashed changes
 
 ## Rules reminders
 

@@ -58,6 +58,7 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
   const [minGuaranteed, setMinGuaranteed] = useState('');
   const [groupByState, setGroupByState] = useState(false);
   const [selectedState, setSelectedState] = useState('all');
+  const [expandedCards, setExpandedCards] = useState({});
 
   const handleDayChange = (day) => {
     setSelectedDay(day);
@@ -94,16 +95,14 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
 
   const renderTournamentCard = (t, i) => {
     const buyinStyle = getBuyinColor(t.buy_in);
+    const cardId = t.id || i;
+    const isExpanded = !!expandedCards[cardId];
+    
     return (
-    <div key={t.id || i} onClick={() => {
-      if (t.venue_id) {
-        if (openVenueModal) openVenueModal(`/hub/venues/${t.venue_id}`);
-        else window.location.href = `/hub/venues/${t.venue_id}`;
-      }
-    }} style={{
+    <div key={cardId} style={{
       background: 'linear-gradient(160deg, rgba(18,28,45,0.85), rgba(10,16,28,0.92))', border: '1.5px solid rgba(148,163,184,0.12)',
       borderRadius: 12, padding: '12px 16px', transition: 'all 0.25s', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 2px 8px rgba(0,0,0,0.3)',
-      cursor: t.venue_id ? 'pointer' : 'default', position: 'relative',
+      position: 'relative',
     }}>
       {/* Countdown Timer */}
       {(() => {
@@ -136,15 +135,33 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
         );
       })()}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#e2e8f0', marginBottom: 2, textTransform: 'capitalize' }}>
+        <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => {
+            if (t.is_clustered) {
+                setExpandedCards(prev => ({ ...prev, [cardId]: !prev[cardId] }));
+            } else if (t.venue_id) {
+                if (openVenueModal) openVenueModal(`/hub/venues/${t.venue_id}`);
+                else window.location.href = `/hub/venues/${t.venue_id}`;
+            }
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 700, color: '#e2e8f0', marginBottom: 2, textTransform: 'capitalize' }}>
             {t.tournament_name || t.name || `${formatGameType(t.game_type)} Tournament`}
+            {t.is_clustered && (
+                <span style={{ fontSize: 10, background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: 4, color: '#94a3b8' }}>
+                    {t.flights?.length || 0} Flights
+                </span>
+            )}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'rgba(148,163,184,0.6)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'rgba(148,163,184,0.6)' }} onClick={(e) => {
+              e.stopPropagation();
+              if (t.venue_id) {
+                if (openVenueModal) openVenueModal(`/hub/venues/${t.venue_id}`);
+                else window.location.href = `/hub/venues/${t.venue_id}`;
+              }
+          }}>
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, opacity: 0.5 }}>
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
             </svg>
-            <span style={{ textTransform: 'capitalize' }}>{t.venue_name || 'Unknown Venue'}</span>
+            <span style={{ textTransform: 'capitalize', cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'transparent', transition: '0.2s' }} onMouseOver={e=>e.target.style.textDecorationColor='currentColor'} onMouseOut={e=>e.target.style.textDecorationColor='transparent'}>{t.venue_name || 'Unknown Venue'}</span>
             {(t.venue_city || t.city) && <span style={{ color: 'rgba(148,163,184,0.4)', textTransform: 'capitalize' }}>{t.venue_city || t.city}{(t.venue_state || t.state) ? `, ${t.venue_state || t.state}` : ''}</span>}
           </div>
         </div>
@@ -152,14 +169,55 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
           {t.buy_in ? `$${t.buy_in}` : 'TBD'}
         </div>
       </div>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 11, color: 'rgba(148,163,184,0.5)' }}>
+      
+      {/* Primary Row: Essential Details */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 11, color: 'rgba(148,163,184,0.5)', marginTop: 8 }}>
         {t.start_time && <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(148,163,184,0.5)" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>{formatTime(t.start_time)}</span>}
+        {t.day_of_week && t.day_of_week !== selectedDay && t.day_of_week !== 'Daily' && <span style={{ color: '#94a3b8' }}>{t.day_of_week}</span>}
         {t.game_type && <span style={{ color: '#ffffff', background: 'rgba(255,255,255,0.08)', padding: '1px 6px', borderRadius: 4 }}>{formatGameType(t.game_type)}</span>}
         {t.guaranteed && <span style={{ color: '#f59e0b', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', padding: '2px 8px', borderRadius: 6, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 3 }}><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.5"><path d="M6 9H4.5a2.5 2.5 0 010-5C7 4 7 7 7 7"/><path d="M18 9h1.5a2.5 2.5 0 000-5C17 4 17 7 17 7"/><path d="M4 22h16"/><path d="M10 22V2h4v20"/></svg>{typeof t.guaranteed === 'number' ? t.guaranteed.toLocaleString() : t.guaranteed} GTD</span>}
-        {t.starting_stack && <span>Stack: {t.starting_stack.toLocaleString?.() || t.starting_stack}</span>}
-        {t.blind_levels && <span>Blinds: {t.blind_levels}</span>}
-        {t.rebuy_addon && <span>{t.rebuy_addon}</span>}
+        {t.format && <span style={{ color: '#cbd5e1' }}>{t.format.substring(0, 30)}</span>}
       </div>
+
+      {/* Structural Data Row */}
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 11, color: 'rgba(148,163,184,0.6)', marginTop: 8, padding: '6px 10px', background: 'rgba(0,0,0,0.2)', borderRadius: 6 }}>
+        {(t.starting_stack || t.level_duration_minutes || t.late_registration) ? (
+            <>
+                {t.starting_stack && <span><strong style={{ color: '#e2e8f0' }}>Stack:</strong> {t.starting_stack.toLocaleString?.() || t.starting_stack}</span>}
+                {(t.level_duration_minutes || t.blind_levels) && <span><strong style={{ color: '#e2e8f0' }}>Blinds:</strong> {t.level_duration_minutes ? `${t.level_duration_minutes}m` : t.blind_levels}</span>}
+                {t.late_registration && <span><strong style={{ color: '#e2e8f0' }}>Late Reg:</strong> {t.late_registration}</span>}
+                {t.rebuy_addon && <span><strong style={{ color: '#e2e8f0' }}>Rules:</strong> {t.rebuy_addon}</span>}
+            </>
+        ) : (
+            <span>Structure details pending...</span>
+        )}
+      </div>
+
+      {/* Structure Sheet Button */}
+      {t.structure_sheet_url && (
+        <a href={t.structure_sheet_url} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 800,
+          background: 'linear-gradient(180deg, rgba(14,165,233,0.15), rgba(2,132,199,0.05))', color: '#38bdf8', border: '1px solid rgba(14,165,233,0.2)',
+          padding: '6px 12px', borderRadius: 6, marginTop: 10, textDecoration: 'none', letterSpacing: '0.05em'
+        }}>
+          VIEW STRUCTURE PDF
+        </a>
+      )}
+      
+      {/* Clustered Flights Dropdown */}
+      {t.is_clustered && isExpanded && t.flights?.length > 1 && (
+        <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px dashed rgba(255,255,255,0.08)' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Included Flights</div>
+            <div style={{ display: 'grid', gap: 6 }}>
+                {t.flights.map((f, idx) => (
+                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', background: 'rgba(255,255,255,0.03)', padding: '6px 10px', borderRadius: 4, fontSize: 12, color: '#cbd5e1' }}>
+                        <span>{f.day_of_week && f.day_of_week !== 'Daily' ? `${f.day_of_week} ` : ''}{formatTime(f.start_time)}</span>
+                        {f.tournament_name && <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>{f.tournament_name}</span>}
+                    </div>
+                ))}
+            </div>
+        </div>
+      )}
     </div>
     );
   };

@@ -14,6 +14,11 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import tournamentVenues from '../../../data/tournament-venues.json';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
+// Any tournament starting before 10:00 AM is treated as a data quality error
+// (scraper artifacts produce 12 AM / 1 AM times that don't exist in reality).
+// Flagged records are suppressed from the public API response — NOT deleted from the DB.
+const SUSPICIOUS_TIME_FLOOR_MINUTES = 600; // 10:00 AM
+
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -137,6 +142,10 @@ export default async function handler(req, res) {
                   rebuy_addon,
                   starting_stack,
                   blind_levels,
+                  level_duration_minutes,
+                  late_registration,
+                  structure_sheet_url,
+                  parent_tournament_id,
                   source_url,
                   last_scraped,
                   is_active
@@ -273,13 +282,55 @@ export default async function handler(req, res) {
                   }
               }
               
+              // ═══════════════════════════════════════════════════════════
+              // FLIGHT CLUSTERING LAYER: Group multi-flights / recurring days
+              // ═══════════════════════════════════════════════════════════
+              const clusteredTournaments = [];
+              const groupMap = new Map();
+              
+              for (const t of dedupedTournaments) {
+                  let clusterKey = t.parent_tournament_id || null;
+                  
+                  if (!clusterKey && t.tournament_name) {
+                      const name = t.tournament_name.toLowerCase();
+                      const hasFlight = name.match(/\b(flight[s]?\s*[a-z0-9]+|day\s*1[a-z]?)\b/i);
+                      if (hasFlight) {
+                          const baseName = name.replace(/\b(flight[s]?\s*[a-z0-9]+|day\s*1[a-z]?)\b/gi, '').trim();
+                          clusterKey = `heuristic_${t.venue_id}_${t.buy_in}_${baseName}`;
+                      }
+                  }
+                  
+                  if (clusterKey) {
+                      if (!groupMap.has(clusterKey)) {
+                          groupMap.set(clusterKey, {
+                              ...t,
+                              is_clustered: true,
+                              flights: [t]
+                          });
+                      } else {
+                          groupMap.get(clusterKey).flights.push(t);
+                      }
+                  } else {
+                      clusteredTournaments.push(t);
+                  }
+              }
+              
+              for (const group of groupMap.values()) {
+                  if (group.flights.length > 1) {
+                      group.flights.sort((a,b) => parseTime(a.start_time) - parseTime(b.start_time));
+                      clusteredTournaments.push(group);
+                  } else {
+                      clusteredTournaments.push(group.flights[0]); // Don't cluster singletons
+                  }
+              }
+              
               // Enrich with venue data from source of truth
               const venueMap = new Map();
               tournamentVenues.venues.forEach(v => {
                   venueMap.set(v.name.toLowerCase(), v);
               });
 
-              tournaments = dedupedTournaments.map(t => {
+              tournaments = clusteredTournaments.map(t => {
                   const venueInfo = venueMap.get(t.venue_name?.toLowerCase()) || {};
                   return {
                       ...t,
@@ -354,6 +405,53 @@ export default async function handler(req, res) {
               tournaments = [];
           }
 
+          // ═══════════════════════════════════════════════════════════
+          // TIME FLOOR GUARD: Suppress pre-10 AM tournaments (data quality errors)
+          // Scraper artifacts produce 12 AM / 1 AM / 2 AM times that don't exist.
+          // These are flagged for manual review and hidden from the public feed.
+          // ═══════════════════════════════════════════════════════════
+          const suspiciousCount = tournaments.filter(t => {
+              const mins = parseTime(t.start_time);
+              return mins > 0 && mins < SUSPICIOUS_TIME_FLOOR_MINUTES;
+          }).length;
+          if (suspiciousCount > 0) {
+              console.warn(`[daily-tournaments] Suppressed ${suspiciousCount} pre-10AM records — flagged for manual review`);
+          }
+          tournaments = tournaments.filter(t => {
+              const mins = parseTime(t.start_time);
+              // Keep: midnight sentinel (0 = no time set) AND times >= 10 AM
+              return mins === 0 || mins >= SUSPICIOUS_TIME_FLOOR_MINUTES;
+          });
+
+          // ═══════════════════════════════════════════════════════════
+          // VENUE LOGO ENRICHMENT: Batch-fetch logo_url from poker_venues
+          // Attach to each tournament so the frontend can render venue logos
+          // ═══════════════════════════════════════════════════════════
+          const numericVenueIds = [...new Set(
+              tournaments
+                  .map(t => t.venue_id)
+                  .filter(id => id && !isNaN(Number(id)) && Number(id) > 0)
+                  .map(id => Number(id))
+          )];
+          if (numericVenueIds.length > 0) {
+              try {
+                  const { data: venueLogos } = await getSupabase()
+                      .from('poker_venues')
+                      .select('id, logo_url, profile_photo_url')
+                      .in('id', numericVenueIds);
+                  if (venueLogos && venueLogos.length > 0) {
+                      const logoMap = new Map();
+                      venueLogos.forEach(v => logoMap.set(v.id, v.logo_url || v.profile_photo_url || null));
+                      tournaments = tournaments.map(t => ({
+                          ...t,
+                          logo_url: logoMap.get(Number(t.venue_id)) || null,
+                      }));
+                  }
+              } catch (logoErr) {
+                  console.warn('[daily-tournaments] Logo batch-fetch failed (non-fatal):', logoErr.message);
+              }
+          }
+
           // Sort by chosen field
           if (sort === 'buyin') {
               tournaments.sort((a, b) => (a.buy_in || 0) - (b.buy_in || 0));
@@ -386,6 +484,7 @@ export default async function handler(req, res) {
                   dedup: {
                       raw_db_rows: rawCount,
                       duplicates_removed: dedupedCount,
+                      suspicious_pre10am_suppressed: suspiciousCount,
                       charity_events: (dbCharityEvents || []).length,
                       tour_events: (dbToursEvents || []).length,
                   }

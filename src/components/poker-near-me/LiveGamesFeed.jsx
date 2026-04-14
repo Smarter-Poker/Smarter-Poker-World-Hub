@@ -559,12 +559,14 @@ export default function LiveGamesFeed({
     };
 
     const handleResetFilters = () => {
-        setFilterRadius('any');
+        // When location is available, reset to 50mi to keep local context — not global 'any'
+        setFilterRadius(effectiveLocation ? '50' : 'any');
         setFilterState('all');
         setFilterGameType('all');
         setFilterStakes('any');
         setSearchQuery('');
         setSelectedVenue(null);
+        locationAppliedRef.current = !!effectiveLocation; // Prevent auto-snap from re-firing
     };
 
     const toggleBreakdown = (slug) => {

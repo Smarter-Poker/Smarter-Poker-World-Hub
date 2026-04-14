@@ -9,7 +9,7 @@
  * GET /api/poker/events-calendar
  *   ?day=Monday|Tuesday|...|all         Day filter (recurring tournaments)
  *   ?date=2026-04-18                    Specific date filter
- *   ?dateRange=today|tomorrow|week|weekend|14days
+ *   ?dateRange=today|tomorrow|week|weekend|14days|30days|60days|90days|180days|365days
  *   ?state=TX                           State filter
  *   ?city=Houston                       City filter
  *   ?lat=29.7&lng=-95.3&radius=100      GPS + radius (miles)
@@ -19,6 +19,7 @@
  *   ?search=Lodge                       Free text search
  *   ?sort=date|buyin|distance           Sort order
  *   ?offset=0&limit=100                 Pagination
+ *   ?calMonth=2026-08                   Load all events for a specific calendar month (YYYY-MM)
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -35,6 +36,11 @@ function getSupabase() {
 }
 
 const DAYS_ORDER = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+// For ranges beyond this many days, recurring daily events are shown as
+// "next occurrence only" (one row per unique tournament) to avoid millions
+// of projected rows.
+const SMART_AGG_THRESHOLD = 30;
 
 function getCurrentDayInfo() {
   const localTime = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
@@ -56,12 +62,15 @@ function getDateKey(date) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-// Project a recurring day_of_week into actual dates within a range
-function projectDayToDate(dayOfWeek, startDate, endDate) {
+/**
+ * Project recurring day_of_week onto actual dates in [startDate, endDate].
+ * For wide ranges (> SMART_AGG_THRESHOLD days), returns only the FIRST
+ * occurrence to prevent billions of rows.
+ */
+function projectDayToDate(dayOfWeek, startDate, endDate, smartAgg = false) {
   const dayLower = (dayOfWeek || '').toLowerCase().trim();
   const dates = [];
 
-  // Handle "Daily" — maps to every day
   const isDaily = dayLower === 'daily';
   const targetDayIdx = isDaily ? -1 : DAYS_ORDER.indexOf(dayLower);
 
@@ -71,6 +80,8 @@ function projectDayToDate(dayOfWeek, startDate, endDate) {
   while (current <= endDate) {
     if (isDaily || current.getDay() === targetDayIdx) {
       dates.push(getDateKey(current));
+      // In smart-aggregation mode, only return the NEXT single occurrence
+      if (smartAgg) break;
     }
     current.setDate(current.getDate() + 1);
   }
@@ -79,7 +90,7 @@ function projectDayToDate(dayOfWeek, startDate, endDate) {
 
 // Haversine distance in miles
 function haversineMi(lat1, lng1, lat2, lng2) {
-  const R = 3958.8; // Earth radius in miles
+  const R = 3958.8;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLng = (lng2 - lng1) * Math.PI / 180;
   const a = Math.sin(dLat / 2) ** 2 +
@@ -88,7 +99,6 @@ function haversineMi(lat1, lng1, lat2, lng2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// Normalize game type
 function normalizeGameType(raw) {
   if (!raw) return 'NLH';
   const g = raw.trim().toUpperCase();
@@ -105,18 +115,15 @@ function normalizeGameType(raw) {
   return map[g] || (g.length <= 10 ? g : g.slice(0, 10));
 }
 
-// Parse time string to minutes for sorting
 function parseTimeMinutes(timeStr) {
-  if (!timeStr) return 720; // default noon
+  if (!timeStr) return 720;
   timeStr = String(timeStr).trim();
-  // Handle HH:MM:SS format
   const match24 = timeStr.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
   if (match24) {
     const h = parseInt(match24[1]);
     const m = parseInt(match24[2]);
     return h * 60 + m;
   }
-  // Handle 12h format: "6:00 PM", "6PM", "6:00pm"
   const match12 = timeStr.match(/(\d{1,2})(?::(\d{2}))?\s*(AM|PM|am|pm)/i);
   if (match12) {
     let h = parseInt(match12[1]);
@@ -154,7 +161,7 @@ export default async function handler(req, res) {
     let {
       day,
       date,
-      dateRange = '14days',
+      dateRange = '30days',
       state,
       city,
       lat, lng, radius = '100',
@@ -164,14 +171,15 @@ export default async function handler(req, res) {
       search,
       sort = 'date',
       offset = '0',
-      limit = '100',
+      limit = '200',
+      calMonth,  // YYYY-MM — loads all events for a specific calendar month
     } = req.query;
 
     // BUG FIX: Array Query Injection Vector
     const safeString = (val) => Array.isArray(val) ? val[0] : val;
     day = safeString(day);
     date = safeString(date);
-    dateRange = safeString(dateRange) || '14days';
+    dateRange = safeString(dateRange) || '30days';
     state = safeString(state);
     city = safeString(city);
     lat = safeString(lat);
@@ -184,16 +192,16 @@ export default async function handler(req, res) {
     search = safeString(search);
     sort = safeString(sort) || 'date';
     offset = safeString(offset) || '0';
-    limit = safeString(limit) || '100';
+    limit = safeString(limit) || '200';
+    calMonth = safeString(calMonth);
 
     const sb = getSupabase();
     const { dayIndex, dayName, dateKey: todayKey } = getCurrentDayInfo();
-    // BUG FIX: Prevent negative offset/limit allowing massive Array.slice() bypasses
     const parsedOffset = Math.max(0, parseInt(offset) || 0);
-    const parsedLimit = Math.max(1, Math.min(parseInt(limit) || 100, 500));
+    // Raise max from 500 → 1000 so wide date ranges return enough results
+    const parsedLimit = Math.max(1, Math.min(parseInt(limit) || 200, 1000));
     const userLat = parseFloat(lat);
     const userLng = parseFloat(lng);
-    // BUG FIX: Strictly validate floats to prevent NaN pollution in haversine
     const hasGps = !isNaN(userLat) && !isNaN(userLng);
     const hasExplicitRadius = hasGps && req.query.radius != null;
     const maxRadius = parseFloat(radius) || 100;
@@ -204,9 +212,12 @@ export default async function handler(req, res) {
     rangeStart.setHours(0, 0, 0, 0);
     let rangeEnd = new Date(rangeStart);
 
-    if (date) {
-      // Specific date
-      // BUG FIX: Prevent RangeError: Invalid time value when given unparseable dates
+    // calMonth override: load the entire calendar month specified
+    if (calMonth && /^\d{4}-\d{2}$/.test(calMonth)) {
+      const [cy, cm] = calMonth.split('-').map(Number);
+      rangeStart.setFullYear(cy, cm - 1, 1);
+      rangeEnd = new Date(cy, cm, 0); // last day of the month
+    } else if (date) {
       const parsedDate = new Date(date + 'T00:00:00');
       if (!isNaN(parsedDate.getTime())) {
         rangeStart.setTime(parsedDate.getTime());
@@ -215,7 +226,7 @@ export default async function handler(req, res) {
     } else {
       switch (dateRange) {
         case 'today':
-          break; // rangeEnd = rangeStart (same day)
+          break;
         case 'tomorrow':
           rangeStart.setDate(rangeStart.getDate() + 1);
           rangeEnd = new Date(rangeStart);
@@ -224,19 +235,32 @@ export default async function handler(req, res) {
           rangeEnd.setDate(rangeEnd.getDate() + 6);
           break;
         case 'weekend': {
-          // Friday through Sunday
           const daysTillFri = (5 - rangeStart.getDay() + 7) % 7;
           rangeStart.setDate(rangeStart.getDate() + daysTillFri);
           rangeEnd = new Date(rangeStart);
           rangeEnd.setDate(rangeEnd.getDate() + 2);
           break;
         }
+        case '14days':
+          rangeEnd.setDate(rangeEnd.getDate() + 13);
+          break;
         case '30days':
           rangeEnd.setDate(rangeEnd.getDate() + 29);
           break;
-        case '14days':
+        case '60days':
+          rangeEnd.setDate(rangeEnd.getDate() + 59);
+          break;
+        case '90days':
+          rangeEnd.setDate(rangeEnd.getDate() + 89);
+          break;
+        case '180days':
+          rangeEnd.setDate(rangeEnd.getDate() + 179);
+          break;
+        case '365days':
+          rangeEnd.setDate(rangeEnd.getDate() + 364);
+          break;
         default:
-          rangeEnd.setDate(rangeEnd.getDate() + 13);
+          rangeEnd.setDate(rangeEnd.getDate() + 29);
           break;
       }
     }
@@ -244,10 +268,10 @@ export default async function handler(req, res) {
     const rangeStartKey = getDateKey(rangeStart);
     const rangeEndKey = getDateKey(rangeEnd);
 
-    // BUG FIX: declare safeState/safeCity at handler scope (not inside try)
-    // so they are visible to all three source query blocks below.
-    // Was previously declared as `const` inside the try{} block — a ReferenceError
-    // waiting to happen if the venue cache threw before the series/tour queries ran.
+    // Calculate range length in days (for smart aggregation)
+    const rangeDays = Math.round((rangeEnd - rangeStart) / (1000 * 60 * 60 * 24)) + 1;
+    const useSmartAgg = rangeDays > SMART_AGG_THRESHOLD;
+
     const safeState = state ? state.replace(/[%_\\]/g, '').trim() : null;
     const safeCity  = city  ? city.replace(/[%_\\]/g, '').trim() : null;
     const safeGameType = gameType ? gameType.replace(/[%_\\]/g, '').trim() : null;
@@ -271,7 +295,6 @@ export default async function handler(req, res) {
       }
     } catch (_) { /* non-fatal */ }
 
-    // Helper: resolve venue info from ID or name
     const getVenueInfo = (venueId, venueName) => {
       const vNameClean = venueName ? venueName.toLowerCase().trim() : null;
       return venueLocations[venueId] || venueLocations[vNameClean] || null;
@@ -295,7 +318,7 @@ export default async function handler(req, res) {
           dq = dq.ilike('game_type', `%${safeGameType}%`);
         }
         if (search) {
-          const s = search.replace(/[()'",;%_\\]/g, '').trim().slice(0, 200);
+          const s = search.replace(/[()'"`,;%_\\]/g, '').trim().slice(0, 200);
           if (s) dq = dq.or(`venue_name.ilike.%${s}%,tournament_name.ilike.%${s}%`);
         }
 
@@ -303,41 +326,38 @@ export default async function handler(req, res) {
 
         if (dtRows) {
           for (const t of dtRows) {
-            // BUG FIX: filter out @context / JSON-LD artifacts and invalid tournament names
             const tName = t.tournament_name || '';
             if (tName.startsWith('@') || tName.startsWith('{') || tName.startsWith('[')) continue;
 
             const venueInfo = getVenueInfo(t.venue_id, t.venue_name);
 
-            // State/city filter at application level (use sanitized values)
             if (safeState && venueInfo?.state?.toUpperCase() !== safeState.toUpperCase()) continue;
             if (safeCity && !venueInfo?.city?.toLowerCase().includes(safeCity.toLowerCase())) continue;
 
-            // GPS/distance filter
             let distanceMi = null;
             if (hasGps && venueInfo?.latitude && venueInfo?.longitude) {
               distanceMi = Math.round(haversineMi(userLat, userLng, parseFloat(venueInfo.latitude), parseFloat(venueInfo.longitude)) * 10) / 10;
               if (distanceMi > maxRadius) continue;
             } else if (hasExplicitRadius && !(venueInfo?.latitude && venueInfo?.longitude)) {
-              continue; // Only reject unmapped venues when user explicitly set a radius
+              continue;
             }
 
-            // Project recurring tournaments onto specific dates
             let eventDates = [];
             if (t.event_date) {
-              // Specific dated event
               if (t.event_date >= rangeStartKey && t.event_date <= rangeEndKey) {
                 eventDates.push(t.event_date);
               }
             } else {
-              // Recurring — project day_of_week onto date range
-              eventDates = projectDayToDate(t.day_of_week, rangeStart, rangeEnd);
+              // For long ranges: show only first occurrence per recurring tournament
+              eventDates = projectDayToDate(t.day_of_week, rangeStart, rangeEnd, useSmartAgg);
             }
 
             for (const eDate of eventDates) {
               dailyEvents.push({
                 source: 'daily',
                 event_date: eDate,
+                is_recurring: !t.event_date,  // flag for display
+                recurrence_label: !t.event_date && useSmartAgg ? (t.day_of_week || 'Weekly') : null,
                 event_name: tName || (t.buy_in > 0 ? `$${t.buy_in} ${normalizeGameType(t.game_type)}` : `${normalizeGameType(t.game_type)} Tournament`),
                 venue_name: t.venue_name,
                 venue_id: t.venue_id,
@@ -374,42 +394,37 @@ export default async function handler(req, res) {
           .not('start_date', 'is', null)
           .eq('is_suppressed', false);
 
-        // BUG FIX: use sanitized safeState/safeCity from venue query block above
         if (safeState) sq = sq.ilike('state', safeState.length === 2 ? safeState.toUpperCase() : `%${safeState}%`);
         if (safeCity)  sq = sq.ilike('city', `%${safeCity}%`);
-        // BUG FIX: apply gameType filter to series - was missing, causing series to ignore game type filter
         if (safeGameType && safeGameType !== 'all') sq = sq.ilike('series_type', `%${safeGameType}%`);
         if (search) {
-          const ss = search.replace(/[()'",;%_\\]/g, '').trim().slice(0, 200);
+          const ss = search.replace(/[()'"`,;%_\\]/g, '').trim().slice(0, 200);
           if (ss) sq = sq.or(`series_name.ilike.%${ss}%,venue_name.ilike.%${ss}%`);
         }
 
-        const { data: seriesRows } = await sq.limit(500);
+        // For series we always want ALL within range — no smart-agg needed (series aren't recurring)
+        const { data: seriesRows } = await sq.limit(1000);
 
         if (seriesRows) {
           for (const s of seriesRows) {
-            // Check if date range overlaps with our query range
             const sStart = s.start_date || '';
             const sEnd = s.end_date || sStart;
             if (sEnd < rangeStartKey || sStart > rangeEndKey) continue;
 
-            // Buy-in filter (use buy_in_min and buy_in_max)
             const resolvedMax = s.buy_in_max != null ? s.buy_in_max : s.buy_in_min;
             const resolvedMin = s.buy_in_min != null ? s.buy_in_min : s.buy_in_max;
             if (minBuyin && (resolvedMax || 0) < parseInt(minBuyin)) continue;
             if (maxBuyin && (resolvedMin || 0) > parseInt(maxBuyin)) continue;
 
-            // GPS distance
             const venueInfo = getVenueInfo(s.venue_id, s.venue_name);
             let distanceMi = null;
             if (hasGps && venueInfo?.latitude && venueInfo?.longitude) {
               distanceMi = Math.round(haversineMi(userLat, userLng, parseFloat(venueInfo.latitude), parseFloat(venueInfo.longitude)) * 10) / 10;
               if (distanceMi > maxRadius) continue;
             } else if (hasExplicitRadius && !(venueInfo?.latitude && venueInfo?.longitude)) {
-              continue; // Only reject unmapped venues when user explicitly set a radius
+              continue;
             }
 
-            // Use start_date as the event date
             const eventDate = sStart > rangeStartKey ? sStart : rangeStartKey;
 
             seriesEvents.push({
@@ -453,14 +468,13 @@ export default async function handler(req, res) {
         let tq = sb.from('tour_stop_events')
           .select('id, tour_code, stop_name, stop_venue, stop_city, stop_state, event_name, start_date, start_time, buy_in, game_type, guarantee, is_main_event, is_high_roller');
 
-        // BUG FIX: filter inactive/cancelled tour events; sanitize all ILIKE params
         tq = tq.eq('is_active', true);
         if (safeState) tq = tq.ilike('stop_state', safeState.length === 2 ? safeState.toUpperCase() : `%${safeState}%`);
         if (minBuyin) tq = tq.gte('buy_in', parseInt(minBuyin));
         if (maxBuyin) tq = tq.lte('buy_in', parseInt(maxBuyin));
         if (safeGameType && safeGameType !== 'all') tq = tq.ilike('game_type', `%${safeGameType}%`);
         if (search) {
-          const ts = search.replace(/[()'",;%_\\]/g, '').trim().slice(0, 200);
+          const ts = search.replace(/[()'"`,;%_\\]/g, '').trim().slice(0, 200);
           if (ts) tq = tq.or(`event_name.ilike.%${ts}%,stop_name.ilike.%${ts}%,stop_venue.ilike.%${ts}%`);
         }
 
@@ -468,15 +482,12 @@ export default async function handler(req, res) {
 
         if (tourRows) {
           for (const t of tourRows) {
-            // Date filter — only include if start_date is within range (or if no date, include anyway)
             if (t.start_date) {
               if (t.start_date < rangeStartKey || t.start_date > rangeEndKey) continue;
             }
 
-            // City filter — BUG FIX: use sanitized safeCity not raw city variable (was injection vector)
             if (safeCity && !t.stop_city?.toLowerCase().includes(safeCity.toLowerCase())) continue;
 
-            // Distance filter — try to find venue coords
             let distanceMi = null;
             if (hasGps) {
               const venueInfo = getVenueInfo(null, t.stop_venue);
@@ -484,7 +495,7 @@ export default async function handler(req, res) {
                 distanceMi = Math.round(haversineMi(userLat, userLng, parseFloat(venueInfo.latitude), parseFloat(venueInfo.longitude)) * 10) / 10;
                 if (distanceMi > maxRadius) continue;
               } else if (hasExplicitRadius) {
-                continue; // Only reject unmapped venues when user explicitly set a radius
+                continue;
               }
             }
 
@@ -521,7 +532,7 @@ export default async function handler(req, res) {
     // ──────────────────────────────────────────────────────────────
     let allEvents = [...dailyEvents, ...seriesEvents, ...tourEvents];
 
-    // Dedup: same venue + same date + same time + same buy_in = duplicate
+    // Dedup: same venue + same date + same time + same buy_in
     const seenKeys = new Set();
     allEvents = allEvents.filter(e => {
       const key = [
@@ -563,7 +574,7 @@ export default async function handler(req, res) {
     const totalCount = allEvents.length;
     const paginatedEvents = allEvents.slice(parsedOffset, parsedOffset + parsedLimit);
 
-    // Build date summary for calendar view
+    // Build date summary for calendar view (uses ALL events, not just paginated)
     const dateCountMap = {};
     for (const e of allEvents) {
       if (e.event_date) {
@@ -585,6 +596,8 @@ export default async function handler(req, res) {
       limit: parsedLimit,
       hasMore: parsedOffset + parsedLimit < totalCount,
       dateRange: { start: rangeStartKey, end: rangeEndKey },
+      rangeDays,
+      useSmartAgg,
       dateCounts: dateCountMap,
       stats: {
         sources: sourceCounts,

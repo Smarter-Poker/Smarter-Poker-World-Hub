@@ -7,11 +7,11 @@
  *   - 598+ tour stop events
  *
  * Features:
- *   - Search by text (venue, event name, series)
- *   - Filter by date range, buy-in, game type, event type
- *   - "Change Location" — search anywhere by city/state
- *   - GPS distance display when available
+ *   - Always-visible horizontal filter dropdowns (matching Poker Near Me)
+ *   - Date ranges up to 1 year out
  *   - List view (date-grouped) and Calendar view (monthly grid)
+ *   - Map view
+ *   - Smart aggregation for wide date ranges (recurring events show next occurrence)
  */
 
 import SEOHead from '../../src/components/seo/SEOHead';
@@ -62,52 +62,56 @@ const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 const DATE_RANGES = [
-  { key: 'today', label: 'Today' },
+  { key: 'today',    label: 'Today' },
   { key: 'tomorrow', label: 'Tomorrow' },
-  { key: 'week', label: 'This Week' },
-  { key: 'weekend', label: 'This Weekend' },
-  { key: '14days', label: 'Next 14 Days' },
-  { key: '30days', label: 'Next 30 Days' },
+  { key: 'week',     label: 'This Week' },
+  { key: 'weekend',  label: 'This Weekend' },
+  { key: '14days',   label: 'Next 14 Days' },
+  { key: '30days',   label: 'Next 30 Days' },
+  { key: '60days',   label: 'Next 60 Days' },
+  { key: '90days',   label: 'Next 3 Months' },
+  { key: '180days',  label: 'Next 6 Months' },
+  { key: '365days',  label: 'Next 12 Months' },
 ];
 
 const BUY_IN_TIERS = [
-  { key: 'all', label: 'All Buy-Ins', min: null, max: null },
-  { key: '0-100', label: 'Under $100', min: 0, max: 100 },
-  { key: '100-300', label: '$100 - $300', min: 100, max: 300 },
-  { key: '300-1000', label: '$300 - $1K', min: 300, max: 1000 },
-  { key: '1000-5000', label: '$1K - $5K', min: 1000, max: 5000 },
-  { key: '5000+', label: '$5K+', min: 5000, max: null },
+  { key: 'all',       label: 'All Buy-Ins', min: null, max: null },
+  { key: '0-100',     label: 'Under $100',  min: 0,    max: 100 },
+  { key: '100-300',   label: '$100 - $300', min: 100,  max: 300 },
+  { key: '300-1000',  label: '$300 - $1K',  min: 300,  max: 1000 },
+  { key: '1000-5000', label: '$1K - $5K',   min: 1000, max: 5000 },
+  { key: '5000+',     label: '$5K+',        min: 5000, max: null },
 ];
 
 const GAME_TYPES = [
-  { key: 'all', label: 'All Games' },
-  { key: 'NLH', label: 'NLH' },
-  { key: 'PLO', label: 'PLO' },
+  { key: 'all',   label: 'All Games' },
+  { key: 'NLH',   label: 'NLH' },
+  { key: 'PLO',   label: 'PLO' },
   { key: 'Mixed', label: 'Mixed' },
   { key: 'HORSE', label: 'HORSE' },
 ];
 
 const EVENT_TYPES = [
-  { key: 'all', label: 'All Events' },
-  { key: 'daily', label: 'Daily Tournaments' },
+  { key: 'all',    label: 'All Events' },
+  { key: 'daily',  label: 'Daily Tournaments' },
   { key: 'series', label: 'Poker Series' },
-  { key: 'tour', label: 'Tour Events' },
+  { key: 'tour',   label: 'Tour Events' },
 ];
 
 const SORT_OPTIONS = [
-  { key: 'date', label: 'Soonest' },
-  { key: 'buyin', label: 'Cheapest' },
+  { key: 'date',       label: 'Soonest' },
+  { key: 'buyin',      label: 'Cheapest' },
   { key: 'buyin_desc', label: 'Most Expensive' },
-  { key: 'distance', label: 'Nearest' },
+  { key: 'distance',   label: 'Nearest' },
 ];
 
 const DISTANCE_OPTIONS = [
-  { key: '25', label: '25 Mi' },
-  { key: '50', label: '50 Mi' },
-  { key: '100', label: '100 Mi' },
-  { key: '200', label: '200 Mi' },
-  { key: '500', label: '500 Mi' },
-  { key: 'any', label: 'Anywhere' },
+  { key: '25',  label: '25 Miles' },
+  { key: '50',  label: '50 Miles' },
+  { key: '100', label: '100 Miles' },
+  { key: '200', label: '200 Miles' },
+  { key: '500', label: '500 Miles' },
+  { key: 'any', label: 'Any Distance' },
 ];
 
 const POPULAR_CITIES = [
@@ -177,53 +181,29 @@ function getFirstDayOfMonth(year, month) { return new Date(year, month, 1).getDa
 
 /* ───── Source Badge Colors ───── */
 const SOURCE_COLORS = {
-  daily: { bg: 'rgba(0, 212, 255, 0.15)', border: 'rgba(0, 212, 255, 0.4)', text: '#00D4FF', label: 'Daily' },
+  daily:  { bg: 'rgba(0, 212, 255, 0.15)', border: 'rgba(0, 212, 255, 0.4)',  text: '#00D4FF', label: 'Daily' },
   series: { bg: 'rgba(168, 85, 247, 0.15)', border: 'rgba(168, 85, 247, 0.4)', text: '#A855F7', label: 'Series' },
-  tour: { bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.4)', text: '#F59E0B', label: 'Tour' },
+  tour:   { bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.4)', text: '#F59E0B', label: 'Tour' },
 };
 
 /* ───── SVG Icons (no emojis) ───── */
-function SearchIcon() {
-  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" /></svg>;
-}
-function MapPinIcon({ size = 14 }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>;
-}
-function CalendarIcon({ size = 16 }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>;
-}
-function ListIcon() {
-  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><circle cx="3" cy="6" r="1.5" fill="currentColor" /><circle cx="3" cy="12" r="1.5" fill="currentColor" /><circle cx="3" cy="18" r="1.5" fill="currentColor" /></svg>;
-}
-function FilterIcon() {
-  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" /><line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" /><line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" /></svg>;
-}
-function ClockIcon() {
-  return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>;
-}
-function MapIcon() {
-  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21 3 6" /><line x1="9" y1="3" x2="9" y2="18" /><line x1="15" y1="6" x2="15" y2="21" /></svg>;
-}
-function ChevronLeft() {
-  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6" /></svg>;
-}
-function ChevronRight() {
-  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6" /></svg>;
-}
-function XIcon() {
-  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>;
-}
-function CrosshairIcon() {
-  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="22" y1="12" x2="18" y2="12" /><line x1="6" y1="12" x2="2" y2="12" /><line x1="12" y1="6" x2="12" y2="2" /><line x1="12" y1="22" x2="12" y2="18" /></svg>;
-}
+function SearchIcon()    { return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" /></svg>; }
+function MapPinIcon({ size = 14 }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>; }
+function CalendarIcon({ size = 16 }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>; }
+function ListIcon()      { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><circle cx="3" cy="6" r="1.5" fill="currentColor" /><circle cx="3" cy="12" r="1.5" fill="currentColor" /><circle cx="3" cy="18" r="1.5" fill="currentColor" /></svg>; }
+function MapIcon()       { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21 3 6" /><line x1="9" y1="3" x2="9" y2="18" /><line x1="15" y1="6" x2="15" y2="21" /></svg>; }
+function ChevronLeft()   { return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6" /></svg>; }
+function ChevronRight()  { return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6" /></svg>; }
+function XIcon()         { return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>; }
+function CrosshairIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="22" y1="12" x2="18" y2="12" /><line x1="6" y1="12" x2="2" y2="12" /><line x1="12" y1="6" x2="12" y2="2" /><line x1="12" y1="22" x2="12" y2="18" /></svg>; }
+function ClockIcon()     { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>; }
+function RefreshIcon()   { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" /></svg>; }
 
 /* ───── Event Card Component ───── */
-const EventCard = memo(function EventCard({ event, isToday, todayKey }) {
+const EventCard = memo(function EventCard({ event, todayKey }) {
   const source = SOURCE_COLORS[event.source] || SOURCE_COLORS.daily;
-  const hasDate = !!event.event_date;
   const dateIsToday = event.event_date === todayKey;
 
-  // Link target
   let href = null;
   if (event.venue_id && event.source === 'daily') href = `/hub/venues/${event.venue_id}`;
   else if (event.series_id) href = `/hub/series/${event.series_id}`;
@@ -232,12 +212,10 @@ const EventCard = memo(function EventCard({ event, isToday, todayKey }) {
   return (
     <div className="ev-card" data-today={dateIsToday ? '1' : ''}>
       <div className="ev-card-left">
-        {/* Source badge */}
         <span className="ev-source" style={{ background: source.bg, borderColor: source.border, color: source.text }}>
           {source.label}
         </span>
 
-        {/* Event name */}
         <h3 className="ev-name" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {event.logo_url && (
             <img 
@@ -254,7 +232,6 @@ const EventCard = memo(function EventCard({ event, isToday, todayKey }) {
           )}
         </h3>
 
-        {/* Meta row */}
         <div className="ev-meta">
           {event.venue_name && (
             <span className="ev-meta-item">
@@ -280,9 +257,14 @@ const EventCard = memo(function EventCard({ event, isToday, todayKey }) {
               {event.distance_mi < 1 ? '<1' : Math.round(event.distance_mi)} mi
             </span>
           )}
+          {event.recurrence_label && (
+            <span className="ev-meta-item ev-recurrence">
+              <RefreshIcon />
+              {event.recurrence_label}
+            </span>
+          )}
         </div>
 
-        {/* Tour/Series info */}
         {event.tour_code && (
           <span className="ev-tour-code">{event.tour_code}</span>
         )}
@@ -318,11 +300,8 @@ function LocationModal({ isOpen, onClose, onSetLocation, currentLocation }) {
   const [stateInput, setStateInput] = useState('');
   const [gpsLoading, setGpsLoading] = useState(false);
   const [locError, setLocError] = useState('');
-  // BUG FIX: isMountedRef and useEffect MUST be above any early return (Rules of Hooks)
   const isMountedRef = useRef(true);
-  useEffect(() => {
-    return () => { isMountedRef.current = false; };
-  }, []);
+  useEffect(() => { return () => { isMountedRef.current = false; }; }, []);
 
   if (!isOpen) return null;
 
@@ -363,7 +342,6 @@ function LocationModal({ isOpen, onClose, onSetLocation, currentLocation }) {
       onSetLocation({ lat: coords.lat, lng: coords.lng, label: locationStr, source: 'manual' });
       onClose();
     } else if (stateInput) {
-      // No coords but state selected — use state filter only
       onSetLocation({ lat: null, lng: null, label: stateInput, source: 'state', state: stateInput });
       onClose();
     } else {
@@ -379,20 +357,17 @@ function LocationModal({ isOpen, onClose, onSetLocation, currentLocation }) {
           <button className="loc-close" onClick={onClose}><XIcon /></button>
         </div>
 
-        {/* Inline error — no blocking alert() */}
         {locError && (
           <p style={{ color: '#f87171', fontSize: 13, margin: '0 0 12px', padding: '8px 12px', background: 'rgba(248,113,113,0.1)', borderRadius: 6, border: '1px solid rgba(248,113,113,0.3)' }}>
             {locError}
           </p>
         )}
 
-        {/* GPS Button */}
         <button className="loc-gps-btn" onClick={handleUseGps} disabled={gpsLoading}>
           <CrosshairIcon />
           {gpsLoading ? 'Getting Location...' : 'Use My GPS Location'}
         </button>
 
-        {/* Manual Input */}
         <form className="loc-form" onSubmit={handleManualSubmit}>
           <div className="loc-inputs">
             <input
@@ -410,7 +385,6 @@ function LocationModal({ isOpen, onClose, onSetLocation, currentLocation }) {
           <button type="submit" className="loc-submit">Search This Area</button>
         </form>
 
-        {/* Popular Cities */}
         <div className="loc-popular">
           <span className="loc-popular-label">Popular Cities</span>
           <div className="loc-popular-grid">
@@ -437,7 +411,7 @@ export async function getServerSideProps(context) {
   try {
     const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
     const host = context.req.headers.host || 'localhost:3000';
-    const url = `${protocol}://${host}/api/poker/events-calendar?dateRange=14days&limit=500&sort=date`;
+    const url = `${protocol}://${host}/api/poker/events-calendar?dateRange=30days&limit=200&sort=date`;
     const res = await fetch(url);
     const data = await res.json();
     return { props: { fallbackData: data?.success ? data : null } };
@@ -448,7 +422,7 @@ export async function getServerSideProps(context) {
 
 /* ───── Main Page Component ───── */
 export default function EventsCalendarPage({ fallbackData }) {
-  const router = useRouter(); // BUG FIX: use router.push instead of window.location.href
+  const router = useRouter();
   const now = new Date();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuConfig = useMemo(() => getMenuConfig('events'), []);
@@ -458,11 +432,10 @@ export default function EventsCalendarPage({ fallbackData }) {
   const [calYear, setCalYear] = useState(now.getFullYear());
   const [calMonth, setCalMonth] = useState(now.getMonth());
   const [selectedCalDate, setSelectedCalDate] = useState(null);
-  const [showFilters, setShowFilters] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
 
-  // Filters
-  const [dateRange, setDateRange] = useState('14days');
+  // Filters — always visible horizontally
+  const [dateRange, setDateRange] = useState('30days');
   const [buyInTier, setBuyInTier] = useState('all');
   const [gameType, setGameType] = useState('all');
   const [eventType, setEventType] = useState('all');
@@ -475,7 +448,6 @@ export default function EventsCalendarPage({ fallbackData }) {
 
   // Pagination
   const [visibleCount, setVisibleCount] = useState(50);
-  // BUG FIX: removed unused loadMoreRef; memoized todayKey to prevent re-renders
   const todayKey = useMemo(() => getTodayKey(), []);
 
   // Try GPS on mount
@@ -499,14 +471,23 @@ export default function EventsCalendarPage({ fallbackData }) {
     return () => { isMounted = false; };
   }, []);
 
-  // ─── Deferred Filter States for 120hz Unblocked Input ───
+  // Deferred search for 120hz unblocked input
   const deferredSearchQuery = useDeferredValue(searchQuery);
 
   // Build API URL from filters
+  // When in calendar view, load events for the viewed calendar month
   const apiUrl = useMemo(() => {
     const params = new URLSearchParams();
-    params.set('dateRange', dateRange);
-    params.set('limit', '500');
+
+    if (viewMode === 'calendar') {
+      // Load data for the viewed calendar month
+      const monthStr = `${calYear}-${String(calMonth + 1).padStart(2, '0')}`;
+      params.set('calMonth', monthStr);
+    } else {
+      params.set('dateRange', dateRange);
+    }
+
+    params.set('limit', '1000');
     if (eventType !== 'all') params.set('eventType', eventType);
     if (gameType !== 'all') params.set('gameType', gameType);
     if (sortBy) params.set('sort', sortBy);
@@ -526,13 +507,10 @@ export default function EventsCalendarPage({ fallbackData }) {
     }
 
     return `/api/poker/events-calendar?${params.toString()}`;
-  }, [dateRange, buyInTier, gameType, eventType, sortBy, deferredSearchQuery, userLocation, distance]);
+  }, [dateRange, buyInTier, gameType, eventType, sortBy, deferredSearchQuery, userLocation, distance, viewMode, calYear, calMonth]);
 
-  // BUG FIX: fallbackData must be keyed to the initial SSR URL for SWR v2 to hydrate correctly.
-  // Using fallbackData directly (without key scoping) caused the SSR data to override
-  // ALL filter states, making filters appear to have no effect until re-fetched.
   const initSsrUrl = useMemo(
-    () => `/api/poker/events-calendar?dateRange=14days&limit=500&sort=date`,
+    () => `/api/poker/events-calendar?dateRange=30days&limit=200&sort=date`,
     []
   );
   const swrFallback = useMemo(
@@ -541,7 +519,6 @@ export default function EventsCalendarPage({ fallbackData }) {
     []
   );
 
-  // SWR-backed data fetch (with SSR fallback)
   const { data: apiData, error, isLoading: loading, mutate } = useSWR(
     apiUrl,
     (url) => fetch(url).then(r => r.json()).then(data => {
@@ -551,16 +528,11 @@ export default function EventsCalendarPage({ fallbackData }) {
     { fallback: swrFallback, revalidateOnFocus: false, dedupingInterval: 30000 }
   );
 
-  // Bind realtime venue and tournament updates to cache invalidation
-  // Punches through the 60s S-Maxage Edge Cache securely using a monotonic _rt query parameter
-  // and injects the bypassed result directly into SWR.
   useVenueRealtime(() => {
     const rtUrl = `${apiUrl}${apiUrl.includes('?') ? '&' : '?'}_rt=${Date.now()}`;
     fetch(rtUrl)
       .then(r => r.json())
-      .then(d => {
-        if (d && d.success !== false) mutate(d, false);
-      })
+      .then(d => { if (d && d.success !== false) mutate(d, false); })
       .catch(console.error);
   });
 
@@ -568,17 +540,19 @@ export default function EventsCalendarPage({ fallbackData }) {
   const totalCount = apiData?.total || 0;
   const dateCounts = apiData?.dateCounts || {};
   const stats = apiData?.stats || {};
+  const useSmartAgg = apiData?.useSmartAgg || false;
 
   // Reset visible count when filters change
   useEffect(() => { setVisibleCount(50); }, [apiUrl]);
 
-  // Count active filters
+  // Count active filters (excluding defaults)
   const activeFilterCount = [
-    dateRange !== '14days',
+    dateRange !== '30days',
     buyInTier !== 'all',
     gameType !== 'all',
     eventType !== 'all',
     distance !== 'any',
+    !!userLocation,
   ].filter(Boolean).length;
 
   // Group events by date for list view
@@ -616,17 +590,14 @@ export default function EventsCalendarPage({ fallbackData }) {
   }, [events, selectedCalDate]);
 
   // Aggregate events by venue for Map View
-  // BUG FIX: replaced Math.random() key with stable deterministic string
   const mapEvents = useMemo(() => {
     const venueMap = {};
     events.forEach(e => {
-      // Must have location
       if (!e.latitude || !e.longitude) return;
       const vKey = e.venue_name || e.event_name;
       if (!vKey) return;
 
       if (!venueMap[vKey]) {
-        // Use stable ID: prefer real IDs, fall back to lat+lng combo
         const stableId = e.venue_id || e.series_id || e.tour_event_id ||
           `loc-${e.latitude.toFixed(4)}-${e.longitude.toFixed(4)}`;
         venueMap[vKey] = {
@@ -646,15 +617,16 @@ export default function EventsCalendarPage({ fallbackData }) {
     return Object.values(venueMap);
   }, [events]);
 
-  // Clear all filters
   const clearFilters = () => {
-    setDateRange('14days');
+    setDateRange('30days');
     setBuyInTier('all');
     setGameType('all');
     setEventType('all');
     setSortBy('date');
     setSearchQuery('');
+    setSearchInput('');
     setDistance('any');
+    setUserLocation(null);
   };
 
   const handleLocationChange = (loc) => {
@@ -678,10 +650,9 @@ export default function EventsCalendarPage({ fallbackData }) {
     setSelectedCalDate(todayKey);
   };
 
-  // Search debounce with unmount cleanup
+  // Search debounce
   const searchTimeoutRef = useRef(null);
   const [searchInput, setSearchInput] = useState('');
-  // BUG FIX: clear timeout on unmount to prevent setState on unmounted component
   useEffect(() => { return () => { if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current); }; }, []);
   const handleSearchInput = (val) => {
     setSearchInput(val);
@@ -722,31 +693,127 @@ export default function EventsCalendarPage({ fallbackData }) {
                 {stats.sources.tour > 0 && <span>{stats.sources.tour.toLocaleString()} Tour</span>}
               </span>
             )}
+            {useSmartAgg && !loading && (
+              <span className="ec-smart-agg-note">Recurring events showing next occurrence</span>
+            )}
           </p>
         </div>
 
-        {/* ── Location Bar ── */}
-        <div className="ec-location-bar">
-          <button className="ec-location-btn" onClick={() => setShowLocationModal(true)}>
-            <MapPinIcon size={16} />
-            <span>{userLocation?.label || 'Set Location'}</span>
-          </button>
+        {/* ── Always-Visible Filter Bar (Poker Near Me style) ── */}
+        <div className="ec-filter-bar">
+          {/* Location button */}
+          <div className="ec-filter-group">
+            <label className="ec-filter-label">Location</label>
+            <button
+              className={'ec-location-btn' + (userLocation ? ' active' : '')}
+              onClick={() => setShowLocationModal(true)}
+              id="ec-location-btn"
+            >
+              <MapPinIcon size={14} />
+              <span className="ec-location-text">{userLocation?.label || 'Set Location'}</span>
+              {userLocation && (
+                <span
+                  className="ec-location-clear"
+                  onClick={e => { e.stopPropagation(); handleLocationChange(null); setDistance('any'); }}
+                  title="Clear location"
+                >×</span>
+              )}
+            </button>
+          </div>
+
+          {/* Date Range */}
+          <div className="ec-filter-group">
+            <label className="ec-filter-label">Date Range</label>
+            <select
+              className="ec-filter-select"
+              value={dateRange}
+              onChange={e => setDateRange(e.target.value)}
+              disabled={viewMode === 'calendar'}
+              id="ec-date-range"
+            >
+              {DATE_RANGES.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}
+            </select>
+          </div>
+
+          {/* Event Type */}
+          <div className="ec-filter-group">
+            <label className="ec-filter-label">Event Type</label>
+            <select
+              className="ec-filter-select"
+              value={eventType}
+              onChange={e => setEventType(e.target.value)}
+              id="ec-event-type"
+            >
+              {EVENT_TYPES.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
+            </select>
+          </div>
+
+          {/* Buy-In */}
+          <div className="ec-filter-group">
+            <label className="ec-filter-label">Buy-In</label>
+            <select
+              className="ec-filter-select"
+              value={buyInTier}
+              onChange={e => setBuyInTier(e.target.value)}
+              id="ec-buyin"
+            >
+              {BUY_IN_TIERS.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
+            </select>
+          </div>
+
+          {/* Game Type */}
+          <div className="ec-filter-group">
+            <label className="ec-filter-label">Game Type</label>
+            <select
+              className="ec-filter-select"
+              value={gameType}
+              onChange={e => setGameType(e.target.value)}
+              id="ec-game-type"
+            >
+              {GAME_TYPES.map(g => <option key={g.key} value={g.key}>{g.label}</option>)}
+            </select>
+          </div>
+
+          {/* Distance (only when location is set) */}
           {userLocation && (
-            <div className="ec-distance-pills">
-              {DISTANCE_OPTIONS.map(d => (
-                <button
-                  key={d.key}
-                  className={`ec-pill ${distance === d.key ? 'active' : ''}`}
-                  onClick={() => setDistance(d.key)}
-                >
-                  {d.label}
-                </button>
-              ))}
+            <div className="ec-filter-group">
+              <label className="ec-filter-label">Distance</label>
+              <select
+                className="ec-filter-select"
+                value={distance}
+                onChange={e => setDistance(e.target.value)}
+                id="ec-distance"
+              >
+                {DISTANCE_OPTIONS.map(d => <option key={d.key} value={d.key}>{d.label}</option>)}
+              </select>
+            </div>
+          )}
+
+          {/* Sort By */}
+          <div className="ec-filter-group">
+            <label className="ec-filter-label">Sort By</label>
+            <select
+              className="ec-filter-select"
+              value={sortBy}
+              onChange={e => setSortBy(e.target.value)}
+              id="ec-sort-by"
+            >
+              {SORT_OPTIONS.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+            </select>
+          </div>
+
+          {/* Clear all (only if active filters) */}
+          {activeFilterCount > 0 && (
+            <div className="ec-filter-group ec-filter-group--clear">
+              <label className="ec-filter-label">&nbsp;</label>
+              <button className="ec-clear-btn" onClick={clearFilters}>
+                Clear ({activeFilterCount})
+              </button>
             </div>
           )}
         </div>
 
-        {/* ── Search + View Toggle ── */}
+        {/* ── Search Bar + View Toggle ── */}
         <div className="ec-search-bar">
           <div className="ec-search-wrap">
             <SearchIcon />
@@ -756,6 +823,7 @@ export default function EventsCalendarPage({ fallbackData }) {
               value={searchInput}
               onChange={e => handleSearchInput(e.target.value)}
               className="ec-search-input"
+              id="ec-search-input"
             />
             {searchInput && (
               <button className="ec-search-clear" onClick={() => { setSearchInput(''); setSearchQuery(''); }}>
@@ -763,74 +831,18 @@ export default function EventsCalendarPage({ fallbackData }) {
               </button>
             )}
           </div>
-          <div className="ec-toolbar">
-            <button className={`ec-filter-btn ${showFilters ? 'active' : ''}`} onClick={() => setShowFilters(!showFilters)}>
-              <FilterIcon />
-              <span>Filters</span>
-              {activeFilterCount > 0 && <span className="ec-filter-badge">{activeFilterCount}</span>}
+          <div className="ec-view-toggle">
+            <button className={`ec-vt-btn ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')} title="List View" id="ec-view-list">
+              <ListIcon />
             </button>
-            <div className="ec-view-toggle">
-              <button className={`ec-vt-btn ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')} title="List View">
-                <ListIcon />
-              </button>
-              <button className={`ec-vt-btn ${viewMode === 'calendar' ? 'active' : ''}`} onClick={() => setViewMode('calendar')} title="Calendar View">
-                <CalendarIcon size={16} />
-              </button>
-              <button className={`ec-vt-btn ${viewMode === 'map' ? 'active' : ''}`} onClick={() => setViewMode('map')} title="Map View">
-                <MapIcon />
-              </button>
-            </div>
+            <button className={`ec-vt-btn ${viewMode === 'calendar' ? 'active' : ''}`} onClick={() => setViewMode('calendar')} title="Calendar View" id="ec-view-calendar">
+              <CalendarIcon size={16} />
+            </button>
+            <button className={`ec-vt-btn ${viewMode === 'map' ? 'active' : ''}`} onClick={() => setViewMode('map')} title="Map View" id="ec-view-map">
+              <MapIcon />
+            </button>
           </div>
         </div>
-
-        {/* ── Filters Panel ── */}
-        {showFilters && (
-          <div className="ec-filters">
-            <div className="ec-filter-group">
-              <label>Date Range</label>
-              <select className="ec-dropdown" value={dateRange} onChange={e => setDateRange(e.target.value)}>
-                {DATE_RANGES.map(r => (
-                  <option key={r.key} value={r.key}>{r.label}</option>
-                ))}
-              </select>
-            </div>
-            <div className="ec-filter-group">
-              <label>Event Type</label>
-              <select className="ec-dropdown" value={eventType} onChange={e => setEventType(e.target.value)}>
-                {EVENT_TYPES.map(t => (
-                  <option key={t.key} value={t.key}>{t.label}</option>
-                ))}
-              </select>
-            </div>
-            <div className="ec-filter-group">
-              <label>Buy-In</label>
-              <select className="ec-dropdown" value={buyInTier} onChange={e => setBuyInTier(e.target.value)}>
-                {BUY_IN_TIERS.map(t => (
-                  <option key={t.key} value={t.key}>{t.label}</option>
-                ))}
-              </select>
-            </div>
-            <div className="ec-filter-group">
-              <label>Game Type</label>
-              <select className="ec-dropdown" value={gameType} onChange={e => setGameType(e.target.value)}>
-                {GAME_TYPES.map(g => (
-                  <option key={g.key} value={g.key}>{g.label}</option>
-                ))}
-              </select>
-            </div>
-            <div className="ec-filter-group">
-              <label>Sort By</label>
-              <select className="ec-dropdown" value={sortBy} onChange={e => setSortBy(e.target.value)}>
-                {SORT_OPTIONS.map(s => (
-                  <option key={s.key} value={s.key}>{s.label}</option>
-                ))}
-              </select>
-            </div>
-            <div className="ec-filter-actions">
-              <button className="ec-clear-btn" onClick={clearFilters}>Clear All Filters</button>
-            </div>
-          </div>
-        )}
 
         {/* ── Content ── */}
         <div className="ec-content">
@@ -893,7 +905,7 @@ export default function EventsCalendarPage({ fallbackData }) {
                   ))}
 
                   {visibleCount < events.length && (
-                    <button className="ec-load-more" onClick={() => setVisibleCount(v => v + 50)}>
+                    <button className="ec-load-more" onClick={() => setVisibleCount(v => v + 100)}>
                       Show More ({events.length - visibleCount} Remaining)
                     </button>
                   )}
@@ -1011,36 +1023,80 @@ export default function EventsCalendarPage({ fallbackData }) {
         .ec-source-counts span:nth-child(1)::before { background: #00D4FF; }
         .ec-source-counts span:nth-child(2)::before { background: #A855F7; }
         .ec-source-counts span:nth-child(3)::before { background: #F59E0B; }
+        .ec-smart-agg-note {
+          display: block; font-size: 11px; color: rgba(245,158,11,0.6);
+          margin-top: 4px; font-style: italic;
+        }
 
-        /* ═══ LOCATION BAR ═══ */
-        .ec-location-bar {
-          max-width: 900px; margin: 0 auto; padding: 0 20px 12px;
-          display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+        /* ═══ FILTER BAR (Poker Near Me style — always visible) ═══ */
+        .ec-filter-bar {
+          max-width: 1100px; margin: 0 auto;
+          padding: 8px 16px 12px;
+          display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap;
         }
+        .ec-filter-group {
+          display: flex; flex-direction: column; gap: 4px; min-width: 0;
+        }
+        .ec-filter-group--clear {
+          align-self: flex-end;
+        }
+        .ec-filter-label {
+          font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px;
+          color: rgba(255,255,255,0.4); font-weight: 600; white-space: nowrap;
+          padding-left: 2px;
+        }
+        .ec-filter-select {
+          padding: 9px 28px 9px 12px; min-width: 120px;
+          background: rgba(0,0,0,0.35);
+          border: 1px solid rgba(255,255,255,0.15); border-radius: 10px;
+          color: #fff; font-size: 13px; font-weight: 500; outline: none;
+          font-family: inherit; cursor: pointer; transition: all 0.2s;
+          appearance: none;
+          background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23aaaaaa%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+          background-repeat: no-repeat; background-position: right 10px center; background-size: 9px auto;
+        }
+        .ec-filter-select:hover  { border-color: rgba(255,255,255,0.3); }
+        .ec-filter-select:focus  { border-color: #00D4FF; box-shadow: 0 0 0 1px rgba(0,212,255,0.4); }
+        .ec-filter-select option  { background: #0f172a; color: #fff; }
+        .ec-filter-select:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* Location button — styled like a filter-select height */
         .ec-location-btn {
-          display: flex; align-items: center; gap: 8px;
-          padding: 10px 16px;
-          background: rgba(0, 212, 255, 0.1); border: 1px solid rgba(0, 212, 255, 0.3);
-          border-radius: 10px; color: #00D4FF; font-size: 14px; font-weight: 600;
-          cursor: pointer; transition: all 0.2s; font-family: inherit;
+          display: flex; align-items: center; gap: 7px;
+          padding: 9px 12px; min-width: 130px; max-width: 200px;
+          background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.15);
+          border-radius: 10px; color: rgba(255,255,255,0.75);
+          font-size: 13px; font-weight: 500; cursor: pointer;
+          transition: all 0.2s; font-family: inherit;
+          white-space: nowrap; overflow: hidden;
         }
-        .ec-location-btn:hover { background: rgba(0, 212, 255, 0.2); border-color: rgba(0, 212, 255, 0.5); }
-        .ec-distance-pills { display: flex; gap: 4px; flex-wrap: wrap; }
-        .ec-pill {
-          padding: 6px 12px; border-radius: 16px; font-size: 12px; font-weight: 600;
-          background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12);
-          color: rgba(255,255,255,0.6); cursor: pointer; transition: all 0.15s; font-family: inherit;
+        .ec-location-btn:hover { border-color: rgba(255,255,255,0.3); color: #fff; }
+        .ec-location-btn.active { border-color: rgba(0,212,255,0.4); color: #00D4FF; background: rgba(0,212,255,0.1); }
+        .ec-location-text { overflow: hidden; text-overflow: ellipsis; flex: 1; text-align: left; }
+        .ec-location-clear {
+          font-size: 16px; line-height: 1; color: rgba(255,255,255,0.4);
+          cursor: pointer; flex-shrink: 0; padding: 0 2px;
+          transition: color 0.15s;
         }
-        .ec-pill:hover { background: rgba(255,255,255,0.1); }
-        .ec-pill.active { background: rgba(0,212,255,0.15); border-color: rgba(0,212,255,0.4); color: #00D4FF; }
+        .ec-location-clear:hover { color: #f87171; }
+
+        /* Clear All button */
+        .ec-clear-btn {
+          padding: 9px 14px; background: none;
+          border: 1px solid rgba(255,255,255,0.15); border-radius: 10px;
+          color: rgba(255,255,255,0.5); font-size: 12px; font-weight: 600;
+          cursor: pointer; transition: all 0.15s; font-family: inherit;
+          white-space: nowrap;
+        }
+        .ec-clear-btn:hover { border-color: rgba(255,255,255,0.3); color: #fff; }
 
         /* ═══ SEARCH BAR ═══ */
         .ec-search-bar {
-          max-width: 900px; margin: 0 auto; padding: 0 20px 12px;
-          display: flex; gap: 10px; align-items: stretch; flex-wrap: wrap;
+          max-width: 1100px; margin: 0 auto; padding: 0 16px 12px;
+          display: flex; gap: 10px; align-items: stretch;
         }
         .ec-search-wrap {
-          flex: 1; min-width: 200px; position: relative; display: flex; align-items: center;
+          flex: 1; position: relative; display: flex; align-items: center;
           background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15);
           border-radius: 12px; padding: 0 14px; transition: all 0.2s;
         }
@@ -1055,24 +1111,10 @@ export default function EventsCalendarPage({ fallbackData }) {
           background: none; border: none; color: rgba(255,255,255,0.4); cursor: pointer; padding: 4px;
           display: flex; align-items: center;
         }
-        .ec-toolbar { display: flex; gap: 8px; align-items: center; }
-        .ec-filter-btn {
-          display: flex; align-items: center; gap: 6px;
-          padding: 10px 14px; background: rgba(0,0,0,0.3);
-          border: 1px solid rgba(255,255,255,0.15); border-radius: 10px;
-          color: rgba(255,255,255,0.7); font-size: 13px; font-weight: 600;
-          cursor: pointer; transition: all 0.2s; font-family: inherit;
-        }
-        .ec-filter-btn:hover { background: rgba(255,255,255,0.1); }
-        .ec-filter-btn.active { background: rgba(0,212,255,0.15); border-color: rgba(0,212,255,0.4); color: #00D4FF; }
-        .ec-filter-badge {
-          background: #00D4FF; color: #000; font-size: 11px; font-weight: 700;
-          min-width: 18px; height: 18px; border-radius: 9px;
-          display: inline-flex; align-items: center; justify-content: center; padding: 0 4px;
-        }
         .ec-view-toggle {
           display: flex; gap: 2px; background: rgba(0,0,0,0.3);
           border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 3px;
+          align-items: center;
         }
         .ec-vt-btn {
           padding: 8px 10px; border: none; border-radius: 7px;
@@ -1081,42 +1123,9 @@ export default function EventsCalendarPage({ fallbackData }) {
         }
         .ec-vt-btn.active { background: rgba(0,212,255,0.2); color: #00D4FF; }
 
-        /* ═══ FILTERS ═══ */
-        .ec-filters {
-          max-width: 900px; margin: 0 auto 12px; padding: 16px 20px;
-          background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px);
-          border: 1px solid rgba(255,255,255,0.1); border-radius: 14px;
-          margin-left: 20px; margin-right: 20px;
-        }
-        .ec-filter-group { margin-bottom: 14px; }
-        .ec-filter-group:last-of-type { margin-bottom: 8px; }
-        .ec-filter-group label {
-          display: block; font-size: 11px; color: rgba(255,255,255,0.45);
-          text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; font-weight: 600;
-        }
-        .ec-dropdown {
-          width: 100%; padding: 10px 14px; background: rgba(0,0,0,0.3);
-          border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
-          color: #fff; font-size: 14px; outline: none; font-family: inherit;
-          appearance: none; cursor: pointer; transition: all 0.2s;
-          background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
-          background-repeat: no-repeat; background-position: right 14px center; background-size: 10px auto;
-        }
-        .ec-dropdown:hover { border-color: rgba(255,255,255,0.3); }
-        .ec-dropdown:focus { border-color: #00D4FF; box-shadow: 0 0 0 1px rgba(0,212,255,0.5); }
-        .ec-dropdown option { background: #0f172a; color: #fff; }
-        .ec-filter-actions { display: flex; justify-content: flex-end; margin-top: 20px; }
-        .ec-clear-btn {
-          padding: 8px 16px; background: none; border: 1px solid rgba(255,255,255,0.15);
-          border-radius: 8px; color: rgba(255,255,255,0.6); font-size: 12px; font-weight: 600;
-          cursor: pointer; transition: all 0.15s; font-family: inherit;
-        }
-        .ec-clear-btn:hover { border-color: rgba(255,255,255,0.3); color: #fff; }
-
         /* ═══ CONTENT ═══ */
-        .ec-content { max-width: 900px; margin: 0 auto; padding: 0 20px; }
+        .ec-content { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
 
-        /* Loading / Error / Empty */
         .ec-loading {
           display: flex; flex-direction: column; align-items: center; padding: 80px 20px;
           color: rgba(255,255,255,0.5);
@@ -1196,6 +1205,7 @@ export default function EventsCalendarPage({ fallbackData }) {
         .ev-venue-link:hover { color: #00D4FF; text-decoration: underline; }
         .ev-location { color: rgba(255,255,255,0.35); }
         .ev-distance { color: rgba(0,212,255,0.7); font-weight: 600; }
+        .ev-recurrence { color: rgba(245,158,11,0.6); font-style: italic; }
         .ev-tour-code {
           display: inline-block; margin-top: 4px; font-size: 10px; font-weight: 700;
           color: rgba(245,158,11,0.8); background: rgba(245,158,11,0.1);
@@ -1338,17 +1348,29 @@ export default function EventsCalendarPage({ fallbackData }) {
         .loc-clear:hover { border-color: rgba(255,255,255,0.3); color: #fff; }
 
         /* ═══ RESPONSIVE ═══ */
-        @media (max-width: 640px) {
+        @media (max-width: 768px) {
+          .ec-filter-bar {
+            padding: 8px 12px 10px;
+            gap: 8px;
+            overflow-x: auto;
+            flex-wrap: nowrap;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+          }
+          .ec-filter-bar::-webkit-scrollbar { display: none; }
+          .ec-filter-group { flex-shrink: 0; }
+          .ec-filter-select { min-width: 110px; font-size: 12px; }
+          .ec-location-btn { min-width: 110px; font-size: 12px; }
+          .ec-search-bar { padding: 0 12px 10px; }
           .ec-title { font-size: 20px; letter-spacing: 1px; }
-          .ec-search-bar { flex-direction: column; }
-          .ec-toolbar { width: 100%; justify-content: space-between; }
           .ec-cell { min-height: 52px; padding: 4px 2px; }
           .ec-day-num { font-size: 12px; width: 24px; height: 24px; }
           .ec-month-label { font-size: 17px; min-width: 140px; }
-          .ec-location-bar { flex-direction: column; align-items: flex-start; }
-          .ec-distance-pills { width: 100%; overflow-x: auto; }
           .ev-card { flex-direction: column; gap: 8px; }
           .ev-card-right { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px; }
+        }
+        @media (max-width: 480px) {
+          .ec-filter-select { min-width: 95px; padding: 8px 22px 8px 10px; }
         }
       `}</style>
     </>

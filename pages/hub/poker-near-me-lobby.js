@@ -26,6 +26,7 @@ import { addSearchHistory as addSearchHistoryToDb, getSearchHistory } from '../.
 import { getPokerNearMePreferences, updatePokerNearMePreferences } from '../../src/services/pokerNearMePreferences';
 import { supabase } from '../../src/lib/supabase';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
+import useVenueRealtime from '../../src/hooks/useVenueRealtime';
 import { eventBus, EventType } from '../../src/engine/EventBus';
 // BottomNavBar removed — Poker Near Me has its own navigation grid
 
@@ -571,6 +572,28 @@ export default function PokerNearMeLobby() {
       console.error('Failed to fetch daily tournaments:', err);
     }
   }, [userLocation]);
+
+  // [HARDENING] Real-time synchronization for global table/venue changes on Lobby Panel.
+  useVenueRealtime(() => {
+    if (activePod === 'daily') {
+        const dayFilter = (filters.dailyDay === 'all' || !filters.dailyDay) ? null : filters.dailyDay;
+        let url = '/api/poker/daily-tournaments';
+        const params = [`_rt=${Date.now()}`];
+        if (dayFilter) params.push(`day=${encodeURIComponent(dayFilter)}`);
+        if (userLocation) params.push(`lat=${userLocation.lat}&lng=${userLocation.lng}&radius=100`);
+        if (params.length > 0) url += '?' + params.join('&');
+        
+        fetch(url)
+            .then(r => r.json())
+            .then(data => {
+                if (data?.data) setDailyTournaments(data.data);
+                else if (data?.tournaments) setDailyTournaments(data.tournaments);
+                else if (Array.isArray(data)) setDailyTournaments(data);
+                if (data?.stats?.total != null) setTodaysTournamentCount(data.stats.total);
+            })
+            .catch(console.error);
+    }
+  });
 
   // ─── Live games are fetched by <LiveGamesFeed> component directly ───
 

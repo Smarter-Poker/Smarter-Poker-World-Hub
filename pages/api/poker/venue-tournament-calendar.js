@@ -80,8 +80,8 @@ export default async function handler(req, res) {
                 id, venue_id, venue_name,
                 day_of_week, event_date, start_time,
                 tournament_name, buy_in, game_type, format,
-                guaranteed, starting_stack, blind_levels,
-                rebuy_addon, late_registration, source_url,
+                guaranteed, starting_stack, blind_levels, level_duration_minutes,
+                rebuy_addon, late_registration, structure_sheet_url, parent_tournament_id, source_url,
                 last_scraped, is_active, data_quality
             `)
             .eq('venue_id', venueId)

@@ -206,6 +206,7 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
     // Setting an rtNonce previously did NOTHING except force a re-render over stale prop arrays!
     // Now we surgically intercept postgres payloads and mutate `allSeries` directly.
     useVenueRealtime((payload) => {
+<<<<<<< Updated upstream
         if (!payload) {
             // [Fix] Reconnect / visibility change: Hard refresh necessary to drop stale state
             supabase.from('poker_series').select('*')
@@ -231,6 +232,9 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
             return;
         }
 
+=======
+        if (!payload) return; // Hard refresh not supported cleanly given static props logic
+>>>>>>> Stashed changes
         if (payload.table !== 'poker_series') return;
         const { eventType, new: newRec, old: oldRec } = payload;
         
@@ -955,10 +959,17 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                                                     {/* Square venue logo — top-left corner */}
                                                     {series.logo_url && (
                                                         <div style={{
+<<<<<<< Updated upstream
                                                             width: 116,
                                                             height: 116,
                                                             flexShrink: 0,
                                                             borderRadius: 12,
+=======
+                                                            width: 58,
+                                                            height: 58,
+                                                            flexShrink: 0,
+                                                            borderRadius: 8,
+>>>>>>> Stashed changes
                                                             overflow: 'hidden',
                                                             border: '1px solid rgba(255,255,255,0.12)',
                                                             background: 'rgba(0,0,0,0.35)',
@@ -974,7 +985,11 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                                                                     height: '100%',
                                                                     objectFit: 'contain',
                                                                     display: 'block',
+<<<<<<< Updated upstream
                                                                     padding: 8,
+=======
+                                                                    padding: 4,
+>>>>>>> Stashed changes
                                                                     boxSizing: 'border-box',
                                                                 }}
                                                                 loading="lazy"
@@ -1252,6 +1267,10 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                         box-shadow: 0 4px 20px rgba(0,0,0,0.25);
                     }
                     .tours-search-wrap.focused {
+<<<<<<< Updated upstream
+=======
+                        /* Removed per user request to prevent secondary rectangle */
+>>>>>>> Stashed changes
                     }
                     .tours-search-bar-icon {
                         flex-shrink: 0;

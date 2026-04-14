@@ -335,6 +335,10 @@ export default function SeriesDetailPage() {
     if (payload.table === 'poker_series' && payload.new && String(payload.new.id) === String(id)) {
       mutate();
     }
+<<<<<<< Updated upstream
+=======
+    // Note: changes to poker_venues or venue_daily_tournaments do not immediately mutate specific series detail caches unless they impact all venues, in which case a hard refresh is preferred or the DB trigger should touch poker_series.
+>>>>>>> Stashed changes
   });
 
   const series = swrData?.series || null;
