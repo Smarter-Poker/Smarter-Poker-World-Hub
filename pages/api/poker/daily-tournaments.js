@@ -121,6 +121,7 @@ export default async function handler(req, res) {
           if (day !== 'all') {
               // BUG FIX: strip ILIKE wildcards from day param before interpolation
               targetDay = (day || getCurrentDay()).replace(/[%_\\,().]/g, '').trim().slice(0, 20);
+              if (!targetDay) targetDay = getCurrentDay();
               // ilike handles: Saturday / saturday / SATURDAY all correctly
               query = query.or(`day_of_week.ilike.${targetDay},day_of_week.ilike.daily`);
           }
