@@ -35,6 +35,25 @@ const TOUR_COLORS = {
     'default': { bg: 'linear-gradient(135deg, #374151, #1f2937)', text: '#fff', border: '#4b5563', fill: '#6b7280' }
 };
 
+// ─── Tour Logo Map — maps tour codes to existing /public/images/tours/ assets ───
+// Used as fallback when poker_series.logo_url is null (most scraped series)
+const TOUR_LOGO_MAP = {
+    'WSOP':       '/images/tours/wsop.png',
+    'WSOPC':      '/images/tours/wsopc.png',
+    'WPT':        '/images/tours/wpt.png',
+    'MSPT':       '/images/tours/mspt.png',
+    'RGPS':       '/images/tours/rgps.png',
+    'PGT':        '/images/tours/pgt.png',
+    'CPPT':       '/images/tours/cppt.png',
+    'NAPT':       '/images/tours/napt.png',
+    'FPN':        '/images/tours/fpn.png',
+    'LIPS':       '/images/tours/lips.png',
+    'BPO':        '/images/tours/bpo.png',
+    'GCPT':       '/images/tours/gcpt.jpg',
+    'ROUGHRIDER': '/images/tours/roughrider.png',
+    'PAT':        '/images/tours/pat.jpg',
+};
+
 const SERIES_TYPE_INFO = {
     major:      { label: 'Major', color: '#c9a227' },
     circuit:    { label: 'Circuit', color: '#3b82f6' },
@@ -176,7 +195,14 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
     const router = useRouter();
     const [isMenuOpen, setMenuOpen] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
+<<<<<<< Updated upstream
     const [rtNonce, setRtNonce] = useState(0);
+=======
+    // ─── Data State ───
+    const [allSeries, setAllSeries] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [allVenues, setAllVenues] = useState([]);
+>>>>>>> Stashed changes
 
     // Bind realtime venue and series updates to cache invalidation
     // BUG FIX: poker-series relies exclusively on getStaticProps initialSeries.
@@ -190,6 +216,10 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
         setAllSeries(prev => {
             let next = [...prev];
             if (eventType === 'INSERT' && newRec) {
+<<<<<<< Updated upstream
+=======
+                // Ensure no dupes
+>>>>>>> Stashed changes
                 if (!next.some(s => s.id === newRec.id)) next.push(newRec);
             } else if (eventType === 'UPDATE' && newRec) {
                 const idx = next.findIndex(s => s.id === newRec.id);
@@ -533,7 +563,7 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
         }
 
         return result;
-    }, [allSeries, selectedTour, selectedStatus, selectedState, deferredSearchQuery, sortBy, dateRangeCutoff, distanceFilter, userLocation, findVenueCoords, haversineDistance]);
+    }, [allSeries, selectedTour, selectedStatus, selectedState, deferredSearchQuery, sortBy, dateRangeCutoff, distanceFilter, userLocation, findVenueCoords]);
 
     // ─── Stats ───
     const liveCount = useMemo(() => filteredSeries.filter(s => isSeriesLive(s.start_date, s.end_date)).length, [filteredSeries]);
@@ -562,7 +592,29 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
 
             const live = isSeriesLive(series.start_date, series.end_date);
             const seriesName = cleanHtml(series.name || series.series_name || 'Poker Series');
-            // Use venue type 'poker_club' so VenueMap renders as a gold venue pin (not a red tour-stop ring)
+            const rawTourString = String(series.tour || series.tour_code || series.short_name || series.series_name || series.name || '').toUpperCase();
+            
+            // Aggressive substring matching for tour logos
+            let matchedTourCode = null;
+            if (rawTourString.includes('WSOPC') || rawTourString.includes('WSOP CIRCUIT')) matchedTourCode = 'WSOPC';
+            else if (rawTourString.includes('WSOP')) matchedTourCode = 'WSOP';
+            else if (rawTourString.includes('WPT')) matchedTourCode = 'WPT';
+            else if (rawTourString.includes('MSPT')) matchedTourCode = 'MSPT';
+            else if (rawTourString.includes('RGPS') || rawTourString.includes('RUNGOOD')) matchedTourCode = 'RGPS';
+            else if (rawTourString.includes('PGT')) matchedTourCode = 'PGT';
+            else if (rawTourString.includes('NAPT')) matchedTourCode = 'NAPT';
+            else {
+                // Fallback exact match attempt
+                matchedTourCode = Object.keys(TOUR_LOGO_MAP).find(k => rawTourString.includes(k));
+            }
+
+            // Logo cascade: (1) series own logo_url → (2) known tour brand logo → (3) resolved venue logo
+            // Most poker_series rows have logo_url=null so the TOUR_LOGO_MAP fallback is critical
+            const seriesLogoUrl = series.logo_url
+                || (matchedTourCode ? TOUR_LOGO_MAP[matchedTourCode] : null)
+                || venueMatch?.logo_url
+                || venueMatch?.profile_photo_url
+                || '';
             markers.push({
                 id: `series-${series.id || series.series_uid || seriesName}`,
                 name: seriesName,
@@ -573,6 +625,7 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                 venue_type: live ? 'casino' : 'poker_club', // casino=white=live, poker_club=green=upcoming
                 trust_score: 5,
                 is_open: live,
+                logo_url: seriesLogoUrl, // ← renders as the circle image on the map dot
                 // Series-specific metadata for popups
                 detailUrl: series.id ? `/hub/series/${series.id}` : null,
                 series_start: series.start_date,
@@ -878,55 +931,60 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                                                 </svg>
                                             </button>
 
-                                            {/* Card Header — Badge + Type */}
-                                            <div className="tour-card-header">
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                                    <div
-                                                        className="tour-code-badge"
-                                                        style={{ background: colors.bg, border: '1px solid ' + colors.border }}
-                                                    >
-                                                        <span style={{ color: colors.text, fontSize: isKnownTour ? 14 : 11, fontWeight: 800, letterSpacing: isKnownTour ? '0.5px' : '0.3px', textTransform: 'uppercase' }}>
-                                                            {badgeLabel}
-                                                        </span>
+                                            {/* Card Header — Square Logo + Badge col + Type pill */}
+                                            <div className="tour-card-header" style={{ alignItems: 'flex-start' }}>
+                                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, flex: 1, minWidth: 0 }}>
+                                                    {/* Square venue logo — top-left corner */}
+                                                    {series.logo_url && (
+                                                        <div style={{
+                                                            width: 58,
+                                                            height: 58,
+                                                            flexShrink: 0,
+                                                            borderRadius: 8,
+                                                            overflow: 'hidden',
+                                                            border: '1px solid rgba(255,255,255,0.12)',
+                                                            background: 'rgba(0,0,0,0.35)',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                        }}>
+                                                            <img
+                                                                src={series.logo_url}
+                                                                alt={seriesName}
+                                                                style={{
+                                                                    width: '100%',
+                                                                    height: '100%',
+                                                                    objectFit: 'contain',
+                                                                    display: 'block',
+                                                                    padding: 4,
+                                                                    boxSizing: 'border-box',
+                                                                }}
+                                                                loading="lazy"
+                                                                onError={e => { e.target.parentElement.style.display = 'none'; }}
+                                                            />
+                                                        </div>
+                                                    )}
+                                                    {/* Tour badge + series name stacked */}
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minWidth: 0 }}>
+                                                        <div
+                                                            className="tour-code-badge"
+                                                            style={{ background: colors.bg, border: '1px solid ' + colors.border, alignSelf: 'flex-start' }}
+                                                        >
+                                                            <span style={{ color: colors.text, fontSize: isKnownTour ? 14 : 11, fontWeight: 800, letterSpacing: isKnownTour ? '0.5px' : '0.3px', textTransform: 'uppercase' }}>
+                                                                {badgeLabel}
+                                                            </span>
+                                                        </div>
+                                                        {/* Series Name lives inside header col when logo present */}
+                                                        <h4 className="tour-card-name" style={{ margin: 0 }}>{seriesName}</h4>
                                                     </div>
                                                 </div>
                                                 <span
                                                     className="tour-type-pill"
-                                                    style={{ color: typeInfo.color, borderColor: typeInfo.color + '40', background: typeInfo.color + '15' }}
+                                                    style={{ color: typeInfo.color, borderColor: typeInfo.color + '40', background: typeInfo.color + '15', flexShrink: 0 }}
                                                 >
                                                     {typeInfo.label}
                                                 </span>
                                             </div>
-
-                                            {/* Series Logo Image — generated venue-inspired art */}
-                                            {series.logo_url && (
-                                                <div style={{
-                                                    width: '100%',
-                                                    height: 130,
-                                                    borderRadius: 8,
-                                                    overflow: 'hidden',
-                                                    margin: '8px 0 10px',
-                                                    border: '1px solid rgba(255,255,255,0.07)',
-                                                    flexShrink: 0,
-                                                }}>
-                                                    <img
-                                                        src={series.logo_url}
-                                                        alt={seriesName}
-                                                        style={{
-                                                            width: '100%',
-                                                            height: '100%',
-                                                            objectFit: 'cover',
-                                                            objectPosition: 'center top',
-                                                            display: 'block',
-                                                        }}
-                                                        loading="lazy"
-                                                        onError={e => { e.target.style.display = 'none'; }}
-                                                    />
-                                                </div>
-                                            )}
-
-                                            {/* Series Name */}
-                                            <h4 className="tour-card-name">{seriesName}</h4>
 
                                             {/* Venue + Location with LIVE/UPCOMING badge */}
                                             <div className="tour-card-location-live">
@@ -1176,8 +1234,6 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                         box-shadow: 0 4px 20px rgba(0,0,0,0.25);
                     }
                     .tours-search-wrap.focused {
-                        border-color: rgba(212,168,83,0.5);
-                        box-shadow: 0 0 24px rgba(212,168,83,0.15), 0 4px 20px rgba(0,0,0,0.25);
                     }
                     .tours-search-bar-icon {
                         flex-shrink: 0;

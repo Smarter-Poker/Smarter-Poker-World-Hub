@@ -668,6 +668,38 @@ export default function SeriesDetailPage() {
 
         {/* Header Section */}
         <div className="series-header">
+
+          {/* Square Venue Logo — top-left of header */}
+          {series.logo_url && (
+            <div style={{
+              width: 72,
+              height: 72,
+              flexShrink: 0,
+              borderRadius: 10,
+              overflow: 'hidden',
+              border: '1px solid rgba(255,255,255,0.15)',
+              background: 'rgba(0,0,0,0.4)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 12,
+            }}>
+              <img
+                src={series.logo_url}
+                alt={series.name}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain',
+                  display: 'block',
+                  padding: 6,
+                  boxSizing: 'border-box',
+                }}
+                onError={e => { e.target.parentElement.style.display = 'none'; }}
+              />
+            </div>
+          )}
+
           <div className="header-badges">
             {/* Tour Badge */}
             <span
@@ -1053,9 +1085,9 @@ export default function SeriesDetailPage() {
                             ) : rank}
                           </td>
                           <td className="lb-player" style={podiumColor ? { color: podiumColor } : {}}>
-                            {entry.player_name}
+                            {entry.name}
                           </td>
-                          <td className="lb-earnings">{formatMoney(entry.total_earnings)}</td>
+                          <td className="lb-earnings">{formatMoney(entry.totalEarnings)}</td>
                           <td className="lb-cashes">{entry.cashes}</td>
                         </tr>
                       );
@@ -1120,9 +1152,9 @@ export default function SeriesDetailPage() {
           {activities.length > 0 && (
             <div className="activity-list">
               {activities.map((activity, idx) => {
-                const typeColor = ACTIVITY_TYPE_COLORS[activity.type] || ACTIVITY_TYPE_COLORS.update;
+                const typeColor = ACTIVITY_TYPE_COLORS[activity.activity_type] || ACTIVITY_TYPE_COLORS.update;
                 return (
-                  <div key={idx} className="activity-item">
+                  <div key={activity.id || idx} className="activity-item">
                     <div className="activity-header">
                       <span
                         className="activity-type-badge"
@@ -1132,7 +1164,7 @@ export default function SeriesDetailPage() {
                           borderColor: typeColor.border,
                         }}
                       >
-                        {(activity.type || 'update').charAt(0).toUpperCase() + (activity.type || 'update').slice(1)}
+                        {(activity.activity_type || 'update').charAt(0).toUpperCase() + (activity.activity_type || 'update').slice(1)}
                       </span>
                       <span className="activity-time">{timeAgo(activity.created_at)}</span>
                     </div>

@@ -70,6 +70,62 @@ implementation if any of these rules are being violated.
 - Only stop for genuine forks where the user has clearly-split preferences
   (e.g., "A or B?") that have no sensible default.
 
+## 12b. Spec immutability on "wait" / "defer" / "soak."
+Specs MAY NOT contain the following phrases inside a deliverable or rollout
+step, for anything that is in-scope for that phase:
+- "waits N days" / "after N-hour soak"
+- "later PR" / "follow-up PR"
+- "deferred"
+- "temporarily"
+- "safe rollout window"
+- "dual path / dual write until…"
+
+If a deliverable is in scope, it ships in this session's PR sequence. If it
+can't ship now, it is NOT in scope — it belongs in a separate phase spec.
+This was the primary failure pattern on 2026-04-14. Dan caught it via an
+adversarial audit. The rule is binding on every future spec file.
+
+## 12c. No dead parallel paths.
+If a rewrite replaces path A with path B, the PR that flips the switch MUST
+delete path A **in the same PR**. Not "PR+1." Not "once soak passes." The
+same PR. No `if (featureFlag) { old } else { new }`. No dual-write for
+"safety." The switch flip and the deletion are the same atomic unit.
+
+Corollary: if the scope feels too big to delete + flip in one PR, the scope
+is wrong. Split the migration differently — do not split it into "ship
+parallel" + "delete later."
+
+## 12d. Pre-claim audit, not post-claim review.
+Before marking ANY phase or PR "done" or "shipped," run this exact audit
+sequence. Each check returns green or red. All-green is a prerequisite for
+the "shipped" label:
+
+1. `rg "<deleted-identifier>"` for every symbol the spec promised to delete
+   — must return ZERO matches in source (excluding git history).
+2. `rg "setTimeout|setInterval"` in every file the spec said to migrate to
+   the scheduler — must return ZERO matches (unless explicitly kept and
+   documented with an inline comment).
+3. `tsc --noEmit` exit 0 (necessary but NOT sufficient).
+4. Test suite green (necessary but NOT sufficient).
+5. A fresh-eyes code-review sub-agent tasked with: "find where this phase
+   failed to satisfy its own spec." Take what the sub-agent returns as
+   ground truth.
+6. Every acceptance criterion from the spec has a manual or scripted
+   verification artifact logged alongside the PR.
+
+If any step is red, the PR is not shipped. "It compiles" and "tests pass"
+are not substitutes for "the specific symbol I was supposed to delete is
+gone." grep-for-absence is the test, not grep-for-presence.
+
+## 12e. Forbidden words inside specs' deliverable lists.
+When drafting a spec, these words are forbidden inside the Deliverables or
+Rollout section:
+  "wait", "soak", "defer", "later", "eventually", "temporarily",
+  "safe rollout", "feature flag until", "gradual", "phased".
+
+If you catch yourself typing them while writing a spec, the scope is wrong.
+Re-scope the spec.
+
 ## 12. Rewrites and hard-wiring only. No band-aids.
 - If a subsystem is structurally wrong, rewrite the subsystem.
 - Do not add a "fallback" that papers over the real bug.

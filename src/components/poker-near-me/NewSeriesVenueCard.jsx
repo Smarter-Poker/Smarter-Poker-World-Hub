@@ -23,6 +23,25 @@ function safeHref(url) {
     return cleanUrl;
 }
 
+// Tour logo fallback map — matches /public/images/tours/ assets
+// Applied when series.logo_url is null (most scraped series rows)
+const TOUR_LOGO_MAP = {
+    'WSOP':       '/images/tours/wsop.png',
+    'WSOPC':      '/images/tours/wsopc.png',
+    'WPT':        '/images/tours/wpt.png',
+    'MSPT':       '/images/tours/mspt.png',
+    'RGPS':       '/images/tours/rgps.png',
+    'PGT':        '/images/tours/pgt.png',
+    'CPPT':       '/images/tours/cppt.png',
+    'NAPT':       '/images/tours/napt.png',
+    'FPN':        '/images/tours/fpn.png',
+    'LIPS':       '/images/tours/lips.png',
+    'BPO':        '/images/tours/bpo.png',
+    'GCPT':       '/images/tours/gcpt.jpg',
+    'ROUGHRIDER': '/images/tours/roughrider.png',
+    'PAT':        '/images/tours/pat.jpg',
+};
+
 /**
  * NewSeriesVenueCard - Premium Metal Series Card
  * Uses the Skeuomorphic Sci-Fi UI System
@@ -45,6 +64,24 @@ export default function NewSeriesVenueCard({ series: s, index, isFavorited, onFa
     // BUG FIX: sanitize source_url/website before using as href
     const externalUrl = safeHref(s.source_url || s.website);
 
+    const rawTourString = String(s.tour_code || s.tour || s.short_name || s.name || s.series_name || '').toUpperCase();
+    
+    // Aggressive substring matching for tour logos
+    let matchedTourCode = null;
+    if (rawTourString.includes('WSOPC') || rawTourString.includes('WSOP CIRCUIT')) matchedTourCode = 'WSOPC';
+    else if (rawTourString.includes('WSOP')) matchedTourCode = 'WSOP';
+    else if (rawTourString.includes('WPT')) matchedTourCode = 'WPT';
+    else if (rawTourString.includes('MSPT')) matchedTourCode = 'MSPT';
+    else if (rawTourString.includes('RGPS') || rawTourString.includes('RUNGOOD')) matchedTourCode = 'RGPS';
+    else if (rawTourString.includes('PGT')) matchedTourCode = 'PGT';
+    else if (rawTourString.includes('NAPT')) matchedTourCode = 'NAPT';
+    else {
+        matchedTourCode = Object.keys(TOUR_LOGO_MAP).find(k => rawTourString.includes(k));
+    }
+
+    // Logo cascade: series own logo → tour brand logo → nothing
+    const resolvedLogoUrl = s.logo_url || (matchedTourCode ? TOUR_LOGO_MAP[matchedTourCode] : null) || null;
+
     return (
         <div className="metal-series-card" onClick={() => onNavigate && onNavigate(detailUrl)}>
             <div className="frame-bolt" style={{ top: '8px', left: '8px' }} />
@@ -53,14 +90,26 @@ export default function NewSeriesVenueCard({ series: s, index, isFavorited, onFa
             <div className="frame-bolt" style={{ bottom: '8px', right: '8px' }} />
             <div className="neon-strip left" />
             <div className="neon-strip right" />
-            {s.logo_url && (
-                <div className="series-banner-image" style={{ width: '100%', height: '140px', borderRadius: '4px', marginBottom: '16px', backgroundColor: 'rgba(0,0,0,0.5)', overflow: 'hidden' }}>
-                    <img src={s.logo_url} alt={s.name || s.series_name || 'Series'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
-                </div>
-            )}
-            
-            <div className="series-header">
-                <div>
+            <div className="series-header" style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                {/* Square logo — left side */}
+                {resolvedLogoUrl && (
+                    <div style={{
+                        width: 58, height: 58, flexShrink: 0, borderRadius: 8,
+                        overflow: 'hidden', border: '1px solid rgba(255,255,255,0.12)',
+                        background: 'rgba(0,0,0,0.4)', display: 'flex',
+                        alignItems: 'center', justifyContent: 'center',
+                    }}>
+                        <img
+                            src={resolvedLogoUrl}
+                            alt={s.name || s.series_name || 'Series'}
+                            style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block', padding: 4, boxSizing: 'border-box' }}
+                            loading="lazy"
+                            onError={e => { e.target.parentElement.style.display = 'none'; }}
+                        />
+                    </div>
+                )}
+                {/* Tour badge + title stacked to the right of logo */}
+                <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="series-tour">{shortCode}</div>
                     <a href={detailUrl} onClick={e => e.preventDefault()} style={{ textDecoration: 'none', color: 'inherit' }}>
                         <h4 className="series-title">{s.name || s.series_name || 'Upcoming Series'}</h4>

@@ -48,10 +48,15 @@ export default async function handler(req, res) {
 
     try {
       if (req.method === 'POST') {
-        // Require JWT auth for writes
-        const verifiedUserId = await getVerifiedUserId(req);
-        if (!verifiedUserId) {
-          return res.status(401).json({ success: false, error: 'Authentication required for posting activity' });
+        // Require JWT auth for writes or admin secret
+        const adminSecret = req.headers['x-admin-secret'];
+        if (adminSecret !== process.env.ADMIN_ROUTE_SECRET) {
+          const verifiedUserId = await getVerifiedUserId(req);
+          if (!verifiedUserId) {
+            return res.status(401).json({ success: false, error: 'Authentication required for posting activity' });
+          }
+          // Only admins can post activities right now. User comments would go to a different table.
+          return res.status(403).json({ success: false, error: 'Unauthorized: Admin access required to post official page activities' });
         }
 
         const { page_type, page_id, content, activity_type } = req.body;

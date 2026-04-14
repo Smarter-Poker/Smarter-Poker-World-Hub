@@ -1,5 +1,6 @@
 import React from 'react';
 import { parseStopDates } from '../../utils/tourGeoUtils';
+import useTrackedTours from '../../hooks/useTrackedTours';
 
 export const TOUR_COLORS = {
     'WSOP': { bg: 'linear-gradient(135deg, #c9a227, #8b6914)', text: '#000', border: '#c9a227', fill: '#c9a227' },
@@ -64,9 +65,10 @@ export default function TourCard({
     handleTourClick,
     searchQuery,
     dateRangeCutoff,
-    getMatchingStops,
-    onTrackTour // New Phase 4 hook
+    getMatchingStops
 }) {
+    const { isTracking, toggleTrackTour } = useTrackedTours();
+    const isTracked = isTracking(tour.tour_code);
     const colors = TOUR_COLORS[tour.tour_code] || TOUR_COLORS.default;
     const typeInfo = TOUR_TYPE_INFO[tour.tour_type] || { label: tour.tour_type || 'Tour', color: '#6b7280' };
     const isFav = !!favorites[tour.tour_code];
@@ -105,12 +107,12 @@ export default function TourCard({
             <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: '8px' }}>
                 {/* Track Tour Button (Phase 4) */}
                 <button
-                    className="tour-fav-btn"
-                    onClick={e => { e.stopPropagation(); onTrackTour && onTrackTour(tour.tour_code); }}
+                    className={'tour-fav-btn' + (isTracked ? ' active' : '')}
+                    onClick={e => { e.stopPropagation(); toggleTrackTour(tour.tour_code); }}
                     aria-label="Track tour notifications"
                     style={{ position: 'relative', top: 0, right: 0 }}
                 >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill={isTracked ? '#4ade80' : 'none'} stroke={isTracked ? '#4ade80' : 'rgba(255,255,255,0.4)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                         <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                     </svg>

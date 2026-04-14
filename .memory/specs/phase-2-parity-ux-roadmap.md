@@ -56,7 +56,7 @@ players as a PokerBros alternative."
 | T2-07 | Hand history replay panel (already has skeleton) | §9.5 | 2 days |
 | T2-08 | VIP badge animation on seat | §11.1 | 0.5 day |
 
-### Tier 3 — new features (ship after Tier 2 soak)
+### Tier 3 — new features (start once Tier 2 is fully green)
 
 | id | item | spec ref | effort |
 |----|------|----------|--------|
@@ -73,15 +73,16 @@ Ship Tier 1 items as individual PRs, one per item, verified in prod
 before moving to the next. Each item is small enough to land in a single
 focused session.
 
-Tier 2 starts only after all Tier 1 items have 48h soak. Tier 3 starts
-only after all Tier 2 items have 48h soak.
+Tier 2 starts the moment every Tier 1 item is green against its own
+grep-for-absence / acceptance test. Tier 3 starts when every Tier 2 item
+is green. "Green" means the item's verification command (grep or manual
+browser confirmation) succeeds — not "N hours of idle observation."
 
 The full Phase 2 timeline at this pace:
 - Tier 1: 8 items × ~0.75 day avg = 6 working days
 - Tier 2: 8 items × ~0.75 day avg = 6 working days
 - Tier 3: 4 items × ~1.9 day avg = 7.5 working days
-- Plus soak windows (48h × 3 tiers) = ~6 working days
-- **Total: ~25 working days for full Phase 2.**
+- **Total: ~19.5 working days for full Phase 2.**
 
 ---
 

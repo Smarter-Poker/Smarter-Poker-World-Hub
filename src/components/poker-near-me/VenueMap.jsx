@@ -354,9 +354,11 @@ function createVenueIcon(L, venue, overrideColor) {
   const logoUrl = venue?.logo_url || venue?.profile_photo_url || venue?.cover_photo_url || venue?.image_url || '';
   const initials = (venue?.name || 'V').split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
 
-  // Logo or initials — matches the Poker Tours round-circle style
-  const innerContent = logoUrl
-    ? `<img src="${escapeHtml(logoUrl)}" alt="" style="width:34px;height:34px;object-fit:contain;border-radius:50%;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+  // When logo exists: fill entire circle with the logo (edge-to-edge, no white gap)
+  // When no logo: white circle with colored initials
+  const hasLogo = !!logoUrl;
+  const innerContent = hasLogo
+    ? `<img src="${escapeHtml(logoUrl)}" alt="" style="width:40px;height:40px;object-fit:contain;border-radius:50%;background:#fff;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
        <div style="display:none;font-size:13px;font-weight:900;color:${colors.fill};letter-spacing:0.5px;">${initials}</div>`
     : `<div style="font-size:13px;font-weight:900;color:${colors.fill};letter-spacing:0.5px;">${initials}</div>`;
 
@@ -365,10 +367,14 @@ function createVenueIcon(L, venue, overrideColor) {
     ? `<div class="venue-pin-label" style="position:absolute;top:110%;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);backdrop-filter:blur(4px);color:#fff;padding:3px 8px;border-radius:12px;font-size:10px;font-weight:800;white-space:nowrap;border:1px solid ${colors.fill}60;box-shadow:0 2px 8px rgba(0,0,0,0.9);text-shadow:0 1px 2px #000;letter-spacing:0.3px;z-index:999;max-width:140px;overflow:hidden;text-overflow:ellipsis;">${escapedLabel}</div>`
     : '';
 
+  // Circle background: white for logos (so logos contrast), dark for initials-only
+  const circleBg = hasLogo ? '#ffffff' : '#ffffff';
+  const borderColor = hasLogo ? colors.fill : '#94a3b8';
+
   return L.divIcon({
     className: 'venue-map-marker',
     html: `<div style="position:relative;width:44px;height:44px;">
-      <div style="position:absolute;inset:0;border-radius:50%;background:#ffffff;border:2.5px solid #94a3b8;box-shadow:0 0 12px ${colors.fill}80, 0 3px 10px rgba(0,0,0,0.7);overflow:hidden;display:flex;align-items:center;justify-content:center;">
+      <div style="position:absolute;inset:0;border-radius:50%;background:${circleBg};border:2.5px solid ${borderColor};box-shadow:0 0 12px ${colors.fill}80, 0 3px 10px rgba(0,0,0,0.7);overflow:hidden;display:flex;align-items:center;justify-content:center;">
         ${innerContent}
       </div>
       ${labelHtml}
