@@ -1,59 +1,76 @@
 # ═══════════════════════════════════════════════════════════════
 # .vercelignore — Exclude non-deployment files from Vercel upload
 # ═══════════════════════════════════════════════════════════════
-# HARD LAW: Vercel fails at ~15,000 files. Keep deployable count
-# under 12,000. Run `git ls-files | wc -l` before bulk additions.
-# Current tracked: ~7,200 | Vercel-deployable: ~6,400
+# HARD LAW: Vercel fails at 15,000 files. Keep deployable count
+# under 12,000. `data/` alone has 11,553 files — MUST be excluded.
+# Run: find . -not -path './.git/*' -not -path './node_modules/*' \
+#   -type f | wc -l    to measure before adding bulk files.
 # ═══════════════════════════════════════════════════════════════
 
-# Python virtual environment (scraping tools)
-.venv
+# ── Python virtual environment ────────────────────────────────
+.venv/
 
-# Build/deploy scripts (not needed at runtime)
+# ── Node (never committed but just in case) ───────────────────
+node_modules/
+.git/
+
+# ── DATA (11,553 files — #1 cause of Vercel 15k limit breach) ─
+# Served as static JSON at runtime via /data/ route is NOT needed
+# in Vercel upload — Next.js reads from public/ not data/
+data/
+
+# ── Build / deploy / agent scripts ───────────────────────────
 scripts/
-
-# Agent configuration and workflows
 .agent/
+.agents/
 .gemini/
 .claude/
 .claude-flow/
+.hive-mind/
+.swarm/
+.bg-shell/
+.vscode/
 
-# Planning and memory (agent-only)
+# ── Planning and memory (agent-only) ─────────────────────────
 .planning/
 .memory/
 .ocr/
 
-# Legacy directories (not used in production)
-_legacy_backups/
-_legacy_club_arena_standalone_pages/
-_legacy_scripts/
-
-# Test files
-tests/
-e2e/
-
-# Temporary files
-tmp/
-
-# Documentation (not served)
-docs/
-
-# Database migrations (executed separately via npm run db:push)
+# ── Database migrations (executed separately) ─────────────────
 supabase/
 database/
 migrations/
+sql/
 
-# Prevent Vercel from tracking heavy folders
+# ── Legacy directories ────────────────────────────────────────
+_legacy_backups/
+_legacy_club_arena_standalone_pages/
+_legacy_scripts/
+_legacy_logs/
+_legacy_sql/
+
+# ── Test / QA ─────────────────────────────────────────────────
+tests/
+e2e/
+__tests__/
+playwright/
 playwright-report/
 test-results/
-pokerbrain-assets/
-node_modules/
-.git/
+
+# ── Temporary / output / logs ─────────────────────────────────
 tmp/
 output/
-scripts/
+logs/
 
-.memory/
-.agents/
-.agent/
+# ── Documentation ─────────────────────────────────────────────
+docs/
 
+# ── Heavy asset directories not needed by Next.js runtime ─────
+pokerbrain-assets/
+
+# ── Misc agent/tooling ────────────────────────────────────────
+services/
+skills/
+templates/
+worker/
+eslint-plugin-smarter-poker/

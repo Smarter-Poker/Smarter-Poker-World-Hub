@@ -92,7 +92,18 @@ export default async function handler(req, res) {
 
         if (error) {
             console.error('[venue-tournament-calendar] DB error:', error);
-            return res.status(500).json({ success: false, error: error.message });
+            // [W7 FIX] Return 200 with empty fallback — never 500 (breaks Promise.all callers)
+            return res.status(200).json({
+                success: false,
+                error: error.message,
+                has_data: false,
+                stats: { total_records: 0, recurring_entries: 0, dated_events: 0, active_days: 0 },
+                weekly_schedule: {},
+                active_days: [],
+                calendar: {},
+                calendar_dates: [],
+                dated_events: [],
+            });
         }
 
         const allRows = rows || [];
@@ -206,22 +217,24 @@ function buildDisplayName(r) {
     return parts.join(' ');
 }
 
-// Generate next N days of dated instances from recurring weekly patterns
-function generateDatedInstances(recurring, daysAhead = 90) {
-    const today   = new Date();
-    today.setHours(0, 0, 0, 0);
+// [W6 FIX] Generate next N days of dated instances from recurring weekly patterns
+// Uses UTC-safe date arithmetic (getUTCDay, toISOString) to prevent timezone drift
+// on Vercel's UTC servers — prevents showing wrong day at midnight PST/EST edge.
+function generateDatedInstances(recurring, daysAhead = 45) {  // Reduced from 90 (A3: perf fix)
+    const now = new Date();
+    const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
     const dayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
     const result  = {};
 
     for (let offset = 0; offset <= daysAhead; offset++) {
-        const d = new Date(today);
-        d.setDate(today.getDate() + offset);
-        const dow = dayName[d.getDay()];
+        const d = new Date(todayUTC);
+        d.setUTCDate(todayUTC.getUTCDate() + offset);
+        const dow = dayName[d.getUTCDay()];
         const key = d.toISOString().split('T')[0];
 
-        // Find all recurring events for this day of week (or "Daily")
+        // [W5 FIX] Case-insensitive 'daily' match — DB stores as 'daily', 'Daily', 'DAILY'
         const matchingEvents = recurring.filter(r =>
-            r.day_of_week === dow || r.day_of_week === 'Daily'
+            r.day_of_week === dow || (r.day_of_week || '').toLowerCase() === 'daily'
         );
 
         if (matchingEvents.length > 0) {

@@ -182,9 +182,10 @@ export default async function handler(req, res) {
               }
           }
 
-          // Filter by venue name — strip SQL ILIKE wildcards (% _) to prevent wildcard injection
+          // Filter by venue name — strip SQL ILIKE wildcards and injection chars to prevent wildcard injection
+          // [A2 FIX] Added single-quote to character class — O'Brien-style names were passing through unsanitized
           if (venue) {
-              const safeVenue = venue.replace(/[,().%_\\]/g, '').trim().slice(0, 100);
+              const safeVenue = venue.replace(/[,().%_\\'";]/g, '').trim().slice(0, 100);
               if (safeVenue) {
                   query = query.ilike('venue_name', `%${safeVenue}%`);
               }

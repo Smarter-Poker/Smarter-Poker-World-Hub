@@ -177,7 +177,7 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
       {/* Primary Row: Essential Details */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 11, color: 'rgba(148,163,184,0.5)', marginTop: 8 }}>
         {t.start_time && <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(148,163,184,0.5)" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>{formatTime(t.start_time)}</span>}
-        {t.day_of_week && t.day_of_week !== selectedDay && t.day_of_week !== 'Daily' && <span style={{ color: '#94a3b8' }}>{t.day_of_week}</span>}
+        {t.day_of_week && (t.day_of_week || '').toLowerCase() !== selectedDay.toLowerCase() && (t.day_of_week || '').toLowerCase() !== 'daily' && <span style={{ color: '#94a3b8' }}>{t.day_of_week}</span>}
         {t.game_type && <span style={{ color: '#ffffff', background: 'rgba(255,255,255,0.08)', padding: '1px 6px', borderRadius: 4 }}>{formatGameType(t.game_type)}</span>}
         {t.guaranteed && <span style={{ color: '#f59e0b', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', padding: '2px 8px', borderRadius: 6, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 3 }}><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.5"><path d="M6 9H4.5a2.5 2.5 0 010-5C7 4 7 7 7 7"/><path d="M18 9h1.5a2.5 2.5 0 000-5C17 4 17 7 17 7"/><path d="M4 22h16"/><path d="M10 22V2h4v20"/></svg>{typeof t.guaranteed === 'number' ? t.guaranteed.toLocaleString() : t.guaranteed} GTD</span>}
         {t.format && <span style={{ color: '#cbd5e1' }}>{t.format.substring(0, 30)}</span>}

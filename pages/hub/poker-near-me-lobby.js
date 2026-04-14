@@ -32,7 +32,7 @@ import { eventBus, EventType } from '../../src/engine/EventBus';
 
 // ─── Extracted Utilities (Bundle Splitting) ───
 import { playClickSound, playPanelOpenSound, playPanelCloseSound } from '../../src/components/poker-near-me/lobby/PnmSoundUtils';
-import { cachedFetch, fetchWithRetry, PAGE_SIZE, SEARCH_DEBOUNCE_MS, API_CACHE_TTL, LIVE_REFRESH_MS } from '../../src/components/poker-near-me/lobby/PnmApiCache';
+import { cachedFetch, fetchWithRetry, invalidateCache, PAGE_SIZE, SEARCH_DEBOUNCE_MS, API_CACHE_TTL, LIVE_REFRESH_MS } from '../../src/components/poker-near-me/lobby/PnmApiCache';
 import { getCityCoordinatesMap } from '../../src/data/city-coordinates';
 
 // Dynamic import — 2D lobby background (client-only, no SSR)
@@ -552,14 +552,11 @@ export default function PokerNearMeLobby() {
     }
   }, [userLocation]);
 
-  // ─── Fetch daily tournaments ───
+  // ─── Fetch daily tournaments — [W1 FIX] removed unused lat/lng/radius (API ignores them) ───
   const fetchDaily = useCallback(async (dayFilter = '') => {
     try {
       let url = '/api/poker/daily-tournaments';
-      const params = [];
-      if (dayFilter) params.push(`day=${encodeURIComponent(dayFilter)}`);
-      if (userLocation) params.push(`lat=${userLocation.lat}&lng=${userLocation.lng}&radius=100`);
-      if (params.length > 0) url += '?' + params.join('&');
+      if (dayFilter) url += `?day=${encodeURIComponent(dayFilter)}`;
       const data = await cachedFetch(url);
       if (data?.data) setDailyTournaments(data.data);
       else if (data?.tournaments) setDailyTournaments(data.tournaments);
@@ -571,17 +568,20 @@ export default function PokerNearMeLobby() {
     } catch (err) {
       console.error('Failed to fetch daily tournaments:', err);
     }
-  }, [userLocation]);
+  }, []); // No userLocation dep — API doesn’t accept lat/lng
 
   // [HARDENING] Real-time synchronization for global table/venue changes on Lobby Panel.
+  // [RT2 FIX] Invalidate cachedFetch for daily-tournaments before fetching so the
+  // next manual fetchDaily call also gets fresh data (not stale cached 60s-TTL data).
   useVenueRealtime(() => {
     if (activePod === 'daily') {
+        // Bust the cache for all daily-tournament URLs so next cachedFetch bypasses TTL
+        invalidateCache('/api/poker/daily-tournaments');
         const dayFilter = (filters.dailyDay === 'all' || !filters.dailyDay) ? null : filters.dailyDay;
         let url = '/api/poker/daily-tournaments';
         const params = [`_rt=${Date.now()}`];
         if (dayFilter) params.push(`day=${encodeURIComponent(dayFilter)}`);
-        if (userLocation) params.push(`lat=${userLocation.lat}&lng=${userLocation.lng}&radius=100`);
-        if (params.length > 0) url += '?' + params.join('&');
+        url += '?' + params.join('&');
         
         fetch(url)
             .then(r => r.json())
@@ -594,6 +594,21 @@ export default function PokerNearMeLobby() {
             .catch(console.error);
     }
   });
+
+  // [W3 FIX] Re-fetch daily tournaments when userLocation becomes available
+  // (mount fires before GPS resolves, so initial fetchDaily gets no location context)
+  // Debounced 3s to avoid double-firing on rapid location updates.
+  const locationFetchTimerRef = useRef(null);
+  useEffect(() => {
+    if (!userLocation) return; // Only fire when location actually resolves
+    if (locationFetchTimerRef.current) clearTimeout(locationFetchTimerRef.current);
+    locationFetchTimerRef.current = setTimeout(() => {
+      fetchDaily();
+    }, 3000);
+    return () => {
+      if (locationFetchTimerRef.current) clearTimeout(locationFetchTimerRef.current);
+    };
+  }, [userLocation, fetchDaily]);
 
   // ─── Live games are fetched by <LiveGamesFeed> component directly ───
 
