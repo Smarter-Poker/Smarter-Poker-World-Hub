@@ -2675,7 +2675,7 @@ export default function PokerNearMePage() {
                                 <select
                                     className="pnm-filter-select"
                                     value={filters.radius}
-                                    onChange={e => setFilters({ ...filters, radius: e.target.value === 'Any' ? 'Any' : Number(e.target.value) })}
+                                    onChange={e => setFilters(f => ({ ...f, radius: e.target.value === 'Any' ? 'Any' : Number(e.target.value) }))}
                                 >
                                     <option value={25}>25 Miles</option>
                                     <option value={50}>50 Miles</option>
@@ -2690,7 +2690,7 @@ export default function PokerNearMePage() {
                                 <select
                                     className="pnm-filter-select"
                                     value={filters.venueType}
-                                    onChange={e => setFilters({ ...filters, venueType: e.target.value })}
+                                    onChange={e => setFilters(f => ({ ...f, venueType: e.target.value }))}
                                 >
                                     <option value="all">All Locations</option>
                                     <option value="casino">Casino</option>
@@ -2704,7 +2704,7 @@ export default function PokerNearMePage() {
                                 <select
                                     className="pnm-filter-select"
                                     value={filters.gameType}
-                                    onChange={e => setFilters({ ...filters, gameType: e.target.value })}
+                                    onChange={e => setFilters(f => ({ ...f, gameType: e.target.value }))}
                                 >
                                     <option value="all">All Games</option>
                                     <option value="cash">Cash Games</option>
@@ -2717,7 +2717,7 @@ export default function PokerNearMePage() {
                                 <select
                                     className="pnm-filter-select"
                                     value={filters.stakes}
-                                    onChange={e => setFilters({ ...filters, stakes: e.target.value })}
+                                    onChange={e => setFilters(f => ({ ...f, stakes: e.target.value }))}
                                 >
                                     <option value="all">All Stakes</option>
                                     <option value="$1/2">$1/2</option>
@@ -2725,25 +2725,7 @@ export default function PokerNearMePage() {
                                     <option value="$5/10+">$5/10+</option>
                                 </select>
                             </div>
-                            <div className="pnm-filter-group pnm-update-group" style={{ display: 'flex', alignItems: 'flex-end' }}>
-                                <button
-                                    className="pnm-search-btn update-btn"
-                                    onClick={() => {
-                                        setDisplayCount(prev => ({ ...prev, venues: PAGE_SIZE, tours: PAGE_SIZE, series: PAGE_SIZE, daily: PAGE_SIZE_DAILY }));
-                                        fetchAllData({ includeVenues: true });
-                                        if (typeof window !== 'undefined') window.dispatchEvent(new Event('resize')); // forces map bounds refresh if needed
-                                    }}
-                                    style={{
-                                        background: 'linear-gradient(180deg, #3fb950 0%, #2ea043 100%)',
-                                        color: '#fff', border: '1px solid rgba(255,255,255,0.1)',
-                                        borderRadius: '8px', padding: '0 16px', height: '36px',
-                                        fontSize: '13px', fontWeight: 'bold', cursor: 'pointer',
-                                        boxShadow: '0 4px 12px rgba(46,160,67,0.4)', textShadow: '0 1px 2px rgba(0,0,0,0.3)'
-                                    }}
-                                >
-                                    Update
-                                </button>
-                            </div>
+
                             {/* Live Games button */}
                             <button
                                 className={'pnm-top-tab live pnm-live-games-inline' + (showLiveTab ? ' active' : '')}
