@@ -250,26 +250,11 @@ export default function SeriesDetailPage() {
     setSortConfig({ key, direction });
   };
 
-  // Load follow state from localStorage instantly and sync across tabs
-  useEffect(() => {
-    if (!router.isReady || !id) return;
-    const updateFollowState = () => {
-      try {
-        const followed = JSON.parse(localStorage.getItem('followed-series') || '[]');
-        setIsFollowing(followed.includes(String(id)));
-      } catch { }
-    };
-    updateFollowState();
-    
-    // Cross-tab propagation
-    window.addEventListener('storage', updateFollowState);
-    return () => window.removeEventListener('storage', updateFollowState);
-  }, [id, router.isReady]);
-
   // SWR — parallel fetch all series data
   // BUG FIX: use Promise.allSettled + per-request timeout so slow activity/results APIs
   // never block the critical series data from rendering (was Promise.all → all-or-nothing hang)
-  const swrKey = id ? `/api/poker/series?id=${id}` : null;
+  const safeId = id ? encodeURIComponent(String(id)) : null;
+  const swrKey = safeId ? `/api/poker/series?id=${safeId}` : null;
   const { data: swrData, isLoading: loading, error, mutate } = useSWR(swrKey, async () => {
     const fetchWithTimeout = (url, options = {}, ms = 8000) => {
       const controller = new AbortController();
@@ -280,15 +265,17 @@ export default function SeriesDetailPage() {
     };
     // BUG FIX: 8s per-request timeouts; secondary APIs (results/activity) degrade gracefully
     const results_arr = await Promise.allSettled([
-      fetchWithTimeout('/api/poker/series?id=' + id),
-      fetchWithTimeout('/api/poker/results?series_id=' + id),
-      fetchWithTimeout('/api/poker/follow?page_type=series&page_id=' + id),
-      fetchWithTimeout('/api/poker/activity?page_type=series&page_id=' + id + '&limit=10'),
+      fetchWithTimeout('/api/poker/series?id=' + safeId),
+      fetchWithTimeout('/api/poker/results?series_id=' + safeId),
+      fetchWithTimeout('/api/poker/follow?page_type=series&page_id=' + safeId),
+      fetchWithTimeout('/api/poker/activity?page_type=series&page_id=' + safeId + '&limit=10'),
     ]);
     const [seriesRes, resultsRes, followRes, activityRes] = results_arr.map(r =>
       r.status === 'fulfilled' ? r.value : { ok: false }
     );
-    if (!seriesRes || !seriesRes.ok) throw new Error('Series not found or unavailable');
+    if (!seriesRes || (seriesRes.ok === false && !seriesRes.status)) throw new Error('Network timeout');
+    if (seriesRes.status === 404) throw new Error('Series not found');
+    if (!seriesRes.ok) throw new Error('API unavailable');
     const safeJson = async (r) => {
       if (!r || typeof r.json !== 'function') return {};
       try { return await r.json(); } catch { return {}; }
@@ -318,6 +305,37 @@ export default function SeriesDetailPage() {
   const leaderboard = swrData?.leaderboard || [];
   const followerCount = swrData?.followerCount || 0;
   const activities = swrData?.activities || [];
+
+  // Load follow state from localStorage instantly and sync across tabs
+  useEffect(() => {
+    if (!router.isReady || !id) return;
+    const updateFollowState = () => {
+      try {
+        const followed = JSON.parse(localStorage.getItem('followed-series') || '[]');
+        setIsFollowing(followed.includes(String(id)));
+        // Mutate SWR internal cache to refresh live count
+        if (swrKey) mutate();
+      } catch { }
+    };
+    updateFollowState();
+    
+    // BUG FIX: Full EventBus wiring + cross-tab localStorage event tracking for real-time reactivity
+    const handleBusAction = (data) => {
+      if (String(data.seriesId) === String(id)) {
+        updateFollowState();
+      }
+    };
+    
+    window.addEventListener('storage', updateFollowState);
+    eventBus.on('series:favorite', handleBusAction);
+    eventBus.on('series:unfavorite', handleBusAction);
+
+    return () => {
+      window.removeEventListener('storage', updateFollowState);
+      eventBus.off('series:favorite', handleBusAction);
+      eventBus.off('series:unfavorite', handleBusAction);
+    };
+  }, [id, router.isReady, swrKey, mutate]);
 
   const toggleFollow = useCallback(() => {
     if (followPending) return; // guard: block double-click
@@ -818,7 +836,7 @@ export default function SeriesDetailPage() {
                     // BUG FIX: Use composite key (event_number + event_name) to prevent
                     // Fragment key collision when two events share the same event_number.
                     // Falls back to index so event_number=0 (falsy) is handled correctly.
-                    const evtBaseKey = evt.event_number != null ? evt.event_number : i + 1;
+                    const evtBaseKey = (evt.event_number != null && evt.event_number !== '') ? evt.event_number : i + 1;
                     const evtKey = `${evtBaseKey}-${(evt.event_name || '').slice(0, 20) || i}`;
                     var isExpanded = expandedEvent === evtKey;
                     return (
