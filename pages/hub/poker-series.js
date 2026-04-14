@@ -230,13 +230,7 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
             }
             return;
         }
-<<<<<<< Updated upstream
 
-=======
-=======
-        if (!payload) return; // Hard refresh not supported cleanly given static props logic
->>>>>>> Stashed changes
->>>>>>> Stashed changes
         if (payload.table !== 'poker_series') return;
         const { eventType, new: newRec, old: oldRec } = payload;
         
@@ -961,29 +955,10 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                                                     {/* Square venue logo — top-left corner */}
                                                     {series.logo_url && (
                                                         <div style={{
-<<<<<<< Updated upstream
-=======
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
                                                             width: 116,
                                                             height: 116,
                                                             flexShrink: 0,
                                                             borderRadius: 12,
-<<<<<<< Updated upstream
-=======
-=======
-=======
->>>>>>> Stashed changes
-                                                            width: 58,
-                                                            height: 58,
-                                                            flexShrink: 0,
-                                                            borderRadius: 8,
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
->>>>>>> Stashed changes
                                                             overflow: 'hidden',
                                                             border: '1px solid rgba(255,255,255,0.12)',
                                                             background: 'rgba(0,0,0,0.35)',
@@ -999,19 +974,7 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                                                                     height: '100%',
                                                                     objectFit: 'contain',
                                                                     display: 'block',
-<<<<<<< Updated upstream
                                                                     padding: 8,
-=======
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                                                                    padding: 8,
-=======
-                                                                    padding: 4,
->>>>>>> Stashed changes
-=======
-                                                                    padding: 4,
->>>>>>> Stashed changes
->>>>>>> Stashed changes
                                                                     boxSizing: 'border-box',
                                                                 }}
                                                                 loading="lazy"

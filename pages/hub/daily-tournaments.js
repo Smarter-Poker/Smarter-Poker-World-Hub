@@ -194,6 +194,44 @@ export default function DailyTournaments() {
         setSelectedDate(null);
     };
 
+    // ── GPS / Proximity ────────────────────────────────────────────────────
+    const [userLocation, setUserLocation] = useState(null); // { lat, lng }
+    const [gpsStatus, setGpsStatus] = useState('idle'); // idle | requesting | granted | denied
+
+    // Haversine distance in miles
+    function haversine(lat1, lng1, lat2, lng2) {
+        const R = 3958.8;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLng = (lng2 - lng1) * Math.PI / 180;
+        const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+
+    // Auto-request GPS on mount
+    useEffect(() => {
+        if (typeof navigator === 'undefined' || !navigator.geolocation) return;
+        setGpsStatus('requesting');
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                setGpsStatus('granted');
+            },
+            () => setGpsStatus('denied'),
+            { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+        );
+    }, []);
+
+    // Flat sorted list: by distance if GPS granted, else by start_time
+    const sortedTournaments = [...tournaments].sort((a, b) => {
+        if (userLocation && a.latitude && b.latitude) {
+            const dA = haversine(userLocation.lat, userLocation.lng, parseFloat(a.latitude), parseFloat(a.longitude));
+            const dB = haversine(userLocation.lat, userLocation.lng, parseFloat(b.latitude), parseFloat(b.longitude));
+            return dA - dB;
+        }
+        return parseTimeToMinutes(a.start_time) - parseTimeToMinutes(b.start_time);
+    });
+    // ──────────────────────────────────────────────────────────────────────
+
     // Calendar helpers
     const today = new Date();
     today.setHours(0,0,0,0);
@@ -216,16 +254,7 @@ export default function DailyTournaments() {
         setCalendarOpen(false);
     }
 
-    // Group tournaments by time slot
-    const afternoonTournaments = tournaments.filter(t => {
-        const time = parseTimeToMinutes(t.start_time);
-        return time >= 720 && time < 1020; // 12pm - 5pm
-    });
-    const eveningTournaments = tournaments.filter(t => {
-        const time = parseTimeToMinutes(t.start_time);
-        return time >= 1020; // 5pm+
-    });
-
+    // ── parseTimeToMinutes must come before any usage ──────────────────
     function parseTimeToMinutes(timeStr) {
         if (!timeStr) return 0;
         const t = timeStr.trim();
@@ -293,6 +322,12 @@ export default function DailyTournaments() {
                 <div className="dt-header">
                     <h1><span className="white">DAILY</span> <span className="gold">TOURNAMENTS</span></h1>
                     <span className="subtitle">{stats.total || 0} TOURNAMENTS AT {stats.venueCount || new Set((swrData?.tournaments || []).map(t => t.venue_name)).size || '...'} VENUES</span>
+                    {gpsStatus === 'granted' && userLocation && (
+                        <span className="gps-badge">📍 Sorted By Distance (50 Mi)</span>
+                    )}
+                    {gpsStatus === 'denied' && (
+                        <span className="gps-badge gps-denied">Location Off — Showing All</span>
+                    )}
                 </div>
 
                 {/* Day Selector + Calendar Button */}
@@ -404,56 +439,56 @@ export default function DailyTournaments() {
 
                 {/* Top Level Filters Command Bar */}
                 <div className="pnm-top-filters">
-                    <div className="pnm-top-filters-inner">
-                        <div className="filters-left-spacer"></div>
-
-                        <div className="filters-dropdown-group">
-                            <select className="pnm-filter-select" value={selectedState ? selectedState.abbr : ''} onChange={(e) => {
-                                const st = POPULAR_STATES.find(s => s.abbr === e.target.value);
-                                setSelectedState(st || null);
-                            }}>
-                                <option value="">All States</option>
-                                {POPULAR_STATES.map(state => (
-                                    <option key={state.abbr} value={state.abbr}>{state.name}</option>
-                                ))}
-                            </select>
-                            
-                            <select className="pnm-filter-select" value={selectedType} onChange={(e) => setSelectedType(e.target.value)}>
-                                {VENUE_TYPES.map(type => (
-                                    <option key={type.value} value={type.value}>{type.label}</option>
-                                ))}
-                            </select>
-
-                            <select className="pnm-filter-select" value={selectedBuyin.label} onChange={(e) => {
-                                const range = BUYIN_RANGES.find(r => r.label === e.target.value);
-                                setSelectedBuyin(range || BUYIN_RANGES[0]);
-                            }}>
-                                {BUYIN_RANGES.map((range, i) => (
-                                    <option key={i} value={range.label}>{range.label}</option>
-                                ))}
-                            </select>
+                    {/* ROW 1: Search upper-right */}
+                    <div className="filters-row-top">
+                        <div className="filters-row-top-spacer"></div>
+                        <div className="pnm-search-box" style={{ position: 'relative' }}>
+                            <svg style={{ position: 'absolute', left: '10px', top: '10px', color: 'rgba(255,255,255,0.4)' }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+                            </svg>
+                            <input
+                                type="text"
+                                id="venue-search"
+                                className="pnm-filter-select"
+                                style={{ width: '100%', paddingLeft: '34px', boxSizing: 'border-box' }}
+                                placeholder="Search Venue..."
+                                value={searchQuery}
+                                onChange={(e) => handleSearchChange(e.target.value)}
+                            />
                         </div>
+                    </div>
+                    {/* ROW 2: Dropdowns centered */}
+                    <div className="filters-dropdown-group">
+                        <select className="pnm-filter-select" value={selectedState ? selectedState.abbr : ''} onChange={(e) => {
+                            const st = POPULAR_STATES.find(s => s.abbr === e.target.value);
+                            setSelectedState(st || null);
+                        }}>
+                            <option value="">All States</option>
+                            {POPULAR_STATES.map(state => (
+                                <option key={state.abbr} value={state.abbr}>{state.name}</option>
+                            ))}
+                        </select>
+                        
+                        <select className="pnm-filter-select" value={selectedType} onChange={(e) => setSelectedType(e.target.value)}>
+                            {VENUE_TYPES.map(type => (
+                                <option key={type.value} value={type.value}>{type.label}</option>
+                            ))}
+                        </select>
 
-                        <div className="pnm-search-wrapper">
-                            <div className="pnm-search-box" style={{ position: 'relative' }}>
-                                <svg style={{ position: 'absolute', left: '10px', top: '10px', color: 'rgba(255,255,255,0.4)' }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
-                                </svg>
-                                <input
-                                    type="text"
-                                    className="pnm-filter-select"
-                                    style={{ width: '100%', paddingLeft: '34px', boxSizing: 'border-box' }}
-                                    placeholder="Search Venue..."
-                                    value={searchQuery}
-                                    onChange={(e) => handleSearchChange(e.target.value)}
-                                />
-                            </div>
-                            {searchQuery || selectedState || selectedType || selectedBuyin.min ? (
-                                <button className="pnm-filter-select pnm-clear-btn" onClick={clearFilters}>
-                                    Clear
-                                </button>
-                            ) : null}
-                        </div>
+                        <select className="pnm-filter-select" value={selectedBuyin.label} onChange={(e) => {
+                            const range = BUYIN_RANGES.find(r => r.label === e.target.value);
+                            setSelectedBuyin(range || BUYIN_RANGES[0]);
+                        }}>
+                            {BUYIN_RANGES.map((range, i) => (
+                                <option key={i} value={range.label}>{range.label}</option>
+                            ))}
+                        </select>
+
+                        {searchQuery || selectedState || selectedType || selectedBuyin.min ? (
+                            <button className="pnm-filter-select pnm-clear-btn" onClick={clearFilters}>
+                                Clear
+                            </button>
+                        ) : null}
                     </div>
                 </div>
 
@@ -480,36 +515,15 @@ export default function DailyTournaments() {
                                 <button onClick={clearFilters}>Clear Filters</button>
                             </div>
                         ) : (
-                            <div className="tournament-sections">
-                                {afternoonTournaments.length > 0 && (
-                                    <div className="time-section">
-                                        <h2 className="time-header">
-                                            <span className="time-icon afternoon">PM</span>
-                                            Afternoon Tournaments
-                                            <span className="time-count">{afternoonTournaments.length}</span>
-                                        </h2>
-                                        <div className="tournament-list">
-                                            {afternoonTournaments.map((t, i) => (
-                                                <TournamentCard key={`${t.id || t.venue_id || t.tournament_name || 'a'}-${t.start_time}-${i}`} tournament={t} />
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {eveningTournaments.length > 0 && (
-                                    <div className="time-section">
-                                        <h2 className="time-header">
-                                            <span className="time-icon evening">EVE</span>
-                                            Evening Tournaments
-                                            <span className="time-count">{eveningTournaments.length}</span>
-                                        </h2>
-                                        <div className="tournament-list">
-                                            {eveningTournaments.map((t, i) => (
-                                                <TournamentCard key={`${t.id || t.venue_id || t.tournament_name || 'e'}-${t.start_time}-${i}`} tournament={t} />
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
+                            <div className="tournament-list">
+                                {sortedTournaments.map((t, i) => (
+                                    <TournamentCard
+                                        key={`${t.id || t.venue_id || t.tournament_name || 't'}-${t.start_time}-${i}`}
+                                        tournament={t}
+                                        userLocation={userLocation}
+                                        haversine={haversine}
+                                    />
+                                ))}
                             </div>
                         )}
                     </main>
@@ -531,50 +545,58 @@ export default function DailyTournaments() {
                     }
 
                     
+                    /* GPS Badge */
+                    .gps-badge {
+                        display: inline-block;
+                        margin-top: 6px;
+                        padding: 4px 12px;
+                        background: rgba(0,212,255,0.12);
+                        border: 1px solid rgba(0,212,255,0.3);
+                        border-radius: 20px;
+                        font-size: 12px;
+                        color: #00D4FF;
+                        letter-spacing: 0.5px;
+                    }
+                    .gps-badge.gps-denied {
+                        background: rgba(255,255,255,0.05);
+                        border-color: rgba(255,255,255,0.1);
+                        color: rgba(255,255,255,0.4);
+                    }
+
+                    /* Filter Bar */
                     .pnm-top-filters {
                         padding: 0 20px;
                         margin-bottom: 20px;
-                    }
-                    .pnm-top-filters-inner {
                         display: flex;
                         flex-direction: column;
-                        gap: 12px;
+                        gap: 10px;
                         max-width: 1400px;
-                        margin: 0 auto;
-                        padding-bottom: 5px;
+                        margin-left: auto;
+                        margin-right: auto;
                     }
-                    @media (min-width: 1024px) {
-                        .pnm-top-filters-inner {
-                            display: grid;
-                            grid-template-columns: 1fr auto 1fr;
-                            align-items: center;
-                        }
+                    /* ROW 1: search in upper right */
+                    .filters-row-top {
+                        display: flex;
+                        justify-content: flex-end;
+                        align-items: center;
+                        gap: 8px;
                     }
-                    .filters-left-spacer {
-                        /* Empty by design for grid balance */
-                        display: none;
+                    .filters-row-top-spacer { flex: 1; }
+                    .pnm-search-box {
+                        width: 240px;
+                        max-width: 100%;
                     }
-                    @media (min-width: 1024px) {
-                        .filters-left-spacer { display: block; }
+                    @media (max-width: 600px) {
+                        .pnm-search-box { width: 100%; }
+                        .filters-row-top { flex-direction: column; align-items: stretch; }
                     }
+                    /* ROW 2: dropdowns centered */
                     .filters-dropdown-group {
                         display: flex;
                         gap: 8px;
                         flex-wrap: wrap;
                         justify-content: center;
-                    }
-                    .pnm-search-wrapper {
-                        display: flex;
-                        gap: 8px;
-                        justify-content: flex-end;
-                        flex-wrap: wrap;
-                    }
-                    .pnm-search-box {
-                        flex: 1;
-                        min-width: 180px;
-                    }
-                    @media (min-width: 1024px) {
-                        .pnm-search-box { flex: 0 1 200px; }
+                        align-items: center;
                     }
                     .pnm-clear-btn {
                         flex: 0 0 auto;
