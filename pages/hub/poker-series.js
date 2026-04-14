@@ -930,10 +930,10 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                                                     {/* Square venue logo — top-left corner */}
                                                     {series.logo_url && (
                                                         <div style={{
-                                                            width: 58,
-                                                            height: 58,
+                                                            width: 116,
+                                                            height: 116,
                                                             flexShrink: 0,
-                                                            borderRadius: 8,
+                                                            borderRadius: 12,
                                                             overflow: 'hidden',
                                                             border: '1px solid rgba(255,255,255,0.12)',
                                                             background: 'rgba(0,0,0,0.35)',
@@ -949,7 +949,7 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                                                                     height: '100%',
                                                                     objectFit: 'contain',
                                                                     display: 'block',
-                                                                    padding: 4,
+                                                                    padding: 8,
                                                                     boxSizing: 'border-box',
                                                                 }}
                                                                 loading="lazy"

@@ -94,7 +94,7 @@ export default function NewSeriesVenueCard({ series: s, index, isFavorited, onFa
                 {/* Square logo — left side */}
                 {resolvedLogoUrl && (
                     <div style={{
-                        width: 58, height: 58, flexShrink: 0, borderRadius: 8,
+                        width: 116, height: 116, flexShrink: 0, borderRadius: 12,
                         overflow: 'hidden', border: '1px solid rgba(255,255,255,0.12)',
                         background: 'rgba(0,0,0,0.4)', display: 'flex',
                         alignItems: 'center', justifyContent: 'center',
@@ -102,7 +102,7 @@ export default function NewSeriesVenueCard({ series: s, index, isFavorited, onFa
                         <img
                             src={resolvedLogoUrl}
                             alt={s.name || s.series_name || 'Series'}
-                            style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block', padding: 4, boxSizing: 'border-box' }}
+                            style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block', padding: 8, boxSizing: 'border-box' }}
                             loading="lazy"
                             onError={e => { e.target.parentElement.style.display = 'none'; }}
                         />
