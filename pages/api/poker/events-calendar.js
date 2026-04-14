@@ -282,7 +282,7 @@ export default async function handler(req, res) {
     let venueLocations = {};
     try {
       let venueQ = sb.from('poker_venues')
-        .select('id, name, city, state, latitude, longitude')
+        .select('id, name, city, state, latitude, longitude, logo_url')
         .eq('is_active', true);
       if (safeState) venueQ = venueQ.ilike('state', safeState.length === 2 ? safeState.toUpperCase() : `%${safeState}%`);
       if (safeCity)  venueQ = venueQ.ilike('city', `%${safeCity}%`);
@@ -374,6 +374,7 @@ export default async function handler(req, res) {
                 distance_mi: distanceMi,
                 latitude: venueInfo?.latitude ? parseFloat(venueInfo.latitude) : null,
                 longitude: venueInfo?.longitude ? parseFloat(venueInfo.longitude) : null,
+                logo_url: venueInfo?.logo_url || null,
               });
             }
           }

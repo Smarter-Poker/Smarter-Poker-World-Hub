@@ -294,6 +294,14 @@ const EventCard = memo(function EventCard({ event, todayKey }) {
       </div>
 
       <div className="ev-card-right">
+        {event.logo_url && (
+          <img
+            src={event.logo_url}
+            alt={event.venue_name || ''}
+            className="ev-venue-logo"
+            loading="lazy"
+          />
+        )}
         {event.buy_in != null && event.buy_in > 0 && (
           <div className="ev-buyin">{formatMoney(event.buy_in)}</div>
         )}
@@ -735,42 +743,43 @@ export default function EventsCalendarPage({ fallbackData }) {
         <div className="ec-space-overlay" />
 
         {/* ── Page Header ── */}
-        <div className="ec-hero" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px' }}>
-          <div>
-            <h1 className="ec-title"><span className="ec-white">EVENTS</span> <span className="ec-cyan">CALENDAR</span></h1>
-            <p className="ec-subtitle" style={{ display: 'flex', flexDirection: 'row', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-              {loading ? 'Loading...' : `${totalCount.toLocaleString()} Tournaments Found`}
-              {stats.sources && !loading && (
-                <span className="ec-source-counts" style={{ display: 'inline', marginLeft: '4px' }}>
-                  &middot; {[
-                    stats.sources.daily > 0 && `${stats.sources.daily.toLocaleString()} Daily`,
-                    stats.sources.series > 0 && `${stats.sources.series.toLocaleString()} Series`,
-                    stats.sources.tour > 0 && `${stats.sources.tour.toLocaleString()} Tour`
-                  ].filter(Boolean).join(' · ')}
-                </span>
-              )}
-              {useSmartAgg && !loading && (
-                <span className="ec-smart-agg-note" style={{ display: 'inline', marginLeft: '4px' }}>&middot; Recurring events showing next occurrence</span>
-              )}
-            </p>
-          </div>
-          
-          <div className="ec-search-wrap" style={{ width: '100%', maxWidth: '220px', background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <SearchIcon />
-            <input
-              type="text"
-              placeholder="Search Venue or Event"
-              value={searchInput}
-              onChange={e => handleSearchInput(e.target.value)}
-              className="ec-search-input"
-              id="ec-search-input"
-              style={{ background: 'transparent', border: 'none', color: '#fff', outline: 'none', width: '100%', fontSize: '13px' }}
-            />
-            {searchInput && (
-              <button className="ec-search-clear" onClick={() => { setSearchInput(''); setSearchQuery(''); }} style={{ background: 'transparent', border: 'none', color: '#8b8d9b', cursor: 'pointer', padding: 4 }}>
-                <XIcon />
-              </button>
+        <div className="ec-hero" style={{ position: 'relative', textAlign: 'center' }}>
+          {/* Centered title block */}
+          <h1 className="ec-title"><span className="ec-white">EVENTS</span> <span className="ec-cyan">CALENDAR</span></h1>
+          <p className="ec-subtitle" style={{ display: 'flex', flexDirection: 'row', gap: '8px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
+            {loading ? 'Loading...' : `${totalCount.toLocaleString()} Tournaments Found`}
+            {stats.sources && !loading && (
+              <span className="ec-source-counts" style={{ display: 'inline', marginLeft: '4px' }}>
+                &middot; {[
+                  stats.sources.daily > 0 && `${stats.sources.daily.toLocaleString()} Daily`,
+                  stats.sources.series > 0 && `${stats.sources.series.toLocaleString()} Series`,
+                  stats.sources.tour > 0 && `${stats.sources.tour.toLocaleString()} Tour`
+                ].filter(Boolean).join(' · ')}
+              </span>
             )}
+            {useSmartAgg && !loading && (
+              <span className="ec-smart-agg-note" style={{ display: 'inline', marginLeft: '4px' }}>&middot; Recurring events showing next occurrence</span>
+            )}
+          </p>
+          {/* Search box — absolute right */}
+          <div style={{ position: 'absolute', top: 0, right: 0 }}>
+            <div className="ec-search-wrap" style={{ width: '200px', background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <SearchIcon />
+              <input
+                type="text"
+                placeholder="Search"
+                value={searchInput}
+                onChange={e => handleSearchInput(e.target.value)}
+                className="ec-search-input"
+                id="ec-search-input"
+                style={{ background: 'transparent', border: 'none', color: '#fff', outline: 'none', width: '100%', fontSize: '13px' }}
+              />
+              {searchInput && (
+                <button className="ec-search-clear" onClick={() => { setSearchInput(''); setSearchQuery(''); }} style={{ background: 'transparent', border: 'none', color: '#8b8d9b', cursor: 'pointer', padding: 4 }}>
+                  <XIcon />
+                </button>
+              )}
+            </div>
           </div>
         </div>
         
@@ -1069,16 +1078,25 @@ export default function EventsCalendarPage({ fallbackData }) {
         }
 
         /* ═══ HERO ═══ */
-        .ec-hero { padding: 24px 20px 12px; text-align: center; }
+        .ec-hero { padding: 24px 20px 12px; max-width: 1100px; margin: 0 auto; }
         .ec-title {
           font-family: 'Orbitron', 'Rajdhani', sans-serif;
-          font-size: 26px; font-weight: 700; margin: 0;
+          font-size: 26px; font-weight: 700; margin: 0 auto;
           letter-spacing: 2px; text-transform: uppercase;
           text-shadow: 0 0 20px rgba(0,212,255,0.3);
+          text-align: center;
         }
+        .ec-subtitle { font-size: 14px; color: rgba(255,255,255,0.5); margin: 8px auto 0; text-align: center; }
         .ec-white { color: #fff; }
         .ec-cyan { color: #00D4FF; text-shadow: 0 0 15px rgba(0,212,255,0.6); }
-        .ec-subtitle { font-size: 14px; color: rgba(255,255,255,0.5); margin: 8px 0 0; }
+        /* ═══ VENUE LOGO IN CARD ═══ */
+        .ev-venue-logo {
+          width: 44px; height: 44px; object-fit: contain;
+          border-radius: 8px;
+          background: rgba(255,255,255,0.05);
+          border: 1px solid rgba(255,255,255,0.08);
+          flex-shrink: 0;
+        }
         .ec-source-counts {
           display: flex; gap: 12px; justify-content: center; margin-top: 4px;
           font-size: 12px; color: rgba(255,255,255,0.35);
@@ -1122,9 +1140,10 @@ export default function EventsCalendarPage({ fallbackData }) {
           background-repeat: no-repeat; background-position: right 8px center; background-size: 8px auto;
         }
         .ec-filter-select:hover  { border-color: rgba(255,255,255,0.3); }
-        .ec-filter-select:focus  { border-color: #00D4FF; outline: none; box-shadow: none; }
+        .ec-filter-select:focus  { border-color: #00D4FF; outline: none !important; box-shadow: none !important; }
         .ec-filter-select option  { background: #0f172a; color: #fff; }
         .ec-filter-select:disabled { opacity: 0.4; cursor: not-allowed; }
+        .ec-filter-bar *:focus, .ec-search-input:focus { outline: none !important; box-shadow: none !important; }
 
         /* Location GPS button (fallback when no location) */
         .ec-gps-btn {
@@ -1205,20 +1224,22 @@ export default function EventsCalendarPage({ fallbackData }) {
           font-family: 'Rajdhani', sans-serif; cursor: pointer; transition: all 0.2s;
           white-space: nowrap; text-transform: uppercase; letter-spacing: 0.5px;
         }
-        /* Today tab — highlighted gold/amber like the calendar today indicator */
+        /* Today tab — CYAN/BLUE matching the EVENTS CALENDAR title */
         .ec-day-tab.today {
-          border-color: #F59E0B;
-          color: #F59E0B;
-          background: linear-gradient(180deg, rgba(245,158,11,0.15) 0%, rgba(245,158,11,0.08) 100%);
+          border-color: #00D4FF;
+          color: #00D4FF;
+          background: linear-gradient(180deg, rgba(0,212,255,0.18) 0%, rgba(0,212,255,0.08) 100%);
+          box-shadow: inset 0 0 8px rgba(0,212,255,0.1);
         }
         .ec-day-tab.today.active {
-          background: linear-gradient(135deg, #F59E0B, #D97706);
-          border-color: #F59E0B; color: #000;
-          box-shadow: 0 0 15px rgba(245,158,11,0.5), 0 0 30px rgba(245,158,11,0.2);
+          background: linear-gradient(135deg, #00D4FF, #0099CC);
+          border-color: #00D4FF; color: #000;
+          box-shadow: 0 0 15px rgba(0,212,255,0.5), 0 0 30px rgba(0,212,255,0.2);
         }
         .ec-day-today-dot {
           position: absolute; top: 5px; right: 5px;
-          width: 5px; height: 5px; border-radius: 50%; background: #F59E0B;
+          width: 5px; height: 5px; border-radius: 50%; background: #00D4FF;
+          box-shadow: 0 0 4px rgba(0,212,255,0.8);
         }
         .ec-day-tab:hover {
           background: linear-gradient(180deg, rgba(61,79,95,0.4) 0%, rgba(26,35,50,0.6) 100%);
