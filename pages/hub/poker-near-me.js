@@ -2364,7 +2364,7 @@ export default function PokerNearMePage() {
                         color: '#ffffff',
                         letterSpacing: '1.5px',
                         textTransform: 'uppercase',
-                    }}>Live Cash Games</h2>
+                    }}>Cash Games Near Me</h2>
                 </div>
                 <LiveGamesFeed
                     venues={allVenuesWithTours.length > 0 ? allVenuesWithTours : venues}
@@ -2707,9 +2707,9 @@ export default function PokerNearMePage() {
                                     onChange={e => setFilters(f => ({ ...f, gameType: e.target.value }))}
                                 >
                                     <option value="all">All Games</option>
-                                    <option value="cash">Cash Games</option>
-                                    <option value="mtt">Tournaments</option>
-                                    <option value="mixed">Mixed</option>
+                                    <option value="nlh">No Limit Hold'em</option>
+                                    <option value="plo">Pot Limit Omaha</option>
+                                    <option value="mixed">Mixed Games</option>
                                 </select>
                             </div>
                             <div className="pnm-filter-group">

@@ -100,13 +100,12 @@ function SourceBadge({ source }) {
     );
 }
 
-// ─── GAME TYPE FILTER CHIPS ───
+// ─── GAME TYPE FILTER CHIPS ─── (Cash Games only)
 const GAME_TYPE_FILTERS = [
     { key: 'all', label: 'All Games' },
     { key: 'nlh', label: 'NLH' },
     { key: 'plo', label: 'PLO' },
     { key: 'mixed', label: 'Mixed' },
-    { key: 'stud', label: 'Stud' },
 ];
 
 function matchesGameType(gameName, filterKey) {
@@ -236,9 +235,9 @@ export default function LiveGamesFeed({
     // Map main UI gameType to LiveGamesFeed format if needed
     let computedGameType = internalFilterGameType;
     if (globalFilters) {
-        if (globalFilters.gameType === 'cash') computedGameType = 'all'; // cash games allowed
+        if (globalFilters.gameType === 'cash') computedGameType = 'all'; // 'cash' parent = show all cash game types
         else if (globalFilters.gameType === 'mtt') computedGameType = 'none'; // tournaments ONLY, so hide tables
-        else computedGameType = globalFilters.gameType; // 'all', 'mixed', etc.
+        else computedGameType = globalFilters.gameType; // 'all', 'nlh', 'plo', 'mixed'
     }
     const filterGameType = computedGameType;
 
@@ -703,6 +702,10 @@ export default function LiveGamesFeed({
         const trustPct = Math.round((trustScore / 5) * 100);
         const trustColor = trustScore >= 4.5 ? '#22c55e' : trustScore >= 4.0 ? '#3b82f6' : trustScore >= 3.0 ? '#f59e0b' : '#ef4444';
         const trustLabel = trustScore >= 4.5 ? 'Excellent' : trustScore >= 4.0 ? 'Good' : trustScore >= 3.0 ? 'Moderate' : 'Low';
+        // Venue type border color
+        const vType = (v.venue_type || '').toLowerCase();
+        const venueBorderColor = vType === 'casino' ? '#ffffff' : (vType === 'poker_club' || vType === 'card_room') ? '#22c55e' : vType === 'charity' ? '#3b82f6' : 'rgba(148,163,184,0.16)';
+        const venueBorder = `2px solid ${venueBorderColor}`;
         // Collect unique game type chips from breakdown
         const gameTypeChips = (() => {
             if (!v.games || v.games.length === 0) return [];
@@ -736,11 +739,11 @@ export default function LiveGamesFeed({
                 {/* Venue Card */}
                 <div style={{ 
                     background: 'linear-gradient(160deg, rgba(16,24,36,0.95) 0%, rgba(10,16,26,0.98) 100%)', 
-                    border: '2px solid rgba(148,163,184,0.16)', 
+                    border: venueBorder, 
                     borderRadius: 14, 
                     overflow: 'hidden', 
                     padding: '16px 18px 14px',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+                    boxShadow: `0 4px 20px rgba(0,0,0,0.3), 0 0 0 1px ${venueBorderColor}11`,
                     transition: 'all 0.2s ease',
                     cursor: router ? 'pointer' : 'default',
                     flex: 1,
@@ -1000,13 +1003,13 @@ export default function LiveGamesFeed({
 
             {/* ─── 1. COLLAPSIBLE MAP ─── */}
             {!selectedVenue && (
-                <div style={{ background: 'rgba(13,17,23,0.95)', borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(48,54,61,0.8)', boxShadow: '0 8px 24px rgba(0,0,0,0.3)', marginBottom: 16 }}>
-                    <div onClick={() => setMapExpanded(!mapExpanded)} style={{ padding: '10px 16px', background: 'rgba(255,255,255,0.08)', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ background: 'rgba(13,17,23,0.95)', borderRadius: 14, overflow: 'visible', border: '1px solid rgba(48,54,61,0.8)', boxShadow: '0 8px 24px rgba(0,0,0,0.3)', marginBottom: 16, position: 'relative' }}>
+                    <div onClick={() => setMapExpanded(!mapExpanded)} style={{ padding: '10px 16px', background: 'rgba(255,255,255,0.08)', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: '14px 14px 0 0' }}>
                         <span style={{ color: '#ffffff', fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>Live Games Map</span>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" style={{ transform: mapExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }}><polyline points="6 9 12 15 18 9" /></svg>
                     </div>
                     {mapExpanded && (
-                        <div style={{ height: 400 }}>
+                        <div style={{ height: 400, borderRadius: '0 0 14px 14px', overflow: 'hidden' }}>
                             <VenueMap venues={mergedVenues.filter(v => v.latitude && v.longitude)} userLocation={effectiveLocation} radiusMiles={filterRadius} />
                         </div>
                     )}

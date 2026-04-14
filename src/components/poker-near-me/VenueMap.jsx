@@ -194,10 +194,10 @@ const LEAFLET_CUSTOM_CSS = `
 /* ═══ MAP LEGEND ═══ */
 .venue-map-legend {
   position: absolute;
-  bottom: 32px;
+  bottom: 10px;
   left: 10px;
   z-index: 1000;
-  background: rgba(10,10,21,0.88);
+  background: rgba(10,10,21,0.92);
   backdrop-filter: blur(8px);
   border: 1px solid rgba(212,168,83,0.2);
   border-radius: 10px;
@@ -205,6 +205,8 @@ const LEAFLET_CUSTOM_CSS = `
   font-family: 'Inter', -apple-system, sans-serif;
   box-shadow: 0 4px 20px rgba(0,0,0,0.5);
   transition: opacity 0.3s;
+  max-height: 180px;
+  overflow: visible;
 }
 .venue-map-legend-title {
   font-size: 10px;

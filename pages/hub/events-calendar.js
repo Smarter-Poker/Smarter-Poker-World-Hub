@@ -461,8 +461,8 @@ export default function EventsCalendarPage({ fallbackData }) {
   const [eventType, setEventType] = useState('all');
   const [sortBy, setSortBy] = useState('date');
   const [searchQuery, setSearchQuery] = useState('');
-  const [distance, setDistance] = useState('any');
-  const [dayOfWeek, setDayOfWeek] = useState('all');
+  const [distance, setDistance] = useState('50');
+  const [dayOfWeek, setDayOfWeek] = useState('');
 
   // Location
   const [userLocation, setUserLocation] = useState(null);
@@ -486,8 +486,9 @@ export default function EventsCalendarPage({ fallbackData }) {
           setUserLocation({
             lat: lat,
             lng: lng,
-            label: parsed.location || parsed.label || 'Saved Location'
+            label: parsed.location || parsed.label || 'My Location'
           });
+          setDistance('50');
           return;
         }
       } catch (e) {}
@@ -539,7 +540,7 @@ export default function EventsCalendarPage({ fallbackData }) {
     if (userLocation?.lat != null && userLocation?.lng != null) {
       params.set('lat', userLocation.lat);
       params.set('lng', userLocation.lng);
-      if (distance !== 'any') params.set('radius', distance);
+      if (distance && distance !== 'any') params.set('radius', distance);
     }
     if (userLocation?.state) {
       params.set('state', userLocation.state);
@@ -590,8 +591,8 @@ export default function EventsCalendarPage({ fallbackData }) {
     buyInTier !== 'all',
     gameType !== 'all',
     eventType !== 'all',
-    distance !== 'any',
-    dayOfWeek !== 'all',
+    distance !== '50',
+    !!dayOfWeek,
     !!userLocation,
   ].filter(Boolean).length;
 
@@ -600,14 +601,14 @@ export default function EventsCalendarPage({ fallbackData }) {
     const groups = {};
     const order = [];
     
-    // Apply local day of week filter
-    const filteredEvents = dayOfWeek === 'all' 
+    // Apply local day of week filter (empty string = show all)
+    const filteredEvents = !dayOfWeek
       ? events 
       : events.filter(e => {
           if (!e.event_date) return false;
           const d = new Date(e.event_date + 'T12:00:00');
           const dayName = d.toLocaleDateString('en-US', { weekday: 'long' });
-          return dayName === dayOfWeek;
+          return dayName.toLowerCase() === dayOfWeek.toLowerCase();
         });
         
     const visible = filteredEvents.slice(0, visibleCount);
@@ -676,14 +677,14 @@ export default function EventsCalendarPage({ fallbackData }) {
     setSortBy('date');
     setSearchQuery('');
     setSearchInput('');
-    setDistance('any');
-    setDayOfWeek('all');
+    setDistance('50');
+    setDayOfWeek('');
     setUserLocation(null);
   };
 
   const handleLocationChange = (loc) => {
     setUserLocation(loc);
-    if (loc?.lat && distance === 'any') setDistance('100');
+    if (loc?.lat) setDistance('50');
   };
 
   // Month navigation
@@ -773,49 +774,59 @@ export default function EventsCalendarPage({ fallbackData }) {
           </div>
         </div>
         
-        {/* Day of Week Pucks */}
-        <div className="ec-dow-picker" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0 20px', overflowX: 'auto', marginBottom: '16px' }}>
-          {['all', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(d => (
-            <button 
-              key={d}
-              onClick={() => setDayOfWeek(d)}
-              style={{
-                background: dayOfWeek === d ? 'rgba(0, 212, 255, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-                color: dayOfWeek === d ? '#00d4ff' : '#8b8d9b',
-                border: dayOfWeek === d ? '1px solid rgba(0, 212, 255, 0.4)' : '1px solid rgba(255, 255, 255, 0.1)',
-                padding: '6px 14px',
-                borderRadius: '20px',
-                fontSize: '13px',
-                fontWeight: 500,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              {d === 'all' ? 'Any Day' : d}
-            </button>
-          ))}
+        {/* Day of Week Tabs — same style as Daily Tournaments page */}
+        <div className="ec-day-selector">
+          <div className="ec-day-tabs-row">
+            <div className="ec-day-tabs">
+              {['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'].map(day => {
+                const todayIdx = new Date().getDay();
+                const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+                const dayIdx = DAYS.indexOf(day);
+                let daysAhead = dayIdx - todayIdx;
+                if (daysAhead < 0) daysAhead += 7;
+                const isToday = daysAhead === 0;
+                const isActive = dayOfWeek === day;
+                return (
+                  <button
+                    key={day}
+                    className={`ec-day-tab${isActive ? ' active' : ''}`}
+                    onClick={() => setDayOfWeek(isActive ? '' : day)}
+                  >
+                    {isToday && <span className="ec-day-today-dot" />}
+                    <span className="ec-day-short">{day.substring(0, 3).toUpperCase()}</span>
+                    <span className="ec-day-full">{day}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         {/* ── Always-Visible Filter Bar (Poker Near Me style) ── */}
         <div className="ec-filter-bar">
-          {/* Location button */}
-          <div className="ec-filter-group">
-            <label className="ec-filter-label">Location</label>
-            <button
-              className={'ec-location-btn' + (userLocation ? ' active' : '')}
-              onClick={() => setShowLocationModal(true)}
-              id="ec-location-btn"
-            >
-              <MapPinIcon size={14} />
-              <span className="ec-location-text">{userLocation?.label || 'Set Location'}</span>
-              {userLocation && (
-                <span
-                  className="ec-location-clear"
-                  onClick={e => { e.stopPropagation(); handleLocationChange(null); setDistance('any'); }}
-                  title="Clear location"
-                >×</span>
-              )}
-            </button>
+          {/* Location — "Location Active" pill (like PNM) when set, otherwise a GPS button */}
+          <div className="pnm-location-area">
+            {userLocation ? (
+              <div className="pnm-location-pill">
+                <div className="pnm-location-dot" />
+                <span className="pnm-location-label">Location Active</span>
+                <span className="pnm-location-city">{userLocation.label}</span>
+                <button
+                  className="pnm-location-clear"
+                  onClick={() => { handleLocationChange(null); }}
+                  aria-label="Clear location"
+                >&times;</button>
+              </div>
+            ) : (
+              <button
+                className="ec-gps-btn"
+                onClick={() => setShowLocationModal(true)}
+                id="ec-location-btn"
+              >
+                <MapPinIcon size={14} />
+                Set Location
+              </button>
+            )}
           </div>
 
           {/* Date Range */}
@@ -1140,25 +1151,58 @@ export default function EventsCalendarPage({ fallbackData }) {
         .ec-filter-select option  { background: #0f172a; color: #fff; }
         .ec-filter-select:disabled { opacity: 0.4; cursor: not-allowed; }
 
-        /* Location button — styled like a filter-select height */
-        .ec-location-btn {
+        /* Location GPS button (fallback when no location) */
+        .ec-gps-btn {
           display: flex; align-items: center; gap: 7px;
-          padding: 9px 12px; min-width: 130px; max-width: 200px;
-          background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.15);
-          border-radius: 10px; color: rgba(255,255,255,0.75);
-          font-size: 13px; font-weight: 500; cursor: pointer;
-          transition: all 0.2s; font-family: inherit;
-          white-space: nowrap; overflow: hidden;
+          padding: 9px 14px;
+          background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(200,214,229,0.06) 100%);
+          border: 1.5px solid rgba(255,255,255,0.3);
+          border-radius: 20px; color: #fff;
+          font-size: 13px; font-weight: 700; cursor: pointer;
+          transition: all 0.25s; font-family: inherit;
+          white-space: nowrap; animation: gpsGlow 2.5s ease-in-out infinite;
         }
-        .ec-location-btn:hover { border-color: rgba(255,255,255,0.3); color: #fff; }
-        .ec-location-btn.active { border-color: rgba(0,212,255,0.4); color: #00D4FF; background: rgba(0,212,255,0.1); }
-        .ec-location-text { overflow: hidden; text-overflow: ellipsis; flex: 1; text-align: left; }
-        .ec-location-clear {
-          font-size: 16px; line-height: 1; color: rgba(255,255,255,0.4);
-          cursor: pointer; flex-shrink: 0; padding: 0 2px;
-          transition: color 0.15s;
+        @keyframes gpsGlow {
+          0%,100% { box-shadow: 0 0 8px rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
+          50% { box-shadow: 0 0 18px rgba(255,255,255,0.25); border-color: rgba(255,255,255,0.45); }
         }
-        .ec-location-clear:hover { color: #f87171; }
+        .ec-gps-btn:hover { background: rgba(255,255,255,0.18); transform: translateY(-1px); }
+        /* Location Active pill — same as PNM */
+        .pnm-location-area { align-self: flex-end; flex-shrink: 0; }
+        .pnm-location-pill {
+          display: flex; align-items: center; gap: 8px;
+          padding: 6px 12px;
+          background: rgba(63,185,80,0.08); border: 1.5px solid rgba(63,185,80,0.3);
+          border-radius: 20px; font-size: 12px; font-weight: 600;
+          animation: locationActivePulse 3s ease-in-out infinite;
+          white-space: nowrap;
+        }
+        @keyframes locationActivePulse {
+          0%,100% { border-color: rgba(63,185,80,0.2); box-shadow: 0 0 0 rgba(63,185,80,0); }
+          50% { border-color: rgba(63,185,80,0.45); box-shadow: 0 0 10px rgba(63,185,80,0.1); }
+        }
+        .pnm-location-dot {
+          width: 8px; height: 8px; border-radius: 50%; background: #3fb950;
+          flex-shrink: 0; box-shadow: 0 0 6px rgba(63,185,80,0.6);
+          animation: locationDotPulse 2s ease-in-out infinite;
+        }
+        @keyframes locationDotPulse {
+          0%,100% { opacity: 1; } 50% { opacity: 0.5; }
+        }
+        .pnm-location-label {
+          color: #3fb950; font-weight: 700; font-size: 11px;
+          text-transform: uppercase; letter-spacing: 0.8px;
+        }
+        .pnm-location-city {
+          color: rgba(226,232,240,0.8); font-size: 12px;
+          max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .pnm-location-clear {
+          background: none; border: none; color: rgba(255,255,255,0.3);
+          font-size: 16px; cursor: pointer; line-height: 1; padding: 0 2px;
+          transition: color 0.2s;
+        }
+        .pnm-location-clear:hover { color: #ef4444; }
 
         /* Clear All button */
         .ec-clear-btn {
@@ -1170,13 +1214,45 @@ export default function EventsCalendarPage({ fallbackData }) {
         }
         .ec-clear-btn:hover { border-color: rgba(255,255,255,0.3); color: #fff; }
 
-        /* ═══ SEARCH BAR ═══ */
-        .ec-search-bar {
-          max-width: 1100px; margin: 0 auto; padding: 0 16px 12px;
-          display: flex; gap: 10px; align-items: stretch;
+        /* ═══ DAY TABS — same as Daily Tournaments ═══ */
+        .ec-day-selector { padding: 0 20px 16px; overflow-x: auto; }
+        .ec-day-tabs-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+        .ec-day-tabs {
+          display: flex; gap: 4px; min-width: min-content;
+          overflow-x: auto; flex: 1;
         }
+        .ec-day-tabs::-webkit-scrollbar { display: none; }
+        .ec-day-tab {
+          position: relative; padding: 10px 16px;
+          background: linear-gradient(180deg, rgba(61,79,95,0.2) 0%, rgba(26,35,50,0.4) 100%);
+          border: 1px solid #3d4f5f; border-radius: 8px;
+          color: rgba(255,255,255,0.7); font-size: 14px; font-weight: 600;
+          font-family: 'Rajdhani', sans-serif; cursor: pointer; transition: all 0.2s;
+          white-space: nowrap; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .ec-day-today-dot {
+          position: absolute; top: 5px; right: 5px;
+          width: 5px; height: 5px; border-radius: 50%; background: #00D4FF;
+        }
+        .ec-day-tab:hover {
+          background: linear-gradient(180deg, rgba(61,79,95,0.4) 0%, rgba(26,35,50,0.6) 100%);
+          border-color: #00D4FF; box-shadow: 0 0 10px rgba(0,212,255,0.2);
+        }
+        .ec-day-tab.active {
+          background: linear-gradient(135deg, #00D4FF, #0099CC);
+          border-color: #00D4FF; color: #000;
+          box-shadow: 0 0 15px rgba(0,212,255,0.5), 0 0 30px rgba(0,212,255,0.2);
+        }
+        .ec-day-short { display: inline; }
+        .ec-day-full  { display: none; }
+        @media (min-width: 768px) {
+          .ec-day-short { display: none; }
+          .ec-day-full  { display: inline; }
+        }
+
+        /* ═══ SEARCH BAR (inline inside hero) ═══ */
         .ec-search-wrap {
-          flex: 1; position: relative; display: flex; align-items: center;
+          position: relative; display: flex; align-items: center;
           background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15);
           border-radius: 12px; padding: 0 14px; transition: all 0.2s;
         }
@@ -1191,17 +1267,6 @@ export default function EventsCalendarPage({ fallbackData }) {
           background: none; border: none; color: rgba(255,255,255,0.4); cursor: pointer; padding: 4px;
           display: flex; align-items: center;
         }
-        .ec-view-toggle {
-          display: flex; gap: 2px; background: rgba(0,0,0,0.3);
-          border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 3px;
-          align-items: center;
-        }
-        .ec-vt-btn {
-          padding: 8px 10px; border: none; border-radius: 7px;
-          background: transparent; color: rgba(255,255,255,0.5);
-          cursor: pointer; transition: all 0.15s; display: flex; align-items: center;
-        }
-        .ec-vt-btn.active { background: rgba(0,212,255,0.2); color: #00D4FF; }
 
         /* ═══ CONTENT ═══ */
         .ec-content { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
