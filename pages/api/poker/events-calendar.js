@@ -140,7 +140,7 @@ export default async function handler(req, res) {
 
     if (!applyRateLimit(req, res, LIMITS.read)) return;
 
-    const {
+    let {
       day,
       date,
       dateRange = '14days',
@@ -156,13 +156,33 @@ export default async function handler(req, res) {
       limit = '100',
     } = req.query;
 
+    // BUG FIX: Array Query Injection Vector
+    const safeString = (val) => Array.isArray(val) ? val[0] : val;
+    day = safeString(day);
+    date = safeString(date);
+    dateRange = safeString(dateRange) || '14days';
+    state = safeString(state);
+    city = safeString(city);
+    lat = safeString(lat);
+    lng = safeString(lng);
+    radius = safeString(radius) || '100';
+    minBuyin = safeString(minBuyin);
+    maxBuyin = safeString(maxBuyin);
+    gameType = safeString(gameType);
+    eventType = safeString(eventType) || 'all';
+    search = safeString(search);
+    sort = safeString(sort) || 'date';
+    offset = safeString(offset) || '0';
+    limit = safeString(limit) || '100';
+
     const sb = getSupabase();
     const { dayIndex, dayName, dateKey: todayKey } = getCurrentDayInfo();
     const parsedOffset = parseInt(offset) || 0;
     const parsedLimit = Math.min(parseInt(limit) || 100, 500);
-    const hasGps = !!(lat && lng);
-    const userLat = hasGps ? parseFloat(lat) : null;
-    const userLng = hasGps ? parseFloat(lng) : null;
+    const userLat = parseFloat(lat);
+    const userLng = parseFloat(lng);
+    // BUG FIX: Strictly validate floats to prevent NaN pollution in haversine
+    const hasGps = !isNaN(userLat) && !isNaN(userLng);
     const maxRadius = parseFloat(radius) || 100;
 
     // Determine date range for projection
@@ -172,7 +192,11 @@ export default async function handler(req, res) {
 
     if (date) {
       // Specific date
-      rangeStart.setTime(new Date(date + 'T00:00:00').getTime());
+      // BUG FIX: Prevent RangeError: Invalid time value when given unparseable dates
+      const parsedDate = new Date(date + 'T00:00:00');
+      if (!isNaN(parsedDate.getTime())) {
+        rangeStart.setTime(parsedDate.getTime());
+      }
       rangeEnd = new Date(rangeStart);
     } else {
       switch (dateRange) {
@@ -245,7 +269,8 @@ export default async function handler(req, res) {
       try {
         let dq = sb.from('venue_daily_tournaments')
           .select('venue_id, venue_name, day_of_week, start_time, buy_in, game_type, tournament_name, guaranteed, starting_stack, format, event_date, is_recurring')
-          .eq('is_active', true);
+          .eq('is_active', true)
+          .eq('is_suppressed', false);
 
         if (minBuyin) dq = dq.gte('buy_in', parseInt(minBuyin));
         if (maxBuyin) dq = dq.lte('buy_in', parseInt(maxBuyin));

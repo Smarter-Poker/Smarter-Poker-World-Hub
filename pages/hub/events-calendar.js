@@ -24,7 +24,8 @@ import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import useVenueRealtime from '../../src/hooks/useVenueRealtime';
 import { resolveCityCoords } from '../../src/data/city-coordinates';
-import VenueMap from '../../src/components/poker-near-me/VenueMap';
+import dynamic from 'next/dynamic';
+const VenueMap = dynamic(() => import('../../src/components/poker-near-me/VenueMap').then(m => m.default || m), { ssr: false });
 
 /* ───── Constants ───── */
 const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];

@@ -154,8 +154,17 @@ export default function DailyTournaments() {
     );
 
     // [HARDENING] Real-time synchronization for global table/venue changes.
-    // Forces the UI to immutably drop closed properties on-the-fly.
-    useVenueRealtime(() => refreshTournaments());
+    // Punches through the 15s S-Maxage Edge Cache securely using a monotonic _rt query parameter
+    // and injects the bypassed result directly into SWR.
+    useVenueRealtime(() => {
+        const rtUrl = `/api/poker/daily-tournaments?${swrParams.toString()}&_rt=${Date.now()}`;
+        fetch(rtUrl)
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) refreshTournaments(d, false);
+            })
+            .catch(console.error);
+    });
     const tournaments = swrData?.tournaments || [];
     const stats = swrData?.stats || {};
 
@@ -657,7 +666,7 @@ function TournamentCard({ tournament }) {
         <div className="tournament-card">
             <div className="card-header">
                 <span className="card-time">{formatTime(t.start_time)}</span>
-                <span className="card-buyin">{t.buy_in > 0 ? `$${t.buy_in}` : 'Free'}</span>
+                <span className="card-buyin">{typeof t.buy_in === 'number' && t.buy_in > 0 ? `$${t.buy_in}` : (t.buy_in === 0 ? 'Free' : 'TBD')}</span>
             </div>
             {t.tournament_name && t.tournament_name !== t.venue_name && !t.tournament_name.match(/Buy In$/i) && !t.tournament_name.match(/^(pdf_action|viewport|fc-head|rh-flat|cookie|null|undefined)$/i) && t.tournament_name.length < 120 && (
                 <p className="card-tournament-name">{t.tournament_name}</p>
@@ -673,7 +682,7 @@ function TournamentCard({ tournament }) {
             <div className="card-tags">
                 <span className={`tag game-type ${(t.game_type || '').toLowerCase()}`}>{formatGameType(t.game_type)}</span>
                 {t.format && <span className="tag format">{t.format}</span>}
-                {t.guaranteed && <span className="tag guaranteed">{formatMoney(t.guaranteed)} GTD</span>}
+                {t.guaranteed > 0 && <span className="tag guaranteed">{formatMoney(t.guaranteed)} GTD</span>}
                 {t.venueType && t.venueType !== 'Unknown' && <span className="tag venue-type">{formatVenueType(t.venueType)}</span>}
             </div>
             <div className="card-actions">

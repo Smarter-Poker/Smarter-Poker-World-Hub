@@ -62,11 +62,41 @@ function parseTime(timeStr) {
     return 0;
 }
 
+// Map day string "Monday" to "2026-04-13" upcoming date
+function getNextDateForDay(targetDay) {
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const targetIdx = days.findIndex(d => d.toLowerCase() === (targetDay || '').toLowerCase());
+    if (targetIdx === -1) return null;
+    
+    // Use target local timezone identical to the db's logic
+    const str = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+    const now = new Date(str);
+    const currentIdx = now.getDay();
+    
+    let daysToAdd = targetIdx - currentIdx;
+    if (daysToAdd < 0) {
+        daysToAdd += 7; // Get next occurrence within the 7-day future window
+    }
+    
+    now.setDate(now.getDate() + daysToAdd);
+    
+    // Output precisely YYYY-MM-DD
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+}
+
 export default async function handler(req, res) {
   try {
-    // CDN cache: fresh for 120s, serve stale up to 600s
+    // CDN cache: Dynamic response cache conditionally overriding for websocket refreshes
     if (req.method === 'GET') {
-      res.setHeader('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=600');
+      if (req.query._rt) {
+        // Break 120s Edge Cache bounds when `useVenueRealtime` is asserting live mutations
+        res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+      } else {
+        res.setHeader('Cache-Control', 'public, s-maxage=15, stale-while-revalidate=60');
+      }
     }
 
     if (!applyRateLimit(req, res, LIMITS.read)) return;
@@ -136,7 +166,7 @@ export default async function handler(req, res) {
 
           // Filter by venue name — strip SQL ILIKE wildcards (% _) to prevent wildcard injection
           if (venue) {
-              const safeVenue = venue.replace(/[,().%_\\]/g, ' ').trim().slice(0, 100);
+              const safeVenue = venue.replace(/[,().%_\\]/g, '').trim().slice(0, 100);
               if (safeVenue) {
                   query = query.ilike('venue_name', `%${safeVenue}%`);
               }
@@ -167,6 +197,8 @@ export default async function handler(req, res) {
 
           const { data: dbTournaments, error } = await query;
           
+          const targetDateStr = getNextDateForDay(targetDay);
+          
           // Also fetch active charity events from charity_events_schedule
           let charityQuery = getSupabase()
               .from('charity_events_schedule')
@@ -174,6 +206,8 @@ export default async function handler(req, res) {
               .eq('data_quality', 'scraped_verified')
               .eq('is_active', true)  // BUG FIX: was missing is_active filter
               .limit(100);
+              
+          if (targetDateStr) charityQuery = charityQuery.eq('start_date', targetDateStr);
               
           if (state) {
               const safeState = state.replace(/[()'",.;%_\\]/g, '').trim().slice(0, 50);
@@ -188,6 +222,8 @@ export default async function handler(req, res) {
               .eq('data_quality', 'scraped_verified')
               .eq('is_active', true)  // BUG FIX: was missing is_active filter
               .limit(200);
+              
+          if (targetDateStr) toursQuery = toursQuery.eq('event_date', targetDateStr);
               
           if (state) {
               const safeState = state.replace(/[()'",.;%_\\]/g, '').trim().slice(0, 50);
