@@ -206,7 +206,6 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
     // Setting an rtNonce previously did NOTHING except force a re-render over stale prop arrays!
     // Now we surgically intercept postgres payloads and mutate `allSeries` directly.
     useVenueRealtime((payload) => {
-<<<<<<< Updated upstream
         if (!payload) {
             // [Fix] Reconnect / visibility change: Hard refresh necessary to drop stale state
             supabase.from('poker_series').select('*')
@@ -232,9 +231,6 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
             return;
         }
 
-=======
->>>>>>> Stashed changes
-        if (!payload) return; // Hard refresh not supported cleanly given static props logic
         if (payload.table !== 'poker_series') return;
         const { eventType, new: newRec, old: oldRec } = payload;
         
@@ -959,17 +955,10 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                                                     {/* Square venue logo — top-left corner */}
                                                     {series.logo_url && (
                                                         <div style={{
-<<<<<<< Updated upstream
                                                             width: 116,
                                                             height: 116,
                                                             flexShrink: 0,
                                                             borderRadius: 12,
-=======
->>>>>>> Stashed changes
-                                                            width: 58,
-                                                            height: 58,
-                                                            flexShrink: 0,
-                                                            borderRadius: 8,
                                                             overflow: 'hidden',
                                                             border: '1px solid rgba(255,255,255,0.12)',
                                                             background: 'rgba(0,0,0,0.35)',
@@ -985,11 +974,7 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                                                                     height: '100%',
                                                                     objectFit: 'contain',
                                                                     display: 'block',
-<<<<<<< Updated upstream
                                                                     padding: 8,
-=======
->>>>>>> Stashed changes
-                                                                    padding: 4,
                                                                     boxSizing: 'border-box',
                                                                 }}
                                                                 loading="lazy"
