@@ -115,12 +115,14 @@ export function formatDateRange(startDate, endDate) {
 export function decodeHtml(str) {
     if (!str) return str;
     return str
+        .replace(/&ndash;/gi, '\u2013')
+        .replace(/&mdash;/gi, '\u2014')
         .replace(/&#39;/g, "'")
         .replace(/&amp;/g, '&')
         .replace(/&lt;/g, '<')
         .replace(/&gt;/g, '>')
         .replace(/&quot;/g, '"')
-        .replace(/&#x27;/g, "'")
-        .replace(/&#x2F;/g, '/')
-        .replace(/&nbsp;/g, ' ');
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&#([0-9]{1,7});/gi, (match, numStr) => String.fromCharCode(parseInt(numStr, 10)))
+        .replace(/&#x([0-9a-f]{1,6});/gi, (match, hexStr) => String.fromCharCode(parseInt(hexStr, 16)));
 }

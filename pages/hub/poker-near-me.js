@@ -248,9 +248,30 @@ export default function PokerNearMePage() {
     const fetchVenuesRef = useRef(null);
 
     // [HARDENING] Bind venue component to Supabase postgres_changes for global updates
-    useVenueRealtime(() => {
-        if (fetchVenuesRef.current) {
-            fetchVenuesRef.current({ silent: true });
+    // BUG FIX: Prevent global DDOS vector! Previously `useVenueRealtime` monitored all global 
+    // changes to poker_venues, venue_daily_tournaments, etc and indiscriminately spammed fetchVenues()
+    // across all 10,000+ connected users for a single tournament add. Now we use surgical injection!
+    useVenueRealtime((payload) => {
+        // Drop manual reconnect hard refreshes given we map to filter scopes.
+        if (!payload || payload.table !== 'poker_venues') return;
+        
+        const { eventType, new: newRec } = payload;
+        if (eventType === 'UPDATE' && newRec) {
+            setVenues(prev => {
+                const idx = prev.findIndex(v => v.id === newRec.id);
+                if (idx === -1) return prev; // Ignore venue not currently loaded in our local UI sphere
+                const next = [...prev];
+                next[idx] = { ...next[idx], ...newRec };
+                return next; 
+            });
+            // Update the map array as well so pins stay perfectly in sync
+            setAllVenuesForMap(prev => {
+                const idx = prev.findIndex(v => v.id === newRec.id);
+                if (idx === -1) return prev;
+                const next = [...prev];
+                next[idx] = { ...next[idx], ...newRec };
+                return next;
+            });
         }
     });
 

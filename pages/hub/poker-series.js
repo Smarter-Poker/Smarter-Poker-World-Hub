@@ -179,14 +179,31 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
     const [rtNonce, setRtNonce] = useState(0);
 
     // Bind realtime venue and series updates to cache invalidation
-    useVenueRealtime(() => setRtNonce(n => n + 1));
-
-    const menuConfig = getMenuConfig('events');
-
-    // ─── Data State ───
-    const [allSeries, setAllSeries] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [allVenues, setAllVenues] = useState([]);
+    // BUG FIX: poker-series relies exclusively on getStaticProps initialSeries.
+    // Setting an rtNonce previously did NOTHING except force a re-render over stale prop arrays!
+    // Now we surgically intercept postgres payloads and mutate `allSeries` directly.
+    useVenueRealtime((payload) => {
+        if (!payload) return; // Hard refresh not supported cleanly given static props logic
+        if (payload.table !== 'poker_series') return;
+        const { eventType, new: newRec, old: oldRec } = payload;
+        
+        setAllSeries(prev => {
+            let next = [...prev];
+            if (eventType === 'INSERT' && newRec) {
+                if (!next.some(s => s.id === newRec.id)) next.push(newRec);
+            } else if (eventType === 'UPDATE' && newRec) {
+                const idx = next.findIndex(s => s.id === newRec.id);
+                if (idx !== -1) {
+                    next[idx] = { ...next[idx], ...newRec };
+                } else {
+                    next.push(newRec);
+                }
+            } else if (eventType === 'DELETE' && oldRec) {
+                next = next.filter(s => s.id !== oldRec.id);
+            }
+            return next;
+        });
+    });
     const [userLocation, setUserLocation] = useState(null);
     const [iframeModal, setIframeModal] = useState({ isOpen: false, url: '', title: '' });
 
@@ -322,8 +339,9 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
         }
     }, []);
 
+    const menuConfig = getMenuConfig('events');
     // ─── Fetch series data ───
-    useEffect(() => { setAllSeries(initialSeries); setLoading(false); }, [initialSeries, rtNonce]);
+    useEffect(() => { setAllSeries(initialSeries); setLoading(false); }, [initialSeries]);
 
     // ─── Fetch all venues for coordinate lookup ───
     useEffect(() => {

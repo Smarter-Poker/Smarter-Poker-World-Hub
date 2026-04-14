@@ -327,7 +327,15 @@ export default function SeriesDetailPage() {
   });
 
   // Bind realtime venue and series updates to cache invalidation
-  useVenueRealtime(() => mutate());
+  // BUG FIX: Prevent global DDOS vector where ANY poker_series or poker_venue updated anywhere
+  // in the DB caused EVERY connected user viewing ANY series to spam the /api/poker/series endpoint.
+  // Now explicitly checks if the realtime payload aligns with our current ID, or if it's a reconnection.
+  useVenueRealtime((payload) => {
+    if (!payload) return mutate(); // Hard refresh on visibility/reconnect recovery
+    if (payload.table === 'poker_series' && payload.new && String(payload.new.id) === String(id)) {
+      mutate();
+    }
+  });
 
   const series = swrData?.series || null;
   const results = swrData?.results || [];
