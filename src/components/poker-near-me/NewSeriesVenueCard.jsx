@@ -90,6 +90,7 @@ export default function NewSeriesVenueCard({ series: s, index, isFavorited, onFa
             <div className="frame-bolt" style={{ bottom: '8px', right: '8px' }} />
             <div className="neon-strip left" />
             <div className="neon-strip right" />
+
             <div className="series-header" style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                 {/* Square logo — left side */}
                 {resolvedLogoUrl && (
@@ -110,6 +111,7 @@ export default function NewSeriesVenueCard({ series: s, index, isFavorited, onFa
                 )}
                 {/* Tour badge + title stacked to the right of logo */}
                 <div style={{ flex: 1, minWidth: 0 }}>
+
                     <div className="series-tour">{shortCode}</div>
                     <a href={detailUrl} onClick={e => e.preventDefault()} style={{ textDecoration: 'none', color: 'inherit' }}>
                         <h4 className="series-title">{s.name || s.series_name || 'Upcoming Series'}</h4>

@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+<<<<<<< Updated upstream
 import { getAuthUser, getAccessToken } from '../lib/authUtils';
+=======
+>>>>>>> Stashed changes
 
 // Global memory cache so we don't spam the DB
 let globalTrackedTours = null;
@@ -20,8 +23,13 @@ export default function useTrackedTours() {
     useEffect(() => {
         let isMounted = true;
         const fetchPrefs = async () => {
+<<<<<<< Updated upstream
             const user = getAuthUser();
             if (!user) {
+=======
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+>>>>>>> Stashed changes
                 setLoading(false);
                 return;
             }
@@ -30,7 +38,11 @@ export default function useTrackedTours() {
                     const { data } = await supabase
                         .from('user_notification_preferences')
                         .select('tracked_tours')
+<<<<<<< Updated upstream
                         .eq('user_id', user.id)
+=======
+                        .eq('user_id', session.user.id)
+>>>>>>> Stashed changes
                         .maybeSingle();
 
                     if (isMounted) {
@@ -67,9 +79,14 @@ export default function useTrackedTours() {
     }, []);
 
     const toggleTrackTour = useCallback(async (tourCode) => {
+<<<<<<< Updated upstream
         const user = getAuthUser();
         const token = getAccessToken();
         if (!user || !token) {
+=======
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+>>>>>>> Stashed changes
             alert('Please sign in to track tours.');
             return;
         }
@@ -88,7 +105,11 @@ export default function useTrackedTours() {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
+<<<<<<< Updated upstream
                     'Authorization': `Bearer ${token}`
+=======
+                    'Authorization': `Bearer ${session.access_token}`
+>>>>>>> Stashed changes
                 },
                 body: JSON.stringify({ tour: tourCode })
             });
