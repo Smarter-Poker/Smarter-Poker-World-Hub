@@ -14,6 +14,7 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import useVenueRealtime from '../../src/hooks/useVenueRealtime';
+import { resolveEntityCoordinates, haversineDistance } from '../../src/lib/geoUtils';
 
 // ─── Lazy-load components ───
 const VenueMap = dynamic(() => import('../../src/components/poker-near-me/VenueMap').then(m => ({ default: m.default })), { ssr: false });
@@ -166,72 +167,12 @@ function isSeriesUpcoming(start, daysAhead = 60) {
     return s > now && s <= cutoff;
 }
 
-// ─── City coordinate fallback ───
-const CITY_COORDS = {
-    'las vegas, nv': { lat: 36.1699, lng: -115.1398 },
-    'hollywood, fl': { lat: 26.0112, lng: -80.1495 },
-    'atlantic city, nj': { lat: 39.3643, lng: -74.4229 },
-    'lincoln, ca': { lat: 38.8916, lng: -121.2930 },
-    'durant, ok': { lat: 33.9943, lng: -96.3709 },
-    'tampa, fl': { lat: 27.9506, lng: -82.4572 },
-    'bell gardens, ca': { lat: 33.9653, lng: -118.1514 },
-    'elgin, il': { lat: 42.0354, lng: -88.2826 },
-    'lake tahoe, nv': { lat: 39.0968, lng: -120.0324 },
-    'tunica, ms': { lat: 34.6846, lng: -90.3829 },
-    'biloxi, ms': { lat: 30.3960, lng: -88.8853 },
-    'cherokee, nc': { lat: 35.4743, lng: -83.3146 },
-    'san diego, ca': { lat: 32.7157, lng: -117.1611 },
-    'portland, or': { lat: 45.5155, lng: -122.6789 },
-    'council bluffs, ia': { lat: 41.2619, lng: -95.8608 },
-    'black hawk, co': { lat: 39.7969, lng: -105.4903 },
-    'choctaw, ok': { lat: 35.4976, lng: -97.2687 },
-    'shreveport, la': { lat: 32.5252, lng: -93.7502 },
-    'new orleans, la': { lat: 29.9511, lng: -90.0715 },
-    'kinder, la': { lat: 30.4855, lng: -92.8510 },
-    'gulfport, ms': { lat: 30.3674, lng: -89.0928 },
-    'marksville, la': { lat: 31.1268, lng: -92.0632 },
-    'oklahoma city, ok': { lat: 35.4676, lng: -97.5164 },
-    'minneapolis, mn': { lat: 44.9778, lng: -93.2650 },
-    'kansas city, mo': { lat: 39.0997, lng: -94.5786 },
-    'st. louis, mo': { lat: 38.6270, lng: -90.1994 },
-    'los angeles, ca': { lat: 34.0522, lng: -118.2437 },
-    'phoenix, az': { lat: 33.4484, lng: -112.0740 },
-    'chicago, il': { lat: 41.8781, lng: -87.6298 },
-    'detroit, mi': { lat: 42.3314, lng: -83.0458 },
-    'bismarck, nd': { lat: 46.8083, lng: -100.7837 },
-    'fargo, nd': { lat: 46.8772, lng: -96.7898 },
-    'deadwood, sd': { lat: 44.3767, lng: -103.7296 },
-    'thackerville, ok': { lat: 33.7918, lng: -97.1303 },
-    'gary, in': { lat: 41.5934, lng: -87.3464 },
-    'mount pleasant, mi': { lat: 43.5978, lng: -84.7753 },
-    'prior lake, mn': { lat: 44.7133, lng: -93.4227 },
-    'welch, mn': { lat: 44.5669, lng: -92.7233 },
-    'charleston, wv': { lat: 38.3498, lng: -81.6326 },
-    'temecula, ca': { lat: 33.4936, lng: -117.1484 },
-    'west palm beach, fl': { lat: 26.7153, lng: -80.0534 },
-    'jacksonville, fl': { lat: 30.3322, lng: -81.6557 },
-    'austin, tx': { lat: 30.2672, lng: -97.7431 },
-    'round rock, tx': { lat: 30.5083, lng: -97.6789 },
-    'houston, tx': { lat: 29.7604, lng: -95.3698 },
-    'san jose, ca': { lat: 37.3382, lng: -121.8863 },
-    'commerce, ca': { lat: 33.9975, lng: -118.1597 },
-    'bossier city, la': { lat: 32.5160, lng: -93.7321 },
-    'philadelphia, pa': { lat: 39.9526, lng: -75.1652 },
-    'miami, fl': { lat: 25.7617, lng: -80.1918 },
-    'reno, nv': { lat: 39.5296, lng: -119.8138 },
-    'denver, co': { lat: 39.7392, lng: -104.9903 },
-    'seattle, wa': { lat: 47.6062, lng: -122.3321 },
-    'nashville, tn': { lat: 36.1627, lng: -86.7816 },
-    'st. petersburg, fl': { lat: 27.7676, lng: -82.6403 },
-    'fort lauderdale, fl': { lat: 26.1224, lng: -80.1373 },
-    'scottsdale, az': { lat: 33.4942, lng: -111.9261 },
-};
-
+// Geographic logic has been centralized to src/lib/geoUtils.js
 
 // ═══════════════════════════════════════════════
 // MAIN PAGE COMPONENT
 // ═══════════════════════════════════════════════
-export default function PokerSeriesPage() {
+export default function PokerSeriesPage({ initialSeries = [] }) {
     const router = useRouter();
     const [isMenuOpen, setMenuOpen] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
@@ -343,15 +284,7 @@ export default function PokerSeriesPage() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, []); // empty deps — no re-registration on every keystroke
 
-    // ─── Haversine distance (miles) ───
-    const haversineDistance = useCallback((lat1, lng1, lat2, lng2) => {
-        const R = 3959;
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLng = (lng2 - lng1) * Math.PI / 180;
-        const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
-        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    }, []);
-
+    // Haversine distance imported from geoUtils.js
     // ─── Distance filter: auto-request geolocation ───
     const handleDistanceChange = useCallback((val) => {
         if (val === 'all') { setDistanceFilter('all'); return; }
@@ -390,88 +323,7 @@ export default function PokerSeriesPage() {
     }, []);
 
     // ─── Fetch series data ───
-    useEffect(() => {
-        let isMounted = true;
-        const abortController = new AbortController();
-        // Only set loading true if we don't have data yet to prevent flashing on realtime updates
-        setLoading(allSeries.length === 0);
-
-        fetch('/api/poker/series?limit=300&order=start_date', { signal: abortController.signal })
-            .then(r => r.json())
-            .then(json => {
-                if (!isMounted) return;
-                const raw = json.data || json.series || [];
-                const filtered = raw.filter(s => {
-                    const et = (s.entity_type || s.record_type || '').toLowerCase();
-                    // Bug #4 Fix: Exclude ALL records typed as tours regardless of event count.
-                    // Previously only excluded if eventCount <= 1, which let multi-stop tours through.
-                    if (et === 'tour' || et === 'poker_tour') return false;
-                    // Keep records that have at least one of: city, state, venue, events, or start_date
-                    const eventCount = s.total_events || s.events_count || s.event_count || 0;
-                    const hasLocation = !!(s.city || s.state || s.venue || s.venue_name);
-                    const hasEvents = eventCount > 0;
-                    const hasDates = !!(s.start_date || s.end_date);
-                    return hasLocation || hasEvents || hasDates;
-                });
-
-                // ── Deduplicate by series_uid: when multiple records share
-                //    the same uid (same event pool), keep only the most complete one.
-                const uidSeen = new Map();
-                const nameSeen = new Map();
-                const data = [];
-                const scoreRecord = (s) => {
-                    let score = 0;
-                    if (s.city || s.state) score += 3;
-                    if (s.venue || s.venue_name) score += 2;
-                    if (s.start_date) score += 2;
-                    if (s.end_date) score += 1;
-                    score += Math.min(s.total_events || s.events_count || 0, 10);
-                    return score;
-                };
-                for (const s of filtered) {
-                    const uid = s.series_uid;
-                    const nameKey = (s.name || '').toLowerCase().trim();
-                    // Dedup by series_uid first
-                    if (uid) {
-                        if (uidSeen.has(uid)) {
-                            const existing = uidSeen.get(uid);
-                            if (scoreRecord(s) > scoreRecord(existing)) {
-                                // Replace with better record
-                                const idx = data.indexOf(existing);
-                                if (idx !== -1) data.splice(idx, 1, s);
-                                uidSeen.set(uid, s);
-                            }
-                            continue;
-                        }
-                        uidSeen.set(uid, s);
-                    } else if (nameKey) {
-                        // No uid — dedup by exact name only
-                        if (nameSeen.has(nameKey)) {
-                            const existing = nameSeen.get(nameKey);
-                            if (scoreRecord(s) > scoreRecord(existing)) {
-                                const idx = data.indexOf(existing);
-                                if (idx !== -1) data.splice(idx, 1, s);
-                                nameSeen.set(nameKey, s);
-                            }
-                            continue;
-                        }
-                        nameSeen.set(nameKey, s);
-                    }
-                    data.push(s);
-                }
-                setAllSeries(data);
-            })
-            .catch((e) => {
-                if (!isMounted || e.name === 'AbortError') return;
-                // Bug #5/#6 Fix: show visible error, don't silently empty results
-                console.error('[PokerSeries] Failed to load series data:', e.message);
-                setAllSeries([]);
-                setLoading(false); // ensure spinner stops even on error
-            })
-            .finally(() => { if (isMounted) setLoading(false); });
-
-        return () => { isMounted = false; abortController.abort(); };
-    }, [rtNonce]);
+    useEffect(() => { setAllSeries(initialSeries); setLoading(false); }, [initialSeries, rtNonce]);
 
     // ─── Fetch all venues for coordinate lookup ───
     useEffect(() => {
@@ -491,63 +343,8 @@ export default function PokerSeriesPage() {
         return () => { isMounted = false; abortController.abort(); };
     }, []);
 
-    // ─── Find venue coordinates ───
     const findVenueCoords = useCallback((series) => {
-        const venueName = (series.venue || series.venue_name || '').toLowerCase().trim();
-        const city = (series.city || '').toLowerCase().trim();
-        const state = (series.state || '').toLowerCase().trim();
-
-        if (allVenues.length > 0) {
-            // 1. Exact venue name match
-            let match = allVenues.find(v => v.name && v.name.toLowerCase() === venueName && v.latitude);
-            if (match) return match;
-
-            // 2. Venue name contains
-            if (venueName.length > 3) {
-                match = allVenues.find(v => {
-                    if (!v.name || !v.latitude) return false;
-                    const n = v.name.toLowerCase();
-                    return n.includes(venueName) || venueName.includes(n);
-                });
-                if (match) return match;
-            }
-
-            // 3. City + state match
-            if (city && state) {
-                match = allVenues.find(v =>
-                    v.latitude &&
-                    (v.city || '').toLowerCase() === city &&
-                    (v.state || '').toLowerCase() === state
-                );
-                if (match) return match;
-            }
-
-            // 4. City-only match
-            if (city) {
-                match = allVenues.find(v =>
-                    v.latitude && (v.city || '').toLowerCase() === city
-                );
-                if (match) return match;
-            }
-        }
-
-        // 5. Fallback: city coordinate lookup
-        const cityKey = (city + (state ? ', ' + state : '')).toLowerCase();
-        if (cityKey) {
-            const coords = CITY_COORDS[cityKey];
-            if (coords) return { latitude: coords.lat, longitude: coords.lng, city, state };
-        }
-
-        // 6. Last resort: partial match
-        if (city) {
-            for (const [key, coords] of Object.entries(CITY_COORDS)) {
-                if (key.startsWith(city + ',') || key === city) {
-                    return { latitude: coords.lat, longitude: coords.lng, city, state };
-                }
-            }
-        }
-
-        return null;
+        return resolveEntityCoordinates(series, allVenues);
     }, [allVenues]);
 
     // ─── Get unique tours from series data ───
@@ -2112,4 +1909,30 @@ export default function PokerSeriesPage() {
             </div>
         </>
     );
+}
+
+
+// ═══════════════════════════════════════════════
+// ON-DEMAND STATIC DATA (ISR)
+// ═══════════════════════════════════════════════
+import { supabaseAdmin } from '../../src/lib/supabaseAdmin';
+
+export async function getStaticProps() {
+    try {
+        const { data, error } = await supabaseAdmin
+            .from('poker_series')
+            .select('*')
+            .order('start_date', { ascending: true })
+            .limit(300);
+            
+        if (error) throw error;
+        
+        return {
+            props: { initialSeries: data || [] },
+            revalidate: 60, // 60 second Edge caching
+        };
+    } catch (e) {
+        console.error('ISR Build Failed:', e.message);
+        return { props: { initialSeries: [] }, revalidate: 60 };
+    }
 }

@@ -255,16 +255,12 @@ export default function PokerToursPage({ initialTours = [] }) {
                 () => {} // silent fail
             );
         }
-            })
-            .finally(() => {
-                if (isMounted) setLoading(false);
-            });
-            
-        return () => {
-            isMounted = false;
-            abortController.abort();
-        };
-    }, []);
+
+        setTours(initialTours);
+        setLoading(false);
+
+        return () => { isMounted = false; };
+    }, [initialTours, rtNonce]);
 
     // ─── Fetch all venues for coordinate lookup ───
     useEffect(() => {

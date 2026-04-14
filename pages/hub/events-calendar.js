@@ -25,6 +25,7 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import useVenueRealtime from '../../src/hooks/useVenueRealtime';
 import { resolveCityCoords } from '../../src/data/city-coordinates';
 import dynamic from 'next/dynamic';
+import { resolveEntityCoordinates, haversineDistance } from '../../src/lib/geoUtils';
 const VenueMap = dynamic(() => import('../../src/components/poker-near-me/VenueMap').then(m => m.default || m), { ssr: false });
 
 // -- COMPONENT DOM VIRTUALIZATION ENGINE --
