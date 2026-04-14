@@ -210,10 +210,11 @@ export default async function handler(req, res) {
               query = query.lte('buy_in', parseInt(maxBuyin, 10) || 100000);
           }
 
-          // [B2 FIX] Fetch up to 5000 rows — previous 999 hard cap silently dropped tournaments.
-          // Dedup layer handles volume. User-facing `limit` param caps the final response.
+          // [B2 FIX v2] Use .range(0, 4999) to bypass Supabase project-level max_rows=1000 cap.
+          // .limit() alone is bounded by the project setting; .range() uses the Range header
+          // which PostgREST serves up to the specified ceiling regardless of the project default.
           const parsedLimit = parseInt(limit, 10) || 999;
-          query = query.limit(5000); // Raised from 999 — applied AFTER dedup
+          query = query.range(0, 4999); // Bypasses Supabase 1000-row project limit
 
           const { data: dbTournaments, error } = await query;
           
