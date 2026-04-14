@@ -111,19 +111,35 @@ export default async function handler(req, res) {
 
       try {
           const {
-              day,
-              exact_date, // Direct calendar bypass targeting
-              state,
-              venue,
-              type,      // Card Room, Casino, Charity
-              minBuyin,
-              maxBuyin,
-              game_type, // NLH, PLO, Mixed, etc.
-              minGuaranteed, // minimum guaranteed prize pool
-              sort = 'time', // time, buyin, guaranteed
-              venue_id,      // new param for exact matching
-              limit = 999
+              day: _day,
+              exact_date: _exact_date,
+              state: _state,
+              venue: _venue,
+              type: _type,
+              minBuyin: _minBuyin,
+              maxBuyin: _maxBuyin,
+              game_type: _game_type,
+              minGuaranteed: _minGuaranteed,
+              sort: _sort = 'time',
+              venue_id: _venue_id,
+              limit: _limit = 999
           } = req.query;
+
+          // [B1 FIX] Guard against array injection — Next.js parses ?day[]=A&day[]=B as an array.
+          // Pass to ilike as [object Array] which silently breaks the filter.
+          const safeStr = (v) => Array.isArray(v) ? v[0] : v;
+          const day = safeStr(_day);
+          const exact_date = safeStr(_exact_date);
+          const state = safeStr(_state);
+          const venue = safeStr(_venue);
+          const type = safeStr(_type);
+          const minBuyin = safeStr(_minBuyin);
+          const maxBuyin = safeStr(_maxBuyin);
+          const game_type = safeStr(_game_type);
+          const minGuaranteed = safeStr(_minGuaranteed);
+          const sort = safeStr(_sort) || 'time';
+          const venue_id = safeStr(_venue_id);
+          const limit = safeStr(_limit) || 999;
 
           // Try to get tournaments from database first
           let query = getSupabase()

@@ -116,7 +116,17 @@ function safeHref(url) {
     return cleanUrl;
 }
 
-// haversine is defined inside the component body to access userLocation via closure.
+// [B2 FIX] haversine at module level — stable reference across renders.
+// Previously declared inside the component, creating a new function ref on every render
+// which busted the sortedTournaments useMemo dep comparison (always computed as "changed").
+function haversine(lat1, lng1, lat2, lng2) {
+    const R = 3958.8;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
 
 export default function DailyTournaments() {
     const router = useRouter();
@@ -213,17 +223,6 @@ export default function DailyTournaments() {
         setSelectedDate(null);
         setDistanceFilter('all');
     };
-
-    // [P1-A FIX] haversine defined here (not at module level) — uses no outer state.
-    // Defined once per component mount via useCallback's stable identity pattern.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    function haversine(lat1, lng1, lat2, lng2) {
-        const R = 3958.8;
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLng = (lng2 - lng1) * Math.PI / 180;
-        const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
-        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    }
 
     // Request GPS — triggered when user picks a distance
     const handleDistanceChange = (val) => {
