@@ -15,6 +15,7 @@ import { eventBus } from '../../../src/engine/EventBus';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { formatGameType, decodeHtml } from '../../../src/utils/pokerFormatters';
+import useVenueRealtime from '../../../src/hooks/useVenueRealtime';
 
 // Tour badge color mapping
 const TOUR_COLORS = {

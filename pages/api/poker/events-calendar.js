@@ -188,6 +188,7 @@ export default async function handler(req, res) {
     const userLng = parseFloat(lng);
     // BUG FIX: Strictly validate floats to prevent NaN pollution in haversine
     const hasGps = !isNaN(userLat) && !isNaN(userLng);
+    const hasExplicitRadius = hasGps && req.query.radius != null;
     const maxRadius = parseFloat(radius) || 100;
 
     // Determine date range for projection
@@ -305,13 +306,11 @@ export default async function handler(req, res) {
 
             // GPS/distance filter
             let distanceMi = null;
-            if (hasGps) {
-              if (venueInfo?.latitude && venueInfo?.longitude) {
-                distanceMi = Math.round(haversineMi(userLat, userLng, parseFloat(venueInfo.latitude), parseFloat(venueInfo.longitude)) * 10) / 10;
-                if (distanceMi > maxRadius) continue;
-              } else {
-                continue; // GPS Search Requested: Reject venues with no stored coordinates
-              }
+            if (hasGps && venueInfo?.latitude && venueInfo?.longitude) {
+              distanceMi = Math.round(haversineMi(userLat, userLng, parseFloat(venueInfo.latitude), parseFloat(venueInfo.longitude)) * 10) / 10;
+              if (distanceMi > maxRadius) continue;
+            } else if (hasExplicitRadius && !(venueInfo?.latitude && venueInfo?.longitude)) {
+              continue; // Only reject unmapped venues when user explicitly set a radius
             }
 
             // Project recurring tournaments onto specific dates
@@ -390,13 +389,11 @@ export default async function handler(req, res) {
             // GPS distance
             const venueInfo = getVenueInfo(s.venue_id, s.venue_name);
             let distanceMi = null;
-            if (hasGps) {
-              if (venueInfo?.latitude && venueInfo?.longitude) {
-                distanceMi = Math.round(haversineMi(userLat, userLng, parseFloat(venueInfo.latitude), parseFloat(venueInfo.longitude)) * 10) / 10;
-                if (distanceMi > maxRadius) continue;
-              } else {
-                continue; // GPS Search Requested: Reject venues with no stored coordinates
-              }
+            if (hasGps && venueInfo?.latitude && venueInfo?.longitude) {
+              distanceMi = Math.round(haversineMi(userLat, userLng, parseFloat(venueInfo.latitude), parseFloat(venueInfo.longitude)) * 10) / 10;
+              if (distanceMi > maxRadius) continue;
+            } else if (hasExplicitRadius && !(venueInfo?.latitude && venueInfo?.longitude)) {
+              continue; // Only reject unmapped venues when user explicitly set a radius
             }
 
             // Use start_date as the event date
@@ -473,8 +470,8 @@ export default async function handler(req, res) {
               if (venueInfo?.latitude && venueInfo?.longitude) {
                 distanceMi = Math.round(haversineMi(userLat, userLng, parseFloat(venueInfo.latitude), parseFloat(venueInfo.longitude)) * 10) / 10;
                 if (distanceMi > maxRadius) continue;
-              } else {
-                continue; // GPS Search Requested: Reject venues with no stored coordinates
+              } else if (hasExplicitRadius) {
+                continue; // Only reject unmapped venues when user explicitly set a radius
               }
             }
 

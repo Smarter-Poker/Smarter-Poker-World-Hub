@@ -46,6 +46,14 @@ Next.js 14, React 19, Vite 6, Supabase (Postgres + Auth + Storage), PostHog (ana
 - **Phases 11-21**: COMPLETE (GTO Wizard Parity — training arena overhaul, smart training engine, analytics, leaderboards, range grid, blocker analysis, ghost replay, study streak)
 - **Phase 22**: COMPLETE (Poker Brain Integration — 7s matchmaking timeout, horse AI opponents as invisible "real players", personality-modulated GTO decisions, human-like think time)
 
+## Hetzner Game Server (Added 2026-04-13)
+
+- **SSH:** `root@178.156.160.206` (key-based auth)
+- **Hetzner Server ID:** 125093929 | API Token stored in `.memory/context/hetzner-server-credentials.md`
+- **Docker Container:** `club-arena-engine` on port 8080
+- **Repo on server:** `/opt/club-arena` (structure differs from World Hub — verify paths)
+- **Deploy:** `ssh root@178.156.160.206 "cd /opt/club-arena && git pull origin main && docker restart club-arena-engine"`
+
 ## Key Metrics
 
 - ~300 daily cron failures eliminated in Phase 4
