@@ -258,8 +258,12 @@ export default function PokerSeriesPage() {
     const [favorites, setFavorites] = useState(() => {
         if (typeof window === 'undefined') return {};
         try {
-            return JSON.parse(localStorage.getItem('pnm_series_favorites') || '{}');
-        } catch { return {}; }
+            // Bug #7 Fix: guard against SecurityError in restricted contexts (private browsing, iframe)
+            const stored = localStorage.getItem('pnm_series_favorites');
+            return stored ? JSON.parse(stored) : {};
+        } catch {
+            return {}; // graceful degradation — favorites just won't persist
+        }
     });
 
     // ─── Cross-Tab Favorites Sync ───
@@ -393,9 +397,11 @@ export default function PokerSeriesPage() {
                 const raw = json.data || json.series || [];
                 const filtered = raw.filter(s => {
                     const et = (s.entity_type || s.record_type || '').toLowerCase();
-                    const eventCount = s.total_events || s.events_count || s.event_count || 0;
-                    if ((et === 'tour' || et === 'poker_tour') && eventCount <= 1) return false;
+                    // Bug #4 Fix: Exclude ALL records typed as tours regardless of event count.
+                    // Previously only excluded if eventCount <= 1, which let multi-stop tours through.
+                    if (et === 'tour' || et === 'poker_tour') return false;
                     // Keep records that have at least one of: city, state, venue, events, or start_date
+                    const eventCount = s.total_events || s.events_count || s.event_count || 0;
                     const hasLocation = !!(s.city || s.state || s.venue || s.venue_name);
                     const hasEvents = eventCount > 0;
                     const hasDates = !!(s.start_date || s.end_date);
@@ -443,7 +449,10 @@ export default function PokerSeriesPage() {
             })
             .catch((e) => {
                 if (!isMounted || e.name === 'AbortError') return;
+                // Bug #5/#6 Fix: show visible error, don't silently empty results
+                console.error('[PokerSeries] Failed to load series data:', e.message);
                 setAllSeries([]);
+                setLoading(false); // ensure spinner stops even on error
             })
             .finally(() => { if (isMounted) setLoading(false); });
 
@@ -597,9 +606,12 @@ export default function PokerSeriesPage() {
         if (dateRangeCutoff) {
             result = result.filter(s => {
                 if (!s.start_date) return false;
-                const startDate = new Date(s.start_date + 'T00:00:00');
-                const endDate = s.end_date ? new Date(s.end_date + 'T23:59:59') : startDate;
-                // Currently running (end_date >= today) OR upcoming within cutoff (start_date <= cutoff end)
+                // Bug #9 Fix: guard against non-ISO start_date values like "TBD" or "Spring 2026"
+                const startMs = Date.parse(s.start_date + 'T00:00:00');
+                if (isNaN(startMs)) return false;
+                const startDate = new Date(startMs);
+                const endMs = s.end_date ? Date.parse(s.end_date + 'T23:59:59') : startMs;
+                const endDate = new Date(isNaN(endMs) ? startMs : endMs);
                 const isRunning = endDate >= today && startDate <= today;
                 const isUpcoming = startDate > today && startDate <= dateRangeCutoff.end;
                 return isRunning || isUpcoming;
@@ -743,10 +755,12 @@ export default function PokerSeriesPage() {
     }, [filteredSeries, findVenueCoords]);
 
     // ─── Active filter count ───
+    // Bug #10 Fix: baseline is 'all' (matching initial state), not '60d'.
+    // '60d' was the old default, now we use 'all' so Clear All badge doesn't appear on fresh load.
     const activeFilterCount = useMemo(() => {
         let count = 0;
         if (searchQuery) count++;
-        if (dateRange !== '60d') count++;
+        if (dateRange !== 'all') count++; // baseline is 'all', not '60d'
         if (selectedTour !== 'all') count++;
         if (selectedStatus !== 'all') count++;
         if (selectedState !== 'all') count++;
@@ -772,9 +786,10 @@ export default function PokerSeriesPage() {
     }, []);
 
     // ─── Reset all filters ───
+    // Bug #1/#2 Fix: reset to 'all' not '60d' — must match initial state default
     const resetFilters = useCallback(() => {
         setSearchQuery('');
-        setDateRange('60d');
+        setDateRange('all'); // matches useState default on line 252
         setSelectedTour('all');
         setSelectedStatus('all');
         setSelectedState('all');
