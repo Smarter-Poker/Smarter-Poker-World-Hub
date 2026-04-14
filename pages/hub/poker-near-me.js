@@ -1,6 +1,6 @@
 /**
- *  POKER NEAR ME - Live Venue Finder
- * Find poker rooms, venues, and tournaments near you
+ *  POKER NEAR ME - Live Venue & Cash Games Finder v4.2
+ * Find poker rooms, venues, and live cash games near you
  */
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
