@@ -102,18 +102,18 @@ function cleanEventName(raw) {
     .replace(/&quot;/g, '"')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>');
-  // Strip trailing day/time patterns like:
-  //   "Wednesday, October 1 10 a.m"
-  //   "Thursday, April 30"
-  //   "Mon, Apr 30 10:00 AM"
-  //   "10 a.m" / "2 p.m" / "10:00am" standalone
-  name = name
-    .replace(/\s+(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),?\s+[A-Za-z]+\s+\d+([^$]*)$/i, '')
-    .replace(/\s+(Mon|Tue|Wed|Thu|Fri|Sat|Sun),?\s+[A-Za-z]+\.?\s+\d+([^$]*)$/i, '')
-    .replace(/\s+\d{1,2}:\d{2}\s*(am|pm|a\.m|p\.m)/i, '')
-    .replace(/\s+\d{1,2}\s*(a\.m|p\.m|am|pm)$/i, '')
-    .trim();
-  return name;
+  // Strip date/time patterns embedded by scraper:
+  // Pattern A (mid-string): "Apr 9 Thursday 6:15pm" / "Apr 10 Friday 11:15am"
+  name = name.replace(/\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}\s+(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+\d{1,2}:\d{2}\s*(am|pm)/gi, '');
+  // Pattern B (trailing full day+date): "Wednesday, October 1 10 a.m"
+  name = name.replace(/\s+(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),?\s+[A-Za-z]+\s+\d+([^$]*)$/i, '');
+  name = name.replace(/\s+(Mon|Tue|Wed|Thu|Fri|Sat|Sun),?\s+[A-Za-z]+\.?\s+\d+([^$]*)$/i, '');
+  // Pattern C (standalone trailing time)
+  name = name.replace(/\s+\d{1,2}:\d{2}\s*(am|pm|a\.m|p\.m)/i, '');
+  name = name.replace(/\s+\d{1,2}\s*(a\.m|p\.m|am|pm)$/i, '');
+  // Pattern D (trailing "Apr 8 Wednesday" — Month Day DayOfWeek at end without time)
+  name = name.replace(/\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}\s+(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s*$/i, '');
+  return name.trim();
 }
 
 // Extract start time that was embedded in event_name by the scraper.
