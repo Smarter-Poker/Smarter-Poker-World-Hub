@@ -85,7 +85,7 @@ function formatDate(dateStr) {
 export default function PokerToursPage() {
     const router = useRouter();
     const [menuOpen, setMenuOpen] = useState(false);
-    const menuConfig = useMemo(() => getMenuConfig(), []);
+    const menuConfig = useMemo(() => getMenuConfig('events'), []);
 
     // ─── Data State ───
     const [tours, setTours] = useState([]);
