@@ -16,7 +16,7 @@
 
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
-import { useState, useEffect, useCallback, useRef, useMemo, memo } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, memo, useDeferredValue } from 'react';
 import { useRouter } from 'next/router';
 import useSWR from 'swr';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
@@ -436,7 +436,7 @@ export async function getServerSideProps(context) {
   try {
     const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
     const host = context.req.headers.host || 'localhost:3000';
-    const url = `${protocol}://${host}/api/poker/events-calendar?dateRange=14days&limit=500`;
+    const url = `${protocol}://${host}/api/poker/events-calendar?dateRange=14days&limit=500&sort=date`;
     const res = await fetch(url);
     const data = await res.json();
     return { props: { fallbackData: data?.success ? data : null } };
@@ -528,7 +528,7 @@ export default function EventsCalendarPage({ fallbackData }) {
   // Using fallbackData directly (without key scoping) caused the SSR data to override
   // ALL filter states, making filters appear to have no effect until re-fetched.
   const initSsrUrl = useMemo(
-    () => `/api/poker/events-calendar?dateRange=14days&limit=500`,
+    () => `/api/poker/events-calendar?dateRange=14days&limit=500&sort=date`,
     []
   );
   const swrFallback = useMemo(

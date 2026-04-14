@@ -5,7 +5,7 @@
  * Matches Poker Tours page layout: sidebar + map + 2-col card grid
  * Shows currently running + upcoming (≤60 days) series by default
  */
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, useDeferredValue, memo } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
@@ -603,6 +603,9 @@ export default function PokerSeriesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [dateRange, nowTick]);
 
+    // ─── Deferred Filter States for 120hz Unblocked Input ───
+    const deferredSearchQuery = useDeferredValue(searchQuery);
+
     // ─── Filtered & sorted series ───
     const filteredSeries = useMemo(() => {
         let result = [...allSeries];
@@ -651,9 +654,9 @@ export default function PokerSeriesPage() {
             });
         }
 
-        // Search filter
-        if (searchQuery.trim()) {
-            const q = searchQuery.toLowerCase().trim();
+        // Search filter (uses deferred value to never block input thread)
+        if (deferredSearchQuery.trim()) {
+            const q = deferredSearchQuery.toLowerCase().trim();
             result = result.filter(s =>
                 cleanHtml(s.name || s.series_name || '').toLowerCase().includes(q) ||
                 (s.tour || '').toLowerCase().includes(q) ||
@@ -708,7 +711,7 @@ export default function PokerSeriesPage() {
         }
 
         return result;
-    }, [allSeries, selectedTour, selectedStatus, selectedState, searchQuery, sortBy, dateRangeCutoff, distanceFilter, userLocation, findVenueCoords, haversineDistance]);
+    }, [allSeries, selectedTour, selectedStatus, selectedState, deferredSearchQuery, sortBy, dateRangeCutoff, distanceFilter, userLocation, findVenueCoords, haversineDistance]);
 
     // ─── Stats ───
     const liveCount = useMemo(() => filteredSeries.filter(s => isSeriesLive(s.start_date, s.end_date)).length, [filteredSeries]);

@@ -108,6 +108,7 @@ function normalizeGameType(raw) {
 // Parse time string to minutes for sorting
 function parseTimeMinutes(timeStr) {
   if (!timeStr) return 720; // default noon
+  timeStr = String(timeStr).trim();
   // Handle HH:MM:SS format
   const match24 = timeStr.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
   if (match24) {
@@ -198,7 +199,8 @@ export default async function handler(req, res) {
     const maxRadius = parseFloat(radius) || 100;
 
     // Determine date range for projection
-    const rangeStart = new Date();
+    const localTime = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+    const rangeStart = new Date(localTime);
     rangeStart.setHours(0, 0, 0, 0);
     let rangeEnd = new Date(rangeStart);
 
@@ -271,7 +273,8 @@ export default async function handler(req, res) {
 
     // Helper: resolve venue info from ID or name
     const getVenueInfo = (venueId, venueName) => {
-      return venueLocations[venueId] || venueLocations[venueName?.toLowerCase()] || null;
+      const vNameClean = venueName ? venueName.toLowerCase().trim() : null;
+      return venueLocations[venueId] || venueLocations[vNameClean] || null;
     };
 
     // ──────────────────────────────────────────────────────────────
