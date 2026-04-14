@@ -221,16 +221,10 @@ export default function DailyTournaments() {
         );
     }, []);
 
-    // Flat sorted list: by distance if GPS granted, else by start_time
-    const sortedTournaments = [...tournaments].sort((a, b) => {
-        if (userLocation && a.latitude && b.latitude) {
-            const dA = haversine(userLocation.lat, userLocation.lng, parseFloat(a.latitude), parseFloat(a.longitude));
-            const dB = haversine(userLocation.lat, userLocation.lng, parseFloat(b.latitude), parseFloat(b.longitude));
-            return dA - dB;
-        }
-        return parseTimeToMinutes(a.start_time) - parseTimeToMinutes(b.start_time);
-    });
-    // ──────────────────────────────────────────────────────────────────────
+    // Sort by time (GPS lat/lng not returned by API — time sort is canonical)
+    const sortedTournaments = [...tournaments].sort((a, b) =>
+        parseTimeToMinutes(a.start_time) - parseTimeToMinutes(b.start_time)
+    );
 
     // Calendar helpers
     const today = new Date();
@@ -520,8 +514,6 @@ export default function DailyTournaments() {
                                     <TournamentCard
                                         key={`${t.id || t.venue_id || t.tournament_name || 't'}-${t.start_time}-${i}`}
                                         tournament={t}
-                                        userLocation={userLocation}
-                                        haversine={haversine}
                                     />
                                 ))}
                             </div>

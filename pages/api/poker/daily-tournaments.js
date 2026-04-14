@@ -158,11 +158,19 @@ export default async function handler(req, res) {
           // Filter by day — use ilike for case-insensitive matching
           // (DB has mixed-case day_of_week values: 'saturday', 'MONDAY', 'Daily', etc.)
           let targetDay = getCurrentDay();
-          if (day !== 'all') {
+          // [B6 FIX] When exact_date is provided (calendar mode), skip day_of_week filter
+          // on venue_daily_tournaments — we want ALL recurring ('Daily') events plus any
+          // matching date-specific records. Day filter would incorrectly exclude 'Daily' rows.
+          const hasExactDate = !!exact_date;
+          if (!hasExactDate && day !== 'all') {
               // BUG FIX: strip ILIKE wildcards from day param before interpolation
               targetDay = (day || getCurrentDay()).replace(/[%_\\,().]/g, '').trim().slice(0, 20);
               if (!targetDay) targetDay = getCurrentDay();
               // ilike handles: Saturday / saturday / SATURDAY all correctly
+              query = query.or(`day_of_week.ilike.${targetDay},day_of_week.ilike.daily`);
+          } else if (hasExactDate) {
+              // Calendar mode: include the specific day + all 'Daily' recurring tournaments
+              targetDay = (day || getCurrentDay()).replace(/[%_\\,().]/g, '').trim().slice(0, 20) || getCurrentDay();
               query = query.or(`day_of_week.ilike.${targetDay},day_of_week.ilike.daily`);
           }
 
@@ -201,9 +209,10 @@ export default async function handler(req, res) {
               query = query.lte('buy_in', parseInt(maxBuyin, 10) || 100000);
           }
 
-          // Fetch all matching rows (no artificial cap — dedup handles volume)
+          // [B2 FIX] Fetch up to 5000 rows — previous 999 hard cap silently dropped tournaments.
+          // Dedup layer handles volume. User-facing `limit` param caps the final response.
           const parsedLimit = parseInt(limit, 10) || 999;
-          query = query.limit(999); // Fetch all for dedup, limit applied after
+          query = query.limit(5000); // Raised from 999 — applied AFTER dedup
 
           const { data: dbTournaments, error } = await query;
           

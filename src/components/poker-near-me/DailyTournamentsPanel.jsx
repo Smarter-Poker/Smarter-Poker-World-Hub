@@ -68,7 +68,9 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
   // Client-side filters
   let filtered = tournaments.filter(t => {
     if (!t.day_of_week) return false;
-    if (t.day_of_week.toLowerCase() !== selectedDay.toLowerCase() && t.day_of_week !== 'Daily') return false;
+    // [B8 FIX] Case-insensitive 'Daily' check: DB stores as 'daily', 'Daily', 'DAILY'
+    const dow = t.day_of_week.toLowerCase();
+    if (dow !== selectedDay.toLowerCase() && dow !== 'daily') return false;
     if (gameType !== 'all' && t.game_type && !t.game_type.toLowerCase().includes(gameType.toLowerCase())) return false;
     if (selectedState && selectedState !== 'all' && (t.venue_state || t.state) !== selectedState) return false;
     if (minBuyin && t.buy_in < parseInt(minBuyin, 10)) return false;
@@ -93,9 +95,11 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
     return acc;
   }, {}) : null;
 
-  const renderTournamentCard = (t, i) => {
+  const renderTournamentCard = (t, idx) => {
     const buyinStyle = getBuyinColor(t.buy_in);
-    const cardId = t.id || i;
+    // [B9 FIX] Use a stable string key so expandedCards map survives re-renders
+    // Combining id (or venue+time fallback) with index prevents collisions across renders
+    const cardId = t.id ? String(t.id) : `${t.venue_id || 'v'}-${t.start_time || 'notime'}-${idx}`;
     const isExpanded = !!expandedCards[cardId];
     
     return (
