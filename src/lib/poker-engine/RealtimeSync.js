@@ -197,16 +197,60 @@ class RealtimeSync {
         this._broadcast(event, data);
       });
     }
-    
-    // Cards dealt — broadcast public info only. Private cards fetched via authenticated API.
+
+    // On new hand: clear previous hole cards for this table so stale data doesn't persist
+    this.table.on('hand_start', () => {
+      if (this.supabase) {
+        this.supabase
+          .from('table_hole_cards')
+          .delete()
+          .eq('table_id', this.tableId)
+          .then(({ error }) => {
+            if (error) console.error(`[RealtimeSync] hole cards cleanup failed:`, error.message);
+          })
+          .catch(() => {});
+      }
+    });
+
+    // Cards dealt — broadcast public info only. Private cards delivered via RLS-protected table.
     this.table.on('cards_dealt', (data) => {
       // Broadcast public info (card count only — no actual cards)
       this._broadcast(CHANNEL_EVENTS.CARDS_DEALT, {
         players: data.players.map(p => ({ id: p.id, cardCount: p.cardCount })),
       });
-      // SECURITY: Private cards are NOT sent via broadcast channel.
-      // Supabase broadcast is pub/sub — ALL channel subscribers see ALL events.
-      // Clients fetch their own cards via authenticated GET /engine/state.
+
+      // SECURE HOLE CARD DELIVERY: Write each player's cards to table_hole_cards.
+      // Client subscribes via Supabase Realtime INSERT on this RLS-protected table.
+      // Only the owning user_id can read their own row (RLS policy).
+      if (this.supabase && this.table.game?.currentHand) {
+        const hand = this.table.game.currentHand;
+        const handNumber = hand.handNumber || 0;
+        const rows = [];
+        for (const player of hand.players) {
+          if (player.holeCards?.length > 0 && player.id) {
+            // Find seat number for this player
+            const seatIdx = this.table.seats
+              ? this.table.seats.findIndex(s => s.player?.id === player.id)
+              : -1;
+            rows.push({
+              table_id: this.tableId,
+              hand_number: handNumber,
+              user_id: player.id,
+              seat_number: seatIdx >= 0 ? seatIdx : 0,
+              cards: JSON.stringify(player.holeCards),
+            });
+          }
+        }
+        if (rows.length > 0) {
+          this.supabase
+            .from('table_hole_cards')
+            .insert(rows)
+            .then(({ error }) => {
+              if (error) console.error(`[RealtimeSync] table_hole_cards insert failed:`, error.message);
+            })
+            .catch(err => console.error(`[RealtimeSync] table_hole_cards exception:`, err.message));
+        }
+      }
     });
     
     // Action required — broadcast public turn info, private data via API

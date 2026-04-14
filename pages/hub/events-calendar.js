@@ -501,7 +501,17 @@ export default function EventsCalendarPage({ fallbackData }) {
   );
 
   // Bind realtime venue and tournament updates to cache invalidation
-  useVenueRealtime(() => mutate());
+  // Punches through the 60s S-Maxage Edge Cache securely using a monotonic _rt query parameter
+  // and injects the bypassed result directly into SWR.
+  useVenueRealtime(() => {
+    const rtUrl = `${apiUrl}${apiUrl.includes('?') ? '&' : '?'}_rt=${Date.now()}`;
+    fetch(rtUrl)
+      .then(r => r.json())
+      .then(d => {
+        if (d && d.success !== false) mutate(d, false);
+      })
+      .catch(console.error);
+  });
 
   const events = apiData?.events || [];
   const totalCount = apiData?.total || 0;

@@ -130,15 +130,19 @@ function formatMoney(amount) {
 }
 
 export default async function handler(req, res) {
-  try {
-    if (req.method !== 'GET') {
-      return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
+    try {
+      if (req.method !== 'GET') {
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
 
-    // CDN cache: fresh 60s, stale up to 300s
-    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+      // CDN cache: Dynamic real-time capability override
+      if (req.query._rt) {
+        res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+      } else {
+        res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+      }
 
-    if (!applyRateLimit(req, res, LIMITS.read)) return;
+      if (!applyRateLimit(req, res, LIMITS.read)) return;
 
     let {
       day,
@@ -237,6 +241,7 @@ export default async function handler(req, res) {
     // waiting to happen if the venue cache threw before the series/tour queries ran.
     const safeState = state ? state.replace(/[%_\\]/g, '').trim() : null;
     const safeCity  = city  ? city.replace(/[%_\\]/g, '').trim() : null;
+    const safeGameType = gameType ? gameType.replace(/[%_\\]/g, '').trim() : null;
 
     // ──────────────────────────────────────────────────────────────
     // Build venue location cache for distance and state/city lookup
@@ -252,7 +257,7 @@ export default async function handler(req, res) {
       if (venueRows) {
         for (const v of venueRows) {
           venueLocations[v.id] = v;
-          venueLocations[v.name?.toLowerCase()] = v;
+          if (v.name) venueLocations[v.name.toLowerCase()] = v;
         }
       }
     } catch (_) { /* non-fatal */ }
@@ -275,8 +280,7 @@ export default async function handler(req, res) {
 
         if (minBuyin) dq = dq.gte('buy_in', parseInt(minBuyin));
         if (maxBuyin) dq = dq.lte('buy_in', parseInt(maxBuyin));
-        // BUG FIX: sanitize gameType and search to block ILIKE wildcard injection
-        const safeGameType = gameType ? gameType.replace(/[%_\\]/g, '').trim() : null;
+        
         if (safeGameType && safeGameType !== 'all') {
           dq = dq.ilike('game_type', `%${safeGameType}%`);
         }
@@ -301,9 +305,13 @@ export default async function handler(req, res) {
 
             // GPS/distance filter
             let distanceMi = null;
-            if (hasGps && venueInfo?.latitude && venueInfo?.longitude) {
-              distanceMi = Math.round(haversineMi(userLat, userLng, parseFloat(venueInfo.latitude), parseFloat(venueInfo.longitude)) * 10) / 10;
-              if (distanceMi > maxRadius) continue;
+            if (hasGps) {
+              if (venueInfo?.latitude && venueInfo?.longitude) {
+                distanceMi = Math.round(haversineMi(userLat, userLng, parseFloat(venueInfo.latitude), parseFloat(venueInfo.longitude)) * 10) / 10;
+                if (distanceMi > maxRadius) continue;
+              } else {
+                continue; // GPS Search Requested: Reject venues with no stored coordinates
+              }
             }
 
             // Project recurring tournaments onto specific dates
@@ -382,9 +390,13 @@ export default async function handler(req, res) {
             // GPS distance
             const venueInfo = getVenueInfo(s.venue_id, s.venue_name);
             let distanceMi = null;
-            if (hasGps && venueInfo?.latitude && venueInfo?.longitude) {
-              distanceMi = Math.round(haversineMi(userLat, userLng, parseFloat(venueInfo.latitude), parseFloat(venueInfo.longitude)) * 10) / 10;
-              if (distanceMi > maxRadius) continue;
+            if (hasGps) {
+              if (venueInfo?.latitude && venueInfo?.longitude) {
+                distanceMi = Math.round(haversineMi(userLat, userLng, parseFloat(venueInfo.latitude), parseFloat(venueInfo.longitude)) * 10) / 10;
+                if (distanceMi > maxRadius) continue;
+              } else {
+                continue; // GPS Search Requested: Reject venues with no stored coordinates
+              }
             }
 
             // Use start_date as the event date
@@ -461,6 +473,8 @@ export default async function handler(req, res) {
               if (venueInfo?.latitude && venueInfo?.longitude) {
                 distanceMi = Math.round(haversineMi(userLat, userLng, parseFloat(venueInfo.latitude), parseFloat(venueInfo.longitude)) * 10) / 10;
                 if (distanceMi > maxRadius) continue;
+              } else {
+                continue; // GPS Search Requested: Reject venues with no stored coordinates
               }
             }
 
