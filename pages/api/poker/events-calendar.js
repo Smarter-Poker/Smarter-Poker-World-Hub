@@ -505,7 +505,16 @@ export default async function handler(req, res) {
           if (ts) tq = tq.or(`event_name.ilike.%${ts}%,stop_name.ilike.%${ts}%,stop_venue.ilike.%${ts}%`);
         }
 
-        const { data: tourRows } = await tq.limit(2000);
+        // [B1 FIX] Was .limit(2000) — Supabase project cap is 1000 rows/query.
+        // Paginate across up to 2 pages (2000 row ceiling) to retrieve all active tour events.
+        let allTourRows = [];
+        for (let page = 0; page < 2; page++) {
+          const { data: trPage } = await tq.range(page * 1000, (page + 1) * 1000 - 1);
+          if (!trPage || trPage.length === 0) break;
+          allTourRows = allTourRows.concat(trPage);
+          if (trPage.length < 1000) break;
+        }
+        const tourRows = allTourRows;
 
         if (tourRows) {
           for (const t of tourRows) {
