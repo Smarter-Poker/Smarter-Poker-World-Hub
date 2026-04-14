@@ -2241,8 +2241,8 @@ export default function PokerNearMePage() {
                     const name = (g.game_type || g.name || g || '').toString().toLowerCase();
                     return name.includes('tournament') || name.includes('mtt');
                 });
-                if (filters.gameType === 'cash') return hasCash || games.length === 0;
-                if (filters.gameType === 'mtt') return hasTournament || v.has_tournaments;
+                if (filters.gameType === 'cash') return hasCash; // STRICT: must explicitly offer cash
+                if (filters.gameType === 'mtt') return hasTournament || v.has_tournaments === true;
                 if (filters.gameType === 'mixed') return hasCash && hasTournament;
                 return true;
             });
@@ -2255,7 +2255,7 @@ export default function PokerNearMePage() {
                 return games.some(g => {
                     const s = (g.stakes || g.stake || g || '').toString();
                     return s.includes(filters.stakes.replace('$', ''));
-                }) || games.length === 0; // keep venues with no game data (unknown stakes)
+                }); // STRICT: must explicitly match stakes
             });
         }
 
