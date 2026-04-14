@@ -168,7 +168,13 @@ export default function LiveGamesFeed({
     const [isDataStale, setIsDataStale] = useState(false);
 
     // ─── Filters & Persistence ───
-    const savedFilters = typeof window !== 'undefined' ? loadFilters('lgf', {}) : {};
+    // [LGF1 FIX] Was read at render time on every re-render— moved to useRef so localStorage
+    // is only read once on mount, not on every parent-triggered re-render.
+    const savedFiltersRef = useRef(null);
+    if (savedFiltersRef.current === null) {
+        savedFiltersRef.current = typeof window !== 'undefined' ? loadFilters('lgf', {}) : {};
+    }
+    const savedFilters = savedFiltersRef.current;
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [mapExpanded, setMapExpanded] = useState(savedFilters.mapExpanded ?? true);
 
@@ -363,8 +369,13 @@ export default function LiveGamesFeed({
     useEffect(() => {
         fetchGlobalLiveData();
         
-        // Subscribe to real-time WebSockets from Supabase
-        const liveChannel = supabase.channel('public:venue_live_tables')
+        // [LGF2 FIX] Was static channel name 'public:venue_live_tables'.
+        // If component mounts twice (React strict mode / parent remount), both instances
+        // share the same channel. removeChannel() on first unmount kills it for both,
+        // leaving the second with a zombie subscription that never delivers events.
+        // Now uses a unique randomized name (same pattern as useVenueRealtime.js).
+        const channelName = `lgf-live-tables-${Math.random().toString(36).substring(2, 10)}`;
+        const liveChannel = supabase.channel(channelName)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'venue_live_tables' }, () => {
                 if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
                 debounceTimerRef.current = setTimeout(() => {

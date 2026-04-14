@@ -30,6 +30,10 @@ function getSupabase() {
   if (!_supabase) {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    // [EC1 FIX] Warn if falling back to anon key — anon key means RLS applies and rows may be silently filtered.
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.warn('[events-calendar] WARNING: SUPABASE_SERVICE_ROLE_KEY missing — using anon key; RLS will apply and some rows may be silently filtered.');
+    }
     _supabase = createClient(url, key);
   }
   return _supabase;
@@ -218,9 +222,12 @@ export default async function handler(req, res) {
       rangeStart.setFullYear(cy, cm - 1, 1);
       rangeEnd = new Date(cy, cm, 0); // last day of the month
     } else if (date) {
-      const parsedDate = new Date(date + 'T00:00:00');
+      // [EC5 FIX] Was 'T00:00:00' which creates a local-timezone datetime.
+      // Server TZ may differ from user's TZ; dates near midnight shift by hours.
+      // Parse as 'T12:00:00Z' (noon UTC) then extract UTC components to avoid any offset drift.
+      const parsedDate = new Date(date + 'T12:00:00Z');
       if (!isNaN(parsedDate.getTime())) {
-        rangeStart.setTime(parsedDate.getTime());
+        rangeStart.setFullYear(parsedDate.getUTCFullYear(), parsedDate.getUTCMonth(), parsedDate.getUTCDate());
       }
       rangeEnd = new Date(rangeStart);
     } else {
@@ -272,26 +279,33 @@ export default async function handler(req, res) {
     const rangeDays = Math.round((rangeEnd - rangeStart) / (1000 * 60 * 60 * 24)) + 1;
     const useSmartAgg = rangeDays > SMART_AGG_THRESHOLD;
 
-    const safeState = state ? state.replace(/[%_\\]/g, '').trim() : null;
-    const safeCity  = city  ? city.replace(/[%_\\]/g, '').trim() : null;
-    const safeGameType = gameType ? gameType.replace(/[%_\\]/g, '').trim() : null;
+    // [EC6 FIX] Added [ and ] to state/city/gameType sanitization.
+    // PostgREST uses [ in filter operator syntax — same injection vector fixed in series.js.
+    const safeState = state ? state.replace(/[%_\\\[\]]/g, '').trim() : null;
+    const safeCity  = city  ? city.replace(/[%_\\\[\]]/g, '').trim() : null;
+    const safeGameType = gameType ? gameType.replace(/[%_\\\[\]]/g, '').trim() : null;
 
     // ──────────────────────────────────────────────────────────────
     // Build venue location cache for distance and state/city lookup
     // ──────────────────────────────────────────────────────────────
     let venueLocations = {};
     try {
+      // [EC4 FIX] Was .limit(2000) — Supabase project cap is 1000 rows/query.
+      // Paginate across up to 3 pages (3,000 venues) to handle full venue table.
       let venueQ = sb.from('poker_venues')
         .select('id, name, city, state, latitude, longitude, logo_url')
         .eq('is_active', true);
       if (safeState) venueQ = venueQ.ilike('state', safeState.length === 2 ? safeState.toUpperCase() : `%${safeState}%`);
       if (safeCity)  venueQ = venueQ.ilike('city', `%${safeCity}%`);
-      const { data: venueRows } = await venueQ.limit(2000);
-      if (venueRows) {
+      // Paginate: 3 pages × 1000 = 3000 rows ceiling
+      for (let page = 0; page < 3; page++) {
+        const { data: venueRows } = await venueQ.range(page * 1000, (page + 1) * 1000 - 1);
+        if (!venueRows || venueRows.length === 0) break;
         for (const v of venueRows) {
           venueLocations[v.id] = v;
           if (v.name) venueLocations[v.name.toLowerCase()] = v;
         }
+        if (venueRows.length < 1000) break; // no more pages
       }
     } catch (_) { /* non-fatal */ }
 
@@ -322,7 +336,17 @@ export default async function handler(req, res) {
           if (s) dq = dq.or(`venue_name.ilike.%${s}%,tournament_name.ilike.%${s}%`);
         }
 
-        const { data: dtRows } = await dq.limit(5000);
+        // [EC3 FIX] Was .limit(5000) but Supabase project-level cap is 1000 rows per query.
+        // With 9,697 active tournaments, .limit(5000) silently returned only 1000 — 89.7% lost.
+        // Paginate across up to 10 pages (10,000 row ceiling) to retrieve all active tournaments.
+        let allDtRows = [];
+        for (let page = 0; page < 10; page++) {
+          const { data: pageRows } = await dq.range(page * 1000, (page + 1) * 1000 - 1);
+          if (!pageRows || pageRows.length === 0) break;
+          allDtRows = allDtRows.concat(pageRows);
+          if (pageRows.length < 1000) break; // no more pages
+        }
+        const dtRows = allDtRows;
 
         if (dtRows) {
           for (const t of dtRows) {
@@ -404,7 +428,9 @@ export default async function handler(req, res) {
         }
 
         // For series we always want ALL within range — no smart-agg needed (series aren't recurring)
-        const { data: seriesRows } = await sq.limit(1000);
+        // [EC2 FIX] Was .limit(1000) — switched to .range(0,999) for consistency with series.js fix.
+        // poker_series currently has 208 rows, but will grow. Range is explicit about intent.
+        const { data: seriesRows } = await sq.range(0, 999);
 
         if (seriesRows) {
           for (const s of seriesRows) {
@@ -611,7 +637,11 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error('[events-calendar] Fatal error:', err);
-    return res.status(200).json({
+    // [EC7 FIX] Was res.status(200) — returning 200 for fatal errors lets Vercel CDN
+    // cache the error response (s-maxage=60) and serve it to hundreds of users.
+    // Changed to 500 so CDN treats it as non-cacheable and clients can't accidentally
+    // mistake a cached error body for valid data.
+    return res.status(500).json({
       success: false,
       error: err.message,
       events: [],
