@@ -2614,7 +2614,7 @@ export default function PokerNearMePage() {
 
                 {/* ═══ PAGE TITLE ═══ */}
                 <div className="pnm-title-bar">
-                    <h1 className="pnm-title">POKER NEAR ME</h1>
+                    <h1 className="pnm-title">{showLiveTab ? 'CASH GAMES NEAR ME' : 'POKER NEAR ME'}</h1>
                     <p className="pnm-subtitle">
                         {liveVenueCount === 0 && liveTableCount === 0 ? (
                             'Loading Live Data...'
@@ -2645,7 +2645,7 @@ export default function PokerNearMePage() {
 
 
                 {/* ═══ TOP FILTER BAR: Location + Dropdowns + Apply + Live Games ═══ */}
-                {(activeTab === 'map' || activeTab === 'venues') && (
+                {(activeTab === 'map' || activeTab === 'venues' || showLiveTab) && (
                     <>
                         <div className="pnm-filter-bar">
                             {/* Location pill / GPS button — left of Radius */}

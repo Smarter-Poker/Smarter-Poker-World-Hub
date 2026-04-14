@@ -959,6 +959,10 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                                                             height: 116,
                                                             flexShrink: 0,
                                                             borderRadius: 12,
+                                                            width: 58,
+                                                            height: 58,
+                                                            flexShrink: 0,
+                                                            borderRadius: 8,
                                                             overflow: 'hidden',
                                                             border: '1px solid rgba(255,255,255,0.12)',
                                                             background: 'rgba(0,0,0,0.35)',
@@ -975,6 +979,8 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                                                                     objectFit: 'contain',
                                                                     display: 'block',
                                                                     padding: 8,
+                                                                    padding: 8,
+                                                                    padding: 4,
                                                                     boxSizing: 'border-box',
                                                                 }}
                                                                 loading="lazy"

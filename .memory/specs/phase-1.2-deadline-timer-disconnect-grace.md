@@ -6,8 +6,12 @@
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 =======
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 <<<<<<< Updated upstream
 >>>>>>> Stashed changes
 `.memory/context/phase-1.1-shipped.md`. 1.2 runs the moment 1.1's
@@ -34,6 +38,9 @@ soaked 48h without regression.
 `.memory/context/phase-1.1-shipped.md`. Do not start 1.2 code until 1.1 has
 soaked 48h without regression.
 >>>>>>> Stashed changes
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 **Rules:** `.memory/WORKING-RULES.md` — no band-aids, rewrites only, one
 step at a time.
@@ -202,8 +209,12 @@ One PR per deliverable. Each follows the PR-1..PR-5 cadence:
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 =======
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 <<<<<<< Updated upstream
 >>>>>>> Stashed changes
 - **PR-B**: Replace `PreciseActionTimer`'s internal `setInterval` + expiry
@@ -238,6 +249,9 @@ One PR per deliverable. Each follows the PR-1..PR-5 cadence:
   execution backend (temporarily) so every existing caller transparently
   benefits. Deploy, observe.
 >>>>>>> Stashed changes
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 - **PR-C**: Migrate `hand_state_snapshots` schema. DB migration through
   Supabase SQL mcp.
@@ -279,8 +293,12 @@ the remaining lifetime of each engine instance.
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 =======
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 <<<<<<< Updated upstream
 >>>>>>> Stashed changes
 Begin PR-A the moment Phase 1.1's grep-for-absence audit is green
@@ -303,4 +321,7 @@ After Phase 1.1 soak + load test pass, begin PR-A.
 =======
 After Phase 1.1 soak + load test pass, begin PR-A.
 >>>>>>> Stashed changes
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
