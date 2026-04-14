@@ -370,26 +370,24 @@ export default function PokerSeriesPage() {
         }
     }, [userLocation]);
 
+    // ─── Initial GPS for map centering ONLY ───
+    useEffect(() => {
+        if (typeof navigator !== 'undefined' && navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                },
+                () => {} // silent fail
+            );
+        }
+    }, []);
+
     // ─── Fetch series data ───
     useEffect(() => {
         let isMounted = true;
         const abortController = new AbortController();
-        setLoading(true);
-
-        // Get user location for map centering ONLY — do NOT auto-set distance filter
-        // so the user sees ALL series by default, not just nearby ones.
-        if (typeof navigator !== 'undefined' && navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                    if (!isMounted) return;
-                    const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                    setUserLocation(loc);
-                    // DO NOT set distanceFilter here — let the user decide if they
-                    // want to filter by distance.
-                },
-                () => {} // silent fail — leave full US view
-            );
-        }
+        // Only set loading true if we don't have data yet to prevent flashing on realtime updates
+        setLoading(allSeries.length === 0);
 
         fetch('/api/poker/series?limit=300&order=start_date', { signal: abortController.signal })
             .then(r => r.json())
@@ -697,13 +695,13 @@ export default function PokerSeriesPage() {
                 break;
             case 'distance':
                 if (userLocation) {
-                    result.sort((a, b) => {
-                        const cA = findVenueCoords(a);
-                        const cB = findVenueCoords(b);
-                        const dA = cA ? haversineDistance(userLocation.lat, userLocation.lng, cA.latitude, cA.longitude) : Infinity;
-                        const dB = cB ? haversineDistance(userLocation.lat, userLocation.lng, cB.latitude, cB.longitude) : Infinity;
-                        return dA - dB;
+                    // Pre-calculate to avoid O(N^2) bottleneck mapping findVenueCoords inside sort comparator
+                    const distCache = new Map();
+                    result.forEach(s => {
+                        const c = findVenueCoords(s);
+                        distCache.set(s, c ? haversineDistance(userLocation.lat, userLocation.lng, c.latitude, c.longitude) : Infinity);
                     });
+                    result.sort((a, b) => distCache.get(a) - distCache.get(b));
                 }
                 break;
             default: break;

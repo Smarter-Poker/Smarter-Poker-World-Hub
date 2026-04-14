@@ -1,0 +1,11 @@
+    // ─── Initial GPS for map centering ONLY ───
+    useEffect(() => {
+        if (typeof navigator !== 'undefined' && navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                },
+                () => {} // silent fail
+            );
+        }
+    }, []);
