@@ -976,9 +976,21 @@ export default function PokerSeriesPage() {
 
                         {/* ═══ SERIES CARDS GRID ═══ */}
                         {loading ? (
-                            <div className="tours-loading">
-                                <div className="tours-spinner" />
-                                <span>Loading Series...</span>
+                            <div className="tours-grid" style={{ margin: '0 auto', maxWidth: '1400px', width: '100%', padding: '0 20px', boxSizing: 'border-box' }}>
+                                {[...Array(8)].map((_, i) => (
+                                    <div key={i} className="tour-card skeleton-pulse" style={{ pointerEvents: 'none' }}>
+                                        <div className="tour-card-banner" style={{ background: 'rgba(255, 255, 255, 0.05)', height: '140px' }} />
+                                        <div className="tour-card-content" style={{ padding: '20px' }}>
+                                            <div style={{ width: '40%', height: '12px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '4px', marginBottom: '12px' }} />
+                                            <div style={{ width: '80%', height: '24px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '6px', marginBottom: '16px' }} />
+                                            <div style={{ width: '60%', height: '14px', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '4px', marginBottom: '16px' }} />
+                                            <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: '16px' }}>
+                                                <div style={{ width: '45%', height: '36px', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '8px' }} />
+                                                <div style={{ width: '45%', height: '36px', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '8px' }} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         ) : filteredSeries.length === 0 ? (
                             <div className="tours-empty">
@@ -1969,6 +1981,15 @@ export default function PokerSeriesPage() {
                         background: rgba(212,168,83,0.15);
                         border-color: rgba(212,168,83,0.5);
                         box-shadow: 0 0 16px rgba(212,168,83,0.1);
+                    }
+
+                    /* ═══ SKELETON ═══ */
+                    .skeleton-pulse {
+                        animation: skeletonPulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+                    }
+                    @keyframes skeletonPulse {
+                        0%, 100% { opacity: 1; }
+                        50% { opacity: 0.5; }
                     }
 
                     /* ═══ SPACE BACKGROUND ═══ */
