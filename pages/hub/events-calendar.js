@@ -127,6 +127,18 @@ const US_STATES = [
   'VA','WA','WV','WI','WY','DC',
 ];
 
+const STATE_TZ = {
+  'AL': 'CT', 'AK': 'AKT', 'AZ': 'MT', 'AR': 'CT', 'CA': 'PT', 'CO': 'MT', 
+  'CT': 'ET', 'DE': 'ET', 'FL': 'ET', 'GA': 'ET', 'HI': 'HT', 'ID': 'MT', 
+  'IL': 'CT', 'IN': 'ET', 'IA': 'CT', 'KS': 'CT', 'KY': 'ET', 'LA': 'CT', 
+  'ME': 'ET', 'MD': 'ET', 'MA': 'ET', 'MI': 'ET', 'MN': 'CT', 'MS': 'CT', 
+  'MO': 'CT', 'MT': 'MT', 'NE': 'CT', 'NV': 'PT', 'NH': 'ET', 'NJ': 'ET', 
+  'NM': 'MT', 'NY': 'ET', 'NC': 'ET', 'ND': 'CT', 'OH': 'ET', 'OK': 'CT', 
+  'OR': 'PT', 'PA': 'ET', 'RI': 'ET', 'SC': 'ET', 'SD': 'CT', 'TN': 'CT', 
+  'TX': 'CT', 'UT': 'MT', 'VT': 'ET', 'VA': 'ET', 'WA': 'PT', 'WV': 'ET', 
+  'WI': 'CT', 'WY': 'MT', 'DC': 'ET'
+};
+
 /* ───── Utility Functions ───── */
 function formatMoney(amount) {
   if (!amount && amount !== 0) return '--';
@@ -159,6 +171,14 @@ function formatTime(timeStr) {
   if (match24) {
     let h = parseInt(match24[1]);
     const m = match24[2];
+    
+    // Heuristic fix for scraper 12-hour AM/PM bugs:
+    // Poker tournaments rarely start before 10 AM. If we see 1-9 without explicit AM/PM,
+    // it is overwhelmingly likely a PM tournament parsed incorrectly by the data pipeline.
+    if (h > 0 && h <= 9) {
+      h += 12; // Convert 7am -> 19 (7pm), 9:30am -> 21:30 (9pm)
+    }
+
     const ampm = h >= 12 ? 'PM' : 'AM';
     if (h === 0) h = 12;
     else if (h > 12) h -= 12;
@@ -247,9 +267,9 @@ const EventCard = memo(function EventCard({ event, todayKey }) {
             </span>
           )}
           {event.start_time && (
-            <span className="ev-meta-item">
+            <span className="ev-meta-item" style={{ color: '#ec4899', fontWeight: 500 }}>
               <ClockIcon />
-              {formatTime(event.start_time)}
+              {formatTime(event.start_time)} {event.state && STATE_TZ[event.state] ? STATE_TZ[event.state] : ''}
             </span>
           )}
           {event.distance_mi != null && (
@@ -435,13 +455,14 @@ export default function EventsCalendarPage({ fallbackData }) {
   const [showLocationModal, setShowLocationModal] = useState(false);
 
   // Filters — always visible horizontally
-  const [dateRange, setDateRange] = useState('30days');
+  const [dateRange, setDateRange] = useState('week');
   const [buyInTier, setBuyInTier] = useState('all');
   const [gameType, setGameType] = useState('all');
   const [eventType, setEventType] = useState('all');
   const [sortBy, setSortBy] = useState('date');
   const [searchQuery, setSearchQuery] = useState('');
   const [distance, setDistance] = useState('any');
+  const [dayOfWeek, setDayOfWeek] = useState('all');
 
   // Location
   const [userLocation, setUserLocation] = useState(null);
@@ -450,9 +471,27 @@ export default function EventsCalendarPage({ fallbackData }) {
   const [visibleCount, setVisibleCount] = useState(50);
   const todayKey = useMemo(() => getTodayKey(), []);
 
-  // Try GPS on mount
+  // Try GPS on mount and restore previous location from PNM
   useEffect(() => {
     let isMounted = true;
+    
+    // Attempt to restore location from localStorage (poker-near-me shared state)
+    const saved = localStorage.getItem('pnm_last_location') || localStorage.getItem('sp-user-gps');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && ((parsed.coordinates && parsed.coordinates.lat) || (parsed.lat && parsed.lng))) {
+          const lat = parsed.coordinates ? parsed.coordinates.lat : parsed.lat;
+          const lng = parsed.coordinates ? parsed.coordinates.lng : parsed.lng;
+          setUserLocation({
+            lat: lat,
+            lng: lng,
+            label: parsed.location || parsed.label || 'Saved Location'
+          });
+          return;
+        }
+      } catch (e) {}
+    }
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
@@ -510,7 +549,7 @@ export default function EventsCalendarPage({ fallbackData }) {
   }, [dateRange, buyInTier, gameType, eventType, sortBy, deferredSearchQuery, userLocation, distance, viewMode, calYear, calMonth]);
 
   const initSsrUrl = useMemo(
-    () => `/api/poker/events-calendar?dateRange=30days&limit=200&sort=date`,
+    () => `/api/poker/events-calendar?dateRange=week&limit=200&sort=date`,
     []
   );
   const swrFallback = useMemo(
@@ -547,11 +586,12 @@ export default function EventsCalendarPage({ fallbackData }) {
 
   // Count active filters (excluding defaults)
   const activeFilterCount = [
-    dateRange !== '30days',
+    dateRange !== 'week',
     buyInTier !== 'all',
     gameType !== 'all',
     eventType !== 'all',
     distance !== 'any',
+    dayOfWeek !== 'all',
     !!userLocation,
   ].filter(Boolean).length;
 
@@ -559,7 +599,18 @@ export default function EventsCalendarPage({ fallbackData }) {
   const dateGroups = useMemo(() => {
     const groups = {};
     const order = [];
-    const visible = events.slice(0, visibleCount);
+    
+    // Apply local day of week filter
+    const filteredEvents = dayOfWeek === 'all' 
+      ? events 
+      : events.filter(e => {
+          if (!e.event_date) return false;
+          const d = new Date(e.event_date + 'T12:00:00');
+          const dayName = d.toLocaleDateString('en-US', { weekday: 'long' });
+          return dayName === dayOfWeek;
+        });
+        
+    const visible = filteredEvents.slice(0, visibleCount);
     for (const evt of visible) {
       const dk = evt.event_date || 'undated';
       if (!groups[dk]) {
@@ -618,7 +669,7 @@ export default function EventsCalendarPage({ fallbackData }) {
   }, [events]);
 
   const clearFilters = () => {
-    setDateRange('30days');
+    setDateRange('week');
     setBuyInTier('all');
     setGameType('all');
     setEventType('all');
@@ -626,6 +677,7 @@ export default function EventsCalendarPage({ fallbackData }) {
     setSearchQuery('');
     setSearchInput('');
     setDistance('any');
+    setDayOfWeek('all');
     setUserLocation(null);
   };
 
@@ -682,21 +734,66 @@ export default function EventsCalendarPage({ fallbackData }) {
         <div className="ec-space-overlay" />
 
         {/* ── Page Header ── */}
-        <div className="ec-hero">
-          <h1 className="ec-title"><span className="ec-white">EVENTS</span> <span className="ec-cyan">CALENDAR</span></h1>
-          <p className="ec-subtitle">
-            {loading ? 'Loading...' : `${totalCount.toLocaleString()} Tournaments Found`}
-            {stats.sources && !loading && (
-              <span className="ec-source-counts">
-                {stats.sources.daily > 0 && <span>{stats.sources.daily.toLocaleString()} Daily</span>}
-                {stats.sources.series > 0 && <span>{stats.sources.series.toLocaleString()} Series</span>}
-                {stats.sources.tour > 0 && <span>{stats.sources.tour.toLocaleString()} Tour</span>}
-              </span>
+        <div className="ec-hero" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px' }}>
+          <div>
+            <h1 className="ec-title"><span className="ec-white">EVENTS</span> <span className="ec-cyan">CALENDAR</span></h1>
+            <p className="ec-subtitle" style={{ display: 'flex', flexDirection: 'row', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+              {loading ? 'Loading...' : `${totalCount.toLocaleString()} Tournaments Found`}
+              {stats.sources && !loading && (
+                <span className="ec-source-counts" style={{ display: 'inline', marginLeft: '4px' }}>
+                  &middot; {[
+                    stats.sources.daily > 0 && `${stats.sources.daily.toLocaleString()} Daily`,
+                    stats.sources.series > 0 && `${stats.sources.series.toLocaleString()} Series`,
+                    stats.sources.tour > 0 && `${stats.sources.tour.toLocaleString()} Tour`
+                  ].filter(Boolean).join(' · ')}
+                </span>
+              )}
+              {useSmartAgg && !loading && (
+                <span className="ec-smart-agg-note" style={{ display: 'inline', marginLeft: '4px' }}>&middot; Recurring events showing next occurrence</span>
+              )}
+            </p>
+          </div>
+          
+          <div className="ec-search-wrap" style={{ width: '100%', maxWidth: '320px', background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <SearchIcon />
+            <input
+              type="text"
+              placeholder="Search Venue, Event, or Series"
+              value={searchInput}
+              onChange={e => handleSearchInput(e.target.value)}
+              className="ec-search-input"
+              id="ec-search-input"
+              style={{ background: 'transparent', border: 'none', color: '#fff', outline: 'none', width: '100%' }}
+            />
+            {searchInput && (
+              <button className="ec-search-clear" onClick={() => { setSearchInput(''); setSearchQuery(''); }} style={{ background: 'transparent', border: 'none', color: '#8b8d9b', cursor: 'pointer', padding: 4 }}>
+                <XIcon />
+              </button>
             )}
-            {useSmartAgg && !loading && (
-              <span className="ec-smart-agg-note">Recurring events showing next occurrence</span>
-            )}
-          </p>
+          </div>
+        </div>
+        
+        {/* Day of Week Pucks */}
+        <div className="ec-dow-picker" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0 20px', overflowX: 'auto', marginBottom: '16px' }}>
+          {['all', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(d => (
+            <button 
+              key={d}
+              onClick={() => setDayOfWeek(d)}
+              style={{
+                background: dayOfWeek === d ? 'rgba(0, 212, 255, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                color: dayOfWeek === d ? '#00d4ff' : '#8b8d9b',
+                border: dayOfWeek === d ? '1px solid rgba(0, 212, 255, 0.4)' : '1px solid rgba(255, 255, 255, 0.1)',
+                padding: '6px 14px',
+                borderRadius: '20px',
+                fontSize: '13px',
+                fontWeight: 500,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              {d === 'all' ? 'Any Day' : d}
+            </button>
+          ))}
         </div>
 
         {/* ── Always-Visible Filter Bar (Poker Near Me style) ── */}
@@ -801,6 +898,20 @@ export default function EventsCalendarPage({ fallbackData }) {
               {SORT_OPTIONS.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
             </select>
           </div>
+          {/* View Mode */}
+          <div className="ec-filter-group">
+            <label className="ec-filter-label">View Mode</label>
+            <select
+              className="ec-filter-select"
+              value={viewMode}
+              onChange={e => setViewMode(e.target.value)}
+              id="ec-view-mode"
+            >
+              <option value="list">List View</option>
+              <option value="calendar">Calendar View</option>
+              <option value="map">Map View</option>
+            </select>
+          </div>
 
           {/* Clear all (only if active filters) */}
           {activeFilterCount > 0 && (
@@ -811,37 +922,6 @@ export default function EventsCalendarPage({ fallbackData }) {
               </button>
             </div>
           )}
-        </div>
-
-        {/* ── Search Bar + View Toggle ── */}
-        <div className="ec-search-bar">
-          <div className="ec-search-wrap">
-            <SearchIcon />
-            <input
-              type="text"
-              placeholder="Search Venue, Event, Or Series Name"
-              value={searchInput}
-              onChange={e => handleSearchInput(e.target.value)}
-              className="ec-search-input"
-              id="ec-search-input"
-            />
-            {searchInput && (
-              <button className="ec-search-clear" onClick={() => { setSearchInput(''); setSearchQuery(''); }}>
-                <XIcon />
-              </button>
-            )}
-          </div>
-          <div className="ec-view-toggle">
-            <button className={`ec-vt-btn ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')} title="List View" id="ec-view-list">
-              <ListIcon />
-            </button>
-            <button className={`ec-vt-btn ${viewMode === 'calendar' ? 'active' : ''}`} onClick={() => setViewMode('calendar')} title="Calendar View" id="ec-view-calendar">
-              <CalendarIcon size={16} />
-            </button>
-            <button className={`ec-vt-btn ${viewMode === 'map' ? 'active' : ''}`} onClick={() => setViewMode('map')} title="Map View" id="ec-view-map">
-              <MapIcon />
-            </button>
-          </div>
         </div>
 
         {/* ── Content ── */}

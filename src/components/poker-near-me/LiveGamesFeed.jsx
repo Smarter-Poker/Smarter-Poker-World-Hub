@@ -55,7 +55,7 @@ function getSignificantWords(normalized) {
 const SERIES_PATTERN = /\b(series|classic|championship|circuit)\b/i;
 
 // Dynamically import map to avoid SSR issues
-const VenueMapPanel = dynamic(() => import('./VenueMapPanel'), { ssr: false });
+const VenueMap = dynamic(() => import('./VenueMap'), { ssr: false });
 
 const LIVE_REFRESH_MS = 2 * 60 * 1000; // 2 minutes
 const COLLAPSE_THRESHOLD = 5; // Show first N games, collapse rest
@@ -110,13 +110,14 @@ const GAME_TYPE_FILTERS = [
 ];
 
 function matchesGameType(gameName, filterKey) {
-    if (filterKey === 'all') return true;
+    if (!filterKey || filterKey === 'all') return true;
+    if (filterKey === 'none') return false; 
     const g = (gameName || '').toLowerCase();
     if (filterKey === 'nlh') return g.includes('hold') || g.includes('nlh') || g.includes('no limit holdem') || g.includes('no-limit hold');
     if (filterKey === 'plo') return g.includes('omaha') || g.includes('plo') || g.includes('big o');
     if (filterKey === 'mixed') return g.includes('mix') || g.includes('horse') || g.includes('triple draw') || g.includes('2-7') || g.includes('badugi');
     if (filterKey === 'stud') return g.includes('stud');
-    return true;
+    return false;
 }
 
 // ─── STAKES PARSING ───
@@ -734,8 +735,8 @@ export default function LiveGamesFeed({
 
                 {/* Venue Card */}
                 <div style={{ 
-                    background: 'rgba(13,17,23,0.95)', 
-                    border: '2px solid rgba(255,255,255,0.85)', 
+                    background: 'linear-gradient(160deg, rgba(16,24,36,0.95) 0%, rgba(10,16,26,0.98) 100%)', 
+                    border: '2px solid rgba(148,163,184,0.16)', 
                     borderRadius: 14, 
                     overflow: 'hidden', 
                     padding: '16px 18px 14px',
@@ -966,22 +967,7 @@ export default function LiveGamesFeed({
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6" /></svg>
                     Filters
                 </button>
-                <button 
-                    onClick={handleResetFilters}
-                    style={{ 
-                        background: 'linear-gradient(180deg, #3fb950 0%, #2ea043 100%)', 
-                        color: '#fff', border: '1px solid rgba(255,255,255,0.1)', 
-                        borderRadius: 10, padding: '8px 14px', fontSize: 12, 
-                        fontWeight: 700, cursor: 'pointer', display: 'flex', 
-                        alignItems: 'center', gap: 5, boxShadow: '0 4px 12px rgba(46,160,67,0.4)',
-                        textShadow: '0 1px 2px rgba(0,0,0,0.3)', fontFamily: 'inherit',
-                    }}
-                >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
-                    </svg>
-                    RESET
-                </button>
+
             </div>
 
             {/* GPS Location Banner removed — now displayed at top of sidebar in parent page */}
@@ -1021,7 +1007,7 @@ export default function LiveGamesFeed({
                     </div>
                     {mapExpanded && (
                         <div style={{ height: 400 }}>
-                            <VenueMapPanel venues={mergedVenues.filter(v => v.latitude && v.longitude)} userLocation={effectiveLocation} radiusMiles={filterRadius} />
+                            <VenueMap venues={mergedVenues.filter(v => v.latitude && v.longitude)} userLocation={effectiveLocation} radiusMiles={filterRadius} />
                         </div>
                     )}
                 </div>
@@ -1067,10 +1053,7 @@ export default function LiveGamesFeed({
                                 <p style={{ fontSize: 16, fontWeight: 700, color: '#e0e8f0', margin: '0 0 4px' }}>No Active Games Found</p>
                                 <p style={{ fontSize: 13, color: 'rgba(200,214,229,0.5)', marginBottom: 16 }}>Try Expanding Your Filters Or Clearing The Game Type.</p>
                                 <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
-                                    <button onClick={handleResetFilters} style={{ padding: '8px 16px', borderRadius: 8, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.3)', color: '#ffffff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 102.13-9.36L1 10" /></svg>
-                                        Reset All Filters
-                                    </button>
+
                                     {user && (
                                         <button onClick={() => { setReportVenue(null); setReportModalOpen(true); }} style={{ padding: '8px 16px', borderRadius: 8, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', color: '#22c55e', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}>
                                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>

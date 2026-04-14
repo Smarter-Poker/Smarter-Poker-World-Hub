@@ -5,8 +5,13 @@
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 `.memory/context/phase-1.1-shipped.md`. 1.2 runs the moment 1.1's
 grep-for-absence audit is green — no idle window.
+=======
+`.memory/context/phase-1.1-shipped.md`. Do not start 1.2 code until 1.1 has
+soaked 48h without regression.
+>>>>>>> Stashed changes
 =======
 `.memory/context/phase-1.1-shipped.md`. Do not start 1.2 code until 1.1 has
 soaked 48h without regression.
@@ -185,11 +190,17 @@ One PR per deliverable. Each follows the PR-1..PR-5 cadence:
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 - **PR-B**: Replace `PreciseActionTimer`'s internal `setInterval` + expiry
   scan with `DeadlineScheduler.schedule` / `.cancel`. Public API of
   PreciseActionTimer is unchanged; its internals no longer hold their own
   clock. Every existing caller benefits without code change. Deploy, verify
   with grep that no `setInterval` remains in PreciseActionTimer.ts.
+=======
+- **PR-B**: Wire DeadlineScheduler inside `PreciseActionTimer` as the
+  execution backend (temporarily) so every existing caller transparently
+  benefits. Deploy, observe.
+>>>>>>> Stashed changes
 =======
 - **PR-B**: Wire DeadlineScheduler inside `PreciseActionTimer` as the
   execution backend (temporarily) so every existing caller transparently
@@ -244,9 +255,13 @@ the remaining lifetime of each engine instance.
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 Begin PR-A the moment Phase 1.1's grep-for-absence audit is green
 (`rg 'broadcastHandState|subscribeToHandState'` returns zero across
 server/src and src). No idle window. Load test is an independent track.
+=======
+After Phase 1.1 soak + load test pass, begin PR-A.
+>>>>>>> Stashed changes
 =======
 After Phase 1.1 soak + load test pass, begin PR-A.
 >>>>>>> Stashed changes

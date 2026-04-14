@@ -651,7 +651,7 @@ export default function PokerNearMePage() {
             localStorage.setItem('poker-near-me-search-filters', JSON.stringify(filters));
             window.dispatchEvent(new CustomEvent('poker-near-me-filters-sync', { detail: filters }));
             // Fulfill hard rule: Wire Real-Time pushes to the Global Event Bus 
-            if (bus && bus.emit) bus.emit('PNM_FILTERS_UPDATED', filters);
+            eventBus.emit('PNM_FILTERS_UPDATED', filters);
         }
     }, [filters, bus]);
 
@@ -667,8 +667,23 @@ export default function PokerNearMePage() {
                 }
             }
         };
+        const handleStorage = (e) => {
+            if (e.key === 'poker-near-me-search-filters' && e.newValue) {
+                try {
+                    const parsed = JSON.parse(e.newValue);
+                    const currentStr = JSON.stringify(filtersRef.current);
+                    if (currentStr !== e.newValue) {
+                        setFilters(parsed);
+                    }
+                } catch (err) {}
+            }
+        };
         window.addEventListener('poker-near-me-filters-sync', handleSync);
-        return () => window.removeEventListener('poker-near-me-filters-sync', handleSync);
+        window.addEventListener('storage', handleStorage);
+        return () => {
+            window.removeEventListener('poker-near-me-filters-sync', handleSync);
+            window.removeEventListener('storage', handleStorage);
+        };
     }, []);
 
     // --- Live games search-first ---
@@ -2709,6 +2724,25 @@ export default function PokerNearMePage() {
                                     <option value="$2/5">$2/5</option>
                                     <option value="$5/10+">$5/10+</option>
                                 </select>
+                            </div>
+                            <div className="pnm-filter-group pnm-update-group" style={{ display: 'flex', alignItems: 'flex-end' }}>
+                                <button
+                                    className="pnm-search-btn update-btn"
+                                    onClick={() => {
+                                        setDisplayCount(prev => ({ ...prev, venues: PAGE_SIZE, tours: PAGE_SIZE, series: PAGE_SIZE, daily: PAGE_SIZE_DAILY }));
+                                        fetchAllData({ includeVenues: true });
+                                        if (typeof window !== 'undefined') window.dispatchEvent(new Event('resize')); // forces map bounds refresh if needed
+                                    }}
+                                    style={{
+                                        background: 'linear-gradient(180deg, #3fb950 0%, #2ea043 100%)',
+                                        color: '#fff', border: '1px solid rgba(255,255,255,0.1)',
+                                        borderRadius: '8px', padding: '0 16px', height: '36px',
+                                        fontSize: '13px', fontWeight: 'bold', cursor: 'pointer',
+                                        boxShadow: '0 4px 12px rgba(46,160,67,0.4)', textShadow: '0 1px 2px rgba(0,0,0,0.3)'
+                                    }}
+                                >
+                                    Update
+                                </button>
                             </div>
                             {/* Live Games button */}
                             <button
