@@ -591,11 +591,23 @@ export default function LiveGamesFeed({
     };
 
     const handleResetFilters = () => {
-        // When location is available, reset to 50mi to keep local context — not global 'any'
-        setFilterRadius(effectiveLocation ? '50' : 'any');
-        setFilterState('all');
-        setFilterGameType('all');
-        setFilterStakes('any');
+        const newRadius = effectiveLocation ? '50' : 'any';
+        if (globalFilters && setGlobalFilters) {
+            // Delegate to parent global state — reset all applicable filters
+            setGlobalFilters({
+                ...globalFilters,
+                radius: newRadius === 'any' ? 'Any' : Number(newRadius),
+                gameType: 'all',
+                stakes: 'all',
+                selectedState: 'all',
+            });
+        } else {
+            // Standalone mode — reset internal filter state
+            setInternalFilterRadius(newRadius);
+            setInternalFilterState('all');
+            setInternalFilterGameType('all');
+            setInternalFilterStakes('any');
+        }
         setSearchQuery('');
         setSelectedVenue(null);
         locationAppliedRef.current = !!effectiveLocation; // Prevent auto-snap from re-firing
