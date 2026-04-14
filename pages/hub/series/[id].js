@@ -707,7 +707,7 @@ export default function SeriesDetailPage() {
             <div className="stat-value">{events.length || series.total_events || 'TBD'}</div>
           </div>
           {(() => {
-            const buyIns = events.filter(e => e.buy_in).map(e => e.buy_in);
+            const buyIns = events.filter(e => e.buy_in).map(e => Number(e.buy_in));
             const minBuy = buyIns.length ? Math.min(...buyIns) : null;
             const maxBuy = buyIns.length ? Math.max(...buyIns) : null;
             return minBuy ? (
@@ -718,7 +718,7 @@ export default function SeriesDetailPage() {
             ) : null;
           })()}
           {(() => {
-            const totalGtd = events.reduce((sum, e) => sum + (e.guarantee || 0), 0);
+            const totalGtd = events.reduce((sum, e) => sum + (Number(e.guarantee) || 0), 0);
             const seriesGtd = series.total_guaranteed || totalGtd;
             return seriesGtd ? (
               <div className="stat-card">
@@ -833,11 +833,10 @@ export default function SeriesDetailPage() {
                 </thead>
                 <tbody>
                   {events.map((evt, i) => {
-                    // BUG FIX: Use composite key (event_number + event_name) to prevent
-                    // Fragment key collision when two events share the same event_number.
-                    // Falls back to index so event_number=0 (falsy) is handled correctly.
+                    // BUG FIX: Use composite key including strict array index to absolutely prevent 
+                    // React Fragment key collisions when two events share the same event_number and name.
                     const evtBaseKey = (evt.event_number != null && evt.event_number !== '') ? evt.event_number : i + 1;
-                    const evtKey = `${evtBaseKey}-${(evt.event_name || '').slice(0, 20) || i}`;
+                    const evtKey = `${evtBaseKey}-${(evt.event_name || '').slice(0, 20) || i}-${i}`;
                     var isExpanded = expandedEvent === evtKey;
                     return (
                       <Fragment key={'evt-' + evtKey}>
