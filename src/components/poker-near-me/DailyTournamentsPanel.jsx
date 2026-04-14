@@ -294,7 +294,12 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
       {/* Top States quick filter */}
       {(() => {
         const stateCounts = {};
-        tournaments.filter(t => t.day_of_week === selectedDay || selectedDay === 'all').forEach(t => {
+        // [B15 FIX] Use toLowerCase for both sides to match filter logic exactly
+        // [B16 FIX] Remove dead 'selectedDay === all' branch — selectedDay is always a DAYS element
+        tournaments.filter(t => {
+          const dow = (t.day_of_week || '').toLowerCase();
+          return dow === selectedDay.toLowerCase() || dow === 'daily';
+        }).forEach(t => {
           const st = t.venue_state || t.state;
           if (st) stateCounts[st] = (stateCounts[st] || 0) + 1;
         });

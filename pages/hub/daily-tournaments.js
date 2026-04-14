@@ -5,7 +5,7 @@
 
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import useSWR from 'swr';
 import useVenueRealtime from '../../src/hooks/useVenueRealtime';
@@ -143,17 +143,21 @@ export default function DailyTournaments() {
     };
     useEffect(() => () => { if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current); }, []);
 
-    const swrParams = new URLSearchParams({ day: selectedDay });
-    if (selectedState) swrParams.set('state', selectedState.abbr);
-    if (selectedType) swrParams.set('type', selectedType);
-    if (selectedBuyin.min) swrParams.set('minBuyin', selectedBuyin.min.toString());
-    if (selectedBuyin.max) swrParams.set('maxBuyin', selectedBuyin.max.toString());
-    if (debouncedSearch) swrParams.set('venue', debouncedSearch);
-    // When a specific date is selected from the calendar, override day and provide exact targeting
-    if (selectedDate) {
-        swrParams.set('day', DAYS[new Date(selectedDate + 'T12:00:00').getDay()]);
-        swrParams.set('exact_date', selectedDate);
-    }
+    // [B14 FIX] useMemo prevents swrParams from rebuilding on every render
+    // — only recalculates when actual filter dependencies change, preventing SWR key churn
+    const swrParams = useMemo(() => {
+        const p = new URLSearchParams({ day: selectedDay });
+        if (selectedState) p.set('state', selectedState.abbr);
+        if (selectedType) p.set('type', selectedType);
+        if (selectedBuyin.min) p.set('minBuyin', selectedBuyin.min.toString());
+        if (selectedBuyin.max) p.set('maxBuyin', selectedBuyin.max.toString());
+        if (debouncedSearch) p.set('venue', debouncedSearch);
+        if (selectedDate) {
+            p.set('day', DAYS[new Date(selectedDate + 'T12:00:00').getDay()]);
+            p.set('exact_date', selectedDate);
+        }
+        return p;
+    }, [selectedDay, selectedState, selectedType, selectedBuyin, debouncedSearch, selectedDate]);
 
     const { data: swrData, error, isLoading: loading, mutate: refreshTournaments } = useSWR(
         `/api/poker/daily-tournaments?${swrParams}`,
