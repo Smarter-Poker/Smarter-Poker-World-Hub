@@ -1440,7 +1440,24 @@ const styles = `
   .event-date {
     color: #94a3b8;
     white-space: nowrap;
+    vertical-align: middle;
   }
+  .event-date-main {
+    display: block;
+    color: #94a3b8;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .event-time-sub {
+    display: block;
+    color: #60a5fa;
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: 2px;
+    white-space: nowrap;
+    letter-spacing: 0.3px;
+  }
+
 
   .event-buyin {
     color: #00D4FF;
