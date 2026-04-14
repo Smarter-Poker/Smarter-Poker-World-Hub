@@ -250,7 +250,9 @@ const nextConfig = {
           destination: '/hub/club-arena/index.html',
         },
         {
-          source: '/hub/club-arena/:path*',
+          // Match all SPA paths but EXCLUDE files with extensions (.js, .css, etc)
+          // so missing assets naturally 404 instead of serving index.html (MIME error)
+          source: '/hub/club-arena/:path((?!.*\\.[\\w]+$).*)',
           destination: '/hub/club-arena/index.html',
         },
       ],
