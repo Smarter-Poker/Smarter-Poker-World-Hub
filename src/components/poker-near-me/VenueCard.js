@@ -1035,10 +1035,10 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
             <style jsx>{`
                 .vc3-header-left { display: flex; align-items: flex-start; gap: 10px; flex: 1; min-width: 0; }
                 .vc3-identity { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
-                .vc3-identity .vc3-name { font-size: 16px; font-weight: 700; color: #fff; margin: 0; padding: 0; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+                .vc3-identity .vc3-name { font-size: 16px; font-weight: 700; color: #fff; margin: 0; padding: 0; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-transform: capitalize; }
                 .vc3-type-label { font-size: 12px; font-weight: 500; letter-spacing: 0.2px; }
                 .vc3-city-type-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 1px 0; }
-                .vc3-city-state { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: rgba(255,255,255,0.7); text-decoration: none; }
+                .vc3-city-state { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: rgba(255,255,255,0.7); text-decoration: none; text-transform: capitalize; }
                 .vc3-city-state:hover { color: #ffffff; }
                 .vc3-next-event-header { display: flex; align-items: center; gap: 6px; margin-top: 3px; flex-wrap: wrap; }
                 .vc3-next-event-label { font-size: 12px; font-weight: 800; color: #60a5fa; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -1239,7 +1239,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     border: 1px solid rgba(255,255,255,0.02);
                 }
                 .vc3-game-item { justify-content: space-between; }
-                .vc3-game-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 4px; }
+                .vc3-game-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 4px; text-transform: capitalize; }
                 .vc3-game-tables { font-weight: 700; color: #4ade80; font-size: 11px; flex-shrink: 0; letter-spacing: 0.2px; text-transform: uppercase; }
                 
                 .vc3-stakes-list { display: flex; flex-direction: column; gap: 4px; align-items: center; }
@@ -1260,6 +1260,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     width: 100%;
                     color: #ffffff;
                     margin-bottom: 2px;
+                    text-transform: capitalize;
                 }
                 .vc3-tourney-details {
                     display: flex;

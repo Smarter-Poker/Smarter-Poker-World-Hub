@@ -137,15 +137,15 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
       })()}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#e2e8f0', marginBottom: 2 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#e2e8f0', marginBottom: 2, textTransform: 'capitalize' }}>
             {t.tournament_name || t.name || `${formatGameType(t.game_type)} Tournament`}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'rgba(148,163,184,0.6)' }}>
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, opacity: 0.5 }}>
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
             </svg>
-            {t.venue_name || 'Unknown Venue'}
-            {(t.venue_city || t.city) && <span style={{ color: 'rgba(148,163,184,0.4)' }}>{t.venue_city || t.city}{(t.venue_state || t.state) ? `, ${t.venue_state || t.state}` : ''}</span>}
+            <span style={{ textTransform: 'capitalize' }}>{t.venue_name || 'Unknown Venue'}</span>
+            {(t.venue_city || t.city) && <span style={{ color: 'rgba(148,163,184,0.4)', textTransform: 'capitalize' }}>{t.venue_city || t.city}{(t.venue_state || t.state) ? `, ${t.venue_state || t.state}` : ''}</span>}
           </div>
         </div>
         <div style={{ fontSize: 13, fontWeight: 700, color: buyinStyle.color, background: buyinStyle.bg, border: `1px solid ${buyinStyle.border}`, padding: '3px 10px', borderRadius: 6, whiteSpace: 'nowrap', flexShrink: 0, marginLeft: 8 }}>

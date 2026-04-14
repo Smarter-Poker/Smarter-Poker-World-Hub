@@ -15,6 +15,7 @@ import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import useVenueRealtime from '../../src/hooks/useVenueRealtime';
 import { resolveEntityCoordinates, haversineDistance } from '../../src/lib/geoUtils';
+import { supabase } from '../../src/lib/supabase';
 
 // ─── Lazy-load components ───
 const VenueMap = dynamic(() => import('../../src/components/poker-near-me/VenueMap').then(m => ({ default: m.default })), { ssr: false });
@@ -205,7 +206,31 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
     // Setting an rtNonce previously did NOTHING except force a re-render over stale prop arrays!
     // Now we surgically intercept postgres payloads and mutate `allSeries` directly.
     useVenueRealtime((payload) => {
-        if (!payload) return; // Hard refresh not supported cleanly given static props logic
+        if (!payload) {
+            // [Fix] Reconnect / visibility change: Hard refresh necessary to drop stale state
+            supabase.from('poker_series').select('*')
+                .order('start_date', { ascending: true })
+                .limit(300)
+                .then(({ data, error }) => {
+                    if (data && !error) setAllSeries(data);
+                });
+            return;
+        }
+
+        if (payload.table === 'poker_venues') {
+            const { eventType, new: newRec } = payload;
+            if ((eventType === 'INSERT' || eventType === 'UPDATE') && newRec) {
+                setAllVenues(prev => {
+                    const next = [...prev];
+                    const idx = next.findIndex(v => v.id === newRec.id);
+                    if (idx !== -1) next[idx] = { ...next[idx], ...newRec };
+                    else next.push(newRec);
+                    return next;
+                });
+            }
+            return;
+        }
+
         if (payload.table !== 'poker_series') return;
         const { eventType, new: newRec, old: oldRec } = payload;
         

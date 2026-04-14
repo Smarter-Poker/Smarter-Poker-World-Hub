@@ -225,7 +225,38 @@ function generateDatedInstances(recurring, daysAhead = 90) {
         );
 
         if (matchingEvents.length > 0) {
-            result[key] = matchingEvents
+            const seenKeys = new Set();
+            const dedupedEvents = [];
+            
+            // Sort so specific-day events get priority over 'Daily' if there is a clash
+            matchingEvents.sort((a, b) => {
+                if (a.day_of_week !== 'Daily' && b.day_of_week === 'Daily') return -1;
+                if (a.day_of_week === 'Daily' && b.day_of_week !== 'Daily') return 1;
+                return 0;
+            });
+            
+            for (const r of matchingEvents) {
+                let normGame = (r.game_type || r.tournament_name || 'nlh').toLowerCase().trim();
+                if (normGame.includes('nlh') || normGame.includes('no limit') || normGame.includes('holdem') || normGame.includes("hold'em")) {
+                    normGame = 'nlh';
+                } else if (normGame.includes('plo') || normGame.includes('omaha')) {
+                    normGame = 'omaha';
+                } else if (normGame.includes('mixed') || normGame.includes('horse')) {
+                    normGame = 'mixed';
+                }
+                const evtKey = [
+                    (r.start_time || '').toLowerCase().trim(),
+                    normGame,
+                    (r.buy_in || 0).toString()
+                ].join('|');
+                
+                if (!seenKeys.has(evtKey)) {
+                    seenKeys.add(evtKey);
+                    dedupedEvents.push(r);
+                }
+            }
+
+            result[key] = dedupedEvents
                 .sort((a, b) => parseTime(a.start_time) - parseTime(b.start_time))
                 .map(r => ({ ...enrichRecord(r), event_date: key, schedule_type: 'recurring' }));
         }

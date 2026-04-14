@@ -241,19 +241,30 @@ export default async function handler(req, res) {
               
               // ═══════════════════════════════════════════════════════════
               // DEDUP LAYER: Remove duplicate tournaments from multiple scrape runs
-              // Key: venue_name + start_time + game_type (normalized, case-insensitive)
+              // Key: venue_name + start_time + normalized_game_type + buy_in
               // First occurrence wins (ordered by buy_in ascending from query)
               // ═══════════════════════════════════════════════════════════
               const seenKeys = new Set();
               const dedupedTournaments = [];
               for (const t of dbTournaments) {
+                  // Normalize game type for deduplication
+                  let normGame = (t.game_type || t.tournament_name || 'nlh').toLowerCase().trim();
+                  if (normGame.includes('nlh') || normGame.includes('no limit') || normGame.includes('holdem') || normGame.includes("hold'em")) {
+                      normGame = 'nlh';
+                  } else if (normGame.includes('plo') || normGame.includes('omaha')) {
+                      normGame = 'omaha';
+                  } else if (normGame.includes('mixed') || normGame.includes('horse')) {
+                      normGame = 'mixed';
+                  }
+                  
                   const key = [
                       (t.venue_name || '').toLowerCase().trim(),
-                      (t.day_of_week || '').toLowerCase().trim(),
+                      // Removed day_of_week which caused 'Daily' vs 'Tuesday' to both show up
                       (t.start_time || '').toLowerCase().trim(),
-                      (t.game_type || 'nlh').toLowerCase().trim(),
+                      normGame,
                       (t.buy_in || 0).toString()
                   ].join('|');
+                  
                   if (!seenKeys.has(key)) {
                       seenKeys.add(key);
                       dedupedTournaments.push(t);
