@@ -1,34 +1,34 @@
 # ═══════════════════════════════════════════════════════════════
 # .vercelignore — Exclude non-deployment files from Vercel upload
 # ═══════════════════════════════════════════════════════════════
-# HARD LAW: Vercel fails at 15,000 files. Keep deployable count
-# under 12,000. `data/` alone has 11,553 files — MUST be excluded.
-# Run: find . -not -path './.git/*' -not -path './node_modules/*' \
-#   -type f | wc -l    to measure before adding bulk files.
+# HARD LAW: Vercel fails at 15,000 files. Keep under 12,000.
+# The 11k+ bulk files are in SCRAPE subdirs — exclude only those.
+# DO NOT exclude /data/ root or /services/ — API routes import them.
 # ═══════════════════════════════════════════════════════════════
 
-# ── Python virtual environment ────────────────────────────────
+# ── Python virtual environment (14k files) ────────────────────
 .venv/
+
+# ── Vercel / Next.js build cache (auto-generated) ─────────────
+.vercel/
+.next/
 
 # ── Node (never committed but just in case) ───────────────────
 node_modules/
 .git/
 
-# NOTE: Root data/*.json files ARE needed by API routes at build time.
-# Only exclude the massive scraping subdirectories (11,319 files total).
-/data/scrape-evidence/
-/data/scrape-evidence-v2/
-/data/scrape-output/
-/data/bravo-logs/
-/data/charity-scraper-logs/
-/data/tournament-logs/
-/data/pokeratlas-logs/
-/data/PURGED_AI_GENERATED/
-/data/charts/
-/data/scenarios/
+# ── DATA SCRAPING OUTPUT (11k+ files — scraper logs only) ─────
+# These subdirs contain scraper logs/evidence NOT imported by code
+data/scrape-output/
+data/scrape-evidence/
+data/scrape-evidence-v2/
+data/PURGED_AI_GENERATED/
+data/bravo-logs/
+data/charity-scraper-logs/
+data/tournament-logs/
+data/pokeratlas-logs/
 
-# ── Build / deploy / agent scripts ───────────────────────────
-/scripts/
+# ── Agent / tooling dirs ──────────────────────────────────────
 .agent/
 .agents/
 .gemini/
@@ -44,7 +44,7 @@ node_modules/
 .memory/
 .ocr/
 
-# ── Database migrations (executed separately) ─────────────────
+# ── Database migrations (executed separately via Supabase) ────
 /supabase/
 /database/
 /migrations/
@@ -76,8 +76,5 @@ _legacy_sql/
 # ── Heavy asset directories not needed by Next.js runtime ─────
 /pokerbrain-assets/
 
-# ── Misc agent/tooling ────────────────────────────────────────
-/skills/
-/templates/
-/worker/
+# ── Misc tooling ──────────────────────────────────────────────
 /eslint-plugin-smarter-poker/
