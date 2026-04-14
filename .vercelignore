@@ -14,10 +14,18 @@
 node_modules/
 .git/
 
-# ── DATA (11,553 files — #1 cause of Vercel 15k limit breach) ─
-# Served as static JSON at runtime via /data/ route is NOT needed
-# in Vercel upload — Next.js reads from public/ not data/
-/data/
+# NOTE: Root data/*.json files ARE needed by API routes at build time.
+# Only exclude the massive scraping subdirectories (11,319 files total).
+/data/scrape-evidence/
+/data/scrape-evidence-v2/
+/data/scrape-output/
+/data/bravo-logs/
+/data/charity-scraper-logs/
+/data/tournament-logs/
+/data/pokeratlas-logs/
+/data/PURGED_AI_GENERATED/
+/data/charts/
+/data/scenarios/
 
 # ── Build / deploy / agent scripts ───────────────────────────
 /scripts/
@@ -69,7 +77,6 @@ _legacy_sql/
 /pokerbrain-assets/
 
 # ── Misc agent/tooling ────────────────────────────────────────
-/services/
 /skills/
 /templates/
 /worker/
