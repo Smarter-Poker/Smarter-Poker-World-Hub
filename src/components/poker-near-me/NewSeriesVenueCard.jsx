@@ -111,11 +111,9 @@ export default function NewSeriesVenueCard({ series: s, index, isFavorited, onFa
                 )}
                 {/* Tour badge + title stacked to the right of logo */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-            {resolvedLogoUrl && (
-                <div className="series-banner-image" style={{ width: '100%', height: '140px', borderRadius: '4px', marginBottom: '16px', backgroundColor: 'rgba(0,0,0,0.5)', overflow: 'hidden' }}>
-                    <img src={resolvedLogoUrl} alt={s.name || s.series_name || 'Series'} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '8px' }} loading="lazy" />
-                </div>
-            )}
+                    {/* [NSC1 FIX] Removed duplicate banner logo — was rendering the same logo_url twice:
+                        once as the 116px square icon (left side) and again as a 140px banner strip here.
+                        This caused 2x network requests for the same asset and wasted vertical layout space. */}
 
                     <div className="series-tour">{shortCode}</div>
                     <a href={detailUrl} onClick={e => e.preventDefault()} style={{ textDecoration: 'none', color: 'inherit' }}>

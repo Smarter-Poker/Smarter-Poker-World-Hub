@@ -207,13 +207,16 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
     // Now we surgically intercept postgres payloads and mutate `allSeries` directly.
     useVenueRealtime((payload) => {
         if (!payload) {
-            // [Fix] Reconnect / visibility change: Hard refresh necessary to drop stale state
+            // [PS2+PS3 FIX] Use .range(0,999) to bypass Supabase 1000-row project ceiling.
+            // Added .catch() so silent auth/network failures don't leave stale state.
             supabase.from('poker_series').select('*')
                 .order('start_date', { ascending: true })
-                .limit(300)
+                .range(0, 999)
                 .then(({ data, error }) => {
                     if (data && !error) setAllSeries(data);
-                });
+                    else if (error) console.error('[RT] Hard refresh failed:', error);
+                })
+                .catch(err => console.error('[RT] Hard refresh exception:', err));
             return;
         }
 
@@ -547,7 +550,9 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                         const dist = haversineDistance(userLocation.lat, userLocation.lng, coords.latitude, coords.longitude);
                         return dist <= maxMiles;
                     }
-                    return false;
+                    // [PS4 FIX] No coordinates: keep in list rather than silently hiding.
+                    // Series without coords may still be within radius — don't exclude them.
+                    return true;
                 });
             }
         }

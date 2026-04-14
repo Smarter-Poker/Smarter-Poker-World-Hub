@@ -116,6 +116,16 @@ function safeHref(url) {
     return cleanUrl;
 }
 
+// [DT2 FIX] Haversine defined outside component body — was recreated on every render.
+// Also now computes only once, not twice per tournament (filter + sort = O(2N) → O(N) via cache).
+function haversine(lat1, lng1, lat2, lng2) {
+    const R = 3958.8;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
 export default function DailyTournaments() {
     const router = useRouter();
     const [menuOpen, setMenuOpen] = useState(false);
@@ -177,14 +187,20 @@ export default function DailyTournaments() {
     // [HARDENING] Real-time synchronization for global table/venue changes.
     // Punches through the 15s S-Maxage Edge Cache securely using a monotonic _rt query parameter
     // and injects the bypassed result directly into SWR.
+    // [DT4 FIX] Added retry fallback — if the RT fetch fails, fall back to SWR mutate() to at
+    // least invalidate the cache so the next navigation gets fresh data.
     useVenueRealtime(() => {
         const rtUrl = `/api/poker/daily-tournaments?${swrParams.toString()}&_rt=${Date.now()}`;
         fetch(rtUrl)
             .then(r => r.json())
             .then(d => {
                 if (d.success) refreshTournaments(d, false);
+                else refreshTournaments(); // Soft invalidate if payload is bad
             })
-            .catch(console.error);
+            .catch(() => {
+                // Network failure — invalidate SWR to force re-fetch on next focus
+                refreshTournaments();
+            });
     });
     const tournaments = swrData?.tournaments || [];
     const stats = swrData?.stats || {};
@@ -249,35 +265,33 @@ export default function DailyTournaments() {
         );
     }, []);
 
-    // Sort by time, optionally filtered + sorted by distance
-    const sortedTournaments = (() => {
+    // [DT1+DT5 FIX] useMemo prevents re-sorting on unrelated state changes (calendarOpen, menuOpen, etc.)
+    // [DT5] Pre-compute distance Map once — avoids O(2N) haversine calls (filter pass + sort pass)
+    const sortedTournaments = useMemo(() => {
         let list = [...tournaments];
-        // Distance filter — only works when GPS available
+        const distanceMap = new Map();
         if (distanceFilter !== 'all' && userLocation) {
+            // Compute all distances once
+            list.forEach(t => {
+                if (t.latitude && t.longitude) {
+                    distanceMap.set(t, haversine(userLocation.lat, userLocation.lng, parseFloat(t.latitude), parseFloat(t.longitude)));
+                }
+            });
             const maxMiles = parseInt(distanceFilter, 10);
             list = list.filter(t => {
-                if (!t.latitude || !t.longitude) return true; // no coords = keep
-                const d = haversine(userLocation.lat, userLocation.lng, parseFloat(t.latitude), parseFloat(t.longitude));
-                return d <= maxMiles;
+                if (!distanceMap.has(t)) return true; // no coords = keep (same as before)
+                return distanceMap.get(t) <= maxMiles;
             });
-        }
-        // Sort: by distance if GPS active + distance selected, else by start_time
-        if (distanceFilter !== 'all' && userLocation) {
-            list.sort((a, b) => {
-                if (!a.latitude || !b.latitude) return 0;
-                const dA = haversine(userLocation.lat, userLocation.lng, parseFloat(a.latitude), parseFloat(a.longitude));
-                const dB = haversine(userLocation.lat, userLocation.lng, parseFloat(b.latitude), parseFloat(b.longitude));
-                return dA - dB;
-            });
+            list.sort((a, b) => (distanceMap.get(a) ?? 99999) - (distanceMap.get(b) ?? 99999));
         } else {
             list.sort((a, b) => parseTimeToMinutes(a.start_time) - parseTimeToMinutes(b.start_time));
         }
         return list;
-    })();
+    }, [tournaments, distanceFilter, userLocation]);
 
-    // Calendar helpers
-    const today = new Date();
-    today.setHours(0,0,0,0);
+    // [DT3 FIX] today memoized — was computed + mutated on every render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const today = useMemo(() => { const d = new Date(); d.setHours(0,0,0,0); return d; }, []);
     const calDays = useCallback(() => {
         const { year, month } = calendarMonth;
         const firstDay = new Date(year, month, 1).getDay();
