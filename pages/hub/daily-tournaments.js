@@ -192,11 +192,13 @@ export default function DailyTournaments() {
         setSearchQuery('');
         setDebouncedSearch('');
         setSelectedDate(null);
+        setDistanceFilter('all');
     };
 
-    // ── GPS / Proximity ────────────────────────────────────────────────────
+    // ── GPS / Distance Filter ─────────────────────────────────────────────
     const [userLocation, setUserLocation] = useState(null); // { lat, lng }
     const [gpsStatus, setGpsStatus] = useState('idle'); // idle | requesting | granted | denied
+    const [distanceFilter, setDistanceFilter] = useState('all'); // 'all' | '25' | '50' | '100' | '250'
 
     // Haversine distance in miles
     function haversine(lat1, lng1, lat2, lng2) {
@@ -207,10 +209,32 @@ export default function DailyTournaments() {
         return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
 
-    // Auto-request GPS on mount
+    // Request GPS — triggered when user picks a distance
+    const handleDistanceChange = (val) => {
+        if (val === 'all') { setDistanceFilter('all'); return; }
+        if (userLocation) { setDistanceFilter(val); return; }
+        if (typeof navigator !== 'undefined' && navigator.geolocation) {
+            setGpsStatus('requesting');
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                    setGpsStatus('granted');
+                    setDistanceFilter(val);
+                },
+                () => {
+                    setGpsStatus('denied');
+                    setDistanceFilter('all');
+                },
+                { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+            );
+        } else {
+            setDistanceFilter('all');
+        }
+    };
+
+    // Auto-request GPS on mount (silent — just pre-fetches for when user picks a distance)
     useEffect(() => {
         if (typeof navigator === 'undefined' || !navigator.geolocation) return;
-        setGpsStatus('requesting');
         navigator.geolocation.getCurrentPosition(
             (pos) => {
                 setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
@@ -221,10 +245,31 @@ export default function DailyTournaments() {
         );
     }, []);
 
-    // Sort by time (GPS lat/lng not returned by API — time sort is canonical)
-    const sortedTournaments = [...tournaments].sort((a, b) =>
-        parseTimeToMinutes(a.start_time) - parseTimeToMinutes(b.start_time)
-    );
+    // Sort by time, optionally filtered + sorted by distance
+    const sortedTournaments = (() => {
+        let list = [...tournaments];
+        // Distance filter — only works when GPS available
+        if (distanceFilter !== 'all' && userLocation) {
+            const maxMiles = parseInt(distanceFilter, 10);
+            list = list.filter(t => {
+                if (!t.latitude || !t.longitude) return true; // no coords = keep
+                const d = haversine(userLocation.lat, userLocation.lng, parseFloat(t.latitude), parseFloat(t.longitude));
+                return d <= maxMiles;
+            });
+        }
+        // Sort: by distance if GPS active + distance selected, else by start_time
+        if (distanceFilter !== 'all' && userLocation) {
+            list.sort((a, b) => {
+                if (!a.latitude || !b.latitude) return 0;
+                const dA = haversine(userLocation.lat, userLocation.lng, parseFloat(a.latitude), parseFloat(a.longitude));
+                const dB = haversine(userLocation.lat, userLocation.lng, parseFloat(b.latitude), parseFloat(b.longitude));
+                return dA - dB;
+            });
+        } else {
+            list.sort((a, b) => parseTimeToMinutes(a.start_time) - parseTimeToMinutes(b.start_time));
+        }
+        return list;
+    })();
 
     // Calendar helpers
     const today = new Date();
@@ -312,16 +357,27 @@ export default function DailyTournaments() {
                     bottomLinks={menuConfig.bottomLinks}
                 />
 
-                {/* Page Header */}
+                {/* Page Header — Title left, Search right */}
                 <div className="dt-header">
-                    <h1><span className="white">DAILY</span> <span className="gold">TOURNAMENTS</span></h1>
-                    <span className="subtitle">{stats.total || 0} TOURNAMENTS AT {stats.venueCount || new Set((swrData?.tournaments || []).map(t => t.venue_name)).size || '...'} VENUES</span>
-                    {gpsStatus === 'granted' && userLocation && (
-                        <span className="gps-badge">📍 Sorted By Distance (50 Mi)</span>
-                    )}
-                    {gpsStatus === 'denied' && (
-                        <span className="gps-badge gps-denied">Location Off — Showing All</span>
-                    )}
+                    <div className="dt-header-left">
+                        <h1><span className="white">DAILY</span> <span className="gold">TOURNAMENTS</span></h1>
+                        <span className="subtitle">{stats.total || 0} TOURNAMENTS AT {stats.venueCount || new Set((swrData?.tournaments || []).map(t => t.venue_name)).size || '...'} VENUES</span>
+                    </div>
+                    <div className="dt-header-right">
+                        <div className="pnm-search-box" style={{ position: 'relative' }}>
+                            <svg style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.4)', pointerEvents: 'none' }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+                            </svg>
+                            <input
+                                type="text"
+                                id="venue-search"
+                                className="dt-search-input"
+                                placeholder="Search Venue..."
+                                value={searchQuery}
+                                onChange={(e) => handleSearchChange(e.target.value)}
+                            />
+                        </div>
+                    </div>
                 </div>
 
                 {/* Day Selector + Calendar Button */}
@@ -431,27 +487,8 @@ export default function DailyTournaments() {
                     );
                 })()}
 
-                {/* Top Level Filters Command Bar */}
+                {/* Top Level Filters Command Bar — centered dropdowns only, no search here */}
                 <div className="pnm-top-filters">
-                    {/* ROW 1: Search upper-right */}
-                    <div className="filters-row-top">
-                        <div className="filters-row-top-spacer"></div>
-                        <div className="pnm-search-box" style={{ position: 'relative' }}>
-                            <svg style={{ position: 'absolute', left: '10px', top: '10px', color: 'rgba(255,255,255,0.4)' }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
-                            </svg>
-                            <input
-                                type="text"
-                                id="venue-search"
-                                className="pnm-filter-select"
-                                style={{ width: '100%', paddingLeft: '34px', boxSizing: 'border-box' }}
-                                placeholder="Search Venue..."
-                                value={searchQuery}
-                                onChange={(e) => handleSearchChange(e.target.value)}
-                            />
-                        </div>
-                    </div>
-                    {/* ROW 2: Dropdowns centered */}
                     <div className="filters-dropdown-group">
                         <select className="pnm-filter-select" value={selectedState ? selectedState.abbr : ''} onChange={(e) => {
                             const st = POPULAR_STATES.find(s => s.abbr === e.target.value);
@@ -462,7 +499,7 @@ export default function DailyTournaments() {
                                 <option key={state.abbr} value={state.abbr}>{state.name}</option>
                             ))}
                         </select>
-                        
+
                         <select className="pnm-filter-select" value={selectedType} onChange={(e) => setSelectedType(e.target.value)}>
                             {VENUE_TYPES.map(type => (
                                 <option key={type.value} value={type.value}>{type.label}</option>
@@ -478,7 +515,20 @@ export default function DailyTournaments() {
                             ))}
                         </select>
 
-                        {searchQuery || selectedState || selectedType || selectedBuyin.min ? (
+                        <select
+                            className="pnm-filter-select"
+                            value={distanceFilter}
+                            onChange={(e) => handleDistanceChange(e.target.value)}
+                            title={gpsStatus === 'denied' ? 'Location access denied — enable in browser settings' : ''}
+                        >
+                            <option value="all">Any Distance</option>
+                            <option value="25">Within 25 Mi</option>
+                            <option value="50">Within 50 Mi</option>
+                            <option value="100">Within 100 Mi</option>
+                            <option value="250">Within 250 Mi</option>
+                        </select>
+
+                        {(searchQuery || selectedState || selectedType || selectedBuyin.min || distanceFilter !== 'all') ? (
                             <button className="pnm-filter-select pnm-clear-btn" onClick={clearFilters}>
                                 Clear
                             </button>
@@ -653,15 +703,47 @@ export default function DailyTournaments() {
                         z-index: -1;
                     }
 
-                    /* Header */
+                    /* Header — title left, search right */
                     .dt-header {
-                        padding: 24px 20px;
+                        padding: 20px 24px;
+                        display: flex;
+                        flex-direction: row;
+                        align-items: center;
+                        justify-content: space-between;
+                        gap: 16px;
+                        max-width: 1400px;
+                        margin: 0 auto;
+                        width: 100%;
+                    }
+                    .dt-header-left {
                         display: flex;
                         flex-direction: column;
-                        align-items: center;
-                        justify-content: center;
-                        text-align: center;
                         gap: 4px;
+                    }
+                    .dt-header-right {
+                        flex-shrink: 0;
+                    }
+                    .dt-search-input {
+                        background: rgba(255,255,255,0.05);
+                        border: 1px solid rgba(255,255,255,0.15);
+                        border-radius: 8px;
+                        color: #fff;
+                        font-size: 13px;
+                        padding: 9px 12px 9px 34px;
+                        width: 220px;
+                        outline: none;
+                        transition: border-color 0.2s;
+                    }
+                    .dt-search-input::placeholder { color: rgba(255,255,255,0.35); }
+                    .dt-search-input:focus {
+                        border-color: rgba(0,212,255,0.5);
+                        box-shadow: 0 0 0 2px rgba(0,212,255,0.1);
+                    }
+                    @media (max-width: 600px) {
+                        .dt-header { flex-direction: column; align-items: flex-start; }
+                        .dt-search-input { width: 100%; }
+                        .dt-header-right { width: 100%; }
+                        .pnm-search-box { width: 100%; }
                     }
                     .dt-header h1 {
                         font-family: 'Orbitron', 'Rajdhani', sans-serif;
@@ -1025,8 +1107,9 @@ function TournamentCard({ tournament }) {
 
     return (
         <div className="tournament-card">
-            <div className="card-header">
-                <div className="card-header-left">
+            {/* ── TOP ROW: Logo + Time badge (left) + Buy-in (right) ── */}
+            <div className="card-top">
+                <div className="card-logo-wrap">
                     {t.logo_url ? (
                         <img src={t.logo_url} alt={initials} className="card-logo" />
                     ) : (
@@ -1034,27 +1117,31 @@ function TournamentCard({ tournament }) {
                             {initials}
                         </div>
                     )}
+                </div>
+                <div className="card-top-meta">
                     <span className="card-time">{formatTime(t.start_time)}</span>
+                    {t.tournament_name && t.tournament_name !== t.venue_name && !t.tournament_name.match(/Buy In$/i) && !t.tournament_name.match(/^(pdf_action|viewport|fc-head|rh-flat|cookie|null|undefined)$/i) && t.tournament_name.length < 120 && (
+                        <p className="card-tournament-name">{t.tournament_name}</p>
+                    )}
+                    {isRealVenue ? (
+                        <Link href={`/hub/venues/${t.venue_id}`} legacyBehavior>
+                            <a className="card-venue card-venue-link">{t.venue_name}</a>
+                        </Link>
+                    ) : (
+                        <h4 className="card-venue">{t.venue_name}</h4>
+                    )}
+                    {(t.city || t.state) && <p className="card-location">{[t.city, t.state].filter(Boolean).join(', ')}</p>}
+                    <div className="card-tags">
+                        <span className={`tag game-type ${(t.game_type || '').toLowerCase()}`}>{formatGameType(t.game_type)}</span>
+                        {t.format && <span className="tag format">{t.format}</span>}
+                        {t.guaranteed > 0 && <span className="tag guaranteed">{formatMoney(t.guaranteed)} GTD</span>}
+                        {t.venueType && t.venueType !== 'Unknown' && <span className="tag venue-type">{formatVenueType(t.venueType)}</span>}
+                    </div>
                 </div>
                 <span className="card-buyin">{typeof t.buy_in === 'number' && t.buy_in > 0 ? `$${t.buy_in}` : (t.buy_in === 0 ? 'Free' : 'TBD')}</span>
             </div>
-            {t.tournament_name && t.tournament_name !== t.venue_name && !t.tournament_name.match(/Buy In$/i) && !t.tournament_name.match(/^(pdf_action|viewport|fc-head|rh-flat|cookie|null|undefined)$/i) && t.tournament_name.length < 120 && (
-                <p className="card-tournament-name">{t.tournament_name}</p>
-            )}
-            {isRealVenue ? (
-                <Link href={`/hub/venues/${t.venue_id}`} legacyBehavior>
-                    <a className="card-venue card-venue-link">{t.venue_name}</a>
-                </Link>
-            ) : (
-                <h4 className="card-venue">{t.venue_name}</h4>
-            )}
-            {(t.city || t.state) && <p className="card-location">{[t.city, t.state].filter(Boolean).join(', ')}</p>}
-            <div className="card-tags">
-                <span className={`tag game-type ${(t.game_type || '').toLowerCase()}`}>{formatGameType(t.game_type)}</span>
-                {t.format && <span className="tag format">{t.format}</span>}
-                {t.guaranteed > 0 && <span className="tag guaranteed">{formatMoney(t.guaranteed)} GTD</span>}
-                {t.venueType && t.venueType !== 'Unknown' && <span className="tag venue-type">{formatVenueType(t.venueType)}</span>}
-            </div>
+
+            {/* ── FOOTER: Action buttons always at bottom ── */}
             <div className="card-actions">
                 {isRealVenue && (
                     <Link href={`/hub/venues/${t.venue_id}`} legacyBehavior>
@@ -1070,59 +1157,73 @@ function TournamentCard({ tournament }) {
 
             <style jsx>{`
                 .tournament-card {
-                    padding: 16px 18px;
+                    display: flex;
+                    flex-direction: column;
+                    padding: 14px 16px;
                     background: rgba(15, 23, 42, 0.5);
                     border: 1px solid rgba(255, 255, 255, 0.12);
                     border-radius: 12px;
                     transition: all 0.2s ease;
+                    height: 100%;
+                    box-sizing: border-box;
                 }
                 .tournament-card:hover {
                     border-color: rgba(255, 255, 255, 0.25);
                     background: rgba(15, 23, 42, 0.7);
                 }
-                .card-header {
+                /* Top row: logo | meta | buy-in */
+                .card-top {
                     display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 12px;
+                    gap: 12px;
+                    align-items: flex-start;
+                    flex: 1;
                 }
-                .card-header-left {
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
+                .card-logo-wrap {
+                    flex-shrink: 0;
+                    width: 56px;
                 }
                 .card-logo {
-                    width: 64px;
-                    height: 64px;
+                    width: 56px;
+                    height: 56px;
                     border-radius: 6px;
                     object-fit: contain;
                     background: rgba(255, 255, 255, 0.9);
-                    padding: 4px;
+                    padding: 3px;
                     border: 1px solid rgba(255, 255, 255, 0.1);
+                    display: block;
                 }
                 .card-initials {
-                    width: 64px;
-                    height: 64px;
+                    width: 56px;
+                    height: 56px;
                     border-radius: 6px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    font-size: 28px;
+                    font-size: 24px;
                     font-weight: 700;
                     border: 1px solid;
+                    flex-shrink: 0;
+                }
+                .card-top-meta {
+                    flex: 1;
+                    min-width: 0;
                 }
                 .card-time {
-                    font-size: 13px;
+                    display: inline-block;
+                    font-size: 12px;
                     font-weight: 600;
                     color: #22c55e;
-                    padding: 4px 10px;
+                    padding: 3px 8px;
                     background: rgba(34, 197, 94, 0.15);
                     border-radius: 4px;
+                    margin-bottom: 6px;
                 }
                 .card-buyin {
-                    font-size: 18px;
+                    font-size: 17px;
                     font-weight: 700;
                     color: #00D4FF;
+                    white-space: nowrap;
+                    flex-shrink: 0;
                 }
                 .card-venue {
                     font-size: 16px;
@@ -1187,6 +1288,8 @@ function TournamentCard({ tournament }) {
                 .card-actions {
                     display: flex;
                     gap: 8px;
+                    margin-top: auto;
+                    padding-top: 12px;
                 }
                 .card-link {
                     flex: 1;
