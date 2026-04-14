@@ -608,6 +608,11 @@ export default function PokerNearMePage() {
     // resolve coordinates by matching venue name against allVenuesForMap (real venue DB),
     // then fall back to TOUR_CITY_COORDS, then tour.latitude/longitude.
     // Tour pins offset slightly from venue pins so both are visible simultaneously.
+    // Fix (2026-04-14): code-splitting refactor dropped the centerLat/centerLng/effRad
+    // declarations this hook depends on. Derive them here from GPS/city/radius filters.
+    const centerLat = userLocation?.lat ?? selectedCity?.latitude ?? null;
+    const centerLng = userLocation?.lng ?? selectedCity?.longitude ?? null;
+    const effRad = (filters && typeof filters.radius === 'number') ? filters.radius : 25;
     const allVenuesWithTours = useTourMapStops({ tours, allVenuesForMap, userLocation, selectedCity, filters, globalSearchModeRef, hasSearched, centerLat, centerLng, effRad, consumedVenueNames, consumedVenueStems, charityBestIds, tourPins, filteredVenues });
 
     // Real-time Master Saving & Bus Synchronization
