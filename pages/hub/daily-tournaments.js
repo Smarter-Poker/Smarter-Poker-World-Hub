@@ -109,9 +109,10 @@ function formatMoney(amount) {
 
 function safeHref(url) {
     if (!url) return '';
-    const str = String(url).toLowerCase().trim();
-    if (str.startsWith('javascript:') || str.startsWith('data:') || str.startsWith('vbscript:')) return '#';
-    return url;
+    const cleanUrl = String(url).replace(/[\x00-\x20]/g, '');
+    const lower = cleanUrl.toLowerCase();
+    if (lower.startsWith('javascript:') || lower.startsWith('data:') || lower.startsWith('vbscript:')) return '#';
+    return cleanUrl;
 }
 
 export default function DailyTournaments() {
@@ -142,9 +143,13 @@ export default function DailyTournaments() {
     if (selectedBuyin.max) swrParams.set('maxBuyin', selectedBuyin.max.toString());
     if (debouncedSearch) swrParams.set('venue', debouncedSearch);
 
-    const { data: swrData, isLoading: loading, mutate: refreshTournaments } = useSWR(
+    const { data: swrData, error, isLoading: loading, mutate: refreshTournaments } = useSWR(
         `/api/poker/daily-tournaments?${swrParams}`,
-        (url) => fetch(url).then(r => r.json()).then(d => d.success ? d : { tournaments: [], stats: {} }),
+        (url) => fetch(url).then(r => r.json()).then(d => {
+            // BUG FIX: SWR gracefully passes soft 200 JSON errors. Force strict extraction.
+            if (d && d.success === false) throw new Error(d.error || 'Failed to fetch API events');
+            return d;
+        }),
         {
             // dedupingInterval=0 ensures realtime triggers always cause a fresh fetch
             dedupingInterval: 0,
@@ -331,7 +336,13 @@ export default function DailyTournaments() {
 
                     {/* Center - Tournament Cards */}
                     <main className="tournament-feed">
-                        {loading ? (
+                        {error && !loading ? (
+                            <div className="empty-state error-state" style={{ color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' }}>
+                                <p>Failed to load schedule</p>
+                                <p style={{ fontSize: '13px', opacity: 0.7, marginTop: '8px' }}>{error.message || 'Unknown network collision'}</p>
+                                <button onClick={() => refreshTournaments()} style={{ borderColor: 'rgba(239, 68, 68, 0.5)', color: '#ef4444' }}>Retry Connection</button>
+                            </div>
+                        ) : loading ? (
                             <div className="loading-state">
                                 <div className="spinner"></div>
                                 <span>Finding Tournaments...</span>
@@ -352,7 +363,7 @@ export default function DailyTournaments() {
                                         </h2>
                                         <div className="tournament-list">
                                             {morningTournaments.map((t, i) => (
-                                                <TournamentCard key={`${t.id || 'm'}-${i}`} tournament={t} />
+                                                <TournamentCard key={`${t.id || t.venue_id || t.tournament_name || 'm'}-${t.start_time}-${i}`} tournament={t} />
                                             ))}
                                         </div>
                                     </div>
@@ -367,7 +378,7 @@ export default function DailyTournaments() {
                                         </h2>
                                         <div className="tournament-list">
                                             {afternoonTournaments.map((t, i) => (
-                                                <TournamentCard key={`${t.id || 'a'}-${i}`} tournament={t} />
+                                                <TournamentCard key={`${t.id || t.venue_id || t.tournament_name || 'a'}-${t.start_time}-${i}`} tournament={t} />
                                             ))}
                                         </div>
                                     </div>
@@ -382,7 +393,7 @@ export default function DailyTournaments() {
                                         </h2>
                                         <div className="tournament-list">
                                             {eveningTournaments.map((t, i) => (
-                                                <TournamentCard key={`${t.id || 'e'}-${i}`} tournament={t} />
+                                                <TournamentCard key={`${t.id || t.venue_id || t.tournament_name || 'e'}-${t.start_time}-${i}`} tournament={t} />
                                             ))}
                                         </div>
                                     </div>
