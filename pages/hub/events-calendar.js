@@ -439,7 +439,8 @@ export async function getServerSideProps(context) {
   try {
     const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
     const host = context.req.headers.host || 'localhost:3000';
-    const url = `${protocol}://${host}/api/poker/events-calendar?dateRange=30days&limit=200&sort=date`;
+    // [B3 FIX] Match server-side default (week) to client useState default ('week') to prevent layout shift
+    const url = `${protocol}://${host}/api/poker/events-calendar?dateRange=week&limit=200&sort=date`;
     const res = await fetch(url);
     const data = await res.json();
     return { props: { fallbackData: data?.success ? data : null } };
@@ -629,7 +630,7 @@ export default function EventsCalendarPage({ fallbackData }) {
       groups[dk].push(evt);
     }
     return { groups, order };
-  }, [events, visibleCount]);
+  }, [events, dayOfWeek, visibleCount]);
 
   // Calendar grid data
   const calendarCells = useMemo(() => {
@@ -787,9 +788,10 @@ export default function EventsCalendarPage({ fallbackData }) {
         <div className="ec-day-selector">
           <div className="ec-day-tabs-row">
             <div className="ec-day-tabs">
-              {['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'].map(day => {
-                const todayIdx = new Date().getDay();
-                const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+              const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+              // [B2 FIX] Compute todayIdx once outside the map loop, not on every iteration
+              const todayIdx = new Date().getDay();
+              return (['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']).map(day => {
                 const dayIdx = DAYS.indexOf(day);
                 let daysAhead = dayIdx - todayIdx;
                 if (daysAhead < 0) daysAhead += 7;
