@@ -429,7 +429,6 @@ export default function EventsCalendarPage() {
 
   useTrainingBus('events-calendar');
 
-  const menuConfig = getMenuConfig('events', null, {}, {});
   const todayKey = getTodayKey();
 
   // Try GPS on mount
@@ -686,8 +685,8 @@ export default function EventsCalendarPage() {
               </button>
             )}
           </div>
-          <div className="ec-actions-right">
-            <button className={`ec-filter-toggle ${showFilters ? 'active' : ''}`} onClick={() => setShowFilters(!showFilters)}>
+          <div className="ec-toolbar">
+            <button className={`ec-filter-btn ${showFilters ? 'active' : ''}`} onClick={() => setShowFilters(!showFilters)}>
               <FilterIcon />
               <span>Filters</span>
               {activeFilterCount > 0 && <span className="ec-filter-badge">{activeFilterCount}</span>}

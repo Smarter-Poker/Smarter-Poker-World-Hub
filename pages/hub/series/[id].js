@@ -603,13 +603,12 @@ export default function SeriesDetailPage() {
 
   return (
     <>
-      <Head>
-        <title>{series.name + ' | Smarter.Poker'}</title>
-        <meta name="description" content={series.name + ' - ' + formatDateRange(series.start_date, series.end_date) + ' at ' + (venueName || location.city)} />
-        {/* Industrial Fonts */}
-        
-                
-      </Head>
+      <SEOHead
+        title={series.name}
+        description={series.name + ' - ' + formatDateRange(series.start_date, series.end_date) + ' at ' + (venueName || location.city)}
+        ogImage={series.logo_url || null}
+        canonical={`/hub/series/${id}`}
+      />
       <UniversalHeader 
         pageDepth={2} 
         onMenuClick={() => setMenuOpen(true)}

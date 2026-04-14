@@ -31,6 +31,7 @@ export default async function handler(req, res) {
 
       try {
           if (req.method === 'GET') {
+              res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=86400');
               return await handleGet(req, res);
           }
 
