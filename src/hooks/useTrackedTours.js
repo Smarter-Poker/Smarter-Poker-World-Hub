@@ -36,15 +36,18 @@ export default function useTrackedTours() {
                     if (isMounted) {
                         globalTrackedTours = data?.tracked_tours || [];
                         setTrackedTours(globalTrackedTours);
+                        setLoading(false); // [UT3 FIX] moved inside isMounted guard
                         emitChange();
                     }
                 } catch (e) {
                     console.error('Failed to fetch tracked tours', e);
                 }
             } else {
-                setTrackedTours(globalTrackedTours);
+                if (isMounted) {
+                    setTrackedTours(globalTrackedTours);
+                    setLoading(false);
+                }
             }
-            setLoading(false);
         };
         fetchPrefs();
 

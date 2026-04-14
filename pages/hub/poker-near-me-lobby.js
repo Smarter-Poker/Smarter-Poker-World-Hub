@@ -658,18 +658,21 @@ export default function PokerNearMeLobby() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Real-time Supabase Data Hydration ───
+  // [L1 FIX] Channel names now unique per mount — static names cause silent duplicate
+  // subscription conflicts when React StrictMode double-invokes effects or rapid nav occurs.
   useEffect(() => {
-    const venueChannel = supabase.channel('public:venues_lobby')
+    const uid = Math.random().toString(36).substring(2, 8);
+    const venueChannel = supabase.channel(`public:venues_lobby_${uid}`)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'poker_venues' }, (payload) => {
         setVenues(prev => prev.map(v => v.id === payload.new.id ? { ...v, ...payload.new } : v));
       }).subscribe();
       
-    const tourChannel = supabase.channel('public:tours_lobby')
+    const tourChannel = supabase.channel(`public:tours_lobby_${uid}`)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tour_source_registry' }, (payload) => {
         setTours(prev => prev.map(t => t.id === payload.new.id ? { ...t, ...payload.new } : t));
       }).subscribe();
 
-    const seriesChannel = supabase.channel('public:series_lobby')
+    const seriesChannel = supabase.channel(`public:series_lobby_${uid}`)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tournament_series' }, (payload) => {
         setSeries(prev => prev.map(s => s.id === payload.new.id ? { ...s, ...payload.new } : s));
       }).subscribe();

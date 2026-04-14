@@ -964,15 +964,17 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
 
     const validVenues = (venues || []).filter(function(v) { return v.latitude && v.longitude && !v.hideOnMap; });
 
-    // Compute distances from user location if available
+    // [VM3 FIX] Compute distances into a local Map — do NOT mutate prop objects in place.
+    // Mutating v._distanceMi directly bypasses React change detection since object refs stay identical.
+    const distanceMap = new Map();
     if (userLocation) {
       validVenues.forEach(function(v) {
         const dlat = (v.latitude - userLocation.lat) * 69;
         const dlng = (v.longitude - userLocation.lng) * 69 * Math.cos(userLocation.lat * Math.PI / 180);
-        v._distanceMi = Math.sqrt(dlat * dlat + dlng * dlng);
+        distanceMap.set(v.id, Math.sqrt(dlat * dlat + dlng * dlng));
       });
-      // Find nearest venue
-      const sorted = [...validVenues].sort((a, b) => (a._distanceMi || 9999) - (b._distanceMi || 9999));
+      // Find nearest venue (sort by computed distance, not mutated prop)
+      const sorted = [...validVenues].sort((a, b) => (distanceMap.get(a.id) || 9999) - (distanceMap.get(b.id) || 9999));
       if (sorted.length > 0) {
         setNearestVenue(sorted[0]);
       }
@@ -999,9 +1001,12 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
         </div>`;
         return L.divIcon({ ...base.options, html: favHtml, iconSize: [size + 10, size + 10] });
       })() : venueIcon;
+      // Pass distance via local data attr — do NOT mutate venue object
+      const distMi = distanceMap.get(venue.id) ?? null;
+      const venueWithDist = distMi != null ? { ...venue, _distanceMi: distMi } : venue;
       const popupHtml = isTourStop
-        ? buildTourPopupHtml(venue)
-        : buildPopupHtml(venue);
+        ? buildTourPopupHtml(venueWithDist)
+        : buildPopupHtml(venueWithDist);
 
       // Tour pins get a visible offset so they appear alongside (not buried under) the venue dot.
       // +0.012 lat / -0.008 lng ≈ 1.3km offset — clearly visible at typical map zoom levels.
@@ -1047,7 +1052,10 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
         clusterGroup.addLayer(marker);
       }
     });
-  }, [venues, uniformColor, mapReady]);
+  // [VM2 FIX] Added isFavorited and userLocation to deps — missing caused:
+  //   - Favorites gold ring never appearing after a favorite action
+  //   - Distance/nearest venue not recomputing when GPS location resolves
+  }, [venues, uniformColor, mapReady, isFavorited, userLocation]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Update user location marker
   useEffect(() => {
