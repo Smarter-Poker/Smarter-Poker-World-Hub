@@ -129,6 +129,49 @@ function extractTimeFromName(raw) {
     .replace(/(\d+:\d+)([AP]M)$/, (_, t, ap) => t + ' ' + ap);
 }
 
+// Derive short venue label for series with no recognized tour brand
+function deriveDetailVenueBadge(series) {
+  const tour = (series.tour || series.tour_code || '').toUpperCase();
+  if (tour && TOUR_COLORS[tour]) return tour; // known brand
+  // Try explicit venue fields
+  const venue = (series.venue || series.venue_name || '').trim();
+  if (venue) return venue.split(/\s+/).slice(0, 2).join(' ').toUpperCase().slice(0, 14);
+  // city field often contains "VenueName CityName"
+  const city = (series.city || '').trim();
+  if (city) {
+    const words = city.split(/\s+/);
+    const vw = words.length >= 3 ? words.slice(0, 2) : words.slice(0, Math.max(1, words.length - 1));
+    const b = vw.join(' ').toUpperCase().slice(0, 14);
+    if (b.length >= 3) return b;
+  }
+  // Extract from series name
+  const name = series.name || '';
+  const STOP = /^(poker|series|championship|open|classic|tournament|cup|challenge|circuit|festival|main|event|invitational|showdown|spring|summer|fall|winter|january|february|march|april|may|june|july|august|september|october|november|december|\d{4})$/i;
+  const words = name.split(/\s+/);
+  const si = words.findIndex(w => STOP.test(w));
+  const vw = si > 0 ? words.slice(0, si) : words.slice(0, 2);
+  return vw.join(' ').toUpperCase().slice(0, 14) || 'SERIES';
+}
+
+function deriveDetailCategory(series) {
+  const st = series.series_type || '';
+  if (st && st !== 'regional') {
+    // capitalize known types
+    return st.charAt(0).toUpperCase() + st.slice(1);
+  }
+  const n = ((series.name || '') + ' ' + (series.city || '')).toLowerCase();
+  if (/\b(card house|card room|cardroom|lounge|poker room|poker lounge|tcl\b|tch\b|lodge|hustler|bay 101|kings|lucky hearts|peppermill|bicycle|commerce|garden|rivers casino|bestbet|parx|prime social|elite poker|live poker classic)\b/.test(n)) return 'Card Room';
+  if (/\b(park|downs|kennel|track|meadow|racing|fairground)\b/.test(n)) return 'Card Room';
+  if (/\b(charity|benefit|foundation)\b/.test(n)) return 'Charity';
+  if (/\b(online|social club)\b/.test(n)) return 'Poker Club';
+  return 'Casino';
+}
+
+function deriveDetailCategoryColor(series) {
+  const cat = deriveDetailCategory(series);
+  const cats = { 'Card Room': '#8b5cf6', 'Charity': '#ec4899', 'Poker Club': '#06b6d4', 'Casino': '#f59e0b', 'Major': '#c9a227', 'Circuit': '#3b82f6', 'Mid-Major': '#4ade80' };
+  return cats[cat] || '#6b7280';
+}
 function timeAgo(dateStr) {
   if (!dateStr) return '';
   const now = new Date();
@@ -536,7 +579,7 @@ export default function SeriesDetailPage() {
               <Link href="/hub/poker-near-me-lobby" legacyBehavior><a className="breadcrumb-link">Poker Near Me</a></Link>
               <span className="breadcrumb-sep">/</span>
             </li>
-            {series.tour && (
+            {series.tour && series.tour.toUpperCase() !== 'INDEPENDENT' && (
               <li className="breadcrumb-item">
                 <Link href={'/hub/poker-series?tour=' + encodeURIComponent(series.tour)} legacyBehavior><a className="breadcrumb-link">{series.tour}</a></Link>
                 <span className="breadcrumb-sep">/</span>
@@ -560,18 +603,19 @@ export default function SeriesDetailPage() {
                 borderColor: tourStyle.border,
               }}
             >
-              {series.short_name || series.tour_code || 'SERIES'}
+              {deriveDetailVenueBadge(series)}
             </span>
 
             {/* Series Type Badge */}
             <span
               className="type-badge"
               style={{
-                background: typeStyle.bg,
-                color: typeStyle.text,
+                background: deriveDetailCategoryColor(series) + '25',
+                color: deriveDetailCategoryColor(series),
+                border: '1px solid ' + deriveDetailCategoryColor(series) + '50',
               }}
             >
-              {(series.series_type || 'tournament').charAt(0).toUpperCase() + (series.series_type || 'tournament').slice(1)}
+              {deriveDetailCategory(series)}
             </span>
 
             {/* Status Badge */}
@@ -659,8 +703,8 @@ export default function SeriesDetailPage() {
           <div className="stat-card">
             <div className="stat-label">Series Type</div>
             <div className="stat-value">
-              <span className="inline-type-dot" style={{ background: typeStyle.bg }} />
-              {(series.series_type || 'Tournament').charAt(0).toUpperCase() + (series.series_type || 'Tournament').slice(1)}
+              <span className="inline-type-dot" style={{ background: deriveDetailCategoryColor(series) }} />
+              {deriveDetailCategory(series)}
             </div>
           </div>
         </div>
