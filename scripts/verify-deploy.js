@@ -4,99 +4,172 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //
 // USAGE:
-//   npm run verify                                  # checks smarter.poker
-//   npm run verify -- --url https://custom.url
-//   npm run verify -- --wait 60                     # wait N seconds before checking
+//   node scripts/verify-deploy.js                           # one-shot check
+//   node scripts/verify-deploy.js --wait 60                 # wait N seconds before first check
+//   node scripts/verify-deploy.js --match-sha abc1234       # loop until production SHA matches
+//   node scripts/verify-deploy.js --match-sha abc1234 --timeout 300  # with max wait
+//   node scripts/verify-deploy.js --url https://custom.url
 //
 // CHECKS:
 //   1. Health endpoint returns 200
-//   2. Commit SHA matches local HEAD (if available)
+//   2. Commit SHA matches local HEAD (or --match-sha if provided)
 //   3. Database connectivity is "ok"
 //
 // EXIT CODES:
-//   0 = verified
-//   1 = verification failed
+//   0 = verified (SHA matched if --match-sha was provided)
+//   1 = verification failed (health down, DB error, or SHA never matched)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const { execSync } = require('child_process');
 
 const args = process.argv.slice(2);
-const urlIdx = args.indexOf('--url');
-const waitIdx = args.indexOf('--wait');
+const getArg = (flag) => { const i = args.indexOf(flag); return i !== -1 && args[i + 1] ? args[i + 1] : null; };
 
-const BASE_URL = urlIdx !== -1 && args[urlIdx + 1] ? args[urlIdx + 1] : 'https://smarter.poker';
-const WAIT_SECONDS = waitIdx !== -1 && args[waitIdx + 1] ? parseInt(args[waitIdx + 1]) : 0;
+const BASE_URL = getArg('--url') || 'https://smarter.poker';
+const WAIT_SECONDS = parseInt(getArg('--wait') || '0');
+const MATCH_SHA = getArg('--match-sha');
+const TIMEOUT = parseInt(getArg('--timeout') || '300'); // 5 min default
+const POLL_INTERVAL = 15; // seconds between SHA checks
+
+async function checkHealth(localSha) {
+    const healthUrl = `${BASE_URL}/api/health`;
+    console.log(`   🌐 Hitting: ${healthUrl}`);
+
+    const res = await fetch(healthUrl, {
+        headers: { 'User-Agent': 'AntiGravity-Verify/1.0' },
+        signal: AbortSignal.timeout(15000),
+    });
+
+    if (!res.ok) {
+        console.error(`   ❌ Health endpoint returned HTTP ${res.status}`);
+        return { ok: false, sha: null };
+    }
+
+    const health = await res.json();
+    console.log(`   ✅ HTTP ${res.status} — status: ${health.status}`);
+    console.log(`   📊 DB: ${health.checks?.db?.status || 'N/A'}`);
+    console.log(`   🕐 Response: ${health.responseMs}ms`);
+    console.log(`   💾 Memory: ${health.checks?.memory?.heapUsedMB || '?'}MB heap`);
+    console.log(`   🏷️  Remote SHA: ${health.version}`);
+    console.log(`   🏷️  Local SHA:  ${localSha}`);
+
+    // SHA match check
+    const shaMatched = health.version && localSha && 
+        (health.version === localSha || 
+         localSha.startsWith(health.version) || 
+         health.version.startsWith(localSha));
+
+    if (shaMatched) {
+        console.log('   ✅ Commit SHA matches — production is serving your commit!');
+    } else if (health.version && localSha) {
+        console.log('   ⚠️  SHA mismatch — deployment may still be propagating');
+    }
+
+    // DB check
+    if (health.checks?.db?.status === 'error') {
+        console.log('   ⚠️  Database connectivity issue detected');
+    }
+
+    return { 
+        ok: health.status === 'ok', 
+        sha: health.version, 
+        shaMatched,
+        dbOk: health.checks?.db?.status === 'ok',
+        responseMs: health.responseMs 
+    };
+}
 
 async function main() {
     console.log('\n═══════════════════════════════════════════════════');
     console.log('🔍 Post-Deploy Verification');
     console.log('═══════════════════════════════════════════════════');
     console.log(`   URL:  ${BASE_URL}`);
-    console.log(`   Wait: ${WAIT_SECONDS}s`);
+    if (WAIT_SECONDS > 0) console.log(`   Wait: ${WAIT_SECONDS}s`);
+    if (MATCH_SHA) console.log(`   Match SHA: ${MATCH_SHA} (timeout: ${TIMEOUT}s)`);
     console.log('═══════════════════════════════════════════════════\n');
 
-    // ── Wait if requested ──
+    // ── Initial wait ──
     if (WAIT_SECONDS > 0) {
         console.log(`   ⏳ Waiting ${WAIT_SECONDS}s for deployment to propagate...`);
         await new Promise(r => setTimeout(r, WAIT_SECONDS * 1000));
     }
 
-    let localSha = 'unknown';
-    try {
-        localSha = execSync('git rev-parse --short HEAD', { encoding: 'utf-8' }).trim();
-    } catch (e) { }
-
-    const healthUrl = `${BASE_URL}/api/health`;
-    console.log(`   🌐 Hitting: ${healthUrl}`);
-
-    try {
-        const res = await fetch(healthUrl, {
-            headers: { 'User-Agent': 'AntiGravity-Verify/1.0' },
-            signal: AbortSignal.timeout(15000),
-        });
-
-        if (!res.ok) {
-            console.error(`   ❌ Health endpoint returned HTTP ${res.status}`);
-            console.log('\nDEPLOY_VERIFIED:false');
-            process.exit(1);
+    // Determine expected SHA
+    let expectedSha = MATCH_SHA;
+    if (!expectedSha) {
+        try {
+            expectedSha = execSync('git rev-parse --short HEAD', { encoding: 'utf-8' }).trim();
+        } catch (e) {
+            expectedSha = 'unknown';
         }
+    }
 
-        const health = await res.json();
-        console.log(`   ✅ HTTP ${res.status} — status: ${health.status}`);
-        console.log(`   📊 DB: ${health.checks?.db?.status || 'N/A'}`);
-        console.log(`   🕐 Response: ${health.responseMs}ms`);
-        console.log(`   💾 Memory: ${health.checks?.memory?.heapUsedMB || '?'}MB heap`);
-        console.log(`   🏷️  Remote SHA: ${health.version}`);
-        console.log(`   🏷️  Local SHA:  ${localSha}`);
+    // ── If --match-sha: loop until production serves our commit ──
+    if (MATCH_SHA) {
+        const startTime = Date.now();
+        let attempt = 0;
+        
+        while (true) {
+            attempt++;
+            const elapsed = Math.round((Date.now() - startTime) / 1000);
+            console.log(`\n   📡 Verification attempt ${attempt} (${elapsed}s elapsed)...`);
 
-        // ── SHA match check ──
-        if (health.version !== 'local' && localSha !== 'unknown') {
-            if (health.version === localSha) {
-                console.log('   ✅ Commit SHA matches!');
-            } else {
-                console.log('   ⚠️  SHA mismatch — deployment may still be propagating');
+            try {
+                const result = await checkHealth(expectedSha);
+
+                if (result.ok && result.shaMatched) {
+                    console.log('\n═══════════════════════════════════════════════════');
+                    console.log('DEPLOY_VERIFIED:true');
+                    console.log('SHA_MATCHED:true');
+                    console.log(`COMMIT_SHA:${result.sha}`);
+                    console.log(`RESPONSE_MS:${result.responseMs}`);
+                    console.log(`VERIFICATION_TIME:${elapsed}s`);
+                    console.log('═══════════════════════════════════════════════════');
+                    process.exit(0);
+                }
+
+                if (elapsed >= TIMEOUT) {
+                    console.log('\n═══════════════════════════════════════════════════');
+                    console.log(`❌ TIMEOUT: Production SHA (${result.sha}) never matched expected (${expectedSha}) after ${TIMEOUT}s`);
+                    console.log('DEPLOY_VERIFIED:false');
+                    console.log('SHA_MATCHED:false');
+                    console.log(`PRODUCTION_SHA:${result.sha}`);
+                    console.log(`EXPECTED_SHA:${expectedSha}`);
+                    console.log('═══════════════════════════════════════════════════');
+                    process.exit(1);
+                }
+
+                console.log(`   ⏳ SHA not matched yet. Retrying in ${POLL_INTERVAL}s...`);
+                await new Promise(r => setTimeout(r, POLL_INTERVAL * 1000));
+            } catch (e) {
+                console.error(`   ❌ Health check failed: ${e.message}`);
+                if (elapsed >= TIMEOUT) {
+                    console.log('DEPLOY_VERIFIED:false');
+                    process.exit(1);
+                }
+                console.log(`   ⏳ Retrying in ${POLL_INTERVAL}s...`);
+                await new Promise(r => setTimeout(r, POLL_INTERVAL * 1000));
             }
         }
+    }
 
-        // ── DB check ──
-        if (health.checks?.db?.status === 'error') {
-            console.log('   ⚠️  Database connectivity issue detected');
-        }
+    // ── One-shot mode (no --match-sha) ──
+    try {
+        const result = await checkHealth(expectedSha);
 
         console.log('\n═══════════════════════════════════════════════════');
-        if (health.status === 'ok') {
+        if (result.ok) {
             console.log('DEPLOY_VERIFIED:true');
-            console.log(`COMMIT_SHA:${health.version}`);
-            console.log(`RESPONSE_MS:${health.responseMs}`);
+            console.log(`COMMIT_SHA:${result.sha}`);
+            console.log(`SHA_MATCHED:${result.shaMatched}`);
+            console.log(`RESPONSE_MS:${result.responseMs}`);
             console.log('═══════════════════════════════════════════════════');
             process.exit(0);
         } else {
             console.log('DEPLOY_VERIFIED:false');
-            console.log(`STATUS:${health.status}`);
             console.log('═══════════════════════════════════════════════════');
             process.exit(1);
         }
-
     } catch (e) {
         console.error(`   ❌ Failed to reach health endpoint: ${e.message}`);
         console.log('\nDEPLOY_VERIFIED:false');

@@ -559,13 +559,36 @@ while [ $attempt -lt $MAX_RETRIES ]; do
       --duration "$(( TOTAL_END - TOTAL_START ))" \
       --msg "${MSG}" 2>/dev/null || true
 
-    # ── Vercel production deploy ──
-    # REMOVED: Manual `npx vercel deploy --prod` was creating a DUPLICATE deployment
-    # on every push. The GitHub integration already auto-deploys on push to main.
-    # This was the root cause of the 687+ build backlog in April 2026.
-    # Vercel will auto-deploy via the hub-vanguard GitHub integration.
-    echo "ℹ️  Vercel will auto-deploy via GitHub integration (no manual CLI deploy needed)."
-    exit 0
+    # ── Phase 4: MANDATORY Post-Deploy Verification ──
+    # HARD LAW: Every push MUST verify that Vercel deployed successfully.
+    # An agent that pushes and walks away is WORSE than one that writes no code.
+    echo ""
+    echo "═══════════════════════════════════════════════════"
+    echo "🔍 Phase 4: MANDATORY Post-Deploy Verification"
+    echo "═══════════════════════════════════════════════════"
+    echo "   Waiting for Vercel to build and deploy..."
+    echo "   GitHub integration auto-deploys on push to main."
+    echo "   Will poll production until SHA matches ${COMMIT_SHA}"
+    echo "═══════════════════════════════════════════════════"
+    
+    # Wait 60s for Vercel to pick up the commit, then poll every 15s for up to 5 min
+    if node "${SCRIPT_DIR}/verify-deploy.js" --wait 60 --match-sha "${COMMIT_SHA}" --timeout 300 2>&1; then
+      echo ""
+      echo "═══════════════════════════════════════════════════"
+      echo "✅ DEPLOYMENT VERIFIED — Production is live!"
+      echo "═══════════════════════════════════════════════════"
+      exit 0
+    else
+      echo ""
+      echo "═══════════════════════════════════════════════════"
+      echo "⚠️  DEPLOY VERIFICATION FAILED"
+      echo "   Production may not be serving your commit yet."
+      echo "   Check Vercel dashboard: https://vercel.com/smarter-poker/hub-vanguard/deployments"
+      echo "   DO NOT claim your task is done until this is resolved!"
+      echo "═══════════════════════════════════════════════════"
+      echo "DEPLOY_VERIFIED:false"
+      exit 2
+    fi
    else
     if [ $attempt -lt $MAX_RETRIES ]; then
       delay=$((attempt * 2))
@@ -584,10 +607,20 @@ while [ $attempt -lt $MAX_RETRIES ]; do
       echo "✅ Push successful!"
       echo "═══════════════════════════════════════════════════"
 
-      # ── Vercel production deploy (fallback path) ──
-      # REMOVED: Same as above — GitHub integration handles auto-deploy.
-      echo "ℹ️  Vercel will auto-deploy via GitHub integration (no manual CLI deploy needed)."
-      exit 0
+      # ── Phase 4: MANDATORY Post-Deploy Verification (fallback path) ──
+      echo ""
+      echo "═══════════════════════════════════════════════════"
+      echo "🔍 Phase 4: MANDATORY Post-Deploy Verification"
+      echo "═══════════════════════════════════════════════════"
+      COMMIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "N/A")
+      if node "${SCRIPT_DIR}/verify-deploy.js" --wait 60 --match-sha "${COMMIT_SHA}" --timeout 300 2>&1; then
+        echo "✅ DEPLOYMENT VERIFIED — Production is live!"
+        exit 0
+      else
+        echo "⚠️  DEPLOY VERIFICATION FAILED — check Vercel dashboard"
+        echo "DEPLOY_VERIFIED:false"
+        exit 2
+      fi
     else
       if [ $attempt -lt $MAX_RETRIES ]; then
         delay=$((attempt * 2))
