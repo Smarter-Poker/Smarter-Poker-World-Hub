@@ -55,11 +55,22 @@ export default async function handler(req, res) {
     // Cache: fresh 5 min, stale 30 min (tournament schedules don't change hourly)
     res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=1800');
 
-    const { venue_id, days } = req.query;
-    if (!venue_id) return res.status(400).json({ success: false, error: 'Missing venue_id' });
+    function safeStr(val) {
+        if (Array.isArray(val)) return String(val[0]);
+        if (typeof val !== 'string' && typeof val !== 'number') return null;
+        return String(val);
+    }
 
-    const venueId = parseInt(venue_id, 10);
+    const rawVenueId = safeStr(req.query.venue_id);
+    const rawDays = safeStr(req.query.days);
+
+    if (!rawVenueId) return res.status(400).json({ success: false, error: 'Missing venue_id' });
+
+    const venueId = parseInt(rawVenueId, 10);
     if (isNaN(venueId) || venueId < 1) return res.status(400).json({ success: false, error: 'Invalid venue_id' });
+
+    let parsedDays = parseInt(rawDays, 10);
+    if (isNaN(parsedDays) || parsedDays < 1) parsedDays = 45;
 
     try {
         const sb = getSupabase();
@@ -135,9 +146,9 @@ export default async function handler(req, res) {
                 byDate[d].push(enrichRecord(r));
             });
 
-        // ── 6. Build 30-day calendar from recurring pattern ──────────────────
-        // Generate next 30+ days of instances from recurring records
-        const generatedDated = generateDatedInstances(recurring);
+        // ── 6. Build X-day calendar from recurring pattern ──────────────────
+        // Generate next X days (default 45) of instances from recurring records
+        const generatedDated = generateDatedInstances(recurring, parsedDays);
 
         // ── 7. Merge: real dated events override generated ones ───────────────
         const mergedByDate = { ...generatedDated };
