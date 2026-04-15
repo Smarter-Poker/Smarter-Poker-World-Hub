@@ -1,24 +1,28 @@
 /**
  * OneSignal Server-Side Helpers for sending push notifications
  */
-export async function sendPushNotification({ playerIds, heading, content, url, data = {} }) {
+export async function sendPushNotification({ playerIds, externalIds, collapseId, heading, content, url, data = {}, options = {} }) {
     if (!process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || !process.env.ONESIGNAL_REST_API_KEY) {
         console.warn('[OneSignal Server] Missing App ID or API Key. Push notification aborted.');
         return { success: false, error: 'Missing OneSignal credentials' };
     }
 
-    if (!playerIds || playerIds.length === 0) {
-        return { success: false, error: 'No player IDs provided' };
+    if ((!playerIds || playerIds.length === 0) && (!externalIds || externalIds.length === 0)) {
+        return { success: false, error: 'No player IDs or external IDs provided' };
     }
 
     const payload = {
         app_id: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
-        include_player_ids: playerIds,
         headings: { en: heading },
         contents: { en: content },
         url: url || 'https://smarter.poker/hub',
-        data: data
+        data: data,
+        ...options
     };
+
+    if (playerIds && playerIds.length > 0) payload.include_player_ids = playerIds;
+    if (externalIds && externalIds.length > 0) payload.include_aliases = { external_id: externalIds };
+    if (collapseId) payload.collapse_id = collapseId;
 
     try {
         const response = await fetch('https://onesignal.com/api/v1/notifications', {

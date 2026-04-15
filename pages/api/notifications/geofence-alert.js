@@ -69,31 +69,12 @@ export default async function handler(req, res) {
               charity: '🎗️',
           }[venueType] || '📍';
 
-          const payload = {
-              app_id: ONESIGNAL_APP_ID,
-              // Target by external user ID (set via OneSignal.login or link-user API)
-              include_aliases: {
-                  external_id: [userId],
-              },
-              target_channel: 'push',
-              headings: { en: `${venueEmoji} Poker Venue Nearby` },
-              contents: { en: `You're near ${venueName}! Tap to log a session.` },
-              // Deep link to bankroll manager with venue context
+          const pushResult = await sendPushNotification({
+              externalIds: [userId],
+              heading: `${venueEmoji} Poker Venue Nearby`,
+              content: `You're near ${venueName}! Tap to log a session.`,
               url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker'}/hub/bankroll-manager?venue=${venueId}`,
-              // Collapse duplicate notifications
-              collapse_id: `geofence-${venueId}`,
-              // Auto-dismiss after 1 hour
-              ttl: 3600,
-              // Small icon
-              small_icon: 'ic_stat_notification',
-              // Chrome/Firefox web push icon
-              chrome_web_icon: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker'}/icons/icon-192.png`,
-              // iOS-specific
-              ios_badgeType: 'Increase',
-              ios_badgeCount: 1,
-              // Android channel for geofence alerts
-              android_channel_id: process.env.ONESIGNAL_GEOFENCE_CHANNEL_ID || undefined,
-              // Data payload for native app handling
+              collapseId: `geofence-${venueId}`,
               data: {
                   type: 'geofence_alert',
                   venueId,
@@ -101,37 +82,37 @@ export default async function handler(req, res) {
                   venueType,
                   timestamp: new Date().toISOString(),
               },
-          };
-
-          const response = await fetch('https://api.onesignal.com/notifications', {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Key ${ONESIGNAL_REST_API_KEY}`,
-              },
-              body: JSON.stringify(payload),
+              options: {
+                  ttl: 3600,
+                  small_icon: 'ic_stat_notification',
+                  chrome_web_icon: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker'}/icons/icon-192.png`,
+                  ios_badgeType: 'Increase',
+                  ios_badgeCount: 1,
+                  android_channel_id: process.env.ONESIGNAL_GEOFENCE_CHANNEL_ID || undefined
+              }
           });
 
-          if (!response.ok) throw new Error(`Request failed (${response.status})`);
-          const result = await response.json();
-
-          if (result.id) {
+          if (pushResult.success) {
               // Success — update rate limit
               rateLimitMap.set(rateLimitKey, Date.now());
 
-              // Prune old rate limit entries (prevent memory leak)
-              const now = Date.now();
-              for (const [key, ts] of rateLimitMap.entries()) {
-                  if (now - ts > RATE_LIMIT_MS) {
-                      rateLimitMap.delete(key);
+              // Prune old rate limit entries tightly to prevent memory leak
+              if (rateLimitMap.size > 2000) {
+                  const now = Date.now();
+                  for (const [key, ts] of rateLimitMap.entries()) {
+                      if (now - ts > RATE_LIMIT_MS) {
+                          rateLimitMap.delete(key);
+                      }
                   }
+                  // Failsafe clear if still huge
+                  if (rateLimitMap.size > 5000) rateLimitMap.clear();
               }
 
-              return res.status(200).json({ success: true, messageId: result.id });
+              return res.status(200).json({ success: true, messageId: pushResult.result.id });
           }
 
-          console.error('[GeofenceAlert] OneSignal error:', result);
-          return res.status(500).json({ success: false, error: result.errors?.[0] || 'OneSignal push failed' });
+          console.error('[GeofenceAlert] OneSignal error:', pushResult.error);
+          return res.status(500).json({ success: false, error: pushResult.error || 'OneSignal push failed' });
       } catch (err) {
           console.error('[GeofenceAlert] Server error:', err);
           return res.status(500).json({ success: false, error: err.message });
