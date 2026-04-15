@@ -260,6 +260,10 @@ export default function PokerNearMeLobby() {
   const [activePod, setActivePod] = useState(null);
   const [showPanel, setShowPanel] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  // [LOBBY-BUG-1 FIX] Ref mirrors searchQuery so the RT subscription callback (useEffect [])
+  // always reads the CURRENT search query, not the mount-time stale closure value.
+  // Without this, a venue INSERT fires fetchVenues('') even if the user typed a search query.
+  const searchQueryRef = useRef('');
   const [menuOpen, setMenuOpen] = useState(false);
   // ═══ GLOBAL SEARCH OVERLAY ═══
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
@@ -326,6 +330,8 @@ export default function PokerNearMeLobby() {
   const [locationCity, setLocationCity] = useState('');
   const [locationState, setLocationState] = useState('');
   const locationToastTimeoutRef = useRef(null);
+  // [LOBBY-BUG-1 FIX] Keep searchQueryRef in sync with state for RT subscription
+  useEffect(() => { searchQueryRef.current = searchQuery; }, [searchQuery]);
 
   // ─── Menu config ───
   const menuConfig = useMemo(() => getMenuConfig('poker-near-me', null, {}, {
@@ -676,8 +682,8 @@ export default function PokerNearMeLobby() {
         if (payload.eventType === 'UPDATE') {
           setVenues(prev => prev.map(v => v.id === payload.new.id ? { ...v, ...payload.new } : v));
         } else if (payload.eventType === 'INSERT') {
-          // Trigger a full re-fetch — inserting a single venue requires sorting/filtering context
-          fetchVenues(searchQuery);
+          // [LOBBY-BUG-1 FIX] Use ref — not stale closure — to get the current search query
+          fetchVenues(searchQueryRef.current);
         } else if (payload.eventType === 'DELETE') {
           setVenues(prev => prev.filter(v => v.id !== payload.old.id));
         }

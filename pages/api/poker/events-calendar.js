@@ -417,7 +417,10 @@ export default async function handler(req, res) {
         let sq = sb.from('poker_series')
           .select('id, series_name, venue_name, venue_id, city, state, start_date, end_date, buy_in_min, buy_in_max, main_event_buyin, total_guaranteed, main_event_guaranteed, tour_code, series_type, events_count, is_featured, short_name, logo_url')
           .not('start_date', 'is', null)
-          .eq('is_suppressed', false);
+          // [EC-API-BUG-1 FIX] .eq('is_suppressed', false) silently excluded rows where
+          // is_suppressed = NULL (field never set). Use .or() to match both NULL and false,
+          // same pattern as venue_daily_tournaments at line 326.
+          .or('is_suppressed.is.null,is_suppressed.eq.false');
 
         if (safeState) sq = sq.ilike('state', safeState.length === 2 ? safeState.toUpperCase() : `%${safeState}%`);
         if (safeCity)  sq = sq.ilike('city', `%${safeCity}%`);

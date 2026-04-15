@@ -283,7 +283,9 @@ export default async function handler(req, res) {
         let query = getSupabase()
           .from('tournament_series')
           .select('*')
-          .eq('is_suppressed', false) // Bug #2 Fix: never serve suppressed series
+          // [S-BUG-1 FIX] .eq('is_suppressed', false) excluded rows where is_suppressed=NULL.
+          // Use .or() to match both NULL and false — never serve explicitly suppressed series.
+          .or('is_suppressed.is.null,is_suppressed.eq.false')
           .order('start_date', { ascending: true })
           .limit(Math.min(parsedLimit, 999));
 
@@ -328,7 +330,8 @@ export default async function handler(req, res) {
         let psQuery = getSupabase()
           .from('poker_series')
           .select('*')
-          .eq('is_suppressed', false)
+          // [S-BUG-1 FIX] Same is_suppressed NULL fix for poker_series
+          .or('is_suppressed.is.null,is_suppressed.eq.false')
           .order('start_date', { ascending: true })
           .limit(999);
 

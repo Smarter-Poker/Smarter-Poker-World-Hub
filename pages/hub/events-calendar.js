@@ -518,7 +518,7 @@ export default function EventsCalendarPage({ fallbackData }) {
           setDistance('50');
           return;
         }
-      } catch (e) {}
+      } catch (e) { console.warn('[EventsCalendar] Failed to parse saved location:', e); }
     }
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
