@@ -257,11 +257,17 @@ export default function PokerNearMePage() {
         
         const { eventType, new: newRec } = payload;
         if (eventType === 'UPDATE' && newRec) {
+            const isHidden = newRec.is_active === false || newRec.is_suppressed === true;
+            
             setVenues(prev => {
                 const idx = prev.findIndex(v => v.id === newRec.id);
                 if (idx === -1) return prev; // Ignore venue not currently loaded in our local UI sphere
                 const next = [...prev];
-                next[idx] = { ...next[idx], ...newRec };
+                if (isHidden) {
+                    next.splice(idx, 1);
+                } else {
+                    next[idx] = { ...next[idx], ...newRec };
+                }
                 return next; 
             });
             // Update the map array as well so pins stay perfectly in sync
@@ -269,7 +275,11 @@ export default function PokerNearMePage() {
                 const idx = prev.findIndex(v => v.id === newRec.id);
                 if (idx === -1) return prev;
                 const next = [...prev];
-                next[idx] = { ...next[idx], ...newRec };
+                if (isHidden) {
+                    next.splice(idx, 1);
+                } else {
+                    next[idx] = { ...next[idx], ...newRec };
+                }
                 return next;
             });
         }
@@ -662,11 +672,20 @@ export default function PokerNearMePage() {
     filtersRef.current = filters;
     useEffect(() => {
         const handleSync = (e) => {
-            if (e.detail && typeof window !== 'undefined') {
+            if (e && e.detail && typeof window !== 'undefined') {
                 const currentStr = JSON.stringify(filtersRef.current);
                 const newStr = JSON.stringify(e.detail);
                 if (currentStr !== newStr) {
                     setFilters(e.detail);
+                }
+            }
+        };
+        const handleBusSync = (payload) => {
+            if (payload && typeof window !== 'undefined') {
+                const currentStr = JSON.stringify(filtersRef.current);
+                const newStr = JSON.stringify(payload);
+                if (currentStr !== newStr) {
+                    setFilters(payload);
                 }
             }
         };
@@ -683,9 +702,11 @@ export default function PokerNearMePage() {
         };
         window.addEventListener('poker-near-me-filters-sync', handleSync);
         window.addEventListener('storage', handleStorage);
+        const unsubFilters = eventBus?.on('PNM_FILTERS_UPDATED', handleBusSync);
         return () => {
             window.removeEventListener('poker-near-me-filters-sync', handleSync);
             window.removeEventListener('storage', handleStorage);
+            if (unsubFilters) unsubFilters();
         };
     }, []);
 
