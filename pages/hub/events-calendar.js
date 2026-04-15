@@ -595,19 +595,15 @@ export default function EventsCalendarPage({ fallbackData }) {
     { fallback: swrFallback, revalidateOnFocus: false, dedupingInterval: 30000 }
   );
 
-  useVenueRealtime(() => {
-    const rtUrl = `${apiUrl}${apiUrl.includes('?') ? '&' : '?'}_rt=${Date.now()}`;
-    fetch(rtUrl)
-      .then(r => r.json())
-      .then(d => {
-        // [EC9 FIX] Added fallback mutate() for RT sync failures to match DT hardening.
-        if (d && d.success !== false) mutate(d, { revalidate: false });
-        else mutate(); // Soft invalidate if payload is bad
-      })
-      .catch((e) => {
-        console.error('[events-calendar] RT fetch error:', e);
-        mutate(); // Network failure — invalidate SWR to force re-fetch
-      });
+  useVenueRealtime((payload) => {
+    // Drop irrelevant payloads from other tables the master hook listens to
+    if (payload && payload.table === 'poker_venues') return;
+    
+    // Instead of doing a custom fetch that destroys caching via timestamp busting,
+    // we lean natively on SWR to dedup and jitter the reconnect requests. Using a minor variance stops herd stampedes.
+    setTimeout(() => {
+      mutate();
+    }, 500 + Math.random() * 2000); 
   });
 
   const events = apiData?.events || [];
