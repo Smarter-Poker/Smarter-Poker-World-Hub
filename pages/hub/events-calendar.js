@@ -599,8 +599,15 @@ export default function EventsCalendarPage({ fallbackData }) {
     const rtUrl = `${apiUrl}${apiUrl.includes('?') ? '&' : '?'}_rt=${Date.now()}`;
     fetch(rtUrl)
       .then(r => r.json())
-      .then(d => { if (d && d.success !== false) mutate(d, false); })
-      .catch(console.error);
+      .then(d => {
+        // [EC9 FIX] Added fallback mutate() for RT sync failures to match DT hardening.
+        if (d && d.success !== false) mutate(d, { revalidate: false });
+        else mutate(); // Soft invalidate if payload is bad
+      })
+      .catch((e) => {
+        console.error('[events-calendar] RT fetch error:', e);
+        mutate(); // Network failure — invalidate SWR to force re-fetch
+      });
   });
 
   const events = apiData?.events || [];
