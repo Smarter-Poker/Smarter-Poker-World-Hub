@@ -47,16 +47,11 @@ async function handler(req, res) {
 
         if (tErr) throw tErr;
 
-        
-        // 3. Batch process by tournament to avoid Vercel execution timeouts and OneSignal rate limits
+        // 3. Process time windows and batch by tournament to avoid Vercel timeouts and OneSignal rate limits
         const alertsByTournament = {};
         for (const alert of alerts) {
             const tournament = tournaments?.find(t => t.id === alert.tournament_id);
             const playerId = alert.users?.onesignal_player_id;
-            if (tournament && playerId) {
-                if (!alertsByTournament[tournament.id]) {
-                    alertsByTournament[tournament.id] = { tournament, playerIds: [], alertIds: [] };
-                }
             
             if (!tournament || !playerId) continue;
 
@@ -65,28 +60,45 @@ async function handler(req, res) {
             const diffMs = tourneyDate - now;
             const diffMins = Math.floor(diffMs / 60000);
             
-            // Trigger if the tournament starts in exactly/under 60 minutes OR has started within the last 150 minutes (late reg window)
+            // Trigger if the tournament starts in exactly/under 60 minutes OR has started within the last 150 minutes
             const isLateRegWindow = diffMins > -150 && diffMins <= 60;
 
             if (isLateRegWindow) {
+                if (!alertsByTournament[tournament.id]) {
+                    alertsByTournament[tournament.id] = { tournament, playerIds: [], alertIds: [] };
+                }
+                alertsByTournament[tournament.id].playerIds.push(playerId);
+                alertsByTournament[tournament.id].alertIds.push(alert.id);
+            }
+        }
+
+        let processedCount = 0;
+        let errorsCount = 0;
+
+        const pushPromises = Object.values(alertsByTournament).map(async ({ tournament, playerIds, alertIds }) => {
+            // Chunk playerIds into 2000-size blocks as per OneSignal API limits
+            const chunkSize = 2000;
+            for (let i = 0; i < playerIds.length; i += chunkSize) {
+                const chunkIds = playerIds.slice(i, i + chunkSize);
                 const pushResult = await sendPushNotification({
-                    playerIds: [playerId],
+                    playerIds: chunkIds,
                     heading: 'Late Registration Alert! ⏳',
                     content: `${tournament.tournament_name} at ${tournament.venue_name} is in or approaching late registration.`,
                     url: `https://smarter.poker/hub/venues/${encodeURIComponent(tournament.venue_name)}`
                 });
 
                 if (pushResult.success) {
-                    await supabase.from('user_pwa_alerts').update({ 
-                        last_triggered_at: new Date().toISOString(),
-                        is_active: false // Turn off after firing once for an event
-                    }).eq('id', alert.id);
-                    processedCount++;
+                    await supabase.from('user_pwa_alerts')
+                        .update({ last_triggered_at: new Date().toISOString(), is_active: false })
+                        .in('id', alertIds);
+                    processedCount += chunkIds.length;
                 } else {
-                    errorsCount++;
+                    errorsCount += chunkIds.length;
                 }
             }
-        }
+        });
+
+        await Promise.allSettled(pushPromises);
 
         return res.status(200).json({ 
             success: true, 
