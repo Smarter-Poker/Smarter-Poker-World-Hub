@@ -769,6 +769,12 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
       }
     };
     
+    // [VM4 FIX] Declare container at effect scope so early-return guard can safely reference it.
+    // Previously "container" was only defined inside updateLabelVisibility() at line ~921,
+    // so the early-return at line 776-779 threw ReferenceError: container is not defined
+    // on every re-render where mapReady changed with an already-initialized map instance.
+    const container = mapContainerRef.current;
+
     // [VM3 FIX] Move listener attachment AFTER the early-return guard.
     // Previous: listener added before guard, then if map already existed, returned a cleanup
     // that only removed that listener. On re-mount with existing mapInstanceRef, listeners

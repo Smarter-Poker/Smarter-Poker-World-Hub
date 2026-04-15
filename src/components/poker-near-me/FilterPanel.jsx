@@ -52,14 +52,23 @@ export default function FilterPanel({
     showRadius = true,
     showVenueType = true
 }) {
-    const savedFilters = typeof window !== 'undefined' ? loadFilters('fp', {}) : {};
-    const [localFilters, setLocalFilters] = useState(filters || {
-        gameType: savedFilters.gameType || 'all',
-        stakes: savedFilters.stakes || 'all',
-        venueType: savedFilters.venueType || 'all',
-        radius: savedFilters.radius || 50,
-        hasLiveGames: savedFilters.hasLiveGames || false,
-        hasTournaments: savedFilters.hasTournaments || false
+    // [FP1 FIX] loadFilters was called inline in the render body — ran on EVERY render and
+    // attempted localStorage access during SSR (typeof window check was there but the call
+    // still executed and called loadFilters on every parent re-render unnecessarily).
+    // Use useState lazy initializer: the function runs exactly once, client-side only.
+    const [localFilters, setLocalFilters] = useState(() => {
+        if (typeof window === 'undefined') {
+            return filters || { gameType: 'all', stakes: 'all', venueType: 'all', radius: 50, hasLiveGames: false, hasTournaments: false };
+        }
+        const savedFilters = loadFilters('fp', {});
+        return filters || {
+            gameType: savedFilters.gameType || 'all',
+            stakes: savedFilters.stakes || 'all',
+            venueType: savedFilters.venueType || 'all',
+            radius: savedFilters.radius || 50,
+            hasLiveGames: savedFilters.hasLiveGames || false,
+            hasTournaments: savedFilters.hasTournaments || false
+        };
     });
 
     // Sync from parent if modified externally (e.g., via EventBus)

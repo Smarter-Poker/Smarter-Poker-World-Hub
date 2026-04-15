@@ -373,16 +373,20 @@ export default function GlobalSearchOverlay({
     syncRecents();
     syncGPS();
 
-    // Bus listener for cross-tab or cross-component sync
-    window.addEventListener('storage', (e) => {
+    // [GSO1 FIX] Zombie listener bug: addEventListener was called with an anonymous arrow function
+    // but cleanup called removeEventListener with named functions (syncRecents, syncGPS) —
+    // two different function references, so the listener was NEVER actually removed.
+    // Now we use stable named handlers for both attach and cleanup.
+    const handleStorage = (e) => {
       if (e.key === 'pnm_recent_searches') syncRecents();
       if (e.key === 'sp-user-gps') syncGPS();
-    });
+    };
+    window.addEventListener('storage', handleStorage);
     window.addEventListener('pnm_recent_searches_updated', syncRecents);
     window.addEventListener('sp_user_gps_updated', syncGPS);
     
     return () => {
-      window.removeEventListener('storage', syncRecents);
+      window.removeEventListener('storage', handleStorage);
       window.removeEventListener('pnm_recent_searches_updated', syncRecents);
       window.removeEventListener('sp_user_gps_updated', syncGPS);
     };
