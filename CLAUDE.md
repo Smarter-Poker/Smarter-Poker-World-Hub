@@ -1,5 +1,37 @@
 # Claude Instructions for Smarter-Poker-World-Hub
 
+## 🚨 LAW 11: DEPLOYMENT CONTRACT (read this FIRST, every session, zero exceptions)
+
+**Added 2026-04-15 after the duplicate-Vercel-project queue cascade.** Enforced on every agent, every push.
+
+### Correct Vercel project
+
+- **`hub-vanguard`** (`prj_op66GkZyZcygXQKm76iyycfVFAQx`) — THE REAL ONE. Aliased to `smarter.poker`. Every push to `main` must flow through this project.
+- **`smarter-poker`** (`prj_FNUaJmcjRnwCSh1JzblIUYuOXDGK`) — DUPLICATE wired to the same repo. GitHub auto-deploy DISABLED. Do NOT re-enable. Do NOT fire its deploy hooks. Do NOT deploy there via the Vercel CLI. If a `smarter-poker` deployment appears under this repo again, somebody resurrected it — put it back to sleep before continuing.
+
+### Push → Watch → Verify → Cold-load. In that order. Never skip. Never claim success before all four pass.
+
+1. **PUSH** — `bash scripts/git-safe-push.sh "<message>"` or GitHub Contents API. Record the commit SHA.
+2. **WATCH** — poll `hub-vanguard`'s latest deployment via Vercel MCP (`get_deployment` / `list_deployments` with `projectId: prj_op66GkZyZcygXQKm76iyycfVFAQx`) until `state === 'READY'`. If CANCELED because a later push superseded yours, confirm the later deploy carries your SHA as an ancestor via `GET /repos/.../compare/<yours>...main`. If not, re-push on top of the new HEAD.
+3. **VERIFY SERVED** — fetch `https://smarter.poker/...` and confirm the served HTML references the NEW content-hashed bundle matching your build.
+4. **COLD-LOAD TEST** (for any functional change) — fresh browser tab, no SPA state carryover. Confirm the new bundle hash is loaded and the fixed behavior works end-to-end.
+
+### Forbidden phrases when claiming deploy success
+
+"should be live in a few minutes" / "deploy triggered" / "Vercel will pick it up" / "my push went through" (without the 4-step proof above)
+
+### Required success language
+
+> "Production `<url>` served `<expected-bundle-hash>` at `<UTC timestamp>` and the fixed behavior was confirmed via cold-load test at that timestamp."
+
+### Deploy-path sanity check
+
+`scripts/git-safe-push.sh` must NOT contain `npx vercel deploy` (removed 2026-04-15 because it was firing a 2nd redundant deploy on every push). If you see that line reappear, it's a regression — delete it, the GitHub integration handles auto-deploy.
+
+`scripts/antigravity-deploy.sh` has a legacy `vercel --prod --yes` at ~line 121. Do NOT run this script without first confirming whether the duplicate project is still disabled. Prefer `git-safe-push.sh` only.
+
+---
+
 ## 🚨 MANDATORY PREFLIGHT PROTOCOL — RUN BEFORE ANY WORK
 
 At the start of EVERY new session or feature request, you MUST execute the appropriate preflight protocol. Do not write code or make plans until the preflight is complete and its output is provided to the user.
