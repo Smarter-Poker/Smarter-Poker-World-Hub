@@ -411,7 +411,9 @@ export default async function handler(req, res) {
           const excludeStationary = traveling_only === 'true';
 
           // Try to get DB tours
-          const { tours, registryTours, source } = await getMergedToursData(excludeStationary);
+          // eslint-disable-next-line prefer-const
+          let { tours: toursRaw, registryTours, source } = await getMergedToursData(excludeStationary);
+          let tours = toursRaw;
 
           // Calculate distance if coordinates provided
           if (!isNaN(userLat) && !isNaN(userLng)) {
