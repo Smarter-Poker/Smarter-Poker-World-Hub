@@ -1,0 +1,111 @@
+import { createClient } from '../../../src/lib/supabaseServerClient';
+import { withSentry } from '../../../src/lib/sentry';
+import { sendPushNotification } from '../../../src/lib/onesignal-server';
+
+async function handler(req, res) {
+    if (req.method !== 'GET' && req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    // Vercel Cron Security Authentication
+    if (process.env.CRON_SECRET) {
+        const authHeader = req.headers.authorization;
+        if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+    }
+
+    try {
+        const supabase = getSupabase(); // Assumes getSupabase wrapper or createClient logic
+
+        // 1. Fetch upcoming tournaments within the next 24-48 hours
+        // Here we'll check against our mocked alert table
+        const { data: alerts, error } = await supabase
+            .from('user_pwa_alerts')
+            .select(`
+                id,
+                user_id,
+                tournament_id,
+                users:user_id ( id, onesignal_player_id )
+            `)
+            .eq('alert_type', 'late_reg')
+            .eq('is_active', true);
+
+        if (error) throw error;
+        if (!alerts || alerts.length === 0) {
+            return res.status(200).json({ success: true, processed: 0, message: 'No active late_reg alerts to process' });
+        }
+
+        // Gather all distinct tournament IDs
+        const tournamentIds = [...new Set(alerts.map(a => a.tournament_id).filter(id => id))];
+        
+        // 2. Fetch those tournaments to see if they are entering late registration within our threshold
+        const { data: tournaments, error: tErr } = await supabase
+            .from('venue_daily_tournaments')
+            .select('id, tournament_name, venue_name, start_time, event_date')
+            .in('id', tournamentIds);
+
+        if (tErr) throw tErr;
+
+        
+        // 3. Batch process by tournament to avoid Vercel execution timeouts and OneSignal rate limits
+        const alertsByTournament = {};
+        for (const alert of alerts) {
+            const tournament = tournaments?.find(t => t.id === alert.tournament_id);
+            const playerId = alert.users?.onesignal_player_id;
+            if (tournament && playerId) {
+                if (!alertsByTournament[tournament.id]) {
+                    alertsByTournament[tournament.id] = { tournament, playerIds: [], alertIds: [] };
+                }
+            
+            if (!tournament || !playerId) continue;
+
+            const tourneyDate = new Date(`${tournament.event_date}T${tournament.start_time || '00:00:00'}`);
+            const now = new Date();
+            const diffMs = tourneyDate - now;
+            const diffMins = Math.floor(diffMs / 60000);
+            
+            // Trigger if the tournament starts in exactly/under 60 minutes OR has started within the last 150 minutes (late reg window)
+            const isLateRegWindow = diffMins > -150 && diffMins <= 60;
+
+            if (isLateRegWindow) {
+                const pushResult = await sendPushNotification({
+                    playerIds: [playerId],
+                    heading: 'Late Registration Alert! ⏳',
+                    content: `${tournament.tournament_name} at ${tournament.venue_name} is in or approaching late registration.`,
+                    url: `https://smarter.poker/hub/venues/${encodeURIComponent(tournament.venue_name)}`
+                });
+
+                if (pushResult.success) {
+                    await supabase.from('user_pwa_alerts').update({ 
+                        last_triggered_at: new Date().toISOString(),
+                        is_active: false // Turn off after firing once for an event
+                    }).eq('id', alert.id);
+                    processedCount++;
+                } else {
+                    errorsCount++;
+                }
+            }
+        }
+
+        return res.status(200).json({ 
+            success: true, 
+            processed: processedCount, 
+            errors: errorsCount 
+        });
+
+    } catch (e) {
+        console.error('[late-reg-cron] FAILED', e);
+        return res.status(500).json({ success: false, error: e.message });
+    }
+}
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        _supabase = createClient();
+    }
+    return _supabase;
+}
+
+export default withSentry(handler);
