@@ -180,7 +180,7 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
     const isExpanded = !!expandedCards[cardId];
     
     const source = SOURCE_COLORS[t.source] || SOURCE_COLORS.daily;
-    const dateIsToday = (t.day_of_week || '').toLowerCase() === DAYS[todayIndex].toLowerCase();
+    const isTodayTab = selectedDay.toLowerCase() === DAYS[todayIndex].toLowerCase();
     
     // Generate initials fallback for venues without logos
     const initials = (t.venue_name || t.tournament_name || t.name || 'T')
@@ -200,7 +200,7 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
     };
 
     return (
-      <div key={cardId} className="ev-card" data-today={dateIsToday ? '1' : ''} onClick={handleCardClick} style={{ cursor: 'pointer' }}>
+      <div key={cardId} className="ev-card" data-today={isTodayTab ? '1' : ''} onClick={handleCardClick} style={{ cursor: 'pointer' }}>
         {/* -- LEFT: Full-height logo (appears ONCE) -- */}
         <div className="ev-card-logo">
           {t.logo_url ? (
@@ -222,7 +222,7 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
           
           {/* Countdown timer (if today and soon) */}
           {(() => {
-            if (!t.start_time || !dateIsToday) return null;
+            if (!t.start_time || !isTodayTab) return null;
             const match = (t.start_time || '').match(/(\d{1,2}:\d{2})\s*(AM|PM)?/i);
             const timePart = match ? match[1] : null;
             const ampm = match ? match[2] : null;
