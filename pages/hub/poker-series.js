@@ -979,11 +979,6 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                                                     {/* Square venue logo — top-left corner */}
                                                     {series.logo_url && (
                                                         <div style={{
-<<<<<<< Updated upstream
-                                                            // [PS-STYLE1 FIX] Removed duplicate width/height/borderRadius keys
-                                                            // (116/116/12 were silently overridden by 58/58/8 — JS takes last value)
-=======
->>>>>>> Stashed changes
                                                             width: 58,
                                                             height: 58,
                                                             flexShrink: 0,
@@ -1003,10 +998,6 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                                                                     height: '100%',
                                                                     objectFit: 'contain',
                                                                     display: 'block',
-<<<<<<< Updated upstream
-                                                                    // [PS-STYLE2 FIX] padding appeared 3x (8, 8, 4) — kept only final value
-=======
->>>>>>> Stashed changes
                                                                     padding: 4,
                                                                     boxSizing: 'border-box',
                                                                 }}
