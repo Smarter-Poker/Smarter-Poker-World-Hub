@@ -9,6 +9,7 @@
  * GET ?venue_id=1234           — all tournaments for venue
  * GET ?venue_id=1234&days=60  — dated events up to 60 days out (default: all)
  */
+import { withSentry } from '../../../src/lib/sentry';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
 let _sb = null;
@@ -47,7 +48,7 @@ function formatMoney(n) {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
     Object.entries(CORS).forEach(([k, v]) => res.setHeader(k, v));
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'GET') return res.status(405).json({ success: false, error: 'Method not allowed' });
@@ -288,3 +289,5 @@ function generateDatedInstances(recurring, daysAhead = 45) {  // Reduced from 90
 
     return result;
 }
+
+export default withSentry(handler);

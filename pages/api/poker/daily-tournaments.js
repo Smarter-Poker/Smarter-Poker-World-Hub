@@ -10,6 +10,7 @@
  *   GET /api/poker/daily-tournaments?state=TX - Filter by state
  *   GET /api/poker/daily-tournaments?venue=Lodge - Search by venue name
  */
+import { withSentry } from '../../../src/lib/sentry';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import tournamentVenues from '../../../data/tournament-venues.json';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
@@ -91,7 +92,7 @@ function getNextDateForDay(targetDay) {
     return `${yyyy}-${mm}-${dd}`;
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   try {
     // CDN cache: Dynamic response cache conditionally overriding for websocket refreshes
     if (req.method === 'GET') {
@@ -573,3 +574,5 @@ function countByField(tournaments, field) {
     });
     return counts;
 }
+
+export default withSentry(handler);

@@ -22,6 +22,7 @@
  *   ?calMonth=2026-08                   Load all events for a specific calendar month (YYYY-MM)
  */
 
+import { withSentry } from '../../../src/lib/sentry';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
@@ -147,7 +148,7 @@ function formatMoney(amount) {
   return '$' + amount.toLocaleString();
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
     try {
       if (req.method !== 'GET') {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
@@ -664,3 +665,5 @@ export default async function handler(req, res) {
     });
   }
 }
+
+export default withSentry(handler);

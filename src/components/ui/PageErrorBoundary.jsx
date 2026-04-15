@@ -14,6 +14,7 @@
  *   </PageErrorBoundary>
  */
 import React from 'react';
+import * as Sentry from '@sentry/nextjs';
 
 export default class PageErrorBoundary extends React.Component {
     constructor(props) {
@@ -37,20 +38,18 @@ export default class PageErrorBoundary extends React.Component {
 
         // Report to Sentry silently — never let reporting crash the boundary
         try {
-            if (typeof window !== 'undefined' && window.Sentry) {
-                window.Sentry.captureException(error, {
-                    extra: {
-                        boundaryType: 'PageErrorBoundary',
-                        componentStack: errorInfo?.componentStack,
-                        url: window.location.href,
-                        timestamp: new Date().toISOString(),
-                    },
-                    tags: {
-                        errorBoundary: 'page-level',
-                        crashedRoute: window.location.pathname,
-                    },
-                });
-            }
+            Sentry.captureException(error, {
+                extra: {
+                    boundaryType: 'PageErrorBoundary',
+                    componentStack: errorInfo?.componentStack,
+                    url: typeof window !== 'undefined' ? window.location.href : 'SSR',
+                    timestamp: new Date().toISOString(),
+                },
+                tags: {
+                    errorBoundary: 'page-level',
+                    crashedRoute: typeof window !== 'undefined' ? window.location.pathname : 'SSR',
+                },
+            });
         } catch (_) { /* never let Sentry crash the boundary itself */ }
     }
 

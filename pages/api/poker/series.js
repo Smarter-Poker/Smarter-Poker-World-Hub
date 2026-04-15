@@ -3,6 +3,7 @@
  * Supports filtering by id, upcoming, type, tour, search, date range
  * Tries Supabase DB first, falls back to JSON data file
  */
+import { withSentry } from '../../../src/lib/sentry';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import seriesJson from '../../../data/poker-tour-series-2026.json';
 import allVenuesData from '../../../data/all-venues.json';
@@ -127,7 +128,7 @@ function loadEventsForSeries(series) {
   }
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   try {
     if (!applyRateLimit(req, res, LIMITS.read)) return;
 
@@ -573,3 +574,5 @@ export default async function handler(req, res) {
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
+
+export default withSentry(handler);

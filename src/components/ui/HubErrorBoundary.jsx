@@ -10,6 +10,7 @@
  *   </HubErrorBoundary>
  */
 import React from 'react';
+import * as Sentry from '@sentry/nextjs';
 
 export class HubErrorBoundary extends React.Component {
     constructor(props) {
@@ -29,22 +30,20 @@ export class HubErrorBoundary extends React.Component {
         // Fire optional onError callback so parent can react
         try { this.props.onError?.(error, name); } catch (_) { }
 
-        // Report to Sentry if available, silently
+        // Report to Sentry silently
         try {
-            if (typeof window !== 'undefined' && window.Sentry) {
-                window.Sentry.captureException(error, {
-                    extra: {
-                        boundaryName: name,
-                        componentStack: info?.componentStack,
-                        crashTimestamp: timestamp,
-                        url: typeof window !== 'undefined' ? window.location.href : 'unknown',
-                    },
-                    tags: {
-                        errorBoundary: 'hub-section',
-                        sectionName: name,
-                    },
-                });
-            }
+            Sentry.captureException(error, {
+                extra: {
+                    boundaryName: name,
+                    componentStack: info?.componentStack,
+                    crashTimestamp: timestamp,
+                    url: typeof window !== 'undefined' ? window.location.href : 'SSR',
+                },
+                tags: {
+                    errorBoundary: 'hub-section',
+                    sectionName: name,
+                },
+            });
         } catch (_) { /* never let reporting crash the boundary */ }
     }
 

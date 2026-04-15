@@ -3,7 +3,7 @@
  * Extracted from poker-near-me-lobby.js for bundle splitting
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useTransition, useRef } from 'react';
 import { getInitialsColor } from './pnm-utils';
 
 // ─── Game type normalization ───
@@ -46,6 +46,26 @@ const SOURCE_COLORS = {
 function MapPinIcon({ size = 14 }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>; }
 function ClockIcon() { return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>; }
 
+const IANA_TZ = {
+  'AL': 'America/Chicago', 'AK': 'America/Anchorage', 'AZ': 'America/Phoenix', 
+  'AR': 'America/Chicago', 'CA': 'America/Los_Angeles', 'CO': 'America/Denver',
+  'CT': 'America/New_York', 'DE': 'America/New_York', 'FL': 'America/New_York', 
+  'GA': 'America/New_York', 'HI': 'Pacific/Honolulu', 'ID': 'America/Denver',
+  'IL': 'America/Chicago', 'IN': 'America/Indiana/Indianapolis', 'IA': 'America/Chicago', 
+  'KS': 'America/Chicago', 'KY': 'America/New_York', 'LA': 'America/Chicago', 
+  'ME': 'America/New_York', 'MD': 'America/New_York', 'MA': 'America/New_York', 
+  'MI': 'America/Detroit', 'MN': 'America/Chicago', 'MS': 'America/Chicago', 
+  'MO': 'America/Chicago', 'MT': 'America/Denver', 'NE': 'America/Chicago', 
+  'NV': 'America/Los_Angeles', 'NH': 'America/New_York', 'NJ': 'America/New_York', 
+  'NM': 'America/Denver', 'NY': 'America/New_York', 'NC': 'America/New_York', 
+  'ND': 'America/Chicago', 'OH': 'America/New_York', 'OK': 'America/Chicago', 
+  'OR': 'America/Los_Angeles', 'PA': 'America/New_York', 'RI': 'America/New_York', 
+  'SC': 'America/New_York', 'SD': 'America/Chicago', 'TN': 'America/Chicago', 
+  'TX': 'America/Chicago', 'UT': 'America/Denver', 'VT': 'America/New_York', 
+  'VA': 'America/New_York', 'WA': 'America/Los_Angeles', 'WV': 'America/New_York', 
+  'WI': 'America/Chicago', 'WY': 'America/Denver'
+};
+
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 // [DTP1 FIX] Removed module-level TODAY_INDEX — it would be stale across midnight for long-lived tabs.
 // Now computed inside the component so it refreshes per-mount.
@@ -82,6 +102,29 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
   const [selectedState, setSelectedState] = useState('all');
   const [expandedCards, setExpandedCards] = useState({});
 
+  // Performance hooks
+  const [isPending, startTransition] = useTransition();
+  const [renderLimit, setRenderLimit] = useState(20);
+  const loadMoreRef = useRef(null);
+
+  // Reset pagination on filter changes
+  useEffect(() => {
+    setRenderLimit(20);
+  }, [selectedDay, gameType, sortBy, selectedState, minBuyin, maxBuyin, minGuaranteed, groupByState]);
+
+  // Intersection Observer for DOM Pagination
+  useEffect(() => {
+    const node = loadMoreRef.current;
+    if (!node) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        setRenderLimit(prev => prev + 20);
+      }
+    }, { threshold: 0.1 });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [selectedDay]);
+
   // [DTP3 FIX v2] Tick now every 60s so countdowns don't freeze after mount.
   // useMemo(()=>new Date(),[]) was stale for the entire lifetime of the component.
   const [nowTick, setNowTick] = useState(() => new Date());
@@ -92,7 +135,10 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
   const now = nowTick;
 
   const handleDayChange = (day) => {
-    setSelectedDay(day);
+    startTransition(() => {
+      setSelectedDay(day);
+      setSelectedState('all');
+    });
     onDayChange?.(day);
   };
 
@@ -150,10 +196,13 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
     return result;
   }, [tournaments, selectedDay, gameType, selectedState, minBuyin, maxBuyin, minGuaranteed, sortBy]);
 
+  // DOM Virtualization slice
+  const visibleFiltered = useMemo(() => filtered.slice(0, renderLimit), [filtered, renderLimit]);
+
   // [DTP5 FIX] Memoize grouped-by-state object — was recomputed on every render
   const groupedByState = useMemo(() => {
     if (!groupByState) return null;
-    return filtered.reduce((acc, t) => {
+    return visibleFiltered.reduce((acc, t) => {
       const st = t.venue_state || t.state || 'Unknown';
       if (!acc[st]) acc[st] = [];
       acc[st].push(t);
@@ -230,9 +279,15 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
             const [h, m] = timePart.split(':').map(Number);
             let hour24 = h;
             if (ampm) { if (ampm.toUpperCase() === 'PM' && h !== 12) hour24 += 12; if (ampm.toUpperCase() === 'AM' && h === 12) hour24 = 0; }
-            const target = new Date(now); target.setHours(hour24, m, 0, 0);
-            if (target <= now) target.setDate(target.getDate() + 1);
-            const diffMin = Math.round((target - now) / 60000);
+            
+            // Timezone offset math
+            const tz = IANA_TZ[t.state || t.venue_state] || 'America/New_York';
+            const venueNow = new Date(new Date().toLocaleString("en-US", { timeZone: tz }));
+            const target = new Date(venueNow); 
+            target.setHours(hour24, m, 0, 0);
+
+            if (target <= venueNow) target.setDate(target.getDate() + 1);
+            const diffMin = Math.round((target - venueNow) / 60000);
             if (diffMin <= 0 || diffMin > 1440) return null;
             const hrs = Math.floor(diffMin / 60);
             const mins = diffMin % 60;
@@ -367,7 +422,7 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
       {/* Filter Row: Game Type */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
         {GAME_TYPES.map(gt => (
-          <button key={gt} onClick={() => setGameType(gt)}
+          <button key={gt} onClick={() => startTransition(() => setGameType(gt))}
             style={{
               padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
               border: gameType === gt ? '1.5px solid rgba(255,255,255,0.5)' : '1.5px solid rgba(148,163,184,0.12)',
@@ -381,18 +436,18 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
 
       {/* Advanced Filters Row */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-        <input type="number" placeholder="Min $" value={minBuyin} onChange={e => setMinBuyin(e.target.value)}
+        <input type="number" placeholder="Min $" value={minBuyin} onChange={e => startTransition(() => setMinBuyin(e.target.value))}
           style={{ width: 70, padding: '5px 8px', borderRadius: 6, border: '1.5px solid rgba(148,163,184,0.15)', background: 'linear-gradient(180deg, rgba(20,30,48,0.95), rgba(12,18,30,0.98))', color: '#e2e8f0', fontSize: 12, fontFamily: 'inherit', outline: 'none', boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.4)' }} />
         <span style={{ color: 'rgba(148,163,184,0.4)', fontSize: 11 }}>to</span>
-        <input type="number" placeholder="Max $" value={maxBuyin} onChange={e => setMaxBuyin(e.target.value)}
+        <input type="number" placeholder="Max $" value={maxBuyin} onChange={e => startTransition(() => setMaxBuyin(e.target.value))}
           style={{ width: 70, padding: '5px 8px', borderRadius: 6, border: '1.5px solid rgba(148,163,184,0.15)', background: 'linear-gradient(180deg, rgba(20,30,48,0.95), rgba(12,18,30,0.98))', color: '#e2e8f0', fontSize: 12, fontFamily: 'inherit', outline: 'none', boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.4)' }} />
-        <input type="number" placeholder="Min GTD" value={minGuaranteed} onChange={e => setMinGuaranteed(e.target.value)}
+        <input type="number" placeholder="Min GTD" value={minGuaranteed} onChange={e => startTransition(() => setMinGuaranteed(e.target.value))}
           style={{ width: 85, padding: '5px 8px', borderRadius: 6, border: '1.5px solid rgba(148,163,184,0.15)', background: 'linear-gradient(180deg, rgba(20,30,48,0.95), rgba(12,18,30,0.98))', color: '#e2e8f0', fontSize: 12, fontFamily: 'inherit', outline: 'none', boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.4)' }} />
-        <select value={sortBy} onChange={e => setSortBy(e.target.value)}
+        <select value={sortBy} onChange={e => startTransition(() => setSortBy(e.target.value))}
           style={{ padding: '5px 8px', borderRadius: 6, border: '1.5px solid rgba(148,163,184,0.15)', background: 'linear-gradient(180deg, rgba(20,30,48,0.95), rgba(12,18,30,0.98))', color: '#e2e8f0', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', outline: 'none', boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.4)' }}>
           {SORT_OPTS.map(o => <option key={o.v} value={o.v} style={{ background: '#0d1117' }}>{o.l}</option>)}
         </select>
-        <button onClick={() => setGroupByState(!groupByState)}
+        <button onClick={() => startTransition(() => setGroupByState(!groupByState))}
           style={{
             padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
             border: groupByState ? '1.5px solid rgba(255,255,255,0.5)' : '1.5px solid rgba(148,163,184,0.12)',
@@ -412,7 +467,7 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
       {/* Top States quick filter — [DTP5] uses memoized topStates (was an IIFE re-running 400+ items per render) */}
       {topStates.length >= 2 && (
           <div style={{ display: 'flex', gap: 4, marginBottom: 12, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' }}>
-            <button onClick={() => setSelectedState('all')}
+            <button onClick={() => startTransition(() => setSelectedState('all'))}
               style={{
                 flexShrink: 0, padding: '3px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
                 border: (!selectedState || selectedState === 'all') ? '1.5px solid rgba(255,255,255,0.5)' : '1.5px solid rgba(148,163,184,0.12)',
@@ -420,7 +475,7 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
                 color: (!selectedState || selectedState === 'all') ? '#ffffff' : 'rgba(148,163,184,0.5)',
               }}>All</button>
             {topStates.map(([st, count]) => (
-              <button key={st} onClick={() => setSelectedState(st)}
+              <button key={st} onClick={() => startTransition(() => setSelectedState(st))}
                 style={{
                   flexShrink: 0, padding: '3px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
                   border: selectedState === st ? '1.5px solid rgba(255,255,255,0.5)' : '1.5px solid rgba(148,163,184,0.12)',
@@ -438,16 +493,19 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
             <div style={{ fontSize: 13, fontWeight: 700, color: '#ffffff', marginBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.15)', paddingBottom: 4 }}>
               {st} ({groupedByState[st].length})
             </div>
-            <div style={{ display: 'grid', gap: 10 }}>
+            <div style={{ display: 'grid', gap: 10, opacity: isPending ? 0.6 : 1, transition: 'opacity 0.2s' }}>
               {groupedByState[st].map((t, i) => renderTournamentCard(t, `${st}-${i}`))}
             </div>
           </div>
         ))
       ) : (
-        <div style={{ display: 'grid', gap: 10 }}>
-          {filtered.map((t, i) => renderTournamentCard(t, i))}
+        <div style={{ display: 'grid', gap: 10, opacity: isPending ? 0.6 : 1, transition: 'opacity 0.2s' }}>
+          {visibleFiltered.map((t, i) => renderTournamentCard(t, i))}
         </div>
       )}
+
+      {/* Intersection Observer target node */}
+      <div ref={loadMoreRef} style={{ height: 20, opacity: 0 }} />
 
       {filtered.length === 0 && (
         <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
