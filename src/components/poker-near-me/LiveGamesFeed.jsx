@@ -380,11 +380,31 @@ export default function LiveGamesFeed({
         // Now uses a unique randomized name (same pattern as useVenueRealtime.js).
         const channelName = `lgf-live-tables-${Math.random().toString(36).substring(2, 10)}`;
         const liveChannel = supabase.channel(channelName)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'venue_live_tables' }, () => {
-                if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-                debounceTimerRef.current = setTimeout(() => {
-                    fetchGlobalLiveData(true);
-                }, 2000);
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'venue_live_tables' }, (payload) => {
+                if (!payload || !payload.new) return;
+                const { eventType, new: newRec } = payload;
+                if (eventType !== 'UPDATE' && eventType !== 'INSERT') return;
+                
+                // [LGF Surgical Fix] Bypass full API fetches and surgically mutate exactly what changed
+                setLiveData(prev => {
+                    const venuesList = Object.values(prev);
+                    const match = venuesList.find(v => String(v.id) === String(newRec.venue_id));
+                    if (!match) return prev;
+                    
+                    const nextV = { ...match, games: [...(match.games || [])] };
+                    const gameIdx = nextV.games.findIndex(g => g.id === newRec.id);
+                    
+                    if (gameIdx !== -1) {
+                        nextV.games[gameIdx] = { ...nextV.games[gameIdx], ...newRec };
+                    } else {
+                        nextV.games.push(newRec);
+                    }
+                    
+                    nextV.totalTables = nextV.games.reduce((acc, g) => acc + (g.tables_running || 0), 0);
+                    nextV.totalWait = nextV.games.reduce((acc, g) => acc + (g.players_waiting || 0), 0);
+                    
+                    return { ...prev, [match.bravo_slug || match.id]: nextV };
+                });
             })
             .subscribe();
 

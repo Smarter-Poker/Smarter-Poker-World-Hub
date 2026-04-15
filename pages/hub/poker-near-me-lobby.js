@@ -585,7 +585,10 @@ export default function PokerNearMeLobby() {
   useEffect(() => {
     dailyDayFilterRef.current = (filters.dailyDay === 'all' || !filters.dailyDay) ? null : filters.dailyDay;
   }, [filters.dailyDay]);
-  useVenueRealtime(() => {
+  useVenueRealtime((payload) => {
+    // Only refresh if it's a hard reconnect (null payload) or a daily tournament change
+    if (payload && payload.table !== 'venue_daily_tournaments') return;
+
     if (activePod === 'daily') {
         // Bust the cache for all daily-tournament URLs so next cachedFetch bypasses TTL
         invalidateCache('/api/poker/daily-tournaments');
