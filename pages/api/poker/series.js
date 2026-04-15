@@ -358,7 +358,9 @@ export default async function handler(req, res) {
         if (end_date) psQuery = psQuery.lte('start_date', end_date);
 
         const [{ data, error }, { data: psData }] = await Promise.all([query, psQuery]);
-        pokerSeriesData = psData || [];
+        // [B1 FIX] Declare pokerSeriesData here — was missing 'let' causing ReferenceError
+        // in strict mode, crashing the try block and falling through to empty JSON fallback.
+        let pokerSeriesData = psData || [];
 
         // Merge: combine both, dedup by series_uid (primary) then name (fallback)
         const mergedMap = new Map();
