@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { getAuthUser, getAccessToken } from '../lib/authUtils';
 
@@ -36,18 +36,12 @@ export default function useTrackedTours() {
                     if (isMounted) {
                         globalTrackedTours = data?.tracked_tours || [];
                         setTrackedTours(globalTrackedTours);
-                        setLoading(false); // [UT3 FIX] moved inside isMounted guard
-                        emitChange();
                     }
                 } catch (e) {
-                    console.error('Failed to fetch tracked tours', e);
-                }
-            } else {
-                if (isMounted) {
-                    setTrackedTours(globalTrackedTours);
-                    setLoading(false);
+                    console.error('Failed to fetch tracked tours:', e);
                 }
             }
+            if (isMounted) setLoading(false);
         };
         fetchPrefs();
 
