@@ -19,6 +19,7 @@ const HamburgerMenu = dynamic(() => import('../../src/components/ui/HamburgerMen
 const VenueMap = dynamic(() => import('../../src/components/poker-near-me/VenueMap').then(m => ({ default: m.default })), { ssr: false });
 const MapErrorBoundary = dynamic(() => import('../../src/components/poker-near-me/VenueMap').then(m => ({ default: m.MapErrorBoundary })), { ssr: false });
 const IframeModal = dynamic(() => import('../../src/components/ui/IframeModal'), { ssr: false });
+import useSWR from 'swr';
 
 function safeHref(url) {
     if (!url) return undefined;
@@ -98,9 +99,24 @@ export default function PokerToursPage({ initialTours = [] }) {
     const [menuOpen, setMenuOpen] = useState(false);
     const menuConfig = useMemo(() => getMenuConfig('events'), []);
 
-    // ─── Data State ───
-    const [tours, setTours] = useState([]);
-    const [loading, setLoading] = useState(true);
+    // ─── Data State & SWR Hydration ───
+    const [tours, setTours] = useState(initialTours || []);
+    const [loading, setLoading] = useState(false);
+    
+    const fetcher = url => fetch(url).then(res => res.json()).then(d => d.data || d);
+    const { data: liveTours, error: swrError } = useSWR('/api/poker/tours?include_series=true&limit=100', fetcher, {
+        fallbackData: initialTours,
+        refreshInterval: 300000, // 5 min background refresh
+        revalidateOnFocus: true
+    });
+    
+    // Sync SWR payload to local state
+    useEffect(() => {
+        if (liveTours && Array.isArray(liveTours)) {
+            setTours(liveTours);
+            setLoading(false);
+        }
+    }, [liveTours]);
     const [allVenues, setAllVenues] = useState([]);
     const [userLocation, setUserLocation] = useState(null);
     const [iframeModal, setIframeModal] = useState({ isOpen: false, url: '', title: '' });
@@ -116,12 +132,24 @@ export default function PokerToursPage({ initialTours = [] }) {
     const searchInputRef = useRef(null);
     const [searchFocused, setSearchFocused] = useState(false);
     const [isInitialized, setIsInitialized] = useState(false);
+    const [nowTick, setNowTick] = useState(0);
+
+    // Provide robust fallback to prevent hydration errors and script crashing
     const [favorites, setFavorites] = useState(() => {
         if (typeof window === 'undefined') return {};
         try {
             return JSON.parse(localStorage.getItem('pnm_tour_favorites') || '{}');
-        } catch { return {}; }
+        } catch (e) { 
+            console.warn('[LocalStorage] Corrupt favorites list, resetting.');
+            return {}; 
+        }
     });
+
+    // ─── Midnight safe ticker for date range cutoff ───
+    useEffect(() => {
+        const i = setInterval(() => setNowTick(Date.now()), 60000);
+        return () => clearInterval(i);
+    }, []);
 
     // ─── Cross-Tab Favorites Sync ───
     useEffect(() => {
@@ -245,7 +273,7 @@ export default function PokerToursPage({ initialTours = [] }) {
 
     // ─── Haversine distance calculation (miles) ───
 
-    // ─── Fetch tours data ───
+    // ─── Fetch tours data (SWR replaces this, only location fetch remains) ───
     useEffect(() => {
         let isMounted = true;
         // Try to get user location for the map (not tied to loading state)
@@ -255,12 +283,8 @@ export default function PokerToursPage({ initialTours = [] }) {
                 () => {} // silent fail
             );
         }
-
-        setTours(initialTours);
-        setLoading(false);
-
         return () => { isMounted = false; };
-    }, [initialTours, rtNonce]);
+    }, []);
 
     // ─── Fetch all venues for coordinate lookup ───
     useEffect(() => {
@@ -516,7 +540,8 @@ export default function PokerToursPage({ initialTours = [] }) {
         const cutoff = new Date(now);
         cutoff.setDate(cutoff.getDate() + days);
         return { start: now, end: cutoff };
-    }, [dateRange]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [dateRange, nowTick]);
 
     // ─── Filtered & sorted tours ───
     const filteredTours = useMemo(() => {
@@ -2057,20 +2082,11 @@ export default function PokerToursPage({ initialTours = [] }) {
 // ═══════════════════════════════════════════════
 // ON-DEMAND STATIC DATA (ISR)
 // ═══════════════════════════════════════════════
-import { supabaseAdmin } from '../../src/lib/supabaseAdmin';
+import { getAllToursForSSR } from '../api/poker/tours';
 
 export async function getStaticProps() {
     try {
-        // Mock the logic of /api/poker/tours
-        const { data, error } = await supabaseAdmin
-            .from('poker_series')
-            .select('*')
-            .not('tour', 'is', null)
-            .not('tour', 'eq', 'INDEPENDENT')
-            .order('start_date', { ascending: true })
-            .limit(300);
-            
-        if (error) throw error;
+        const data = await getAllToursForSSR();
         
         return {
             props: { initialTours: data || [] },

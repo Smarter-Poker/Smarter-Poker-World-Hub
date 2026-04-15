@@ -7,6 +7,8 @@
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
 =======
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
@@ -41,6 +43,14 @@ soaked 48h without regression.
 <<<<<<< Updated upstream
 >>>>>>> Stashed changes
 =======
+>>>>>>> Stashed changes
+=======
+`.memory/context/phase-1.1-shipped.md`. Do not start 1.2 code until 1.1 has
+soaked 48h without regression.
+>>>>>>> Stashed changes
+=======
+`.memory/context/phase-1.1-shipped.md`. Do not start 1.2 code until 1.1 has
+soaked 48h without regression.
 >>>>>>> Stashed changes
 **Rules:** `.memory/WORKING-RULES.md` — no band-aids, rewrites only, one
 step at a time.
@@ -210,6 +220,8 @@ One PR per deliverable. Each follows the PR-1..PR-5 cadence:
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
 =======
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
@@ -253,6 +265,16 @@ One PR per deliverable. Each follows the PR-1..PR-5 cadence:
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
+=======
+- **PR-B**: Wire DeadlineScheduler inside `PreciseActionTimer` as the
+  execution backend (temporarily) so every existing caller transparently
+  benefits. Deploy, observe.
+>>>>>>> Stashed changes
+=======
+- **PR-B**: Wire DeadlineScheduler inside `PreciseActionTimer` as the
+  execution backend (temporarily) so every existing caller transparently
+  benefits. Deploy, observe.
+>>>>>>> Stashed changes
 - **PR-C**: Migrate `hand_state_snapshots` schema. DB migration through
   Supabase SQL mcp.
 - **PR-D**: Persistence + rehydrate path. Kill-test verification.
@@ -294,6 +316,8 @@ the remaining lifetime of each engine instance.
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
 =======
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
@@ -324,4 +348,10 @@ After Phase 1.1 soak + load test pass, begin PR-A.
 <<<<<<< Updated upstream
 >>>>>>> Stashed changes
 =======
+>>>>>>> Stashed changes
+=======
+After Phase 1.1 soak + load test pass, begin PR-A.
+>>>>>>> Stashed changes
+=======
+After Phase 1.1 soak + load test pass, begin PR-A.
 >>>>>>> Stashed changes

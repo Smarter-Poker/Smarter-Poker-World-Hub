@@ -333,6 +333,61 @@ function findVenueCoords(stop) {
     return null;
 }
 
+export async function getMergedToursData(excludeStationary = false) {
+    const registryTours = getToursFromRegistry(excludeStationary);
+    const registryByCode = {};
+    registryTours.forEach(t => { registryByCode[t.tour_code] = t; });
+
+    let tours = [];
+    let source = 'registry';
+    try {
+        const { data, error } = await getSupabase()
+            .from('tour_source_registry')
+            .select('*')
+            .eq('is_active', true)
+            .order('tour_type', { ascending: true })
+            .limit(100);
+
+        if (!error && data && data.length > 0) {
+            const mergedFromDb = data
+                .filter(d => !excludeStationary || !STATIONARY_CODES.has(d.tour_code))
+                .map(d => mergeWithRegistry(d, registryByCode[d.tour_code]));
+
+            const dbCodes = new Set(data.map(d => d.tour_code));
+            const registryOnly = registryTours.filter(t => !dbCodes.has(t.tour_code));
+
+            tours = [...mergedFromDb, ...registryOnly];
+            source = 'merged';
+        }
+    } catch (e) {
+        // DB not available
+    }
+
+    if (tours.length === 0) tours = registryTours;
+    return { tours, registryTours, source };
+}
+
+export async function getAllToursForSSR() {
+    const { tours, registryTours } = await getMergedToursData(false);
+    let finalTours = tours;
+    // Attach upcoming
+    const allUpcoming = getUpcomingSeries(null, registryTours);
+    const seriesByTour = {};
+    allUpcoming.forEach(s => {
+        if (!seriesByTour[s.tour]) seriesByTour[s.tour] = [];
+        seriesByTour[s.tour].push(s);
+    });
+
+    finalTours = finalTours.map(tour => ({
+        ...tour,
+        upcoming_series: (seriesByTour[tour.tour_code] || []).slice(0, 5),
+    }));
+
+    // Default sort by priority
+    finalTours.sort((a, b) => (a.priority || 99) - (b.priority || 99));
+    return finalTours;
+}
+
 export default async function handler(req, res) {
   try {
     if (!applyRateLimit(req, res, LIMITS.read)) return;
@@ -355,44 +410,8 @@ export default async function handler(req, res) {
 
           const excludeStationary = traveling_only === 'true';
 
-          // Get registry tours (always available, has rich data)
-          const registryTours = getToursFromRegistry(excludeStationary);
-          const registryByCode = {};
-          registryTours.forEach(t => { registryByCode[t.tour_code] = t; });
-
           // Try to get DB tours
-          let tours = [];
-          let source = 'registry';
-          try {
-              const { data, error } = await getSupabase()
-                  .from('tour_source_registry')
-                  .select('*')
-                  .eq('is_active', true)
-                  .order('tour_type', { ascending: true })
-                  .limit(100);
-
-              if (!error && data && data.length > 0) {
-                  // Merge DB with registry data
-                  const mergedFromDb = data
-                      .filter(d => !excludeStationary || !STATIONARY_CODES.has(d.tour_code))
-                      .map(d => mergeWithRegistry(d, registryByCode[d.tour_code]));
-
-                  // Add registry-only tours not in DB
-                  const dbCodes = new Set(data.map(d => d.tour_code));
-                  const registryOnly = registryTours
-                      .filter(t => !dbCodes.has(t.tour_code));
-
-                  tours = [...mergedFromDb, ...registryOnly];
-                  source = 'merged';
-              }
-          } catch (e) {
-              // DB not available
-          }
-
-          // Fall back to registry-only
-          if (tours.length === 0) {
-              tours = registryTours;
-          }
+          const { tours, registryTours, source } = await getMergedToursData(excludeStationary);
 
           // Calculate distance if coordinates provided
           if (!isNaN(userLat) && !isNaN(userLng)) {
