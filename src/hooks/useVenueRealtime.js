@@ -40,6 +40,7 @@ export default function useVenueRealtime(onUpdate) {
             .on('postgres_changes', { event: '*', schema: 'public', table: 'poker_venues' }, handlePayload)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'venue_daily_tournaments' }, handlePayload)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'poker_series' }, handlePayload)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'tournament_series' }, handlePayload)
             .subscribe((status, err) => {
                 if (status === 'SUBSCRIBED') {
                     console.log(`[Realtime] ✅ Connected: ${channelName}`);

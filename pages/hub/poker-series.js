@@ -209,15 +209,22 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
         if (!payload) {
             // [PS2+PS3 FIX] Use .range(0,999) to bypass Supabase 1000-row project ceiling.
             // Added .catch() so silent auth/network failures don't leave stale state.
-            supabase.from('poker_series').select('*')
-                .or('is_suppressed.is.null,is_suppressed.eq.false')
-                .order('start_date', { ascending: true })
-                .range(0, 999)
-                .then(({ data, error }) => {
-                    if (data && !error) setAllSeries(data);
-                    else if (error) console.error('[RT] Hard refresh failed:', error);
-                })
-                .catch(err => console.error('[RT] Hard refresh exception:', err));
+            Promise.all([
+                supabase.from('poker_series').select('*').or('is_suppressed.is.null,is_suppressed.eq.false').order('start_date', { ascending: true }).range(0, 999),
+                supabase.from('tournament_series').select('*').or('is_suppressed.is.null,is_suppressed.eq.false').order('start_date', { ascending: true }).range(0, 499)
+            ])
+            .then(([psRes, tsRes]) => {
+                let merged = [];
+                if (tsRes.data) merged = [...tsRes.data];
+                if (psRes.data) {
+                    for (const ps of psRes.data) {
+                        const uid = ps.series_uid;
+                        if (!uid || !merged.some(t => t.series_uid === uid)) merged.push(ps);
+                    }
+                }
+                setAllSeries(merged);
+            })
+            .catch(err => console.error('[RT] Hard refresh exception:', err));
             return;
         }
 
@@ -235,7 +242,7 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
             return;
         }
 
-        if (payload.table !== 'poker_series') return;
+        if (payload.table !== 'poker_series' && payload.table !== 'tournament_series') return;
         const { eventType, new: newRec, old: oldRec } = payload;
         
         setAllSeries(prev => {
@@ -2032,18 +2039,25 @@ import { supabaseAdmin } from '../../src/lib/supabaseAdmin';
 
 export async function getStaticProps() {
     try {
-        const { data, error } = await supabaseAdmin
-            .from('poker_series')
-            .select('*')
-            .or('is_suppressed.is.null,is_suppressed.eq.false')
-            .order('start_date', { ascending: true })
-            .range(0, 499); // [GSP1 FIX] Was .limit(300) — silently dropped series #301+ on every ISR rebuild
-            // Using .range(0,499) handles current dataset (300-400 rows) with headroom
-            
-        if (error) throw error;
+        const [psRes, tsRes] = await Promise.all([
+            supabaseAdmin.from('poker_series').select('*').or('is_suppressed.is.null,is_suppressed.eq.false').order('start_date', { ascending: true }).range(0, 999),
+            supabaseAdmin.from('tournament_series').select('*').or('is_suppressed.is.null,is_suppressed.eq.false').order('start_date', { ascending: true }).range(0, 499)
+        ]);
+        
+        if (psRes.error) throw psRes.error;
+        if (tsRes.error) throw tsRes.error;
+
+        let allData = [];
+        if (tsRes.data) allData = [...tsRes.data];
+        if (psRes.data) {
+            for (const ps of psRes.data) {
+                const uid = ps.series_uid;
+                if (!uid || !allData.some(t => t.series_uid === uid)) allData.push(ps);
+            }
+        }
         
         return {
-            props: { initialSeries: data || [] },
+            props: { initialSeries: allData },
             revalidate: 60, // 60 second Edge caching
         };
     } catch (e) {
