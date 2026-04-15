@@ -208,7 +208,9 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
       acc[st].push(t);
       return acc;
     }, {});
-  }, [filtered, groupByState]);
+  // [DTP6 FIX] Dep must be visibleFiltered not filtered — this memo groups the paginated slice.
+  // Using filtered caused stale group counts when renderLimit < filtered.length.
+  }, [visibleFiltered, groupByState]);
 
   // [DTP5 FIX] State counts also memoized — iterates raw tournaments prop on every render otherwise
   const topStates = useMemo(() => {

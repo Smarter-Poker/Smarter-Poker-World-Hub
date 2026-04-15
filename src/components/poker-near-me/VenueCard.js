@@ -291,9 +291,13 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
         else if (crowd.label === 'Busy') { minW = 25; maxW = 40; }
         else if (crowd.label === 'Active') { minW = 15; maxW = 25; }
         else { minW = 10; maxW = 20; }
-        const m = minW + Math.floor(Math.random() * (maxW - minW + 1));
+        // [VC1 FIX] Math.random() inside useMemo produces a different value on every React re-mount
+        // (the memo is stable during a session but re-runs fresh on each card mount, causing wait
+        // time to visibly flicker between renders). Seed from venue.id for stable per-venue variance.
+        const seed = typeof venue?.id === 'number' ? venue.id : String(venue?.id || '0').split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+        const m = minW + (seed % (maxW - minW + 1));
         return { minutes: m, label: `${m} Min` };
-    }, [hasLiveData, crowd.label, staleInfo.stale]);
+    }, [hasLiveData, crowd.label, staleInfo.stale, venue?.id]);
 
     // Guard — AFTER all hooks
     if (!venue) return null;
