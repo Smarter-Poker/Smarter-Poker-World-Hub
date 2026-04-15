@@ -498,7 +498,8 @@ export default async function handler(req, res) {
         let tq = sb.from('tour_stop_events')
           .select('id, tour_code, stop_name, stop_venue, stop_city, stop_state, event_name, start_date, start_time, buy_in, game_type, guarantee, is_main_event, is_high_roller');
 
-        tq = tq.eq('is_active', true);
+        // [EC8 FIX] Removed .eq('is_active', true) — tour_stop_events doesn't have an is_active column
+        // This was throwing an uncaught DB error and silently preventing any tour events from loading.
         if (safeState) tq = tq.ilike('stop_state', safeState.length === 2 ? safeState.toUpperCase() : `%${safeState}%`);
         if (minBuyin) tq = tq.gte('buy_in', parseInt(minBuyin));
         if (maxBuyin) tq = tq.lte('buy_in', parseInt(maxBuyin));

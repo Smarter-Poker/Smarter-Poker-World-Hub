@@ -264,7 +264,7 @@ export default function LiveGamesFeed({
     const filterSort = internalFilterSort;
     const setFilterRadius = (val) => {
         if (globalFilters && setGlobalFilters) {
-            setGlobalFilters({ ...globalFilters, radius: val === 'any' ? 'Any' : Number(val) });
+            setGlobalFilters(prev => ({ ...prev, radius: val === 'any' ? 'Any' : Number(val) }));
         } else {
             setInternalFilterRadius(val);
         }
@@ -609,13 +609,13 @@ export default function LiveGamesFeed({
         const newRadius = effectiveLocation ? '50' : 'any';
         if (globalFilters && setGlobalFilters) {
             // Delegate to parent global state — reset all applicable filters
-            setGlobalFilters({
-                ...globalFilters,
+            setGlobalFilters(prev => ({
+                ...prev,
                 radius: newRadius === 'any' ? 'Any' : Number(newRadius),
                 gameType: 'all',
                 stakes: 'all',
                 selectedState: 'all',
-            });
+            }));
         } else {
             // Standalone mode — reset internal filter state
             setInternalFilterRadius(newRadius);
@@ -1025,7 +1025,7 @@ export default function LiveGamesFeed({
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" style={{ transform: mapExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }}><polyline points="6 9 12 15 18 9" /></svg>
                     </div>
                     {mapExpanded && (
-                        <div style={{ height: 400, borderRadius: '0 0 14px 14px', overflow: 'hidden' }}>
+                        <div style={{ height: 400, borderRadius: '0 0 14px 14px', overflow: 'visible' }}>
                             <VenueMap venues={mergedVenues.filter(v => v.latitude && v.longitude)} userLocation={effectiveLocation} radiusMiles={filterRadius} />
                         </div>
                     )}

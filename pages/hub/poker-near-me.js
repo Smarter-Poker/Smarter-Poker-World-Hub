@@ -593,9 +593,12 @@ export default function PokerNearMePage() {
                     const parsed = JSON.parse(saved);
                     // ENFORCE venueType=all so tour pins + all venues always show on map
                     parsed.venueType = 'all';
-                    // ENFORCE game/stakes filters so tour pins aren't accidentally filtered out
-                    parsed.gameType = 'all';
-                    parsed.stakes = 'all';
+                    // REMOVED gameType and stakes forced resets to allow user preference persistence.
+                    // Sanitize old cached 'tournaments' value back to 'all'
+                    if (['tournament', 'mtt', 'tournaments'].includes(String(parsed.gameType).toLowerCase())) {
+                        parsed.gameType = 'all';
+                    }
+                    // To safeguard tour pins from being filtered out entirely, the map will ignore cash filters for pins.
                     // Keep the user's saved radius — do NOT override it to 50mi
                     // Default to 25mi only if no saved radius exists
                     if (!parsed.radius) parsed.radius = 25;
@@ -653,7 +656,7 @@ export default function PokerNearMePage() {
             // Fulfill hard rule: Wire Real-Time pushes to the Global Event Bus 
             eventBus.emit('PNM_FILTERS_UPDATED', filters);
         }
-    }, [filters, bus]);
+    }, [filters]);
 
     const filtersRef = useRef(filters);
     filtersRef.current = filters;
