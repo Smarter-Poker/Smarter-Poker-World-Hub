@@ -128,35 +128,47 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
         } catch { /* continue */ }
 
         try {
-            // Recent check-ins (from all venues)
+            // Recent check-ins (from all venues) — parallel fetch to avoid O(N) serial timeout
             const now = new Date();
             const twoHoursAgo = new Date(now - 2 * 60 * 60 * 1000).toISOString();
-            // Get checkins from nearby venues (last 2 hours)
             const nearbyVenues = venues.filter(isWithinRadius).slice(0, 20);
-            for (const v of nearbyVenues) {
-                if (!isMounted.current) return;
-                try {
-                    const res = await fetch(`/api/poker/checkins?venue_id=${v.id}&count_only=false&since=${encodeURIComponent(twoHoursAgo)}`, { signal });
-                    const data = await res.json();
-                    (data.checkins || []).forEach(c => {
-                        items.push({
-                            type: 'checkin',
-                            title: `${c.user_name || 'Someone'} checked in`,
-                            subtitle: v.name,
-                            detail: c.message || '',
-                            venue: v,
-                            time: c.created_at,
-                            id: `checkin-${c.id}`,
-                        });
+            
+            // [NMF1 FIX] Was a serial for-of loop that could fire setFeedItems after unmount between iterations.
+            // Now parallel via Promise.allSettled with a single isMounted guard after all settle.
+            const checkinResults = await Promise.allSettled(
+                nearbyVenues.map(v =>
+                    fetch(`/api/poker/checkins?venue_id=${v.id}&count_only=false&since=${encodeURIComponent(twoHoursAgo)}`, { signal })
+                        .then(r => r.ok ? r.json() : { checkins: [] })
+                        .then(data => ({ v, checkins: data.checkins || [] }))
+                        .catch(() => ({ v, checkins: [] }))
+                )
+            );
+            
+            if (!isMounted.current) return;
+            checkinResults.forEach(result => {
+                if (result.status !== 'fulfilled') return;
+                const { v, checkins } = result.value;
+                checkins.forEach(c => {
+                    items.push({
+                        type: 'checkin',
+                        title: `${c.user_name || 'Someone'} checked in`,
+                        subtitle: v.name,
+                        detail: c.message || '',
+                        venue: v,
+                        time: c.created_at,
+                        id: `checkin-${c.id}`,
                     });
-                } catch { /* continue */ }
-            }
+                });
+            });
         } catch { /* continue */ }
 
         if (!isMounted.current) return;
         try {
             // Promotions
             const promoRes = await fetch('/api/poker/promotions?limit=30', { signal });
+            // [NMF2 FIX] Was missing .ok check — a 500 response body would still be parsed
+            // and then crash accessing .promotions on the error JSON object.
+            if (!promoRes.ok) throw new Error(`Promotions: HTTP ${promoRes.status}`);
             const promoData = await promoRes.json();
             (promoData.promotions || promoData.data || []).forEach(p => {
                 const venue = venues.find(v => String(v.id) === String(p.page_id) || String(v.id) === String(p.venue_id));
