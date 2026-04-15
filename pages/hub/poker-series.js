@@ -210,6 +210,7 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
             // [PS2+PS3 FIX] Use .range(0,999) to bypass Supabase 1000-row project ceiling.
             // Added .catch() so silent auth/network failures don't leave stale state.
             supabase.from('poker_series').select('*')
+                .or('is_suppressed.is.null,is_suppressed.eq.false')
                 .order('start_date', { ascending: true })
                 .range(0, 999)
                 .then(({ data, error }) => {
@@ -239,12 +240,17 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
         
         setAllSeries(prev => {
             let next = [...prev];
+            if (eventType === 'DELETE' && oldRec) {
+                return next.filter(s => s.id !== oldRec.id);
+            }
             if (eventType === 'INSERT' && newRec) {
-                // Ensure no dupes
-                if (!next.some(s => s.id === newRec.id)) next.push(newRec);
+                // Ensure no dupes, ignoring suppressed
+                if (newRec.is_suppressed !== true && !next.some(s => s.id === newRec.id)) next.push(newRec);
             } else if (eventType === 'UPDATE' && newRec) {
                 const idx = next.findIndex(s => s.id === newRec.id);
-                if (idx !== -1) {
+                if (newRec.is_suppressed === true) {
+                    if (idx !== -1) next.splice(idx, 1);
+                } else if (idx !== -1) {
                     next[idx] = { ...next[idx], ...newRec };
                 } else {
                     next.push(newRec);
@@ -2029,6 +2035,7 @@ export async function getStaticProps() {
         const { data, error } = await supabaseAdmin
             .from('poker_series')
             .select('*')
+            .or('is_suppressed.is.null,is_suppressed.eq.false')
             .order('start_date', { ascending: true })
             .range(0, 499); // [GSP1 FIX] Was .limit(300) — silently dropped series #301+ on every ISR rebuild
             // Using .range(0,499) handles current dataset (300-400 rows) with headroom
