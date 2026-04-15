@@ -560,19 +560,11 @@ while [ $attempt -lt $MAX_RETRIES ]; do
       --msg "${MSG}" 2>/dev/null || true
 
     # ── Vercel production deploy ──
-    VERCEL_DEPLOY_TOKEN=""
-    if [ -f "${REPO_ROOT}/.env.local" ]; then
-      VERCEL_DEPLOY_TOKEN=$(grep '^VERCEL_TOKEN=' "${REPO_ROOT}/.env.local" 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'")
-    fi
-    if [ -n "$VERCEL_DEPLOY_TOKEN" ]; then
-      echo "🚀 Triggering Vercel production deploy..."
-      npx -y vercel deploy --prod --yes --token="$VERCEL_DEPLOY_TOKEN" 2>&1 || echo "⚠️ Vercel deployment failed, but git push succeeded."
-    elif which vercel >/dev/null 2>&1 || npx -y vercel --version >/dev/null 2>&1; then
-      echo "🚀 Triggering Vercel production deploy (no explicit token)..."
-      npx -y vercel deploy --prod --yes 2>&1 || echo "⚠️ Vercel deployment failed, but git push succeeded."
-    else
-      echo "⚠️ Vercel CLI not found and no VERCEL_TOKEN in .env.local — skipping deploy."
-    fi
+    # REMOVED: Manual `npx vercel deploy --prod` was creating a DUPLICATE deployment
+    # on every push. The GitHub integration already auto-deploys on push to main.
+    # This was the root cause of the 687+ build backlog in April 2026.
+    # Vercel will auto-deploy via the hub-vanguard GitHub integration.
+    echo "ℹ️  Vercel will auto-deploy via GitHub integration (no manual CLI deploy needed)."
     exit 0
    else
     if [ $attempt -lt $MAX_RETRIES ]; then
@@ -593,19 +585,8 @@ while [ $attempt -lt $MAX_RETRIES ]; do
       echo "═══════════════════════════════════════════════════"
 
       # ── Vercel production deploy (fallback path) ──
-      VERCEL_DEPLOY_TOKEN=""
-      if [ -f "${REPO_ROOT}/.env.local" ]; then
-        VERCEL_DEPLOY_TOKEN=$(grep '^VERCEL_TOKEN=' "${REPO_ROOT}/.env.local" 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'")
-      fi
-      if [ -n "$VERCEL_DEPLOY_TOKEN" ]; then
-        echo "🚀 Triggering Vercel production deploy..."
-        npx -y vercel deploy --prod --yes --token="$VERCEL_DEPLOY_TOKEN" 2>&1 || echo "⚠️ Vercel deployment failed, but git push succeeded."
-      elif which vercel >/dev/null 2>&1 || npx -y vercel --version >/dev/null 2>&1; then
-        echo "🚀 Triggering Vercel production deploy (no explicit token)..."
-        npx -y vercel deploy --prod --yes 2>&1 || echo "⚠️ Vercel deployment failed, but git push succeeded."
-      else
-        echo "⚠️ Vercel CLI not found and no VERCEL_TOKEN in .env.local — skipping deploy."
-      fi
+      # REMOVED: Same as above — GitHub integration handles auto-deploy.
+      echo "ℹ️  Vercel will auto-deploy via GitHub integration (no manual CLI deploy needed)."
       exit 0
     else
       if [ $attempt -lt $MAX_RETRIES ]; then
