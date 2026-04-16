@@ -1256,12 +1256,16 @@ export default function PokerNearMePage() {
             }
         };
 
+        // [GAP 4.3 FIX] Debounce DATA_MUTATED to prevent redundant fetches from rapid-fire events
+        let mutateDebounce = null;
         const handleBusDataMutated = (event) => {
             const { entity } = event.payload || {};
             if (entity === 'live_tables' || entity === 'venues') {
-                // Use ref so we always call the current fetchVenues closure (avoids stale reference)
-                if (fetchVenuesRef.current) fetchVenuesRef.current({ silent: true });
-                if (typeof fetchLiveCount === 'function') fetchLiveCount();
+                if (mutateDebounce) clearTimeout(mutateDebounce);
+                mutateDebounce = setTimeout(() => {
+                    if (fetchVenuesRef.current) fetchVenuesRef.current({ silent: true });
+                    if (typeof fetchLiveCount === 'function') fetchLiveCount();
+                }, 1000);
             }
         };
 
@@ -1487,8 +1491,16 @@ export default function PokerNearMePage() {
 
 
     // Reverse geocode lat/lng to city, state using OpenStreetMap Nominatim (free, no API key)
+    // [GAP 2.3 FIX] Rate limit to 1 request/second to comply with Nominatim usage policy
+    const lastGeocodeTime = useRef(0);
     const reverseGeocode = useCallback(async (lat, lng) => {
         try {
+            const now = Date.now();
+            const timeSinceLast = now - lastGeocodeTime.current;
+            if (timeSinceLast < 1100) {
+                await new Promise(r => setTimeout(r, 1100 - timeSinceLast));
+            }
+            lastGeocodeTime.current = Date.now();
             const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1&zoom=12`;
             const resp = await fetch(url, { headers: { 'Accept-Language': 'en-US,en' } });
             if (!resp.ok) return null;
