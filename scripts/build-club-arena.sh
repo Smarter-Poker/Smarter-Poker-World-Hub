@@ -21,6 +21,13 @@
 
 set -euo pipefail
 
+# ─── Ensure Node/NPM are in PATH ────────────────────────────────────────────
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+# Fallback path if nvm not used directly
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+
 # ─── Configuration ──────────────────────────────────────────────────────────
 CLUB_ARENA_SRC="$HOME/Documents/club-arena"
 WORLD_HUB="$HOME/Documents/Smarter-Poker-World-Hub"
