@@ -1281,7 +1281,7 @@ export default function HorsesAdmin() {
   if (loading) {
     return (
       <div className={styles.loading}>
-        <span className={styles.logo}>🐴</span>
+        <span className={styles.logo}>{'🐴'}</span>
         <p>Loading Stable...</p>
       </div>
     );
@@ -1305,7 +1305,7 @@ export default function HorsesAdmin() {
         <div className={styles.loginContainer}>
           <div className={styles.loginCard}>
             <div className={styles.loginHeader}>
-              <span className={styles.logo}>🐴</span>
+              <span className={styles.logo}>{'🐴'}</span>
               <h1>HORSES</h1>
               <p>Content Stable Admin</p>
             </div>
@@ -1364,7 +1364,7 @@ export default function HorsesAdmin() {
         {/* Header */}
         <header className={styles.header}>
           <div className={styles.headerLeft}>
-            <span className={styles.logo}>🐴</span>
+            <span className={styles.logo}>{'🐴'}</span>
             <h1>STABLE ADMIN V1.0</h1>
             <span className={styles.subtitle}>Content Stable & Search</span>
           </div>
@@ -1394,25 +1394,25 @@ export default function HorsesAdmin() {
             className={activeTab === 'stable' ? styles.active : ''}
             onClick={() => setActiveTab('stable')}
           >
-            💬 Social Horses
+            {'💬'} Social Horses
           </button>
           <button
             className={activeTab === 'grinder' ? styles.active : ''}
             onClick={() => setActiveTab('grinder')}
           >
-            🎲 Grinder Horses
+            {'🎲'} Grinder Horses
           </button>
           <button
             className={activeTab === 'pipeline' ? styles.active : ''}
             onClick={() => setActiveTab('pipeline')}
           >
-            🚀 Pipeline
+            {'🚀'} Pipeline
           </button>
           <button
             className={activeTab === 'settings' ? styles.active : ''}
             onClick={() => setActiveTab('settings')}
           >
-            ⚙️ Settings
+            {'⚙️'} Settings
           </button>
           <button
             className={activeTab === 'stats' ? styles.active : ''}
@@ -1421,19 +1421,19 @@ export default function HorsesAdmin() {
               if (!analyticsLoaded) loadAnalytics();
             }}
           >
-            📊 Statistics
+            {'📊'} Statistics
           </button>
           <button
             className={activeTab === 'promo' ? styles.active : ''}
             onClick={() => setActiveTab('promo')}
           >
-            🎟️ Promo Codes
+            {'🎟️'} Promo Codes
           </button>
           <button
             onClick={() => window.location.href = '/horses/sql-console'}
             style={{ fontWeight: 'bold', color: '#10b981' }}
           >
-            🧠 SQL Console
+            {'🧠'} SQL Console
           </button>
           <button
             className={activeTab === 'economy' ? styles.active : ''}
@@ -1442,7 +1442,7 @@ export default function HorsesAdmin() {
               if (!economyLoaded) loadEconomyData();
             }}
           >
-            💎 Economy
+            {'💎'} Economy
           </button>
           <button
             className={activeTab === 'antiabuse' ? styles.active : ''}
@@ -1451,7 +1451,7 @@ export default function HorsesAdmin() {
               if (!abuseLoaded) loadAntiAbuseData();
             }}
           >
-            🛡️ Anti-Abuse
+            {'🛡️'} Anti-Abuse
           </button>
           <button
             className={activeTab === 'clubarena' ? styles.active : ''}
@@ -1534,7 +1534,7 @@ export default function HorsesAdmin() {
                     Activate All
                   </button>
                   <button className={styles.btnCreate} onClick={() => setShowCreateModal(true)}>
-                    ➕ New Horse
+                    {'➕'} New Horse
                   </button>
                 </div>
               </div>
@@ -1579,9 +1579,9 @@ export default function HorsesAdmin() {
                       </label>
                     </div>
                     <div className={styles.personaDetails}>
-                      <p>📍 {persona.location}</p>
-                      <p>🎯 {persona.specialty?.replace('_', ' ')}</p>
-                      <p>💰 {persona.stakes}</p>
+                      <p>{'📍'} {persona.location}</p>
+                      <p>{'🎯'} {persona.specialty?.replace('_', ' ')}</p>
+                      <p>{'💰'} {persona.stakes}</p>
                     </div>
                     <div className={styles.personaBio}>{persona.bio}</div>
                     <div className={styles.personaVoice}>
@@ -1591,7 +1591,7 @@ export default function HorsesAdmin() {
                         onClick={() => handleDelete(persona.id, persona.name)}
                         title="Retire"
                       >
-                        🗑️
+                        {'🗑️'}
                       </button>
                     </div>
                   </div>
@@ -1604,7 +1604,7 @@ export default function HorsesAdmin() {
           {activeTab === 'grinder' && (
             <div className={styles.grinderView}>
               <div className={styles.grinderHeader}>
-                <h2>🎲 Grinder Horses - Poker AI</h2>
+                <h2>{'🎲'} Grinder Horses - Poker AI</h2>
                 <p className={styles.grinderSubtitle}>
                   Same Horses, Second Job: Playing Poker 16hrs/day Across 4 Tables Max in Shark Club
                   & Club JAQK
@@ -1631,7 +1631,7 @@ export default function HorsesAdmin() {
               </div>
 
               <div className={styles.grinderControls}>
-                <h3>🚀 Fleet Deployment — Midway Union</h3>
+                <h3>{'🚀'} Fleet Deployment — Midway Union</h3>
                 <div className={styles.clubActions}>
                   <button
                     className={styles.btnSuccess}
@@ -1639,7 +1639,7 @@ export default function HorsesAdmin() {
                     disabled={grinderLoading}
                     style={{ background: 'linear-gradient(135deg, #10b981, #059669)', fontSize: 15, padding: '12px 24px' }}
                   >
-                    🚀 Launch Full Fleet (Cash + Tournaments + SNGs + Spins)
+                    {'🚀'} Launch Full Fleet (Cash + Tournaments + SNGs + Spins)
                   </button>
                   <button
                     className={styles.actionBtn}
@@ -1647,18 +1647,18 @@ export default function HorsesAdmin() {
                     disabled={grinderLoading}
                     style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)', fontSize: 15, padding: '12px 24px', color: '#fff' }}
                   >
-                    💀 Shutdown Entire Fleet
+                    {'💀'} Shutdown Entire Fleet
                   </button>
                 </div>
 
-                <h3 style={{ marginTop: 24 }}>🏠 Club Management — Shark Club & Club JAQK</h3>
+                <h3 style={{ marginTop: 24 }}>{'🏠'} Club Management — Shark Club & Club JAQK</h3>
                 <div className={styles.clubActions}>
                   <button
                     className={styles.btnSuccess}
                     onClick={() => handleGrinderAction('add_to_club', 'shark_club')}
                     disabled={grinderLoading}
                   >
-                    🦈 Add All Horses to Shark Club ({settings.grinder_starting_chips || 10000}{' '}
+                    {'🦈'} Add All Horses to Shark Club ({settings.grinder_starting_chips || 10000}{' '}
                     chips)
                   </button>
                   <button
@@ -1674,20 +1674,20 @@ export default function HorsesAdmin() {
                     onClick={() => handleGrinderAction('start')}
                     disabled={grinderLoading}
                   >
-                    🎮 Start Auto-Join (Both Clubs)
+                    {'🎮'} Start Auto-Join (Both Clubs)
                   </button>
                   <button
                     className={styles.actionBtn}
                     onClick={() => handleGrinderAction('stop')}
                     disabled={grinderLoading}
                   >
-                    ⏹️ Stop All Horses (Both Clubs)
+                    ⏹{'️'} Stop All Horses (Both Clubs)
                   </button>
                 </div>
               </div>
 
               <div className={styles.grinderSettings}>
-                <h3>⚙️ Grinder Settings</h3>
+                <h3>{'⚙️'} Grinder Settings</h3>
                 <div className={styles.settingsRow}>
                   <div className={styles.settingItem}>
                     <label>Max Tables Per Horse</label>
@@ -1743,7 +1743,7 @@ export default function HorsesAdmin() {
               </div>
 
               <div className={styles.grinderTable}>
-                <h3>🐴 Horse Roster - Poker Mode</h3>
+                <h3>{'🐴'} Horse Roster - Poker Mode</h3>
                 <table className={styles.runsTable}>
                   <thead>
                     <tr>
@@ -1788,7 +1788,7 @@ export default function HorsesAdmin() {
                               color: '#60a5fa',
                             }}
                           >
-                            🦈 Shark
+                            {'🦈'} Shark
                           </span>{' '}
                           <span
                             style={{
@@ -1842,20 +1842,20 @@ export default function HorsesAdmin() {
               </div>
 
               <div className={styles.schedulePreview}>
-                <h3>🕐 Daily Schedule (Rotating Shifts)</h3>
+                <h3>{'🕐'} Daily Schedule (Rotating Shifts)</h3>
                 <div className={styles.scheduleGrid}>
                   <div className={styles.shift}>
-                    <h4>🌅 Morning Shift</h4>
+                    <h4>{'🌅'} Morning Shift</h4>
                     <p>8 AM - 4 PM</p>
                     <span>40 Horses</span>
                   </div>
                   <div className={styles.shift}>
-                    <h4>☀️ Day Shift</h4>
+                    <h4>{'☀️'} Day Shift</h4>
                     <p>12 PM - 8 PM</p>
                     <span>35 Horses</span>
                   </div>
                   <div className={styles.shift}>
-                    <h4>🌙 Night Shift</h4>
+                    <h4>{'🌙'} Night Shift</h4>
                     <p>4 PM - 12 AM</p>
                     <span>25 Horses</span>
                   </div>
@@ -1867,18 +1867,18 @@ export default function HorsesAdmin() {
           {/* PIPELINE TAB */}
           {activeTab === 'pipeline' && (
             <div className={styles.pipelineView}>
-              <h2>🚀 Content Pipeline</h2>
+              <h2>{'🚀'} Content Pipeline</h2>
 
               <div className={styles.pipelineActions}>
                 <h3>Quick Actions</h3>
                 <div className={styles.actionButtons}>
                   <button onClick={() => triggerPipeline('test')} className={styles.actionBtn}>
-                    <span className={styles.icon}>🧪</span>
+                    <span className={styles.icon}>{'🧪'}</span>
                     <span className={styles.label}>Test Run</span>
                     <span className={styles.desc}>3 Posts, No Video</span>
                   </button>
                   <button onClick={() => triggerPipeline('cycle')} className={styles.actionBtn}>
-                    <span className={styles.icon}>🔄</span>
+                    <span className={styles.icon}>{'🔄'}</span>
                     <span className={styles.label}>Quick Cycle</span>
                     <span className={styles.desc}>10 Posts + 2 Videos</span>
                   </button>
@@ -1886,12 +1886,12 @@ export default function HorsesAdmin() {
                     onClick={() => triggerPipeline('daily')}
                     className={`${styles.actionBtn} ${styles.featured}`}
                   >
-                    <span className={styles.icon}>📅</span>
+                    <span className={styles.icon}>{'📅'}</span>
                     <span className={styles.label}>Full Daily</span>
                     <span className={styles.desc}>{settings.posts_per_day} posts</span>
                   </button>
                   <button onClick={() => triggerPipeline('publish')} className={styles.actionBtn}>
-                    <span className={styles.icon}>📤</span>
+                    <span className={styles.icon}>{'📤'}</span>
                     <span className={styles.label}>Publish Due</span>
                     <span className={styles.desc}>Post Scheduled</span>
                   </button>
@@ -1905,7 +1905,7 @@ export default function HorsesAdmin() {
                     (name, i) => (
                       <div key={i} className={styles.sourceItem}>
                         <span>{name}</span>
-                        <span>🟢</span>
+                        <span>{'🟢'}</span>
                       </div>
                     )
                   )}
@@ -1913,7 +1913,7 @@ export default function HorsesAdmin() {
               </div>
 
               <div className={styles.recentRuns}>
-                <h3>📊 Recent Pipeline Runs</h3>
+                <h3>{'📊'} Recent Pipeline Runs</h3>
                 {pipelineRuns.length === 0 ? (
                   <p className={styles.noData}>No Pipeline Runs Yet</p>
                 ) : (
@@ -1951,11 +1951,11 @@ export default function HorsesAdmin() {
           {/* SETTINGS TAB */}
           {activeTab === 'settings' && (
             <div className={styles.settingsView}>
-              <h2>⚙️ Engine Settings</h2>
+              <h2>{'⚙️'} Engine Settings</h2>
 
               <div className={styles.settingsGrid}>
                 <div className={styles.settingCard}>
-                  <h3>📅 Posting Schedule</h3>
+                  <h3>{'📅'} Posting Schedule</h3>
                   <div className={styles.settingItem}>
                     <label>Posts Per Day</label>
                     <input
@@ -1989,7 +1989,7 @@ export default function HorsesAdmin() {
                 </div>
 
                 <div className={styles.settingCard}>
-                  <h3>🤖 AI Settings</h3>
+                  <h3>{'🤖'} AI Settings</h3>
                   <div className={styles.settingItem}>
                     <label>Model</label>
                     <select
@@ -2014,7 +2014,7 @@ export default function HorsesAdmin() {
                 </div>
 
                 <div className={`${styles.settingCard} ${styles.fullWidth}`}>
-                  <h3>🔌 System Controls</h3>
+                  <h3>{'🔌'} System Controls</h3>
                   <div className={styles.systemControls}>
                     <div className={styles.controlItem}>
                       <label>Content Engine</label>
@@ -2049,7 +2049,7 @@ export default function HorsesAdmin() {
           {/* STATS TAB */}
           {activeTab === 'stats' && (
             <div className={styles.statsView}>
-              <h2>📊 Content Statistics</h2>
+              <h2>{'📊'} Content Statistics</h2>
 
               {!analyticsLoaded ? (
                 <p style={{ textAlign: 'center', padding: '20px', color: '#888' }}>
@@ -2125,7 +2125,7 @@ export default function HorsesAdmin() {
           {/* PROMO CODES TAB */}
           {activeTab === 'promo' && (
             <div className={styles.statsView}>
-              <h2>🎟️ Promo Code Manager</h2>
+              <h2>{'🎟️'} Promo Code Manager</h2>
 
               {/* Stats Bar */}
               <div className={styles.statsOverview}>
@@ -2440,7 +2440,7 @@ export default function HorsesAdmin() {
                                   }}
                                   title="Copy Code"
                                 >
-                                  📋
+                                  {'📋'}
                                 </button>
                                 <button
                                   onClick={async () => {
@@ -2499,7 +2499,7 @@ export default function HorsesAdmin() {
           {/* ECONOMY TAB */}
           {activeTab === 'economy' && (
             <div className={styles.statsView}>
-              <h2>💎 Diamond Economy Dashboard</h2>
+              <h2>{'💎'} Diamond Economy Dashboard</h2>
 
               {economyLoading ? (
                 <div className={styles.loadingSpinner}>Loading Economy Data...</div>
@@ -2530,13 +2530,13 @@ export default function HorsesAdmin() {
                       <span className={styles.statNumber} style={{ color: '#22c55e' }}>
                         +{economyData.stats.totalDiamondsEarned.toLocaleString()}
                       </span>
-                      <span className={styles.statLabel}>💎 Total Earned</span>
+                      <span className={styles.statLabel}>{'💎'} Total Earned</span>
                     </div>
                     <div className={styles.statCardLarge}>
                       <span className={styles.statNumber} style={{ color: '#ef4444' }}>
                         -{economyData.stats.totalDiamondsSpent.toLocaleString()}
                       </span>
-                      <span className={styles.statLabel}>💎 Total Spent</span>
+                      <span className={styles.statLabel}>{'💎'} Total Spent</span>
                     </div>
                   </div>
 
@@ -2551,7 +2551,7 @@ export default function HorsesAdmin() {
                       <span className={styles.statNumber} style={{ color: '#8b5cf6' }}>
                         {economyData.stats.diamondPurchaseCount}
                       </span>
-                      <span className={styles.statLabel}>💎 Purchases</span>
+                      <span className={styles.statLabel}>{'💎'} Purchases</span>
                     </div>
                     <div className={styles.statCardLarge}>
                       <span className={styles.statNumber} style={{ color: '#f59e0b' }}>
@@ -2570,7 +2570,7 @@ export default function HorsesAdmin() {
                   {/* Recent Users */}
                   {economyData.recentUsers?.length > 0 && (
                     <div className={styles.contentBreakdown} style={{ marginTop: '1.5rem' }}>
-                      <h3>👤 Recent Signups</h3>
+                      <h3>{'👤'} Recent Signups</h3>
                       <table className={styles.runsTable}>
                         <thead>
                           <tr>
@@ -2594,7 +2594,7 @@ export default function HorsesAdmin() {
 
                   {/* Diamond Transaction Log */}
                   <div className={styles.contentBreakdown} style={{ marginTop: '1.5rem' }}>
-                    <h3>💎 Diamond Transaction Log (Last 100)</h3>
+                    <h3>{'💎'} Diamond Transaction Log (Last 100)</h3>
                     <div
                       style={{
                         maxHeight: '500px',
@@ -2663,7 +2663,7 @@ export default function HorsesAdmin() {
                                 }}
                               >
                                 {tx.amount > 0 ? '+' : ''}
-                                {tx.amount}💎
+                                {tx.amount}{'💎'}
                               </td>
                               <td style={{ fontSize: '0.85rem' }}>{tx.source || '—'}</td>
                               <td
@@ -2686,7 +2686,7 @@ export default function HorsesAdmin() {
                   {/* Diamond Purchases */}
                   {economyData.recentPurchases?.length > 0 && (
                     <div className={styles.contentBreakdown} style={{ marginTop: '1.5rem' }}>
-                      <h3>🛒 Recent Diamond Purchases</h3>
+                      <h3>{'🛒'} Recent Diamond Purchases</h3>
                       <table className={styles.runsTable}>
                         <thead>
                           <tr>
@@ -2705,7 +2705,7 @@ export default function HorsesAdmin() {
                               <td style={{ color: '#22c55e', fontWeight: 600 }}>
                                 ${((p.amount_paid || 0) / 100).toFixed(2)}
                               </td>
-                              <td>{p.diamonds_received?.toLocaleString() || '—'}💎</td>
+                              <td>{p.diamonds_received?.toLocaleString() || '—'}{'💎'}</td>
                               <td>{p.status || 'completed'}</td>
                             </tr>
                           ))}
@@ -2717,7 +2717,7 @@ export default function HorsesAdmin() {
                   {/* VIP Subscriptions */}
                   {economyData.vipSubscriptions?.length > 0 && (
                     <div className={styles.contentBreakdown} style={{ marginTop: '1.5rem' }}>
-                      <h3>🏆 VIP Subscriptions</h3>
+                      <h3>{'🏆'} VIP Subscriptions</h3>
                       <table className={styles.runsTable}>
                         <thead>
                           <tr>
@@ -2758,7 +2758,7 @@ export default function HorsesAdmin() {
                       className={styles.actionBtn}
                       disabled={economyLoading}
                     >
-                      🔄 Refresh Economy Data
+                      {'🔄'} Refresh Economy Data
                     </button>
                   </div>
                 </>
@@ -2768,7 +2768,7 @@ export default function HorsesAdmin() {
           {/* ANTI-ABUSE TAB */}
           {activeTab === 'antiabuse' && (
             <div className={styles.statsView}>
-              <h2>🛡️ Anti-Abuse Command Center</h2>
+              <h2>{'🛡️'} Anti-Abuse Command Center</h2>
 
               {abuseLoading ? (
                 <div className={styles.loadingSpinner}>Loading Anti-Abuse Data...</div>
@@ -2815,7 +2815,7 @@ export default function HorsesAdmin() {
                       className={styles.contentBreakdown}
                       style={{ marginTop: '1.5rem', borderLeft: '3px solid #ef4444' }}
                     >
-                      <h3>🚨 Real-Time Alerts (Last 24h)</h3>
+                      <h3>{'🚨'} Real-Time Alerts (Last 24h)</h3>
                       <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
                         {abuseData.alerts.map((alert, i) => (
                           <div
@@ -2830,7 +2830,7 @@ export default function HorsesAdmin() {
                           >
                             <div>
                               <div style={{ fontWeight: 600, color: '#ef4444', fontSize: '13px' }}>
-                                ⚠️ {alert.reason}
+                                {'⚠️'} {alert.reason}
                               </div>
                               <div style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>
                                 {alert.email} — IP: {alert.ip} — Deletions: {alert.deletions}
@@ -2847,7 +2847,7 @@ export default function HorsesAdmin() {
 
                   {/* Signup Abuse Log */}
                   <div className={styles.contentBreakdown} style={{ marginTop: '1.5rem' }}>
-                    <h3>📋 Signup Abuse Log</h3>
+                    <h3>{'📋'} Signup Abuse Log</h3>
                     <div
                       style={{
                         maxHeight: '400px',
@@ -2943,7 +2943,7 @@ export default function HorsesAdmin() {
                   {/* Top IPs */}
                   {abuseData.abuse?.topIPs?.length > 0 && (
                     <div className={styles.contentBreakdown} style={{ marginTop: '1.5rem' }}>
-                      <h3>🌐 Top IPs by Signup Volume</h3>
+                      <h3>{'🌐'} Top IPs by Signup Volume</h3>
                       <div className={styles.breakdownGrid}>
                         {abuseData.abuse.topIPs.map((ip, i) => (
                           <div key={i} className={styles.breakdownItem}>
@@ -2971,7 +2971,7 @@ export default function HorsesAdmin() {
                   {/* Diamond Source Breakdown */}
                   {abuseData.economy?.sourceBreakdown && (
                     <div className={styles.contentBreakdown} style={{ marginTop: '1.5rem' }}>
-                      <h3>💎 Diamond Source Breakdown</h3>
+                      <h3>{'💎'} Diamond Source Breakdown</h3>
                       <div className={styles.statsOverview}>
                         <div className={styles.statCardLarge}>
                           <span className={styles.statNumber} style={{ color: '#22c55e' }}>
@@ -3007,7 +3007,7 @@ export default function HorsesAdmin() {
                               ></div>
                               <span className={styles.breakdownLabel}>{source}</span>
                               <span className={styles.breakdownCount}>
-                                {amount.toLocaleString()}💎
+                                {amount.toLocaleString()}{'💎'}
                               </span>
                             </div>
                           ))}
@@ -3018,7 +3018,7 @@ export default function HorsesAdmin() {
                   {/* Top Diamond Holders */}
                   {abuseData.economy?.topHolders?.length > 0 && (
                     <div className={styles.contentBreakdown} style={{ marginTop: '1.5rem' }}>
-                      <h3>🏆 Top Diamond Holders</h3>
+                      <h3>{'🏆'} Top Diamond Holders</h3>
                       <table className={styles.runsTable}>
                         <thead>
                           <tr>
@@ -3027,7 +3027,7 @@ export default function HorsesAdmin() {
                             <th>Email</th>
                             <th>Diamonds</th>
                             <th>VIP</th>
-                            <th>Phone ✓</th>
+                            <th>Phone {'✓'}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -3048,7 +3048,7 @@ export default function HorsesAdmin() {
                                 {user.email || '—'}
                               </td>
                               <td style={{ fontWeight: 700, color: '#00E0FF' }}>
-                                {(user.diamonds || 0).toLocaleString()}💎
+                                {(user.diamonds || 0).toLocaleString()}{'💎'}
                               </td>
                               <td>{user.is_vip ? `👑 ${user.vip_tier || 'VIP'}` : '—'}</td>
                               <td>{user.phone_verified ? '✅' : '❌'}</td>
@@ -3062,7 +3062,7 @@ export default function HorsesAdmin() {
                   {/* Admin Audit Log */}
                   {abuseData.audit?.length > 0 && (
                     <div className={styles.contentBreakdown} style={{ marginTop: '1.5rem' }}>
-                      <h3>📝 Admin Audit Log</h3>
+                      <h3>{'📝'} Admin Audit Log</h3>
                       <div
                         style={{
                           maxHeight: '300px',
@@ -3135,7 +3135,7 @@ export default function HorsesAdmin() {
                       className={styles.actionBtn}
                       disabled={abuseLoading}
                     >
-                      🔄 Refresh Anti-Abuse Data
+                      {'🔄'} Refresh Anti-Abuse Data
                     </button>
                   </div>
                 </>
@@ -3155,7 +3155,7 @@ export default function HorsesAdmin() {
               <div style={{ marginBottom: 32 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <h3 style={{ margin: 0, color: '#e4e6eb', fontSize: 16 }}>🏛️ Midway Union Applications</h3>
+                    <h3 style={{ margin: 0, color: '#e4e6eb', fontSize: 16 }}>{'🏛️'} Midway Union Applications</h3>
                     {caApplications.filter(a => a.status === 'pending').length > 0 && (
                       <span style={{ background: '#FF453A', color: '#fff', borderRadius: 20, padding: '2px 10px', fontSize: 12, fontWeight: 700 }}>
                         {caApplications.filter(a => a.status === 'pending').length} pending
@@ -3174,7 +3174,7 @@ export default function HorsesAdmin() {
                     <button onClick={() => loadApplications(caAppTab)} disabled={caAppLoading} style={{
                       background: '#2d2d44', color: '#aaa', border: 'none', borderRadius: 6,
                       padding: '5px 10px', fontSize: 12, cursor: 'pointer',
-                    }}>🔄</button>
+                    }}>{'🔄'}</button>
                   </div>
                 </div>
 
@@ -3252,7 +3252,7 @@ export default function HorsesAdmin() {
                           background: '#31a24c', color: '#fff', border: 'none', borderRadius: 8,
                           padding: '7px 20px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
                         }}>
-                          ✅ Approve & Add to Union
+                          {'✅'} Approve & Add to Union
                         </button>
                         <input
                           placeholder="Rejection reason (optional)"
@@ -3284,7 +3284,7 @@ export default function HorsesAdmin() {
                           background: '#FF453A22', color: '#FF453A', border: '1px solid #FF453A44',
                           borderRadius: 8, padding: '7px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
                         }}>
-                          ✗ Reject
+                          {'✗'} Reject
                         </button>
                       </div>
                     )}
@@ -3297,7 +3297,7 @@ export default function HorsesAdmin() {
               <div style={{ marginBottom: 32 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <h3 style={{ margin: 0, color: '#e4e6eb', fontSize: 16 }}>🚪 Union Leave Requests</h3>
+                    <h3 style={{ margin: 0, color: '#e4e6eb', fontSize: 16 }}>{'🚪'} Union Leave Requests</h3>
                     {caLeaveRequests.filter(r => r.status === 'pending').length > 0 && (
                       <span style={{ background: '#FF9500', color: '#fff', borderRadius: 20, padding: '2px 10px', fontSize: 12, fontWeight: 700 }}>
                         {caLeaveRequests.filter(r => r.status === 'pending').length} pending
@@ -3316,7 +3316,7 @@ export default function HorsesAdmin() {
                     <button onClick={() => loadLeaveRequests(caLeaveTab)} disabled={caLeaveLoading} style={{
                       background: '#2d2d44', color: '#aaa', border: 'none', borderRadius: 6,
                       padding: '5px 10px', fontSize: 12, cursor: 'pointer',
-                    }}>🔄</button>
+                    }}>{'🔄'}</button>
                   </div>
                 </div>
 
@@ -3386,7 +3386,7 @@ export default function HorsesAdmin() {
                           background: '#31a24c', color: '#fff', border: 'none', borderRadius: 8,
                           padding: '7px 20px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
                         }}>
-                          ✅ Approve — Remove from Union
+                          {'✅'} Approve — Remove from Union
                         </button>
                         <button disabled={caProcessing} onClick={async () => {
                           setCaProcessing(true);
@@ -3411,7 +3411,7 @@ export default function HorsesAdmin() {
                           background: '#FF453A22', color: '#FF453A', border: '1px solid #FF453A44',
                           borderRadius: 8, padding: '7px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
                         }}>
-                          ✗ Deny
+                          {'✗'} Deny
                         </button>
                       </div>
                     )}
@@ -3456,7 +3456,7 @@ export default function HorsesAdmin() {
                     onClick={() => loadClubArenaData(null)}
                     disabled={caLoading}
                   >
-                    🔄 Refresh Clubs
+                    {'🔄'} Refresh Clubs
                   </button>
                 </>
               ) : (
@@ -3493,7 +3493,7 @@ export default function HorsesAdmin() {
                     ))}
                     <button onClick={() => loadCaClubDetail(caSelectedClub)} disabled={caLoading}
                       style={{ marginLeft: 'auto', background: '#2d2d44', color: '#aaa', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 12, cursor: 'pointer' }}>
-                      🔄 Refresh
+                      {'🔄'} Refresh
                     </button>
                   </div>
 
@@ -3572,7 +3572,7 @@ export default function HorsesAdmin() {
                     </>
                   ) : caTab === 'flags' ? (
                     (caClubDetail?.flags || []).length === 0 ? (
-                      <div style={{ textAlign: 'center', color: '#888', padding: '40px 0' }}>✅ No open flags for this club.</div>
+                      <div style={{ textAlign: 'center', color: '#888', padding: '40px 0' }}>{'✅'} No open flags for this club.</div>
                     ) : (caClubDetail?.flags || []).map((flag, i) => (
                       <div key={flag.id || i} style={{
                         background: '#1a1a2e', borderRadius: 10, padding: 16, marginBottom: 12,
@@ -3650,7 +3650,7 @@ export default function HorsesAdmin() {
                           } catch (e) { showNotification(e.message, 'error'); }
                           finally { setCaProcessing(false); }
                         }} style={{ background: '#FF453A', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                          ⛔ Kick
+                          {'⛔'} Kick
                         </button>
                       </div>
                     ))
@@ -3826,7 +3826,7 @@ export default function HorsesAdmin() {
                   onClick={() => setReviewsFlaggedOnly(f => !f)}
                   style={{ padding: '8px 14px', background: reviewsFlaggedOnly ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.06)', border: `1px solid ${reviewsFlaggedOnly ? 'rgba(245,158,11,0.5)' : 'rgba(255,255,255,0.12)'}`, borderRadius: 8, color: reviewsFlaggedOnly ? '#f59e0b' : 'rgba(255,255,255,0.6)', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}
                 >
-                  🚩 Flagged Only
+                  {'🚩'} Flagged Only
                 </button>
                 <input
                   type="text"
@@ -3881,15 +3881,15 @@ export default function HorsesAdmin() {
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
                               <span style={{ fontWeight: 700, color: '#fff', fontSize: 14 }}>{review.reviewer_name || 'Anonymous'}</span>
-                              {review.is_flagged && <span style={{ background: 'rgba(245,158,11,0.2)', color: '#f59e0b', fontSize: 11, padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>🚩 FLAGGED</span>}
-                              {review.metadata?.verified_player && <span style={{ background: 'rgba(34,197,94,0.15)', color: '#22c55e', fontSize: 11, padding: '2px 8px', borderRadius: 6, fontWeight: 600 }}>✓ Verified Player</span>}
+                              {review.is_flagged && <span style={{ background: 'rgba(245,158,11,0.2)', color: '#f59e0b', fontSize: 11, padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>{'🚩'} FLAGGED</span>}
+                              {review.metadata?.verified_player && <span style={{ background: 'rgba(34,197,94,0.15)', color: '#22c55e', fontSize: 11, padding: '2px 8px', borderRadius: 6, fontWeight: 600 }}>{'✓'} Verified Player</span>}
                               <span style={{ color: '#fbbf24', fontSize: 13 }}>{'★'.repeat(review.rating || 0)}{'☆'.repeat(5 - (review.rating || 0))}</span>
                               <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginLeft: 'auto' }}>
                                 {new Date(review.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                               </span>
                             </div>
                             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 6 }}>
-                              📍 {review.venue_name || review.venue_id}
+                              {'📍'} {review.venue_name || review.venue_id}
                             </div>
                             <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.7)', lineHeight: 1.5, wordBreak: 'break-word' }}>
                               {review.review_text}
@@ -3900,7 +3900,7 @@ export default function HorsesAdmin() {
                               </div>
                             )}
                             <div style={{ marginTop: 4, fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>
-                              ID: {review.id} · 👍 {review.helpful_count || 0} · 👎 {review.unhelpful_count || 0}
+                              ID: {review.id} · {'👍'} {review.helpful_count || 0} · {'👎'} {review.unhelpful_count || 0}
                             </div>
                           </div>
 
@@ -4066,7 +4066,7 @@ export default function HorsesAdmin() {
           <div className={styles.modalOverlay}>
             <div className={styles.modalContent}>
               <div className={styles.modalHeader}>
-                <h2>🐴 New Horse</h2>
+                <h2>{'🐴'} New Horse</h2>
                 <button className={styles.closeBtn} onClick={() => setShowCreateModal(false)}>
                   ×
                 </button>
