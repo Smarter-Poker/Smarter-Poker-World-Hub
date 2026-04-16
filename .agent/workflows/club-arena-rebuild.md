@@ -12,42 +12,57 @@ require rebuilding and copying the output to the World Hub.
 ## Source Repo Location
 
 ```
-~/Documents/Smarter-Poker-Club-Arena/
+~/Documents/club-arena/
 ```
 
-## Step 1: Make Your Changes
+## THE ONLY WAY TO DEPLOY
+
+**Use the atomic build script. No exceptions.**
+
+```bash
+bash ~/Documents/Smarter-Poker-World-Hub/scripts/build-club-arena.sh "feat(club-arena): description of changes"
+```
+
+This script handles the ENTIRE pipeline in one command:
+1. Builds Club Arena from source with Vite
+2. Wipes ALL old Vite-hashed assets (prevents phantom pending changes)
+3. Copies fresh build output to `public/hub/club-arena/`
+4. Stages ALL file changes (additions + deletions)
+5. Commits with your message
+6. Pushes to origin/main
+7. Verifies clean working tree
+
+## Pre-Flight: Make Your Changes
 
 Edit files in the Club Arena source repo:
 - Pages: `src/pages/`
 - Components: `src/components/`
 - Styles: `src/styles/` or component-level CSS
 
-## Step 2: Build
+Then run the build script above. That's it.
 
-```bash
-cd ~/Documents/Smarter-Poker-Club-Arena && npm run build
-```
+## Rules — HARD LAW
 
-This outputs to `dist/`.
+1. **NEVER edit files directly in `public/hub/club-arena/`** — they get overwritten on rebuild
+2. **NEVER manually `git add` club-arena assets** — the build script handles staging
+3. **NEVER gitignore `public/hub/club-arena/`** — Vercel deploys from git and needs these files
+4. **ALWAYS use `build-club-arena.sh`** — it's the only authorized deploy path
+5. The pre-push hook (CHECK 6) will BLOCK pushes if orphaned arena assets are detected
 
-## Step 3: Copy to World Hub
+## Why This Matters
 
-```bash
-rsync -av --delete --exclude='*.map' ~/Documents/Smarter-Poker-Club-Arena/dist/ ~/Documents/Smarter-Poker-World-Hub/public/hub/club-arena/
-```
+Every Vite build generates NEW content-hashed filenames (e.g., `Page-Abc123.js`).
+Without the atomic script:
+- Old files accumulate as "phantom pending changes"
+- Agents commit partial sets of files
+- The Source Control badge shows 200+ changes
+- Stuck rebases and merge conflicts follow
 
-This copies all built files (JS, CSS, HTML, images) and removes stale files.
-The `--exclude='*.map'` skips source maps to keep the deployment lean.
+The build script eliminates this by wiping old assets BEFORE copying new ones,
+then staging everything (including deletions) in one commit.
 
-## Step 4: Deploy
+## Architecture
 
-```bash
-bash ~/Documents/Smarter-Poker-World-Hub/scripts/git-safe-push.sh "fix: [your description]"
-```
-
-## Rules
-
-- NEVER edit files directly in `public/hub/club-arena/` — they get overwritten on rebuild
-- ALWAYS build from the source repo
 - The World Hub's `next.config.js` fallback rewrite serves `index.html` for all SPA routes
 - Auth is shared via same-origin localStorage (`smarter-poker-auth` key)
+- Static assets are served directly from `public/hub/club-arena/`

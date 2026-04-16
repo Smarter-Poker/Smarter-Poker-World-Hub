@@ -108,6 +108,27 @@ else
   echo "  ✓ Working tree clean"
 fi
 
+# ─── CHECK 6: Club Arena orphaned assets ────────────────────────────────────
+# Detects when someone rebuilt Club Arena but didn't commit the results.
+# This prevents the "242 phantom pending changes" problem.
+echo "CHECK 6: Club Arena asset integrity..."
+ARENA_DIR="public/hub/club-arena"
+ARENA_UNTRACKED=$(git ls-files --others --exclude-standard "$ARENA_DIR/" 2>/dev/null | wc -l | tr -d ' ')
+ARENA_MODIFIED=$(git diff --name-only "$ARENA_DIR/" 2>/dev/null | wc -l | tr -d ' ')
+ARENA_ORPHANS=$((ARENA_UNTRACKED + ARENA_MODIFIED))
+if [ "$ARENA_ORPHANS" -gt 0 ]; then
+  echo "  ❌ BLOCKED: $ARENA_ORPHANS unstaged Club Arena files detected!"
+  echo "     $ARENA_UNTRACKED untracked, $ARENA_MODIFIED modified"
+  echo ""
+  echo "     Club Arena was rebuilt but changes were NOT committed."
+  echo "     Run: bash scripts/build-club-arena.sh \"your commit message\""
+  echo "     That script handles the full build → clean → commit → push cycle."
+  echo ""
+  ERRORS=$((ERRORS + 1))
+else
+  echo "  ✓ No orphaned Club Arena assets"
+fi
+
 # ─── RESTORE ────────────────────────────────────────────────────────────────
 if [ "$HAS_CHANGES" = true ]; then
   git stash pop --quiet 2>/dev/null
