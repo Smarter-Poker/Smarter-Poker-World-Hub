@@ -73,10 +73,12 @@ function trackSearchEvent(eventName, data) {
         }
         // Store locally for aggregate analysis
         const key = 'sp-search-analytics';
-        const existing = JSON.parse(localStorage.getItem(key) || '[]');
-        existing.push({ event: eventName, ...data, ts: Date.now() });
-        // Keep last 100 events
-        if (existing.length > 100) existing.splice(0, existing.length - 100);
+        // Prevent quota exhaustion by omitting large/non-scalar data
+        const safeData = { ...data };
+        delete safeData.venues; delete safeData.results; delete safeData.filteredData;
+        existing.push({ event: eventName, ...safeData, ts: Date.now() });
+        // Keep last 50 events
+        if (existing.length > 50) existing.splice(0, existing.length - 50);
         localStorage.setItem(key, JSON.stringify(existing));
     } catch (e) { /* analytics should never break the app */ }
 }
@@ -661,13 +663,17 @@ export default function PokerNearMePage() {
     const filteredVenues = Array.isArray(allVenuesForMap) ? allVenuesForMap : [];
     const allVenuesWithTours = useTourMapStops({ tours, allVenuesForMap, userLocation, selectedCity, filters, globalSearchModeRef, hasSearched, centerLat, centerLng, effRad, consumedVenueNames, consumedVenueStems, charityBestIds, tourPins, filteredVenues });
 
-    // Real-time Master Saving & Bus Synchronization
+    const filterSyncPrevStrRef = useRef(null);
     useEffect(() => {
         if (typeof window !== 'undefined') {
-            localStorage.setItem('poker-near-me-search-filters', JSON.stringify(filters));
-            window.dispatchEvent(new CustomEvent('poker-near-me-filters-sync', { detail: filters }));
-            // Fulfill hard rule: Wire Real-Time pushes to the Global Event Bus 
-            eventBus.emit('PNM_FILTERS_UPDATED', filters);
+            const currentStr = JSON.stringify(filters);
+            if (filterSyncPrevStrRef.current !== currentStr) {
+                localStorage.setItem('poker-near-me-search-filters', currentStr);
+                window.dispatchEvent(new CustomEvent('poker-near-me-filters-sync', { detail: filters }));
+                // Fulfill hard rule: Wire Real-Time pushes to the Global Event Bus 
+                eventBus.emit('PNM_FILTERS_UPDATED', filters);
+                filterSyncPrevStrRef.current = currentStr;
+            }
         }
     }, [filters]);
 

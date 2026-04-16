@@ -21,7 +21,7 @@
  * @returns {number} Distance in miles
  */
 export function haversineMiles(lat1, lng1, lat2, lng2) {
-    if (lat1 == null || lng1 == null || lat2 == null || lng2 == null) return 0;
+    if (lat1 == null || lng1 == null || lat2 == null || lng2 == null) return Infinity;
     const R = 3958.8;
     const toRad = (d) => (d * Math.PI) / 180;
     const dLat = toRad(lat2 - lat1);
@@ -332,9 +332,9 @@ export function getInitialsColor(venueId) {
  * @returns {{ stale: boolean, age: string, minutes: number }}
  */
 export function isStaleData(lastUpdated) {
-    if (!lastUpdated) return { stale: false, age: '', minutes: 0 };
+    if (!lastUpdated) return { stale: true, age: 'No data', minutes: Infinity };
     const ts = new Date(lastUpdated).getTime();
-    if (isNaN(ts)) return { stale: false, age: '', minutes: 0 };
+    if (isNaN(ts)) return { stale: true, age: 'No data', minutes: Infinity };
     const minutes = Math.floor((Date.now() - ts) / 60000);
     const stale = minutes > 30;
     let age = '';
