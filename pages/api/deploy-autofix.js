@@ -25,6 +25,10 @@ const GITHUB_OWNER = 'Smarter-Poker';
 const GITHUB_REPO = 'Smarter-Poker-World-Hub';
 const GITHUB_BRANCH = 'main';
 
+// Configurable via env var so model deprecation doesn't silently break autofix.
+// Default to claude-sonnet-4-20250514 which balances speed and quality for build fixes.
+const CLAUDE_MODEL = process.env.AUTOFIX_CLAUDE_MODEL || 'claude-sonnet-4-20250514';
+
 // Files that autofix is NEVER allowed to touch
 const PROTECTED_FILES = [
   '.env', '.env.local', '.env.production',
@@ -176,7 +180,7 @@ export default async function handler(req, res) {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: CLAUDE_MODEL,
         max_tokens: 8192,
         messages: [{
           role: 'user',

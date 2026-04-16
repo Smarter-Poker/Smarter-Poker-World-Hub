@@ -139,32 +139,6 @@ async function main() {
                     process.exit(1);
                 }
 
-                // ── Vercel Fail-Fast Hook ──
-                // Polling the actual CLI. If the latest build crashed, 
-                // the SHA will never match, so we should abort instantly.
-                try {
-                    const vercelStatus = require('child_process').execSync('npx vercel ls 2>/dev/null', {encoding:'utf-8'});
-                    const lines = vercelStatus.split('\n');
-                    const latestDeploy = lines.find(line => line.includes('hub-vanguard') && (line.includes('Production') || line.includes('Preview')));
-                    
-                    if (latestDeploy && (latestDeploy.includes('● Error') || latestDeploy.includes('Canceled'))) {
-                        console.log('\n   ❌ CRITICAL: Vercel rejected the deployment build loop!');
-                        console.log('   Dumping error state to .agent/problems/vercel-deploy-crash.md');
-                        
-                        require('fs').mkdirSync('.agent/problems', { recursive: true });
-                        require('fs').writeFileSync('.agent/problems/vercel-deploy-crash.md', 
-                            `# Vercel Deployment Failed\n\n**Commit SHA:** ${expectedSha}\n**Status:** ${latestDeploy.trim()}\n\nCheck Vercel dashboard immediately.`);
-                            
-                        console.log('\n═══════════════════════════════════════════════════');
-                        console.log('DEPLOY_VERIFIED:false');
-                        console.log('REASON:vercel_build_crash');
-                        console.log('═══════════════════════════════════════════════════');
-                        process.exit(1);
-                    }
-                } catch (vercelErr) {
-                    // ignore vercel CLI errors silently to not break polling
-                }
-
                 console.log(`   ⏳ SHA not matched yet. Retrying in ${POLL_INTERVAL}s...`);
                 await new Promise(r => setTimeout(r, POLL_INTERVAL * 1000));
             } catch (e) {

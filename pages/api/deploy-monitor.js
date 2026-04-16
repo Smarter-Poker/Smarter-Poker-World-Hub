@@ -30,6 +30,57 @@ const MAX_FIX_ATTEMPTS = 3;
 const TEAM_ID = 'team_SVD8r7AOPH065G3usBxVvrBc';
 const PROJECT_ID = 'prj_op66GkZyZcygXQKm76iyycfVFAQx';
 
+/**
+ * Create a GitHub Issue to alert about autofix failures.
+ * Non-blocking — errors are caught silently so the main flow continues.
+ */
+async function createAlertIssue(title, body) {
+  const ghPat = process.env.GH_PAT;
+  if (!ghPat) return;
+
+  try {
+    // Check for existing open autofix-failure issue to avoid duplicates
+    const searchRes = await fetch(
+      'https://api.github.com/repos/Smarter-Poker/Smarter-Poker-World-Hub/issues?labels=autofix-failure&state=open&per_page=1',
+      { headers: { Authorization: `token ${ghPat}`, Accept: 'application/vnd.github.v3+json' } }
+    );
+
+    if (searchRes.ok) {
+      const existing = await searchRes.json();
+      if (existing.length > 0) {
+        // Add comment to existing issue instead of creating a new one
+        await fetch(
+          `https://api.github.com/repos/Smarter-Poker/Smarter-Poker-World-Hub/issues/${existing[0].number}/comments`,
+          {
+            method: 'POST',
+            headers: { Authorization: `token ${ghPat}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+            body: JSON.stringify({ body }),
+          }
+        );
+        console.log(`[deploy-monitor] Alert added as comment to issue #${existing[0].number}`);
+        return;
+      }
+    }
+
+    // Create new issue
+    await fetch(
+      'https://api.github.com/repos/Smarter-Poker/Smarter-Poker-World-Hub/issues',
+      {
+        method: 'POST',
+        headers: { Authorization: `token ${ghPat}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          body,
+          labels: ['autofix-failure'],
+        }),
+      }
+    );
+    console.log('[deploy-monitor] Alert issue created on GitHub');
+  } catch (err) {
+    console.error('[deploy-monitor] Failed to create alert issue:', err.message);
+  }
+}
+
 export default async function handler(req, res) {
   // Only accept POST (webhook) and GET (status check)
   if (req.method === 'GET') {
@@ -84,17 +135,35 @@ export default async function handler(req, res) {
 
     const deployment = payload.payload?.deployment || payload.payload || {};
     const deploymentId = deployment.id || deployment.uid || 'unknown';
+    const projectId = deployment.projectId || payload.payload?.projectId || 'unknown';
     const commitSha = deployment.meta?.githubCommitSha || 'unknown';
     const commitMsg = deployment.meta?.githubCommitMessage || '';
     const state = deployment.state || deployment.readyState || eventType;
 
-    console.log(`[deploy-monitor] Received ${eventType} for deployment ${deploymentId} (SHA: ${commitSha})`);
+    console.log(`[deploy-monitor] Received ${eventType} for deployment ${deploymentId} (project: ${projectId}, SHA: ${commitSha})`);
+
+    // ── Project filter: only process hub-vanguard deployments ──
+    // The webhook fires at the account level for ALL projects. Without this
+    // filter, a failure in any other project would trigger autofix against
+    // the World Hub repo — corrupting it with unrelated "fixes".
+    if (projectId !== PROJECT_ID && projectId !== 'unknown') {
+      console.log(`[deploy-monitor] Ignoring deployment from project ${projectId} (not hub-vanguard)`);
+      return res.status(200).json({
+        action: 'ignored',
+        reason: `Deployment belongs to project ${projectId}, not hub-vanguard (${PROJECT_ID})`,
+      });
+    }
 
     // ── Hard stop: never auto-fix an [autofix] commit ──
     // This prevents infinite loops even across cold starts where the in-memory
     // circuit breaker has been reset. If autofix broke it, a human must fix it.
     if (commitMsg.startsWith('[autofix]')) {
       console.log(`[deploy-monitor] Refusing to auto-fix an [autofix] commit: ${commitSha}`);
+      // Alert: an autofix commit failed — the pipeline's own fix broke the build
+      createAlertIssue(
+        `Autofix commit failed to build — ${commitSha.substring(0, 8)}`,
+        `## Autofix Commit Failed\n\nAn \`[autofix]\` commit itself failed to build. This means the AI-generated fix introduced a new error.\n\n**Commit SHA:** \`${commitSha}\`\n**Commit message:** ${commitMsg.substring(0, 200)}\n**Deployment:** ${deploymentId}\n\nManual intervention required. The self-healing pipeline will NOT retry this commit.`
+      );
       return res.status(200).json({
         action: 'refused',
         reason: 'Will not auto-fix an [autofix] commit — prevents infinite loops. Manual intervention required.',
@@ -106,6 +175,11 @@ export default async function handler(req, res) {
     const attempts = fixAttempts.get(commitSha) || 0;
     if (attempts >= MAX_FIX_ATTEMPTS) {
       console.log(`[deploy-monitor] Circuit breaker: ${commitSha} has ${attempts} fix attempts. Stopping.`);
+      // Alert: circuit breaker tripped — autofix exhausted all attempts
+      createAlertIssue(
+        `Deploy autofix circuit breaker tripped — ${commitSha.substring(0, 8)}`,
+        `## Circuit Breaker Tripped\n\nAutofix exhausted all ${MAX_FIX_ATTEMPTS} attempts for commit \`${commitSha}\` without successfully fixing the build.\n\n**Commit SHA:** \`${commitSha}\`\n**Commit message:** ${commitMsg.substring(0, 200)}\n**Attempts:** ${attempts}/${MAX_FIX_ATTEMPTS}\n\nManual intervention required. Check Vercel build logs:\nhttps://vercel.com/smarter-poker/hub-vanguard/deployments`
+      );
       return res.status(200).json({
         action: 'circuit_breaker',
         commitSha,
