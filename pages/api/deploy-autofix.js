@@ -49,7 +49,6 @@ export default async function handler(req, res) {
 
   // ── Authentication: only accept calls from deploy-monitor (same origin) ──
   // Verify the request comes from our own server, not an external attacker.
-  const referer = req.headers.referer || req.headers.origin || '';
   const host = req.headers.host || '';
   const internalSecret = process.env.DEPLOY_INTERNAL_SECRET;
   const providedSecret = req.headers['x-internal-secret'];
@@ -94,6 +93,18 @@ export default async function handler(req, res) {
         action: 'skipped',
         reason: 'Could not identify the broken file from build error output',
         buildErrorsPreview: buildErrors.substring(0, 500),
+      });
+    }
+
+    // Validate that the extracted path is a file (has extension), not a directory.
+    // Pattern 2 in extractErrorFile can return directory paths from "Module not found"
+    // errors, which would cause GitHub Contents API to return a directory listing
+    // instead of file content, breaking Buffer.from(data.content, 'base64').
+    if (!/\.(js|jsx|ts|tsx|mjs|cjs)$/.test(errorFile)) {
+      console.log(`[deploy-autofix] Extracted path has no file extension (likely a directory): ${errorFile}`);
+      return res.status(200).json({
+        action: 'skipped',
+        reason: `Extracted path "${errorFile}" has no recognized file extension — cannot autofix a directory`,
       });
     }
 
@@ -229,10 +240,13 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
       });
     }
 
-    // Size ratio guard: prevent Claude from gutting a file
-    // If the fix is less than 50% of the original size, something went wrong
+    // Size ratio guard: prevent Claude from gutting a file or returning truncated content.
+    // Build fixes (missing import, syntax error, unused var) should never shrink a file
+    // by more than 30%. This also catches the truncation bug: files >15KB are truncated
+    // in the Claude prompt (line 181), so Claude may return only ~15KB of a 30KB file.
+    // At 0.7 threshold, a 30KB file truncated to 15KB (ratio 0.5) is correctly rejected.
     const sizeRatio = fixedContent.length / originalContent.length;
-    if (sizeRatio < 0.5) {
+    if (sizeRatio < 0.7) {
       console.log(`[deploy-autofix] Size ratio guard: fix is ${Math.round(sizeRatio * 100)}% of original (${fixedContent.length} vs ${originalContent.length} chars)`);
       return res.status(200).json({
         action: 'skipped',

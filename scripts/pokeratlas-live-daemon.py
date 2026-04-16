@@ -1155,14 +1155,14 @@ def run_scrape_cycle(mgr):
     bravo_slug_wordsets = []  # List of (slug, frozenset_of_words)
     try:
         req = urllib.request.Request(
-            f'{SUPABASE_URL}/rest/v1/venue_live_tables?source=eq.bravo&select=venue_name,venue_slug&limit=5000',
+            f'{SUPABASE_URL}/rest/v1/venue_live_tables?source=eq.bravo&select=venue_name,bravo_slug&limit=5000',
             headers=SB_HEADERS,
         )
         resp = urllib.request.urlopen(req, timeout=15)
         bravo_data = json.loads(resp.read())
         for r in bravo_data:
             name = r.get('venue_name', '')
-            slug = r.get('venue_slug', '')
+            slug = r.get('bravo_slug', '')
             bravo_names.add(name)
             bravo_names_normalized.add(re.sub(r'[^a-z0-9]', '', name.lower()))
             if slug:
@@ -1173,8 +1173,18 @@ def run_scrape_cycle(mgr):
     except Exception as e:
         log.warning(f'  Dedup: Could not load Bravo venues: {e}')
 
+    # Tier 2.5 preparation: Build suffix-stripped variants for each Bravo name
+    # PA often appends "Casino", "Resort", "Hotel" to names Bravo keeps short
+    _SUFFIX_WORDS = {'casino', 'resort', 'hotel', 'spa', 'club', 'room', 'lounge'}
+    bravo_names_stripped = set()
+    for bn in bravo_names:
+        stripped = re.sub(r'[^a-z0-9 ]', '', bn.lower())
+        words = [w for w in stripped.split() if w not in _SUFFIX_WORDS]
+        if words:
+            bravo_names_stripped.add(''.join(words))
+
     def _is_bravo_duplicate(venue_name):
-        """Check if a PokerAtlas venue is already covered by Bravo (3-tier)."""
+        """Check if a PokerAtlas venue is already covered by Bravo (4-tier)."""
         # Tier 1: Exact name
         if venue_name in bravo_names:
             return True, 'exact'
@@ -1182,6 +1192,13 @@ def run_scrape_cycle(mgr):
         normalized = re.sub(r'[^a-z0-9]', '', venue_name.lower())
         if normalized in bravo_names_normalized:
             return True, 'normalized'
+        # Tier 2.5: Suffix-stripped match (PA "Bellagio Casino" → Bravo "Bellagio")
+        stripped = re.sub(r'[^a-z0-9 ]', '', venue_name.lower())
+        words = [w for w in stripped.split() if w not in _SUFFIX_WORDS]
+        if words:
+            stripped_key = ''.join(words)
+            if stripped_key in bravo_names_stripped:
+                return True, 'suffix-stripped'
         # Tier 3: Slug word-overlap >= 70%
         pa_words = frozenset(w for w in re.sub(r'[^a-z0-9 ]', '', venue_name.lower()).split() if len(w) > 2)
         if pa_words and bravo_slug_wordsets:
@@ -1246,7 +1263,7 @@ def run_scrape_cycle(mgr):
             'cycle_start': cycle_start.isoformat(),
             'duration_seconds': int((datetime.now(timezone.utc) - cycle_start).total_seconds()),
             'venues_scraped': len(all_venues),
-            'venues_with_data': len([v for v in all_venues if v['live_games']]),
+            'venues_with_data': len(filtered_venues),
             'errors': errors,
             'records_saved': saved,
         }).encode()
