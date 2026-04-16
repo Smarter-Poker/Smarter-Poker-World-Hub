@@ -209,6 +209,7 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         if (!payload) {
             // [PS2+PS3 FIX] Use .range(0,999) to bypass Supabase 1000-row project ceiling.
             Promise.all([
@@ -269,6 +270,8 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
         if (!payload) return; // Hard refresh not supported cleanly given static props logic
         if (payload.table !== 'poker_series') return;
         const { eventType, new: newRec, old: oldRec } = payload;
@@ -283,6 +286,9 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                 if (idx !== -1) {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
@@ -295,6 +301,11 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+            } else if (eventType === 'DELETE' && oldRec) {
+                next = next.filter(s => s.id !== oldRec.id);
+>>>>>>> Stashed changes
 =======
             } else if (eventType === 'DELETE' && oldRec) {
                 next = next.filter(s => s.id !== oldRec.id);

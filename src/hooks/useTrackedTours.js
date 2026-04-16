@@ -1,9 +1,14 @@
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { getAuthUser, getAccessToken } from '../lib/authUtils';
+=======
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '../lib/supabase';
+>>>>>>> Stashed changes
 =======
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
@@ -38,8 +43,13 @@ export default function useTrackedTours() {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             const user = getAuthUser();
             if (!user) {
+=======
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+>>>>>>> Stashed changes
 =======
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
@@ -63,7 +73,11 @@ export default function useTrackedTours() {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
                         .eq('user_id', user.id)
+=======
+                        .eq('user_id', session.user.id)
+>>>>>>> Stashed changes
 =======
                         .eq('user_id', session.user.id)
 >>>>>>> Stashed changes
@@ -84,7 +98,11 @@ export default function useTrackedTours() {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
                     console.error('Failed to fetch tracked tours:', e);
+=======
+                    console.error('Failed to fetch tracked tours', e);
+>>>>>>> Stashed changes
 =======
                     console.error('Failed to fetch tracked tours', e);
 >>>>>>> Stashed changes
@@ -101,7 +119,11 @@ export default function useTrackedTours() {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             if (isMounted) setLoading(false);
+=======
+            setLoading(false);
+>>>>>>> Stashed changes
 =======
             setLoading(false);
 >>>>>>> Stashed changes
@@ -135,6 +157,7 @@ export default function useTrackedTours() {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     // [UT2 FIX] Lock ref prevents concurrent toggles from reading stale closure state.
     // Without this, rapid double-click reads the same `trackedTours` snapshot for both clicks,
     // causing duplicate entries in the optimistic state.
@@ -148,6 +171,11 @@ export default function useTrackedTours() {
         const token = getAccessToken();
         if (!user || !token) {
             toggleLockRef.current = false;
+=======
+    const toggleTrackTour = useCallback(async (tourCode) => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+>>>>>>> Stashed changes
 =======
     const toggleTrackTour = useCallback(async (tourCode) => {
         const { data: { session } } = await supabase.auth.getSession();
@@ -182,9 +210,15 @@ export default function useTrackedTours() {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
+=======
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+>>>>>>> Stashed changes
 =======
                 headers: { 
                     'Content-Type': 'application/json',
@@ -225,8 +259,11 @@ export default function useTrackedTours() {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         } finally {
             toggleLockRef.current = false;
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 =======

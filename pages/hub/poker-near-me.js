@@ -2416,8 +2416,6 @@ export default function PokerNearMePage() {
                 router={router}
                 openVenueModal={openVenueModal}
                 setIframeModal={setIframeModal}
-                pageDepth={2}
-                onBackClick={() => setActiveTab('venues')}
             />
         );
         if (showLiveTab) return (
@@ -2631,7 +2629,6 @@ export default function PokerNearMePage() {
 
                 <UniversalHeader 
                     pageDepth={2} 
-                    hideLeftIcon={false}
                     onBackClick={() => window.location.href = '/hub/poker-near-me-lobby'}
                     onMenuClick={() => setMenuOpen(true)} 
                 />
