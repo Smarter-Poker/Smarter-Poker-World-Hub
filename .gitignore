@@ -58,14 +58,19 @@ _legacy_sql/
 !.venv/.gitkeep
 
 # Scraper daemon outputs (data goes to Supabase, these are ephemeral local audit trails)
-data/scrape-evidence/
+# Keep directories via .gitkeep — ignore contents only
+data/scrape-evidence/*
+!data/scrape-evidence/.gitkeep
 data/bravo-live-snapshot.json
 data/pokeratlas-live-snapshot.json
-# Keep the directories (via .gitkeep) but ignore log contents
 data/bravo-logs/*
 !data/bravo-logs/.gitkeep
 data/pokeratlas-logs/*
 !data/pokeratlas-logs/.gitkeep
+
+# Charity scraper logs — keep dir, ignore contents
+data/charity-scraper-logs/*
+!data/charity-scraper-logs/.gitkeep
 
 # Background shell state
 .bg-shell/
