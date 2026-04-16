@@ -73,6 +73,7 @@ function trackSearchEvent(eventName, data) {
         }
         // Store locally for aggregate analysis
         const key = 'sp-search-analytics';
+        const existing = JSON.parse(localStorage.getItem(key) || '[]');
         // Prevent quota exhaustion by omitting large/non-scalar data
         const safeData = { ...data };
         delete safeData.venues; delete safeData.results; delete safeData.filteredData;
