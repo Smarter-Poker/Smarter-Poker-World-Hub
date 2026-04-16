@@ -76,6 +76,9 @@ const CreateHomeGame = dynamic(() => import('../../src/components/poker-near-me/
 const GeofenceAlertBanner = dynamic(() => import('../../src/components/poker-near-me/GeofenceAlertBanner'), { ssr: false });
 const GlobalSearchOverlay = dynamic(() => import('../../src/components/poker-near-me/GlobalSearchOverlay'), { ssr: false });
 const PodVenueSearchEngine = dynamic(() => import('../../src/components/poker-near-me/lobby/PodVenueSearchEngine'), { ssr: false });
+const PodHomeGames = dynamic(() => import('../../src/components/poker-near-me/lobby/PodHomeGames'), { ssr: false });
+const PodTours = dynamic(() => import('../../src/components/poker-near-me/lobby/PodTours'), { ssr: false });
+const PodSeries = dynamic(() => import('../../src/components/poker-near-me/lobby/PodSeries'), { ssr: false });
 
 // ─── Error Boundary for Pod Content ───
 class PodErrorBoundary extends React.Component {
@@ -1746,138 +1749,17 @@ export default function PokerNearMeLobby() {
       }
 
       case 'homegames': {
-        const hgSearch = filters.hgSearch || '';
-        const hgState = filters.hgState || 'all';
-        const hgHasSearched = filters.hgHasSearched || false;
-        let homeGames = venues.filter(v => v.venue_type === 'home_game');
-        if (hgSearch) {
-          const lower = hgSearch.toLowerCase();
-          homeGames = homeGames.filter(v => (v.name || '').toLowerCase().includes(lower) || (v.city || '').toLowerCase().includes(lower) || (v.state || '').toLowerCase().includes(lower));
-        }
-        if (hgState !== 'all') homeGames = homeGames.filter(v => v.state === hgState);
-
         component = (
-          <div>
-            {/* Search parameters */}
-            <div style={{ background: 'rgba(13,17,23,0.95)', border: '1px solid rgba(48,54,61,0.8)', borderRadius: 14, padding: 14, marginBottom: 14 }}>
-              <div style={{ display: 'flex', gap: 8, marginBottom: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                <input type="text" placeholder="Search Home Games..." value={hgSearch} autoComplete="off"
-                  onChange={(e) => setFilters(prev => ({ ...prev, hgSearch: e.target.value }))}
-                  style={{ flex: 1, minWidth: 120, padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(48,54,61,0.6)', background: '#161b22', color: '#c9d1d9', fontSize: 13, fontFamily: 'inherit' }} />
-                <select value={hgState}
-                  onChange={(e) => setFilters(prev => ({ ...prev, hgState: e.target.value }))}
-                  style={{ background: '#161b22', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '8px 10px', color: '#c9d1d9', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', minWidth: 90 }}>
-                  <option value="all">All States</option>
-                  {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(st => (
-                    <option key={st} value={st}>{st}</option>
-                  ))}
-                </select>
-              </div>
-              <button onClick={() => {
-                setFilters(prev => ({ ...prev, hgHasSearched: true }));
-                // Fetch home games from API with venue_type filter
-                const hgApiState = hgState !== 'all' ? `&state=${hgState}` : '';
-                const hgApiSearch = hgSearch ? `&search=${encodeURIComponent(hgSearch)}` : '';
-                const hgApiLoc = userLocation ? `&lat=${userLocation.lat}&lng=${userLocation.lng}` : '';
-                const hgUrl = `/api/poker/venues?limit=200&offset=0&venue_type=home_game${hgApiState}${hgApiSearch}${hgApiLoc}`;
-                setLoading(true);
-                cachedFetch(hgUrl).then(data => {
-                  const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
-                  setPodHomeGames(newVenues);
-                }).catch(err => console.error('Home games fetch failed:', err))
-                .finally(() => setLoading(false));
-              }}
-                style={{ width: '100%', padding: '10px 0', borderRadius: 10, border: '1px solid rgba(63,185,80,0.4)', background: 'linear-gradient(135deg, #238636, #196c2e)', color: '#ffffff', fontSize: 14, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(35,134,54,0.3)' }}>
-                Find Home Games
-              </button>
-            </div>
-
-            {hgHasSearched ? (
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, padding: '6px 10px', background: 'rgba(22,27,34,0.8)', borderRadius: 8, border: '1px solid rgba(48,54,61,0.6)' }}>
-                  <span style={{ fontSize: 12, color: '#c9d1d9' }}>
-                    <span style={{ color: '#d4a853', fontWeight: 800 }}>{homeGames.length}</span> home game{homeGames.length !== 1 ? 's' : ''}
-                  </span>
-                  <button onClick={() => setFilters(prev => ({ ...prev, hgSearch: '', hgState: 'all', hgHasSearched: false }))}
-                    style={{ background: 'none', border: 'none', color: '#8b949e', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>Clear</button>
-                </div>
-                {loading && <div style={{ display: 'grid', gap: 12 }}>
-                  {[1,2,3].map(n => <div key={n} style={{ height: 80, borderRadius: 12, background: 'linear-gradient(90deg, rgba(30,40,55,0.5) 25%, rgba(50,60,80,0.5) 50%, rgba(30,40,55,0.5) 75%)', backgroundSize: '200% 100%', animation: 'pnm-shimmer 1.5s ease-in-out infinite', border: '1px solid rgba(148,163,184,0.08)' }} />)}
-                </div>}
-                <div style={{ display: 'grid', gap: 12 }}>
-                  {homeGames.map(v => (
-                    <VenueCard
-                      key={v.id}
-                      venue={v}
-                      isFavorited={!!favorites['venue-' + v.id]}
-                      onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(v.id, v); }}
-                      onNavigate={(url) => handleVenueNavigate(url, v)}
-                      userLocation={userLocation}
-                      checkinCount={checkinCounts[String(v.id)] || 0}
-                      reviewStats={reviewStatsMap[String(v.id)]}
-                    />
-                  ))}
-                </div>
-                {homeGames.length === 0 && !loading && (
-                  <div style={{ textAlign: 'center', padding: 40, color: '#8b949e' }}>
-                    <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6, color: '#c9d1d9' }}>No Home Games Found</p>
-                    <p style={{ fontSize: 13 }}>Try a Different Search or State Filter.</p>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div style={{ textAlign: 'center', padding: '30px 16px' }}>
-                <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="rgba(148,163,184,0.2)" strokeWidth="1" style={{ marginBottom: 14 }}>
-                  <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
-                </svg>
-                <p style={{ fontSize: 15, fontWeight: 700, color: '#c9d1d9', marginBottom: 6 }}>Find or List Home Games</p>
-                <p style={{ fontSize: 13, color: '#8b949e', lineHeight: 1.5 }}>Search for Home Games Near You or Filter by State. Use the Search Bar Above to Get Started.</p>
-              </div>
-            )}
-
-            {/* List Your Home Game section */}
-            <div style={{ marginTop: 16 }}>
-              <button
-                onClick={() => setFilters(prev => ({ ...prev, showCreateHomeGame: !prev.showCreateHomeGame }))}
-                style={{
-                  width: '100%', padding: '12px 0',
-                  borderRadius: 12,
-                  border: filters.showCreateHomeGame ? '1px solid rgba(34,197,94,0.4)' : '1px solid rgba(148,163,184,0.12)',
-                  background: filters.showCreateHomeGame ? 'rgba(34,197,94,0.08)' : 'rgba(212,168,83,0.04)',
-                  color: filters.showCreateHomeGame ? '#22c55e' : 'rgba(200,214,229,0.6)',
-                  fontSize: 14, fontWeight: 700,
-                  cursor: 'pointer', fontFamily: 'Inter, system-ui, sans-serif',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  transition: 'all 0.2s',
-                }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-                {filters.showCreateHomeGame ? 'Cancel Listing' : 'List Your Home Game'}
-              </button>
-              {filters.showCreateHomeGame && (
-                <div style={{
-                  marginTop: 12,
-                  background: 'rgba(13,17,23,0.95)',
-                  border: '1px solid rgba(34,197,94,0.2)',
-                  borderRadius: 14,
-                  overflow: 'hidden',
-                }}>
-                  <CreateHomeGame
-                    userId={userId}
-                    onSuccess={(newVenue) => {
-                      if (newVenue) {
-                        setVenues(prev => [...prev, newVenue]);
-                      }
-                      setFilters(prev => ({ ...prev, showCreateHomeGame: false, hgHasSearched: true }));
-                    }}
-                    onCancel={() => setFilters(prev => ({ ...prev, showCreateHomeGame: false }))}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
+          <PodHomeGames
+            filters={filters} setFilters={setFilters}
+            venues={venues} podHomeGames={podHomeGames} setPodHomeGames={setPodHomeGames}
+            userId={userId} userLocation={userLocation}
+            loading={loading} setLoading={setLoading}
+            favorites={favorites} handleToggleFavorite={handleToggleFavorite}
+            checkinCounts={checkinCounts} reviewStatsMap={reviewStatsMap}
+            handleVenueNavigate={handleVenueNavigate} router={router}
+            onHomeGameCreated={(newVenue) => setVenues(prev => [...prev, newVenue])}
+          />
         );
         break;
       }
@@ -2023,105 +1905,25 @@ export default function PokerNearMeLobby() {
       }
 
       case 'tours': {
-        const tourSearch = filters.tourSearch || '';
-        const tourState = filters.tourState || 'all';
-        let filteredTours = tours;
-        if (tourSearch) {
-          const lower = tourSearch.toLowerCase();
-          filteredTours = filteredTours.filter(t => {
-            if ((t.tour_name || t.name || '').toLowerCase().includes(lower) || (t.tour_code || '').toLowerCase().includes(lower) || (t.headquarters || '').toLowerCase().includes(lower)) return true;
-            const allStops = [...(t.upcoming_series || []), ...(t.stops_2026 || []), ...(t.series_2026 || [])];
-            return allStops.some(s => (s.name || s.venue || s.location || s.city || '').toLowerCase().includes(lower));
-          });
-        }
-        if (tourState !== 'all') {
-          filteredTours = filteredTours.filter(t => {
-            if ((t.headquarters || '').includes(tourState) || (t.state === tourState)) return true;
-            const allStops = [...(t.upcoming_series || []), ...(t.stops_2026 || []), ...(t.series_2026 || [])];
-            return allStops.some(s => (s.location || s.state || '').includes(tourState));
-          });
-        }
         component = (
-          <div>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-              <input type="text" placeholder="Search Tours..." value={tourSearch} autoComplete="off"
-                onChange={(e) => setFilters(prev => ({ ...prev, tourSearch: e.target.value }))}
-                style={{ flex: 1, minWidth: 120, padding: '8px 14px', borderRadius: 8, border: '1.5px solid rgba(148,163,184,0.15)', background: 'rgba(13,17,23,0.7)', color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' }} />
-              <select value={tourState}
-                onChange={(e) => setFilters(prev => ({ ...prev, tourState: e.target.value }))}
-                style={{ background: 'rgba(13,17,23,0.7)', border: '1.5px solid rgba(148,163,184,0.15)', borderRadius: 8, padding: '8px 14px', color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit', cursor: 'pointer', outline: 'none', minWidth: 110, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' }}>
-                <option value="all" style={{ background: '#0d1117' }}>All States</option>
-                {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(st => (
-                  <option key={st} value={st} style={{ background: '#0d1117' }}>{st}</option>
-                ))}
-              </select>
-              <span style={{ fontSize: 12, color: 'rgba(200,214,229,0.4)' }}>
-                <span style={{ color: '#d4a853', fontWeight: 700 }}>{filteredTours.length}</span> tour{filteredTours.length !== 1 ? 's' : ''}
-              </span>
-            </div>
-            <div style={{ display: 'grid', gap: 12 }}>
-              {filteredTours.map((t, i) => <TourCard key={t.tour_code || t.id || `tour-${i}`} tour={t} isFavorited={!!favorites['tour-' + (t.id || t.tour_code)]} onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(t.id || t.tour_code, t, 'tour'); }} onNavigate={(path) => router.push(path)} />)}
-            </div>
-            {!toursLoaded && tours.length === 0 && (
-              <div style={{ display: 'grid', gap: 12 }}>
-                {[1,2,3,4].map(n => <div key={n} style={{ height: 90, borderRadius: 12, background: 'linear-gradient(90deg, rgba(30,40,55,0.5) 25%, rgba(50,60,80,0.5) 50%, rgba(30,40,55,0.5) 75%)', backgroundSize: '200% 100%', animation: 'pnm-shimmer 1.5s ease-in-out infinite', border: '1px solid rgba(148,163,184,0.08)' }} />)}
-              </div>
-            )}
-            {toursLoaded && filteredTours.length === 0 && (
-              <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.5)' }}>
-                <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>No Matching Tours</div>
-                <div style={{ fontSize: 13, color: 'rgba(200,214,229,0.4)' }}>{tourSearch || tourState !== 'all' ? 'Try adjusting your filters.' : 'Check back soon for poker tour schedules.'}</div>
-              </div>
-            )}
-          </div>
+          <PodTours
+            filters={filters} setFilters={setFilters}
+            tours={tours} toursLoaded={toursLoaded}
+            favorites={favorites} handleToggleFavorite={handleToggleFavorite}
+            router={router}
+          />
         );
         break;
       }
 
       case 'series': {
-        const seriesSearch = filters.seriesSearch || '';
-        const seriesState = filters.seriesState || 'all';
-        let filteredSeries = series;
-        if (seriesSearch) {
-          const lower = seriesSearch.toLowerCase();
-          filteredSeries = filteredSeries.filter(s => (s.name || '').toLowerCase().includes(lower) || (s.city || '').toLowerCase().includes(lower) || (s.state || '').toLowerCase().includes(lower));
-        }
-        if (seriesState !== 'all') {
-          filteredSeries = filteredSeries.filter(s => s.state === seriesState);
-        }
         component = (
-          <div>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-              <input type="text" placeholder="Search Series..." value={seriesSearch} autoComplete="off"
-                onChange={(e) => setFilters(prev => ({ ...prev, seriesSearch: e.target.value }))}
-                style={{ flex: 1, minWidth: 120, padding: '8px 14px', borderRadius: 8, border: '1.5px solid rgba(148,163,184,0.15)', background: 'rgba(13,17,23,0.7)', color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' }} />
-              <select value={seriesState}
-                onChange={(e) => setFilters(prev => ({ ...prev, seriesState: e.target.value }))}
-                style={{ background: 'rgba(13,17,23,0.7)', border: '1.5px solid rgba(148,163,184,0.15)', borderRadius: 8, padding: '8px 14px', color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit', cursor: 'pointer', outline: 'none', minWidth: 110, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' }}>
-                <option value="all" style={{ background: '#0d1117' }}>All States</option>
-                {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(st => (
-                  <option key={st} value={st} style={{ background: '#0d1117' }}>{st}</option>
-                ))}
-              </select>
-              <span style={{ fontSize: 12, color: 'rgba(200,214,229,0.4)' }}>
-                <span style={{ color: '#d4a853', fontWeight: 700 }}>{filteredSeries.length}</span> series
-              </span>
-            </div>
-            <div style={{ display: 'grid', gap: 12 }}>
-              {filteredSeries.map((s, i) => <SeriesCard key={s.series_code || s.id || `series-${i}`} series={s} isFavorited={!!favorites['series-' + s.id]} onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(s.id, s, 'series'); }} onNavigate={(path) => router.push(path)} />)}
-            </div>
-            {!seriesLoaded && series.length === 0 && (
-              <div style={{ display: 'grid', gap: 12 }}>
-                {[1,2,3,4].map(n => <div key={n} style={{ height: 90, borderRadius: 12, background: 'linear-gradient(90deg, rgba(30,40,55,0.5) 25%, rgba(50,60,80,0.5) 50%, rgba(30,40,55,0.5) 75%)', backgroundSize: '200% 100%', animation: 'pnm-shimmer 1.5s ease-in-out infinite', border: '1px solid rgba(148,163,184,0.08)' }} />)}
-              </div>
-            )}
-            {seriesLoaded && filteredSeries.length === 0 && (
-              <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.5)' }}>
-                <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>No Matching Series</div>
-                <div style={{ fontSize: 13, color: 'rgba(200,214,229,0.4)' }}>{seriesSearch || seriesState !== 'all' ? 'Try adjusting your filters.' : 'Check back soon for poker series schedules.'}</div>
-              </div>
-            )}
-          </div>
+          <PodSeries
+            filters={filters} setFilters={setFilters}
+            series={series} seriesLoaded={seriesLoaded}
+            favorites={favorites} handleToggleFavorite={handleToggleFavorite}
+            router={router}
+          />
         );
         break;
       }
