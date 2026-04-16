@@ -1045,7 +1045,7 @@ export default function LiveGamesFeed({
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" style={{ transform: mapExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }}><polyline points="6 9 12 15 18 9" /></svg>
                     </div>
                     {mapExpanded && (
-                        <div style={{ height: 400, borderRadius: '0 0 14px 14px', overflow: 'visible' }}>
+                        <div style={{ height: 400, borderRadius: '0 0 14px 14px', overflow: 'hidden' }}>
                             <VenueMap venues={mergedVenues.filter(v => v.latitude && v.longitude)} userLocation={effectiveLocation} radiusMiles={filterRadius} />
                         </div>
                     )}
@@ -1103,7 +1103,7 @@ export default function LiveGamesFeed({
                             </div>
                         ) : (
                             (
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 14, paddingBottom: 24, alignItems: 'stretch' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14, paddingBottom: 24, alignItems: 'stretch' }}>
                                     {mergedVenues.slice(0, 50).map((v, i) => renderLiveVenueCard(v, i))}
                                 </div>
                             )

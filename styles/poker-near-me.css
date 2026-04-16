@@ -3162,10 +3162,10 @@
         flex-wrap: wrap;
     }
 
-    /* Card grid: single column on mobile */
+    /* Card grid: always 2 columns — fixed scale layout */
     .card-grid {
-        grid-template-columns: 1fr !important;
-        gap: 12px;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px;
     }
     .entity-card {
         padding: 14px;

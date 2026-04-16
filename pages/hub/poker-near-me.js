@@ -2416,6 +2416,8 @@ export default function PokerNearMePage() {
                 router={router}
                 openVenueModal={openVenueModal}
                 setIframeModal={setIframeModal}
+                pageDepth={2}
+                onBackClick={() => setActiveTab('venues')}
             />
         );
         if (showLiveTab) return (
@@ -2628,32 +2630,11 @@ export default function PokerNearMePage() {
                 <div className="space-overlay"></div>
 
                 <UniversalHeader 
-                    pageDepth={1} 
-                    hideLeftIcon={true}
+                    pageDepth={2} 
+                    hideLeftIcon={false}
+                    onBackClick={() => window.location.href = '/hub/poker-near-me-lobby'}
                     onMenuClick={() => setMenuOpen(true)} 
                 />
-
-                {/* In-page back button — brushed metal style */}
-                <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    padding: '8px 16px',
-                }}>
-                    <img
-                        src="/images/btn-back.png"
-                        alt="Back To Lobby"
-                        onClick={() => window.location.href = '/hub/poker-near-me-lobby'}
-                        style={{
-                            height: 18,
-                            cursor: 'pointer',
-                            transition: 'opacity 0.15s, transform 0.15s',
-                            opacity: 0.9,
-                            filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.5))',
-                        }}
-                        onMouseOver={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'scale(1.04)'; }}
-                        onMouseOut={(e) => { e.currentTarget.style.opacity = '0.9'; e.currentTarget.style.transform = 'scale(1)'; }}
-                    />
-                </div>
 
                 {/* Hamburger Menu */}
                 <HamburgerMenu
@@ -2693,13 +2674,19 @@ export default function PokerNearMePage() {
                 <div className="pnm-title-bar">
                     <h1 className="pnm-title">{showLiveTab ? 'CASH GAMES NEAR ME' : 'POKER NEAR ME'}</h1>
                     <p className="pnm-subtitle">
-                        {liveVenueCount === 0 && liveTableCount === 0 ? (
+                        {dbStats.total === 0 && liveTableCount === 0 ? (
                             'Loading Live Data...'
                         ) : (
                             <>
-                                {liveVenueCount.toLocaleString()} Live Venues
+                                {dbStats.total > 0 ? dbStats.total.toLocaleString() : '—'} Venues
                                 &nbsp;&bull;&nbsp;
                                 {liveTableCount.toLocaleString()} Live Tables
+                                {dbStats.tournaments > 0 && (
+                                    <>
+                                        &nbsp;&bull;&nbsp;
+                                        {dbStats.tournaments.toLocaleString()} Today&apos;s Tournaments
+                                    </>
+                                )}
                             </>
                         )}
                     </p>
