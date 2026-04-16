@@ -207,6 +207,7 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
     // Now we surgically intercept postgres payloads and mutate `allSeries` directly.
     useVenueRealtime((payload) => {
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         if (!payload) {
             // [PS2+PS3 FIX] Use .range(0,999) to bypass Supabase 1000-row project ceiling.
             // Added .catch() so silent auth/network failures don't leave stale state.
@@ -254,10 +255,15 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
         if (!payload) return; // Hard refresh not supported cleanly given static props logic
         if (payload.table !== 'poker_series') return;
 >>>>>>> Stashed changes
+=======
+        if (!payload) return; // Hard refresh not supported cleanly given static props logic
+        if (payload.table !== 'poker_series') return;
+>>>>>>> Stashed changes
         const { eventType, new: newRec, old: oldRec } = payload;
         
         setAllSeries(prev => {
             let next = [...prev];
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
             if (eventType === 'DELETE' && oldRec) {
                 return next.filter(s => s.id !== oldRec.id);
@@ -271,12 +277,17 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                     if (idx !== -1) next.splice(idx, 1);
                 } else if (idx !== -1) {
 =======
+=======
+>>>>>>> Stashed changes
             if (eventType === 'INSERT' && newRec) {
                 // Ensure no dupes
                 if (!next.some(s => s.id === newRec.id)) next.push(newRec);
             } else if (eventType === 'UPDATE' && newRec) {
                 const idx = next.findIndex(s => s.id === newRec.id);
                 if (idx !== -1) {
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
                     next[idx] = { ...next[idx], ...newRec };
                 } else {

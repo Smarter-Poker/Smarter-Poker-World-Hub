@@ -25,16 +25,30 @@ export async function sendPushNotification({ playerIds, externalIds, collapseId,
     if (collapseId) payload.collapse_id = collapseId;
 
     try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8-second circuit breaker
+
         const response = await fetch('https://onesignal.com/api/v1/notifications', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json; charset=utf-8',
                 'Authorization': `Basic ${process.env.ONESIGNAL_REST_API_KEY}`
             },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(payload),
+            signal: controller.signal
         });
 
-        const result = await response.json();
+        clearTimeout(timeoutId);
+
+        // Defensive parsing: prevent unexpected HTML gateway errors from crashing the Node instance
+        const textData = await response.text();
+        let result;
+        try {
+            result = JSON.parse(textData);
+        } catch (parseErr) {
+            console.error('[OneSignal Server] Non-JSON response received:', textData.substring(0, 500));
+            return { success: false, error: 'Upstream Gateway Error: Invalid JSON response' };
+        }
         
         if (response.ok && !result.errors) {
             return { success: true, result };
@@ -43,6 +57,10 @@ export async function sendPushNotification({ playerIds, externalIds, collapseId,
             return { success: false, error: result.errors || 'Unknown API Error' };
         }
     } catch (e) {
+        if (e.name === 'AbortError') {
+            console.error('[OneSignal Server] Request timed out after 8000ms');
+            return { success: false, error: 'OneSignal API Timeout' };
+        }
         console.error('[OneSignal Server] Request failed:', e);
         return { success: false, error: e.message };
     }

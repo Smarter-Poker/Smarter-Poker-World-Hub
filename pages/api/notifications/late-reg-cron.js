@@ -65,23 +65,28 @@ async function handler(req, res) {
 
             if (isLateRegWindow) {
                 if (!alertsByTournament[tournament.id]) {
-                    alertsByTournament[tournament.id] = { tournament, playerIds: [], alertIds: [] };
+                    alertsByTournament[tournament.id] = { tournament, targets: [] };
                 }
-                alertsByTournament[tournament.id].playerIds.push(playerId);
-                alertsByTournament[tournament.id].alertIds.push(alert.id);
+                alertsByTournament[tournament.id].targets.push({ playerId, alertId: alert.id });
             }
         }
 
         let processedCount = 0;
         let errorsCount = 0;
 
-        const pushPromises = Object.values(alertsByTournament).map(async ({ tournament, playerIds, alertIds }) => {
-            // Chunk playerIds into 2000-size blocks as per OneSignal API limits
+        // Vercel/OneSignal Throttler Helper 
+        const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+        // Use sequential execution over `Promise.allSettled` network stampeding to prevent 429 Too Many Requests
+        for (const { tournament, targets } of Object.values(alertsByTournament)) {
             const chunkSize = 2000;
-            for (let i = 0; i < playerIds.length; i += chunkSize) {
-                const chunkIds = playerIds.slice(i, i + chunkSize);
+            for (let i = 0; i < targets.length; i += chunkSize) {
+                const chunkTargets = targets.slice(i, i + chunkSize);
+                const chunkPlayerIds = chunkTargets.map(t => t.playerId);
+                const chunkAlertIds = chunkTargets.map(t => t.alertId);
+                
                 const pushResult = await sendPushNotification({
-                    playerIds: chunkIds,
+                    playerIds: chunkPlayerIds,
                     heading: 'Late Registration Alert! ⏳',
                     content: `${tournament.tournament_name} at ${tournament.venue_name} is in or approaching late registration.`,
                     url: `https://smarter.poker/hub/venues/${encodeURIComponent(tournament.venue_name)}`
@@ -90,15 +95,16 @@ async function handler(req, res) {
                 if (pushResult.success) {
                     await supabase.from('user_pwa_alerts')
                         .update({ last_triggered_at: new Date().toISOString(), is_active: false })
-                        .in('id', alertIds);
-                    processedCount += chunkIds.length;
+                        .in('id', chunkAlertIds);
+                    processedCount += chunkPlayerIds.length;
                 } else {
-                    errorsCount += chunkIds.length;
+                    errorsCount += chunkPlayerIds.length;
                 }
+                
+                // Sleep 250ms natively between simultaneous bulk-drops to defend against API strict rate checks
+                await sleep(250);
             }
-        });
-
-        await Promise.allSettled(pushPromises);
+        }
 
         return res.status(200).json({ 
             success: true, 
