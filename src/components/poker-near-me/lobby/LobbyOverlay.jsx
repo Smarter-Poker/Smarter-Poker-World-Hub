@@ -426,6 +426,7 @@ export default function LobbyOverlay({
                 </svg>
               </div>
             </div>
+        )}
 
       </header>
 
