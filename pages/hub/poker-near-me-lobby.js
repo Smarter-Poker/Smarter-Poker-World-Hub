@@ -1606,7 +1606,8 @@ export default function PokerNearMeLobby() {
     // to keep UI synchronous, though technically they store in page_followers on backend.
     const favKey = type + '-' + id;
     const wasFavorited = !!favorites[favKey];
-    setFavorites(prev => ({ ...prev, [favKey]: !wasFavorited }));
+    // [GAP 4.1 FIX] Use Date.now() timestamp (not boolean) to match main page convention
+    setFavorites(prev => ({ ...prev, [favKey]: wasFavorited ? null : Date.now() }));
     
     const entry = { id, name: dataObj?.name || 'Unknown', address: dataObj?.address || '', city: dataObj?.city || '', state: dataObj?.state || '', _fromFavorites: true, _type: type };
     if (wasFavorited) {

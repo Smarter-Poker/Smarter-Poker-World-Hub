@@ -13,6 +13,9 @@ export const LIVE_REFRESH_MS = 120000; // 2 minutes
 
 // ─── API Cache with TTL Expiry ───
 const apiCache = {};
+// [GAP 1.5 FIX] In-flight promise deduplication — prevents duplicate HTTP requests
+// when multiple components call cachedFetch for the same URL simultaneously
+const inflight = {};
 
 /**
  * Fetch with in-memory cache + TTL. Prevents duplicate requests
@@ -23,19 +26,26 @@ export function cachedFetch(url, ttl = API_CACHE_TTL) {
   if (apiCache[url] && (now - apiCache[url].time) < ttl) {
     return Promise.resolve(apiCache[url].data);
   }
+  // [GAP 1.5] Return existing in-flight promise if one exists
+  if (inflight[url]) return inflight[url];
   // Evict stale entries to prevent unbounded growth
   const keys = Object.keys(apiCache);
   if (keys.length > API_CACHE_MAX_ENTRIES) {
     keys.sort((a, b) => apiCache[a].time - apiCache[b].time);
     keys.slice(0, keys.length - API_CACHE_MAX_ENTRIES + 10).forEach(k => delete apiCache[k]);
   }
-  return fetch(url).then(r => {
+  const promise = fetch(url).then(r => {
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     return r.json();
   }).then(data => {
-    apiCache[url] = { data, time: now };
+    // [GAP 1.2 FIX] Timestamp AFTER fetch resolves, not before
+    apiCache[url] = { data, time: Date.now() };
     return data;
+  }).finally(() => {
+    delete inflight[url];
   });
+  inflight[url] = promise;
+  return promise;
 }
 
 /**
