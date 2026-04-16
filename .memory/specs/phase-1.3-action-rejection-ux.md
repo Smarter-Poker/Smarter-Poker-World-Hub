@@ -169,128 +169,34 @@ One PR per deliverable section, tested + deployed independently.
 - **PR-D** — ActionErrorToast + TablePage wiring
 - **PR-E** — /validator-metrics route + smoke test
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-=======
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
 Each PR ~0.5 day. Total ~3 working days incl. tests and verification.
-=======
 Each PR ~0.5 day. Total ~3 working days incl. tests and soak.
->>>>>>> Stashed changes
-=======
 Each PR ~0.5 day. Total ~3 working days incl. tests and soak.
->>>>>>> Stashed changes
-=======
 Each PR ~0.5 day. Total ~3 working days incl. tests and soak.
->>>>>>> Stashed changes
-<<<<<<< Updated upstream
-=======
-=======
 Each PR ~0.5 day. Total ~3 working days incl. tests and soak.
->>>>>>> Stashed changes
-=======
 Each PR ~0.5 day. Total ~3 working days incl. tests and soak.
->>>>>>> Stashed changes
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
 Each PR ~0.5 day. Total ~3 working days incl. tests and soak.
->>>>>>> Stashed changes
-=======
 Each PR ~0.5 day. Total ~3 working days incl. tests and soak.
->>>>>>> Stashed changes
-=======
 Each PR ~0.5 day. Total ~3 working days incl. tests and soak.
->>>>>>> Stashed changes
-=======
 Each PR ~0.5 day. Total ~3 working days incl. tests and soak.
->>>>>>> Stashed changes
-=======
 Each PR ~0.5 day. Total ~3 working days incl. tests and soak.
->>>>>>> Stashed changes
-=======
 Each PR ~0.5 day. Total ~3 working days incl. tests and soak.
->>>>>>> Stashed changes
-=======
 Each PR ~0.5 day. Total ~3 working days incl. tests and soak.
->>>>>>> Stashed changes
-=======
 Each PR ~0.5 day. Total ~3 working days incl. tests and soak.
->>>>>>> Stashed changes
-=======
 Each PR ~0.5 day. Total ~3 working days incl. tests and soak.
->>>>>>> Stashed changes
-=======
 Each PR ~0.5 day. Total ~3 working days incl. tests and soak.
->>>>>>> Stashed changes
-=======
 Each PR ~0.5 day. Total ~3 working days incl. tests and soak.
->>>>>>> Stashed changes
-=======
 Each PR ~0.5 day. Total ~3 working days incl. tests and soak.
->>>>>>> Stashed changes
-=======
 Each PR ~0.5 day. Total ~3 working days incl. tests and soak.
->>>>>>> Stashed changes
-=======
 Each PR ~0.5 day. Total ~3 working days incl. tests and soak.
->>>>>>> Stashed changes
-=======
 Each PR ~0.5 day. Total ~3 working days incl. tests and soak.
->>>>>>> Stashed changes
-=======
 Each PR ~0.5 day. Total ~3 working days incl. tests and soak.
->>>>>>> Stashed changes
-=======
 Each PR ~0.5 day. Total ~3 working days incl. tests and soak.
->>>>>>> Stashed changes
-=======
 Each PR ~0.5 day. Total ~3 working days incl. tests and soak.
->>>>>>> Stashed changes
-=======
 Each PR ~0.5 day. Total ~3 working days incl. tests and soak.
->>>>>>> Stashed changes
-=======
 Each PR ~0.5 day. Total ~3 working days incl. tests and soak.
->>>>>>> Stashed changes
-=======
 Each PR ~0.5 day. Total ~3 working days incl. tests and soak.
->>>>>>> Stashed changes
-=======
 Each PR ~0.5 day. Total ~3 working days incl. tests and soak.
->>>>>>> Stashed changes
 
 ## 7. Rollback
 
