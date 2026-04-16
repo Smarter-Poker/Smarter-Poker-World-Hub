@@ -1,5 +1,5 @@
 import React from 'react';
-import SeriesCard from '../registry/SeriesCard';
+import SeriesCard from '../SeriesCard';
 
 export default function PodSeries({
   filters, setFilters,

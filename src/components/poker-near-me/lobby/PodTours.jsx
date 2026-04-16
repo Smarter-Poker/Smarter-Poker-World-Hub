@@ -1,5 +1,5 @@
 import React from 'react';
-import TourCard from '../registry/TourCard';
+import TourCard from '../TourCard';
 
 export default function PodTours({
   filters, setFilters,
