@@ -1,357 +1,301 @@
-# Claude Instructions for Smarter-Poker-World-Hub
+# Smarter-Poker-World-Hub -- Agent Instructions
 
-## 🚨 LAW 11: DEPLOYMENT CONTRACT (read this FIRST, every session, zero exceptions)
-
-**Added 2026-04-15 after the duplicate-Vercel-project queue cascade.** Enforced on every agent, every push.
-
-### Correct Vercel project
-
-- **`hub-vanguard`** (`prj_op66GkZyZcygXQKm76iyycfVFAQx`) — THE REAL ONE. Aliased to `smarter.poker`. Every push to `main` must flow through this project.
-- **`smarter-poker`** (`prj_FNUaJmcjRnwCSh1JzblIUYuOXDGK`) — DUPLICATE wired to the same repo. GitHub auto-deploy DISABLED. Do NOT re-enable. Do NOT fire its deploy hooks. Do NOT deploy there via the Vercel CLI. If a `smarter-poker` deployment appears under this repo again, somebody resurrected it — put it back to sleep before continuing.
-
-### Push → Watch → Verify → Cold-load. In that order. Never skip. Never claim success before all four pass.
-
-1. **PUSH** — `bash scripts/git-safe-push.sh "<message>"` or GitHub Contents API. Record the commit SHA.
-2. **WATCH** — poll `hub-vanguard`'s latest deployment via Vercel MCP (`get_deployment` / `list_deployments` with `projectId: prj_op66GkZyZcygXQKm76iyycfVFAQx`) until `state === 'READY'`. If CANCELED because a later push superseded yours, confirm the later deploy carries your SHA as an ancestor via `GET /repos/.../compare/<yours>...main`. If not, re-push on top of the new HEAD.
-3. **VERIFY SERVED** — fetch `https://smarter.poker/...` and confirm the served HTML references the NEW content-hashed bundle matching your build.
-4. **COLD-LOAD TEST** (for any functional change) — fresh browser tab, no SPA state carryover. Confirm the new bundle hash is loaded and the fixed behavior works end-to-end.
-
-### Forbidden phrases when claiming deploy success
-
-"should be live in a few minutes" / "deploy triggered" / "Vercel will pick it up" / "my push went through" (without the 4-step proof above)
-
-### Required success language
-
-> "Production `<url>` served `<expected-bundle-hash>` at `<UTC timestamp>` and the fixed behavior was confirmed via cold-load test at that timestamp."
-
-### Deploy-path sanity check
-
-`scripts/git-safe-push.sh` must NOT contain `npx vercel deploy` (removed 2026-04-15 because it was firing a 2nd redundant deploy on every push). If you see that line reappear, it's a regression — delete it, the GitHub integration handles auto-deploy.
-
-`scripts/antigravity-deploy.sh` has a legacy `vercel --prod --yes` at ~line 121. Do NOT run this script without first confirming whether the duplicate project is still disabled. Prefer `git-safe-push.sh` only.
+ALL agents (Claude, AntiGravity, Cowork, any AI) MUST read this file at session start.
+This is the single source of truth. Updated 2026-04-16.
 
 ---
 
-## 🚨 MANDATORY PREFLIGHT PROTOCOL — RUN BEFORE ANY WORK
+## 1. DEPLOYMENT PIPELINE (read this FIRST)
 
-At the start of EVERY new session or feature request, you MUST execute the appropriate preflight protocol. Do not write code or make plans until the preflight is complete and its output is provided to the user.
+There is exactly ONE deployment path. No exceptions. No alternatives.
 
-**Step 1: Classify the Task**
-Identify if the user's request is Tier 1, Tier 2, or Tier 3 (see "Task Classification" section below).
+### 1.1 Infrastructure
 
-**Step 2: Execute Preflight**
-- **If Tier 1 (Quick Fix):** 
-  1. Read `/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/.memory/WORKING-RULES.md`.
-  2. State the single atomic unit you are about to fix in one sentence.
-  3. Attest that there are no forbidden words (wait, soak, defer, later) in your plan.
-  4. Proceed with work.
-  
-- **If Tier 2 or 3 (Feature/Architecture):**
-  1. You MUST run the **10-Phase Military Grade Realign Protocol**.
-  2. Open and follow exactly the steps in `/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/.memory/REALIGN-PROTOCOL.md`.
-  3. Perform the [INTEL] read and [GREP] state checks.
-  4. Fill out the [KILL-SWITCH] and [RED-TEAM] evaluations.
-  5. Provide the [MISSION BRIEF] with the exact verification commands.
-  6. Execute ONLY the atomic unit defined.
+| Service    | Purpose                          | Project ID / URL                                   |
+|------------|----------------------------------|-----------------------------------------------------|
+| Vercel     | Frontend hosting (smarter.poker) | `hub-vanguard` / `prj_op66GkZyZcygXQKm76iyycfVFAQx` |
+| Supabase   | Database + Auth + Realtime       | `kuklfnapbkmacvwxktbh.supabase.co`                  |
+| Hetzner    | Poker engine server (Node.js)    | `server/` directory, deployed via SSH               |
 
-**Do NOT rely on memory. Do not skip phases. Do not "skim".**
+The `smarter-poker` Vercel project (`prj_FNUaJmcjRnwCSh1JzblIUYuOXDGK`) is a DEAD DUPLICATE.
+Its git integration is disconnected. Its deploy hooks are deleted. Do not touch it.
 
----
-
-## 🚨 MANDATORY: TypeScript Check Before EVERY Commit (NON-NEGOTIABLE)
-
-**Before EVERY `git commit`, run `npx tsc --noEmit`. If it has ANY errors, DO NOT commit. Fix all errors first.**
+### 1.2 The Only Push Command
 
 ```bash
-# MUST run this before EVERY commit:
-npx tsc --noEmit
-
-# Only if exit code 0 → commit and push
-git add -A && git commit -m "your message" && git push origin main
+bash ~/Documents/Smarter-Poker-World-Hub/scripts/git-safe-push.sh "descriptive commit message"
 ```
 
-**Common mistakes that WILL break CI:**
-- Importing a component that doesn't exist → create the file AND add to barrel `index.ts`
-- Emitting bus events with fields not in the type → update the type definition
-- Passing JSX props not in the component's Props interface → add to interface or remove prop
+Never run `git add`, `git commit`, `git push`, `git pull` individually.
+Never run `vercel deploy`, `vercel --prod`, or call any deploy hook URL.
+Never run `scripts/antigravity-deploy.sh` (legacy, contains dead code).
 
-See `skills/mandatory-typecheck/SKILL.md` for the full protocol.
+The script handles everything autonomously:
+- Phase 0: Secret scanning, account verification, .env safety
+- Phase 0.5: Destructive change detection, protected zone enforcement, emoji scanning
+- Phase 1: Lock cleanup, stale rebase/merge abort
+- Phase 2: Stage, commit, ghost file sweep
+- Phase 2.5: Build gate (`npx next build` -- catches errors before they hit Vercel)
+- Phase 3: Pull-rebase with auto-conflict resolution, push with retries
+- Phase 4: Post-deploy verification (polls /api/health until SHA matches)
 
+The script exits 0 ONLY when production is verified serving your commit.
+If it exits non-zero, your code is NOT deployed. Fix the issue and re-run.
 
-## SPEED MANDATE — All Agents (READ FIRST)
+### 1.3 What Happens After Push
 
-You are graded on SPEED, ACCURACY, and EFFICIENCY. Unnecessary research = failure.
-Do NOT read Knowledge Items, skills, or workflows unless the task specifically requires them.
-Do NOT create implementation plans or ask for approval on Tier 1-2 tasks.
+1. GitHub receives the commit on `main`
+2. Vercel git integration on `hub-vanguard` auto-triggers a build
+3. Build runs (~3-5 min for Next.js)
+4. If build succeeds: deployment becomes READY and is auto-promoted to Current (production)
+5. `verify-deploy.js` (called by the push script) confirms production serves the new SHA
 
-### Task Classification (MANDATORY — Classify BEFORE Starting)
+There is NO deploy hook. There is NO manual promotion step.
+One push = one build = one deployment = auto-promoted to production.
 
-**Tier 1: Quick Fix (5-10 min)** — NO plan, NO approval, NO artifacts
-- CSS/layout bugs, text changes, color/spacing fixes
-- Single-file edits where you KNOW the file
-- Adding/removing a class, adjusting padding/margin/overflow
-- **→ Go directly to the file. Fix it. Browser-test. Deploy.**
+### 1.4 Claiming Success
 
-**Tier 2: Feature Work (15-30 min)** — Brief inline plan, no approval wait
-- Multi-file edits within ONE component/area
-- New UI elements, wiring existing APIs, logic bug fixes
-- **→ State your approach in 3 lines. Execute. Verify. Deploy.**
+You may ONLY say a change is deployed after `git-safe-push.sh` exits 0.
+The script output will contain `DEPLOY_VERIFIED:true` and `SHA_MATCHED:true`.
 
-**Tier 3: Architecture (30+ min)** — Full plan, user approval required
-- Database migrations, new API routes, cross-component refactors
-- Anything touching payments, real-time, auth, or security
-- **→ Full implementation plan. Wait for approval. Execute. Verify.**
+Never say:
+- "should be live in a few minutes"
+- "deploy triggered"
+- "Vercel will pick it up"
+- "pushed successfully" (push != deploy)
 
-### Scoped File Maps — Go DIRECTLY to the right files
+Instead say:
+> "Production smarter.poker served SHA `<hash>` at `<UTC time>`. Verified via /api/health."
 
-**Club Arena (Vite SPA — separate from World Hub):**
-```
-Source repo:        ~/Documents/Smarter-Poker-Club-Arena/
-Lobby:              src/pages/Lobby.tsx (in source repo)
-Components:         src/components/ (in source repo)
-Compiled output:    public/hub/club-arena/ (in World Hub — DO NOT edit directly)
-API routes:         pages/api/club-arena/ (in World Hub)
-Rebuild flow:       Edit source → Vite build → copy dist/ to public/hub/club-arena/
-```
+### 1.5 When Deployment Fails
 
-**Club Commander:**
-```
-Staff UI:           pages/commander/
-Player UI:          pages/hub/commander/
-API routes:         pages/api/commander/
-Components:         src/components/commander/
-State:              src/stores/commanderStore.js
-Utilities:          src/lib/commander/
-Skill docs:         .agent/skills/club-commander/
-```
+If `git-safe-push.sh` reports `DEPLOY_VERIFIED:false` or exits non-zero:
 
-**World Hub Pages:**
-```
-Pages:              pages/hub/
-Components:         src/components/
-Shared libs:        src/lib/
-Stores:             src/stores/
-```
+1. Check the Vercel dashboard: `https://vercel.com/smarter-poker/hub-vanguard/deployments`
+2. If the build ERROR'd: read the build logs, fix the code, re-run the push script
+3. If the build is CANCELED: a newer push superseded yours. Confirm your changes are in the newer commit.
+4. If SHA mismatch after timeout: the build may still be running. Wait and re-check.
 
-**DO NOT search outside your scoped area. If your task is Club Arena, don't search pages/hub/. If your task is Commander, don't search src/components/club-arena/.**
+Never revert without understanding the failure. Never push the same broken code twice.
 
-### Verification Protocol (Match to Task Tier)
+---
 
-**Test Account (if browser testing is needed):**
-- Email: `daniel@bekavactrading.com` / Password: `Bek454545!!`
-- Has all features unlocked. Works on localhost and production.
+## 2. PRE-PUSH CHECKS (enforced automatically)
 
-**Tier 1 (CSS/Layout) — NO browser test required:**
+### 2.1 Build Gate (Phase 2.5 of git-safe-push.sh)
+
+`npx next build` runs locally before push. If it fails, the push is blocked.
+This catches 100% of the errors that would fail on Vercel.
+To skip for emergency hotfixes ONLY: `--skip-build` flag.
+
+### 2.2 GitHub Actions Safety Gate
+
+`.github/workflows/build-safety-gate.yml` runs on every push to main:
+- CHECK 1: No `.single()` calls (must use `.maybeSingle()`)
+- CHECK 2: No unused React hook imports
+- CHECK 3: No raw `@supabase/supabase-js` imports in API routes
+- CHECK 4: No merge conflict markers in source files
+- CHECK 5: TypeScript compilation (advisory, does not block)
+
+Has `cancel-in-progress: true` so rapid pushes don't queue 15 stale builds.
+
+### 2.3 Secret Scanning (Phase 0)
+
+Blocks push if any file contains `ghp_` or `github_pat_` patterns.
+GitHub auto-revokes leaked tokens. This gate prevents that.
+
+### 2.4 Protected Zone Enforcement (Phase 0.5)
+
+`public/hub/club-arena/` is a protected zone.
+Only agents whose commit message contains "club-arena" can modify files there.
+All other agents: your changes to that directory are auto-unstaged.
+
+---
+
+## 3. CODE SAFETY RULES (8 Immutable Rules)
+
+Violation of ANY rule = automatic rollback. Enforced by pre-push hooks and CI/CD.
+
+1. **No `.single()`** -- Always `.maybeSingle()`. `.single()` throws PGRST116 on 0 rows.
+
+2. **No unused hook imports** -- If you `import { useXxx }`, you MUST call `useXxx()`.
+   Unused hooks cause ReferenceError during SSG, crashing the entire build.
+
+3. **No module-scope `createClient()`** without `typeof window` guard.
+   Module-scope runs during SSG where browser APIs don't exist.
+
+4. **No raw `@supabase/supabase-js` in API routes** -- Use `src/lib/supabaseServerClient`.
+   The patched client has JWT decode fallback. Raw imports bypass GoTrue resilience.
+
+5. **No trusting `req.query.userId`** for identity -- Use JWT via `supabase.auth.getUser(token)`.
+   Query params are an IDOR attack vector.
+
+6. **No `.limit()` on JavaScript arrays** -- `.limit()` is a Supabase query builder method.
+
+7. **No emoji in source files** -- No emoji in JSX, string literals, props, toast messages,
+   admin panels, or any user-facing string. Use plain text or Unicode symbols.
+   Bare emoji break the SWC compiler and cause Vercel build failures.
+
+8. **Verify every change** before claiming done (see Section 5: Verification Protocol).
+
+---
+
+## 4. TASK CLASSIFICATION
+
+Classify your task BEFORE starting. This determines your workflow.
+
+### Tier 1: Quick Fix (5-10 min)
+CSS bugs, text changes, single-file edits where you know the file.
+Workflow: Fix it. Run `git-safe-push.sh`. Report what changed.
+
+### Tier 2: Feature Work (15-30 min)
+Multi-file edits, new UI elements, logic bug fixes.
+Workflow: State approach in 3 lines. Execute. Run `git-safe-push.sh`. Report.
+
+### Tier 3: Architecture (30+ min)
+Database migrations, new API routes, cross-component refactors, auth/payment changes.
+Workflow: Write implementation plan. Get user approval. Execute. Verify. Deploy.
+
+For Tier 1-2: Do NOT read Knowledge Items, skills, or workflows.
+For Tier 3: Read `.memory/WORKING-RULES.md` and `.memory/REALIGN-PROTOCOL.md` first.
+
+---
+
+## 5. VERIFICATION PROTOCOL
+
+### Tier 1 (CSS/Layout)
 1. Make the fix
-2. Deploy via `git-safe-push.sh`
-3. Report what you changed
-— The pre-push hook + CI/CD gate catch real issues. Do NOT browser-test padding/color/text changes.
+2. Run `git-safe-push.sh` (build gate + deploy verification handle the rest)
+3. Report what changed
 
-**Tier 2 (Logic Changes) — Browser test ONLY if unsure:**
-1. Deploy via `git-safe-push.sh`
-2. If confident in the change → done, report results
-3. If unsure about behavior → browser-test with test account, then report
+### Tier 2 (Logic Changes)
+1. Run `git-safe-push.sh`
+2. If confident: done
+3. If unsure: browser-test with test account, then report
 
-**Tier 3 (Architecture) — Full verification required:**
-1. `npm run build` to verify compilation
+### Tier 3 (Architecture)
+1. Run `npm run build` locally first
 2. Browser-test all affected features
-3. Run the 7 Immutable Rules grep checks
-4. Deploy and check Vercel status after push
+3. Run the 8 Immutable Rules grep checks
+4. Run `git-safe-push.sh`
+5. Verify deployment via Vercel MCP or dashboard
 
-### Common Bug Patterns — Check Here BEFORE Researching
+### Test Account
+Email: `daniel@bekavactrading.com` / Password: `Bek454545!!`
+All features unlocked. Works on localhost and production.
+
+---
+
+## 6. FILE MAP
+
+### World Hub (Next.js)
+```
+pages/hub/              World Hub pages
+pages/api/              API routes (300+)
+pages/commander/        Club Commander staff UI
+pages/hub/commander/    Club Commander player UI
+src/components/         Shared React components
+src/lib/                Shared libraries
+src/stores/             Zustand stores
+```
+
+### Club Arena (Vite SPA -- separate repo)
+```
+Source:     ~/Documents/Smarter-Poker-Club-Arena/src/
+Output:     public/hub/club-arena/ (DO NOT edit directly)
+API:        pages/api/club-arena/
+Rebuild:    Edit source -> Vite build -> copy dist/ to public/hub/club-arena/
+Auth:       Same-origin Supabase session via smarter-poker-auth localStorage key
+```
+
+### Club Commander
+```
+Staff UI:       pages/commander/
+Player UI:      pages/hub/commander/
+API:            pages/api/commander/
+Components:     src/components/commander/
+State:          src/stores/commanderStore.js
+Schema:         .agent/skills/club-commander/DATABASE_SCHEMA.sql
+```
+
+Stay in your scoped area. If your task is Commander, don't touch Club Arena files.
+
+---
+
+## 7. AGENT ISOLATION (concurrent work)
+
+### File-Level Ownership
+- Identify the specific files you will modify at task start
+- Do not modify files another agent is likely editing
+- Report any shared-file edits
+
+### Protected Zones
+`public/hub/club-arena/` -- Club Arena agents only
+`pages/api/club-arena/` -- Club Arena agents only
+
+How to know if you're a Club Arena agent: your task mentions "Club Arena", "poker table",
+"club-arena", or references `~/Documents/club-arena/`.
+
+### Shared Resources -- Do Not Touch
+- `rm -rf .next` -- kills all agents' compilations
+- `npm run build` -- blocks dev server for minutes
+- `npm install` -- modifies node_modules mid-compilation
+- Dev server restart -- wait 10s, another agent may be restarting
+
+### Git Conflict Safety
+After `git-safe-push.sh` completes, verify your changes survived.
+If the script reports "Accepting remote changes" during rebase, your changes
+may have been overwritten. Re-apply them and re-run the script.
+
+---
+
+## 8. COMMON BUG PATTERNS
 
 | Symptom | Cause | Fix |
-|---|---|---|
-| UI "cut off" or clipped | `overflow: hidden` on parent, or conditional padding for admin vs regular user | Check parent container CSS, look for role-based style logic |
-| "Loading..." spinner hangs forever | Query param mismatch (`?club` vs `?club_id`) | Align URL params between link generators and receivers |
-| Server 500 on page load | Corrupted `.next` cache | `rm -rf .next && npm run dev` |
-| "Cannot access 'X' before initialization" | `useState` declared below a `useMemo` that references it | Hoist `useState` to the top of the component |
-| "Cannot find module vendor-chunks" | `.next` cache corruption | `rm -rf .next && npm run dev` |
-| Page works for admin but breaks for others | Hardcoded user ID or admin-only data path | Check for role/ID conditionals in the component |
-| Styles not updating after push | Browser cache / stale `.next` / Vercel CDN delay | Hard refresh (Cmd+Shift+R), check in incognito |
+|---------|-------|-----|
 | `.single()` crash (PGRST116) | Query returned 0 rows | Replace with `.maybeSingle()` |
-| Emoji in UI (rule violation) | Agent added emoji characters | Strip all emoji, use plain text only |
-
-### Dev Server Protocol
-- If port 3000 responds to `curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/hub` → server is running, DO NOT restart
-- If not responding → `npm run dev` from project root
-- ONLY nuke `.next` if you get `vendor-chunks` or `MODULE_NOT_FOUND` errors
-- NEVER nuke `.next` while other agents are active — it crashes everyone
-
-### Agent Isolation Protocol (MANDATORY for all concurrent agents)
-
-**Multiple agents CAN work in the same area (e.g., 5 agents in Club Arena). Isolation is at the FILE level, not the area level.**
-
-**1. File-Level Ownership:**
-- At the start of your task, identify the SPECIFIC FILES you will modify
-- Do NOT modify any file that another agent is likely editing (e.g., if you were told "fix the lobby cards" and another agent was told "fix the marketplace," don't touch marketplace files)
-- If your task requires editing a shared file (e.g., a layout component used everywhere), mention it in your report so the user knows
-
-**2. Browser Isolation:**
-- Launch your OWN browser session — do NOT take over a browser window that is already open on a different page
-- If a browser is already open and navigated somewhere, open a NEW browser or a new tab — do not navigate away from an existing page
-- Close your browser session when done testing
-
-**3. Git Conflict Safety:**
-- After `git-safe-push.sh` completes, verify YOUR changes survived by checking the push output
-- If the push script reports "Accepting remote changes" during rebase, your changes may have been overwritten — re-apply them
-- Do NOT modify files outside your declared scope, even if you see bugs in them — report those bugs instead
-
-**4. Shared Resources — Do NOT Touch:**
-- `rm -rf .next` — kills ALL agents' active compilations. Only do this if the server is fully crashed for everyone
-- `npm run build` — blocks the dev server for minutes, stalling all other agents
-- `npm install` — modifies `node_modules` and `package-lock.json`, can crash other agents mid-compilation
-- Dev server restart — wait 10 seconds before restarting, another agent may already be restarting it
-
-### PROTECTED FILE ZONES (ZERO EXCEPTIONS)
-
-**The following directories are PROTECTED ZONES. Only agents explicitly assigned to that area may modify files within them. All other agents MUST NOT touch, overwrite, delete, rename, or move any file in these directories — even if you see bugs, even during git rebase, even if your commit touches adjacent files.**
-
-**Protected Zone: `public/hub/club-arena/`**
-- Owner: Club Arena agents ONLY (agents explicitly told to work on Club Arena)
-- Contains: Compiled Vite SPA output (index.html, assets/, manifest.json, images/, sw.ts)
-- WHY: Club Arena is a separately-built Vite SPA. Its compiled output uses content-hashed filenames (e.g., `index-D3P3kOTd.css`). If ANY non-Club-Arena agent modifies, deletes, or overwrites files here during a git rebase or push, the entire Club Arena app breaks (blank page, missing styles, broken JS).
-- WHAT TO DO: If `git-safe-push.sh` reports a merge conflict in `public/hub/club-arena/`, ALWAYS accept the EXISTING version (theirs/remote). Never auto-resolve by taking your version.
-- ENFORCEMENT: `git-safe-push.sh` will reject pushes from non-Club-Arena agents that modify files in `public/hub/club-arena/`. If you see this error, remove those files from your commit with `git reset HEAD public/hub/club-arena/` and re-commit.
-
-**Protected Zone: `pages/api/club-arena/`**
-- Owner: Club Arena agents ONLY
-- Contains: API routes for Club Arena backend
-- Same rules as above — do not modify unless you are a Club Arena agent.
-
-**How to know if you are a Club Arena agent:** Your task description explicitly mentions "Club Arena", "poker table", "club-arena", or references files in `~/Documents/club-arena/` or `public/hub/club-arena/`. If your task is about Commander, Series, Training, World Hub pages, or anything else — you are NOT a Club Arena agent and MUST NOT touch these zones.
-
-### Deploy Hook — REMOVED (DO NOT USE)
-
-**The deploy hook (`Tw4O1eDeVc`) has been PERMANENTLY RETIRED as of 2026-04-16.**
-Root cause analysis found it was creating DUPLICATE deployments on every push — one from the git integration auto-deploy, one from the hook. Only one can become "Current"; the other sits as "Ready but never published" forever, filling the deployment queue with ghosts.
-
-**There is NO valid reason to call the deploy hook.** The Vercel git integration auto-deploys on every push to `main`. If a deployment fails, the fix is to fix the code and push again — NOT to re-trigger via hook.
-
-If you find the deploy hook URL in any `.memory` file, session context, or agent documentation — IGNORE IT. Do not call it.
-
-### KI & Artifact Policy
-- Do NOT read Knowledge Items for Tier 1 or Tier 2 tasks
-- Create `task.md` / `implementation_plan.md` / `walkthrough.md` ONLY for Tier 3 tasks
-- For Tier 1-2: just fix it, verify it, deploy it, report results
+| Build fails with "Unexpected character" | Bare emoji in JSX | Wrap in `{'emoji'}` or remove |
+| "Loading..." hangs forever | Query param mismatch (`?club` vs `?club_id`) | Align URL params |
+| Server 500 on page load | Corrupted `.next` cache | `rm -rf .next && npm run dev` |
+| "Cannot find module vendor-chunks" | `.next` corruption | `rm -rf .next && npm run dev` |
+| Page works for admin only | Hardcoded user ID | Check role/ID conditionals |
+| Styles not updating | Browser cache / Vercel CDN | Hard refresh, check incognito |
+| Unused hook ReferenceError | Hook imported but not called | Remove unused import or call it |
+| Merge conflict markers in source | Bad rebase resolution | `grep -rn "^<<<<<<< " src/ pages/` and fix |
 
 ---
 
-## 🚨 MANDATORY: Git Push Protocol (ALL AGENTS)
+## 9. PROJECT DETAILS
 
-**NEVER run individual git commands (`git add`, `git commit`, `git push`, `git pull`).** 
-Always use the autonomous push script:
+**Stack:** Next.js 14 (Pages Router), React 18, Supabase (PostgreSQL + Auth + Realtime),
+Tailwind CSS + DaisyUI, Zustand.
 
-```bash
-bash ~/Documents/Smarter-Poker-World-Hub/scripts/git-safe-push.sh "your commit message"
-```
+**Auth:** Same-origin Supabase via `smarter-poker-auth` localStorage key.
+User logs into smarter.poker, all sub-apps share the session.
 
-This script handles lock files, ghost files, conflicts, and retries — fully autonomously. 
-See `.agent/workflows/deploy.md` for details. **Violation of this rule causes cascading failures.**
+**Production URL:** `https://smarter.poker`
+**Club Arena URL:** `https://smarter.poker/hub/club-arena/`
 
----
-
-## ABSOLUTE LAW: Code Safety Rules (ALL AGENTS — ZERO EXCEPTIONS)
-
-These rules apply to ALL agents: Claude.ai, Antigravity, any AI agent working on this codebase.
-Violation of ANY rule = automatic rollback and investigation.
-
-### Enforced By:
-- **Local**: `.git/hooks/pre-push` (blocks pushes with violations)
-- **CI/CD**: `.github/workflows/build-safety-gate.yml` (blocks deploys on ALL branches)
-- **Post-Deploy**: Automated 5-minute verification after every deploy to main
-
-### The 7 Immutable Rules:
-
-1. **NEVER use `.single()` on Supabase queries** — ALWAYS use `.maybeSingle()`.
-   `.single()` throws PGRST116 when 0 rows returned, crashing the entire route.
-   There are ZERO valid exceptions to this rule.
-
-2. **NEVER import a React hook without calling it.** If you `import { useXxx }`, you MUST
-   call `useXxx()` in the component body. Unused hook imports cause ReferenceError during
-   SSG and crash the ENTIRE build — every single page goes down.
-
-3. **NEVER use `createClient()` at module scope** without a `typeof window` guard.
-   Module-scope code runs during SSG (server-side) — browser APIs don't exist there.
-
-4. **NEVER use raw `@supabase/supabase-js` import in API routes.** ALL API routes MUST
-   use `import { createClient } from 'src/lib/supabaseServerClient'` — the patched client
-   with JWT decode fallback. Raw imports bypass GoTrue resilience.
-
-5. **NEVER trust `req.query.userId` or `req.body.userId`** for identity. ALL user identity
-   MUST come from JWT via `supabase.auth.getUser(token)`. Query params = IDOR attack vector.
-
-6. **NEVER call `.limit()` on JavaScript arrays.** `.limit()` is a Supabase query builder
-   method. Calling it on `.filter()`, `.map()`, or `.reduce()` results throws TypeError.
-
-7. **ALWAYS verify your changes** per the Verification Protocol above (match to Task Tier).
-   - Tier 1-2: Browser-test only. The pre-push hook catches rules 1-2 automatically.
-   - Tier 3: Run `grep -rn '.single()' --include='*.js' --include='*.jsx' pages/ src/` + `npm run build`
-   - The CI/CD gate catches rules 1-4 on every push — no manual re-check needed for Tier 1-2.
-
-8. **NEVER use emoji characters anywhere in UI code, page text, button labels, modal titles,
-   tab names, toast messages, admin panels, or any user-facing string in `.js`, `.jsx`, or
-   `.tsx` files.** This is an absolute, permanent, zero-exception rule across ALL pages and
-   ALL components in this codebase. This means no emoji in:
-   - JSX text content (`<h1>`, `<span>`, `<p>`, `<button>`, etc.)
-   - String literals passed as props (`title="..."`, `label="..."`, `desc="..."`)
-   - Toast / notification messages
-   - Menu item labels and section headers
-   - Admin tile titles and descriptions
-   - Comment-adjacent UI strings
-   Use plain text or Unicode symbols (arrows, dashes, bullets) instead.
-   **Every agent and every session must scan for and strip any emoji before committing.**
-
-### Post-Push Protocol (Tier 3 only):
-After pushing Tier 3 changes: check Vercel deployment status within 5 minutes.
-If deployment FAILED: `git revert HEAD && git push` IMMEDIATELY.
-Tier 1-2 pushes are protected by pre-push hook + CI/CD — no manual post-push checks needed.
+### Club Commander Rules
+- No emoji. Clean professional UI.
+- Facebook color scheme: Primary #1877F2, Background #F9FAFB
+- Inter font for all text
+- Check DATABASE_SCHEMA.sql before creating/modifying tables
+- Check API_REFERENCE.md before creating/modifying endpoints
 
 ---
 
-## Project Overview
+## 10. WORKING RULES (set by Dan, binding on all agents)
 
-This is the Smarter.Poker platform - a comprehensive poker training and community application.
-
-## Key Project: Club Commander
-
-**Club Commander** is a poker room management platform (competing with PokerAtlas).
-
-### Before Working on Club Commander
-
-**For Tier 1-2 tasks:** Go directly to the file. The scoped file map above tells you where everything is. You do NOT need to read the skill docs for CSS fixes or simple wiring.
-
-**For Tier 3 tasks ONLY** (new features, schema changes, new API routes): Read these files first:
-```
-1. .agent/skills/club-commander/AGENT_INSTRUCTIONS.md  # ENFORCEMENT RULES
-2. .agent/skills/club-commander/DATABASE_SCHEMA.sql    # Table structures
-3. .agent/skills/club-commander/API_REFERENCE.md       # Endpoint specs
-```
-
-### Critical Rules for Club Commander
-
-1. **NO EMOJIS** - Clean, professional UI only
-2. **Facebook color scheme** - Primary: #1877F2, Background: #F9FAFB
-3. **Follow the spec exactly** - Do not invent features
-4. **Check DATABASE_SCHEMA.sql** before creating/modifying tables
-5. **Check API_REFERENCE.md** before creating/modifying endpoints
-6. **Use Inter font** for all text
-
-File locations are in the **Scoped File Maps** section above. If unsure about Commander architecture, check `.agent/skills/club-commander/`.
-
-## Club Arena Integration
-
-Club Arena is a **Vite + React SPA** served from `public/hub/club-arena/` on smarter.poker. NO iframe, NO proxy.
-
-- **Source repo:** `~/Documents/Smarter-Poker-Club-Arena/` — see **Scoped File Maps** above
-- **Rebuild workflow:** Run `/club-arena-rebuild` (see `.agent/workflows/club-arena-rebuild.md`)
-- **Auth:** Shared same-origin localStorage (`smarter-poker-auth`) — no postMessage or token relay
-- **Routing:** Static files served directly, unmatched routes fall through to `index.html` via fallback rewrite
-- **Rules:** NO iframe code, NO proxy rewrites, NO editing `public/hub/club-arena/` directly (always rebuild from source)
-
----
-
-## General Project Info
-
-**Stack:** Next.js 14 (Pages Router), React 18, Supabase (PostgreSQL + Auth + Realtime), Tailwind CSS + DaisyUI, Zustand.
-**Directories:** See **Scoped File Maps** above. Auth storage key: `smarter-poker-auth`.
+1. One step at a time. Finish and verify before starting the next.
+2. Do it right, not fast. No band-aids. No polyfills over broken foundations.
+3. However long it takes. Scope honestly.
+4. Plan before you code (Tier 3 only).
+5. Verify on real hardware. "It compiles" is not verification.
+6. No forbidden language: never say "looks good". Never call AI players "bots" (they are horses). No emoji in code.
+7. Mobile-first. 375px width first, then scale up.
+8. Never stop to ask for permission to do obvious work.
+9. When corrected, change course immediately. Do not defend the rejected path.
+10. Write it down. Read `.memory/` at session start, update at session end.
+11. No exceptions. Every rule, every task, every session.
+12. Never ask "should I?" -- just do it. Only stop for genuine forks.
