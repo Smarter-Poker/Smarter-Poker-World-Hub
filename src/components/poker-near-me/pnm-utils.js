@@ -465,3 +465,36 @@ export function fuzzyMatchScore(query, target) {
     return bestDist === Infinity ? Infinity : bestDist;
 }
 
+/**
+ * Get the distance (in miles) from a user location to the nearest stop of a poker tour.
+ * Tours may have a direct lat/lng, a headquarters location, or an array of stops.
+ *
+ * @param {object} tour - Tour object (may have latitude/longitude, stops, venues arrays)
+ * @param {{ lat: number, lng: number }} userLocation - User's GPS coordinates
+ * @returns {number|null} Distance in miles to the nearest tour stop, or null if no coordinates
+ */
+export function getNearestTourDistance(tour, userLocation) {
+    if (!tour || !userLocation?.lat || !userLocation?.lng) return null;
+
+    let minDist = null;
+
+    // Direct lat/lng on the tour object (headquarters or primary location)
+    if (tour.latitude != null && tour.longitude != null) {
+        const d = haversineMiles(userLocation.lat, userLocation.lng, tour.latitude, tour.longitude);
+        if (isFinite(d)) minDist = d;
+    }
+
+    // Array of stops or venues with their own coordinates
+    const stopArrays = [tour.stops, tour.venues, tour.tour_stops].filter(Array.isArray);
+    for (const arr of stopArrays) {
+        for (const stop of arr) {
+            if (stop?.latitude != null && stop?.longitude != null) {
+                const d = haversineMiles(userLocation.lat, userLocation.lng, stop.latitude, stop.longitude);
+                if (isFinite(d) && (minDist === null || d < minDist)) minDist = d;
+            }
+        }
+    }
+
+    return minDist;
+}
+

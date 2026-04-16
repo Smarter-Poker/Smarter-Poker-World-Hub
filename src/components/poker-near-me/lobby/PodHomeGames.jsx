@@ -1,7 +1,7 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
 import VenueCard from '../VenueCard';
-import { cachedFetch } from '../pnm-utils';
+import { cachedFetch } from './PnmApiCache';
 
 const CreateHomeGame = dynamic(() => import('../CreateHomeGame'), { ssr: false });
 
