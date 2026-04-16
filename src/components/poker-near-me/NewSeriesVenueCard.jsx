@@ -93,6 +93,8 @@ export default function NewSeriesVenueCard({ series: s, index, isFavorited, onFa
             <div className="neon-strip right" />
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
             <div className="series-header" style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                 {/* Square logo — left side */}
                 {resolvedLogoUrl && (
@@ -117,6 +119,10 @@ export default function NewSeriesVenueCard({ series: s, index, isFavorited, onFa
                         once as the 116px square icon (left side) and again as a 140px banner strip here.
                         This caused 2x network requests for the same asset and wasted vertical layout space. */}
 =======
+=======
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
             {resolvedLogoUrl && (
