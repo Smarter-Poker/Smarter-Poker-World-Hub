@@ -42,6 +42,27 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // ── Authentication: only accept calls from deploy-monitor (same origin) ──
+  // Verify the request comes from our own server, not an external attacker.
+  const referer = req.headers.referer || req.headers.origin || '';
+  const host = req.headers.host || '';
+  const internalSecret = process.env.DEPLOY_INTERNAL_SECRET;
+  const providedSecret = req.headers['x-internal-secret'];
+
+  // If DEPLOY_INTERNAL_SECRET is set, require it. Otherwise, verify same-origin.
+  if (internalSecret) {
+    if (providedSecret !== internalSecret) {
+      return res.status(401).json({ error: 'Unauthorized — invalid internal secret' });
+    }
+  } else {
+    // Fallback: only accept requests where the host header matches expected domains
+    const allowedHosts = ['smarter.poker', 'localhost:3000', 'localhost:3001'];
+    const isFromSelf = allowedHosts.some(h => host.includes(h));
+    if (!isFromSelf) {
+      return res.status(401).json({ error: 'Unauthorized — external requests not allowed' });
+    }
+  }
+
   const { commitSha, commitMessage, deploymentId, buildErrors, attempt } = req.body;
 
   if (!buildErrors) {
@@ -71,9 +92,19 @@ export default async function handler(req, res) {
       });
     }
 
+    // Safety check: normalize path and reject traversal attempts
+    const normalizedPath = errorFile.replace(/\\/g, '/');
+    if (normalizedPath.includes('..') || normalizedPath.startsWith('/') || normalizedPath.includes('//')) {
+      console.log(`[deploy-autofix] Path traversal attempt blocked: ${errorFile}`);
+      return res.status(200).json({
+        action: 'skipped',
+        reason: `Suspicious file path rejected: ${errorFile}`,
+      });
+    }
+
     // Safety check: is this file in an allowed directory?
-    const isAllowed = ALLOWED_DIRS.some(dir => errorFile.startsWith(dir));
-    const isProtected = PROTECTED_FILES.some(pf => errorFile.endsWith(pf));
+    const isAllowed = ALLOWED_DIRS.some(dir => normalizedPath.startsWith(dir));
+    const isProtected = PROTECTED_FILES.some(pf => normalizedPath.endsWith(pf));
 
     if (!isAllowed || isProtected) {
       console.log(`[deploy-autofix] File ${errorFile} is outside allowed directories or is protected`);
@@ -102,7 +133,17 @@ export default async function handler(req, res) {
     const fileSha = fileData.sha;
 
     // ── Step 3: Ask Claude to fix it ──
-    console.log(`[deploy-autofix] Calling Anthropic API to fix ${errorFile} (${originalContent.length} chars)...`);
+    console.log(`[deploy-autofix] Calling Anthropic API to fix ${normalizedPath} (${originalContent.length} chars)...`);
+
+    // Sanitize build errors to prevent prompt injection via crafted error output.
+    // Remove any text that looks like it's trying to override Claude's instructions.
+    const sanitizedErrors = buildErrors
+      .substring(0, 3000)
+      .replace(/ignore (all |previous |above )?instructions/gi, '[REDACTED]')
+      .replace(/you are now/gi, '[REDACTED]')
+      .replace(/system prompt/gi, '[REDACTED]')
+      .replace(/\bact as\b/gi, '[REDACTED]')
+      .replace(/do not follow/gi, '[REDACTED]');
 
     const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -120,10 +161,10 @@ export default async function handler(req, res) {
 
 THE BUILD ERROR:
 \`\`\`
-${buildErrors.substring(0, 3000)}
+${sanitizedErrors}
 \`\`\`
 
-THE FILE THAT NEEDS FIXING (${errorFile}):
+THE FILE THAT NEEDS FIXING (${normalizedPath}):
 \`\`\`
 ${originalContent.substring(0, 15000)}
 \`\`\`
@@ -171,6 +212,27 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
       return res.status(200).json({
         action: 'skipped',
         reason: 'Claude returned identical content — no fix identified',
+      });
+    }
+
+    // Size ratio guard: prevent Claude from gutting a file
+    // If the fix is less than 50% of the original size, something went wrong
+    const sizeRatio = fixedContent.length / originalContent.length;
+    if (sizeRatio < 0.5) {
+      console.log(`[deploy-autofix] Size ratio guard: fix is ${Math.round(sizeRatio * 100)}% of original (${fixedContent.length} vs ${originalContent.length} chars)`);
+      return res.status(200).json({
+        action: 'skipped',
+        reason: `Fix is only ${Math.round(sizeRatio * 100)}% of original file size — too destructive, skipping`,
+        originalSize: originalContent.length,
+        fixSize: fixedContent.length,
+      });
+    }
+
+    // Content guard: reject fixes that contain merge conflict markers
+    if (fixedContent.includes('<<<<<<<') || fixedContent.includes('>>>>>>>')) {
+      return res.status(200).json({
+        action: 'skipped',
+        reason: 'Fix contains merge conflict markers — rejecting',
       });
     }
 

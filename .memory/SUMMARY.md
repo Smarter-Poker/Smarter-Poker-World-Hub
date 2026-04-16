@@ -54,6 +54,21 @@ Next.js 14, React 19, Vite 6, Supabase (Postgres + Auth + Storage), PostHog (ana
 - **Repo on server:** `/opt/club-arena` (structure differs from World Hub — verify paths)
 - **Deploy:** `ssh root@178.156.160.206 "cd /opt/club-arena && git pull origin main && docker restart club-arena-engine"`
 
+## Dan's Workflow Preferences (Added 2026-04-16)
+
+- **BINDING**: Dan NEVER runs terminal commands directly. Always provide AntiGravity prompts.
+- All pushes, deploys, builds, and git operations go through AntiGravity agents.
+- Prompts must be self-contained, step-by-step, with verification criteria.
+- See: `.memory/preferences/dan-workflow-preferences.md`
+
+## Automated Deploy Pipeline (Added 2026-04-16)
+
+- **Self-healing deploy monitor**: Vercel webhook → `/api/deploy-monitor` → `/api/deploy-autofix` → Claude API → GitHub API → auto-rebuild
+- **git-safe-push.sh v4.1**: 6-phase autonomous push script with build gate + post-deploy verification
+- **verify-deploy.js**: Polls /api/health until SHA matches production
+- **Circuit breaker**: Max 3 attempts per SHA + refuses to fix [autofix] commits
+- **Webhook**: `account_hook_w0zgWqS05otiaAR4mYQe1UYo` fires `deployment.error` to deploy-monitor
+
 ## Key Metrics
 
 - ~300 daily cron failures eliminated in Phase 4

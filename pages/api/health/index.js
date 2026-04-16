@@ -1,3 +1,7 @@
+// NOTE: Raw @supabase/supabase-js import is intentional here.
+// Health check must work independently of the patched server client to
+// detect failures in the patched client itself. CI check allows this
+// because health/index.js is not in the scanned API route patterns.
 import { createClient } from '@supabase/supabase-js';
 
 let _supabase = null;

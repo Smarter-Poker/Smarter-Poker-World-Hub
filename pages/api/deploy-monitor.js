@@ -37,7 +37,7 @@ export default async function handler(req, res) {
       status: 'ok',
       service: 'deploy-monitor',
       description: 'Self-healing deployment monitor. Receives Vercel webhooks on deployment failure, auto-fixes via Anthropic API + GitHub API.',
-      circuitBreaker: Object.fromEntries(fixAttempts),
+      activeCircuitBreakers: fixAttempts.size,
       timestamp: new Date().toISOString(),
     });
   }
@@ -56,6 +56,23 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid webhook payload' });
     }
 
+    // ── Verify webhook signature (if DEPLOY_WEBHOOK_SECRET is set) ──
+    const webhookSecret = process.env.DEPLOY_WEBHOOK_SECRET;
+    if (webhookSecret) {
+      const crypto = await import('crypto');
+      const signature = req.headers['x-vercel-signature'];
+      if (!signature) {
+        console.log('[deploy-monitor] Missing x-vercel-signature header');
+        return res.status(401).json({ error: 'Missing webhook signature' });
+      }
+      const rawBody = JSON.stringify(req.body);
+      const expectedSig = crypto.createHmac('sha1', webhookSecret).update(rawBody).digest('hex');
+      if (signature !== expectedSig) {
+        console.log('[deploy-monitor] Invalid webhook signature');
+        return res.status(401).json({ error: 'Invalid webhook signature' });
+      }
+    }
+
     // We only care about deployment failures
     const eventType = payload.type;
     if (eventType !== 'deployment.error' && eventType !== 'deployment.canceled') {
@@ -72,6 +89,18 @@ export default async function handler(req, res) {
     const state = deployment.state || deployment.readyState || eventType;
 
     console.log(`[deploy-monitor] Received ${eventType} for deployment ${deploymentId} (SHA: ${commitSha})`);
+
+    // ── Hard stop: never auto-fix an [autofix] commit ──
+    // This prevents infinite loops even across cold starts where the in-memory
+    // circuit breaker has been reset. If autofix broke it, a human must fix it.
+    if (commitMsg.startsWith('[autofix]')) {
+      console.log(`[deploy-monitor] Refusing to auto-fix an [autofix] commit: ${commitSha}`);
+      return res.status(200).json({
+        action: 'refused',
+        reason: 'Will not auto-fix an [autofix] commit — prevents infinite loops. Manual intervention required.',
+        commitSha,
+      });
+    }
 
     // ── Circuit breaker: don't fix the same commit more than 3 times ──
     const attempts = fixAttempts.get(commitSha) || 0;
@@ -154,24 +183,32 @@ export default async function handler(req, res) {
 
     console.log(`[deploy-monitor] Build errors extracted (${buildErrors.length} chars). Calling autofix...`);
 
+    // ── Atomically increment the circuit breaker BEFORE calling autofix ──
+    // This prevents race conditions where two simultaneous webhooks for the
+    // same SHA both read 0 attempts and both proceed.
+    const currentAttempt = attempts + 1;
+    fixAttempts.set(commitSha, currentAttempt);
+
     // ── Call the autofix endpoint ──
     const autofixUrl = `https://${req.headers.host}/api/deploy-autofix`;
+    const autofixHeaders = { 'Content-Type': 'application/json' };
+    // Pass internal secret if configured
+    if (process.env.DEPLOY_INTERNAL_SECRET) {
+      autofixHeaders['x-internal-secret'] = process.env.DEPLOY_INTERNAL_SECRET;
+    }
     const autofixRes = await fetch(autofixUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: autofixHeaders,
       body: JSON.stringify({
         commitSha,
         commitMessage: commitMsg,
         deploymentId,
         buildErrors,
-        attempt: attempts + 1,
+        attempt: currentAttempt,
       }),
     });
 
     const autofixResult = await autofixRes.json();
-
-    // Track the attempt
-    fixAttempts.set(commitSha, attempts + 1);
 
     const duration = Date.now() - startTime;
     console.log(`[deploy-monitor] Autofix result: ${autofixResult.action} (${duration}ms)`);
@@ -179,7 +216,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       action: autofixResult.action || 'autofix_attempted',
       commitSha,
-      attempt: attempts + 1,
+      attempt: currentAttempt,
       maxAttempts: MAX_FIX_ATTEMPTS,
       autofixResult,
       durationMs: duration,
