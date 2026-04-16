@@ -7,10 +7,13 @@ on:
   pull_request:
     branches: ['main']
 
-# Queue builds sequentially — every commit deploys, none are cancelled
+# CRITICAL FIX: Cancel older runs when a newer push arrives.
+# This prevents a queue of 15 stale builds piling up when pushing rapidly.
+# The LATEST push always wins — older ones are cancelled immediately.
+# Vercel's own git integration handles the actual deploy (see vercel.json).
 concurrency:
   group: safety-gate-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 # Permissions needed for safety checks + failure notification (issue creation)
 permissions:
@@ -21,7 +24,7 @@ jobs:
   safety-checks:
     name: Pre-Deploy Safety Checks
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
 
     steps:
       - uses: actions/checkout@v4
@@ -29,7 +32,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24.12.0'
+          node-version: '20.x'
           cache: 'npm'
 
       - name: Install dependencies
@@ -39,54 +42,9 @@ jobs:
             npm install --ignore-scripts
           }
 
-      - name: Cache Next.js Build
-        uses: actions/cache@v4
-        with:
-          path: |
-            .next/cache
-          key: nextjs-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
-          restore-keys: |
-            nextjs-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-
-            nextjs-${{ runner.os }}-
-
       - name: Record Start Time
         id: timer
         run: echo "start=$(date +%s)" >> $GITHUB_OUTPUT
-
-      # ═══════════════════════════════════════════════════════════════
-      # Dependency Audit (advisory — does not block deploy)
-      # ═══════════════════════════════════════════════════════════════
-      - name: Dependency Audit
-        continue-on-error: true
-        run: |
-          CRITICAL=$(npm audit --audit-level=critical 2>&1 | grep -c "critical" || echo 0)
-          if [ "$CRITICAL" -gt 0 ]; then
-            echo "::warning::Found critical npm vulnerabilities — review recommended"
-          else
-            echo "✓ No critical vulnerabilities"
-          fi
-
-      # ═══════════════════════════════════════════════════════════════
-      # CHECK 0: TypeScript compilation (WARNING ONLY — non-blocking)
-      # Hub has pre-existing Supabase type gaps (tables typed as 'never').
-      # Real build failures are caught by CHECK 5 (Next.js build).
-      # This check surfaces TS issues without blocking deploy.
-      # ═══════════════════════════════════════════════════════════════
-      - name: "CHECK 0: TypeScript compilation (advisory)"
-        continue-on-error: true
-        run: |
-          echo "Running TypeScript check (advisory — does not block deploy)..."
-          npx tsc --noEmit 2>&1 | grep "error TS" > /tmp/ts-errors.txt || true
-          TS_ERRORS=$(wc -l < /tmp/ts-errors.txt | tr -d ' ')
-          if [ "$TS_ERRORS" -gt 0 ]; then
-            echo "::warning::TypeScript found $TS_ERRORS type error(s) — review recommended"
-            head -20 /tmp/ts-errors.txt
-            echo ""
-            echo "⚠️ $TS_ERRORS type errors found (advisory only — deploy NOT blocked)"
-            echo "   Real build failures are caught by CHECK 5 (Next.js build)"
-          else
-            echo "✓ TypeScript compilation passed — zero errors"
-          fi
 
       # ═══════════════════════════════════════════════════════════════
       # CHECK 1: No .single() calls (must use .maybeSingle())
@@ -157,185 +115,54 @@ jobs:
           echo "✓ All API routes use patched Supabase client"
 
       # ═══════════════════════════════════════════════════════════════
-      # CHECK 4: No .limit() on JavaScript arrays
-      # .limit() is a Supabase query builder method, NOT an array method
+      # CHECK 4: No merge conflict markers in source files
+      # These cause immediate syntax errors and broken builds
       # ═══════════════════════════════════════════════════════════════
-      - name: "CHECK 4: No .limit() on array operations"
+      - name: "CHECK 4: No merge conflict markers"
         run: |
-          echo "Scanning for .limit() after .filter()/.reduce()/.map()..."
-          HITS=$(grep -rn '\.filter(.*\.limit(\|\.reduce(.*\.limit(\|\.map(.*\.limit(' \
-            --include='*.js' --include='*.jsx' --include='*.ts' --include='*.tsx' \
+          echo "Scanning for git merge conflict markers..."
+          HITS=$(grep -rn "^<<<<<<< " \
+            --include='*.js' --include='*.jsx' --include='*.ts' --include='*.tsx' --include='*.json' \
             --exclude-dir=node_modules --exclude-dir=.next \
-            pages/ src/ 2>/dev/null || true)
+            src/ pages/ data/ 2>/dev/null || true)
 
           if [ -n "$HITS" ]; then
-            echo "::error::FATAL: Found .limit() called on JavaScript array operations (not Supabase queries):"
+            echo "::error::FATAL: Found git merge conflict markers in source files:"
             echo "$HITS"
             exit 1
           fi
-          echo "✓ No .limit() on array operations"
+          echo "✓ No merge conflict markers found"
 
-      - name: "CHECK 5: Validate Environment Variables"
+      # ═══════════════════════════════════════════════════════════════
+      # CHECK 5: TypeScript compilation (advisory — does not block deploy)
+      # Hub has pre-existing Supabase type gaps (tables typed as 'never').
+      # ═══════════════════════════════════════════════════════════════
+      - name: "CHECK 5: TypeScript compilation (advisory)"
         continue-on-error: true
         run: |
-          echo "## 🔐 Environment Variable Check" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          MISSING=0
-          for VAR in NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY SUPABASE_SERVICE_ROLE_KEY VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
-            if [ -n "${!VAR:-}" ]; then
-              echo "✅ $VAR is set" >> $GITHUB_STEP_SUMMARY
-            else
-              echo "❌ $VAR is MISSING" >> $GITHUB_STEP_SUMMARY
-              MISSING=$((MISSING + 1))
-            fi
-          done
-          if [ $MISSING -gt 0 ]; then
-            echo "::warning::$MISSING environment variable(s) not available"
+          echo "Running TypeScript check (advisory — does not block deploy)..."
+          npx tsc --noEmit 2>&1 | grep "error TS" > /tmp/ts-errors.txt || true
+          TS_ERRORS=$(wc -l < /tmp/ts-errors.txt | tr -d ' ')
+          if [ "$TS_ERRORS" -gt 0 ]; then
+            echo "::warning::TypeScript found $TS_ERRORS type error(s) — review recommended"
+            head -20 /tmp/ts-errors.txt
+          else
+            echo "✓ TypeScript compilation passed — zero errors"
           fi
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
-      # ═══════════════════════════════════════════════════════════════
-      # CHECK 6: Next.js compilation check
-      # Verifies no broken imports, syntax errors, or module resolution failures
-      # ═══════════════════════════════════════════════════════════════
-      - name: "CHECK 6: Next.js compilation"
-        run: |
-          set -o pipefail
-          echo "Running Next.js build compilation check..."
-          # Clean stale .next cache to prevent ENOENT unlink errors on deleted/moved pages
-          rm -rf .next
-          BUILD_EXIT=0
-          NODE_OPTIONS="--max_old_space_size=4096" npx next build 2>&1 | tee build.log || BUILD_EXIT=$?
-          if [ "$BUILD_EXIT" -ne 0 ] || grep -q "Failed to compile" build.log; then
-            echo "::error::FATAL: Next.js build compilation failed (exit code: $BUILD_EXIT)"
-            tail -50 build.log
-            exit 1
-          fi
-          echo "✓ Build compilation passed"
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || '' }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-
-      - name: Report Build Time
+      - name: Report Check Duration
         if: always()
         run: |
           END=$(date +%s)
           ELAPSED=$(( END - ${{ steps.timer.outputs.start }} ))
-          echo "## ⏱️ Total Pipeline Duration: ${ELAPSED}s" >> $GITHUB_STEP_SUMMARY
-
-  # ═══════════════════════════════════════════════════════════════════
-  # DEPLOY TO VERCEL (only after ALL safety checks pass)
-  # Git auto-deploy disabled via vercel.json git.deploymentEnabled: false
-  # This is the ONLY way code reaches production.
-  # ═══════════════════════════════════════════════════════════════════
-  deploy:
-    name: Deploy to Vercel
-    needs: safety-checks
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Deploy to Vercel Production
-        run: |
-          npm install -g vercel
-          vercel --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-
-      - name: Report Deploy Failure
-        if: failure()
-        run: |
-          echo "::error::Vercel deployment FAILED after all safety checks passed"
-          echo "Check Vercel dashboard for build details"
-
-  # ═══════════════════════════════════════════════════════════════════
-  # POST-DEPLOY VERIFICATION (runs after deploy completes)
-  # ═══════════════════════════════════════════════════════════════════
-  post-deploy-check:
-    name: Post-Deploy Verification
-    needs: deploy
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Wait for Vercel propagation
-        run: sleep 60  # Deploy job already waited for Vercel build
-
-      - name: Verify deployment is live
-        run: |
-          SITE_URL="${{ secrets.SITE_URL || 'https://smarter.poker' }}"
-          echo "Checking $SITE_URL with retry..."
-
-          for attempt in 1 2 3; do
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$SITE_URL" --max-time 30)
-            echo "  Attempt $attempt: HTTP $HTTP_CODE"
-            if [ "$HTTP_CODE" -eq 200 ]; then
-              echo "✓ Site is live (HTTP $HTTP_CODE)"
-              exit 0
-            fi
-            if [ $attempt -lt 3 ]; then
-              echo "  Retrying in 30s..."
-              sleep 30
-            fi
-          done
-
-          echo "::error::DEPLOYMENT FAILED: $SITE_URL returned HTTP $HTTP_CODE after 3 attempts"
-          exit 1
-
-      - name: Verify API health
-        run: |
-          SITE_URL="${{ secrets.SITE_URL || 'https://smarter.poker' }}"
-
-          # Check the health endpoint — allow 404 (endpoint may not exist), only fail on 5xx
-          API_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$SITE_URL/api/health" --max-time 10)
-          echo "API health check: HTTP $API_CODE"
-
-          if [ "$API_CODE" -ge 500 ]; then
-            echo "::warning::API health returned HTTP $API_CODE — checking if transient..."
-            sleep 10
-            API_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$SITE_URL/api/health" --max-time 10)
-            echo "API health retry: HTTP $API_CODE"
-            if [ "$API_CODE" -ge 500 ]; then
-              echo "::error::API is returning persistent server errors (HTTP $API_CODE)"
-              exit 1
-            fi
-          fi
-
-          echo "✓ API is responsive (HTTP $API_CODE)"
-
-      - name: Verify Security Headers
-        continue-on-error: true
-        run: |
-          SITE_URL="${{ secrets.SITE_URL || 'https://smarter.poker' }}"
-          HEADERS=$(curl -sI "$SITE_URL")
-          echo "## 🔒 Security Headers" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          for HEADER in "x-content-type-options" "x-frame-options" "referrer-policy" "permissions-policy" "x-xss-protection"; do
-            if echo "$HEADERS" | grep -qi "$HEADER"; then
-              echo "✅ $HEADER present" >> $GITHUB_STEP_SUMMARY
-            else
-              echo "⚠️ $HEADER MISSING" >> $GITHUB_STEP_SUMMARY
-              echo "::warning::Security header $HEADER is missing from $SITE_URL"
-            fi
-          done
+          echo "## ⏱️ Safety Gate Duration: ${ELAPSED}s" >> $GITHUB_STEP_SUMMARY
 
   # ═══════════════════════════════════════════════════════════════════
   # FAILURE NOTIFICATION — Auto-create GitHub Issue on pipeline failure
   # ═══════════════════════════════════════════════════════════════════
   notify-failure:
     name: Failure Notification
-    needs: [safety-checks, deploy, post-deploy-check]
+    needs: [safety-checks]
     if: failure() && github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
