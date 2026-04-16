@@ -355,10 +355,10 @@ def write_heartbeat(status, extra=None):
 # FALLBACK FETCHER — TIER 2: PlayWrightFetcher
 # ============================================================
 def fallback_fetch_venue_playwright(slug):
-    """Tier 2 fallback: Use Scrapling's PlayWrightFetcher (non-stealth but faster reconnect)."""
+    """Tier 2 fallback: Use Scrapling's DynamicFetcher (non-stealth but faster reconnect)."""
     try:
-        from scrapling.fetchers import PlayWrightFetcher
-        fetcher = PlayWrightFetcher(headless=True)
+        from scrapling.fetchers import DynamicFetcher
+        fetcher = DynamicFetcher(headless=True)
         url = BRAVO_VENUE_URL.format(slug=slug)
         resp = fetcher.fetch(url)
         if resp and resp.status == 200:

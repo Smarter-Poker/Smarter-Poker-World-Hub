@@ -1,21 +1,15 @@
 {
   "metadata": {
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-    "generated": "2026-04-15T20:36:21.742500+00:00",
-=======
-    "generated": "2026-04-14T06:09:19.532042+00:00",
->>>>>>> Stashed changes
-=======
-    "generated": "2026-04-14T06:09:19.532042+00:00",
->>>>>>> Stashed changes
-    "total_venues": 149,
+    "generated": "2026-04-15T22:18:00.000000+00:00",
+    "total_venues": 147,
     "non_us_excluded": [
       "alea-glasgow",
       "alea-nottingham",
+      "caesars-windsor",
       "casino-niagara",
       "elements-casino-brantford",
       "fallsview-casino-resort",
+      "manchester235",
       "norwegian-cruise-lines-poker-challenge",
       "rendezvous-brighton"
     ]
@@ -112,10 +106,6 @@
     {
       "slug": "caesars-virginia",
       "url": "https://www.bravopokerlive.com/venues/caesars-virginia/"
-    },
-    {
-      "slug": "caesars-windsor",
-      "url": "https://www.bravopokerlive.com/venues/caesars-windsor/"
     },
     {
       "slug": "calder-casino",
@@ -396,10 +386,6 @@
     {
       "slug": "lone-butte",
       "url": "https://www.bravopokerlive.com/venues/lone-butte/"
-    },
-    {
-      "slug": "manchester235",
-      "url": "https://www.bravopokerlive.com/venues/manchester235/"
     },
     {
       "slug": "mandalay-bay",
