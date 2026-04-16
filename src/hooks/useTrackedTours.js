@@ -1,6 +1,11 @@
+<<<<<<< Updated upstream
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { getAuthUser, getAccessToken } from '../lib/authUtils';
+=======
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '../lib/supabase';
+>>>>>>> Stashed changes
 
 // Global memory cache so we don't spam the DB
 let globalTrackedTours = null;
@@ -20,8 +25,13 @@ export default function useTrackedTours() {
     useEffect(() => {
         let isMounted = true;
         const fetchPrefs = async () => {
+<<<<<<< Updated upstream
             const user = getAuthUser();
             if (!user) {
+=======
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+>>>>>>> Stashed changes
                 setLoading(false);
                 return;
             }
@@ -30,7 +40,11 @@ export default function useTrackedTours() {
                     const { data } = await supabase
                         .from('user_notification_preferences')
                         .select('tracked_tours')
+<<<<<<< Updated upstream
                         .eq('user_id', user.id)
+=======
+                        .eq('user_id', session.user.id)
+>>>>>>> Stashed changes
                         .maybeSingle();
 
                     if (isMounted) {
@@ -39,12 +53,20 @@ export default function useTrackedTours() {
                         emitChange();
                     }
                 } catch (e) {
+<<<<<<< Updated upstream
                     console.error('Failed to fetch tracked tours:', e);
+=======
+                    console.error('Failed to fetch tracked tours', e);
+>>>>>>> Stashed changes
                 }
             } else {
                 setTrackedTours(globalTrackedTours);
             }
+<<<<<<< Updated upstream
             if (isMounted) setLoading(false);
+=======
+            setLoading(false);
+>>>>>>> Stashed changes
         };
         fetchPrefs();
 
@@ -66,6 +88,7 @@ export default function useTrackedTours() {
         };
     }, []);
 
+<<<<<<< Updated upstream
     // [UT2 FIX] Lock ref prevents concurrent toggles from reading stale closure state.
     // Without this, rapid double-click reads the same `trackedTours` snapshot for both clicks,
     // causing duplicate entries in the optimistic state.
@@ -79,6 +102,11 @@ export default function useTrackedTours() {
         const token = getAccessToken();
         if (!user || !token) {
             toggleLockRef.current = false;
+=======
+    const toggleTrackTour = useCallback(async (tourCode) => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+>>>>>>> Stashed changes
             alert('Please sign in to track tours.');
             return;
         }
@@ -95,9 +123,15 @@ export default function useTrackedTours() {
         try {
             const res = await fetch('/api/notifications/track-tour', {
                 method: 'POST',
+<<<<<<< Updated upstream
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
+=======
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+>>>>>>> Stashed changes
                 },
                 body: JSON.stringify({ tour: tourCode })
             });
@@ -120,8 +154,11 @@ export default function useTrackedTours() {
             setTrackedTours(trackedTours);
             emitChange();
             alert('A network error occurred.');
+<<<<<<< Updated upstream
         } finally {
             toggleLockRef.current = false;
+=======
+>>>>>>> Stashed changes
         }
     }, [trackedTours]);
 
