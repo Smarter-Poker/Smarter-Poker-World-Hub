@@ -235,10 +235,14 @@ async function handler(req, res) {
 
           const { data: dbTournaments, error } = await query;
 
-          // [P3-A FIX] Harden exact_date sanitization — include single-quote and semicolon
-          let targetDateStr = exact_date
-              ? exact_date.replace(/[,()_%'"]/g, '').trim().slice(0, 10)
-              : getNextDateForDay(targetDay);
+          // [P3-A FIX] Harden exact_date sanitization — enforce strict YYYY-MM-DD
+          let targetDateStr = getNextDateForDay(targetDay);
+          if (exact_date) {
+              const cleanDate = exact_date.replace(/[,()_%'"]/g, '').trim().slice(0, 10);
+              if (/^\d{4}-\d{2}-\d{2}$/.test(cleanDate)) {
+                  targetDateStr = cleanDate;
+              }
+          }
 
           // [P2-C FIX] Run charity + tour queries IN PARALLEL — was sequential (2 round trips).
           // Promise.all reduces API latency by ~50ms on every page load.

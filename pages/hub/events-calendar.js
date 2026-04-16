@@ -515,7 +515,7 @@ export default function EventsCalendarPage({ fallbackData }) {
             lng: lng,
             label: parsed.location || parsed.label || 'My Location'
           });
-          setDistance('50');
+          setDistance(parsed.radius || parsed.distance || '50');
           return;
         }
       } catch (e) { console.warn('[EventsCalendar] Failed to parse saved location:', e); }

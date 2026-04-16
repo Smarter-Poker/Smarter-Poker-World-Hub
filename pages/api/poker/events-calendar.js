@@ -95,6 +95,7 @@ function projectDayToDate(dayOfWeek, startDate, endDate, smartAgg = false) {
 
 // Haversine distance in miles
 function haversineMi(lat1, lng1, lat2, lng2) {
+  if (lat1 == null || lng1 == null || lat2 == null || lng2 == null || isNaN(lat1) || isNaN(lng1) || isNaN(lat2) || isNaN(lng2)) return Infinity;
   const R = 3958.8;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLng = (lng2 - lng1) * Math.PI / 180;

@@ -120,6 +120,7 @@ function safeHref(url) {
 // Previously declared inside the component, creating a new function ref on every render
 // which busted the sortedTournaments useMemo dep comparison (always computed as "changed").
 function haversine(lat1, lng1, lat2, lng2) {
+    if (lat1 == null || lng1 == null || lat2 == null || lng2 == null || isNaN(lat1) || isNaN(lng1) || isNaN(lat2) || isNaN(lng2)) return Infinity;
     const R = 3958.8;
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLng = (lng2 - lng1) * Math.PI / 180;
