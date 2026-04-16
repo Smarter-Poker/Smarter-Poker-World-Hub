@@ -150,6 +150,9 @@ export default function PokerNearMeLobby() {
   const { user } = useAvatar();
   const userId = user?.id;
 
+  const fetchSequenceRef = useRef(0);
+  const fetchDailySeqRef = useRef(0);
+
   // 🚌 Bus — emit SESSION_START on mount, SESSION_END on unmount
   const bus = useTrainingBus('poker-near-me-lobby');
 
@@ -176,7 +179,7 @@ export default function PokerNearMeLobby() {
 
     const unsubFav = eventBus.on('venue:favorite', (event) => {
       const venueId = event?.payload?.venueId || event?.venueId;
-      if (venueId) setFavorites(prev => ({ ...prev, [venueId]: true }));
+      if (venueId) setFavorites(prev => ({ ...prev, ['venue-' + venueId]: true }));
     });
     
     const unsubFilters = eventBus.on('PNM_FILTERS_UPDATED', (event) => {
@@ -194,7 +197,7 @@ export default function PokerNearMeLobby() {
       if (venueId) {
         setFavorites(prev => {
           const newState = { ...prev };
-          delete newState[venueId];
+          delete newState['venue-' + venueId];
           return newState;
         });
       }
@@ -302,6 +305,8 @@ export default function PokerNearMeLobby() {
   const [series, setSeries] = useState([]);
   const [seriesLoaded, setSeriesLoaded] = useState(false);
   const [dailyTournaments, setDailyTournaments] = useState([]);
+  const [podSearchVenues, setPodSearchVenues] = useState(null);
+  const [podHomeGames, setPodHomeGames] = useState(null);
   // liveGames state removed — LiveGamesFeed manages its own live data via WebSocket
   const [favorites, setFavorites] = useState({});
   const [favoritedVenues, setFavoritedVenues] = useState([]);
@@ -417,23 +422,28 @@ export default function PokerNearMeLobby() {
 
   // ─── Fetch venues ───
   const fetchVenues = useCallback(async (query = '', pageNum = 0, append = false) => {
+    const currentSeq = ++fetchSequenceRef.current;
     setLoading(true);
     setFetchError(null);
     try {
       let url = `/api/poker/venues?limit=${PAGE_SIZE}&offset=${pageNum * PAGE_SIZE}`;
       if (query) url += `&search=${encodeURIComponent(query)}`;
       if (userLocation) {
-        url += `&lat=${userLocation.lat}&lng=${userLocation.lng}&radius=50`;
+        if (filters.radius) {
+          url += `&lat=${userLocation.lat}&lng=${userLocation.lng}&radius=${filters.radius}`;
+        } else {
+          url += `&lat=${userLocation.lat}&lng=${userLocation.lng}&radius=50`;
+        }
       }
       if (sortBy) url += `&sort=${sortBy}`;
       // Apply filters
       if (filters.gameType) url += `&game_type=${filters.gameType}`;
       if (filters.stakes) url += `&stakes=${filters.stakes}`;
-      if (filters.radius) url += `&radius=${filters.radius}`;
       if (filters.venueType) url += `&venue_type=${filters.venueType}`;
       if (filters.selectedState && filters.selectedState !== 'all') url += `&state=${filters.selectedState}`;
 
-      const data = await cachedFetch(url);
+      const data = await fetchWithRetry(url);
+      if (fetchSequenceRef.current !== currentSeq) return;
       const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
       if (append) {
         setVenues(prev => [...prev, ...newVenues]);
@@ -443,10 +453,13 @@ export default function PokerNearMeLobby() {
       setHasMore(newVenues.length >= PAGE_SIZE);
       setPage(pageNum);
     } catch (err) {
+      if (fetchSequenceRef.current !== currentSeq) return;
       console.error('Failed to fetch venues:', err);
       setFetchError('Unable to load venues. Please try again.');
     } finally {
-      setLoading(false);
+      if (fetchSequenceRef.current === currentSeq) {
+        setLoading(false);
+      }
     }
   }, [userLocation, sortBy, filters]);
 
@@ -560,10 +573,12 @@ export default function PokerNearMeLobby() {
 
   // ─── Fetch daily tournaments — [W1 FIX] removed unused lat/lng/radius (API ignores them) ───
   const fetchDaily = useCallback(async (dayFilter = '') => {
+    const currentSeq = ++fetchDailySeqRef.current;
     try {
       let url = '/api/poker/daily-tournaments';
       if (dayFilter) url += `?day=${encodeURIComponent(dayFilter)}`;
       const data = await cachedFetch(url);
+      if (fetchDailySeqRef.current !== currentSeq) return;
       if (data?.data) setDailyTournaments(data.data);
       else if (data?.tournaments) setDailyTournaments(data.tournaments);
       else if (Array.isArray(data)) setDailyTournaments(data);
@@ -572,6 +587,7 @@ export default function PokerNearMeLobby() {
         setTodaysTournamentCount(data.stats.total);
       }
     } catch (err) {
+      if (fetchDailySeqRef.current !== currentSeq) return;
       console.error('Failed to fetch daily tournaments:', err);
     }
   }, []); // No userLocation dep — API doesn’t accept lat/lng
@@ -1685,7 +1701,7 @@ export default function PokerNearMeLobby() {
         const svHasSearched = filters.svHasSearched || false;
 
         // Apply filters
-        let svResults = venues;
+        let svResults = podSearchVenues || venues;
         if (svState !== 'all') svResults = svResults.filter(v => v.state === svState);
         if (svVenueType !== 'all') svResults = svResults.filter(v => {
           if (svVenueType === 'poker_club') return v.venue_type === 'poker_club' || v.venue_type === 'card_room';
@@ -1733,9 +1749,9 @@ export default function PokerNearMeLobby() {
           setLoading(true);
           cachedFetch(apiUrl).then(data => {
             const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
-            setVenues(newVenues);
-            setHasMore(newVenues.length >= PAGE_SIZE);
-            setPage(0);
+            setPodSearchVenues(newVenues);
+            // setHasMore(newVenues.length >= PAGE_SIZE); // Keep global pagination untouched for safety
+            // setPage(0);
           }).catch(err => console.error('Search fetch failed:', err))
           .finally(() => setLoading(false));
         };
@@ -1966,11 +1982,7 @@ export default function PokerNearMeLobby() {
                 setLoading(true);
                 cachedFetch(hgUrl).then(data => {
                   const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
-                  setVenues(prev => {
-                    const homeIds = new Set(newVenues.map(v => v.id));
-                    const nonHome = prev.filter(v => !homeIds.has(v.id) && v.venue_type !== 'home_game');
-                    return [...nonHome, ...newVenues];
-                  });
+                  setPodHomeGames(newVenues);
                 }).catch(err => console.error('Home games fetch failed:', err))
                 .finally(() => setLoading(false));
               }}
@@ -2856,7 +2868,8 @@ export default function PokerNearMeLobby() {
                 city: preferences?.lastLocationCity || '',
                 state: preferences?.lastLocationState || '',
               });
-              const gpsUrl = `/api/poker/venues?limit=200&offset=0&lat=${saved.lat}&lng=${saved.lng}&radius=250&sort=distance`;
+              const usedRadius = filters.radius || 50;
+              const gpsUrl = `/api/poker/venues?limit=200&offset=0&lat=${saved.lat}&lng=${saved.lng}&radius=${usedRadius}&sort=distance`;
               cachedFetch(gpsUrl).then(data => {
                 const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
                 setVenues(newVenues);

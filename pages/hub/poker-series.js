@@ -210,6 +210,7 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         if (!payload) {
             // [PS2+PS3 FIX] Use .range(0,999) to bypass Supabase 1000-row project ceiling.
             // Added .catch() so silent auth/network failures don't leave stale state.
@@ -269,10 +270,15 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
         if (!payload) return; // Hard refresh not supported cleanly given static props logic
         if (payload.table !== 'poker_series') return;
 >>>>>>> Stashed changes
+=======
+        if (!payload) return; // Hard refresh not supported cleanly given static props logic
+        if (payload.table !== 'poker_series') return;
+>>>>>>> Stashed changes
         const { eventType, new: newRec, old: oldRec } = payload;
         
         setAllSeries(prev => {
             let next = [...prev];
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
@@ -295,6 +301,8 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
             if (eventType === 'INSERT' && newRec) {
                 // Ensure no dupes
                 if (!next.some(s => s.id === newRec.id)) next.push(newRec);
@@ -304,6 +312,9 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes

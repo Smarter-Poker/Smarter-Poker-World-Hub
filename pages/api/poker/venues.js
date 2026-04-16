@@ -476,21 +476,16 @@ export default async function handler(req, res) {
                       .from('social_pages')
                       .select('id, name, description, avatar_url, page_type, location_city, location_state, follower_count, metadata, linked_venue_id, owner_id')
                       .eq('is_public', true)
-                      .not('location_city', 'is', null)
-                          .limit(100);
+                      .not('location_city', 'is', null);
 
                   // Apply matching filters to social pages query
-                  if (state) spQuery = spQuery.ilike('location_state', state)
-                      .limit(100);
-                  if (city) spQuery = spQuery.ilike('location_city', `%${city}%`)
-                      .limit(100);
+                  if (state) spQuery = spQuery.ilike('location_state', state);
+                  if (city) spQuery = spQuery.ilike('location_city', `%${city}%`);
                   if (effectiveType && ['club', 'charity', 'home_game'].includes(effectiveType)) {
-                      spQuery = spQuery.eq('page_type', effectiveType)
-                          .limit(100);
+                      spQuery = spQuery.eq('page_type', effectiveType);
                   } else if (effectiveType && ['poker_club'].includes(effectiveType)) {
                       // poker_club maps to club page_type
-                      spQuery = spQuery.eq('page_type', 'club')
-                          .limit(100);
+                      spQuery = spQuery.eq('page_type', 'club');
                   } else if (effectiveType && !['club', 'charity', 'home_game', 'poker_club'].includes(effectiveType)) {
                       // Type filter is for a poker_venues-only type (e.g. 'casino'), skip social pages
                       spQuery = null;
@@ -507,7 +502,7 @@ export default async function handler(req, res) {
                   }
 
                   if (spQuery) {
-                      const { data: socialPages } = await spQuery.limit(200);
+                      const { data: socialPages } = await spQuery.limit(500);
                       if (socialPages && socialPages.length > 0) {
                           const DAYS_ORDER = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
                           // Extract day in US Eastern Time to prevent Vercel UTC drift
@@ -526,7 +521,7 @@ export default async function handler(req, res) {
                                       .from('clubs')
                                       .select('id, owner_id, name')
                                       .in('owner_id', ownerIds)
-                                          .limit(100);
+                                      .limit(500);
                                   if (clubs) {
                                       for (const c of clubs) {
                                           if (!clubsByOwner[c.owner_id]) clubsByOwner[c.owner_id] = [];
@@ -540,7 +535,7 @@ export default async function handler(req, res) {
                                               .in('club_id', clubIds)
                                               .in('status', ['ANNOUNCED', 'RUNNING', 'SCHEDULED'])
                                               .gte('start_time', new Date().toISOString())
-                                                  .limit(100);
+                                              .limit(500);
                                           if (tourneys) {
                                               for (const t of tourneys) {
                                                   tournamentCountByClub[t.club_id] = (tournamentCountByClub[t.club_id] || 0) + 1;

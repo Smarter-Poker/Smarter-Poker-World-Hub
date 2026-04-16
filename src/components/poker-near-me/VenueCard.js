@@ -272,7 +272,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
             mounted = false; 
             if (typeof unsub === 'function') unsub();
         };
-    }, [venue]);
+    }, [venue?.venue_type, venue?.host_social_page_slug]);
 
     useEffect(() => {
         const delay = Math.min(index * 40, 400);
