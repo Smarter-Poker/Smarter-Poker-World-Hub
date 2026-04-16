@@ -92,3 +92,8 @@ data/tournament-logs/*
 # Use scripts/build-club-arena.sh to rebuild — it atomically
 # cleans old hashes, copies new build, and commits+pushes.
 # NEVER manually add files to public/hub/club-arena/.
+
+# Local deployment logs and temporary files
+vercel_deploy_output.txt
+git_status_all.txt
+

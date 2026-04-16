@@ -20,7 +20,19 @@ There is exactly ONE deployment path. No exceptions. No alternatives.
 The `smarter-poker` Vercel project (`prj_FNUaJmcjRnwCSh1JzblIUYuOXDGK`) is a DEAD DUPLICATE.
 Its git integration is disconnected. Its deploy hooks are deleted. Do not touch it.
 
-### 1.2 The Only Push Command
+### 1.2 Mandatory End-of-Session Push
+
+Every agent MUST run `git-safe-push.sh` before ending a session. No exceptions.
+Uncommitted work is unfinished work. If the script fails, fix the issue and re-run
+until it exits 0. Never leave files uncommitted in the working directory.
+
+Before pushing, verify the staged files make sense:
+1. Run `git status` to see what will be committed
+2. Confirm no build artifacts, temp files, or junk are included
+3. If files should be ignored, add them to `.gitignore` first
+4. Then push
+
+### 1.3 The Only Push Command
 
 ```bash
 bash ~/Documents/Smarter-Poker-World-Hub/scripts/git-safe-push.sh "descriptive commit message"
@@ -42,7 +54,7 @@ The script handles everything autonomously:
 The script exits 0 ONLY when production is verified serving your commit.
 If it exits non-zero, your code is NOT deployed. Fix the issue and re-run.
 
-### 1.3 What Happens After Push
+### 1.4 What Happens After Push
 
 1. GitHub receives the commit on `main`
 2. Vercel git integration on `hub-vanguard` auto-triggers a build
@@ -53,7 +65,7 @@ If it exits non-zero, your code is NOT deployed. Fix the issue and re-run.
 There is NO deploy hook. There is NO manual promotion step.
 One push = one build = one deployment = auto-promoted to production.
 
-### 1.4 Claiming Success
+### 1.5 Claiming Success
 
 You may ONLY say a change is deployed after `git-safe-push.sh` exits 0.
 The script output will contain `DEPLOY_VERIFIED:true` and `SHA_MATCHED:true`.
@@ -67,7 +79,24 @@ Never say:
 Instead say:
 > "Production smarter.poker served SHA `<hash>` at `<UTC time>`. Verified via /api/health."
 
-### 1.5 When Deployment Fails
+### 1.6 Self-Healing Deploy Monitor
+
+`/api/deploy-monitor` + `/api/deploy-autofix` form an automated self-healing system.
+When a Vercel deployment fails, it auto-fixes the error and redeploys with zero human
+intervention.
+
+How it works:
+1. Vercel webhook fires on `deployment.error`
+2. `/api/deploy-monitor` receives it, fetches build logs from Vercel API
+3. `/api/deploy-autofix` parses the error, fetches the broken file from GitHub,
+   calls Anthropic API (Claude) to generate a minimal fix, pushes via GitHub Contents API
+4. New commit triggers Vercel auto-rebuild
+5. Circuit breaker: max 3 fix attempts per commit SHA, then stops
+
+Agents do NOT need to interact with this system. It runs autonomously.
+If you see `[autofix]` commits in the git log, that is the deploy monitor fixing a build error.
+
+### 1.7 When Deployment Fails
 
 If `git-safe-push.sh` reports `DEPLOY_VERIFIED:false` or exits non-zero:
 
