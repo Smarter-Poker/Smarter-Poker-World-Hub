@@ -3,6 +3,7 @@
 **Status:** DRAFT
 **Depends on:** Phase 1.1 shipped (PR-1 through PR-5). See
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 `.memory/context/phase-1.1-shipped.md`. 1.2 runs the moment 1.1's
 grep-for-absence audit is green — no idle window.
 `.memory/context/phase-1.1-shipped.md`. Do not start 1.2 code until 1.1 has
@@ -57,6 +58,8 @@ soaked 48h without regression.
 soaked 48h without regression.
 `.memory/context/phase-1.1-shipped.md`. Do not start 1.2 code until 1.1 has
 soaked 48h without regression.
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 `.memory/context/phase-1.1-shipped.md`. Do not start 1.2 code until 1.1 has
@@ -225,6 +228,7 @@ One PR per deliverable. Each follows the PR-1..PR-5 cadence:
 
 - **PR-A**: DeadlineScheduler + 30+ unit tests. Not wired. Verify-green.
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 - **PR-B**: Replace `PreciseActionTimer`'s internal `setInterval` + expiry
   scan with `DeadlineScheduler.schedule` / `.cancel`. Public API of
   PreciseActionTimer is unchanged; its internals no longer hold their own
@@ -310,6 +314,8 @@ One PR per deliverable. Each follows the PR-1..PR-5 cadence:
   benefits. Deploy, observe.
 =======
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
 - **PR-B**: Wire DeadlineScheduler inside `PreciseActionTimer` as the
   execution backend (temporarily) so every existing caller transparently
   benefits. Deploy, observe.
@@ -350,6 +356,7 @@ the remaining lifetime of each engine instance.
 ## 10. Next action
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 Begin PR-A the moment Phase 1.1's grep-for-absence audit is green
 (`rg 'broadcastHandState|subscribeToHandState'` returns zero across
 server/src and src). No idle window. Load test is an independent track.
@@ -379,6 +386,8 @@ After Phase 1.1 soak + load test pass, begin PR-A.
 After Phase 1.1 soak + load test pass, begin PR-A.
 After Phase 1.1 soak + load test pass, begin PR-A.
 After Phase 1.1 soak + load test pass, begin PR-A.
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 After Phase 1.1 soak + load test pass, begin PR-A.

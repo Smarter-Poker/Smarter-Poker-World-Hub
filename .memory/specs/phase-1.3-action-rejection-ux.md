@@ -170,6 +170,7 @@ One PR per deliverable section, tested + deployed independently.
 - **PR-E** — /validator-metrics route + smoke test
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 Each PR ~0.5 day. Total ~3 working days incl. tests and verification.
 Each PR ~0.5 day. Total ~3 working days incl. tests and soak.
 Each PR ~0.5 day. Total ~3 working days incl. tests and soak.
@@ -197,6 +198,8 @@ Each PR ~0.5 day. Total ~3 working days incl. tests and soak.
 Each PR ~0.5 day. Total ~3 working days incl. tests and soak.
 Each PR ~0.5 day. Total ~3 working days incl. tests and soak.
 Each PR ~0.5 day. Total ~3 working days incl. tests and soak.
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 Each PR ~0.5 day. Total ~3 working days incl. tests and soak.

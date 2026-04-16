@@ -92,6 +92,7 @@ export default function NewSeriesVenueCard({ series: s, index, isFavorited, onFa
             <div className="neon-strip left" />
             <div className="neon-strip right" />
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             <div className="series-header" style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                 {/* Square logo — left side */}
                 {resolvedLogoUrl && (
@@ -112,6 +113,8 @@ export default function NewSeriesVenueCard({ series: s, index, isFavorited, onFa
                 )}
                 {/* Tour badge + title stacked to the right of logo */}
                 <div style={{ flex: 1, minWidth: 0 }}>
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
             {resolvedLogoUrl && (
