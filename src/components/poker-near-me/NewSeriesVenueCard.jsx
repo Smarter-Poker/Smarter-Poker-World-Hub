@@ -91,6 +91,7 @@ export default function NewSeriesVenueCard({ series: s, index, isFavorited, onFa
             <div className="frame-bolt" style={{ bottom: '8px', right: '8px' }} />
             <div className="neon-strip left" />
             <div className="neon-strip right" />
+<<<<<<< Updated upstream
             <div className="series-header" style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                 {/* Square logo — left side */}
                 {resolvedLogoUrl && (
@@ -111,6 +112,17 @@ export default function NewSeriesVenueCard({ series: s, index, isFavorited, onFa
                 )}
                 {/* Tour badge + title stacked to the right of logo */}
                 <div style={{ flex: 1, minWidth: 0 }}>
+=======
+            {resolvedLogoUrl && (
+                <div className="series-banner-image" style={{ width: '100%', height: '140px', borderRadius: '4px', marginBottom: '16px', backgroundColor: 'rgba(0,0,0,0.5)', overflow: 'hidden' }}>
+                    <img src={resolvedLogoUrl} alt={s.name || s.series_name || 'Series'} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '8px' }} loading="lazy" />
+                </div>
+            )}
+
+            
+            <div className="series-header">
+                <div>
+>>>>>>> Stashed changes
                     <div className="series-tour">{shortCode}</div>
                     <a href={detailUrl} onClick={e => e.preventDefault()} style={{ textDecoration: 'none', color: 'inherit' }}>
                         <h4 className="series-title">{s.name || s.series_name || 'Upcoming Series'}</h4>

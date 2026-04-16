@@ -171,8 +171,8 @@ export default async function handler(req, res) {
           if (playerIds && playerIds.length > 0) {
               notification.include_player_ids = playerIds;
           } else if (finalExternalUserIds && finalExternalUserIds.length > 0) {
-              notification.include_external_user_ids = finalExternalUserIds;
-              notification.channel_for_external_user_ids = 'push';
+              notification.include_aliases = { external_id: finalExternalUserIds };
+              notification.target_channel = 'push';
           } else if (tags) {
               notification.filters = tags;
           } else if (segments && segments.length > 0) {

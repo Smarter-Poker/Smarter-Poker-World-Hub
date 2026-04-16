@@ -55,9 +55,14 @@ async function handler(req, res) {
             
             if (!tournament || !playerId) continue;
 
+            // Treat DB local string as a pure Date. Coerce the current time to Eastern Time 
+            // wall-clock string, then parse it identically so they are compared without TZ diffs.
             const tourneyDate = new Date(`${tournament.event_date}T${tournament.start_time || '00:00:00'}`);
-            const now = new Date();
-            const diffMs = tourneyDate - now;
+            const nowEtStr = new Date().toLocaleString('en-US', { timeZone: 'America/New_York', hourCycle: 'h23' });
+            // Format: "4/16/2026, 08:52:00" -> replace commas, format it so Date() plays nice
+            const nowEt = new Date(nowEtStr); 
+            
+            const diffMs = tourneyDate - nowEt;
             const diffMins = Math.floor(diffMs / 60000);
             
             // Trigger if the tournament starts in exactly/under 60 minutes OR has started within the last 150 minutes
