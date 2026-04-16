@@ -81,7 +81,7 @@ These are binding on every future session.
 - Secondary Vercel project (unused for prod, keep for staging redirects):
   `club-arena` (prj_oaCq8RYhExLRUYizLG93li0uX468)
 - Team: `team_SVD8r7AOPH065G3usBxVvrBc`
-- Deploy hook for hub-vanguard: `Tw4O1eDeVc` (name: "Agent Deploy")
+- Deploy hook: RETIRED 2026-04-16 (caused duplicate deployments — git integration handles auto-deploy)
 - Ships from `/Users/smarter.poker/Documents/club-arena` →
   `Smarter-Poker-World-Hub/public/hub/club-arena/` via
   `scripts/build-club-arena.sh` OR via direct GitHub Contents API commit.

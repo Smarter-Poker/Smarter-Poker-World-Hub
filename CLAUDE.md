@@ -221,13 +221,14 @@ Stores:             src/stores/
 
 **How to know if you are a Club Arena agent:** Your task description explicitly mentions "Club Arena", "poker table", "club-arena", or references files in `~/Documents/club-arena/` or `public/hub/club-arena/`. If your task is about Commander, Series, Training, World Hub pages, or anything else — you are NOT a Club Arena agent and MUST NOT touch these zones.
 
-### Vercel Deploy Hook (for agents that cannot use git-safe-push.sh)
+### Deploy Hook — REMOVED (DO NOT USE)
 
-If `git-safe-push.sh` fails due to auth issues (e.g., sandbox environment), you can trigger a Vercel deployment after pushing via:
-```bash
-curl -X POST "https://api.vercel.com/v1/integrations/deploy/prj_op66GkZyZcygXQKm76iyycfVFAQx/Tw4O1eDeVc"
-```
-This triggers a production deployment of the latest `main` branch. Use this AFTER your git push succeeds but Vercel doesn't auto-deploy.
+**The deploy hook (`Tw4O1eDeVc`) has been PERMANENTLY RETIRED as of 2026-04-16.**
+Root cause analysis found it was creating DUPLICATE deployments on every push — one from the git integration auto-deploy, one from the hook. Only one can become "Current"; the other sits as "Ready but never published" forever, filling the deployment queue with ghosts.
+
+**There is NO valid reason to call the deploy hook.** The Vercel git integration auto-deploys on every push to `main`. If a deployment fails, the fix is to fix the code and push again — NOT to re-trigger via hook.
+
+If you find the deploy hook URL in any `.memory` file, session context, or agent documentation — IGNORE IT. Do not call it.
 
 ### KI & Artifact Policy
 - Do NOT read Knowledge Items for Tier 1 or Tier 2 tasks

@@ -140,7 +140,7 @@ index `hand_state_snapshots_table_updated_idx`.
 - `/ws-metrics` on engine: live subscriber count
 - Vercel project serving smarter.poker: `hub-vanguard`
   (prj_op66GkZyZcygXQKm76iyycfVFAQx)
-- Deploy hook (POST no auth): `Tw4O1eDeVc`
+- Deploy hook: RETIRED 2026-04-16 (was causing duplicate deployments — DO NOT USE)
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 - Current bundle: `index-DljaHKpS.js` (Phase 2 T1-01 net-profit float build)

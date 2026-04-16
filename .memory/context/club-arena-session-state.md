@@ -80,7 +80,7 @@ cat /etc/nginx/sites-enabled/* 2>/dev/null
 - **Supabase Project:** `kuklfnapbkmacvwxktbh`
 - **Test Account:** daniel@bekavactrading.com / Bek454545!!
 - **GitHub Token:** `[REDACTED_GH_TOKEN]`
-- **Vercel Deploy Hook:** `https://api.vercel.com/v1/integrations/deploy/prj_op66GkZyZcygXQKm76iyycfVFAQx/Tw4O1eDeVc`
+- **Vercel Deploy Hook:** RETIRED 2026-04-16 (caused duplicate deployments — DO NOT call)
 
 ## Dan's Rules (NEVER FORGET)
 

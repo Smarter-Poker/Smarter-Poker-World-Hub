@@ -94,7 +94,7 @@ Each PR contains:
 - CSS change if applicable
 - Unit test OR playwright test if applicable
 - Rebuild bundle + commit to World Hub
-- Deploy via hub-vanguard deploy hook
+- Deploy via git push to main (auto-deploys via Vercel git integration)
 - Verification note added to `.memory/context/phase-2-progress.md`
 
 No single PR merges two items — atomic, revertable.
