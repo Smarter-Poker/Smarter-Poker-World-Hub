@@ -55,13 +55,17 @@ _legacy_scripts/
 _legacy_logs/
 _legacy_sql/
 .venv
+!.venv/.gitkeep
 
 # Scraper daemon outputs (data goes to Supabase, these are ephemeral local audit trails)
 data/scrape-evidence/
 data/bravo-live-snapshot.json
 data/pokeratlas-live-snapshot.json
-data/bravo-logs/
-data/pokeratlas-logs/
+# Keep the directories (via .gitkeep) but ignore log contents
+data/bravo-logs/*
+!data/bravo-logs/.gitkeep
+data/pokeratlas-logs/*
+!data/pokeratlas-logs/.gitkeep
 
 # Background shell state
 .bg-shell/
@@ -74,8 +78,9 @@ __pycache__/
 pokerbrain-assets/
 scripts/poker-brain/.venv/
 
-# Ephemeral daemon state logs
-data/tournament-logs/
+# Ephemeral daemon state logs — keep dir, ignore contents
+data/tournament-logs/*
+!data/tournament-logs/.gitkeep
 
 # Club Arena build artifacts — DO NOT gitignore!
 # Vercel deploys from git, so these MUST be committed.
