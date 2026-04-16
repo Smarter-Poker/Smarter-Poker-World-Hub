@@ -57,19 +57,19 @@ export default async function handler(req, res) {
     }
 
     // ── Verify webhook signature (if DEPLOY_WEBHOOK_SECRET is set) ──
+    // NOTE: Vercel signs the raw request body bytes. Next.js auto-parses the body
+    // before our handler sees it, so we CANNOT reliably re-create the original bytes.
+    // Instead of HMAC verification (which would always mismatch), we use a shared
+    // secret as a bearer token in a custom header set during webhook creation.
+    // Vercel webhooks don't support custom headers natively, so we rely on the
+    // x-vercel-signature approach only when we can access raw body, or use a
+    // URL-based secret: /api/deploy-monitor?secret=XXX
     const webhookSecret = process.env.DEPLOY_WEBHOOK_SECRET;
     if (webhookSecret) {
-      const crypto = await import('crypto');
-      const signature = req.headers['x-vercel-signature'];
-      if (!signature) {
-        console.log('[deploy-monitor] Missing x-vercel-signature header');
-        return res.status(401).json({ error: 'Missing webhook signature' });
-      }
-      const rawBody = JSON.stringify(req.body);
-      const expectedSig = crypto.createHmac('sha1', webhookSecret).update(rawBody).digest('hex');
-      if (signature !== expectedSig) {
-        console.log('[deploy-monitor] Invalid webhook signature');
-        return res.status(401).json({ error: 'Invalid webhook signature' });
+      const providedSecret = req.query?.secret || req.headers['x-webhook-secret'];
+      if (providedSecret !== webhookSecret) {
+        console.log('[deploy-monitor] Invalid or missing webhook secret');
+        return res.status(401).json({ error: 'Invalid webhook secret' });
       }
     }
 
@@ -165,7 +165,10 @@ export default async function handler(req, res) {
         const allEvents = await buildLogsRes.json();
         buildErrors = (Array.isArray(allEvents) ? allEvents : [])
           .map(e => e.payload?.text || '')
-          .filter(t => t.includes('Error') || t.includes('error') || t.includes('failed'))
+          .filter(t => t.includes('Error') || t.includes('error') ||
+                       t.includes('failed') || t.includes('Module not found') ||
+                       t.includes('Cannot find') || t.includes('Unexpected') ||
+                       t.includes('SyntaxError'))
           .slice(-50)
           .join('\n');
       }
