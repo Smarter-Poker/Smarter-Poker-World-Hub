@@ -76,3 +76,9 @@ scripts/poker-brain/.venv/
 
 # Ephemeral daemon state logs
 data/tournament-logs/
+
+# Club Arena build artifacts (Vite hash-named outputs — regenerated on every build)
+# These are copied from club-arena/dist into public/hub/club-arena/ during deploy.
+# They must NEVER be tracked — they cause 1000+ phantom "pending changes".
+public/hub/club-arena/assets/
+public/hub/club-arena/index.html
