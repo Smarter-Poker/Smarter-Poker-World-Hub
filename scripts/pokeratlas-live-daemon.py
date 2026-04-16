@@ -1146,37 +1146,69 @@ def run_scrape_cycle(mgr):
     # Build Supabase payload — using Bravo-compatible build_payload_from_results()
     log.info(f'💾 Saving {len(all_venues)} venue records to Supabase...')
 
-    # DEDUPLICATION: Fetch Bravo venue names to skip duplicates
+    # DEDUPLICATION: 3-tier match to catch name variations
+    # Tier 1: Exact venue name match
+    # Tier 2: Normalized alphanum match  (handles punctuation, spacing)
+    # Tier 3: Slug word-overlap >= 70%   (handles "MGM Grand" vs "MGM Grand Las Vegas")
     bravo_names = set()
     bravo_names_normalized = set()
+    bravo_slug_wordsets = []  # List of (slug, frozenset_of_words)
     try:
         req = urllib.request.Request(
-            f'{SUPABASE_URL}/rest/v1/venue_live_tables?source=eq.bravo&select=venue_name&limit=5000',
+            f'{SUPABASE_URL}/rest/v1/venue_live_tables?source=eq.bravo&select=venue_name,venue_slug&limit=5000',
             headers=SB_HEADERS,
         )
         resp = urllib.request.urlopen(req, timeout=15)
         bravo_data = json.loads(resp.read())
         for r in bravo_data:
             name = r.get('venue_name', '')
+            slug = r.get('venue_slug', '')
             bravo_names.add(name)
             bravo_names_normalized.add(re.sub(r'[^a-z0-9]', '', name.lower()))
-        log.info(f'  Dedup: {len(bravo_names)} Bravo venues loaded for exclusion')
+            if slug:
+                words = frozenset(w for w in slug.replace('-', ' ').split() if len(w) > 2)
+                if words:
+                    bravo_slug_wordsets.append(words)
+        log.info(f'  Dedup: {len(bravo_names)} Bravo venues loaded (3-tier match active)')
     except Exception as e:
         log.warning(f'  Dedup: Could not load Bravo venues: {e}')
+
+    def _is_bravo_duplicate(venue_name):
+        """Check if a PokerAtlas venue is already covered by Bravo (3-tier)."""
+        # Tier 1: Exact name
+        if venue_name in bravo_names:
+            return True, 'exact'
+        # Tier 2: Normalized alphanum
+        normalized = re.sub(r'[^a-z0-9]', '', venue_name.lower())
+        if normalized in bravo_names_normalized:
+            return True, 'normalized'
+        # Tier 3: Slug word-overlap >= 70%
+        pa_words = frozenset(w for w in re.sub(r'[^a-z0-9 ]', '', venue_name.lower()).split() if len(w) > 2)
+        if pa_words and bravo_slug_wordsets:
+            for bravo_words in bravo_slug_wordsets:
+                if not bravo_words:
+                    continue
+                overlap = len(pa_words & bravo_words)
+                pct = overlap / max(len(pa_words), len(bravo_words))
+                if pct >= 0.70:
+                    return True, f'slug-overlap({pct:.0%})'
+        return False, None
 
     # Filter out venues that already have Bravo data
     filtered_venues = []
     skipped_dupes = 0
     for venue_data in all_venues:
-        venue_name = venue_data['venue_name']
-        normalized = re.sub(r'[^a-z0-9]', '', venue_name.lower())
-        if venue_name in bravo_names or normalized in bravo_names_normalized:
+        is_dupe, match_tier = _is_bravo_duplicate(venue_data['venue_name'])
+        if is_dupe:
             skipped_dupes += 1
+            if skipped_dupes <= 5:
+                log.debug(f'  Dedup: Skipping "{venue_data["venue_name"]}" [{match_tier}]')
             continue
         filtered_venues.append(venue_data)
 
     if skipped_dupes:
         log.info(f'  Dedup: Skipped {skipped_dupes} venues (already in Bravo)')
+
 
     payload = build_payload_from_results(filtered_venues, batch_id)
 

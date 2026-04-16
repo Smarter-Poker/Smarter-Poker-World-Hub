@@ -447,6 +447,85 @@ class BravoSessionManager:
         self._session_dead = False
         self.tier2_failures = 0  # Track Tier 2 failures to avoid wasting time
 
+    def _fast_path_connect(self, watchdog_timer=None):
+        """Attempt session restore using saved CF cookies (skips Turnstile solve).
+
+        If cf_cookies.json contains a valid cf_clearance cookie, inject it into
+        a fresh StealthySession context and go straight to login. This saves
+        ~10-15 seconds per daemon restart when the CF session is still valid.
+
+        Returns True on success, False if cookies are stale/rejected (caller
+        should fall through to full Turnstile solve).
+        """
+        from scrapling.fetchers import StealthySession
+        try:
+            with open(COOKIE_CACHE_FILE) as f:
+                cached = json.load(f)
+            if not cached.get('cf_clearance'):
+                return False
+
+            # Start a fresh session WITHOUT solve_cloudflare to avoid wasting time
+            fast_session = StealthySession(headless=True, solve_cloudflare=False)
+            fast_session.start()
+
+            # Build context and inject cached cookies
+            fast_context = fast_session.context
+            if fast_context:
+                cookie_list = []
+                for name, value in cached.items():
+                    cookie_list.append({
+                        'name': name,
+                        'value': value,
+                        'domain': '.bravopokerlive.com',
+                        'path': '/',
+                    })
+                try:
+                    fast_context.add_cookies(cookie_list)
+                    log.info(f'  Injected {len(cookie_list)} cached CF cookies into new context')
+                except Exception as e:
+                    log.debug(f'  Cookie injection failed: {e}')
+                    fast_session.close()
+                    return False
+
+            fast_page = fast_context.new_page()
+
+            # Quick sanity check — navigate to login page
+            # If CF rejects our cookies, we'll see a challenge page
+            fast_page.goto(BRAVO_LOGIN_URL, timeout=15000, wait_until='domcontentloaded')
+            time.sleep(2)
+            content = fast_page.content()
+
+            if 'Just a moment' in content or 'Performing security' in content:
+                log.info('  CF cookies rejected (challenge page) — stale cookies')
+                try:
+                    fast_page.close()
+                    fast_session.close()
+                except Exception:
+                    pass
+                return False
+
+            # Cookies accepted — adopt this session as our primary
+            self.session = fast_session
+            self.context = fast_context
+            self.page = fast_page
+            self._session_dead = False
+            self.consecutive_nav_failures = 0
+
+            # Proceed to login
+            result = self._login()
+            if watchdog_timer:
+                watchdog_timer.cancel()
+            return result
+
+        except Exception as e:
+            log.debug(f'  Fast-path connect error: {e}')
+            # Attempt cleanup
+            try:
+                fast_session.close()
+            except Exception:
+                pass
+            return False
+
     def connect(self):
         """Establish a new Scrapling StealthySession and login to Bravo.
         
@@ -454,6 +533,7 @@ class BravoSessionManager:
         zombie states when StealthySession.start() hangs.
         Includes network pre-check and retry on initial CF-solve fetch.
         """
+
         from scrapling.fetchers import StealthySession
 
         # Close any existing session and kill zombie browser processes
@@ -466,6 +546,27 @@ class BravoSessionManager:
             return False
 
         log.info('🔌 Establishing new StealthySession...')
+
+        # ── CF COOKIE FAST-PATH ──
+        # If saved CF cookies are <4 hours old, inject them into the new
+        # browser context and skip Turnstile solving. Falls through on failure.
+        # NOTE: watchdog_timer is not armed yet here — pass None (fast-path
+        # has its own 30s internal timeout via goto(timeout=15000)).
+        CF_COOKIE_MAX_AGE_SECONDS = 4 * 3600
+        if COOKIE_CACHE_FILE.exists():
+            try:
+                cookie_age = time.time() - COOKIE_CACHE_FILE.stat().st_mtime
+                if cookie_age < CF_COOKIE_MAX_AGE_SECONDS:
+                    log.info(f'  🍪 CF cookie cache is {cookie_age/60:.0f}min old — attempting fast-path reconnect...')
+                    result = self._fast_path_connect(watchdog_timer=None)
+                    if result:
+                        log.info('  ✅ Fast-path CF reconnect succeeded (skipped Turnstile solve)')
+                        return True
+                    log.info('  ⚠️  Fast-path failed — falling back to full Turnstile solve')
+                else:
+                    log.info(f'  CF cookie cache expired ({cookie_age/3600:.1f}h > 4h) — full solve required')
+            except Exception as e:
+                log.debug(f'  CF fast-path check failed: {e}')
 
         # Arm a hard-kill timer — if connect takes too long, force-exit
         # so launchd can restart us with a clean process
