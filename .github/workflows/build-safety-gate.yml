@@ -7,10 +7,10 @@ on:
   pull_request:
     branches: ['main']
 
-# Cancel previous runs on same branch (saves GitHub Actions minutes)
+# Queue builds sequentially — every commit deploys, none are cancelled
 concurrency:
   group: safety-gate-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 # Permissions needed for safety checks + failure notification (issue creation)
 permissions:
