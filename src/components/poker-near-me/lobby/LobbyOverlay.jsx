@@ -127,113 +127,220 @@ export default function LobbyOverlay({
       {/* TOP BAR — Title + Search */}
       <header className="lobby-topbar" style={{ pointerEvents: 'none' }}>
         {/* POKER NEAR ME Title removed per user optimization for icon-only layout */}
-        <form className="lobby-search-form" onSubmit={handleSearchSubmit} style={{ position: 'relative', pointerEvents: 'auto' }}>
-          <div className={`lobby-search-wrap ${searchFocused ? 'focused' : ''}`} style={{
-            backdropFilter: 'blur(16px)',
-            background: 'rgba(6, 21, 37, 0.7)',
-            border: searchFocused ? '1px solid rgba(110, 231, 239, 0.5)' : '1px solid rgba(110, 231, 239, 0.2)',
-            boxShadow: searchFocused ? '0 0 24px rgba(110, 231, 239, 0.15)' : 'none',
-            transition: 'all 0.25s',
-          }}>
-            <svg className="lobby-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" data-tutorial-id="lobby-search">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            {/* Fake search input — div instead of input eliminates ALL browser autocomplete/autofill popups */}
-            <div
-              role="button"
-              tabIndex={0}
-              className="lobby-search-input"
-              onClick={() => onSearchBarClick?.()}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSearchBarClick?.(); }}
-              aria-label="Search for poker venues, tours, and series"
-              style={{ cursor: 'text', userSelect: 'none', display: 'flex', alignItems: 'center' }}
-            >
-              <span style={{ color: searchQuery ? 'inherit' : 'rgba(200,214,229,0.35)', fontWeight: searchQuery ? 500 : 400 }}>
-                {searchQuery || 'Search City, Venue, Tour, Series...'}
-              </span>
+
+        {/* Search bar + Location row: flex row so location sits to the right of the search bar */}
+        <div style={{
+          display: 'flex', flexDirection: 'row', alignItems: 'center',
+          gap: 12,
+          width: 'min(700px, calc(100vw - 32px))',
+          pointerEvents: 'auto',
+          position: 'relative',
+        }}>
+          <form className="lobby-search-form" onSubmit={handleSearchSubmit} style={{ position: 'relative', flex: '0 0 auto', pointerEvents: 'auto' }}>
+            <div className={`lobby-search-wrap ${searchFocused ? 'focused' : ''}`} style={{
+              backdropFilter: 'blur(16px)',
+              background: 'rgba(6, 21, 37, 0.7)',
+              border: searchFocused ? '1px solid rgba(110, 231, 239, 0.5)' : '1px solid rgba(110, 231, 239, 0.2)',
+              boxShadow: searchFocused ? '0 0 24px rgba(110, 231, 239, 0.15)' : 'none',
+              transition: 'all 0.25s',
+            }}>
+              <svg className="lobby-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" data-tutorial-id="lobby-search">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              {/* Fake search input — div instead of input eliminates ALL browser autocomplete/autofill popups */}
+              <div
+                role="button"
+                tabIndex={0}
+                className="lobby-search-input"
+                onClick={() => onSearchBarClick?.()}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSearchBarClick?.(); }}
+                aria-label="Search for poker venues, tours, and series"
+                style={{ cursor: 'text', userSelect: 'none', display: 'flex', alignItems: 'center' }}
+              >
+                <span style={{ color: searchQuery ? 'inherit' : 'rgba(200,214,229,0.35)', fontWeight: searchQuery ? 500 : 400 }}>
+                  {searchQuery || 'Search City, Venue, Tour, Series...'}
+                </span>
+              </div>
+
+              {/* Voice Search Button */}
+              {onVoiceClick && (
+                <button
+                  type="button"
+                  className="lobby-voice-btn"
+                  onClick={onVoiceClick}
+                  aria-label="Voice search"
+                  style={{
+                    flexShrink: 0, width: 44, height: 44, borderRadius: '50%',
+                    border: '1px solid rgba(110, 231, 239, 0.15)',
+                    background: 'rgba(110, 231, 239, 0.06)',
+                    color: 'rgba(200, 214, 229, 0.5)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', transition: 'all 0.25s',
+                    marginRight: 4, padding: 0,
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                    <line x1="12" y1="19" x2="12" y2="23" />
+                    <line x1="8" y1="23" x2="16" y2="23" />
+                  </svg>
+                </button>
+              )}
+
+              {/* GPS Button */}
+              {gpsActive !== undefined && (
+                <button
+                  type="button"
+                  className={`lobby-gps-btn ${gpsActive ? 'active' : ''} ${gpsLoading ? 'loading' : ''}`}
+                  onClick={onGpsClick}
+                  disabled={gpsLoading}
+                  aria-label={gpsLoading ? 'Locating...' : 'Use GPS location'}
+                  style={{
+                    flexShrink: 0, width: 44, height: 44, borderRadius: '50%',
+                    border: gpsActive ? '1.5px solid rgba(34,197,94,0.5)' : '1px solid rgba(110, 231, 239, 0.15)',
+                    background: gpsActive ? 'rgba(34,197,94,0.12)' : 'rgba(110, 231, 239, 0.06)',
+                    color: gpsActive ? '#22c55e' : 'rgba(200, 214, 229, 0.5)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: gpsLoading ? 'wait' : 'pointer',
+                    transition: 'all 0.25s',
+                    opacity: gpsLoading ? 0.6 : 1,
+                    padding: 0,
+                  }}
+                >
+                  {gpsLoading ? (
+                    <svg width="18" height="18" viewBox="0 0 24 24" style={{ animation: 'spin 1s linear infinite' }}>
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" strokeDasharray="31" strokeDashoffset="10" />
+                    </svg>
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polygon points="3 11 22 2 13 21 11 13 3 11" />
+                    </svg>
+                  )}
+                </button>
+              )}
             </div>
 
-            {/* Voice Search Button */}
-            {onVoiceClick && (
-              <button
-                type="button"
-                className="lobby-voice-btn"
-                onClick={onVoiceClick}
-                aria-label="Voice search"
-                style={{
-                  flexShrink: 0, width: 44, height: 44, borderRadius: '50%',
-                  border: '1px solid rgba(110, 231, 239, 0.15)',
-                  background: 'rgba(110, 231, 239, 0.06)',
-                  color: 'rgba(200, 214, 229, 0.5)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', transition: 'all 0.25s',
-                  marginRight: 4, padding: 0,
-                }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                  <line x1="12" y1="19" x2="12" y2="23" />
-                  <line x1="8" y1="23" x2="16" y2="23" />
-                </svg>
-              </button>
-            )}
+            {/* City Autocomplete Dropdown */}
+            <AnimatePresence>
+              {showSuggestions && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.2 }}
+                  style={{
+                    position: 'absolute', top: '100%', left: 0, right: 0,
+                    marginTop: 4, background: 'rgba(12,18,28,0.97)',
+                    backdropFilter: 'blur(16px)',
+                    border: '1px solid rgba(110,231,239,0.2)',
+                    borderRadius: 12, overflow: 'hidden', zIndex: 60,
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                  }}
+                >
+                  {citySuggestions.map((city, i) => (
+                    <button
+                      key={city}
+                      onClick={() => onCitySelect?.(city)}
+                      style={{
+                        display: 'block', width: '100%', padding: '10px 16px',
+                        background: 'transparent', border: 'none',
+                        borderBottom: i < citySuggestions.length - 1 ? '1px solid rgba(110,231,239,0.06)' : 'none',
+                        color: '#e0e8f0', fontSize: 13, textAlign: 'left',
+                        cursor: 'pointer', fontFamily: 'inherit',
+                        transition: 'background 0.15s',
+                      }}
+                      className="lobby-suggestion-btn"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(110,231,239,0.5)" strokeWidth="2" style={{ marginRight: 8, verticalAlign: 'middle' }}>
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
+                        <circle cx="12" cy="10" r="3" />
+                      </svg>
+                      {city}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
 
-            {/* GPS Button */}
-            {gpsActive !== undefined && (
-              <button
-                type="button"
-                className={`lobby-gps-btn ${gpsActive ? 'active' : ''} ${gpsLoading ? 'loading' : ''}`}
-                onClick={onGpsClick}
-                disabled={gpsLoading}
-                aria-label={gpsLoading ? 'Locating...' : 'Use GPS location'}
-                style={{
-                  flexShrink: 0, width: 44, height: 44, borderRadius: '50%',
-                  border: gpsActive ? '1.5px solid rgba(34,197,94,0.5)' : '1px solid rgba(110, 231, 239, 0.15)',
-                  background: gpsActive ? 'rgba(34,197,94,0.12)' : 'rgba(110, 231, 239, 0.06)',
-                  color: gpsActive ? '#22c55e' : 'rgba(200, 214, 229, 0.5)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: gpsLoading ? 'wait' : 'pointer',
-                  transition: 'all 0.25s',
-                  opacity: gpsLoading ? 0.6 : 1,
-                  padding: 0,
-                }}
-              >
-                {gpsLoading ? (
-                  <svg width="18" height="18" viewBox="0 0 24 24" style={{ animation: 'spin 1s linear infinite' }}>
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" strokeDasharray="31" strokeDashoffset="10" />
-                  </svg>
-                ) : (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polygon points="3 11 22 2 13 21 11 13 3 11" />
-                  </svg>
-                )}
-              </button>
-            )}
-          </div>
+              {/* Search History — shown when focused + empty query */}
+              {searchFocused && !searchQuery && searchHistory.length > 0 && !showSuggestions && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.2 }}
+                  style={{
+                    position: 'absolute', top: '100%', left: 0, right: 0,
+                    marginTop: 4, background: 'rgba(12,18,28,0.97)',
+                    backdropFilter: 'blur(16px)',
+                    border: '1px solid rgba(110,231,239,0.15)',
+                    borderRadius: 12, overflow: 'hidden', zIndex: 60,
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                  }}
+                >
+                  <div style={{
+                    padding: '8px 16px 4px', fontSize: 10, color: 'rgba(200,214,229,0.35)',
+                    textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600,
+                  }}>
+                    Recent Searches
+                  </div>
+                  {searchHistory.slice(0, 6).map((item, i) => (
+                    <button
+                      key={item.id || i}
+                      onClick={() => onHistorySelect?.(item.search_query)}
+                      style={{
+                        display: 'block', width: '100%', padding: '8px 16px',
+                        background: 'transparent', border: 'none',
+                        borderBottom: i < Math.min(searchHistory.length, 6) - 1 ? '1px solid rgba(110,231,239,0.04)' : 'none',
+                        color: 'rgba(200,214,229,0.7)', fontSize: 13, textAlign: 'left',
+                        cursor: 'pointer', fontFamily: 'inherit',
+                        transition: 'background 0.15s',
+                      }}
+                      className="lobby-history-btn"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(200,214,229,0.3)" strokeWidth="2" style={{ marginRight: 8, verticalAlign: 'middle' }}>
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                      </svg>
+                      {item.search_query}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </form>
 
-          {/* GPS Location Status Indicator */}
+          {/* GPS Location Status Indicator — shown INLINE to the RIGHT of the search bar */}
           {gpsActive && (locationCity || locationState) && (
             <div
               onClick={onManualLocation}
               style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                paddingTop: 6, paddingLeft: 4,
-                cursor: 'pointer', pointerEvents: 'auto',
+                display: 'flex', alignItems: 'center', gap: 7,
+                cursor: 'pointer', pointerEvents: 'auto', flexShrink: 0,
+                background: 'rgba(6, 21, 37, 0.6)',
+                backdropFilter: 'blur(12px)',
+                border: '1px solid rgba(63,185,80,0.3)',
+                borderRadius: 22,
+                padding: '7px 16px 7px 12px',
+                transition: 'all 0.2s',
+                whiteSpace: 'nowrap',
               }}
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3fb950" strokeWidth="2.5">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3fb950" strokeWidth="2.5">
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
               </svg>
-              <span style={{ fontSize: 12, color: '#3fb950', fontWeight: 600 }}>
+              <span style={{ fontSize: 18, color: '#3fb950', fontWeight: 700, letterSpacing: '-0.2px' }}>
                 {locationCity}{locationState ? `, ${locationState}` : ''}
               </span>
-              <span style={{ fontSize: 10, color: 'rgba(200,214,229,0.35)', marginLeft: 4 }}>Change</span>
+              <span style={{ fontSize: 15, color: 'rgba(200,214,229,0.45)', marginLeft: 4, fontWeight: 500 }}>Change</span>
             </div>
           )}
-          {!gpsActive && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+        </div>
+
+        {/* Non-GPS state: show location prompts below, full-width */}
+        {!gpsActive && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8, width: 'min(440px, calc(100vw - 32px))', pointerEvents: 'auto' }}>
               {/* Use Saved Location — quick restore from previous session */}
               {savedLocation?.lat && savedLocation?.lng && savedLocationCity && onUseSavedLocation && (
                 <div
@@ -319,99 +426,9 @@ export default function LobbyOverlay({
                 </svg>
               </div>
             </div>
-          )}
-
-          {/* City Autocomplete Dropdown */}
-          <AnimatePresence>
-            {showSuggestions && (
-              <motion.div
-                initial={{ opacity: 0, y: -8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.2 }}
-                style={{
-                  position: 'absolute', top: '100%', left: 0, right: 0,
-                  marginTop: 4, background: 'rgba(12,18,28,0.97)',
-                  backdropFilter: 'blur(16px)',
-                  border: '1px solid rgba(110,231,239,0.2)',
-                  borderRadius: 12, overflow: 'hidden', zIndex: 60,
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-                }}
-              >
-                {citySuggestions.map((city, i) => (
-                  <button
-                    key={city}
-                    onClick={() => onCitySelect?.(city)}
-                    style={{
-                      display: 'block', width: '100%', padding: '10px 16px',
-                      background: 'transparent', border: 'none',
-                      borderBottom: i < citySuggestions.length - 1 ? '1px solid rgba(110,231,239,0.06)' : 'none',
-                      color: '#e0e8f0', fontSize: 13, textAlign: 'left',
-                      cursor: 'pointer', fontFamily: 'inherit',
-                      transition: 'background 0.15s',
-                    }}
-                    className="lobby-suggestion-btn"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(110,231,239,0.5)" strokeWidth="2" style={{ marginRight: 8, verticalAlign: 'middle' }}>
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
-                      <circle cx="12" cy="10" r="3" />
-                    </svg>
-                    {city}
-                  </button>
-                ))}
-              </motion.div>
-            )}
-
-            {/* Search History — shown when focused + empty query */}
-            {searchFocused && !searchQuery && searchHistory.length > 0 && !showSuggestions && (
-              <motion.div
-                initial={{ opacity: 0, y: -8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.2 }}
-                style={{
-                  position: 'absolute', top: '100%', left: 0, right: 0,
-                  marginTop: 4, background: 'rgba(12,18,28,0.97)',
-                  backdropFilter: 'blur(16px)',
-                  border: '1px solid rgba(110,231,239,0.15)',
-                  borderRadius: 12, overflow: 'hidden', zIndex: 60,
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-                }}
-              >
-                <div style={{
-                  padding: '8px 16px 4px', fontSize: 10, color: 'rgba(200,214,229,0.35)',
-                  textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600,
-                }}>
-                  Recent Searches
-                </div>
-                {searchHistory.slice(0, 6).map((item, i) => (
-                  <button
-                    key={item.id || i}
-                    onClick={() => onHistorySelect?.(item.search_query)}
-                    style={{
-                      display: 'block', width: '100%', padding: '8px 16px',
-                      background: 'transparent', border: 'none',
-                      borderBottom: i < Math.min(searchHistory.length, 6) - 1 ? '1px solid rgba(110,231,239,0.04)' : 'none',
-                      color: 'rgba(200,214,229,0.7)', fontSize: 13, textAlign: 'left',
-                      cursor: 'pointer', fontFamily: 'inherit',
-                      transition: 'background 0.15s',
-                    }}
-                    className="lobby-history-btn"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(200,214,229,0.3)" strokeWidth="2" style={{ marginRight: 8, verticalAlign: 'middle' }}>
-                      <circle cx="12" cy="12" r="10" />
-                      <polyline points="12 6 12 12 16 14" />
-                    </svg>
-                    {item.search_query}
-                  </button>
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </form>
-
 
       </header>
+
 
       {/* GPS Error Toast */}
       {gpsError && (

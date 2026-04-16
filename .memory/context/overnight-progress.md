@@ -20,6 +20,7 @@
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 > **CORRECTION (added after an adversarial audit caught the gap):**
 > The "Phase 1.1 complete" and "Phase 1.2 mostly done" claims below are
 > MISLEADING. What's actually true:
@@ -38,6 +39,8 @@
 > §12b/c/d/e and `.memory/SPEC-AUDIT-CHECKLIST.md` (both added
 > 2026-04-14) for the structural prevention.
 
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 =======
@@ -133,7 +136,10 @@ first to see what landed.
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 | `cbacaa03` | Phase 2 T1-01: PokerBros net-profit +N yellow floating text on winners |
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 =======
@@ -208,7 +214,10 @@ first to see what landed.
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 | `d450f4fd` | chore: rebuild to ship Phase 2 T1-01 net-profit floating text |
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 =======
@@ -288,8 +297,11 @@ index `hand_state_snapshots_table_updated_idx`.
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 - `.memory/specs/phase-1.3-action-rejection-ux.md` — NEW this session. Validator codes + hints + toast. Ready to start after 1.2 PR-F soak.
 - `.memory/specs/phase-2-parity-ux-roadmap.md` — NEW this session. 20 PokerBros parity items across 3 tiers. T1-01 already shipped.
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 =======
@@ -377,7 +389,11 @@ index `hand_state_snapshots_table_updated_idx`.
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 - Current bundle: `index-DljaHKpS.js` (Phase 2 T1-01 net-profit float build)
+=======
+- Current bundle: `index-DDu0HIZL.js` (DisconnectToast build)
+>>>>>>> Stashed changes
 =======
 - Current bundle: `index-DDu0HIZL.js` (DisconnectToast build)
 >>>>>>> Stashed changes
