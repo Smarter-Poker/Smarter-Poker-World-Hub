@@ -179,15 +179,14 @@ async function handler(req, res) {
           // on venue_daily_tournaments — we want ALL recurring ('Daily') events plus any
           // matching date-specific records. Day filter would incorrectly exclude 'Daily' rows.
           const hasExactDate = !!exact_date;
+          // [DT-1 FIX] Strip PostgREST injection chars from targetDay including [ ] ' " ; before
+          // interpolating it into the .or() filter string. PostgREST uses [ in operator syntax.
           if (!hasExactDate && day !== 'all') {
-              // BUG FIX: strip ILIKE wildcards from day param before interpolation
-              targetDay = (day || getCurrentDay()).replace(/[%_\\,().]/g, '').trim().slice(0, 20);
+              targetDay = (day || getCurrentDay()).replace(/[%_\\,().\[\]'"`;]/g, '').trim().slice(0, 20);
               if (!targetDay) targetDay = getCurrentDay();
-              // ilike handles: Saturday / saturday / SATURDAY all correctly
               query = query.or(`day_of_week.ilike.${targetDay},day_of_week.ilike.daily`);
           } else if (hasExactDate) {
-              // Calendar mode: include the specific day + all 'Daily' recurring tournaments
-              targetDay = (day || getCurrentDay()).replace(/[%_\\,().]/g, '').trim().slice(0, 20) || getCurrentDay();
+              targetDay = (day || getCurrentDay()).replace(/[%_\\,().\[\]'"`;]/g, '').trim().slice(0, 20) || getCurrentDay();
               query = query.or(`day_of_week.ilike.${targetDay},day_of_week.ilike.daily`);
           }
 
@@ -524,8 +523,9 @@ async function handler(req, res) {
 
       } catch (error) {
           console.error('Daily tournaments API error:', error);
-          // Return 200 with empty array — NEVER 500 (would crash fetchAllData Promise.all)
-          return res.status(200).json({
+          // [DT-2 FIX] Return 500 so CDN does NOT cache this error as a valid 200 response.
+          // The outer catch prevents crashing — this inner catch handles query-level failures.
+          return res.status(500).json({
               success: false,
               error: 'Daily tournaments query failed',
               tournaments: [],
