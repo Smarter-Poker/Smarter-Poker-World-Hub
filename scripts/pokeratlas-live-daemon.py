@@ -61,6 +61,7 @@ MAX_RETRIES = 3
 CIRCUIT_BREAKER_THRESHOLD = 5  # Abort cycle + reconnect if this many consecutive regions fail
 SESSION_REFRESH_MINUTES = 60   # Proactive session refresh (was 90 — too long)
 WATCHDOG_MAX_STALE_MINUTES = 30  # Exit process if no successful save in this many minutes (launchd restarts)
+SLOW_CYCLE_THRESHOLD_MINUTES = 20  # Force reconnect if cycle is running >20min and <50% regions done
 CONNECT_TIMEOUT_SECONDS = 60   # Hard kill if connect() hangs longer than this (was 90)
 
 # Directories
@@ -1069,6 +1070,19 @@ def run_scrape_cycle(mgr):
         # CIRCUIT BREAKER: abort cycle if too many consecutive failures
         if consecutive_region_failures >= CIRCUIT_BREAKER_THRESHOLD:
             log.error(f'🔴 CIRCUIT BREAKER: {consecutive_region_failures} consecutive failures — aborting cycle, forcing reconnect')
+            mgr._session_dead = True
+            break
+
+        # SLOW-CYCLE WATCHDOG: if running >20min and we're <50% done, the session
+        # is crawling (browserhanging, rate-limited, etc.) — force reconnect
+        elapsed_cycle_min = (datetime.now(timezone.utc) - cycle_start).total_seconds() / 60
+        progress_pct = (i / len(regions)) if regions else 1.0
+        if elapsed_cycle_min > SLOW_CYCLE_THRESHOLD_MINUTES and progress_pct < 0.5:
+            log.warning(
+                f'⏱️  SLOW-CYCLE WATCHDOG: {elapsed_cycle_min:.0f}min elapsed, '
+                f'only {i}/{len(regions)} regions done ({progress_pct:.0%}). '
+                f'Forcing session reconnect.'
+            )
             mgr._session_dead = True
             break
 

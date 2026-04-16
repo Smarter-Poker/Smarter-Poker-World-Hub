@@ -110,6 +110,7 @@ LOG_DIR = BASE_DIR / 'data' / 'bravo-logs'
 EVIDENCE_DIR = BASE_DIR / 'data' / 'scrape-evidence'
 HEARTBEAT_FILE = LOG_DIR / 'heartbeat.json'
 COOKIE_CACHE_FILE = LOG_DIR / 'cf_cookies.json'
+PID_FILE = LOG_DIR / 'daemon.pid'  # Prevents dual-instance orphans
 
 # ============================================================
 # LOGGING
@@ -1364,6 +1365,41 @@ def main():
     log.info(f'Log dir: {LOG_DIR}')
     log.info('=' * 60)
 
+    # ── PID LOCKFILE: Prevent dual-instance orphans ──
+    # If a previous PID file exists and that process is still running,
+    # give it 30s to finish (one throttle interval), then terminate it.
+    if PID_FILE.exists():
+        try:
+            old_pid = int(PID_FILE.read_text().strip())
+            if old_pid != os.getpid():
+                try:
+                    os.kill(old_pid, 0)  # Check if process is alive
+                    log.warning(f'  ⚠️  Found orphan instance (PID {old_pid}) — sending SIGTERM')
+                    os.kill(old_pid, signal.SIGTERM)
+                    # Give 30s for graceful exit
+                    for _ in range(30):
+                        time.sleep(1)
+                        try:
+                            os.kill(old_pid, 0)
+                        except ProcessLookupError:
+                            break
+                    else:
+                        log.warning(f'  🔴 Orphan did not exit — sending SIGKILL')
+                        try:
+                            os.kill(old_pid, signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
+                    log.info(f'  ✅ Orphan PID {old_pid} terminated')
+                except ProcessLookupError:
+                    log.info(f'  PID file stale (PID {old_pid} not running) — replacing')
+        except (ValueError, OSError):
+            pass
+    # Write our own PID
+    try:
+        PID_FILE.write_text(str(os.getpid()))
+    except Exception as e:
+        log.warning(f'  Could not write PID file: {e}')  # Non-fatal
+
     mgr = BravoSessionManager()
     last_successful_save = time.time()  # Assume fresh at boot
     process_start = time.time()
@@ -1436,6 +1472,12 @@ def main():
     log.info('🛑 Shutting down, closing session...')
     mgr.disconnect()
     _kill_zombie_browsers()
+    # Remove PID file on clean exit
+    try:
+        if PID_FILE.exists() and int(PID_FILE.read_text().strip()) == os.getpid():
+            PID_FILE.unlink()
+    except Exception:
+        pass
     log.info('Daemon stopped.')
 
 if __name__ == '__main__':

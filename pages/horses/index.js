@@ -119,6 +119,10 @@ export default function HorsesAdmin() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('stable');
+  // Scraper Health state
+  const [scraperHealth, setScraperHealth] = useState(null);
+  const [scraperHealthLoading, setScraperHealthLoading] = useState(false);
+  const [scraperHealthLastFetch, setScraperHealthLastFetch] = useState(null);
   const [personas, setPersonas] = useState([]);
   const [settings, setSettings] = useState({
     posts_per_day: 20,
@@ -1244,6 +1248,36 @@ export default function HorsesAdmin() {
     }
   }, [reviewsFilter, reviewsRatingFilter, reviewsFlaggedOnly]);
 
+  // Load scraper health when tab is activated, then poll every 60s
+  const loadScraperHealth = async () => {
+    setScraperHealthLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
+      const res = await fetch('/api/admin/scraper-health', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setScraperHealth(data);
+          setScraperHealthLastFetch(new Date());
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load scraper health:', err);
+    } finally {
+      setScraperHealthLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab !== 'scrapers') return;
+    loadScraperHealth();
+    const interval = setInterval(loadScraperHealth, 60000);
+    return () => clearInterval(interval);
+  }, [activeTab]);
+
   if (loading) {
     return (
       <div className={styles.loading}>
@@ -1447,6 +1481,13 @@ export default function HorsesAdmin() {
             }}
           >
             ⭐ Reviews
+          </button>
+          <button
+            className={activeTab === 'scrapers' ? styles.active : ''}
+            onClick={() => setActiveTab('scrapers')}
+            style={scraperHealth && scraperHealth.summary.deadCount > 0 ? { color: '#ef4444', fontWeight: 700 } : {}}
+          >
+            {scraperHealth && scraperHealth.summary.deadCount > 0 ? ❗ : 📡} Scrapers
           </button>
         </nav>
 
@@ -3896,6 +3937,128 @@ export default function HorsesAdmin() {
               })()}
             </div>
           )}
+
+          {/* 📡 SCRAPER HEALTH TAB */}
+          {activeTab === 'scrapers' && (() => {
+            const statusColor = { healthy: '#10b981', warning: '#f59e0b', dead: '#ef4444', unknown: '#6b7280' };
+            const statusLabel = { healthy: '✅ Healthy', warning: '⚠️ Warning', dead: '💀 Dead', unknown: '❔ Unknown' };
+            const typeIcon = { live: '🔴', tournament: '🏆', charity: '❤️', monitor: '👁️' };
+            return (
+              <div style={{ padding: '24px 0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+                  <div>
+                    <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#fff' }}>📡 Scraper Health Dashboard</h2>
+                    <p style={{ margin: '4px 0 0', color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>
+                      Live status of all 9 data collection daemons. Auto-refreshes every 60s.
+                      {scraperHealthLastFetch && (
+                        <span style={{ marginLeft: 8, color: 'rgba(255,255,255,0.35)' }}>
+                          Last fetched: {scraperHealthLastFetch.toLocaleTimeString()}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  <button
+                    onClick={loadScraperHealth}
+                    disabled={scraperHealthLoading}
+                    style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', padding: '8px 18px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
+                  >
+                    {scraperHealthLoading ? '⟳ Loading...' : '⟳ Refresh'}
+                  </button>
+                </div>
+
+                {/* Summary Bar */}
+                {scraperHealth?.summary && (
+                  <div style={{ display: 'flex', gap: 16, marginBottom: 28, flexWrap: 'wrap' }}>
+                    {[
+                      { label: 'Healthy', count: scraperHealth.summary.healthyCount, color: '#10b981', bg: 'rgba(16,185,129,0.1)' },
+                      { label: 'Warning', count: scraperHealth.summary.warningCount, color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
+                      { label: 'Dead', count: scraperHealth.summary.deadCount, color: '#ef4444', bg: 'rgba(239,68,68,0.1)' },
+                      { label: 'Unknown', count: scraperHealth.summary.unknownCount, color: '#6b7280', bg: 'rgba(107,114,128,0.1)' },
+                    ].map(item => (
+                      <div key={item.label} style={{ background: item.bg, border: `1px solid ${item.color}40`, borderRadius: 12, padding: '12px 24px', minWidth: 100, textAlign: 'center' }}>
+                        <div style={{ fontSize: 28, fontWeight: 800, color: item.color }}>{item.count}</div>
+                        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{item.label}</div>
+                      </div>
+                    ))}
+                    <div style={{ background: scraperHealth.summary.dataFresh ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', border: `1px solid ${scraperHealth.summary.dataFresh ? '#10b98140' : '#ef444440'}`, borderRadius: 12, padding: '12px 24px', minWidth: 140, textAlign: 'center' }}>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: scraperHealth.summary.dataFresh ? '#10b981' : '#ef4444' }}>
+                        {scraperHealth.summary.dataFresh ? '✅ Fresh' : '🚨 Stale'}
+                      </div>
+                      <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>Supabase Data</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Daemon Cards */}
+                {scraperHealthLoading && !scraperHealth && (
+                  <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.4)', padding: 40 }}>Loading scraper status...</div>
+                )}
+
+                {scraperHealth && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
+                    {scraperHealth.daemons.map(daemon => {
+                      const color = statusColor[daemon.status];
+                      const hb = daemon.heartbeat;
+                      return (
+                        <div key={daemon.id} style={{
+                          background: 'rgba(255,255,255,0.04)',
+                          border: `1px solid ${color}50`,
+                          borderLeft: `4px solid ${color}`,
+                          borderRadius: 12,
+                          padding: 20,
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                            <div>
+                              <div style={{ fontWeight: 700, color: '#fff', fontSize: 15 }}>
+                                {typeIcon[daemon.type]} {daemon.label}
+                              </div>
+                              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>
+                                Interval: {daemon.interval}
+                              </div>
+                            </div>
+                            <span style={{ background: `${color}20`, color, border: `1px solid ${color}40`, borderRadius: 20, padding: '4px 12px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap' }}>
+                              {statusLabel[daemon.status]}
+                            </span>
+                          </div>
+
+                          {hb ? (
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, fontSize: 13 }}>
+                              <div style={{ color: 'rgba(255,255,255,0.5)' }}>Status</div>
+                              <div style={{ color: '#fff', fontWeight: 600 }}>{hb.daemonStatus}</div>
+                              {hb.pid && (<><div style={{ color: 'rgba(255,255,255,0.5)' }}>PID</div><div style={{ color: '#fff' }}>{hb.pid}</div></>)}
+                              {hb.cycle !== undefined && (<><div style={{ color: 'rgba(255,255,255,0.5)' }}>Cycle</div><div style={{ color: '#fff' }}>#{hb.cycle}</div></>)}
+                              {hb.recordsSaved !== undefined && (<><div style={{ color: 'rgba(255,255,255,0.5)' }}>Records Saved</div><div style={{ color: '#10b981', fontWeight: 700 }}>{hb.recordsSaved.toLocaleString()}</div></>)}
+                              {hb.venuesWithData !== undefined && (<><div style={{ color: 'rgba(255,255,255,0.5)' }}>Venues</div><div style={{ color: '#fff' }}>{hb.venuesWithData}</div></>)}
+                              {hb.progress && (<><div style={{ color: 'rgba(255,255,255,0.5)' }}>Progress</div><div style={{ color: '#fff' }}>{hb.progress}</div></>)}
+                              {hb.errors !== undefined && (<><div style={{ color: 'rgba(255,255,255,0.5)' }}>Errors</div><div style={{ color: hb.errors > 0 ? '#ef4444' : '#10b981' }}>{hb.errors}</div></>)}
+                              {hb.durationSeconds !== undefined && (<><div style={{ color: 'rgba(255,255,255,0.5)' }}>Last Duration</div><div style={{ color: '#fff' }}>{Math.round(hb.durationSeconds)}s</div></>)}
+                              <div style={{ color: 'rgba(255,255,255,0.5)' }}>Heartbeat Age</div>
+                              <div style={{ color: hb.staleMinutes > 25 ? '#ef4444' : '#10b981', fontWeight: 600 }}>
+                                {hb.staleMinutes}m ago
+                              </div>
+                            </div>
+                          ) : (
+                            <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 13, fontStyle: 'italic' }}>
+                              No heartbeat data — daemon may be interval-based or not running
+                            </div>
+                          )}
+
+                          {daemon.database?.staleMinutes !== null && daemon.database?.staleMinutes !== undefined && (
+                            <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: 12 }}>
+                              <span style={{ color: 'rgba(255,255,255,0.45)' }}>DB Data Age: </span>
+                              <span style={{ color: daemon.database.staleMinutes > 25 ? '#ef4444' : '#10b981', fontWeight: 600 }}>
+                                {daemon.database.staleMinutes}m
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </main>
 
 
