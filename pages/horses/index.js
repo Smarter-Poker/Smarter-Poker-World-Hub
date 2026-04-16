@@ -1487,7 +1487,7 @@ export default function HorsesAdmin() {
             onClick={() => setActiveTab('scrapers')}
             style={scraperHealth && scraperHealth.summary.deadCount > 0 ? { color: '#ef4444', fontWeight: 700 } : {}}
           >
-            {scraperHealth && scraperHealth.summary.deadCount > 0 ? ❗ : 📡} Scrapers
+            {scraperHealth && scraperHealth.summary.deadCount > 0 ? '!' : '>'} Scrapers
           </button>
         </nav>
 
@@ -1899,7 +1899,7 @@ export default function HorsesAdmin() {
               </div>
 
               <div className={styles.rssSources}>
-                <h3>📡 RSS Sources</h3>
+                <h3>RSS Sources</h3>
                 <div className={styles.sourceList}>
                   {['PokerNews', 'Card Player', 'PocketFives', 'Upswing Poker', '2+2 Forums'].map(
                     (name, i) => (
@@ -3938,16 +3938,16 @@ export default function HorsesAdmin() {
             </div>
           )}
 
-          {/* 📡 SCRAPER HEALTH TAB */}
+          {/* SCRAPER HEALTH TAB */}
           {activeTab === 'scrapers' && (() => {
             const statusColor = { healthy: '#10b981', warning: '#f59e0b', dead: '#ef4444', unknown: '#6b7280' };
-            const statusLabel = { healthy: '✅ Healthy', warning: '⚠️ Warning', dead: '💀 Dead', unknown: '❔ Unknown' };
-            const typeIcon = { live: '🔴', tournament: '🏆', charity: '❤️', monitor: '👁️' };
+            const statusLabel = { healthy: 'Healthy', warning: 'Warning', dead: 'Dead', unknown: 'Unknown' };
+            const typeIcon = { live: 'LIVE', tournament: 'TOUR', charity: 'CHAR', monitor: 'MON' };
             return (
               <div style={{ padding: '24px 0' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
                   <div>
-                    <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#fff' }}>📡 Scraper Health Dashboard</h2>
+                    <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#fff' }}>Scraper Health Dashboard</h2>
                     <p style={{ margin: '4px 0 0', color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>
                       Live status of all 9 data collection daemons. Auto-refreshes every 60s.
                       {scraperHealthLastFetch && (
