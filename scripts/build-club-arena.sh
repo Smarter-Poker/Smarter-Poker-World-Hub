@@ -152,7 +152,8 @@ log "  +$ADDED added, ~$MODIFIED modified, -$DELETED deleted"
 # ─── STEP 5: Commit ────────────────────────────────────────────────────────
 log "Committing..."
 
-git commit --no-verify -m "$COMMIT_MSG" 2>&1 | tail -3
+export ARENA_BUILD=1
+git commit -m "$COMMIT_MSG" 2>&1 | tail -3
 
 ok "Committed"
 
