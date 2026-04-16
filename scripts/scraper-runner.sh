@@ -28,9 +28,11 @@ if [ -z "$SCRIPT" ]; then
 fi
 
 # ── AUTO-HEAL: Rebuild .venv if missing or broken ──
-if [ ! -x "$DIR/.venv/bin/python3" ]; then
+VENV_DIR="/Users/smarter.poker/.local/share/smarter-poker-venv"
+
+if [ ! -x "$VENV_DIR/bin/python3" ]; then
     log "⚠️  .venv missing or broken — auto-rebuilding..."
-    rm -rf "$DIR/.venv"
+    rm -rf "$VENV_DIR"
 
     # Use Homebrew Python to avoid macOS TCC permission issues
     BREW_PY="/opt/homebrew/bin/python3"
@@ -39,19 +41,19 @@ if [ ! -x "$DIR/.venv/bin/python3" ]; then
     fi
 
     log "Using Python: $BREW_PY"
-    "$BREW_PY" -m venv "$DIR/.venv"
-    "$DIR/.venv/bin/pip" install --upgrade pip -q
-    "$DIR/.venv/bin/pip" install scrapling patchright curl_cffi msgspec camoufox python-dotenv supabase playwright requests -q
-    "$DIR/.venv/bin/playwright" install chromium
-    "$DIR/.venv/bin/camoufox" fetch
+    "$BREW_PY" -m venv "$VENV_DIR"
+    "$VENV_DIR/bin/pip" install --upgrade pip -q
+    "$VENV_DIR/bin/pip" install scrapling patchright curl_cffi msgspec camoufox python-dotenv supabase playwright requests -q
+    "$VENV_DIR/bin/playwright" install chromium
+    "$VENV_DIR/bin/camoufox" fetch
     log "✅ .venv auto-healed successfully"
 fi
 
 # ── Verify critical imports before launching ──
-if ! "$DIR/.venv/bin/python3" -c "import scrapling, dotenv" 2>/dev/null; then
+if ! "$VENV_DIR/bin/python3" -c "import scrapling, dotenv" 2>/dev/null; then
     log "⚠️  Import check failed — reinstalling deps..."
-    "$DIR/.venv/bin/pip" install scrapling patchright curl_cffi msgspec camoufox python-dotenv supabase playwright requests -q
+    "$VENV_DIR/bin/pip" install scrapling patchright curl_cffi msgspec camoufox python-dotenv supabase playwright requests -q
 fi
 
 log "🚀 Launching $SCRIPT (PID $$)"
-exec "$DIR/.venv/bin/python3" "$DIR/$SCRIPT"
+exec "$VENV_DIR/bin/python3" "$DIR/$SCRIPT"
