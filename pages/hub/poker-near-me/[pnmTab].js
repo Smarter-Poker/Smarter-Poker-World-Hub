@@ -400,10 +400,11 @@ export default function PokerNearMePage() {
     }, [venues]);
 
     // ─── Live Cash Game Data Merger ───
-    // Fetches /api/poker/live-tables once, builds a name-normalized lookup,
-    // then injects live_data into venue objects so VenueCard can display it.
+    // Fetches /api/poker/live-tables on mount AND every 15 minutes (matching scraper cadence)
+    // to keep VenueCard live_data counts fresh. LiveGamesFeed has its own 2-min polling;
+    // this is a lightweight background sync for the Venues tab cards only.
     const [liveDataMap, setLiveDataMap] = useState({}); // bravo_slug/normalized_name → live_data
-    useEffect(() => {
+    const buildLiveDataMap = useCallback(() => {
         fetch('/api/poker/live-tables')
             .then(r => r.json())
             .then(json => {
@@ -429,31 +430,43 @@ export default function PokerNearMePage() {
             })
             .catch(() => { /* silent — live data is best-effort */ });
     }, []);
+    useEffect(() => {
+        buildLiveDataMap(); // Initial fetch on mount
+        const refreshTimer = setInterval(buildLiveDataMap, 15 * 60 * 1000); // 15-min refresh
+        return () => clearInterval(refreshTimer);
+    }, [buildLiveDataMap]);
     const liveDataMapRef = useRef({});
     useEffect(() => { liveDataMapRef.current = liveDataMap; }, [liveDataMap]);
 
-    // Merge live_data into venues whenever liveDataMap changes
-
+    // Merge live_data into venues whenever liveDataMap changes (runs on every scrape cycle)
+    // FIXED: was guarded by _liveMerged one-shot flag that permanently prevented re-merging.
+    // Now always re-merges when liveDataMap updates, using last_updated timestamp to skip
+    // venues where the data hasn't actually changed (avoids unnecessary re-renders).
     useEffect(() => {
         if (Object.keys(liveDataMap).length === 0) return;
         setVenues(prev => {
-            const hasNew = prev.some(v => !v._liveMerged);
-            if (!hasNew) return prev; // all venues already processed, stop
-            return prev.map(venue => {
-                if (venue._liveMerged) return venue; // already processed
+            let changed = false;
+            const next = prev.map(venue => {
                 const normName = (venue.name || '').toLowerCase()
                     .replace(/&/g, 'and').replace(/'/g, '').replace(/-/g, ' ')
                     .replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
                 const liveEntry = (venue.bravo_slug && liveDataMap[venue.bravo_slug])
                     || liveDataMap[normName]
                     || null;
-                if (liveEntry && liveEntry.tables_running > 0) {
-                    return { ...venue, _liveMerged: true, live_data: liveEntry };
-                }
-                return { ...venue, _liveMerged: true };
+                const newLiveData = (liveEntry && liveEntry.tables_running > 0) ? liveEntry : null;
+                // Skip if timestamp hasn't changed (avoid unnecessary object churn)
+                const curTs = venue.live_data?.last_updated;
+                const newTs = newLiveData?.last_updated;
+                if (!newLiveData && !venue.live_data) return venue; // no change
+                if (curTs && newTs && curTs === newTs) return venue; // same data
+                changed = true;
+                return newLiveData
+                    ? { ...venue, live_data: newLiveData }
+                    : { ...venue, live_data: null };
             });
+            return changed ? next : prev; // referential equality guard
         });
-    }, [liveDataMap]); // Run ONLY when liveDataMap changes
+    }, [liveDataMap]);
 
 
     const [checkinCounts, setCheckinCounts] = useState({});

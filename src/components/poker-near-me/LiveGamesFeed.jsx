@@ -388,19 +388,20 @@ function LiveGamesFeed({
         setIsRefreshing(false);
     }, []);
 
-    // Countdown timer acting as visual indicator AND unified polling mechanic
+    // ─── AUTO-REFRESH POLLING ───
+    // Re-enable 2-minute polling so live data NEVER goes stale.
+    // Realtime subscription handles individual row mutations; polling is the safety net
+    // for full-cycle refreshes when a complete new scrape batch arrives.
     useEffect(() => {
-        // Disabled auto-refresh per user request!
-        // countdownRef.current = setInterval(() => {
-        //     setRefreshCountdown(prev => {
-        //         if (prev <= 1) {
-        //             // Fire underlying data fetch, which will synchronously reset this counter upon success
-        //             fetchGlobalLiveData(true);
-        //             return LIVE_REFRESH_MS / 1000;
-        //         }
-        //         return prev - 1;
-        //     });
-        // }, 1000);
+        countdownRef.current = setInterval(() => {
+            setRefreshCountdown(prev => {
+                if (prev <= 1) {
+                    fetchGlobalLiveData(true);
+                    return LIVE_REFRESH_MS / 1000;
+                }
+                return prev - 1;
+            });
+        }, 1000);
         return () => { if (countdownRef.current) clearInterval(countdownRef.current); };
     }, [fetchGlobalLiveData]);
 
@@ -418,26 +419,43 @@ function LiveGamesFeed({
                 if (!payload || !payload.new) return;
                 const { eventType, new: newRec } = payload;
                 if (eventType !== 'UPDATE' && eventType !== 'INSERT') return;
+                if (!newRec.bravo_slug || !newRec.game_name) return; // Guard null game fields
                 
-                // [LGF Surgical Fix] Bypass full API fetches and surgically mutate exactly what changed
+                // Surgical update: match venue by bravo_slug (the actual PK proxy on this table)
+                // Then map DB row fields → API game format so g.game is never undefined
                 setLiveData(prev => {
-                    const venuesList = Object.values(prev);
-                    const match = venuesList.find(v => String(v.id) === String(newRec.venue_id));
-                    if (!match) return prev;
+                    const match = prev[newRec.bravo_slug];
+                    if (!match) {
+                        // New venue not yet in state — trigger a debounced full re-fetch
+                        if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+                        debounceTimerRef.current = setTimeout(() => fetchGlobalLiveData(true), 2000);
+                        return prev;
+                    }
                     
                     const nextV = { ...match, games: [...(match.games || [])] };
-                    const gameIdx = nextV.games.findIndex(g => g.id === newRec.id);
-                    
+                    // Map DB row → API game format (game_name → game, etc.)
+                    const mappedGame = {
+                        game: newRec.game_name.trim(),
+                        tables_running: newRec.tables_running || 0,
+                        players_waiting: newRec.players_waiting || 0,
+                        source: newRec.source || 'bravo',
+                        buyin: newRec.buyin_range || null,
+                        runs: newRec.runs_schedule || null,
+                        data_quality: newRec.data_quality || null,
+                        _rowId: newRec.id, // track DB row for dedup
+                    };
+                    // Replace if same game name already loaded, otherwise append
+                    const gameIdx = nextV.games.findIndex(g => g.game === mappedGame.game);
                     if (gameIdx !== -1) {
-                        nextV.games[gameIdx] = { ...nextV.games[gameIdx], ...newRec };
+                        nextV.games[gameIdx] = mappedGame;
                     } else {
-                        nextV.games.push(newRec);
+                        nextV.games.push(mappedGame);
                     }
                     
                     nextV.totalTables = nextV.games.reduce((acc, g) => acc + (g.tables_running || 0), 0);
                     nextV.totalWait = nextV.games.reduce((acc, g) => acc + (g.players_waiting || 0), 0);
                     
-                    return { ...prev, [match.bravo_slug || match.id]: nextV };
+                    return { ...prev, [newRec.bravo_slug]: nextV };
                 });
             })
             .subscribe();

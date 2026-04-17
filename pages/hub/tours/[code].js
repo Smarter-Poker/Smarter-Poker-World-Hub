@@ -315,7 +315,7 @@ export default function TourDetailPage() {
       <UniversalHeader 
         pageDepth={2} 
         onMenuClick={() => setMenuOpen(true)}
-        onBackClick={() => router.push('/hub/poker-near-me?tab=events&sub_tab=tours')}
+        onBackClick={() => router.push('/hub/poker-near-me/tours')}
       />
 
       <HamburgerMenu
