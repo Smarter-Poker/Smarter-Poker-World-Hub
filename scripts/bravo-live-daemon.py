@@ -1559,6 +1559,7 @@ def main():
     # Write our own PID
     try:
         PID_FILE.write_text(str(os.getpid()))
+        write_heartbeat('starting')
     except Exception as e:
         log.warning(f'  Could not write PID file: {e}')  # Non-fatal
 

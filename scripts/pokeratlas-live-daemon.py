@@ -1420,6 +1420,7 @@ def _hard_kill_on_hang(reason):
 
 
 def main():
+    write_heartbeat('starting')
     log.info('=' * 60)
     log.info('POKER ATLAS LIVE GAMES — AUTONOMOUS DAEMON v3.0')
     log.info(f'Interval: {SCRAPE_INTERVAL}s ({SCRAPE_INTERVAL // 60}min)')
