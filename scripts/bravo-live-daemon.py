@@ -75,35 +75,57 @@ load_dotenv()
 # ============================================================
 SUPABASE_URL = os.environ.get('NEXT_PUBLIC_SUPABASE_URL', 'https://kuklfnapbkmacvwxktbh.supabase.co')
 SUPABASE_KEY = os.environ.get('SUPABASE_KEY') or os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
-BRAVO_EMAIL = os.environ.get('BRAVO_EMAIL', 'danbek4545@gmail.com')
-BRAVO_PASS = os.environ.get('BRAVO_PASS')
 BRAVO_LOGIN_URL = 'https://www.bravopokerlive.com/login/'
 
-# ── STARTUP CREDENTIAL VALIDATION ──
-# Fail fast instead of silently looping with None password
-if not BRAVO_PASS:
+# ── CREDENTIAL POOL ──
+# Supports up to 3 accounts. Set BRAVO_EMAIL_2/PASS_2 and BRAVO_EMAIL_3/PASS_3
+# in .env.local as backup accounts. Daemon cycles to the next on login failure.
+# Create each backup account through the proxy (different IP) to avoid IP-linking.
+_cred_pool_raw = [
+    (os.environ.get('BRAVO_EMAIL',   'danbek4545@gmail.com'), os.environ.get('BRAVO_PASS')),
+    (os.environ.get('BRAVO_EMAIL_2'), os.environ.get('BRAVO_PASS_2')),
+    (os.environ.get('BRAVO_EMAIL_3'), os.environ.get('BRAVO_PASS_3')),
+]
+CRED_POOL = [(e, p) for e, p in _cred_pool_raw if e and p]
+_active_cred_idx = 0
+
+if not CRED_POOL:
     print('\n' + '=' * 60)
-    print('FATAL: BRAVO_PASS environment variable is not set.')
-    print('The daemon cannot log in to Bravo without credentials.')
-    print('Set BRAVO_PASS in .env.local or launchd plist.')
+    print('FATAL: No Bravo credentials configured.')
+    print('Set BRAVO_EMAIL + BRAVO_PASS in .env.local or launchd plist.')
     print('=' * 60 + '\n')
     sys.exit(1)
+
 if not SUPABASE_KEY:
     print('FATAL: SUPABASE_SERVICE_ROLE_KEY not set. Cannot write data.')
     sys.exit(1)
+
+BRAVO_EMAIL = CRED_POOL[0][0]
+BRAVO_PASS  = CRED_POOL[0][1]
+log_creds = f'{len(CRED_POOL)} account(s) in pool'
+
+# ── RESIDENTIAL PROXY ──
+# Set BRAVO_PROXY in .env.local to a rotating residential proxy endpoint.
+# Format: http://user:pass@proxy.webshare.io:80
+# If unset, connects directly (will get IP-blocked by Bravo).
+BRAVO_PROXY = os.environ.get('BRAVO_PROXY', '')  # e.g. http://user:pass@proxy.webshare.io:80
+
 BRAVO_VENUE_URL = 'https://www.bravopokerlive.com/venues/{slug}/'
-SCRAPE_INTERVAL = 900          # 15 minutes
+
+# ── STEALTH TIMING (hardened for residential proxy) ──
+SCRAPE_INTERVAL = 1800         # 30 minutes (was 15 — reduce scrape frequency to avoid flagging)
 MAX_RETRIES = 3                # Max login retries before full restart
-VENUE_TIMEOUT = 15000          # 15s per venue page load (was 10s — too tight for Bravo CDN)
+VENUE_TIMEOUT = 15000          # 15s per venue page load
 LOGIN_TIMEOUT = 15000          # 15s for login flow
-RATE_LIMIT_DELAY = 0.5         # 0.5s between venues
+RATE_LIMIT_DELAY = 1.5         # 1.5s between venues (was 0.5s — more human-like)
+RATE_LIMIT_JITTER = 0.5        # ±0.5s random jitter added to each delay
 HEALTH_CHECK_INTERVAL = 3      # Health-check every N cycles
 VENUE_RETRY_COUNT = 1          # Retry failed venues once before giving up
 CIRCUIT_BREAKER_THRESHOLD = 8  # Abort cycle + reconnect if this many consecutive venues fail
-SESSION_REFRESH_MINUTES = 45   # Proactive session refresh to prevent zombie browsers (was 90 — too long)
-WATCHDOG_MAX_STALE_MINUTES = 30  # Exit process if no successful save in this many minutes (launchd restarts)
-CONNECT_TIMEOUT_SECONDS = 120  # Hard kill if connect() hangs longer than this (covers CF solve + login)
-CHUNK_SIZE = 25                 # Publish partial results every N venues (don't wait for full cycle)
+SESSION_REFRESH_MINUTES = 45   # Proactive session refresh to prevent zombie browsers
+WATCHDOG_MAX_STALE_MINUTES = 45  # Exit process if no successful save in this many minutes
+CONNECT_TIMEOUT_SECONDS = 120  # Hard kill if connect() hangs longer than this
+CHUNK_SIZE = 25                 # Publish partial results every N venues
 PAGE_RECYCLE_INTERVAL = 50     # Recycle browser page every N venues to prevent memory leaks
 BASE_DIR = Path(__file__).resolve().parent.parent
 LOG_DIR = BASE_DIR / 'data' / 'bravo-logs'
@@ -432,6 +454,45 @@ def save_cookies_from_page(page):
 
 
 # ============================================================
+# PROXY + CREDENTIAL ROTATION HELPERS
+# ============================================================
+def _proxy_kwargs():
+    """Return StealthySession proxy kwargs if BRAVO_PROXY is configured.
+    
+    Webshare rotating endpoint format:
+      http://user:pass@proxy.webshare.io:80
+    
+    Returns an empty dict if no proxy is configured so StealthySession
+    connects directly (legacy behavior).
+    """
+    if not BRAVO_PROXY:
+        return {}
+    return {'proxy': BRAVO_PROXY}
+
+
+def _rotate_credentials_if_needed(mgr):
+    """Cycle to the next account in CRED_POOL if the current one failed.
+    
+    Called at the start of every connect() call. If mgr._cred_failed is
+    set (by _login() after exhausting all retries), we advance to the
+    next account in the pool. Wraps around to index 0 if we've tried
+    all accounts.
+    
+    This is the ONLY place BRAVO_EMAIL/BRAVO_PASS globals are mutated.
+    """
+    global BRAVO_EMAIL, BRAVO_PASS, _active_cred_idx
+    if not getattr(mgr, '_cred_failed', False):
+        return
+    mgr._cred_failed = False
+    if len(CRED_POOL) <= 1:
+        log.warning('  ⚠️  Credential pool exhausted (only 1 account). Retrying same account.')
+        return
+    _active_cred_idx = (_active_cred_idx + 1) % len(CRED_POOL)
+    BRAVO_EMAIL, BRAVO_PASS = CRED_POOL[_active_cred_idx]
+    log.warning(f'  🔄 Rotated to account #{_active_cred_idx + 1}: {BRAVO_EMAIL}')
+
+
+# ============================================================
 # PERSISTENT SESSION MANAGER
 # ============================================================
 class BravoSessionManager:
@@ -461,6 +522,7 @@ class BravoSessionManager:
         self.consecutive_nav_failures = 0
         self.last_login_time = None
         self._session_dead = False
+        self._cred_failed = False  # Set by _login() to trigger credential rotation on next connect()
         self.tier2_failures = 0  # Track Tier 2 failures to avoid wasting time
 
     def _fast_path_connect(self, watchdog_timer=None):
@@ -481,7 +543,7 @@ class BravoSessionManager:
                 return False
 
             # Start a fresh session WITHOUT solve_cloudflare to avoid wasting time
-            fast_session = StealthySession(headless=True, solve_cloudflare=False)
+            fast_session = StealthySession(headless=True, solve_cloudflare=False, **_proxy_kwargs())
             fast_session.start()
 
             # Build context and inject cached cookies
@@ -498,6 +560,8 @@ class BravoSessionManager:
                 try:
                     fast_context.add_cookies(cookie_list)
                     log.info(f'  Injected {len(cookie_list)} cached CF cookies into new context')
+                    if BRAVO_PROXY:
+                        log.info(f'  Proxy: {BRAVO_PROXY.split("@")[-1] if "@" in BRAVO_PROXY else BRAVO_PROXY}')
                 except Exception as e:
                     log.debug(f'  Cookie injection failed: {e}')
                     fast_session.close()
@@ -556,18 +620,24 @@ class BravoSessionManager:
         self.disconnect()
         _kill_zombie_browsers()
 
-        # Network pre-check — don't waste time on browser if network is down
+        # Network pre-check — give 3s for OS network stack to settle after browser kill
+        time.sleep(3)
         if not _network_available():
             log.warning('  ⚠️  Network unavailable — skipping browser launch')
             return False
 
-        log.info('🔌 Establishing new StealthySession...')
+        # Rotate credentials from pool if previous account failed
+        _rotate_credentials_if_needed(self)
+
+        proxy_display = BRAVO_PROXY.split('@')[-1] if '@' in BRAVO_PROXY else (BRAVO_PROXY or 'none')
+        log.info(f'🔌 Establishing new StealthySession... (account: {BRAVO_EMAIL} | proxy: {proxy_display})')
 
         # ── CF COOKIE FAST-PATH ──
         # If saved CF cookies are <4 hours old, inject them into the new
         # browser context and skip Turnstile solving. Falls through on failure.
         # NOTE: watchdog_timer is not armed yet here — pass None (fast-path
         # has its own 30s internal timeout via goto(timeout=15000)).
+        # Proxy is injected via StealthySession kwargs if configured.
         CF_COOKIE_MAX_AGE_SECONDS = 4 * 3600
         if COOKIE_CACHE_FILE.exists():
             try:
@@ -595,7 +665,7 @@ class BravoSessionManager:
         watchdog_timer.start()
 
         try:
-            self.session = StealthySession(headless=True, solve_cloudflare=True)
+            self.session = StealthySession(headless=True, solve_cloudflare=True, **_proxy_kwargs())
             self.session.start()
             self._session_dead = False
             self.consecutive_nav_failures = 0
@@ -621,7 +691,7 @@ class BravoSessionManager:
                         except Exception:
                             pass
                         _kill_zombie_browsers()
-                        self.session = StealthySession(headless=True, solve_cloudflare=True)
+                        self.session = StealthySession(headless=True, solve_cloudflare=True, **_proxy_kwargs())
                         self.session.start()
                     else:
                         raise
@@ -631,7 +701,7 @@ class BravoSessionManager:
                 watchdog_timer.cancel()
                 return False
 
-            log.info('  ✅ Cloudflare solved')
+            log.info(f'  ✅ Cloudflare solved (proxy: {BRAVO_PROXY.split("@")[-1] if "@" in BRAVO_PROXY else ("direct" if not BRAVO_PROXY else BRAVO_PROXY)})')
 
             # Step 2: Create page in CF-cleared context and login
             self.context = self.session.context
@@ -713,8 +783,10 @@ class BravoSessionManager:
                 log.warning(f'  ⚠️  Login attempt {attempt+1} error: {e}')
                 time.sleep(2 ** attempt)
 
-        log.error(f'  {ERROR_LOGIN_FAILED}: All {MAX_RETRIES} attempts exhausted')
+        log.error(f'  {ERROR_LOGIN_FAILED}: All {MAX_RETRIES} attempts exhausted for {BRAVO_EMAIL}')
         self.is_authenticated = False
+        # Flag this credential as failed so next connect() rotates to next account
+        self._cred_failed = True
         return False
 
     def health_check(self):
@@ -1300,7 +1372,9 @@ def run_scrape_cycle(mgr):
             if total_skipped <= 3 or total_skipped % 10 == 0:
                 log.info(f'  [{i+1}/{len(slugs)}] ⏭️  {slug[:28]:28} | no live data')
 
-        time.sleep(RATE_LIMIT_DELAY)
+        # Human-like delay with jitter
+        import random as _random
+        time.sleep(RATE_LIMIT_DELAY + _random.uniform(-RATE_LIMIT_JITTER, RATE_LIMIT_JITTER))
 
         # ── CHUNKED PUBLISH: Flush buffer every CHUNK_SIZE venues with data ──
         if len(chunk_results) >= CHUNK_SIZE:
