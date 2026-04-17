@@ -172,13 +172,6 @@ function formatTime(timeStr) {
     let h = parseInt(match24[1]);
     const m = match24[2];
     
-    // Heuristic fix for scraper 12-hour AM/PM bugs:
-    // Poker tournaments rarely start before 10 AM. If we see 1-9 without explicit AM/PM,
-    // it is overwhelmingly likely a PM tournament parsed incorrectly by the data pipeline.
-    if (h > 0 && h <= 9) {
-      h += 12; // Convert 7am -> 19 (7pm), 9:30am -> 21:30 (9pm)
-    }
-
     const ampm = h >= 12 ? 'PM' : 'AM';
     if (h === 0) h = 12;
     else if (h > 12) h -= 12;
@@ -764,6 +757,33 @@ export default function EventsCalendarPage({ fallbackData }) {
         <div className="ec-space-bg" />
         <div className="ec-space-overlay" />
 
+        {/* ── Location Active Strip — always at top, just below Global Header ── */}
+        <div className="ec-location-strip">
+          {userLocation ? (
+            <div className="pnm-location-pill">
+              <div className="pnm-location-dot" />
+              <span className="pnm-location-label">Location Active</span>
+              {userLocation.label && userLocation.label !== 'My Location' && (
+                <span className="pnm-location-city">{userLocation.label}</span>
+              )}
+              <button
+                className="pnm-location-clear"
+                onClick={() => { handleLocationChange(null); }}
+                aria-label="Clear location"
+              >&times;</button>
+            </div>
+          ) : (
+            <button
+              className="ec-gps-btn"
+              onClick={() => setShowLocationModal(true)}
+              id="ec-location-btn"
+            >
+              <MapPinIcon size={14} />
+              Set Location
+            </button>
+          )}
+        </div>
+
         {/* ── Page Header ── */}
         <div className="ec-hero" style={{ position: 'relative', textAlign: 'center' }}>
           {/* Centered title block */}
@@ -805,7 +825,7 @@ export default function EventsCalendarPage({ fallbackData }) {
           </div>
         </div>
         
-        {/* Day of Week Tabs — same style as Daily Tournaments page */}
+        {/* Day of Week Tabs — centered */}
         <div className="ec-day-selector">
           <div className="ec-day-tabs-row">
             <div className="ec-day-tabs">
@@ -836,30 +856,20 @@ export default function EventsCalendarPage({ fallbackData }) {
           </div>
         </div>
 
-        {/* ── Always-Visible Filter Bar (Poker Near Me style) ── */}
+        {/* ── Always-Visible Filter Bar (centered, Poker Near Me style) ── */}
         <div className="ec-filter-bar">
-          {/* Location — "Location Active" pill (like PNM) when set, otherwise a GPS button */}
-          <div className="pnm-location-area">
-            {userLocation ? (
-              <div className="pnm-location-pill">
-                <div className="pnm-location-dot" />
-                <span className="pnm-location-label">Location Active</span>
-                <button
-                  className="pnm-location-clear"
-                  onClick={() => { handleLocationChange(null); }}
-                  aria-label="Clear location"
-                >&times;</button>
-              </div>
-            ) : (
-              <button
-                className="ec-gps-btn"
-                onClick={() => setShowLocationModal(true)}
-                id="ec-location-btn"
-              >
-                <MapPinIcon size={14} />
-                Set Location
-              </button>
-            )}
+
+          {/* Event Type — Show All / Daily / Series / Tour */}
+          <div className="ec-filter-group">
+            <label className="ec-filter-label">Event Type</label>
+            <select
+              className="ec-filter-select"
+              value={eventType}
+              onChange={e => setEventType(e.target.value)}
+              id="ec-event-type"
+            >
+              {EVENT_TYPES.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
+            </select>
           </div>
 
           {/* Date Range */}
@@ -886,6 +896,19 @@ export default function EventsCalendarPage({ fallbackData }) {
               id="ec-buyin"
             >
               {BUY_IN_TIERS.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
+            </select>
+          </div>
+
+          {/* Game Type */}
+          <div className="ec-filter-group">
+            <label className="ec-filter-label">Game</label>
+            <select
+              className="ec-filter-select"
+              value={gameType}
+              onChange={e => setGameType(e.target.value)}
+              id="ec-game-type"
+            >
+              {GAME_TYPES.map(g => <option key={g.key} value={g.key}>{g.label}</option>)}
             </select>
           </div>
 
@@ -916,6 +939,7 @@ export default function EventsCalendarPage({ fallbackData }) {
               {SORT_OPTIONS.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
             </select>
           </div>
+
           {/* View Mode */}
           <div className="ec-filter-group">
             <label className="ec-filter-label">View Mode</label>
@@ -1102,8 +1126,15 @@ export default function EventsCalendarPage({ fallbackData }) {
           background: linear-gradient(180deg, rgba(3,7,18,0.3) 0%, transparent 20%, transparent 80%, rgba(3,7,18,0.5) 100%);
         }
 
+        /* ═══ LOCATION STRIP — top of page, just below global header ═══ */
+        .ec-location-strip {
+          display: flex; justify-content: center; align-items: center;
+          padding: 8px 16px 4px;
+          min-height: 44px;
+        }
+
         /* ═══ HERO ═══ */
-        .ec-hero { padding: 24px 20px 12px; max-width: 1100px; margin: 0 auto; }
+        .ec-hero { padding: 8px 20px 12px; max-width: 1100px; margin: 0 auto; }
         .ec-title {
           font-family: 'Orbitron', 'Rajdhani', sans-serif;
           font-size: 26px; font-weight: 700; margin: 0 auto;
@@ -1135,11 +1166,12 @@ export default function EventsCalendarPage({ fallbackData }) {
           margin-top: 4px; font-style: italic;
         }
 
-        /* ═══ FILTER BAR (Poker Near Me style — always visible) ═══ */
+        /* ═══ FILTER BAR — centered, wraps on mobile ═══ */
         .ec-filter-bar {
-          max-width: 1100px; margin: 0 auto;
+          max-width: 1200px; margin: 0 auto;
           padding: 8px 16px 12px;
-          display: flex; align-items: flex-end; gap: 8px; flex-wrap: nowrap;
+          display: flex; align-items: flex-end; gap: 8px;
+          flex-wrap: wrap; justify-content: center;
           overflow-x: auto;
         }
         .ec-filter-bar::-webkit-scrollbar { display: none; }
@@ -1233,12 +1265,12 @@ export default function EventsCalendarPage({ fallbackData }) {
         }
         .ec-clear-btn:hover { border-color: rgba(255,255,255,0.3); color: #fff; }
 
-        /* ═══ DAY TABS — same as Daily Tournaments ═══ */
+        /* ═══ DAY TABS — centered ═══ */
         .ec-day-selector { padding: 0 20px 16px; overflow-x: auto; }
-        .ec-day-tabs-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+        .ec-day-tabs-row { display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0; }
         .ec-day-tabs {
-          display: flex; gap: 4px; min-width: min-content;
-          overflow-x: auto; flex: 1;
+          display: flex; gap: 4px; flex-wrap: wrap;
+          justify-content: center; overflow-x: auto;
         }
         .ec-day-tabs::-webkit-scrollbar { display: none; }
         .ec-day-tab {
@@ -1562,7 +1594,8 @@ export default function EventsCalendarPage({ fallbackData }) {
             padding: 8px 12px 10px;
             gap: 8px;
             overflow-x: auto;
-            flex-wrap: nowrap;
+            flex-wrap: wrap;
+            justify-content: center;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
           }

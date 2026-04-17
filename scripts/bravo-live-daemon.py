@@ -838,7 +838,23 @@ class BravoSessionManager:
                 # Do NOT increment consecutive_nav_failures or mark session dead.
                 if 'ERR_HTTP_RESPONSE_CODE_FAILURE' in err_msg or 'ERR_ABORTED' in err_msg:
                     log.debug(f'  ⏭️  {slug}: HTTP error (venue offline/removed) — skipping')
+                    # Reset page to blank to avoid poisoning next navigation
+                    try:
+                        self.page.goto('about:blank', timeout=5000, wait_until='commit')
+                    except Exception:
+                        pass
                     return None  # Count as skip, not a session failure
+
+                # CHROME ERROR PAGE: navigation interrupted by chrome-error://
+                # Happens when previous venue's 4xx left page in error state.
+                # Clear with about:blank and skip — NOT a session death.
+                if 'chrome-error' in err_msg or 'interrupted by another navigation' in err_msg:
+                    log.debug(f'  ⏭️  {slug}: Navigation interrupted (chrome error page) — resetting page')
+                    try:
+                        self.page.goto('about:blank', timeout=5000, wait_until='commit')
+                    except Exception:
+                        pass
+                    return None  # Skip, not a crash
 
                 # CRASH RECOVERY: Detect dead browser context
                 if 'has been closed' in err_msg or 'Target page' in err_msg:
