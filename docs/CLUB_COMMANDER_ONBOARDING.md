@@ -35,18 +35,23 @@ When a poker room/club wants to use Club Commander software, they need:
 ```
 
 **Step 3: Subscription Tier**
+
+> **Pricing Note (April 2026):** All Commander tiers are currently **Free While In Beta**
+> — no credit card required. The dollar amounts below are the planned prices when
+> billing goes live; flip `COMMANDER_FREE_MODE` in `src/lib/commander/tierConfig.js`
+> to `false` to re-enable paid subscriptions.
+
 ```
-Tier Options:
-- STARTER ($99/mo): Up to 5 tables, basic features
-- PROFESSIONAL ($199/mo): Up to 15 tables, tournaments, analytics
-- ENTERPRISE ($399/mo): Unlimited tables, API access, white-label
+Tier Options (all currently Free While In Beta):
+- HOME GAME  (will be $99/mo):  Up to 5 tables, home-game hosting, basic features
+- CHARITY    (will be $199/mo): Up to 15 tables, tournaments, analytics, promotions
+- CLUB       (will be $399/mo): Unlimited tables, paid memberships, seat billing
 ```
 
 **Step 4: Payment (Stripe)**
 ```
-- Credit card input (Stripe Elements)
-- Billing address
-- Apply promo code (optional)
+- Skipped entirely while COMMANDER_FREE_MODE = true
+- When pricing goes live: credit card input (Stripe Elements), billing address, promo code (optional)
 ```
 
 **Step 5: Confirmation**
@@ -204,8 +209,11 @@ club-commander-desktop/
 
 ## 6. Pricing Tiers Detail
 
-| Feature | Starter $99/mo | Professional $199/mo | Enterprise $399/mo |
-|---------|---------------|---------------------|-------------------|
+> **Currently Free While In Beta** — all three tiers are unlocked with no billing.
+> Prices shown are what they will cost when billing goes live.
+
+| Feature | Home Game (Free, planned $99/mo) | Charity (Free, planned $199/mo) | Club (Free, planned $399/mo) |
+|---------|-------------------------------|------------------------------|---------------------------|
 | Tables | Up to 5 | Up to 15 | Unlimited |
 | Staff Accounts | 3 | 10 | Unlimited |
 | Waitlist Management | ✅ | ✅ | ✅ |

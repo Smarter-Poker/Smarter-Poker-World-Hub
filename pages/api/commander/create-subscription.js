@@ -3,6 +3,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import Stripe from 'stripe';
 import { checkMemoryRateLimit } from '../../../src/lib/commander/rateLimit';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { COMMANDER_FREE_MODE } from '../../../src/lib/commander/tierConfig';
 // Note: No auth guard — this route is called during REGISTRATION before any session exists.
 // It creates the user account itself, so no pre-existing auth is possible.
 
@@ -117,7 +118,14 @@ export default async function handler(req, res) {
     const rl = checkMemoryRateLimit(`sub:${ip}`, 3, 60000);
     if (!rl.allowed) { return res.status(429).json({ error: 'Too many requests. Please try again shortly.' }); }
 
-    const { paymentMethodId, selectedTier, clubInfo, ownerInfo, existingAccount, skipPayment } = req.body;
+    const { paymentMethodId, selectedTier, clubInfo, ownerInfo, existingAccount } = req.body;
+    // Defense-in-depth: while COMMANDER_FREE_MODE is on, billing is waived
+    // regardless of what the client sent. Never reach Stripe for these users
+    // even if a malicious caller sets skipPayment=false in the body.
+    let { skipPayment } = req.body;
+    if (COMMANDER_FREE_MODE) {
+      skipPayment = true;
+    }
     const tier = selectedTier || req.body.tier;
 
     if (!tier || !TIER_PRICES[tier]) {

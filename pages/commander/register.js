@@ -3,7 +3,19 @@ import { useRouter } from 'next/router';
 import Image from 'next/image';
 import Head from 'next/head';
 import Link from 'next/link';
+import {
+  COMMANDER_FREE_MODE,
+  COMMANDER_FREE_TAGLINE,
+  COMMANDER_FREE_SUBTEXT,
+  displayTierPrice,
+  displayTierPeriod,
+  displayTierTrialTagline,
+} from '../../src/lib/commander/tierConfig';
 
+// Wizard tier cards. `price` is the canonical number for when pricing
+// goes live; `displayTierPrice(tier)` / `displayTierPeriod(tier)` are
+// used everywhere in the UI so that flipping COMMANDER_FREE_MODE in
+// tierConfig.js renders every card as "Free" without touching this file.
 const TIERS = {
   home_game: {
     name: 'Home Game',
@@ -395,9 +407,13 @@ export default function RegisterPage() {
   const headerTitle = isHomeGameFlow
     ? 'List Your Home Game - Club Commander'
     : 'Register Your Club - Club Commander';
-  const headerSubtitle = isHomeGameFlow
-    ? 'Host Your Own Poker Home Game - 100% Free To Start'
-    : 'Set Up Your Poker Room In Minutes - 14-Day Free Trial';
+  const headerSubtitle = COMMANDER_FREE_MODE
+    ? (isHomeGameFlow
+        ? `Host Your Own Poker Home Game - ${COMMANDER_FREE_TAGLINE}`
+        : `Set Up Your Poker Room In Minutes - ${COMMANDER_FREE_TAGLINE}`)
+    : (isHomeGameFlow
+        ? 'Host Your Own Poker Home Game - 100% Free To Start'
+        : 'Set Up Your Poker Room In Minutes - 14-Day Free Trial');
 
   // While the pre-check is running we render a minimal placeholder so the
   // wizard doesn't flash before we know whether to redirect.
@@ -576,15 +592,19 @@ export default function RegisterPage() {
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <div className="font-semibold mb-1">
-                          {TIERS[lockedTier].name} Tier - 100% Free To Start
+                          {TIERS[lockedTier].name} Tier - {COMMANDER_FREE_MODE ? COMMANDER_FREE_TAGLINE : '100% Free To Start'}
                         </div>
                         <div className="text-[#B0B3B8] text-xs">
-                          No credit card required. You can upgrade anytime.
+                          {COMMANDER_FREE_MODE
+                            ? 'All Commander features are free while in beta. No credit card required.'
+                            : 'No credit card required. You can upgrade anytime.'}
                         </div>
                       </div>
                       <div className="text-right whitespace-nowrap">
-                        <span className="text-2xl font-bold">${TIERS[lockedTier].price}</span>
-                        <span className="text-[#8A8D91]">/mo after trial</span>
+                        <span className="text-2xl font-bold">{displayTierPrice(lockedTier)}</span>
+                        {!COMMANDER_FREE_MODE && (
+                          <span className="text-[#8A8D91]">/mo after trial</span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -614,12 +634,17 @@ export default function RegisterPage() {
                         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedTier === key ? 'border-[#1877F2] bg-[#1877F2]' : 'border-[#8A8D91]'}`}>{selectedTier === key && <span className="text-white text-xs">✓</span>}</div>
                         <div><div className="font-semibold text-[#E4E6EB]">{tier.name}</div><div className="text-sm text-[#B0B3B8]">{tier.tables} tables, {tier.staff} staff</div></div>
                       </div>
-                      <div className="text-right"><span className="text-2xl font-bold text-[#E4E6EB]">${tier.price}</span><span className="text-[#8A8D91]">/mo</span></div>
+                      <div className="text-right">
+                        <span className="text-2xl font-bold text-[#E4E6EB]">{displayTierPrice(key)}</span>
+                        <span className="text-[#8A8D91]">{displayTierPeriod(key)}</span>
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
-              <div className="p-4 bg-[#31A24C]/10 border border-[#31A24C]/30 rounded-xl text-center text-[#E4E6EB]"><span className="font-semibold">14-Day Free Trial</span> - No Credit Card Required</div>
+              <div className="p-4 bg-[#31A24C]/10 border border-[#31A24C]/30 rounded-xl text-center text-[#E4E6EB]">
+                <span className="font-semibold">{displayTierTrialTagline()}</span> - {COMMANDER_FREE_SUBTEXT}
+              </div>
               <div className="flex items-start gap-3"><input type="checkbox" id="terms" checked={agreedToTerms} onChange={e => setAgreedToTerms(e.target.checked)} className="mt-1 w-4 h-4 rounded" /><label htmlFor="terms" className="text-sm text-[#B0B3B8]">I Agree To The <Link href="/terms" className="text-[#1877F2]">Terms</Link> And <Link href="/terms" className="text-[#1877F2]">Privacy Policy</Link></label></div>
             </div>
           )}
@@ -636,7 +661,9 @@ export default function RegisterPage() {
               <p className="text-[#B0B3B8]">
                 {isHomeGameFlow
                   ? 'Your Home Games Host Account Is Active. Let’s Create Your First Home Game.'
-                  : 'Your Account Has Been Created. Your 14-day Trial Starts Now.'}
+                  : (COMMANDER_FREE_MODE
+                      ? `Your Account Has Been Created. ${COMMANDER_FREE_TAGLINE} - All Features Unlocked.`
+                      : 'Your Account Has Been Created. Your 14-day Trial Starts Now.')}
               </p>
               <div className="bg-[#1877F2]/10 border border-[#1877F2]/30 rounded-xl p-4 text-left">
                 <p className="text-sm text-[#B0B3B8] mb-1">Login Email:</p>
@@ -647,7 +674,20 @@ export default function RegisterPage() {
                     : 'Use this email and your password to sign in at the login page.'}
                 </p>
               </div>
-              {registrationResult && !isHomeGameFlow && <div className="bg-[#3A3B3C] rounded-xl p-5 text-left"><div className="flex justify-between mb-2"><span className="text-[#8A8D91]">Venue ID:</span><span className="text-[#E4E6EB] font-mono">{registrationResult.venueId}</span></div><div className="flex justify-between"><span className="text-[#8A8D91]">Plan:</span><span className="text-[#E4E6EB]">{selectedTier} (14-day trial)</span></div></div>}
+              {registrationResult && !isHomeGameFlow && (
+                <div className="bg-[#3A3B3C] rounded-xl p-5 text-left">
+                  <div className="flex justify-between mb-2">
+                    <span className="text-[#8A8D91]">Venue ID:</span>
+                    <span className="text-[#E4E6EB] font-mono">{registrationResult.venueId}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[#8A8D91]">Plan:</span>
+                    <span className="text-[#E4E6EB]">
+                      {selectedTier}{COMMANDER_FREE_MODE ? ` (${COMMANDER_FREE_TAGLINE})` : ' (14-day trial)'}
+                    </span>
+                  </div>
+                </div>
+              )}
               <button
                 onClick={handleCompletionCta}
                 className="w-full py-4 bg-[#1877F2] hover:bg-[#1664d9] text-white rounded-xl font-semibold text-lg"
@@ -684,7 +724,11 @@ export default function RegisterPage() {
           {step === 3 && !lockedTier && (
             <div className="flex justify-between mt-8">
               <button onClick={prevStep} className="px-6 py-3 rounded-lg bg-[#3A3B3C] text-[#E4E6EB] hover:bg-[#4E4F50]">Back</button>
-              <button onClick={handleSubmit} disabled={loading || !agreedToTerms} className="px-8 py-3 bg-[#1877F2] hover:bg-[#1664d9] text-white rounded-lg font-semibold disabled:opacity-50">{loading ? 'Creating...' : 'Start Free Trial'}</button>
+              <button onClick={handleSubmit} disabled={loading || !agreedToTerms} className="px-8 py-3 bg-[#1877F2] hover:bg-[#1664d9] text-white rounded-lg font-semibold disabled:opacity-50">
+                {loading
+                  ? 'Creating...'
+                  : (COMMANDER_FREE_MODE ? 'Create Free Account' : 'Start Free Trial')}
+              </button>
             </div>
           )}
         </div>

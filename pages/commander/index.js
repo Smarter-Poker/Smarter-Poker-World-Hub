@@ -8,6 +8,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { Users, Clock, Trophy, Monitor, Check, Play, Star, ArrowRight, Zap, Shield, BarChart3, Bell, Gift, Home } from 'lucide-react';
+import { COMMANDER_FREE_MODE, COMMANDER_FREE_TAGLINE } from '../../src/lib/commander/tierConfig';
 
 const FEATURES = [
   {
@@ -55,8 +56,8 @@ const FEATURES = [
 const PRICING = [
   {
     name: 'Home Game',
-    price: '$99',
-    period: '/month',
+    price: COMMANDER_FREE_MODE ? 'Free' : '$99',
+    period: COMMANDER_FREE_MODE ? '' : '/month',
     description: 'Perfect for Home Games & Small Private Events',
     features: [
       'Up to 5 tables',
@@ -72,8 +73,8 @@ const PRICING = [
   },
   {
     name: 'Charity',
-    price: '$199',
-    period: '/month',
+    price: COMMANDER_FREE_MODE ? 'Free' : '$199',
+    period: COMMANDER_FREE_MODE ? '' : '/month',
     description: 'Full Operations Suite for Charity Poker Rooms',
     features: [
       'Everything in Home Game',
@@ -86,13 +87,13 @@ const PRICING = [
       'Advanced analytics & reports',
       'SMS notifications (500/mo)'
     ],
-    cta: 'Start Free Trial',
+    cta: COMMANDER_FREE_MODE ? 'Get Started Free' : 'Start Free Trial',
     highlighted: true
   },
   {
     name: 'Club',
-    price: '$399',
-    period: '/month',
+    price: COMMANDER_FREE_MODE ? 'Free' : '$399',
+    period: COMMANDER_FREE_MODE ? '' : '/month',
     description: 'Full Texas-style Card Room with Revenue Tools',
     features: [
       'Everything in Charity',
@@ -102,7 +103,7 @@ const PRICING = [
       'Unlimited SMS',
       'Priority support'
     ],
-    cta: 'Start Free Trial',
+    cta: COMMANDER_FREE_MODE ? 'Get Started Free' : 'Start Free Trial',
     highlighted: false
   }
 ];
@@ -295,7 +296,7 @@ export default function CommanderLanding() {
                 onClick={handleFreeTrial}
                 className="cmd-btn cmd-btn-primary px-8 py-4 text-lg flex items-center gap-2"
               >
-                Start Free Trial
+                {COMMANDER_FREE_MODE ? 'Get Started Free' : 'Start Free Trial'}
                 <ArrowRight size={20} />
               </button>
               <button
@@ -518,7 +519,7 @@ export default function CommanderLanding() {
                   </div>
                 </div>
                 <div className="text-center">
-                  <p className="text-sm text-[#B0B3B8] mb-3">Experience The Full Platform With A Free Trial</p>
+                  <p className="text-sm text-[#B0B3B8] mb-3">{COMMANDER_FREE_MODE ? 'Experience The Full Platform - Free While In Beta' : 'Experience The Full Platform With A Free Trial'}</p>
                   <button
                     onClick={() => {
                       setShowDemo(false);
@@ -526,7 +527,7 @@ export default function CommanderLanding() {
                     }}
                     className="cmd-btn cmd-btn-primary"
                   >
-                    Start Free Trial
+                    {COMMANDER_FREE_MODE ? 'Get Started Free' : 'Start Free Trial'}
                   </button>
                 </div>
               </div>

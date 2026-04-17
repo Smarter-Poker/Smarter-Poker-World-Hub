@@ -5,6 +5,47 @@
  * Used by both frontend (sidebar gating) and backend (API gating).
  */
 
+// ─────────────────────────────────────────────────────────────────────
+// TEMPORARY PROMOTIONAL FLAG
+// All Commander tiers (Home Game, Charity, Club) are FREE while this
+// flag is true. Users still must go through the Commander sign-up /
+// activation flow to access Commander features — only billing is
+// waived. Flip this to `false` when pricing goes live; all pricing UI
+// and the server-side create-subscription endpoint will switch back to
+// the tier prices defined in TIERS below.
+// ─────────────────────────────────────────────────────────────────────
+export const COMMANDER_FREE_MODE = true;
+export const COMMANDER_FREE_TAGLINE = 'Free While In Beta';
+export const COMMANDER_FREE_SUBTEXT = 'No credit card required';
+
+/**
+ * UI helper — returns the string to display for a tier's price.
+ * Returns 'Free' for every tier while COMMANDER_FREE_MODE is true.
+ */
+export function displayTierPrice(tier) {
+    if (COMMANDER_FREE_MODE) return 'Free';
+    const t = TIERS[normalizeTier(tier)];
+    return t ? `$${t.price}` : '';
+}
+
+/**
+ * UI helper — returns the period suffix (e.g. '/month') for a tier.
+ * Returns empty string in free mode so UI shows just 'Free' without
+ * an awkward '/month' after it.
+ */
+export function displayTierPeriod(tier) {
+    if (COMMANDER_FREE_MODE) return '';
+    return '/month';
+}
+
+/**
+ * UI helper — returns the trial-style tagline for a tier.
+ * Replaces '14-Day Free Trial' messaging while in free mode.
+ */
+export function displayTierTrialTagline() {
+    return COMMANDER_FREE_MODE ? COMMANDER_FREE_TAGLINE : '14-Day Free Trial';
+}
+
 export const TIER_NAMES = {
     HOME_GAME: 'home_game',
     CHARITY: 'charity',

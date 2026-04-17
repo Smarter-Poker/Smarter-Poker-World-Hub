@@ -6,6 +6,8 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+import { COMMANDER_FREE_MODE, COMMANDER_FREE_TAGLINE } from '../../../src/lib/commander/tierConfig';
+
 export default async function handler(req, res) {
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
@@ -30,10 +32,13 @@ export default async function handler(req, res) {
     return res.status(400).json({ success: false, error: 'Missing required fields: to, name, clubName' });
   }
 
+  // While COMMANDER_FREE_MODE is on, all tiers display as "Free".
+  // Flip the flag in tierConfig.js when pricing goes live to restore
+  // the original monthly prices.
   const tierInfo = {
-    home_game: { name: 'Home Game', price: '$99/month', tables: '5', staff: '3', sms: '100' },
-    charity: { name: 'Charity', price: '$199/month', tables: '15', staff: '10', sms: '500' },
-    club: { name: 'Club', price: '$399/month', tables: 'Unlimited', staff: 'Unlimited', sms: 'Unlimited' },
+    home_game: { name: 'Home Game', price: COMMANDER_FREE_MODE ? 'Free' : '$99/month', tables: '5', staff: '3', sms: '100' },
+    charity:   { name: 'Charity',   price: COMMANDER_FREE_MODE ? 'Free' : '$199/month', tables: '15', staff: '10', sms: '500' },
+    club:      { name: 'Club',      price: COMMANDER_FREE_MODE ? 'Free' : '$399/month', tables: 'Unlimited', staff: 'Unlimited', sms: 'Unlimited' },
   };
 
   const plan = tierInfo[tier] || tierInfo.charity;
@@ -71,7 +76,7 @@ export default async function handler(req, res) {
               </p>
               
               <p style="font-size: 16px; color: #3f3f46; line-height: 1.6; margin: 0 0 24px 0;">
-                Congratulations! Your <strong>${clubName}</strong> account has been created and your <strong>14-day free trial</strong> is now active.
+                Congratulations! Your <strong>${clubName}</strong> account has been created. ${COMMANDER_FREE_MODE ? `All Club Commander features are <strong>${COMMANDER_FREE_TAGLINE}</strong> — no credit card required.` : 'Your <strong>14-day free trial</strong> is now active.'}
               </p>
               
               <!-- Plan Info Box -->
