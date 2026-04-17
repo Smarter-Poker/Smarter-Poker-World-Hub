@@ -86,12 +86,15 @@ async function wasRecentlyChanged(path, ghPat, hours = 24) {
 
 // Multi-file error extraction — scan the full build output for all referenced files.
 // Returns de-duplicated list, preserving order of first appearance.
+// Char class matches extractErrorFile: dots for multi-dot filenames, brackets for
+// Next.js dynamic routes, plus the data/ directory.
 function extractAllErrorFiles(buildErrors) {
+  if (!buildErrors || typeof buildErrors !== 'string') return [];
   const patterns = [
-    /\.\/([a-zA-Z0-9_\-\/\[\]]+\.(?:js|jsx|ts|tsx|mjs|cjs))/g,
-    /\/vercel\/path0\/([a-zA-Z0-9_\-\/\[\]]+\.(?:js|jsx|ts|tsx|mjs|cjs))/g,
-    /((?:pages|src|lib|components|services)\/[a-zA-Z0-9_\-\/\[\]]+\.(?:js|jsx|ts|tsx|mjs|cjs)):\d+/g,
-    /x\s+((?:pages|src)\/[a-zA-Z0-9_\-\/\[\]]+\.(?:js|jsx|ts|tsx|mjs|cjs))/g,
+    /\.\/([\w./\-\[\]]+\.(?:jsx|tsx|mjs|cjs|js|ts))/g,
+    /\/vercel\/path0\/([\w./\-\[\]]+\.(?:jsx|tsx|mjs|cjs|js|ts))/g,
+    /((?:pages|src|lib|components|services|data)\/[\w./\-\[\]]+\.(?:jsx|tsx|mjs|cjs|js|ts)):\d+/g,
+    /x\s+((?:pages|src)\/[\w./\-\[\]]+\.(?:jsx|tsx|mjs|cjs|js|ts))/g,
   ];
   const seen = new Set();
   const out = [];
@@ -151,8 +154,9 @@ async function ensureBranch(branchName, fromSha, ghPat) {
       }
     );
     if (res.ok) return { ok: true, created: true };
-    // If 422, branch already exists — that's fine for our purposes
-    if (res.status === 422) return { ok: true, created: false };
+    // No 422-as-success fallback: branchName embeds Date.now() so collisions
+    // are impossible within the same millisecond. A 422 here means validation
+    // error (invalid ref name, rule violation, etc.) and must be surfaced.
     const errText = await res.text();
     return { ok: false, reason: `GitHub branch create ${res.status}: ${errText.substring(0, 300)}` };
   } catch (err) {
@@ -218,7 +222,7 @@ export default async function handler(req, res) {
     // Pattern 2 in extractErrorFile can return directory paths from "Module not found"
     // errors, which would cause GitHub Contents API to return a directory listing
     // instead of file content, breaking Buffer.from(data.content, 'base64').
-    if (!/\.(js|jsx|ts|tsx|mjs|cjs)$/.test(errorFile)) {
+    if (!/\.(jsx|tsx|mjs|cjs|js|ts)$/.test(errorFile)) {
       console.log(`[deploy-autofix] Extracted path has no file extension (likely a directory): ${errorFile}`);
       return res.status(200).json({
         action: 'skipped',
@@ -226,9 +230,17 @@ export default async function handler(req, res) {
       });
     }
 
-    // Safety check: normalize path and reject traversal attempts
+    // Safety check: normalize path and reject traversal attempts.
+    // The old check rejected any filename containing `..`, which false-positives
+    // on legitimate names like `foo..bar.js`. Now only reject true traversal
+    // segments: `/../`, `../` prefix, or any run of 2+ dots as a path segment.
     const normalizedPath = errorFile.replace(/\\/g, '/');
-    if (normalizedPath.includes('..') || normalizedPath.startsWith('/') || normalizedPath.includes('//')) {
+    const hasTraversal =
+      normalizedPath.startsWith('../') ||
+      normalizedPath.startsWith('/') ||
+      normalizedPath.includes('//') ||
+      /(^|\/)\.\.(\/|$)/.test(normalizedPath);
+    if (hasTraversal) {
       console.log(`[deploy-autofix] Path traversal attempt blocked: ${errorFile}`);
       return res.status(200).json({
         action: 'skipped',
@@ -250,8 +262,13 @@ export default async function handler(req, res) {
 
     // ── Step 2: Fetch the broken file from GitHub ──
     console.log(`[deploy-autofix] Fetching ${normalizedPath} from GitHub...`);
+    // URL-encode each path segment individually (preserves / as separator, escapes
+    // spaces, #, ?, %, etc). Raw template interpolation here was a real bug:
+    // a filename with `#` turns the URL into contents/path#fragment, stripping
+    // the ?ref= and any path after #.
+    const encodedPath = normalizedPath.split('/').map(encodeURIComponent).join('/');
     const fileRes = await fetch(
-      `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${normalizedPath}?ref=${GITHUB_BRANCH}`,
+      `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${encodedPath}?ref=${GITHUB_BRANCH}`,
       { headers: { Authorization: `token ${ghPat}`, Accept: 'application/vnd.github.v3+json' } }
     );
 
@@ -263,6 +280,21 @@ export default async function handler(req, res) {
     }
 
     const fileData = await fileRes.json();
+    // Defensive: Contents API returns an ARRAY when the path is a directory
+    // (fileData.content is then undefined). It also returns empty content
+    // for files >1MB. Either would crash Buffer.from(undefined, 'base64').
+    if (Array.isArray(fileData)) {
+      return res.status(200).json({
+        action: 'skipped',
+        reason: `Path ${normalizedPath} is a directory, not a file — autofix cannot target directories`,
+      });
+    }
+    if (fileData.type !== 'file' || typeof fileData.content !== 'string' || !fileData.content) {
+      return res.status(200).json({
+        action: 'skipped',
+        reason: `File ${normalizedPath} is not retrievable via Contents API (type=${fileData.type}, size=${fileData.size || '?'}). File may be >1MB or a symlink/submodule.`,
+      });
+    }
     const originalContent = Buffer.from(fileData.content, 'base64').toString('utf-8');
     const fileSha = fileData.sha;
 
@@ -338,9 +370,22 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
     }
 
     const claudeData = await claudeRes.json();
-    let fixedContent = claudeData.content?.[0]?.text || '';
+    // Extract text from all content blocks typed 'text' (defensive against
+    // future Claude responses that return thinking/tool_use blocks first).
+    const textBlocks = Array.isArray(claudeData.content)
+      ? claudeData.content.filter((b) => b && b.type === 'text').map((b) => b.text || '')
+      : [];
+    let fixedContent = textBlocks.join('\n').trim();
 
-    // Strip markdown fences if Claude included them despite instructions
+    // Strip markdown fences — robust to Claude wrapping output in prose or using
+    // multiple fences. Approach: if there's a fenced block anywhere, extract its
+    // INNER content (between the first ``` and the next ```). Otherwise leave
+    // the text as-is and let the size / identical-content guards catch garbage.
+    const fenceMatch = fixedContent.match(/```[\w]*\s*\n?([\s\S]*?)\n?```/);
+    if (fenceMatch) {
+      fixedContent = fenceMatch[1].trim();
+    }
+    // Belt-and-braces: strip any remaining bare fences at the very ends.
     fixedContent = fixedContent.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '').trim();
 
     if (!fixedContent || fixedContent.length < 10) {
@@ -361,14 +406,33 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
     // Size ratio guard: prevent Claude from gutting a file or returning truncated content.
     // Build fixes (missing import, syntax error, unused var) should never shrink a file
     // by more than 30%. This also catches the truncation bug: files >15KB are truncated
-    // in the Claude prompt (line 181), so Claude may return only ~15KB of a 30KB file.
+    // in the Claude prompt, so Claude may return only ~15KB of a 30KB file.
     // At 0.7 threshold, a 30KB file truncated to 15KB (ratio 0.5) is correctly rejected.
+    // Upper bound 3.0 catches hallucinated mass additions (Claude fabricating large
+    // amounts of unrelated code). A legitimate fix for a typical source file should
+    // not triple its size. Tiny files (<100 chars) are exempt because adding a normal
+    // import statement to a 20-char stub legitimately multiplies size.
+    if (originalContent.length === 0) {
+      return res.status(200).json({
+        action: 'skipped',
+        reason: 'Original file is empty — nothing to fix; refusing to seed arbitrary content',
+      });
+    }
     const sizeRatio = fixedContent.length / originalContent.length;
     if (sizeRatio < 0.7) {
-      console.log(`[deploy-autofix] Size ratio guard: fix is ${Math.round(sizeRatio * 100)}% of original (${fixedContent.length} vs ${originalContent.length} chars)`);
+      console.log(`[deploy-autofix] Size ratio guard (shrink): fix is ${Math.round(sizeRatio * 100)}% of original (${fixedContent.length} vs ${originalContent.length} chars)`);
       return res.status(200).json({
         action: 'skipped',
         reason: `Fix is only ${Math.round(sizeRatio * 100)}% of original file size — too destructive, skipping`,
+        originalSize: originalContent.length,
+        fixSize: fixedContent.length,
+      });
+    }
+    if (originalContent.length >= 100 && sizeRatio > 3.0) {
+      console.log(`[deploy-autofix] Size ratio guard (expand): fix is ${Math.round(sizeRatio * 100)}% of original (${fixedContent.length} vs ${originalContent.length} chars)`);
+      return res.status(200).json({
+        action: 'skipped',
+        reason: `Fix is ${Math.round(sizeRatio * 100)}% of original file size — suspicious mass expansion (likely hallucination), skipping`,
         originalSize: originalContent.length,
         fixSize: fixedContent.length,
       });
@@ -416,6 +480,28 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
         });
       }
 
+      // Re-fetch file SHA from the branch we just created. If main advanced
+      // between our earlier fetch (on ref=main) and branch creation, the
+      // fileSha we have may be stale. Using a stale SHA in the PUT below
+      // produces HTTP 409. Fetching from ref=branchName guarantees the SHA
+      // matches what's actually on the branch we're about to push to.
+      let branchFileSha = fileSha;
+      try {
+        const branchFileRes = await fetch(
+          `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${normalizedPath}?ref=${branchName}`,
+          { headers: { Authorization: `token ${ghPat}`, Accept: 'application/vnd.github.v3+json' } }
+        );
+        if (branchFileRes.ok) {
+          const branchFileData = await branchFileRes.json();
+          if (!Array.isArray(branchFileData) && branchFileData.sha) {
+            branchFileSha = branchFileData.sha;
+          }
+        }
+      } catch {
+        // Fall through with original fileSha — PUT will return 409 if stale,
+        // which the caller sees as push_failed with explicit HTTP status.
+      }
+
       // Push file to the new branch
       const branchPushRes = await fetch(
         `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${normalizedPath}`,
@@ -429,7 +515,7 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
           body: JSON.stringify({
             message: commitMsg,
             content: Buffer.from(fixedContent).toString('base64'),
-            sha: fileSha,
+            sha: branchFileSha,
             branch: branchName,
           }),
         }
@@ -462,6 +548,7 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
       console.log(`[deploy-autofix] PR opened: ${prRes.url}`);
       return res.status(200).json({
         action: 'pr_opened',
+        filePath: normalizedPath,
         file: normalizedPath,
         branch: branchName,
         prNumber: prRes.number,
@@ -506,11 +593,17 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
 
     const pushData = await pushRes.json();
     const newSha = pushData.commit?.sha?.substring(0, 8) || 'unknown';
+    const fullNewSha = pushData.commit?.sha || '';
 
     console.log(`[deploy-autofix] Fix pushed successfully. New commit: ${newSha}`);
 
     return res.status(200).json({
       action: 'fixed',
+      // Monitor reads autofixResult.filePath and autofixResult.newSha for
+      // telemetry + success email. Use those exact names (with legacy aliases
+      // for any external consumer that reads `file`/`newCommitSha`).
+      filePath: normalizedPath,
+      newSha: fullNewSha,
       file: normalizedPath,
       newCommitSha: newSha,
       attempt,
@@ -538,9 +631,28 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
  * Extract the file path that caused the build error from Vercel build output.
  * Handles common Next.js/SWC error patterns.
  */
+/**
+ * Extract the file path that caused the build error from Vercel build output.
+ * Handles common Next.js/SWC error patterns.
+ *
+ * Character class `[\w./\-\[\]]` covers:
+ *   - \w  = [A-Za-z0-9_]  (standard identifier chars)
+ *   - .   = dots in filenames like `button.test.js`, `types.d.ts`, `util.spec.ts`
+ *   - /   = path separators
+ *   - \-  = hyphens in filenames like `my-component.jsx`
+ *   - \[\] = brackets for Next.js dynamic routes like `[id].js`, `[...slug].tsx`
+ *
+ * Extensions: jsx|tsx|mjs|cjs|js|ts  (kept in sync with extractAllErrorFiles).
+ *
+ * Historical note: earlier versions used `[a-zA-Z0-9_\-\/]` which excluded
+ * dots and brackets. That's why the original PNM failure (`[pnmTab].js`)
+ * was NEVER matched by the extractor — autofix had no chance to fire.
+ */
 function extractErrorFile(buildErrors) {
-  // Pattern 1: "./pages/xxx.js" or "./src/xxx.tsx" (most common Next.js pattern)
-  const nextjsMatch = buildErrors.match(/\.\/([a-zA-Z0-9_\-\/]+\.(js|jsx|ts|tsx))/);
+  if (!buildErrors || typeof buildErrors !== 'string') return null;
+
+  // Pattern 1: "./pages/xxx.js" or "./src/hub/[id].test.jsx"
+  const nextjsMatch = buildErrors.match(/\.\/([\w./\-\[\]]+\.(?:jsx|tsx|mjs|cjs|js|ts))/);
   if (nextjsMatch) return nextjsMatch[1];
 
   // Pattern 2: "Module not found: Can't resolve 'xxx' in '/vercel/path0/src/xxx'"
@@ -548,15 +660,15 @@ function extractErrorFile(buildErrors) {
   if (moduleMatch) return moduleMatch[1];
 
   // Pattern 3: "Error: /vercel/path0/pages/xxx.js (line:col)"
-  const vercelPathMatch = buildErrors.match(/\/vercel\/path0\/([a-zA-Z0-9_\-\/]+\.(js|jsx|ts|tsx))/);
+  const vercelPathMatch = buildErrors.match(/\/vercel\/path0\/([\w./\-\[\]]+\.(?:jsx|tsx|mjs|cjs|js|ts))/);
   if (vercelPathMatch) return vercelPathMatch[1];
 
   // Pattern 4: "pages/xxx.js:123:45" (file:line:col format)
-  const fileLineMatch = buildErrors.match(/((?:pages|src|lib|components|services)\/[a-zA-Z0-9_\-\/]+\.(js|jsx|ts|tsx)):\d+/);
+  const fileLineMatch = buildErrors.match(/((?:pages|src|lib|components|services|data)\/[\w./\-\[\]]+\.(?:jsx|tsx|mjs|cjs|js|ts)):\d+/);
   if (fileLineMatch) return fileLineMatch[1];
 
   // Pattern 5: SWC error format "x ${file}"
-  const swcMatch = buildErrors.match(/x\s+((?:pages|src)\/[a-zA-Z0-9_\-\/]+\.(js|jsx|ts|tsx))/);
+  const swcMatch = buildErrors.match(/x\s+((?:pages|src)\/[\w./\-\[\]]+\.(?:jsx|tsx|mjs|cjs|js|ts))/);
   if (swcMatch) return swcMatch[1];
 
   return null;

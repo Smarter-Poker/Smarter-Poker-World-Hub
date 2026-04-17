@@ -57,11 +57,30 @@ const ALERT_COOLDOWN_MS = 60 * 60 * 1000; // 1h per alert key
 // ─────────────────────────────────────────────────────────────────────────────
 // Raw body reader (required for HMAC verification)
 // ─────────────────────────────────────────────────────────────────────────────
+// Raw body reader (required for HMAC verification).
+// Capped at 2 MB — Vercel webhook payloads are ~5 KB; anything larger is either
+// malformed or a memory-exhaustion attack. Attacker sends gigabytes → we truncate.
+const MAX_RAW_BODY_BYTES = 2 * 1024 * 1024;
 function readRawBody(req) {
   return new Promise((resolve, reject) => {
     const chunks = [];
-    req.on('data', (c) => chunks.push(c));
-    req.on('end', () => resolve(Buffer.concat(chunks)));
+    let total = 0;
+    let killed = false;
+    req.on('data', (c) => {
+      if (killed) return;
+      total += c.length;
+      if (total > MAX_RAW_BODY_BYTES) {
+        killed = true;
+        // Truncate and reject cleanly — handler returns 413 Payload Too Large.
+        const err = new Error(`Request body exceeds ${MAX_RAW_BODY_BYTES} bytes`);
+        err.statusCode = 413;
+        reject(err);
+        try { req.destroy(); } catch { /* noop */ }
+        return;
+      }
+      chunks.push(c);
+    });
+    req.on('end', () => { if (!killed) resolve(Buffer.concat(chunks)); });
     req.on('error', reject);
   });
 }
@@ -87,6 +106,22 @@ function verifyVercelSignature(rawBody, signatureHeader, secret) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// fetch() with AbortController timeout — any outbound call can hang the
+// serverless handler up to Vercel's 60s ceiling, which triggers webhook
+// retries and cascading alerts. Every non-Claude fetch in this file must
+// use this wrapper (Claude already has its own 45s guard).
+// ─────────────────────────────────────────────────────────────────────────────
+async function fetchWithTimeout(url, options = {}, timeoutMs = 10000) {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: ctl.signal });
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // GitHub Issue alerting (non-blocking, deduped against open autofix-failure)
 // ─────────────────────────────────────────────────────────────────────────────
 async function createAlertIssue(title, body, { alertKey, ghPat } = {}) {
@@ -100,15 +135,16 @@ async function createAlertIssue(title, body, { alertKey, ghPat } = {}) {
   }
 
   try {
-    const searchRes = await fetch(
+    const searchRes = await fetchWithTimeout(
       `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/issues?labels=autofix-failure&state=open&per_page=1`,
-      { headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' } }
+      { headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' } },
+      8000
     );
 
     if (searchRes.ok) {
       const existing = await searchRes.json();
       if (Array.isArray(existing) && existing.length > 0) {
-        await fetch(
+        await fetchWithTimeout(
           `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/issues/${existing[0].number}/comments`,
           {
             method: 'POST',
@@ -118,14 +154,15 @@ async function createAlertIssue(title, body, { alertKey, ghPat } = {}) {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({ body: `## ${title}\n\n${body}` }),
-          }
+          },
+          8000
         );
         console.log(`[deploy-monitor] Alert comment added to issue #${existing[0].number}`);
         return;
       }
     }
 
-    await fetch(
+    await fetchWithTimeout(
       `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/issues`,
       {
         method: 'POST',
@@ -135,7 +172,8 @@ async function createAlertIssue(title, body, { alertKey, ghPat } = {}) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ title, body, labels: ['autofix-failure'] }),
-      }
+      },
+      8000
     );
     console.log('[deploy-monitor] Alert issue created on GitHub');
   } catch (err) {
@@ -177,14 +215,14 @@ async function sendEmailAlert({ subject, markdown, tag = 'info' }) {
   </div>`;
 
   try {
-    const res = await fetch('https://api.resend.com/emails', {
+    const res = await fetchWithTimeout('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ from, to, subject, html, tags: [{ name: 'source', value: 'deploy-monitor' }, { name: 'tag', value: tag }] }),
-    });
+    }, 10000);
     if (!res.ok) {
       const errText = await res.text();
       console.error(`[deploy-monitor] Resend rejected email (HTTP ${res.status}):`, errText.substring(0, 200));
@@ -226,14 +264,15 @@ async function isRecentlyAlerted(alertKey) {
     return Date.now() - last < ALERT_COOLDOWN_MS;
   }
   try {
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       `${supabaseUrl}/rest/v1/deploy_alerts?alert_key=eq.${encodeURIComponent(alertKey)}&expires_at=gt.${encodeURIComponent(new Date().toISOString())}&select=alert_key`,
       {
         headers: {
           apikey: serviceKey,
           Authorization: `Bearer ${serviceKey}`,
         },
-      }
+      },
+      6000
     );
     if (!res.ok) return false;
     const rows = await res.json();
@@ -248,12 +287,22 @@ async function recordAlert(alertKey) {
   if (!alertKey) return;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  // Always write to in-memory too so single-worker runs are fast
+  // Always write to in-memory too so single-worker runs are fast.
   lastAlertAt.set(alertKey, Date.now());
+
+  // Evict expired entries to bound memory. Runs opportunistically on each write,
+  // so a single Lambda instance never accumulates more entries than the set of
+  // distinct alertKeys seen within ~2× cooldown. Prevents memory leak on
+  // long-running instances that would otherwise grow the Map unboundedly.
+  const evictBefore = Date.now() - ALERT_COOLDOWN_MS * 2;
+  for (const [k, ts] of lastAlertAt) {
+    if (ts < evictBefore) lastAlertAt.delete(k);
+  }
+
   if (!supabaseUrl || !serviceKey) return;
   const expiresAt = new Date(Date.now() + ALERT_COOLDOWN_MS).toISOString();
   try {
-    await fetch(`${supabaseUrl}/rest/v1/deploy_alerts?on_conflict=alert_key`, {
+    await fetchWithTimeout(`${supabaseUrl}/rest/v1/deploy_alerts?on_conflict=alert_key`, {
       method: 'POST',
       headers: {
         apikey: serviceKey,
@@ -276,10 +325,18 @@ async function recordAlert(alertKey) {
 async function findLastGoodDeploy(beforeSha) {
   const vercelToken = process.env.VERCEL_TOKEN;
   if (!vercelToken) return null;
+  // Defensive: if beforeSha is missing or invalid, we cannot safely exclude
+  // the broken deploy from candidates. Refuse to rollback rather than risk
+  // promoting the broken deploy back to production.
+  if (!beforeSha || beforeSha === 'unknown' || beforeSha.length < 7) {
+    console.warn('[deploy-monitor] findLastGoodDeploy: invalid beforeSha, refusing to pick rollback target');
+    return null;
+  }
   try {
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       `https://api.vercel.com/v6/deployments?projectId=${PROJECT_ID}&teamId=${TEAM_ID}&target=production&limit=20&state=READY`,
-      { headers: { Authorization: `Bearer ${vercelToken}` } }
+      { headers: { Authorization: `Bearer ${vercelToken}` } },
+      10000
     );
     if (!res.ok) return null;
     const data = await res.json();
@@ -302,9 +359,10 @@ async function rollbackToDeploy(deploymentId) {
   const vercelToken = process.env.VERCEL_TOKEN;
   if (!vercelToken) return { ok: false, reason: 'VERCEL_TOKEN missing' };
   try {
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       `https://api.vercel.com/v10/projects/${PROJECT_ID}/promote/${deploymentId}?teamId=${TEAM_ID}`,
-      { method: 'POST', headers: { Authorization: `Bearer ${vercelToken}` } }
+      { method: 'POST', headers: { Authorization: `Bearer ${vercelToken}` } },
+      10000
     );
     if (!res.ok) {
       const errText = await res.text();
@@ -321,11 +379,16 @@ async function rollbackToDeploy(deploymentId) {
 // ─────────────────────────────────────────────────────────────────────────────
 async function countPersistentAttempts(commitSha, ghPat) {
   if (!ghPat) return 0;
+  // Defensive: commitSha='unknown' (fallback when webhook payload is missing it)
+  // would match any commit message containing the word "unknown" and silently
+  // trip the circuit breaker. Bail early for invalid/short SHAs.
+  if (!commitSha || commitSha === 'unknown' || commitSha.length < 7) return 0;
   const shortSha = commitSha.substring(0, 8);
   try {
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/commits?sha=main&per_page=15`,
-      { headers: { Authorization: `token ${ghPat}`, Accept: 'application/vnd.github.v3+json' } }
+      { headers: { Authorization: `token ${ghPat}`, Accept: 'application/vnd.github.v3+json' } },
+      8000
     );
     if (!res.ok) return 0;
     const commits = await res.json();
@@ -374,7 +437,10 @@ export default async function handler(req, res) {
     rawBody = await readRawBody(req);
   } catch (err) {
     console.error('[deploy-monitor] Failed to read request body:', err.message);
-    return res.status(400).json({ error: 'Failed to read request body' });
+    const code = err.statusCode === 413 ? 413 : 400;
+    return res.status(code).json({
+      error: code === 413 ? 'Request body too large' : 'Failed to read request body',
+    });
   }
 
   let payload;
@@ -394,13 +460,27 @@ export default async function handler(req, res) {
   const headerSecret = req.headers['x-webhook-secret'];
   let authMethod = 'none';
 
-  if (webhookSecret) {
+  // Constant-time string compare — prevents timing-leak of the secret through
+  // the shared_secret fallback. Only compares when both are same-length strings.
+  const safeEq = (a, b) => {
+    if (typeof a !== 'string' || typeof b !== 'string') return false;
+    if (a.length !== b.length) return false;
+    try {
+      return crypto.timingSafeEqual(Buffer.from(a, 'utf8'), Buffer.from(b, 'utf8'));
+    } catch { return false; }
+  };
+
+  // webhookSecret truthiness was checking for just "is set" — an empty string
+  // would fall to the else branch (unauthenticated accept). Explicitly require
+  // a non-empty value. If someone mis-sets DEPLOY_WEBHOOK_SECRET="" in Vercel,
+  // we now reject all webhooks rather than silently drop auth.
+  if (webhookSecret && webhookSecret.length > 0) {
     // Method 1: Vercel native HMAC-SHA1 (PREFERRED)
     if (sigHeader && verifyVercelSignature(rawBody, sigHeader, webhookSecret)) {
       authMethod = 'hmac';
     }
-    // Method 2: Legacy URL/header secret (FALLBACK)
-    else if (querySecret === webhookSecret || headerSecret === webhookSecret) {
+    // Method 2: Legacy URL/header secret (FALLBACK) — constant-time compare
+    else if (safeEq(querySecret, webhookSecret) || safeEq(headerSecret, webhookSecret)) {
       authMethod = 'shared_secret';
     }
     // Method 3: Rejected — fire alert so this never vanishes silently
@@ -577,9 +657,10 @@ https://vercel.com/smarter-poker/hub-vanguard/deployments`,
     }
 
     console.log(`[deploy-monitor] Fetching build logs for ${deploymentId}...`);
-    const logsRes = await fetch(
+    const logsRes = await fetchWithTimeout(
       `https://api.vercel.com/v2/deployments/${deploymentId}/events?teamId=${TEAM_ID}&direction=backward&limit=100`,
-      { headers: { Authorization: `Bearer ${vercelToken}` } }
+      { headers: { Authorization: `Bearer ${vercelToken}` } },
+      12000
     );
 
     let buildErrors = '';
@@ -620,7 +701,7 @@ https://vercel.com/smarter-poker/hub-vanguard/deployments`,
     if (process.env.DEPLOY_INTERNAL_SECRET) {
       autofixHeaders['x-internal-secret'] = process.env.DEPLOY_INTERNAL_SECRET;
     }
-    const autofixRes = await fetch(autofixUrl, {
+    const autofixRes = await fetchWithTimeout(autofixUrl, {
       method: 'POST',
       headers: autofixHeaders,
       body: JSON.stringify({
@@ -630,7 +711,7 @@ https://vercel.com/smarter-poker/hub-vanguard/deployments`,
         buildErrors,
         attempt: attempts + 1,
       }),
-    });
+    }, 55000);
 
     const autofixResult = await autofixRes.json();
     const duration = Date.now() - startTime;
@@ -671,25 +752,49 @@ If the fix looks wrong, revert it: \`git revert ${newShortSha}\``,
       });
     }
 
-    // Failure notification — Claude tried but couldnt produce a valid fix
-    if (autofixResult.action === 'skipped' || autofixResult.action === 'error') {
+    // Review-needed notification — a sensitive-file fix was staged as a PR for human approval
+    else if (autofixResult.action === 'pr_opened') {
+      const shortSha = commitSha.substring(0, 8);
       await sendEmailAlert({
-        subject: `[Smarter.Poker Autofix] ⚠ Skipped fix for ${commitSha.substring(0, 8)}`,
+        subject: `[Smarter.Poker Autofix] 👀 Review needed: PR #${autofixResult.prNumber} — ${autofixResult.filePath || 'fix'}`,
+        markdown: `## Autofix staged a fix for your review
+
+The file touched is either in a sensitive area (auth / payments / engine / lib) OR was modified in the last 24h (hot zone), so the fix was pushed to a branch and a PR was opened INSTEAD of being merged to main.
+
+**File:** \`${autofixResult.filePath || '(unknown)'}\`
+**Branch:** \`${autofixResult.branch || '(unknown)'}\`
+**Sensitive path:** ${autofixResult.sensitive}
+**Hot file (recently changed):** ${autofixResult.hot}
+**Original broken commit:** \`${commitSha}\`
+**Attempt:** ${attempts + 1}/${MAX_FIX_ATTEMPTS}
+
+**→ Review and merge the PR:** ${autofixResult.prUrl || '(no URL)'}
+
+Vercel will NOT rebuild main until you merge. Production continues serving the last-known-good deploy.`,
+        tag: 'autofix_pr_opened',
+      });
+    }
+
+    // Failure notification — any outcome that did NOT produce a fix on main or a PR
+    else if (autofixResult.action && autofixResult.action !== 'refused' && autofixResult.action !== 'ignored') {
+      await sendEmailAlert({
+        subject: `[Smarter.Poker Autofix] ⚠ Did not fix ${commitSha.substring(0, 8)} (${autofixResult.action})`,
         markdown: `## Autofix could not repair this build
 
 **Commit:** \`${commitSha}\`
 **Message:** ${commitMsg.substring(0, 200)}
+**Action:** \`${autofixResult.action}\` ${autofixResult.action === 'skipped' ? '(guard rejected the fix)' : autofixResult.action === 'api_error' ? '(Anthropic API call failed)' : autofixResult.action === 'timeout' ? '(Claude call exceeded 45s timeout)' : autofixResult.action === 'push_failed' ? '(GitHub push rejected — likely SHA conflict or permissions)' : autofixResult.action === 'pr_failed' ? '(branch was created and pushed, but PR open failed)' : ''}
 **Reason:** ${autofixResult.reason || '(none given)'}
-**Action:** ${autofixResult.action}
 **Attempt:** ${attempts + 1}/${MAX_FIX_ATTEMPTS}
+**Duration:** ${duration}ms
 
-Build errors (first 500 chars):
+${autofixResult.action === 'pr_failed' && autofixResult.branch ? `A branch was already created — you can open the PR manually: https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/pull/new/${autofixResult.branch}\n\n` : ''}Build errors (first 500 chars):
 \`\`\`
 ${(buildErrors || '').substring(0, 500)}
 \`\`\`
 
 Manual intervention needed. Check the Vercel build: https://vercel.com/smarter-poker/hub-vanguard/deployments`,
-        tag: 'autofix_skipped',
+        tag: `autofix_${autofixResult.action}`,
       });
     }
 
