@@ -1751,13 +1751,36 @@ export default function PokerNearMePage() {
                     const effectiveRadius = radiusOverride || filters.radius;
                     const miRadius = effectiveRadius === 'Any' ? 5000 : Number(effectiveRadius);
                     params.set('radius', String(miRadius));
-                    // Pass user's state so API can include no-coordinate venues from the same state
-                    // Extract state from GPS label: "Oak Lawn, IL" → "IL"
+                    // Pass user's state so API includes no-coord venues from same state.
+                    // Priority order: gpsLocationLabel ("Oak Lawn, IL") → pnm_last_state → sp-user-gps label
+                    // Note: gpsLocationLabel may be "41.716, -87.742" immediately after fresh GPS fires
+                    // before reverseGeocode resolves, so we also check persisted keys.
+                    let stateForApi = '';
+                    // 1. Try label ("Oak Lawn, IL" → "IL")
                     const labelParts = (gpsLocationLabel || '').split(',');
                     const stateFromLabel = labelParts.length >= 2 ? labelParts[labelParts.length - 1].trim().toUpperCase() : '';
-                    if (stateFromLabel && stateFromLabel.length === 2) {
-                        params.set('user_state', stateFromLabel);
+                    if (stateFromLabel && stateFromLabel.length === 2 && /^[A-Z]{2}$/.test(stateFromLabel)) {
+                        stateForApi = stateFromLabel;
                     }
+                    // 2. Fallback: read saved state from localStorage (written by lobby/GPS restore)
+                    if (!stateForApi) {
+                        try {
+                            const savedState = localStorage.getItem('pnm_last_state') || '';
+                            if (savedState && savedState.length === 2) stateForApi = savedState.toUpperCase();
+                        } catch (e) { /* ignore */ }
+                    }
+                    // 3. Fallback: parse label from sp-user-gps
+                    if (!stateForApi) {
+                        try {
+                            const savedGps = JSON.parse(localStorage.getItem('sp-user-gps') || '{}');
+                            if (savedGps.label) {
+                                const p = savedGps.label.split(',');
+                                const s = p.length >= 2 ? p[p.length - 1].trim().toUpperCase() : '';
+                                if (s.length === 2 && /^[A-Z]{2}$/.test(s)) stateForApi = s;
+                            }
+                        } catch (e) { /* ignore */ }
+                    }
+                    if (stateForApi) params.set('user_state', stateForApi);
                 }
                 if (filters.venueType !== 'all') {
                     params.set('type', filters.venueType);
