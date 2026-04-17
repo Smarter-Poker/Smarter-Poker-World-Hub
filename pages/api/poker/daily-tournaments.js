@@ -416,6 +416,163 @@ async function handler(req, res) {
                   });
               }
 
+              // ═══════════════════════════════════════════════════════════
+              //  PHASE 20 — HOME GAME TOURNAMENT UNION
+              // ═══════════════════════════════════════════════════════════
+              //
+              // Dan's directive: "Home-game tournaments should surface in
+              // Daily Tournaments pages."
+              //
+              // Uses the Phase 16B `format` column on commander_home_games
+              // (values 'cash'|'tournament') and the Phase 18 activity filter
+              // on commander_home_groups (last_activity_at / created_at /
+              // visibility_override_until).
+              //
+              // STRICT RULES:
+              //   1. Only format='tournament' home games surface here
+              //   2. Only scheduled_date = targetDateStr — home games are
+              //      one-off events on specific dates, not recurring "Daily"
+              //      tournaments. A home game set for Apr 25 appears only
+              //      when the user views Apr 25.
+              //   3. Parent group MUST be public + active + pass the 45-day
+              //      activity filter. Dan's explicit clarification: "Auto-
+              //      scheduled tournaments do NOT count as activity." So
+              //      the group itself needs recent human engagement for
+              //      its future tournaments to surface.
+              //   4. status must be 'scheduled' or 'in_progress' — not
+              //      'cancelled' or 'completed'
+              //
+              // Follows the same read-time UNION pattern Phase 19 uses for
+              // /api/poker/venues (no cross-table FK writes; home groups
+              // stay in their own schema island).
+              try {
+                  const HG_INACTIVITY_DAYS = 45;
+                  const hgInactivityCutoff = new Date(
+                      Date.now() - HG_INACTIVITY_DAYS * 24 * 60 * 60 * 1000
+                  ).toISOString();
+                  const hgNow = new Date().toISOString();
+
+                  let hgQuery = getSupabase()
+                      .from('commander_home_games')
+                      .select(`
+                          id,
+                          title,
+                          description,
+                          game_type,
+                          stakes,
+                          buyin_min,
+                          buyin_max,
+                          scheduled_date,
+                          start_time,
+                          max_players,
+                          rsvp_yes,
+                          status,
+                          format,
+                          neighborhood,
+                          approximate_lat,
+                          approximate_lng,
+                          group:commander_home_groups!inner (
+                              id,
+                              name,
+                              city,
+                              state,
+                              latitude,
+                              longitude,
+                              profile_photo_url,
+                              is_private,
+                              is_active,
+                              last_activity_at,
+                              created_at,
+                              visibility_override_until
+                          )
+                      `)
+                      .eq('format', 'tournament')
+                      .in('status', ['scheduled', 'in_progress'])
+                      .eq('scheduled_date', targetDateStr)
+                      .eq('group.is_private', false)
+                      .eq('group.is_active', true);
+
+                  const { data: dbHomeGameTourneys, error: hgErr } = await hgQuery;
+                  if (hgErr) {
+                      console.warn('[daily-tournaments] Home game UNION query error (non-fatal):', hgErr.message);
+                  } else if (dbHomeGameTourneys && dbHomeGameTourneys.length > 0) {
+                      // Apply the 45-day activity filter client-side (PostgREST
+                      // won't do compound OR across the joined table reliably).
+                      const cutoffMs = Date.parse(hgInactivityCutoff);
+                      const nowMs    = Date.parse(hgNow);
+                      const activeHomeGames = dbHomeGameTourneys.filter((hg) => {
+                          const g = hg.group;
+                          if (!g || g.is_private || !g.is_active) return false;
+                          const lastActivityMs = g.last_activity_at ? Date.parse(g.last_activity_at) : 0;
+                          const createdAtMs    = g.created_at        ? Date.parse(g.created_at)        : 0;
+                          const overrideMs     = g.visibility_override_until ? Date.parse(g.visibility_override_until) : 0;
+                          return lastActivityMs >= cutoffMs
+                              || createdAtMs    >= cutoffMs
+                              || overrideMs     >  nowMs;
+                      });
+
+                      // Optional state filter (applied the same way charity/
+                      // tour filters are applied below — but safer to apply
+                      // it at push-time here using the joined group's state).
+                      const filteredByState = safeStateParam
+                          ? activeHomeGames.filter((hg) =>
+                              (hg.group?.state || '').toUpperCase() === safeStateParam.toUpperCase()
+                          )
+                          : activeHomeGames;
+
+                      filteredByState.forEach((hg) => {
+                          const g = hg.group || {};
+                          // Map buyin to the shape charity/tour events use
+                          const buyIn = hg.buyin_min || 0;
+
+                          // start_time in commander_home_games is stored as
+                          // a time-of-day string like "19:00" (24-hour). The
+                          // rest of this endpoint uses "7:00 PM" format.
+                          // Best-effort conversion — fall back to the raw
+                          // value if parse fails.
+                          let displayStartTime = hg.start_time || '7:00 PM';
+                          try {
+                              if (typeof hg.start_time === 'string' && /^\d{1,2}:\d{2}(:\d{2})?$/.test(hg.start_time)) {
+                                  const [hStr, mStr] = hg.start_time.split(':');
+                                  const h = parseInt(hStr, 10);
+                                  const m = parseInt(mStr, 10) || 0;
+                                  const period = h >= 12 ? 'PM' : 'AM';
+                                  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+                                  displayStartTime = `${h12}:${String(m).padStart(2, '0')} ${period}`;
+                              }
+                          } catch { /* fall back to raw */ }
+
+                          tournaments.push({
+                              id:                `home_game_${hg.id}`,
+                              venue_id:          `home_game_${g.id || hg.id}`,  // string, distinguishable from int venue_ids
+                              venue_name:        g.name || 'Home Game',
+                              venueType:         'Home Game',
+                              day_of_week:       hg.scheduled_date,
+                              start_time:        displayStartTime,
+                              buy_in:            buyIn,
+                              game_type:         (hg.game_type || 'NLH').toUpperCase(),
+                              format:            hg.title || 'Home Tournament',
+                              guaranteed:        0,
+                              tournament_name:   hg.title || `${g.name || 'Home Game'} Tournament`,
+                              source_url:        null,  // Populated by discover /home-games/{slug} on frontend
+                              state:             g.state,
+                              city:              g.city,
+                              logo_url:          g.profile_photo_url || null,
+                              is_home_game:      true,                           // extra UI signal
+                              home_group_id:     g.id,                           // for deep-linking to /home-games/{slug}
+                              rsvp_yes:          hg.rsvp_yes || 0,
+                              max_players:       hg.max_players,
+                              pokerAtlasUrl:     null,
+                          });
+                      });
+                  }
+              } catch (hgIntegrationErr) {
+                  console.warn('[daily-tournaments] Home game UNION failed (non-fatal):', hgIntegrationErr?.message || hgIntegrationErr);
+              }
+              // ═══════════════════════════════════════════════════════════
+              //  END PHASE 20
+              // ═══════════════════════════════════════════════════════════
+
               // Filter by state if provided (Ensures Charity/Tours are caught)
               if (state) {
                   tournaments = tournaments.filter(t =>
