@@ -304,6 +304,7 @@ async function handler(req, res) {
     // Build venue location cache for distance and state/city lookup
     // ──────────────────────────────────────────────────────────────
     let venueLocations = {};
+    let venueNamesList = [];
     try {
       // [EC4 FIX] Was .limit(2000) — Supabase project cap is 1000 rows/query.
       // Paginate across up to 3 pages (3,000 venues) to handle full venue table.
@@ -318,7 +319,11 @@ async function handler(req, res) {
         if (!venueRows || venueRows.length === 0) break;
         for (const v of venueRows) {
           venueLocations[v.id] = v;
-          if (v.name) venueLocations[v.name.toLowerCase()] = v;
+          if (v.name) {
+            const cleanName = v.name.toLowerCase().trim();
+            venueLocations[cleanName] = v;
+            venueNamesList.push({ name: cleanName, venue: v });
+          }
         }
         if (venueRows.length < 1000) break; // no more pages
       }
@@ -326,7 +331,24 @@ async function handler(req, res) {
 
     const getVenueInfo = (venueId, venueName) => {
       const vNameClean = venueName ? venueName.toLowerCase().trim() : null;
-      return venueLocations[venueId] || venueLocations[vNameClean] || null;
+      if (venueLocations[venueId]) return venueLocations[venueId];
+      if (vNameClean && venueLocations[vNameClean]) return venueLocations[vNameClean];
+      
+      // Fuzzy fallback match for when tournament venue_name omits suffixes like "Las Vegas"
+      if (vNameClean && vNameClean.length > 3) {
+        const stripWords = (s) => s.replace(/\b(casino|resort|hotel|poker|room|card)\b/g, '').trim().replace(/\s+/g, ' ');
+        const s1 = stripWords(vNameClean);
+        
+        if (s1.length > 3) {
+          for (const vf of venueNamesList) {
+            const s2 = stripWords(vf.name);
+            if (s2.length > 3 && (s1.includes(s2) || s2.includes(s1))) {
+              return vf.venue;
+            }
+          }
+        }
+      }
+      return null;
     };
 
     // ──────────────────────────────────────────────────────────────

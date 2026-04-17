@@ -37,14 +37,14 @@ import { getCityCoordinatesMap } from '../../../src/data/city-coordinates';
 
 // Dynamic import — 2D lobby background (client-only, no SSR)
 const LobbyCanvas = dynamic(
-  () => import('../../src/components/poker-near-me/lobby/LobbyCanvas').catch(err => {
+  () => import('../../../src/components/poker-near-me/lobby/LobbyCanvas').catch(err => {
     console.error('[PokerNearMeLobby] LobbyCanvas module failed to load:', err);
     return { default: () => null };
   }),
   { ssr: false }
 );
 const LobbyOverlay = dynamic(
-  () => import('../../src/components/poker-near-me/lobby/LobbyOverlay').catch(err => {
+  () => import('../../../src/components/poker-near-me/lobby/LobbyOverlay').catch(err => {
     console.error('[PokerNearMeLobby] LobbyOverlay failed to load:', err);
     return { default: () => null };
   }),
@@ -52,33 +52,33 @@ const LobbyOverlay = dynamic(
 );
 
 // Feature modules — loaded into the panel when a pod is clicked
-const VenueCard = dynamic(() => import('../../src/components/poker-near-me/VenueCard'), { ssr: false });
-const TourCard = dynamic(() => import('../../src/components/poker-near-me/TourCard'), { ssr: false });
-const SeriesCard = dynamic(() => import('../../src/components/poker-near-me/NewSeriesVenueCard'), { ssr: false });
-const LiveGamesFeed = dynamic(() => import('../../src/components/poker-near-me/LiveGamesFeed'), { ssr: false });
-const NearMeNowFeed = dynamic(() => import('../../src/components/poker-near-me/NearMeNowFeed'), { ssr: false });
-const VenueCompare = dynamic(() => import('../../src/components/poker-near-me/VenueCompare'), { ssr: false });
-const RoadTripPlanner = dynamic(() => import('../../src/components/poker-near-me/RoadTripPlanner'), { ssr: false });
-const SocialLayer = dynamic(() => import('../../src/components/poker-near-me/SocialLayer'), { ssr: false });
-const TournamentAlerts = dynamic(() => import('../../src/components/poker-near-me/TournamentAlerts'), { ssr: false });
-const SeasonalCalendar = dynamic(() => import('../../src/components/poker-near-me/SeasonalCalendar'), { ssr: false });
-const TripCostCalculator = dynamic(() => import('../../src/components/poker-near-me/TripCostCalculator'), { ssr: false });
-const FilterPanel = dynamic(() => import('../../src/components/poker-near-me/FilterPanel'), { ssr: false });
-const VoiceSearch = dynamic(() => import('../../src/components/poker-near-me/VoiceSearch'), { ssr: false });
-const VenueReviews = dynamic(() => import('../../src/components/poker-near-me/VenueReviews'), { ssr: false });
-const VenueMapPanel = dynamic(() => import('../../src/components/poker-near-me/VenueMapPanel'), { ssr: false });
-const ScraperHealthDashboard = dynamic(() => import('../../src/components/poker-near-me/ScraperHealthDashboard'), { ssr: false });
-const PeakActivityHeatmap = dynamic(() => import('../../src/components/poker-near-me/PeakActivityHeatmap'), { ssr: false });
-const GameTrendsDashboard = dynamic(() => import('../../src/components/poker-near-me/GameTrendsDashboard'), { ssr: false });
-const DailyTournamentsPanel = dynamic(() => import('../../src/components/poker-near-me/DailyTournamentsPanel'), { ssr: false });
-const VenueGameAlerts = dynamic(() => import('../../src/components/poker-near-me/VenueGameAlerts'), { ssr: false });
-const CreateHomeGame = dynamic(() => import('../../src/components/poker-near-me/CreateHomeGame'), { ssr: false });
-const GeofenceAlertBanner = dynamic(() => import('../../src/components/poker-near-me/GeofenceAlertBanner'), { ssr: false });
-const GlobalSearchOverlay = dynamic(() => import('../../src/components/poker-near-me/GlobalSearchOverlay'), { ssr: false });
-const PodVenueSearchEngine = dynamic(() => import('../../src/components/poker-near-me/lobby/PodVenueSearchEngine'), { ssr: false });
-const PodHomeGames = dynamic(() => import('../../src/components/poker-near-me/lobby/PodHomeGames'), { ssr: false });
-const PodTours = dynamic(() => import('../../src/components/poker-near-me/lobby/PodTours'), { ssr: false });
-const PodSeries = dynamic(() => import('../../src/components/poker-near-me/lobby/PodSeries'), { ssr: false });
+const VenueCard = dynamic(() => import('../../../src/components/poker-near-me/VenueCard'), { ssr: false });
+const TourCard = dynamic(() => import('../../../src/components/poker-near-me/TourCard'), { ssr: false });
+const SeriesCard = dynamic(() => import('../../../src/components/poker-near-me/NewSeriesVenueCard'), { ssr: false });
+const LiveGamesFeed = dynamic(() => import('../../../src/components/poker-near-me/LiveGamesFeed'), { ssr: false });
+const NearMeNowFeed = dynamic(() => import('../../../src/components/poker-near-me/NearMeNowFeed'), { ssr: false });
+const VenueCompare = dynamic(() => import('../../../src/components/poker-near-me/VenueCompare'), { ssr: false });
+const RoadTripPlanner = dynamic(() => import('../../../src/components/poker-near-me/RoadTripPlanner'), { ssr: false });
+const SocialLayer = dynamic(() => import('../../../src/components/poker-near-me/SocialLayer'), { ssr: false });
+const TournamentAlerts = dynamic(() => import('../../../src/components/poker-near-me/TournamentAlerts'), { ssr: false });
+const SeasonalCalendar = dynamic(() => import('../../../src/components/poker-near-me/SeasonalCalendar'), { ssr: false });
+const TripCostCalculator = dynamic(() => import('../../../src/components/poker-near-me/TripCostCalculator'), { ssr: false });
+const FilterPanel = dynamic(() => import('../../../src/components/poker-near-me/FilterPanel'), { ssr: false });
+const VoiceSearch = dynamic(() => import('../../../src/components/poker-near-me/VoiceSearch'), { ssr: false });
+const VenueReviews = dynamic(() => import('../../../src/components/poker-near-me/VenueReviews'), { ssr: false });
+const VenueMapPanel = dynamic(() => import('../../../src/components/poker-near-me/VenueMapPanel'), { ssr: false });
+const ScraperHealthDashboard = dynamic(() => import('../../../src/components/poker-near-me/ScraperHealthDashboard'), { ssr: false });
+const PeakActivityHeatmap = dynamic(() => import('../../../src/components/poker-near-me/PeakActivityHeatmap'), { ssr: false });
+const GameTrendsDashboard = dynamic(() => import('../../../src/components/poker-near-me/GameTrendsDashboard'), { ssr: false });
+const DailyTournamentsPanel = dynamic(() => import('../../../src/components/poker-near-me/DailyTournamentsPanel'), { ssr: false });
+const VenueGameAlerts = dynamic(() => import('../../../src/components/poker-near-me/VenueGameAlerts'), { ssr: false });
+const CreateHomeGame = dynamic(() => import('../../../src/components/poker-near-me/CreateHomeGame'), { ssr: false });
+const GeofenceAlertBanner = dynamic(() => import('../../../src/components/poker-near-me/GeofenceAlertBanner'), { ssr: false });
+const GlobalSearchOverlay = dynamic(() => import('../../../src/components/poker-near-me/GlobalSearchOverlay'), { ssr: false });
+const PodVenueSearchEngine = dynamic(() => import('../../../src/components/poker-near-me/lobby/PodVenueSearchEngine'), { ssr: false });
+const PodHomeGames = dynamic(() => import('../../../src/components/poker-near-me/lobby/PodHomeGames'), { ssr: false });
+const PodTours = dynamic(() => import('../../../src/components/poker-near-me/lobby/PodTours'), { ssr: false });
+const PodSeries = dynamic(() => import('../../../src/components/poker-near-me/lobby/PodSeries'), { ssr: false });
 
 // ─── Error Boundary for Pod Content ───
 class PodErrorBoundary extends React.Component {
@@ -1088,11 +1088,11 @@ export default function PokerNearMeLobby() {
 
     let gfService = null;
 
-    import('../../src/lib/geofence').then(function (mod) {
+    import('../../../src/lib/geofence').then(function (mod) {
       const GeofenceService = mod.default;
       gfService = new GeofenceService();
 
-      import('../../src/lib/pushAlerts').then(function (pushMod) {
+      import('../../../src/lib/pushAlerts').then(function (pushMod) {
         pushMod.requestPermission().then(function (permission) {
           if (permission === 'denied') setGeofenceStatus('denied');
         }).catch(function () {});
