@@ -2217,6 +2217,7 @@ export default function PokerNearMePage() {
                     window.history.replaceState({}, '', cleanUrl);
                 }
             } else if (TAB_ORDER.includes(internalTab) || internalTab === 'events' || internalTab === 'more') {
+                setShowLiveTab(false); // Reset live tab when navigating to any other tab
                 setActiveTab(internalTab);
                 if (internalSub) setActiveEventTab(internalSub);
             }
