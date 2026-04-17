@@ -142,6 +142,74 @@ async function createAlertIssue(title, body, { alertKey, ghPat } = {}) {
   } catch (err) {
     console.error('[deploy-monitor] Failed to create alert issue:', err.message);
   }
+
+  // Best-effort parallel email. Never throws — monitor must keep running.
+  try {
+    await sendEmailAlert({
+      subject: `[Smarter.Poker Autofix] ${title}`,
+      markdown: body,
+      tag: 'alert',
+    });
+  } catch (err) {
+    console.error('[deploy-monitor] Email alert failed (non-fatal):', err.message);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Email alerting via Resend — non-blocking, never throws
+// ─────────────────────────────────────────────────────────────────────────────
+async function sendEmailAlert({ subject, markdown, tag = 'info' }) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.log('[deploy-monitor] RESEND_API_KEY not set — skipping email');
+    return;
+  }
+  const to = process.env.OPS_ALERT_EMAIL || 'admin@smarter.poker';
+  const from = process.env.OPS_ALERT_FROM || 'deploy-monitor@smarter.poker';
+
+  // Convert markdown to very simple HTML (no external dep). Good enough for alerts.
+  const html = `<div style="font-family:system-ui,sans-serif;max-width:640px;padding:16px;">
+    <pre style="white-space:pre-wrap;word-wrap:break-word;background:#f6f8fa;padding:12px;border-radius:6px;font-size:13px;">${String(markdown)
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')}</pre>
+    <p style="color:#8b949e;font-size:12px;margin-top:12px;">
+      Sent by deploy-monitor · tag=${tag} · ${new Date().toISOString()}
+    </p>
+  </div>`;
+
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ from, to, subject, html, tags: [{ name: 'source', value: 'deploy-monitor' }, { name: 'tag', value: tag }] }),
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error(`[deploy-monitor] Resend rejected email (HTTP ${res.status}):`, errText.substring(0, 200));
+    } else {
+      console.log(`[deploy-monitor] Email alert sent (tag=${tag})`);
+    }
+  } catch (err) {
+    console.error('[deploy-monitor] Resend fetch error:', err.message);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Structured telemetry log — JSON per decision, queryable via Vercel logs
+// Swap this function body with a PostHog ingest call once POSTHOG_KEY is set
+// ─────────────────────────────────────────────────────────────────────────────
+function logTelemetry(decision, context = {}) {
+  console.log(
+    `[telemetry] ${JSON.stringify({
+      event: 'deploy_monitor_decision',
+      decision,
+      timestamp: new Date().toISOString(),
+      ...context,
+    })}`
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -435,6 +503,63 @@ https://vercel.com/smarter-poker/hub-vanguard/deployments`,
     const autofixResult = await autofixRes.json();
     const duration = Date.now() - startTime;
     console.log(`[deploy-monitor] Autofix result: ${autofixResult.action} (${duration}ms)`);
+
+    // Structured telemetry for every autofix run (success or skip)
+    logTelemetry('autofix_completed', {
+      commitSha: commitSha.substring(0, 8),
+      action: autofixResult.action,
+      attempt: attempts + 1,
+      durationMs: duration,
+      filePath: autofixResult.filePath,
+      newSha: autofixResult.newSha,
+    });
+
+    // Success notification — you want to know when autofix ships code to main
+    if (autofixResult.action === 'fixed') {
+      const shortSha = commitSha.substring(0, 8);
+      const newShortSha = (autofixResult.newSha || '').substring(0, 8);
+      await sendEmailAlert({
+        subject: `[Smarter.Poker Autofix] ✓ Fixed ${autofixResult.filePath || 'a build error'} (${shortSha})`,
+        markdown: `## Autofix succeeded
+
+**Original broken commit:** \`${commitSha}\`
+**Commit message:** ${commitMsg.substring(0, 200)}
+**File repaired:** \`${autofixResult.filePath || '(unknown)'}\`
+**Fix commit:** \`${newShortSha}\`
+**Attempt:** ${attempts + 1}/${MAX_FIX_ATTEMPTS}
+**Duration:** ${duration}ms
+**Model:** ${process.env.AUTOFIX_CLAUDE_MODEL || 'claude-sonnet-4-20250514'}
+
+Vercel is now rebuilding with the fix. You should see a green deployment within ~2 minutes.
+
+Review the change: https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/commit/${autofixResult.newSha || ''}
+
+If the fix looks wrong, revert it: \`git revert ${newShortSha}\``,
+        tag: 'autofix_success',
+      });
+    }
+
+    // Failure notification — Claude tried but couldnt produce a valid fix
+    if (autofixResult.action === 'skipped' || autofixResult.action === 'error') {
+      await sendEmailAlert({
+        subject: `[Smarter.Poker Autofix] ⚠ Skipped fix for ${commitSha.substring(0, 8)}`,
+        markdown: `## Autofix could not repair this build
+
+**Commit:** \`${commitSha}\`
+**Message:** ${commitMsg.substring(0, 200)}
+**Reason:** ${autofixResult.reason || '(none given)'}
+**Action:** ${autofixResult.action}
+**Attempt:** ${attempts + 1}/${MAX_FIX_ATTEMPTS}
+
+Build errors (first 500 chars):
+\`\`\`
+${(buildErrors || '').substring(0, 500)}
+\`\`\`
+
+Manual intervention needed. Check the Vercel build: https://vercel.com/smarter-poker/hub-vanguard/deployments`,
+        tag: 'autofix_skipped',
+      });
+    }
 
     return res.status(200).json({
       action: autofixResult.action || 'autofix_attempted',
