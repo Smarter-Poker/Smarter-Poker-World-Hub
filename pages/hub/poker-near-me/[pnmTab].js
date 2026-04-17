@@ -1751,6 +1751,13 @@ export default function PokerNearMePage() {
                     const effectiveRadius = radiusOverride || filters.radius;
                     const miRadius = effectiveRadius === 'Any' ? 5000 : Number(effectiveRadius);
                     params.set('radius', String(miRadius));
+                    // Pass user's state so API can include no-coordinate venues from the same state
+                    // Extract state from GPS label: "Oak Lawn, IL" → "IL"
+                    const labelParts = (gpsLocationLabel || '').split(',');
+                    const stateFromLabel = labelParts.length >= 2 ? labelParts[labelParts.length - 1].trim().toUpperCase() : '';
+                    if (stateFromLabel && stateFromLabel.length === 2) {
+                        params.set('user_state', stateFromLabel);
+                    }
                 }
                 if (filters.venueType !== 'all') {
                     params.set('type', filters.venueType);

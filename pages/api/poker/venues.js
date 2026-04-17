@@ -274,6 +274,9 @@ export default async function handler(req, res) {
           const hasNLH = safeStr(_hasNLH);
           const hasPLO = safeStr(_hasPLO);
           const hasMixed = safeStr(_hasMixed);
+          // user_state: optional 2-letter state code derived from GPS label on client (e.g. 'IL')
+          // Used to include no-coordinate venues from the same state when GPS browsing.
+          const user_state = safeStr(req.query.user_state);
 
 
           const maxResults = Math.min(parseInt(limit, 10) || 1000, 1000);
@@ -875,13 +878,31 @@ export default async function handler(req, res) {
               });
 
               if (!search) {
-                  // Location-browse: filter by radius
+                  // Location-browse: filter by radius.
+                  // PRIMARY: venues within the radius that have coordinates.
                   const withinRadius = venues.filter(v =>
                       (v.distance_mi != null && v.distance_mi <= maxRadius) ||
                       ['tour', 'series'].includes(v.venue_type)
                   );
+
+                  // FALLBACK: when GPS is active, most venues lack coordinates and get dropped.
+                  // Include venues from the user's state (if provided) that have no coordinates,
+                  // so the page is never blank just because coordinate data is sparse.
+                  let noCoordVenues = [];
+                  const effectiveUserState = user_state || state;
+                  if (effectiveUserState) {
+                      const stateUpper = effectiveUserState.toUpperCase();
+                      noCoordVenues = venues.filter(v =>
+                          v.distance_mi == null &&
+                          !['tour', 'series'].includes(v.venue_type) &&
+                          (v.state || '').toUpperCase() === stateUpper
+                      );
+                  }
+
+                  // Sort: distance-known venues first (nearest to farthest), then no-coord same-state venues
                   withinRadius.sort((a, b) => (a.distance_mi ?? 9999) - (b.distance_mi ?? 9999));
-                  venues = withinRadius;
+                  noCoordVenues.sort((a, b) => (b.trust_score || 0) - (a.trust_score || 0));
+                  venues = [...withinRadius, ...noCoordVenues];
               } else {
                   // Search mode: do not restrict by radius, but hybrid sort results to favor local matches
                   venues.sort((a, b) => {
