@@ -61,6 +61,8 @@
 import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardUser } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
+import { sendPushNotification } from '../../../../../src/lib/commander/pushNotifications';
+import { sendDirectMessageBetweenUsers } from '../../../../../src/lib/home-games/messenger';
 
 let _supabase = null;
 function getSupabase() {
@@ -329,21 +331,23 @@ async function callerIsGroupStaff(supabase, user_id, group_id) {
 
 /**
  * ── dispatchRequesterNotification ───────────────────────────────────────────
- *  Fires when a host approves a requester's RSVP (false→true transition).
- *  Mirrors Phase 10's dispatchHostNotification but inverted: the REQUESTER
- *  is the notification target, the HOST is the actor.
+ *  Fires when a host approves a requester's RSVP (is_confirmed false→true).
+ *  Mirrors the Phase 10 host-side dispatcher but inverted: the REQUESTER is
+ *  the notification target, the HOST is the actor.
  *
- *  Two surfaces:
+ *  THREE surfaces (NO EMAIL — Phase 12 removed all email dispatch):
  *    1. Row in public.notifications (in-app bell)
- *    2. Email via internal /api/email/send-seat-approved endpoint
+ *    2. OneSignal push (mobile + desktop push banners)
+ *    3. Internal messenger DM from host -> requester with the address.
+ *       The DM is the primary address-delivery channel now.
  *
  *  Dedup: 4-hour window on (user_id=requester, type=approved, rsvp_id)
- *  guards against flapping approvals (approve → decline → approve spam).
+ *  anchored on the in-app notification row. If the row exists for this
+ *  rsvp_id in the last 4h, all surfaces already fired and we skip.
  * ───────────────────────────────────────────────────────────────────────────
  */
 async function dispatchRequesterNotification(supabase, ctx) {
   const {
-    req,
     requester_user_id,
     host_user_id,
     group,
@@ -369,30 +373,25 @@ async function dispatchRequesterNotification(supabase, ctx) {
     console.warn('[rsvps/[id]] dedup check failed (proceeding):', dedupErr?.message || dedupErr);
   }
 
-  // ── Profile + email lookup ────────────────────────────────────────────────
-  const [requesterProfileRes, hostProfileRes, requesterAuthRes, pageRes] = await Promise.allSettled([
-    supabase.from('profiles').select('id, display_name, full_name, first_name, username, email').eq('id', requester_user_id).maybeSingle(),
+  // ── Resolve profile display names + the public slug for action link ──────
+  const [requesterProfileRes, hostProfileRes, pageRes] = await Promise.allSettled([
+    supabase.from('profiles').select('id, display_name, full_name, first_name, username').eq('id', requester_user_id).maybeSingle(),
     supabase.from('profiles').select('id, display_name, full_name, first_name, username').eq('id', host_user_id).maybeSingle(),
-    supabase.auth.admin.getUserById(requester_user_id),
     supabase.from('social_pages').select('slug').eq('linked_entity_type', 'home_group').eq('linked_entity_id', String(group.id)).eq('page_type', 'home_game').maybeSingle(),
   ]);
 
   const pickName = (p) => (p?.display_name || p?.full_name || p?.first_name || p?.username || null);
-
   const requesterProfile = requesterProfileRes.status === 'fulfilled' ? requesterProfileRes.value?.data : null;
   const hostProfile      = hostProfileRes.status      === 'fulfilled' ? hostProfileRes.value?.data      : null;
-  const requesterAuth    = requesterAuthRes.status    === 'fulfilled' ? requesterAuthRes.value?.data?.user : null;
-  const pageSlug         = pageRes.status             === 'fulfilled' ? pageRes.value?.data?.slug || null  : null;
+  const pageSlug         = pageRes.status             === 'fulfilled' ? pageRes.value?.data?.slug || null : null;
 
   const requesterName = pickName(requesterProfile) || 'there';
-  const hostName      = pickName(hostProfile) || 'The host';
-  const requesterEmail = requesterAuth?.email || requesterProfile?.email || null;
+  const hostName      = pickName(hostProfile)      || 'The host';
 
   const slugUrl = pageSlug
     ? `https://smarter.poker/hub/home-games/${pageSlug}`
     : `https://smarter.poker/hub/commander/home-games/${group.id}`;
 
-  // ── Assemble one metadata object used by both surfaces ───────────────────
   const metadata = {
     rsvp_id: String(rsvp.id),
     game_id: String(event.id),
@@ -412,22 +411,20 @@ async function dispatchRequesterNotification(supabase, ctx) {
     : `${hostName} approved your seat for ${event.scheduled_date}.`;
 
   // ── 1. In-app notification row ────────────────────────────────────────────
-  const notifRow = {
-    user_id: requester_user_id,
-    type: 'home_game_rsvp_approved',
-    title: titleText,
-    message: bodyText,
-    data: metadata,
-    metadata,
-    actor_id: host_user_id,
-    action_url: slugUrl,
-    link: slugUrl,
-    is_read: false,
-    read: false,
-  };
-
   try {
-    const { error: notifErr } = await supabase.from('notifications').insert(notifRow);
+    const { error: notifErr } = await supabase.from('notifications').insert({
+      user_id: requester_user_id,
+      type: 'home_game_rsvp_approved',
+      title: titleText,
+      message: bodyText,
+      data: metadata,
+      metadata,
+      actor_id: host_user_id,
+      action_url: slugUrl,
+      link: slugUrl,
+      is_read: false,
+      read: false,
+    });
     if (notifErr) {
       console.warn('[rsvps/[id]] notifications insert failed:', notifErr.message);
     }
@@ -435,45 +432,47 @@ async function dispatchRequesterNotification(supabase, ctx) {
     console.warn('[rsvps/[id]] notifications insert threw:', e?.message || e);
   }
 
-  // ── 2. Email via internal send-seat-approved endpoint ────────────────────
-  if (!requesterEmail) return;
-
-  const adminSecret = process.env.ADMIN_ROUTE_SECRET;
-  if (!adminSecret) {
-    console.warn('[rsvps/[id]] ADMIN_ROUTE_SECRET not set; skipping email');
-    return;
+  // ── 2. OneSignal push to the requester's registered devices ──────────────
+  try {
+    await sendPushNotification({
+      externalUserIds: [requester_user_id],
+      title: titleText,
+      message: bodyText,
+      url: slugUrl,
+      data: {
+        ...metadata,
+        notification_type: 'home_game_rsvp_approved',
+      },
+    });
+  } catch (e) {
+    console.warn('[rsvps/[id]] push dispatch threw:', e?.message || e);
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL
-    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
-    || (req?.headers?.host ? `https://${req.headers.host}` : 'https://smarter.poker');
+  // ── 3. Internal messenger DM from host -> requester ──────────────────────
+  // Includes the address if populated — this is the primary channel for
+  // delivering the address to a newly-confirmed guest. The host can keep
+  // chatting with the requester afterward for logistics.
+  const dateStr = event.scheduled_date || '';
+  const timeStr = event.start_time ? ` at ${String(event.start_time).slice(0, 5)}` : '';
+  const eventLabel = event.title ? `"${event.title}"` : `the game on ${dateStr}${timeStr}`;
+  const addressBlock = event.address
+    ? `\n\n📍 ${event.address}`
+    : `\n\n(I'll share the address closer to game day.)`;
+
+  const dmContent =
+    `Hi ${requesterName} — you're in! Just confirmed your seat at ${eventLabel}. ` +
+    `See you at the table.` +
+    addressBlock +
+    `\n\nGame page: ${slugUrl}`;
 
   try {
-    const resp = await fetch(`${baseUrl}/api/email/send-seat-approved`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-admin-secret': adminSecret,
-      },
-      body: JSON.stringify({
-        to: requesterEmail,
-        requesterName,
-        hostName,
-        groupName: group.name,
-        eventTitle: event.title || null,
-        eventDate: event.scheduled_date,
-        eventStartTime: event.start_time || null,
-        eventStakes: group.typical_stakes || '',
-        eventAddress: event.address || null,
-        bringingGuests: rsvp.bringing_guests || 0,
-        pageUrl: slugUrl,
-      }),
+    await sendDirectMessageBetweenUsers(supabase, {
+      fromUserId: host_user_id,
+      toUserId: requester_user_id,
+      content: dmContent,
+      messageType: 'text',
     });
-    if (!resp.ok) {
-      const text = await resp.text().catch(() => '');
-      console.warn('[rsvps/[id]] email endpoint returned', resp.status, text.slice(0, 200));
-    }
   } catch (e) {
-    console.warn('[rsvps/[id]] email dispatch threw:', e?.message || e);
+    console.warn('[rsvps/[id]] DM dispatch threw:', e?.message || e);
   }
 }

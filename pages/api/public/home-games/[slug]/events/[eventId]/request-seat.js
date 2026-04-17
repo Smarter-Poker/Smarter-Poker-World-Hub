@@ -42,6 +42,8 @@
 
 import { createClient } from '../../../../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../../../../src/lib/apiRateLimit';
+import { sendPushNotification } from '../../../../../../../src/lib/commander/pushNotifications';
+import { sendDirectMessageBetweenUsers } from '../../../../../../../src/lib/home-games/messenger';
 
 let _supabase = null;
 function getSupabase() {
@@ -281,22 +283,30 @@ export default async function handler(req, res) {
 
 /**
  * ── dispatchHostNotification ────────────────────────────────────────────────
- *  Notify the host that a public user requested a seat. Does two things:
- *    1. Inserts a row into public.notifications so the in-app bell picks it up
- *    2. POSTs to /api/email/send-seat-request to send a branded Resend email
+ *  Notify the host that a public user requested a seat. THREE surfaces:
+ *    1. Row in public.notifications (in-app bell)
+ *    2. OneSignal push (mobile + desktop push banners)
+ *    3. Internal messenger DM — requester opens/reuses a 1:1 thread with
+ *       the host and posts the seat-request content. Host can reply
+ *       directly in the platform messenger.
  *
- *  Dedup: skips both sends if a notification of the same type was already
- *  written for this (host, event, requester) triple within the last 4 hours.
- *  This matters because the Phase 9 endpoint is intentionally idempotent —
- *  a user who edits their message and re-submits shouldn't spam the host.
+ *  NO EMAIL. All communication stays inside the platform per product
+ *  decision. Email was the dispatch in v1 of this file; Phase 12 replaced
+ *  it with push + DM so the home-games funnel stays in-app end-to-end.
  *
- *  The helper must never throw in a way that bubbles back to the caller —
- *  the caller wraps it in try/catch, but belt-and-suspenders is good here.
+ *  Dedup: skips ALL THREE surfaces if a notification of the same type was
+ *  already written for this (host, event, requester) triple within the last
+ *  4 hours. This matters because the Phase 9 endpoint is intentionally
+ *  idempotent — a user who edits their message and re-submits shouldn't
+ *  spam the host. The in-app row is the dedup anchor; if it exists, the
+ *  push + DM were already fired.
+ *
+ *  The helper never throws — the caller wraps it in try/catch for good
+ *  measure, but everything inside is swallowed-and-logged.
  * ───────────────────────────────────────────────────────────────────────────
  */
 async function dispatchHostNotification(supabase, ctx) {
   const {
-    req,
     host_user_id,
     requester_user_id,
     group_id,
@@ -312,10 +322,9 @@ async function dispatchHostNotification(supabase, ctx) {
   }
 
   // ── Dedup window ──────────────────────────────────────────────────────────
-  // Check for a recent notification row for this specific request. Using
-  // metadata->>game_id + metadata->>requester_id because data and metadata
-  // both exist on the notifications table; we write metadata consistently
-  // below so the lookup matches.
+  // Anchor on the in-app notification row — if one exists for this triple
+  // in the last 4 hours, all three surfaces were already fired and we
+  // skip the whole dispatch.
   const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
   try {
     const { data: recent } = await supabase
@@ -327,41 +336,27 @@ async function dispatchHostNotification(supabase, ctx) {
       .filter('metadata->>game_id', 'eq', String(event.id))
       .filter('metadata->>requester_id', 'eq', String(requester_user_id))
       .limit(1);
-    if (recent && recent.length > 0) {
-      // Already notified this host about this exact request recently. Skip.
-      return;
-    }
+    if (recent && recent.length > 0) return;
   } catch (dedupErr) {
-    // If the dedup query itself fails, fall through and attempt the send
-    // anyway — better to occasionally double-notify than miss a lead.
+    // If the dedup query itself fails, fall through — better occasional
+    // double-notify than miss a lead.
     console.warn('[request-seat] dedup check failed (proceeding):', dedupErr?.message || dedupErr);
   }
 
-  // ── Resolve profile/email metadata ────────────────────────────────────────
-  // Need: host email (auth.users), host display name (profiles), requester
-  // display name (profiles). auth.admin.getUserById hits GoTrue directly
-  // which is sometimes flaky on Vercel, so we read from auth.users via
-  // service-role instead.
-  const [hostProfileRes, requesterProfileRes, hostAuthRes] = await Promise.allSettled([
+  // ── Resolve profile display names ────────────────────────────────────────
+  const [hostProfileRes, requesterProfileRes] = await Promise.allSettled([
     supabase.from('profiles').select('id, display_name, full_name, first_name, username').eq('id', host_user_id).maybeSingle(),
-    supabase.from('profiles').select('id, display_name, full_name, first_name, username, email').eq('id', requester_user_id).maybeSingle(),
-    supabase.auth.admin.getUserById(host_user_id),
+    supabase.from('profiles').select('id, display_name, full_name, first_name, username').eq('id', requester_user_id).maybeSingle(),
   ]);
-
   const pickName = (p) => (p?.display_name || p?.full_name || p?.first_name || p?.username || null);
-
   const hostProfile = hostProfileRes.status === 'fulfilled' ? hostProfileRes.value?.data : null;
   const requesterProfile = requesterProfileRes.status === 'fulfilled' ? requesterProfileRes.value?.data : null;
-  const hostAuth = hostAuthRes.status === 'fulfilled' ? hostAuthRes.value?.data?.user : null;
-
   const hostName = pickName(hostProfile) || 'Host';
   const requesterName = pickName(requesterProfile) || 'Someone';
-  const requesterEmail = requesterProfile?.email || null;
-  const hostEmail = hostAuth?.email || null;
 
   const manageUrl = `https://smarter.poker/hub/commander/home-games/${encodeURIComponent(group_id)}/manage`;
 
-  // ── Assemble one metadata object used by both surfaces ───────────────────
+  // ── Assemble one metadata object used by all surfaces ────────────────────
   const metadata = {
     game_id: String(event.id),
     group_id: String(group_id),
@@ -385,22 +380,20 @@ async function dispatchHostNotification(supabase, ctx) {
     : `At ${group_name} — tap to approve.`;
 
   // ── 1. In-app notification row ────────────────────────────────────────────
-  const notifRow = {
-    user_id: host_user_id,
-    type: 'home_game_seat_request',
-    title: titleText,
-    message: bodyText,
-    data: metadata,
-    metadata,
-    actor_id: requester_user_id,
-    action_url: manageUrl,
-    link: manageUrl,
-    is_read: false,
-    read: false,
-  };
-
   try {
-    const { error: notifErr } = await supabase.from('notifications').insert(notifRow);
+    const { error: notifErr } = await supabase.from('notifications').insert({
+      user_id: host_user_id,
+      type: 'home_game_seat_request',
+      title: titleText,
+      message: bodyText,
+      data: metadata,
+      metadata,
+      actor_id: requester_user_id,
+      action_url: manageUrl,
+      link: manageUrl,
+      is_read: false,
+      read: false,
+    });
     if (notifErr) {
       console.warn('[request-seat] notifications insert failed:', notifErr.message);
     }
@@ -408,55 +401,52 @@ async function dispatchHostNotification(supabase, ctx) {
     console.warn('[request-seat] notifications insert threw:', e?.message || e);
   }
 
-  // ── 2. Email via internal send-seat-request endpoint ─────────────────────
-  if (!hostEmail) {
-    // Host has no email address on file — skip send, in-app row still exists
-    // so the host will see it on next login.
-    return;
+  // ── 2. OneSignal push to the host's registered devices ───────────────────
+  // Uses externalUserIds so the caller doesn't need to look up OneSignal
+  // player IDs — the OneSignal SDK registers each user with their Supabase
+  // UUID as external_user_id. If the host has no devices registered, this
+  // is a soft no-op.
+  try {
+    await sendPushNotification({
+      externalUserIds: [host_user_id],
+      title: titleText,
+      message: bodyText,
+      url: manageUrl,
+      data: {
+        ...metadata,
+        notification_type: 'home_game_seat_request',
+      },
+    });
+  } catch (e) {
+    console.warn('[request-seat] push dispatch threw:', e?.message || e);
   }
 
-  const adminSecret = process.env.ADMIN_ROUTE_SECRET;
-  if (!adminSecret) {
-    // Not configured — can't call internal endpoint safely. Log once and
-    // skip; in-app row still exists.
-    console.warn('[request-seat] ADMIN_ROUTE_SECRET not set; skipping email');
-    return;
-  }
+  // ── 3. Internal messenger DM from requester -> host ──────────────────────
+  // The requester opens (or reuses) a 1:1 conversation with the host and
+  // sends a message carrying their seat request. The host sees it in their
+  // inbox and can reply directly in-platform.
+  const dateStr = event.scheduled_date || '';
+  const timeStr = event.start_time ? ` at ${String(event.start_time).slice(0, 5)}` : '';
+  const eventLabel = event.title ? `"${event.title}"` : `your game on ${dateStr}${timeStr}`;
+  const guestsSuffix = Number(rsvp.bringing_guests) > 0 ? ` (bringing +${rsvp.bringing_guests})` : '';
+  const waitlistPrefix = isWaitlist ? '[waitlist] ' : '';
+  const messageNote = rsvp.message ? `\n\n${rsvp.message}` : '';
 
-  // Resolve the base URL for the internal call. Vercel provides VERCEL_URL
-  // for the current deployment; fall back to the request's own host.
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL
-    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
-    || (req?.headers?.host ? `https://${req.headers.host}` : 'https://smarter.poker');
+  const dmContent =
+    `${waitlistPrefix}Hi ${hostName} — ${requesterName} here. ` +
+    `I'd love a seat at ${eventLabel}${guestsSuffix}. ` +
+    `Requested via your public home-game page.` +
+    messageNote +
+    `\n\nApprove here: ${manageUrl}`;
 
   try {
-    const resp = await fetch(`${baseUrl}/api/email/send-seat-request`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-admin-secret': adminSecret,
-      },
-      body: JSON.stringify({
-        to: hostEmail,
-        hostName,
-        requesterName,
-        requesterMessage: rsvp.message || '',
-        requesterEmail,
-        groupName: group_name,
-        eventTitle: event.title || null,
-        eventDate: event.scheduled_date,
-        eventStartTime: event.start_time || null,
-        eventStakes: '', // optional cosmetic; could derive from group.typical_stakes if desired
-        response: rsvp.response,
-        bringingGuests: rsvp.bringing_guests || 0,
-        manageUrl,
-      }),
+    await sendDirectMessageBetweenUsers(supabase, {
+      fromUserId: requester_user_id,
+      toUserId: host_user_id,
+      content: dmContent,
+      messageType: 'text',
     });
-    if (!resp.ok) {
-      const text = await resp.text().catch(() => '');
-      console.warn('[request-seat] email endpoint returned', resp.status, text.slice(0, 200));
-    }
   } catch (e) {
-    console.warn('[request-seat] email dispatch threw:', e?.message || e);
+    console.warn('[request-seat] DM dispatch threw:', e?.message || e);
   }
 }
