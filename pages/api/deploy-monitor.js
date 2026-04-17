@@ -93,11 +93,10 @@ async function createAlertIssue(title, body, { alertKey, ghPat } = {}) {
   const token = ghPat || process.env.GH_PAT;
   if (!token) return;
 
-  // Per-key rate limit — prevents a misconfigured webhook from creating 500 issues
+  // Per-key rate limit via Supabase (survives cold starts) with in-memory fallback
   if (alertKey) {
-    const last = lastAlertAt.get(alertKey) || 0;
-    if (Date.now() - last < ALERT_COOLDOWN_MS) return;
-    lastAlertAt.set(alertKey, Date.now());
+    if (await isRecentlyAlerted(alertKey)) return;
+    await recordAlert(alertKey);
   }
 
   try {
@@ -210,6 +209,111 @@ function logTelemetry(decision, context = {}) {
       ...context,
     })}`
   );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Persistent alert dedup via Supabase (survives cold starts)
+// Table: deploy_alerts(alert_key text PK, expires_at timestamptz)
+// Falls back gracefully to in-memory lastAlertAt Map if Supabase is unreachable
+// ─────────────────────────────────────────────────────────────────────────────
+async function isRecentlyAlerted(alertKey) {
+  if (!alertKey) return false;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !serviceKey) {
+    // Fallback to in-memory map (legacy behavior)
+    const last = lastAlertAt.get(alertKey) || 0;
+    return Date.now() - last < ALERT_COOLDOWN_MS;
+  }
+  try {
+    const res = await fetch(
+      `${supabaseUrl}/rest/v1/deploy_alerts?alert_key=eq.${encodeURIComponent(alertKey)}&expires_at=gt.${encodeURIComponent(new Date().toISOString())}&select=alert_key`,
+      {
+        headers: {
+          apikey: serviceKey,
+          Authorization: `Bearer ${serviceKey}`,
+        },
+      }
+    );
+    if (!res.ok) return false;
+    const rows = await res.json();
+    return Array.isArray(rows) && rows.length > 0;
+  } catch (err) {
+    console.error('[deploy-monitor] Supabase dedup read failed (falling through):', err.message);
+    return false;
+  }
+}
+
+async function recordAlert(alertKey) {
+  if (!alertKey) return;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  // Always write to in-memory too so single-worker runs are fast
+  lastAlertAt.set(alertKey, Date.now());
+  if (!supabaseUrl || !serviceKey) return;
+  const expiresAt = new Date(Date.now() + ALERT_COOLDOWN_MS).toISOString();
+  try {
+    await fetch(`${supabaseUrl}/rest/v1/deploy_alerts?on_conflict=alert_key`, {
+      method: 'POST',
+      headers: {
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'resolution=merge-duplicates',
+      },
+      body: JSON.stringify({ alert_key: alertKey, expires_at: expiresAt }),
+    });
+  } catch (err) {
+    console.error('[deploy-monitor] Supabase dedup write failed (non-fatal):', err.message);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Auto-rollback: when circuit breaker trips, find last-known-good deploy
+// and promote it to production. Keeps git history intact (no force-push).
+// Controlled by AUTOFIX_ROLLBACK_ENABLED env var; defaults OFF for safety.
+// ─────────────────────────────────────────────────────────────────────────────
+async function findLastGoodDeploy(beforeSha) {
+  const vercelToken = process.env.VERCEL_TOKEN;
+  if (!vercelToken) return null;
+  try {
+    const res = await fetch(
+      `https://api.vercel.com/v6/deployments?projectId=${PROJECT_ID}&teamId=${TEAM_ID}&target=production&limit=20&state=READY`,
+      { headers: { Authorization: `Bearer ${vercelToken}` } }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const deps = data.deployments || [];
+    // Find the most recent READY production deploy whose SHA isn't the broken one
+    for (const d of deps) {
+      const sha = d.meta?.githubCommitSha;
+      if (sha && sha !== beforeSha && d.state === 'READY') {
+        return { id: d.uid, sha, createdAt: d.createdAt };
+      }
+    }
+    return null;
+  } catch (err) {
+    console.error('[deploy-monitor] findLastGoodDeploy failed:', err.message);
+    return null;
+  }
+}
+
+async function rollbackToDeploy(deploymentId) {
+  const vercelToken = process.env.VERCEL_TOKEN;
+  if (!vercelToken) return { ok: false, reason: 'VERCEL_TOKEN missing' };
+  try {
+    const res = await fetch(
+      `https://api.vercel.com/v10/projects/${PROJECT_ID}/promote/${deploymentId}?teamId=${TEAM_ID}`,
+      { method: 'POST', headers: { Authorization: `Bearer ${vercelToken}` } }
+    );
+    if (!res.ok) {
+      const errText = await res.text();
+      return { ok: false, reason: `Vercel promote ${res.status}: ${errText.substring(0, 300)}` };
+    }
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, reason: err.message };
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -399,6 +503,33 @@ Manual intervention required. The self-healing pipeline will NOT retry this comm
     const attempts = await countPersistentAttempts(commitSha, process.env.GH_PAT);
     if (attempts >= MAX_FIX_ATTEMPTS) {
       console.log(`[deploy-monitor] Circuit breaker: ${commitSha} has ${attempts} autofix commits. Stopping.`);
+      logTelemetry('circuit_breaker_tripped', {
+        commitSha: commitSha.substring(0, 8),
+        attempts,
+      });
+
+      // Auto-rollback (if enabled) — promote last-known-good production deploy
+      let rollbackNote = '';
+      if (process.env.AUTOFIX_ROLLBACK_ENABLED === 'true') {
+        const lastGood = await findLastGoodDeploy(commitSha);
+        if (lastGood) {
+          const rb = await rollbackToDeploy(lastGood.id);
+          if (rb.ok) {
+            rollbackNote = `\n\n**AUTO-ROLLBACK EXECUTED** — production alias promoted to deploy \`${lastGood.id}\` (sha \`${lastGood.sha.substring(0, 8)}\`, originally built ${lastGood.createdAt}). Git history is unchanged; only the prod alias moved.`;
+            logTelemetry('rollback_executed', {
+              from: commitSha.substring(0, 8),
+              to: lastGood.sha.substring(0, 8),
+              deploymentId: lastGood.id,
+            });
+          } else {
+            rollbackNote = `\n\n**Auto-rollback ATTEMPTED but FAILED:** ${rb.reason}`;
+            logTelemetry('rollback_failed', { reason: rb.reason });
+          }
+        } else {
+          rollbackNote = `\n\n**Auto-rollback skipped:** no suitable last-good deploy found.`;
+        }
+      }
+
       await createAlertIssue(
         `Deploy autofix circuit breaker tripped — ${commitSha.substring(0, 8)}`,
         `## Circuit Breaker Tripped
@@ -407,7 +538,7 @@ Autofix exhausted all ${MAX_FIX_ATTEMPTS} attempts for commit \`${commitSha}\` w
 
 **Commit SHA:** \`${commitSha}\`
 **Commit message:** ${commitMsg.substring(0, 300)}
-**Attempts (persistent, counted from git history):** ${attempts}/${MAX_FIX_ATTEMPTS}
+**Attempts (persistent, counted from git history):** ${attempts}/${MAX_FIX_ATTEMPTS}${rollbackNote}
 
 Manual intervention required. Check Vercel build logs:
 https://vercel.com/smarter-poker/hub-vanguard/deployments`,
@@ -417,6 +548,7 @@ https://vercel.com/smarter-poker/hub-vanguard/deployments`,
         action: 'circuit_breaker',
         commitSha,
         attempts,
+        rollback: rollbackNote ? rollbackNote.trim() : 'disabled',
         message: `Auto-fix stopped after ${MAX_FIX_ATTEMPTS} attempts. Manual intervention required.`,
         authMethod,
       });

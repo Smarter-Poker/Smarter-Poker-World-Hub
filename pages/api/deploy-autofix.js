@@ -46,6 +46,120 @@ const PROTECTED_FILES = [
 // Directories autofix is allowed to modify
 const ALLOWED_DIRS = ['src/', 'pages/', 'lib/', 'components/', 'services/', 'data/'];
 
+// Paths where fixes should be routed through a PR instead of pushed to main.
+// Rationale: these areas are security/correctness-critical — human review required.
+const SENSITIVE_PATHS = [
+  'pages/api/auth/',
+  'pages/api/stripe',
+  'pages/api/webhooks/',
+  'src/engine/',
+  'src/lib/authUtils',
+  'src/lib/supabase',
+  'src/services/payment',
+  'src/services/billing',
+  'src/services/auth',
+  'middleware.',
+];
+
+function isSensitivePath(path) {
+  if (!path) return false;
+  return SENSITIVE_PATHS.some((p) => path.includes(p));
+}
+
+// Check if a file was changed in the last N hours (git history query).
+// A "hot" file is risky to auto-modify because it's probably in an active conflict zone.
+async function wasRecentlyChanged(path, ghPat, hours = 24) {
+  if (!path || !ghPat) return false;
+  try {
+    const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+    const res = await fetch(
+      `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/commits?path=${encodeURIComponent(path)}&since=${since}&per_page=5`,
+      { headers: { Authorization: `token ${ghPat}`, Accept: 'application/vnd.github+json' } }
+    );
+    if (!res.ok) return false;
+    const commits = await res.json();
+    return Array.isArray(commits) && commits.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+// Multi-file error extraction — scan the full build output for all referenced files.
+// Returns de-duplicated list, preserving order of first appearance.
+function extractAllErrorFiles(buildErrors) {
+  const patterns = [
+    /\.\/([a-zA-Z0-9_\-\/\[\]]+\.(?:js|jsx|ts|tsx|mjs|cjs))/g,
+    /\/vercel\/path0\/([a-zA-Z0-9_\-\/\[\]]+\.(?:js|jsx|ts|tsx|mjs|cjs))/g,
+    /((?:pages|src|lib|components|services)\/[a-zA-Z0-9_\-\/\[\]]+\.(?:js|jsx|ts|tsx|mjs|cjs)):\d+/g,
+    /x\s+((?:pages|src)\/[a-zA-Z0-9_\-\/\[\]]+\.(?:js|jsx|ts|tsx|mjs|cjs))/g,
+  ];
+  const seen = new Set();
+  const out = [];
+  for (const re of patterns) {
+    let m;
+    while ((m = re.exec(buildErrors)) !== null) {
+      const path = m[1];
+      if (!seen.has(path)) {
+        seen.add(path);
+        out.push(path);
+      }
+    }
+  }
+  return out;
+}
+
+// Open a pull request from a branch for sensitive/risky fixes.
+async function openAutofixPR({ branch, baseBranch, title, body, ghPat }) {
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/pulls`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `token ${ghPat}`,
+          Accept: 'application/vnd.github+json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ title, body, head: branch, base: baseBranch }),
+      }
+    );
+    if (!res.ok) {
+      const errText = await res.text();
+      return { ok: false, reason: `GitHub PR create ${res.status}: ${errText.substring(0, 300)}` };
+    }
+    const pr = await res.json();
+    return { ok: true, url: pr.html_url, number: pr.number };
+  } catch (err) {
+    return { ok: false, reason: err.message };
+  }
+}
+
+// Create or update a branch at a specific commit SHA.
+async function ensureBranch(branchName, fromSha, ghPat) {
+  try {
+    // Try to create
+    const res = await fetch(
+      `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/git/refs`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `token ${ghPat}`,
+          Accept: 'application/vnd.github+json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ref: `refs/heads/${branchName}`, sha: fromSha }),
+      }
+    );
+    if (res.ok) return { ok: true, created: true };
+    // If 422, branch already exists — that's fine for our purposes
+    if (res.status === 422) return { ok: true, created: false };
+    const errText = await res.text();
+    return { ok: false, reason: `GitHub branch create ${res.status}: ${errText.substring(0, 300)}` };
+  } catch (err) {
+    return { ok: false, reason: err.message };
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -268,10 +382,99 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
       });
     }
 
-    // ── Step 4: Push the fix via GitHub Contents API ──
-    console.log(`[deploy-autofix] Pushing fix for ${normalizedPath} to GitHub...`);
+    // ── Step 4: Push the fix — either directly to main, or via PR for sensitive files ──
+    const sensitive = isSensitivePath(normalizedPath);
+    const hot = await wasRecentlyChanged(normalizedPath, ghPat, 24);
+    const usePR = sensitive || hot;
 
     const commitMsg = `[autofix] fix build error in ${normalizedPath} (attempt ${attempt})\n\nAuto-generated by deploy-monitor. Original error:\n${buildErrors.substring(0, 200)}`;
+
+    if (usePR) {
+      // ── PR MODE ──
+      console.log(`[deploy-autofix] Routing through PR (sensitive=${sensitive}, hot=${hot}): ${normalizedPath}`);
+
+      // Get current main HEAD sha to branch from
+      const mainRefRes = await fetch(
+        `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/git/ref/heads/main`,
+        { headers: { Authorization: `token ${ghPat}`, Accept: 'application/vnd.github+json' } }
+      );
+      if (!mainRefRes.ok) {
+        return res.status(200).json({
+          action: 'push_failed',
+          reason: `Could not read main ref (HTTP ${mainRefRes.status})`,
+        });
+      }
+      const mainRef = await mainRefRes.json();
+      const mainSha = mainRef.object?.sha;
+
+      const branchName = `autofix/${commitSha.substring(0, 8)}-${Date.now()}`;
+      const branchRes = await ensureBranch(branchName, mainSha, ghPat);
+      if (!branchRes.ok) {
+        return res.status(200).json({
+          action: 'push_failed',
+          reason: `Branch create failed: ${branchRes.reason}`,
+        });
+      }
+
+      // Push file to the new branch
+      const branchPushRes = await fetch(
+        `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${normalizedPath}`,
+        {
+          method: 'PUT',
+          headers: {
+            Authorization: `token ${ghPat}`,
+            Accept: 'application/vnd.github+json',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: commitMsg,
+            content: Buffer.from(fixedContent).toString('base64'),
+            sha: fileSha,
+            branch: branchName,
+          }),
+        }
+      );
+      if (!branchPushRes.ok) {
+        const pushErr = await branchPushRes.text();
+        return res.status(200).json({
+          action: 'push_failed',
+          reason: `Branch push failed (HTTP ${branchPushRes.status})`,
+          error: pushErr.substring(0, 500),
+        });
+      }
+
+      const prRes = await openAutofixPR({
+        branch: branchName,
+        baseBranch: 'main',
+        title: `[autofix] Review needed: ${normalizedPath}`,
+        body: `## Autofix proposed a repair for a sensitive file\n\n**File:** \`${normalizedPath}\`\n**Sensitive path:** ${sensitive}\n**Hot file (changed in last 24h):** ${hot}\n**Original broken commit:** \`${commitSha}\`\n**Attempt:** ${attempt}/3\n\n### Build error\n\`\`\`\n${buildErrors.substring(0, 800)}\n\`\`\`\n\nReview the diff and merge if correct. Close if wrong.`,
+        ghPat,
+      });
+
+      if (!prRes.ok) {
+        return res.status(200).json({
+          action: 'pr_failed',
+          reason: prRes.reason,
+          branch: branchName,
+        });
+      }
+
+      console.log(`[deploy-autofix] PR opened: ${prRes.url}`);
+      return res.status(200).json({
+        action: 'pr_opened',
+        file: normalizedPath,
+        branch: branchName,
+        prNumber: prRes.number,
+        prUrl: prRes.url,
+        sensitive,
+        hot,
+        attempt,
+        message: `Fix staged in PR #${prRes.number} for review (file is ${sensitive ? 'sensitive' : 'recently-changed'}). Vercel will NOT rebuild until the PR is merged.`,
+      });
+    }
+
+    // ── DIRECT-TO-MAIN MODE (existing behavior) ──
+    console.log(`[deploy-autofix] Pushing fix for ${normalizedPath} to main...`);
 
     const pushRes = await fetch(
       `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${normalizedPath}`,
