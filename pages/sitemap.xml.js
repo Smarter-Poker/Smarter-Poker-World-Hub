@@ -99,9 +99,82 @@ const staticPages = [
     { path: '/hub/social-pages', priority: '0.5', changefreq: 'weekly' },
     { path: '/hub/social-pages/create', priority: '0.4', changefreq: 'monthly' },
 
+    // Hub — Home Games (geo index; individual game + state/city pages are added dynamically)
+    { path: '/hub/home-games/in', priority: '0.8', changefreq: 'daily' },
+
     // Horses
     { path: '/horses', priority: '0.7', changefreq: 'daily' },
 ];
+
+// ─── Dynamic Home-Game URLs ──────────────────────────────────────────────────
+// Pulled from social_pages at request time. The sitemap is cached for 24h
+// (s-maxage=86400) with 12h SWR, so this query runs at most once per day.
+async function buildHomeGameUrls() {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!url || !key) return [];
+
+    try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabase = createClient(url, key);
+        const { data, error } = await supabase
+            .from('social_pages')
+            .select('slug, location_state, location_city')
+            .eq('page_type', 'home_game')
+            .eq('is_public', true);
+
+        if (error || !Array.isArray(data)) return [];
+
+        const { US_STATES_BY_CODE, cityTitleToSlug } = await import('../src/lib/home-games/locationUtils');
+
+        const urls = [];
+        const seenStates = new Set();
+        const seenCities = new Set();
+
+        for (const row of data) {
+            // Individual home-game page (was missing from sitemap before)
+            if (row.slug) {
+                urls.push({
+                    path: `/hub/home-games/${row.slug}`,
+                    priority: '0.7',
+                    changefreq: 'weekly',
+                });
+            }
+            const code = String(row.location_state || '').toUpperCase();
+            if (!US_STATES_BY_CODE[code]) continue;
+
+            // State-level geo page
+            const stateSlug = code.toLowerCase();
+            if (!seenStates.has(stateSlug)) {
+                seenStates.add(stateSlug);
+                urls.push({
+                    path: `/hub/home-games/in/${stateSlug}`,
+                    priority: '0.7',
+                    changefreq: 'daily',
+                });
+            }
+
+            // City-level geo page
+            if (row.location_city) {
+                const citySlug = cityTitleToSlug(row.location_city);
+                const key2 = `${stateSlug}/${citySlug}`;
+                if (citySlug && !seenCities.has(key2)) {
+                    seenCities.add(key2);
+                    urls.push({
+                        path: `/hub/home-games/in/${stateSlug}/${citySlug}`,
+                        priority: '0.6',
+                        changefreq: 'daily',
+                    });
+                }
+            }
+        }
+
+        return urls;
+    } catch (err) {
+        console.error('[sitemap] home-game URL build failed:', err.message);
+        return [];
+    }
+}
 
 function generateSitemapXml(urls) {
     return `<?xml version="1.0" encoding="UTF-8"?>
@@ -123,7 +196,8 @@ ${urls
 }
 
 export async function getServerSideProps({ res }) {
-    const sitemap = generateSitemapXml(staticPages);
+    const homeGameUrls = await buildHomeGameUrls();
+    const sitemap = generateSitemapXml([...staticPages, ...homeGameUrls]);
 
     res.setHeader('Content-Type', 'text/xml');
     res.setHeader('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=43200');
