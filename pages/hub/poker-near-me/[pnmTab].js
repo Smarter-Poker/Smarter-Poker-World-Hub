@@ -621,7 +621,9 @@ export default function PokerNearMePage() {
                 if (saved) {
                     const parsed = JSON.parse(saved);
                     // ENFORCE venueType=all so tour pins + all venues always show on map
-                    parsed.venueType = 'all';
+                    // Also sanitize stale 'undefined' string values from the ?filter=undefined bug
+                    const VALID_VT = new Set(['all', 'casino', 'card_room', 'poker_club', 'home_game', 'charity', 'tour_stop', 'poker_tour']);
+                    parsed.venueType = VALID_VT.has(parsed.venueType) ? parsed.venueType : 'all';
                     // REMOVED gameType and stakes forced resets to allow user preference persistence.
                     // Sanitize old cached 'tournaments' value back to 'all'
                     if (['tournament', 'mtt', 'tournaments'].includes(String(parsed.gameType).toLowerCase())) {
@@ -2098,7 +2100,9 @@ export default function PokerNearMePage() {
             if (searchQuery) {
                 params.set('q', searchQuery);
             }
-            if (filters.venueType !== 'all') params.set('filter', filters.venueType);
+            // Only write ?filter= for KNOWN valid venue types — never write 'undefined'
+            const SAFE_VENUE_TYPES = new Set(['casino', 'card_room', 'poker_club', 'home_game', 'charity', 'tour_stop', 'poker_tour']);
+            if (SAFE_VENUE_TYPES.has(filters.venueType)) params.set('filter', filters.venueType);
             const qs = params.toString();
             const newUrl = '/hub/poker-near-me/' + pathSlug + (qs ? '?' + qs : '');
             
@@ -2182,7 +2186,9 @@ export default function PokerNearMePage() {
             setActiveMoreTab(subParam);
         }
         
-        if (filterParam) {
+        // GUARD: reject 'undefined' (string) or any non-real venue type as a filter param
+        const VALID_VENUE_TYPES = new Set(['all', 'casino', 'card_room', 'poker_club', 'home_game', 'charity', 'tour_stop', 'poker_tour']);
+        if (filterParam && VALID_VENUE_TYPES.has(filterParam)) {
             setFilters(prev => ({ ...prev, venueType: filterParam }));
         }
 

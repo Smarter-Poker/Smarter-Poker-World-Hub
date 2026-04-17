@@ -614,14 +614,22 @@ function LiveGamesFeed({
         }
 
         // 2. Filter by Distance
-        // CRITICAL: Venues without coordinates must be EXCLUDED (not included).
-        // Previously `return true` let ALL unmatched live venues (e.g. California)
-        // leak through the radius filter for users in Illinois.
+        // CRITICAL: Only apply radius filter when we have a real location AND at least
+        // some live venues were enriched with coordinates (i.e., the venue-DB lookup
+        // ran successfully). If ALL live venues lack coordinates (empty venues prop),
+        // the enrichment hasn't had a chance to run — show everything rather than
+        // returning zero results.
         if (effectiveLocation && filterRadius !== 'any') {
-            list = list.filter(v => {
-                if (!v.latitude || !v.longitude) return false;
-                return calcDist(v) <= Number(filterRadius);
-            });
+            const anyHaveCoords = list.some(v => v.latitude && v.longitude);
+            if (anyHaveCoords) {
+                // Enrichment worked for some venues — apply radius filter normally
+                list = list.filter(v => {
+                    if (!v.latitude || !v.longitude) return false; // unmatched — exclude
+                    return calcDist(v) <= Number(filterRadius);
+                });
+            }
+            // If zero venues have coordinates, skip the filter entirely — the DB hasn't
+            // loaded yet; show all live venues so the feed isn't empty on first load.
         }
 
         // 3. Filter by Game Type
