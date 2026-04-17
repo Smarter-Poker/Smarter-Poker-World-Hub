@@ -2665,7 +2665,7 @@ export default function PokerNearMePage() {
 
                 <UniversalHeader 
                     pageDepth={2} 
-                    onBackClick={() => window.location.href = '/hub/poker-near-me'}
+                    onBackClick={() => window.location.href = '/hub/poker-near-me/lobby'}
                     onMenuClick={() => setMenuOpen(true)} 
                 />
 
@@ -2689,7 +2689,7 @@ export default function PokerNearMePage() {
                             setShowGlobalSearch(false);
                             // Only replace if URL currently contains ?q=
                             if (typeof window !== 'undefined' && window.location.search.includes('q=')) {
-                                const cleanUrl = '/hub/poker-near-me';
+                                const cleanUrl = '/hub/poker-near-me/lobby';
                                 window.history.replaceState({ ...window.history.state, as: cleanUrl, url: cleanUrl }, '', cleanUrl);
                             }
                         }}

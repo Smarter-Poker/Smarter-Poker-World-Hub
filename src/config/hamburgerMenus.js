@@ -192,7 +192,7 @@ export const MENU_CONFIGS = {
             createMenuItem.divider(),
             createMenuItem.navigation('Reels', '/hub/reels', MenuIcons.video),
             createMenuItem.navigation('News', '/hub/news'),
-            createMenuItem.navigation('Poker Near Me', '/hub/poker-near-me'),
+            createMenuItem.navigation('Poker Near Me', '/hub/poker-near-me/lobby'),
             createMenuItem.navigation('📊 Session History', '/hub/session-history'),
             createMenuItem.navigation('🧮 Odds Calculator', '/hub/poker-tools'),
             createMenuItem.divider(),
@@ -757,7 +757,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Leaderboards', '/hub/leaderboards'),
             createMenuItem.divider(),
             createMenuItem.section('Quick Links'),
-            createMenuItem.navigation('Poker Near Me', '/hub/poker-near-me'),
+            createMenuItem.navigation('Poker Near Me', '/hub/poker-near-me/lobby'),
             createMenuItem.navigation('Promotions', '/hub/promotions')
         ],
         bottomLinks: [
@@ -845,7 +845,7 @@ export const MENU_CONFIGS = {
             createMenuItem.divider(),
             createMenuItem.section('Quick Links'),
             createMenuItem.navigation('💰 Bankroll Manager', '/hub/bankroll-manager'),
-            createMenuItem.navigation('🎯 Poker Near Me', '/hub/poker-near-me'),
+            createMenuItem.navigation('🎯 Poker Near Me', '/hub/poker-near-me/lobby'),
             createMenuItem.navigation('🏠 World Hub', '/hub')
         ],
         bottomLinks: [

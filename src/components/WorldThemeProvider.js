@@ -17,7 +17,8 @@ const ROUTE_TO_WORLD = {
     '/hub/memory-games': 'preflop-charts', // Legacy redirect
     '/hub/bankroll-manager': 'bankroll-manager',
     '/hub/poker-near-me-lobby': 'poker-near-me', // legacy — now redirects
-    '/hub/poker-near-me': 'poker-near-me',
+    '/hub/poker-near-me': 'poker-near-me',         // root → redirects to /lobby
+    '/hub/poker-near-me/lobby': 'poker-near-me',   // canonical lobby
     '/hub/poker-near-me/live-games': 'poker-near-me',
     '/hub/poker-near-me/venues': 'poker-near-me',
     '/hub/poker-near-me/map': 'poker-near-me',

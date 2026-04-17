@@ -301,7 +301,7 @@ export default function HomeGamesPage() {
             <div className="space-bg"><div className="space-overlay" /></div>
 
             <div className="hg-page">
-                <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} onBackClick={() => window.location.href = '/hub/poker-near-me'} />
+                <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} onBackClick={() => window.location.href = '/hub/poker-near-me/lobby'} />
 
                 <HamburgerMenu
                     isOpen={menuOpen}

@@ -9,7 +9,7 @@
  *   <SEOHead
  *     title="Poker Near Me"
  *     description="Find Live Poker Rooms Near You..."
- *     canonical="/hub/poker-near-me"
+ *     canonical="/hub/poker-near-me/lobby"
  *     jsonLd={{ "@type": "WebApplication", ... }}
  *   />
  */

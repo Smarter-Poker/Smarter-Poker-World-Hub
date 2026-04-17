@@ -1134,7 +1134,7 @@ export default function NewsHub() {
                             </div>
 
                             {/* Upcoming Events */}
-                            <Link href="/hub/poker-near-me">
+                            <Link href="/hub/poker-near-me/lobby">
                                 <div className="widget events">
                                     <h4><MapPin size={14} /> Poker Near Me</h4>
                                     <ul className="events-list">

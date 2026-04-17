@@ -13,7 +13,7 @@ export default function DiscoveryLayout({ children, meta, onBackClick }) {
 
     const handleBackClick = () => {
         if (onBackClick) onBackClick();
-        else router.push('/hub/poker-near-me');
+        else router.push('/hub/poker-near-me/lobby');
     };
 
     return (

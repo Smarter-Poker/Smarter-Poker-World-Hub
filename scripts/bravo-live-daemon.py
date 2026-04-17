@@ -75,7 +75,7 @@ load_dotenv()
 # ============================================================
 SUPABASE_URL = os.environ.get('NEXT_PUBLIC_SUPABASE_URL', 'https://kuklfnapbkmacvwxktbh.supabase.co')
 SUPABASE_KEY = os.environ.get('SUPABASE_KEY') or os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
-BRAVO_EMAIL = os.environ.get('BRAVO_EMAIL', 'admin@smarter.poker')
+BRAVO_EMAIL = os.environ.get('BRAVO_EMAIL', 'danbek4545@gmail.com')
 BRAVO_PASS = os.environ.get('BRAVO_PASS')
 BRAVO_LOGIN_URL = 'https://www.bravopokerlive.com/login/'
 
@@ -688,8 +688,15 @@ class BravoSessionManager:
                     self.last_login_time = datetime.now(timezone.utc)
                     self.consecutive_failures = 0
                     return True
-                elif 'login' not in url.lower():
-                    # Redirected away from login — likely success
+                elif 'chrome-error://' in url or 'about:blank' in url:
+                    # Browser crashed or reset — NOT a login success
+                    log.warning(f'  ⚠️  Login attempt {attempt+1} failed: browser crashed (URL: {url})')
+                    # Mark page as dead so we reconnect cleanly
+                    self._session_dead = True
+                    time.sleep(2 ** attempt)
+                    continue
+                elif 'login' not in url.lower() and 'bravopokerlive.com' in url:
+                    # Redirected to a valid Bravo page — real success
                     log.info(f'  ✅ Login successful (redirected to: {url})')
                     self.is_authenticated = True
                     self.last_login_time = datetime.now(timezone.utc)
@@ -780,20 +787,28 @@ class BravoSessionManager:
         return True
 
     def navigate_venue(self, slug):
-        """Navigate to a venue page with multi-tier fallback.
-        
-        Tier 1: Primary StealthySession page navigation
-        Tier 2: PlaywrightFetcher (independent browser, no CF solve)
-        Tier 3: Raw urllib with cached CF cookies
+        """Navigate to a venue page using the persistent authenticated page.
 
-        IMPORTANT: ERR_HTTP_RESPONSE_CODE_FAILURE means the server returned a
-        4xx/5xx response (e.g. venue is closed/removed). This is a per-venue
-        skip — NOT a browser crash. Do NOT mark session dead on these.
-        ERR_ABORTED on venue pages is similarly a server-side redirect issue.
+        ARCHITECTURE (LOCKED IN — per Scrapling scraper law):
+          - Tier 1: self.page.goto() — uses the persistent logged-in page
+            The page lives in the CF-cleared, authenticated browser context.
+            Auth cookies from login persist for the entire session lifespan.
+          - Tier 2: PlaywrightFetcher — independent browser, last resort only
+
+        WHY page.goto() and NOT session.fetch():
+          session.fetch() spins up a fresh fetch without persistent auth state.
+          The persistent self.page (created in the same context as the CF solve)
+          carries all login cookies and CF clearance between venue navigations.
+
+        WHY page.goto() works for CF:
+          The browser CONTEXT was created via StealthySession(solve_cloudflare=True).
+          Any page in this context inherits the CF clearance cookies. Cloudflare
+          checks cookies, not per-request challenge prompts, on subsequent navigations.
         """
-        # === TIER 1: Primary StealthySession ===
-        # Use 'domcontentloaded' instead of 'load' — Playwright throws
-        # ERR_HTTP_RESPONSE_CODE_FAILURE on non-2xx with 'load' wait.
+        if not self.page or self._session_dead:
+            return None
+
+        # === TIER 1: Persistent logged-in page.goto() ===
         for attempt in range(1 + VENUE_RETRY_COUNT):
             try:
                 self.page.goto(
@@ -804,11 +819,10 @@ class BravoSessionManager:
 
                 content = self.page.content()
 
-                # Check if we got redirected to login (session expired)
+                # Session expired — re-auth inline
                 if 'name="Email"' in content and 'loginmodal' in content.lower():
                     log.warning(f'  ⚠️  Session expired during scrape, re-authenticating...')
                     if self._login():
-                        # Retry the venue
                         self.page.goto(
                             BRAVO_VENUE_URL.format(slug=slug),
                             timeout=VENUE_TIMEOUT,
@@ -816,16 +830,16 @@ class BravoSessionManager:
                         )
                         content = self.page.content()
                     else:
-                        break  # Fall through to Tier 2
+                        self._session_dead = True
+                        return None
 
-                # Check for CF challenge — treat as a per-venue skip.
-                # Breaking to Tier-2 won't help (no CF clearance there either)
-                # and would increment consecutive_nav_failures toward circuit breaker.
+                # CF challenge on venue page — per-venue silent skip
+                # (session is still alive; CF blocked this specific venue URL)
                 if 'Just a moment' in content or 'Performing security' in content:
                     log.debug(f'  ⏭️  {slug}: CF challenge on venue page — skipping')
-                    return '<SKIPPED_VENUE>'  # Silent skip, no session death
+                    return '<SKIPPED_VENUE>'
 
-                # Success — reset failure counter, cache cookies for Tier 3
+                # Success — reset failure counter
                 self.consecutive_nav_failures = 0
                 save_cookies_from_page(self.page)
                 return content
@@ -833,67 +847,51 @@ class BravoSessionManager:
             except Exception as e:
                 err_msg = str(e)
 
-                # PER-VENUE HTTP ERROR: Server returned 4xx/5xx or aborted.
-                # This is NOT a browser crash — skip this venue and keep going.
-                # Do NOT increment consecutive_nav_failures or mark session dead.
+                # PER-VENUE HTTP ERROR: 4xx/5xx from Bravo server (venue disabled)
+                # NOT a browser crash — skip this venue, keep session alive
                 if 'ERR_HTTP_RESPONSE_CODE_FAILURE' in err_msg or 'ERR_ABORTED' in err_msg:
                     log.debug(f'  ⏭️  {slug}: HTTP error (venue offline/removed) — skipping')
-                    # Reset page to blank to avoid poisoning next navigation
                     try:
                         self.page.goto('about:blank', timeout=5000, wait_until='commit')
                     except Exception:
                         pass
-                    return '<SKIPPED_VENUE>'  # Count as skip, not a session failure
+                    return '<SKIPPED_VENUE>'
 
-                # CHROME ERROR PAGE: navigation interrupted by chrome-error://
-                # Happens when previous venue's 4xx left page in error state.
-                # Clear with about:blank and skip — NOT a session death.
+                # CHROME ERROR / BROWSER CRASH: page in bad state
                 if 'chrome-error' in err_msg or 'interrupted by another navigation' in err_msg:
-                    log.debug(f'  ⏭️  {slug}: Navigation interrupted (chrome error page) — resetting page')
+                    log.debug(f'  ⏭️  {slug}: Navigation interrupted — resetting page')
                     try:
                         self.page.goto('about:blank', timeout=5000, wait_until='commit')
                     except Exception:
                         pass
-                    return '<SKIPPED_VENUE>'  # Skip, not a crash
+                    return '<SKIPPED_VENUE>'
 
-                # CRASH RECOVERY: Detect dead browser context
-                if 'has been closed' in err_msg or 'Target page' in err_msg:
-                    log.warning(f'  🔴 Browser context dead — trying fallback fetchers')
+                # BROWSER CONTEXT DEAD: session needs full restart
+                if any(x in err_msg for x in ('has been closed', 'Target page',
+                                               'context was destroyed', 'Session closed')):
+                    log.warning(f'  🔴 Browser context dead — marking session dead')
                     self._session_dead = True
                     self.consecutive_nav_failures += 1
-                    break  # Fall through to Tier 2
+                    return None
 
-                # Retry on timeout (transient network issue)
+                # Timeout — retry once
                 if attempt < VENUE_RETRY_COUNT and 'Timeout' in err_msg:
                     log.info(f'  🔄 Retry {attempt + 1} for {slug} (timeout)')
                     time.sleep(1)
                     continue
 
+                # Other errors
                 self.consecutive_nav_failures += 1
-                if 'Timeout' in err_msg and self.consecutive_nav_failures >= CIRCUIT_BREAKER_THRESHOLD:
-                    log.warning(f'  🔴 {self.consecutive_nav_failures} consecutive timeouts — browser is zombie, marking dead')
+                if self.consecutive_nav_failures >= CIRCUIT_BREAKER_THRESHOLD:
+                    log.warning(f'  🔴 {self.consecutive_nav_failures} consecutive failures — session marked dead')
                     self._session_dead = True
 
-                log.warning(f'  ❌ Tier-1 navigate error on {slug}: {e}')
-                break  # Fall through to Tier 2
+                log.warning(f'  ❌ Navigate error on {slug}: {type(e).__name__}: {str(e)[:120]}')
+                return None
 
-        # === TIER 2: PlaywrightFetcher (independent browser) ===
-        if self.tier2_failures < 5:  # Don't keep trying Tier 2 if it's dead too
-            html = fallback_fetch_venue_playwright(slug)
-            if html:
-                self.consecutive_nav_failures = 0
-                return html
-            else:
-                self.tier2_failures += 1
-
-        # === TIER 3: Raw urllib with cached cookies ===
-        html = fallback_fetch_venue_urllib(slug)
-        if html:
-            self.consecutive_nav_failures = 0
-            return html
-
-        # All tiers failed
         return None
+
+
 
     def recycle_page(self):
         """Close and reopen the browser page to free memory.

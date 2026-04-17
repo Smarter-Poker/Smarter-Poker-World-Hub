@@ -627,7 +627,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
         if (cardId === 'poker-near-me') {
             // Set flag so poker-near-me page knows to play intro video
             try { sessionStorage.setItem('poker-near-me-from-hub', '1'); } catch {}
-            router.push('/hub/poker-near-me');
+            router.push('/hub/poker-near-me/lobby');
             return;
         }
 
@@ -699,7 +699,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
         if (orbId === 'poker-near-me') {
             // Set flag so poker-near-me page knows to play intro video
             try { sessionStorage.setItem('poker-near-me-from-hub', '1'); } catch {}
-            router.push('/hub/poker-near-me');
+            router.push('/hub/poker-near-me/lobby');
             return;
         }
 

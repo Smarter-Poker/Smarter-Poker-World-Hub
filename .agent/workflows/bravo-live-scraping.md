@@ -52,7 +52,7 @@ _network_available() → HEAD https://1.1.1.1
 
 ## Credentials (from .env/SKILL.md)
 
-- **Email**: admin@smarter.poker
+- **Email**: danbek4545@gmail.com
 - **Password**: 215SlalomCt!
 - **Token**: cd6942d7-4d38-4ecc-95b2-cc9bee944b07 (not used for web login)
 
