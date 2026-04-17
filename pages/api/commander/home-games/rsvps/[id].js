@@ -139,7 +139,7 @@ export default async function handler(req, res) {
 
     const { data: group, error: groupErr } = await supabase
       .from('commander_home_groups')
-      .select('id, owner_id, name, game_type, typical_stakes')
+      .select('id, owner_id, name')
       .eq('id', event.group_id)
       .maybeSingle();
     if (groupErr) throw groupErr;
