@@ -203,6 +203,14 @@ export default function PublicHomeGamePage({ data, serverError }) {
   const [followBusy, setFollowBusy] = useState(false);
   const [followError, setFollowError] = useState('');
 
+  // Request-seat modal state
+  const [seatEvent, setSeatEvent] = useState(null);        // event object when modal is open
+  const [seatMessage, setSeatMessage] = useState('');
+  const [seatGuests, setSeatGuests] = useState(0);
+  const [seatBusy, setSeatBusy] = useState(false);
+  const [seatError, setSeatError] = useState('');
+  const [seatResult, setSeatResult] = useState(null);      // server response after success
+
   // On mount (and whenever slug changes), check if the current authed user
   // is already following this home game. Silent failure for anonymous users —
   // the Follow button just shows the "follow" state and gates auth on click.
@@ -259,6 +267,93 @@ export default function PublicHomeGamePage({ data, serverError }) {
       setFollowBusy(false);
     }
   };
+
+  // ── Request-Seat ─────────────────────────────────────────────────────────
+  // Open the modal for a specific upcoming game. If the user isn't signed in,
+  // bounce them to login with ?seatEvent=<id> in the return URL so we can
+  // auto-open the modal on their way back.
+  const openRequestSeat = (gameObj) => {
+    if (!gameObj || !gameObj.id) return;
+    // If we can detect sign-in state synchronously, we'd gate here; but the
+    // access token is async, so just open and let submit decide.
+    setSeatEvent(gameObj);
+    setSeatMessage('');
+    setSeatGuests(0);
+    setSeatError('');
+    setSeatResult(null);
+  };
+
+  const closeRequestSeat = () => {
+    setSeatEvent(null);
+    setSeatMessage('');
+    setSeatGuests(0);
+    setSeatError('');
+    setSeatResult(null);
+    setSeatBusy(false);
+  };
+
+  const submitRequestSeat = async () => {
+    if (!seatEvent || seatBusy) return;
+    setSeatBusy(true);
+    setSeatError('');
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        // Not signed in — bounce to login with return URL that auto-opens
+        // this same modal after successful auth.
+        const returnTo = typeof window !== 'undefined'
+          ? `${window.location.pathname}?seatEvent=${encodeURIComponent(seatEvent.id)}`
+          : `/hub/home-games/${slugForFollow}?seatEvent=${encodeURIComponent(seatEvent.id)}`;
+        router.push(`/auth/login?redirect=${encodeURIComponent(returnTo)}`);
+        return;
+      }
+      const resp = await fetch(
+        `/api/public/home-games/${encodeURIComponent(slugForFollow)}/events/${encodeURIComponent(seatEvent.id)}/request-seat`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            message: seatMessage || '',
+            bringing_guests: seatGuests || 0,
+          }),
+        }
+      );
+      const json = await resp.json().catch(() => ({}));
+      if (!resp.ok || !json.success) {
+        throw new Error(json.error || 'Could not submit seat request');
+      }
+      setSeatResult(json.data);
+    } catch (err) {
+      setSeatError(err?.message || 'Could not submit seat request');
+    } finally {
+      setSeatBusy(false);
+    }
+  };
+
+  // Auto-open the modal after a post-login redirect. `?seatEvent=<id>` in
+  // the URL means the user clicked Request Seat while signed out, logged
+  // in, and came back. Match the id against the upcoming games list.
+  useEffect(() => {
+    const q = router?.query?.seatEvent;
+    if (!q || typeof q !== 'string') return;
+    const games = data?.upcoming_games || [];
+    const match = games.find((g) => String(g.id) === String(q));
+    if (match && (!seatEvent || seatEvent.id !== match.id)) {
+      setSeatEvent(match);
+      setSeatMessage('');
+      setSeatGuests(0);
+      setSeatError('');
+      setSeatResult(null);
+      // Clean the query string so a refresh doesn't re-open the modal.
+      if (typeof window !== 'undefined' && window.history?.replaceState) {
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState(null, '', cleanUrl);
+      }
+    }
+  }, [router?.query?.seatEvent, data?.upcoming_games, seatEvent]);
 
   // Server-error fallback (rare — API returned 5xx)
   if (serverError || !data) {
@@ -410,8 +505,12 @@ export default function PublicHomeGamePage({ data, serverError }) {
                           </div>
                           {g.description && <p className="hgs-game-desc">{g.description}</p>}
                         </div>
-                        <button className="hgs-game-rsvp" onClick={() => router.push(`/hub/commander/home-games/${group.id}`)}>
-                          RSVP
+                        <button
+                          className="hgs-game-rsvp"
+                          onClick={() => openRequestSeat(g)}
+                          aria-label={`Request seat at ${g.title || 'this game'}`}
+                        >
+                          Request Seat
                         </button>
                       </div>
                     );
@@ -473,6 +572,96 @@ export default function PublicHomeGamePage({ data, serverError }) {
         </div>
 
         <HamburgerMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} worldKey="hub" />
+
+        {/* ── Request-Seat Modal ───────────────────────────────────────── */}
+        {seatEvent && (
+          <div
+            className="hgs-seat-backdrop"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="hgs-seat-title"
+            onClick={(e) => { if (e.target === e.currentTarget) closeRequestSeat(); }}
+          >
+            <div className="hgs-seat-modal">
+              {seatResult ? (
+                <>
+                  <h2 id="hgs-seat-title" className="hgs-seat-title">Request sent</h2>
+                  <p className="hgs-seat-body">
+                    {seatResult.rsvp?.response === 'waitlist'
+                      ? `This game was at capacity, so you've been placed on the waitlist. ${group?.name ? `The host of ${group.name}` : 'The host'} will reach out if a seat opens up.`
+                      : `${group?.name ? `The host of ${group.name}` : 'The host'} will approve your request shortly. You'll get the game's address once you're confirmed.`}
+                  </p>
+                  <dl className="hgs-seat-summary">
+                    <div><dt>Game</dt><dd>{seatResult.event?.title || seatEvent.title || 'Upcoming game'}</dd></div>
+                    <div><dt>Date</dt><dd>{formatDate(seatResult.event?.scheduled_date || seatEvent.scheduled_date)}</dd></div>
+                    {(seatResult.event?.start_time || seatEvent.start_time) && (
+                      <div><dt>Time</dt><dd>{formatTime(seatResult.event?.start_time || seatEvent.start_time)}</dd></div>
+                    )}
+                    <div>
+                      <dt>Status</dt>
+                      <dd>
+                        {seatResult.rsvp?.response === 'waitlist' ? 'Waitlist'
+                          : seatResult.wait_for_host_approval ? 'Pending host approval'
+                          : 'Confirmed'}
+                      </dd>
+                    </div>
+                  </dl>
+                  <div className="hgs-seat-actions">
+                    <button className="hgs-seat-btn hgs-seat-btn-primary" onClick={closeRequestSeat}>
+                      Close
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h2 id="hgs-seat-title" className="hgs-seat-title">
+                    Request seat — {seatEvent.title || `${GAME_TYPE_LABELS[seatEvent.game_type] || ''} ${seatEvent.stakes || ''}`.trim() || 'Upcoming game'}
+                  </h2>
+                  <p className="hgs-seat-sub">
+                    {formatDate(seatEvent.scheduled_date)}
+                    {seatEvent.start_time ? ` · ${formatTime(seatEvent.start_time)}` : ''}
+                    {seatEvent.neighborhood ? ` · ${seatEvent.neighborhood}` : ''}
+                  </p>
+                  <p className="hgs-seat-hint">
+                    Your request goes to the host. You'll get the address and any final details once they confirm — usually within a day.
+                  </p>
+                  <label className="hgs-seat-label">
+                    <span>Note to host (optional)</span>
+                    <textarea
+                      value={seatMessage}
+                      onChange={(e) => setSeatMessage(e.target.value.slice(0, 500))}
+                      placeholder="Hi — I'd love to play. I'm a tight, friendly regular."
+                      rows={3}
+                      maxLength={500}
+                      className="hgs-seat-textarea"
+                    />
+                    <small>{seatMessage.length}/500</small>
+                  </label>
+                  {seatError && <div className="hgs-seat-error">{seatError}</div>}
+                  <div className="hgs-seat-actions">
+                    <button
+                      type="button"
+                      className="hgs-seat-btn hgs-seat-btn-ghost"
+                      onClick={closeRequestSeat}
+                      disabled={seatBusy}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="hgs-seat-btn hgs-seat-btn-primary"
+                      onClick={submitRequestSeat}
+                      disabled={seatBusy}
+                    >
+                      {seatBusy ? 'Sending…' : 'Send request'}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
         <style jsx>{pageStyles}</style>
       </div>
     </>
@@ -525,8 +714,35 @@ const pageStyles = `
 .hgs-game-body h3{font-size:16px;font-weight:700;margin:0 0 4px}
 .hgs-game-meta{font-size:13px;color:rgba(255,255,255,.55);display:flex;gap:6px;flex-wrap:wrap}
 .hgs-game-desc{font-size:13px;color:rgba(255,255,255,.5);margin:6px 0 0 !important}
-.hgs-game-rsvp{padding:8px 14px;background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.35);border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;align-self:center;flex-shrink:0}
-.hgs-game-rsvp:hover{background:rgba(239,68,68,.25)}
+.hgs-game-rsvp{padding:8px 14px;background:rgba(139,92,246,.18);color:#c4b5fd;border:1px solid rgba(139,92,246,.45);border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;align-self:center;flex-shrink:0;transition:background .15s ease,transform .1s ease}
+.hgs-game-rsvp:hover{background:rgba(139,92,246,.28);color:#fff}
+.hgs-game-rsvp:active{transform:scale(.97)}
+.hgs-seat-backdrop{position:fixed;inset:0;background:rgba(5,8,15,.78);backdrop-filter:blur(6px);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;animation:hgs-seat-fade .15s ease-out}
+@keyframes hgs-seat-fade{from{opacity:0}to{opacity:1}}
+.hgs-seat-modal{background:linear-gradient(180deg,#152036 0%,#0d1626 100%);border:1px solid rgba(148,163,184,.16);border-radius:16px;padding:24px;max-width:480px;width:100%;color:#fff;box-shadow:0 20px 60px rgba(0,0,0,.5);animation:hgs-seat-rise .18s ease-out}
+@keyframes hgs-seat-rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.hgs-seat-title{font-size:20px;font-weight:700;margin:0 0 6px !important;color:#fff;line-height:1.3}
+.hgs-seat-sub{font-size:13px;color:rgba(255,255,255,.6);margin:0 0 14px !important}
+.hgs-seat-body{font-size:14px;color:rgba(255,255,255,.8);margin:0 0 16px !important;line-height:1.5}
+.hgs-seat-hint{font-size:13px;color:rgba(255,255,255,.55);margin:0 0 16px !important;line-height:1.5;padding:10px 12px;background:rgba(139,92,246,.08);border-left:3px solid rgba(139,92,246,.5);border-radius:4px}
+.hgs-seat-label{display:block;margin-bottom:14px;font-size:13px;color:rgba(255,255,255,.7);font-weight:600}
+.hgs-seat-label > span{display:block;margin-bottom:6px}
+.hgs-seat-label small{display:block;text-align:right;margin-top:4px;font-size:11px;color:rgba(255,255,255,.4)}
+.hgs-seat-textarea{width:100%;box-sizing:border-box;padding:10px 12px;background:rgba(0,0,0,.3);border:1px solid rgba(148,163,184,.18);border-radius:8px;color:#fff;font-family:inherit;font-size:14px;line-height:1.5;resize:vertical;min-height:72px}
+.hgs-seat-textarea:focus{outline:none;border-color:rgba(139,92,246,.6);background:rgba(0,0,0,.4)}
+.hgs-seat-error{background:rgba(239,68,68,.12);color:#fca5a5;border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:10px 12px;font-size:13px;margin-bottom:12px}
+.hgs-seat-summary{margin:0 0 20px;padding:12px 14px;background:rgba(0,0,0,.25);border-radius:8px}
+.hgs-seat-summary div{display:flex;justify-content:space-between;padding:6px 0;font-size:13px}
+.hgs-seat-summary dt{color:rgba(255,255,255,.5);font-weight:600}
+.hgs-seat-summary dd{margin:0;color:#fff;font-weight:600;text-align:right}
+.hgs-seat-actions{display:flex;gap:10px;justify-content:flex-end}
+.hgs-seat-btn{padding:10px 18px;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;border:1px solid transparent;transition:background .15s ease,transform .1s ease}
+.hgs-seat-btn:active{transform:scale(.97)}
+.hgs-seat-btn:disabled{opacity:.5;cursor:not-allowed}
+.hgs-seat-btn-ghost{background:transparent;color:rgba(255,255,255,.65);border-color:rgba(148,163,184,.2)}
+.hgs-seat-btn-ghost:hover:not(:disabled){background:rgba(255,255,255,.06);color:#fff}
+.hgs-seat-btn-primary{background:linear-gradient(180deg,#8b5cf6 0%,#7c3aed 100%);color:#fff;box-shadow:0 4px 14px rgba(139,92,246,.4)}
+.hgs-seat-btn-primary:hover:not(:disabled){background:linear-gradient(180deg,#9867fe 0%,#8b5cf6 100%)}
 .hgs-posts{display:flex;flex-direction:column;gap:12px}
 .hgs-post{background:rgba(0,0,0,.2);border:1px solid rgba(148,163,184,.08);border-radius:10px;padding:14px}
 .hgs-post header{display:flex;gap:8px;align-items:center;margin-bottom:8px;font-size:13px;color:rgba(255,255,255,.6)}
