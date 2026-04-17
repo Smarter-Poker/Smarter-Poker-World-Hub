@@ -2167,7 +2167,7 @@ export default function PokerNearMeLobby() {
       <SEOHead
         title="Poker Near Me — Find Live Poker Rooms & Casinos"
         description="Discover Live Poker Rooms, Casinos, And Card Rooms Near You. Real-Time Game Info, Tournament Schedules, And Interactive Maps."
-        canonical="/hub/poker-near-me"
+        canonical="/hub/poker-near-me/lobby"
       />
 
       <div className="pnm-lobby-page">
@@ -2899,11 +2899,11 @@ export default function PokerNearMeLobby() {
         }}
         onTourClick={(tour) => {
           setShowGlobalSearch(false);
-          router.push('/hub/poker-near-me?tab=events&sub=tours');
+          router.push('/hub/poker-near-me/tours');
         }}
         onSeriesClick={(s) => {
           setShowGlobalSearch(false);
-          router.push('/hub/poker-near-me?tab=events&sub=series');
+          router.push('/hub/poker-near-me/series');
         }}
       />
 

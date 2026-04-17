@@ -2656,7 +2656,7 @@ export default function PokerNearMePage() {
             <SEOHead
                 title={activeTab === 'live' ? "Live Cash Games — Find Live Poker Rooms & Casinos Near You" : "Poker Near Me — Find Live Poker Rooms & Casinos"}
                 description={activeTab === 'live' ? "Discover Live Cash Games, Poker Rooms, Casinos, And Card Rooms Near You. Real-Time Game Info, Tournament Schedules, And Interactive Maps Across The United States." : "Discover Live Poker Rooms, Casinos, And Card Rooms Near You. Real-Time Game Info, Tournament Schedules, And Interactive Maps Across The United States."}
-                canonical="/hub/poker-near-me"
+                canonical={`/hub/poker-near-me/${showLiveTab ? 'live-games' : activeTab === 'events' ? (activeEventTab || 'events') : activeTab === 'more' ? (activeMoreTab === 'alerts' ? 'alerts' : activeMoreTab === 'roadtrip' ? 'roadtrip' : 'more') : activeTab}`}
             />
 
             <div className="pnm-page">
