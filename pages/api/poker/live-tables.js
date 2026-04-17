@@ -217,8 +217,10 @@ export default async function handler(req, res) {
     let crossSourceMerges = 0;
     
     for (const row of batchFiltered) {
+      // Skip rows with no game name — these crash .toUpperCase() in the frontend
+      if (!row.game_name || typeof row.game_name !== 'string' || !row.game_name.trim()) continue;
       const resolvedSlug = resolveSlug(row);
-      const gameName = row.game_name || 'Unknown Game';
+      const gameName = row.game_name.trim();
       const src = row.source || 'bravo';
       
       // Track cross-source merges for diagnostics
@@ -272,9 +274,9 @@ export default async function handler(req, res) {
       if (!venueData._seenGames.has(gameName)) {
         venueData._seenGames.add(gameName);
         venueData.games.push({
-          game: row.game_name,
-          tables_running: row.tables_running,
-          players_waiting: row.players_waiting,
+          game: gameName,  // use sanitized variable, never raw row.game_name
+          tables_running: row.tables_running || 0,
+          players_waiting: row.players_waiting || 0,
           source: src,
           buyin: row.buyin_range || null,
           runs: row.runs_schedule || null,

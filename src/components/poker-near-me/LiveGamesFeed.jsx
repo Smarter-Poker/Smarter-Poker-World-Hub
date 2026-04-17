@@ -111,7 +111,7 @@ const GAME_TYPE_FILTERS = [
 function matchesGameType(gameName, filterKey) {
     if (!filterKey || filterKey === 'all') return true;
     if (filterKey === 'none') return false; 
-    const g = (gameName || '').toLowerCase();
+    const g = ((gameName || '')).toLowerCase();
     if (filterKey === 'nlh') return g.includes('hold') || g.includes('nlh') || g.includes('no limit holdem') || g.includes('no-limit hold');
     if (filterKey === 'plo') return g.includes('omaha') || g.includes('plo') || g.includes('big o');
     if (filterKey === 'mixed') return g.includes('mix') || g.includes('horse') || g.includes('triple draw') || g.includes('2-7') || g.includes('badugi');
@@ -134,11 +134,11 @@ const STAKES_FILTERS = [
 function venueHasStakes(games, minStake) {
     if (minStake === 'any' || !minStake) return true;
     const threshold = parseInt(minStake);
-    return (games || []).some(g => parseMinStake(g.game) >= threshold);
+    return (games || []).some(g => g.game && parseMinStake(g.game) >= threshold);
 }
 
 
-export default function LiveGamesFeed({ 
+function LiveGamesFeed({
     venues = [], 
     userLocation, 
     favorites = {}, 
@@ -703,6 +703,7 @@ export default function LiveGamesFeed({
                     <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(224,232,240,0.7)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Game Breakdown</span>
                 </div>
                 {displayGames.map((g, i) => {
+                    if (!g || typeof g.game !== 'string') return null;
                     const normalized = normalizeGameName(g.game);
                     const isPASource = g.source === 'pokeratlas';
                     return (
@@ -749,7 +750,7 @@ export default function LiveGamesFeed({
 
     // ─── GAME TYPE COLOR MAPPING ───
     const getGameChipStyle = (gameName) => {
-        if (!gameName) return {};
+        if (!gameName || typeof gameName !== 'string') return {};
         const upper = gameName.toUpperCase();
         if (upper.includes('PLO') || upper.includes('OMAHA')) return { bg: 'rgba(59,130,246,0.12)', color: '#60a5fa', border: 'rgba(59,130,246,0.22)' }; // Blue for PLO
         if (upper.includes('NLH') || upper.includes('NO LIMIT') || upper.includes('HOLDEM') || upper.includes("HOLD'EM")) return { bg: 'rgba(255,255,255,0.12)', color: '#ffffff', border: 'rgba(255,255,255,0.22)' };
@@ -786,6 +787,7 @@ export default function LiveGamesFeed({
             if (!v.games || v.games.length === 0) return [];
             const seen = new Set();
             return v.games.map(g => {
+                if (!g || !g.game || typeof g.game !== 'string') return null;
                 const norm = normalizeGameName(g.game);
                 const label = norm.canonical !== 'Unknown' ? norm.canonical : g.game;
                 if (seen.has(label)) return null;
@@ -1286,3 +1288,43 @@ export default function LiveGamesFeed({
         </div>
     );
 }
+
+// ─── ERROR BOUNDARY — page NEVER shows raw crash screen ───
+class LiveGamesFeedErrorBoundary extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = { hasError: false };
+        this._retryTimer = null;
+    }
+    static getDerivedStateFromError() { return { hasError: true }; }
+    componentDidCatch(err, info) {
+        console.error('[LiveGamesFeed] Caught render error:', err, info?.componentStack);
+        if (this._retryTimer) clearTimeout(this._retryTimer);
+        this._retryTimer = setTimeout(() => this.setState({ hasError: false }), 8000);
+    }
+    componentWillUnmount() { if (this._retryTimer) clearTimeout(this._retryTimer); }
+    render() {
+        if (!this.state.hasError) return this.props.children;
+        return (
+            <div style={{ padding: '40px 20px', textAlign: 'center', background: 'rgba(13,17,23,0.8)', borderRadius: 16, border: '1px solid rgba(245,158,11,0.2)', margin: '0 16px' }}>
+                <div style={{ width: 56, height: 56, borderRadius: 28, background: 'rgba(245,158,11,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2">
+                        <path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0115-6.7L21 8"/>
+                        <path d="M3 22v-6h6"/><path d="M21 12a9 9 0 01-15 6.7L3 16"/>
+                    </svg>
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: '#f59e0b', marginBottom: 6 }}>Intelligence Engines Syncing</div>
+                <div style={{ fontSize: 12, color: 'rgba(245,158,11,0.65)', marginBottom: 20 }}>Live data is refreshing. Retrying automatically...</div>
+                <button onClick={() => this.setState({ hasError: false })} style={{ padding: '9px 20px', borderRadius: 10, fontSize: 13, fontWeight: 700, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', color: '#f59e0b', cursor: 'pointer', fontFamily: 'inherit' }}>Retry Now</button>
+            </div>
+        );
+    }
+}
+
+const _LiveGamesFeedWrapped = (props) => (
+    <LiveGamesFeedErrorBoundary>
+        <LiveGamesFeed {...props} />
+    </LiveGamesFeedErrorBoundary>
+);
+_LiveGamesFeedWrapped.displayName = 'LiveGamesFeed';
+export default _LiveGamesFeedWrapped;
