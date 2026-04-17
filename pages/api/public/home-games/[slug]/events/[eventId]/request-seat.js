@@ -123,6 +123,22 @@ export default async function handler(req, res) {
       });
     }
 
+    // 4b. Load the group row for host owner_id + display name. We'll need
+    //     these for the notification dispatch in step 9. Also cheap to use
+    //     `game_type` + `stakes` for a nicer email body.
+    const { data: group, error: groupErr } = await supabase
+      .from('commander_home_groups')
+      .select('id, owner_id, name, game_type, typical_stakes')
+      .eq('id', groupId)
+      .maybeSingle();
+    if (groupErr) throw groupErr;
+    if (!group) {
+      // Group vanished between Phase 1's trigger and now. Shouldn't happen
+      // because the social_page→group link invariant is enforced by
+      // ck_home_group_link_is_home_game, but if it does, fail clean.
+      return res.status(404).json({ success: false, error: 'Home game not found' });
+    }
+
     // 5. Sanitize body
     const body = req.body || {};
     const message = (typeof body.message === 'string' ? body.message : '').trim().slice(0, 500);
@@ -205,7 +221,32 @@ export default async function handler(req, res) {
 
     if (rsvpErr) throw rsvpErr;
 
-    // 9. Done. The caller gets back enough info to render the confirmation UI.
+    // 9. Fire host notifications (in-app row + email). This block MUST NEVER
+    //    cause the main request to fail. We await it so it completes before
+    //    the lambda returns (fire-and-forget isn't reliable on Vercel
+    //    serverless), but wrap the whole thing in a try/catch.
+    try {
+      await dispatchHostNotification(supabase, {
+        req,
+        host_user_id: group.owner_id,
+        requester_user_id: user.id,
+        group_id: group.id,
+        group_name: group.name,
+        event,
+        rsvp: {
+          response,
+          bringing_guests: bringingGuests,
+          message: message || null,
+        },
+      });
+    } catch (notifyErr) {
+      // Log but DO NOT fail the request. A missed notification is less bad
+      // than a failed seat request that double-charges the idempotent
+      // upsert state if the user retries.
+      console.error('[request-seat] notification dispatch failed:', notifyErr?.message || notifyErr);
+    }
+
+    // 10. Done. The caller gets back enough info to render the confirmation UI.
     //    Do NOT include event.address, host PII, or other members' RSVPs here.
     return res.status(200).json({
       success: true,
@@ -235,5 +276,187 @@ export default async function handler(req, res) {
   } catch (err) {
     console.error('[request-seat] error:', err);
     return res.status(500).json({ success: false, error: err?.message || 'Internal server error' });
+  }
+}
+
+/**
+ * ── dispatchHostNotification ────────────────────────────────────────────────
+ *  Notify the host that a public user requested a seat. Does two things:
+ *    1. Inserts a row into public.notifications so the in-app bell picks it up
+ *    2. POSTs to /api/email/send-seat-request to send a branded Resend email
+ *
+ *  Dedup: skips both sends if a notification of the same type was already
+ *  written for this (host, event, requester) triple within the last 4 hours.
+ *  This matters because the Phase 9 endpoint is intentionally idempotent —
+ *  a user who edits their message and re-submits shouldn't spam the host.
+ *
+ *  The helper must never throw in a way that bubbles back to the caller —
+ *  the caller wraps it in try/catch, but belt-and-suspenders is good here.
+ * ───────────────────────────────────────────────────────────────────────────
+ */
+async function dispatchHostNotification(supabase, ctx) {
+  const {
+    req,
+    host_user_id,
+    requester_user_id,
+    group_id,
+    group_name,
+    event,
+    rsvp,
+  } = ctx;
+
+  if (!host_user_id || host_user_id === requester_user_id) {
+    // No host (shouldn't happen — owner_id is NOT NULL) OR the host is
+    // requesting a seat at their own game (weird edge case). Skip silently.
+    return;
+  }
+
+  // ── Dedup window ──────────────────────────────────────────────────────────
+  // Check for a recent notification row for this specific request. Using
+  // metadata->>game_id + metadata->>requester_id because data and metadata
+  // both exist on the notifications table; we write metadata consistently
+  // below so the lookup matches.
+  const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
+  try {
+    const { data: recent } = await supabase
+      .from('notifications')
+      .select('id')
+      .eq('user_id', host_user_id)
+      .eq('type', 'home_game_seat_request')
+      .gte('created_at', fourHoursAgo)
+      .filter('metadata->>game_id', 'eq', String(event.id))
+      .filter('metadata->>requester_id', 'eq', String(requester_user_id))
+      .limit(1);
+    if (recent && recent.length > 0) {
+      // Already notified this host about this exact request recently. Skip.
+      return;
+    }
+  } catch (dedupErr) {
+    // If the dedup query itself fails, fall through and attempt the send
+    // anyway — better to occasionally double-notify than miss a lead.
+    console.warn('[request-seat] dedup check failed (proceeding):', dedupErr?.message || dedupErr);
+  }
+
+  // ── Resolve profile/email metadata ────────────────────────────────────────
+  // Need: host email (auth.users), host display name (profiles), requester
+  // display name (profiles). auth.admin.getUserById hits GoTrue directly
+  // which is sometimes flaky on Vercel, so we read from auth.users via
+  // service-role instead.
+  const [hostProfileRes, requesterProfileRes, hostAuthRes] = await Promise.allSettled([
+    supabase.from('profiles').select('id, display_name, full_name, first_name, username').eq('id', host_user_id).maybeSingle(),
+    supabase.from('profiles').select('id, display_name, full_name, first_name, username, email').eq('id', requester_user_id).maybeSingle(),
+    supabase.auth.admin.getUserById(host_user_id),
+  ]);
+
+  const pickName = (p) => (p?.display_name || p?.full_name || p?.first_name || p?.username || null);
+
+  const hostProfile = hostProfileRes.status === 'fulfilled' ? hostProfileRes.value?.data : null;
+  const requesterProfile = requesterProfileRes.status === 'fulfilled' ? requesterProfileRes.value?.data : null;
+  const hostAuth = hostAuthRes.status === 'fulfilled' ? hostAuthRes.value?.data?.user : null;
+
+  const hostName = pickName(hostProfile) || 'Host';
+  const requesterName = pickName(requesterProfile) || 'Someone';
+  const requesterEmail = requesterProfile?.email || null;
+  const hostEmail = hostAuth?.email || null;
+
+  const manageUrl = `https://smarter.poker/hub/commander/home-games/${encodeURIComponent(group_id)}/manage`;
+
+  // ── Assemble one metadata object used by both surfaces ───────────────────
+  const metadata = {
+    game_id: String(event.id),
+    group_id: String(group_id),
+    group_name,
+    event_title: event.title || null,
+    scheduled_date: event.scheduled_date,
+    start_time: event.start_time || null,
+    requester_id: String(requester_user_id),
+    requester_name: requesterName,
+    rsvp_response: rsvp.response,
+    bringing_guests: rsvp.bringing_guests || 0,
+    message: rsvp.message || null,
+  };
+
+  const isWaitlist = rsvp.response === 'waitlist';
+  const titleText = isWaitlist
+    ? `New waitlist request from ${requesterName}`
+    : `New seat request from ${requesterName}`;
+  const bodyText = rsvp.message
+    ? `"${String(rsvp.message).slice(0, 140)}${rsvp.message.length > 140 ? '…' : ''}"`
+    : `At ${group_name} — tap to approve.`;
+
+  // ── 1. In-app notification row ────────────────────────────────────────────
+  const notifRow = {
+    user_id: host_user_id,
+    type: 'home_game_seat_request',
+    title: titleText,
+    message: bodyText,
+    data: metadata,
+    metadata,
+    actor_id: requester_user_id,
+    action_url: manageUrl,
+    link: manageUrl,
+    is_read: false,
+    read: false,
+  };
+
+  try {
+    const { error: notifErr } = await supabase.from('notifications').insert(notifRow);
+    if (notifErr) {
+      console.warn('[request-seat] notifications insert failed:', notifErr.message);
+    }
+  } catch (e) {
+    console.warn('[request-seat] notifications insert threw:', e?.message || e);
+  }
+
+  // ── 2. Email via internal send-seat-request endpoint ─────────────────────
+  if (!hostEmail) {
+    // Host has no email address on file — skip send, in-app row still exists
+    // so the host will see it on next login.
+    return;
+  }
+
+  const adminSecret = process.env.ADMIN_ROUTE_SECRET;
+  if (!adminSecret) {
+    // Not configured — can't call internal endpoint safely. Log once and
+    // skip; in-app row still exists.
+    console.warn('[request-seat] ADMIN_ROUTE_SECRET not set; skipping email');
+    return;
+  }
+
+  // Resolve the base URL for the internal call. Vercel provides VERCEL_URL
+  // for the current deployment; fall back to the request's own host.
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL
+    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
+    || (req?.headers?.host ? `https://${req.headers.host}` : 'https://smarter.poker');
+
+  try {
+    const resp = await fetch(`${baseUrl}/api/email/send-seat-request`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-admin-secret': adminSecret,
+      },
+      body: JSON.stringify({
+        to: hostEmail,
+        hostName,
+        requesterName,
+        requesterMessage: rsvp.message || '',
+        requesterEmail,
+        groupName: group_name,
+        eventTitle: event.title || null,
+        eventDate: event.scheduled_date,
+        eventStartTime: event.start_time || null,
+        eventStakes: '', // optional cosmetic; could derive from group.typical_stakes if desired
+        response: rsvp.response,
+        bringingGuests: rsvp.bringing_guests || 0,
+        manageUrl,
+      }),
+    });
+    if (!resp.ok) {
+      const text = await resp.text().catch(() => '');
+      console.warn('[request-seat] email endpoint returned', resp.status, text.slice(0, 200));
+    }
+  } catch (e) {
+    console.warn('[request-seat] email dispatch threw:', e?.message || e);
   }
 }
