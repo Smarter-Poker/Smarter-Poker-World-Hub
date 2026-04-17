@@ -173,11 +173,50 @@ async function createGroup(req, res) {
       typical_day,
       typical_time,
       frequency,
-      settings
+      settings,
+      // ── PHASE 17 — HARD LOGO REQUIREMENT ────────────────────────────
+      //
+      // Dan's directive: "ALL HOME GAMES, CLUBS OR CHARITIES MUST HAVE A
+      // LOGO UPLOADED BEFORE COMPLETING OR FINISHING THEIR ACCOUNT
+      // CREATION. WE MUST HAVE ACTUAL IMAGE UPLOAD AS A REQUIREMENT TO
+      // ADVANCE."
+      //
+      // Client uploads the logo to Supabase Storage bucket 'uploads' at
+      //   home-groups/pending-{ownerId}-{ts}/logo.{ext}
+      // then includes the public URL in this field. We VALIDATE below:
+      //   - must be a non-empty string
+      //   - must start with our Supabase Storage public URL prefix
+      //     (blocks hot-linked or fabricated URLs pointing elsewhere)
+      //   - must contain '/home-groups/' in the path so the upload is
+      //     scoped to the home-group bucket folder
+      // Once validated, it's persisted to commander_home_groups.profile_photo_url.
+      profile_photo_url
     } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: 'Group name is required' });
+    }
+
+    // ── LOGO HARD REQUIREMENT ───────────────────────────────────────
+    if (!profile_photo_url || typeof profile_photo_url !== 'string') {
+      return res.status(400).json({
+        error: 'Logo upload is required to create a home group',
+        code: 'LOGO_REQUIRED'
+      });
+    }
+
+    // Validate the URL shape — must be a real Supabase Storage upload
+    // in the home-groups/ folder, not a hot-linked or arbitrary URL.
+    const SUPABASE_PUBLIC_PREFIX = 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/uploads/';
+    const isValidLogoUrl =
+      profile_photo_url.startsWith(SUPABASE_PUBLIC_PREFIX) &&
+      profile_photo_url.includes('/home-groups/');
+
+    if (!isValidLogoUrl) {
+      return res.status(400).json({
+        error: 'Logo must be uploaded through the app (Supabase Storage home-groups path required)',
+        code: 'LOGO_INVALID_SOURCE'
+      });
     }
 
     const { data: group, error } = await getSupabase()
@@ -201,6 +240,7 @@ async function createGroup(req, res) {
         typical_day,
         typical_time,
         frequency,
+        profile_photo_url,   // Phase 17: required, validated above
         settings: settings || {}
       })
       .select(`

@@ -3,7 +3,7 @@
  * Allows players to create and host their own poker home games
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import {
@@ -21,7 +21,10 @@ import {
   Users,
   Clock,
   Image as ImageIcon,
-  FileText
+  FileText,
+  Upload,
+  AlertCircle,
+  X
 } from 'lucide-react';
 import CreateGameForm from '../../../../src/components/commander/home-games/CreateGameForm';
 import GoogleMapPicker from '../../../../src/components/maps/GoogleMapPicker';
@@ -64,6 +67,14 @@ export default function CreateHomeGamePage() {
   const [createdSocialPage, setCreatedSocialPage] = useState(null);
   const [eventSubmitting, setEventSubmitting] = useState(false);
 
+  // ── PHASE 17 — hard logo requirement ──────────────────────────────
+  // profile_photo_url is filled in by the Supabase Storage upload
+  // before the user is allowed to click "Create Group". See the Logo
+  // panel on step 3 below.
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [logoError, setLogoError] = useState(null);
+  const logoInputRef = useRef(null);
+
   // Form state
   const [formData, setFormData] = useState({
     name: '',
@@ -85,6 +96,7 @@ export default function CreateHomeGamePage() {
     schedule_days: [],
     start_time: '19:00',
     end_time: '',
+    profile_photo_url: '',   // Phase 17: required, uploaded on step 3
   });
 
   // Toggle a day in the schedule_days array
@@ -115,9 +127,73 @@ export default function CreateHomeGamePage() {
     setFormData(prev => ({ ...prev, [field]: value }));
   }
 
+  // ── PHASE 17: LOGO UPLOAD HANDLER ─────────────────────────────────
+  // Uploads the selected file to Supabase Storage at
+  //   uploads/home-groups/pending-{userId}-{timestamp}/logo.{ext}
+  // and stores the public URL in formData.profile_photo_url. The server-
+  // side API validates the URL shape and refuses creation without it.
+  async function handleLogoSelected(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Basic client-side validation before hitting Storage
+    if (!file.type.startsWith('image/')) {
+      setLogoError('Please choose an image file');
+      e.target.value = '';
+      return;
+    }
+    const MAX_BYTES = 10 * 1024 * 1024;  // 10MB
+    if (file.size > MAX_BYTES) {
+      setLogoError('Image must be under 10MB');
+      e.target.value = '';
+      return;
+    }
+
+    setUploadingLogo(true);
+    setLogoError(null);
+    try {
+      const { ensureAuthReady } = await import('../../../../src/lib/authUtils');
+      const { supabase: sb } = await import('../../../../src/lib/supabase');
+      const authUser = await ensureAuthReady(sb);
+      if (!authUser) {
+        setLogoError('Please sign in again before uploading');
+        setUploadingLogo(false);
+        return;
+      }
+
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+      // Path is scoped to the user's pending home-group (group_id doesn't exist yet).
+      // The server later validates the URL has '/home-groups/' in the path.
+      const path = `home-groups/pending-${authUser.id}-${Date.now()}/logo.${ext}`;
+
+      const { error: upErr } = await sb.storage
+        .from('uploads')
+        .upload(path, file, { upsert: true, contentType: file.type });
+      if (upErr) throw upErr;
+
+      const { data: { publicUrl } } = sb.storage.from('uploads').getPublicUrl(path);
+      if (!publicUrl) throw new Error('Upload succeeded but no public URL returned');
+
+      updateField('profile_photo_url', publicUrl);
+    } catch (err) {
+      console.error('Logo upload failed:', err);
+      setLogoError(err?.message || 'Upload failed — please try again');
+    } finally {
+      setUploadingLogo(false);
+      e.target.value = '';  // Reset so the same file can be re-picked if needed
+    }
+  }
+
   async function handleSubmit() {
     if (!formData.name.trim()) {
       setError('Please enter a group name');
+      return;
+    }
+
+    // Phase 17: hard gate — logo upload required before we even call the API.
+    // Server will reject anyway, but failing fast here gives a clearer UX.
+    if (!formData.profile_photo_url) {
+      setError('Please upload a logo before creating your group');
       return;
     }
 
@@ -154,6 +230,7 @@ export default function CreateHomeGamePage() {
         typical_day: formData.recurring && formData.schedule_days.length > 0 ? formData.schedule_days.join(',') : undefined,
         typical_time: formData.start_time || undefined,
         frequency: formData.recurring ? 'weekly' : undefined,
+        profile_photo_url: formData.profile_photo_url,   // Phase 17: mandatory logo URL
         settings: {
           schedule_summary: getScheduleSummary(),
           end_time: formData.end_time || undefined,
@@ -610,6 +687,76 @@ export default function CreateHomeGamePage() {
                 )}
               </div>
 
+              <div className="cmd-panel p-6 space-y-4">
+                <h2 className="font-semibold text-white flex items-center gap-2">
+                  <ImageIcon className="w-5 h-5 text-[#F59E0B]" />
+                  Group Logo <span className="text-xs font-normal text-[#F59E0B]">· Required</span>
+                </h2>
+                <p className="text-sm text-[#94A3B8]">
+                  Upload a logo that represents your home game. This appears on your public page, in push notifications to followers, and across Poker Near Me / Daily Tournaments when your games surface there. A real image is required before you can finish creating your group.
+                </p>
+
+                <input
+                  ref={logoInputRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={handleLogoSelected}
+                />
+
+                {!formData.profile_photo_url ? (
+                  <button
+                    type="button"
+                    onClick={() => logoInputRef.current?.click()}
+                    disabled={uploadingLogo}
+                    className="cmd-btn cmd-btn-secondary w-full h-14 flex items-center justify-center gap-2 border-dashed border-2 border-[#F59E0B]/50 hover:border-[#F59E0B] transition-colors"
+                  >
+                    {uploadingLogo ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin text-[#F59E0B]" />
+                        <span>Uploading…</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-5 h-5 text-[#F59E0B]" />
+                        <span>Choose Logo Image</span>
+                      </>
+                    )}
+                  </button>
+                ) : (
+                  <div className="p-3 bg-[#0D192E] rounded-lg border border-[#10B981]/40 flex items-center gap-3">
+                    <img
+                      src={formData.profile_photo_url}
+                      alt="Group logo preview"
+                      style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 8, flexShrink: 0 }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-[#10B981] flex items-center gap-1.5">
+                        <Check className="w-4 h-4" />
+                        Logo uploaded
+                      </p>
+                      <p className="text-xs text-[#64748B] truncate">Click replace to pick a different image</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => logoInputRef.current?.click()}
+                      disabled={uploadingLogo}
+                      className="cmd-btn cmd-btn-secondary h-9 px-3 text-xs flex items-center gap-1.5 flex-shrink-0"
+                    >
+                      {uploadingLogo ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                      Replace
+                    </button>
+                  </div>
+                )}
+
+                {logoError && (
+                  <div className="p-3 bg-[#EF4444]/10 rounded-lg border border-[#EF4444]/40 flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-[#EF4444] mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-[#FECACA]">{logoError}</p>
+                  </div>
+                )}
+              </div>
+
               <div className="flex gap-3">
                 <button
                   onClick={() => setStep(2)}
@@ -619,13 +766,19 @@ export default function CreateHomeGamePage() {
                 </button>
                 <button
                   onClick={handleSubmit}
-                  disabled={submitting}
-                  className="cmd-btn cmd-btn-primary flex-1 h-12 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  disabled={submitting || uploadingLogo || !formData.profile_photo_url}
+                  title={!formData.profile_photo_url ? 'Upload a logo to continue' : ''}
+                  className="cmd-btn cmd-btn-primary flex-1 h-12 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {submitting ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
                       Creating...
+                    </>
+                  ) : !formData.profile_photo_url ? (
+                    <>
+                      <ImageIcon className="w-5 h-5" />
+                      Upload Logo First
                     </>
                   ) : (
                     <>
