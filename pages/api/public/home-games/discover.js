@@ -1,0 +1,199 @@
+/**
+ * ══════════════════════════════════════════════════════════════════════════
+ *  PUBLIC HOME GAMES — DISCOVER API
+ *  GET /api/public/home-games/discover
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ *  No auth required. Returns public home game groups joined with their
+ *  social_pages (created in the unify_home_games_with_social_pages migration).
+ *
+ *  Query params:
+ *    state=IL         — filter by state code
+ *    city=Chicago     — ilike filter on city
+ *    game_type=nlh    — filter by default_game_type
+ *    frequency=weekly — filter by frequency
+ *    limit=50         — page size (max 100, default 50)
+ *
+ *  Shape per result:
+ *    { id, slug, name, city, state, country,
+ *      avatar_url, cover_url, description,
+ *      default_game_type, default_stakes, frequency, member_count,
+ *      follower_count, post_count, view_count,
+ *      home_group_id, invite_code, next_game_date, next_game_title,
+ *      host: { display_name, avatar_url } }
+ *
+ *  CDN-cached 60s fresh / 300s stale-while-revalidate.
+ */
+
+import { createClient } from '../../../../src/lib/supabaseServerClient';
+import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
+
+let _supabase = null;
+function getSupabase() {
+  if (!_supabase) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    _supabase = createClient(url, key);
+  }
+  return _supabase;
+}
+
+function escapeIlike(s) {
+  return (s || '').replace(/[%_\\]/g, (c) => '\\' + c);
+}
+
+export default async function handler(req, res) {
+  try {
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
+
+    if (req.method !== 'GET') {
+      res.setHeader('Allow', ['GET']);
+      return res.status(405).json({ success: false, error: 'Method not allowed' });
+    }
+
+    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+
+    const {
+      state,
+      city,
+      game_type,
+      frequency,
+      limit: rawLimit = '50',
+    } = req.query;
+
+    const limit = Math.min(Math.max(parseInt(rawLimit, 10) || 50, 1), 100);
+    const supabase = getSupabase();
+
+    // ── 1. Query public+active home groups joined with their social pages.
+    //      We go group-first because commander_home_groups holds the live
+    //      member_count / frequency / lat-lng / owner_id. social_pages
+    //      contributes slug + follower_count + avatar/cover (sync'd by trigger).
+    let q = supabase
+      .from('commander_home_groups')
+      .select(`
+        id,
+        name,
+        description,
+        tagline,
+        is_private,
+        is_active,
+        city,
+        state,
+        default_game_type,
+        default_stakes,
+        typical_buyin_min,
+        typical_buyin_max,
+        frequency,
+        typical_day,
+        typical_time,
+        member_count,
+        games_hosted,
+        cover_photo_url,
+        profile_photo_url,
+        invite_code,
+        club_code,
+        owner_id,
+        updated_at,
+        profiles:owner_id (id, display_name, avatar_url)
+      `)
+      .eq('is_active', true)
+      .eq('is_private', false)
+      .order('member_count', { ascending: false })
+      .limit(limit);
+
+    if (state) q = q.eq('state', state);
+    if (city) q = q.ilike('city', `%${escapeIlike(city)}%`);
+    if (game_type) q = q.eq('default_game_type', game_type);
+    if (frequency) q = q.eq('frequency', frequency);
+
+    const { data: groups, error } = await q;
+    if (error) throw error;
+
+    const groupIds = (groups || []).map((g) => g.id);
+    if (!groupIds.length) {
+      return res.status(200).json({ success: true, groups: [], filters: { state, city, game_type, frequency } });
+    }
+
+    // ── 2. Pull the matching social_pages for each group (slug, counts, avatar/cover).
+    const groupIdStrs = groupIds.map(String);
+    const { data: pages } = await supabase
+      .from('social_pages')
+      .select('id, slug, linked_entity_id, avatar_url, cover_url, follower_count, post_count, view_count, is_public')
+      .eq('linked_entity_type', 'home_group')
+      .in('linked_entity_id', groupIdStrs);
+
+    const pageByGroupId = {};
+    (pages || []).forEach((p) => {
+      pageByGroupId[p.linked_entity_id] = p;
+    });
+
+    // ── 3. Pull the next upcoming game per group (single query, filter app-side).
+    const today = new Date().toISOString().slice(0, 10);
+    const { data: upcoming } = await supabase
+      .from('commander_home_games')
+      .select('id, group_id, title, scheduled_date, start_time, game_type, stakes, rsvp_yes, max_players, status')
+      .in('group_id', groupIds)
+      .gte('scheduled_date', today)
+      .neq('status', 'cancelled')
+      .order('scheduled_date', { ascending: true })
+      .limit(100);
+
+    const nextByGroupId = {};
+    (upcoming || []).forEach((g) => {
+      if (!nextByGroupId[g.group_id]) nextByGroupId[g.group_id] = g;
+    });
+
+    // ── 4. Shape response. Use social_page slug for canonical URL when present;
+    //      fall back to club_code/invite_code so the card never has a null href.
+    const out = (groups || []).map((g) => {
+      const page = pageByGroupId[String(g.id)] || null;
+      const next = nextByGroupId[g.id] || null;
+      return {
+        id: g.id,
+        slug: page?.slug || null,
+        club_code: g.club_code || null,
+        invite_code: g.invite_code || null,
+        name: g.name,
+        description: g.description || g.tagline || '',
+        city: g.city || '',
+        state: g.state || '',
+        country: 'US',
+        avatar_url: page?.avatar_url || g.profile_photo_url || null,
+        cover_url: page?.cover_url || g.cover_photo_url || null,
+        default_game_type: g.default_game_type || null,
+        default_stakes: g.default_stakes || null,
+        typical_buyin_min: g.typical_buyin_min || null,
+        typical_buyin_max: g.typical_buyin_max || null,
+        frequency: g.frequency || null,
+        typical_day: g.typical_day || null,
+        typical_time: g.typical_time || null,
+        member_count: g.member_count || 0,
+        games_hosted: g.games_hosted || 0,
+        follower_count: page?.follower_count || 0,
+        post_count: page?.post_count || 0,
+        view_count: page?.view_count || 0,
+        next_game_date: next?.scheduled_date || null,
+        next_game_time: next?.start_time || null,
+        next_game_title: next?.title || null,
+        next_game_seats_left:
+          next && next.max_players != null ? Math.max(0, (next.max_players || 0) - (next.rsvp_yes || 0)) : null,
+        host: g.profiles
+          ? { id: g.profiles.id, display_name: g.profiles.display_name, avatar_url: g.profiles.avatar_url }
+          : null,
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      groups: out,
+      filters: { state, city, game_type, frequency },
+      count: out.length,
+    });
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('[public/home-games/discover]', err);
+    if (!res.headersSent) {
+      return res.status(500).json({ success: false, error: err?.message || 'Internal server error' });
+    }
+  }
+}

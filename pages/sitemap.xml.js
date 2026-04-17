@@ -18,6 +18,7 @@ const staticPages = [
     // Hub — Core
     { path: '/hub', priority: '0.9', changefreq: 'daily' },
     { path: '/hub/poker-near-me/lobby', priority: '0.9', changefreq: 'daily' },
+    { path: '/hub/home-games', priority: '0.9', changefreq: 'daily' },
     { path: '/hub/training', priority: '0.9', changefreq: 'weekly' },
     { path: '/hub/news', priority: '0.9', changefreq: 'hourly' },
     { path: '/hub/video-library', priority: '0.8', changefreq: 'daily' },

@@ -19,7 +19,8 @@ const C = {
 
 const PAGE_TYPES = [
     { key: 'venue', label: 'Venue Page', desc: 'For poker rooms and casinos', icon: 'M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z' },
-    { key: 'group', label: 'Group Page', desc: 'For home games and study groups', icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2' },
+    { key: 'home_game', label: 'Home Game', desc: 'For your private home game night or weekly group', icon: 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z' },
+    { key: 'group', label: 'Group Page', desc: 'For study groups and communities', icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2' },
     { key: 'community', label: 'Community', desc: 'For open poker communities', icon: 'M12 2L2 7l10 5 10-5-10-5z' },
     { key: 'brand', label: 'Brand Page', desc: 'For poker brands and products', icon: 'M20 7h-3V4a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v3H4a1 1 0 0 0-1 1v11a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a1 1 0 0 0-1-1z' },
 ];

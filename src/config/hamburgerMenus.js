@@ -193,6 +193,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Reels', '/hub/reels', MenuIcons.video),
             createMenuItem.navigation('News', '/hub/news'),
             createMenuItem.navigation('Poker Near Me', '/hub/poker-near-me/lobby'),
+            createMenuItem.navigation('Home Games', '/hub/home-games'),
             createMenuItem.navigation('📊 Session History', '/hub/session-history'),
             createMenuItem.navigation('🧮 Odds Calculator', '/hub/poker-tools'),
             createMenuItem.divider(),
@@ -758,6 +759,7 @@ export const MENU_CONFIGS = {
             createMenuItem.divider(),
             createMenuItem.section('Quick Links'),
             createMenuItem.navigation('Poker Near Me', '/hub/poker-near-me/lobby'),
+            createMenuItem.navigation('Home Games', '/hub/home-games'),
             createMenuItem.navigation('Promotions', '/hub/promotions')
         ],
         bottomLinks: [
