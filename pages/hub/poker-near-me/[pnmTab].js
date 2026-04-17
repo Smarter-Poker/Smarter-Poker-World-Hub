@@ -980,34 +980,14 @@ export default function PokerNearMePage() {
         fetchLiveCount();
     }, [fetchLiveCount]);
 
-    // Fetch non-venue data on mount (tours, series, daily tournaments)
-    // Venues are fetched AFTER GPS resolves to enforce 50mi radius default
+    // ─── Initial data load on mount ───
+    // ALWAYS include venues so the page is never blank regardless of GPS state.
+    // If GPS restores a location, the useEffect below re-fetches with lat/lng/radius.
     useEffect(() => {
-        fetchAllData({ includeVenues: false });
+        fetchAllData({ includeVenues: true });
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // ─── Fallback: if no location is available after GPS settles, fetch all venues ───
-    // Ensures the Venues tab is never blank for users without a saved location.
-    // The location-aware fetchVenues() below will override this once GPS resolves.
-    // NOTE: silent:false is intentional — it sets venueLoading:true so the component
-    // shows a skeleton instead of the "No Venues Found" empty state while fetching.
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-        const slug = window.location.pathname.split('/').pop();
-        const tabsNeedingVenues = ['venues', 'map', 'saved'];
-        if (!tabsNeedingVenues.includes(slug)) return;
-        // 400ms: enough time for saved-location restore to run before we fall back.
-        // If a location IS found, this timer fires but the condition below blocks it.
-        const timer = setTimeout(() => {
-            if (!userLocation && !selectedCity && !globalSearchModeRef.current) {
-                setHasSearched(true);
-                if (fetchVenuesRef.current) fetchVenuesRef.current(); // silent:false → shows loading skeleton
-            }
-        }, 400);
-        return () => clearTimeout(timer);
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-    // When city or GPS location is set, search for venues
+    // When city or GPS location is set, re-fetch venues with proximity filter
     // GUARD: skip if globalSearchModeRef is active — user did a text search, don't overwrite results
     useEffect(() => {
         if ((selectedCity || userLocation) && !globalSearchModeRef.current) {
@@ -1792,7 +1772,9 @@ export default function PokerNearMePage() {
             const json = await fetchWithRetry(url);
             
             // [HARDENING] Prevent Race Condition: discard if a newer fetch was initiated
+            // IMPORTANT: must set venueLoading=false before returning so skeletons don't get stuck
             if (fetchSequenceRef.current !== currentSeq) {
+                if (!silent) setVenueLoading(false);
                 return;
             }
             
