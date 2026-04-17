@@ -271,6 +271,11 @@ export default function PokerNearMePage() {
     // [BUG FIX] fetchVenuesRef avoids temporal dead zone: fetchVenues is declared later
     // as a const, so useVenueRealtime cannot reference it directly at mount time.
     const fetchVenuesRef = useRef(null);
+    // Persists the last confirmed 2-letter US state ('IL', 'NV', etc.) for GPS user.
+    // Unlike gpsLocationLabel (which temporarily becomes raw coordinates when fresh GPS fires
+    // before reverseGeocode resolves), this ref is never cleared — it ensures user_state=IL
+    // is always sent to the API even during the raw-coordinate phase of GPS refresh.
+    const gpsStateRef = useRef('');
 
     // [HARDENING] Bind venue component to Supabase postgres_changes for global updates
     // BUG FIX: Prevent global DDOS vector! Previously `useVenueRealtime` monitored all global 
@@ -1023,6 +1028,12 @@ export default function PokerNearMePage() {
                     setGpsLocationLabel(parsed.label || `${parsed.lat.toFixed(3)}, ${parsed.lng.toFixed(3)}`);
                     setHasSearched(true);
                     hasSavedLocation = true;
+                    // Persist last known state to gpsStateRef so fetchVenues always sends user_state
+                    if (parsed.label) {
+                        const parts = parsed.label.split(',');
+                        const s = parts.length >= 2 ? parts[parts.length - 1].trim().toUpperCase() : '';
+                        if (/^[A-Z]{2}$/.test(s)) gpsStateRef.current = s;
+                    }
                 }
             }
             // Fallback: check lobby page's GPS key if main page key is missing/expired
@@ -1038,6 +1049,8 @@ export default function PokerNearMePage() {
                         setGpsLocationLabel(city && state ? `${city}, ${state}` : `${parsed.lat.toFixed(3)}, ${parsed.lng.toFixed(3)}`);
                         setHasSearched(true);
                         hasSavedLocation = true;
+                        // Set gpsStateRef so fetchVenues always has user_state even before geocoding
+                        if (state && /^[A-Z]{2}$/i.test(state)) gpsStateRef.current = state.toUpperCase();
                         // Migrate to sp-user-gps for future consistency
                         safeSetItem('sp-user-gps', JSON.stringify({
                             lat: parsed.lat, lng: parsed.lng,
@@ -1613,6 +1626,10 @@ export default function PokerNearMePage() {
         reverseGeocode(loc.lat, loc.lng).then(label => {
             if (label) {
                 setGpsLocationLabel(label);
+                // Update gpsStateRef with confirmed state so future fetchVenues always have user_state
+                const labelParts = label.split(', ');
+                const stateCode = labelParts.length >= 2 ? labelParts[labelParts.length - 1].trim().toUpperCase() : '';
+                if (/^[A-Z]{2}$/.test(stateCode)) gpsStateRef.current = stateCode;
                 // Update saved GPS with human-readable label + lobby page keys
                 try {
                     const saved = JSON.parse(localStorage.getItem('sp-user-gps') || '{}');
@@ -1756,33 +1773,22 @@ export default function PokerNearMePage() {
                     const effectiveRadius = radiusOverride || filters.radius;
                     const miRadius = effectiveRadius === 'Any' ? 5000 : Number(effectiveRadius);
                     params.set('radius', String(miRadius));
-                    // Pass user's state so API includes no-coord venues from same state.
-                    // Priority order: gpsLocationLabel ("Oak Lawn, IL") → pnm_last_state → sp-user-gps label
-                    // Note: gpsLocationLabel may be "41.716, -87.742" immediately after fresh GPS fires
-                    // before reverseGeocode resolves, so we also check persisted keys.
-                    let stateForApi = '';
-                    // 1. Try label ("Oak Lawn, IL" → "IL")
-                    const labelParts = (gpsLocationLabel || '').split(',');
-                    const stateFromLabel = labelParts.length >= 2 ? labelParts[labelParts.length - 1].trim().toUpperCase() : '';
-                    if (stateFromLabel && stateFromLabel.length === 2 && /^[A-Z]{2}$/.test(stateFromLabel)) {
-                        stateForApi = stateFromLabel;
-                    }
-                    // 2. Fallback: read saved state from localStorage (written by lobby/GPS restore)
+                    // Determine user_state for API (ensures IL venues don't get cut off by global top-500 limit).
+                    // Priority: gpsStateRef (in-memory, never cleared) → gpsLocationLabel extraction → pnm_last_state localStorage
+                    // gpsStateRef persists the last geocoded state even when gpsLocationLabel temporarily
+                    // shows raw coordinates ("41.716, -87.742") while fresh GPS reverseGeocode is running.
+                    let stateForApi = gpsStateRef.current || '';
                     if (!stateForApi) {
-                        try {
-                            const savedState = localStorage.getItem('pnm_last_state') || '';
-                            if (savedState && savedState.length === 2) stateForApi = savedState.toUpperCase();
-                        } catch (e) { /* ignore */ }
+                        // Try label extraction: "Oak Lawn, IL" → "IL"
+                        const labelParts = (gpsLocationLabel || '').split(',');
+                        const stateFromLabel = labelParts.length >= 2 ? labelParts[labelParts.length - 1].trim().toUpperCase() : '';
+                        if (stateFromLabel && /^[A-Z]{2}$/.test(stateFromLabel)) stateForApi = stateFromLabel;
                     }
-                    // 3. Fallback: parse label from sp-user-gps
                     if (!stateForApi) {
+                        // Fallback: read from localStorage (set by lobby or GPS restore)
                         try {
-                            const savedGps = JSON.parse(localStorage.getItem('sp-user-gps') || '{}');
-                            if (savedGps.label) {
-                                const p = savedGps.label.split(',');
-                                const s = p.length >= 2 ? p[p.length - 1].trim().toUpperCase() : '';
-                                if (s.length === 2 && /^[A-Z]{2}$/.test(s)) stateForApi = s;
-                            }
+                            const s = (localStorage.getItem('pnm_last_state') || '').trim().toUpperCase();
+                            if (s.length === 2 && /^[A-Z]{2}$/.test(s)) stateForApi = s;
                         } catch (e) { /* ignore */ }
                     }
                     if (stateForApi) params.set('user_state', stateForApi);
