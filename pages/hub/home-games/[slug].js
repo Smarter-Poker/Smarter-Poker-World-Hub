@@ -15,7 +15,7 @@
  *      so search engines drop dead links correctly.
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Head from 'next/head';
@@ -23,6 +23,8 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { supabase } from '../../../src/lib/supabase';
+import { getAccessToken } from '../../../src/lib/authUtils';
 
 const GAME_TYPE_LABELS = {
   nlh: "No-Limit Hold'em",
@@ -195,6 +197,68 @@ export default function PublicHomeGamePage({ data, serverError }) {
   useTrainingBus('hub-home-games-slug');
   const [menuOpen, setMenuOpen] = useState(false);
   const [copyState, setCopyState] = useState('');
+  const initialFollowerCount = data?.page?.follower_count || 0;
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followerCount, setFollowerCount] = useState(initialFollowerCount);
+  const [followBusy, setFollowBusy] = useState(false);
+  const [followError, setFollowError] = useState('');
+
+  // On mount (and whenever slug changes), check if the current authed user
+  // is already following this home game. Silent failure for anonymous users —
+  // the Follow button just shows the "follow" state and gates auth on click.
+  const slugForFollow = data?.page?.slug;
+  useEffect(() => {
+    if (!slugForFollow) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = await getAccessToken();
+        if (!token) return;
+        const resp = await fetch(`/api/public/home-games/${slugForFollow}/follow`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!resp.ok) return;
+        const json = await resp.json();
+        if (cancelled) return;
+        if (typeof json.is_following === 'boolean') setIsFollowing(json.is_following);
+        if (typeof json.follower_count === 'number') setFollowerCount(json.follower_count);
+      } catch {
+        /* non-fatal */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [slugForFollow]);
+
+  const handleFollowToggle = async () => {
+    if (followBusy) return;
+    setFollowBusy(true);
+    setFollowError('');
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        // Not signed in — bounce to login, return here after.
+        const returnTo = typeof window !== 'undefined' ? window.location.pathname : `/hub/home-games/${slugForFollow}`;
+        router.push(`/auth/login?redirect=${encodeURIComponent(returnTo)}`);
+        return;
+      }
+      const method = isFollowing ? 'DELETE' : 'POST';
+      const resp = await fetch(`/api/public/home-games/${slugForFollow}/follow`, {
+        method,
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await resp.json().catch(() => ({}));
+      if (!resp.ok || !json.success) {
+        throw new Error(json.error || 'Follow action failed');
+      }
+      setIsFollowing(!!json.is_following);
+      if (typeof json.follower_count === 'number') setFollowerCount(json.follower_count);
+    } catch (err) {
+      setFollowError(err?.message || 'Could not update follow');
+      setTimeout(() => setFollowError(''), 3500);
+    } finally {
+      setFollowBusy(false);
+    }
+  };
 
   // Server-error fallback (rare — API returned 5xx)
   if (serverError || !data) {
@@ -284,7 +348,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
             </p>
             <div className="hgs-stats">
               <span><strong>{group.member_count}</strong> Members</span>
-              <span><strong>{page.follower_count}</strong> Followers</span>
+              <span><strong>{followerCount}</strong> Followers</span>
               <span><strong>{group.games_hosted}</strong> Games Hosted</span>
             </div>
           </div>
@@ -295,9 +359,19 @@ export default function PublicHomeGamePage({ data, serverError }) {
             >
               Join Group
             </button>
+            <button
+              className={'hgs-follow-btn' + (isFollowing ? ' hgs-follow-btn-on' : '')}
+              onClick={handleFollowToggle}
+              disabled={followBusy}
+              aria-pressed={isFollowing}
+              aria-label={isFollowing ? 'Unfollow this home game' : 'Follow this home game'}
+            >
+              {followBusy ? '…' : (isFollowing ? '✓ Following' : '+ Follow')}
+            </button>
             <button className="hgs-ghost-btn" onClick={copyShareUrl}>
               {copyState || 'Share'}
             </button>
+            {followError && <span className="hgs-follow-err">{followError}</span>}
           </div>
         </div>
 
@@ -428,6 +502,12 @@ const pageStyles = `
 .hgs-primary-btn:hover{transform:translateY(-1px)}
 .hgs-ghost-btn{padding:10px 18px;background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.15);border-radius:8px;font-size:13px;font-weight:700;cursor:pointer}
 .hgs-ghost-btn:hover{background:rgba(255,255,255,.14)}
+.hgs-follow-btn{padding:10px 18px;background:rgba(16,185,129,.12);color:#10b981;border:1.5px solid rgba(16,185,129,.4);border-radius:8px;font-size:13px;font-weight:800;letter-spacing:.3px;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:4px}
+.hgs-follow-btn:hover:not(:disabled){background:rgba(16,185,129,.22);border-color:rgba(16,185,129,.6)}
+.hgs-follow-btn:disabled{opacity:.5;cursor:not-allowed}
+.hgs-follow-btn-on{background:rgba(16,185,129,.25);color:#fff;border-color:#10b981}
+.hgs-follow-btn-on:hover:not(:disabled){background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.4);color:#ef4444}
+.hgs-follow-err{color:#ef4444;font-size:12px;padding:6px 10px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:6px;align-self:center}
 .hgs-full{width:100%}
 .hgs-body{max-width:1100px;margin:30px auto 0;padding:0 20px;display:grid;grid-template-columns:1fr 320px;gap:24px}
 @media (max-width: 900px){.hgs-body{grid-template-columns:1fr}}

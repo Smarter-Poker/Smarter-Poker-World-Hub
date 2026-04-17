@@ -238,6 +238,8 @@ export default function ManageHomeGamePage() {
   const [expandedEventId, setExpandedEventId] = useState(null);
   const [eventRsvps, setEventRsvps] = useState([]);
   const [rsvpLoading, setRsvpLoading] = useState(false);
+  const [pageSlug, setPageSlug] = useState(null);
+  const [pageUrlCopied, setPageUrlCopied] = useState(false);
 
   const fetchData = useCallback(async (signal) => {
 
@@ -262,7 +264,22 @@ export default function ManageHomeGamePage() {
       const eventsData = await eventsRes.json();
 
       if (groupData.group || groupData.data?.group) {
-        setGroup(groupData.group || groupData.data.group);
+        const g = groupData.group || groupData.data.group;
+        setGroup(g);
+        // Resolve the public page slug (exists only for public groups that
+        // have an auto-created social page). Fail-silent on private groups.
+        if (g?.id) {
+          const { data: sp } = await supabase
+            .from('social_pages')
+            .select('slug')
+            .eq('linked_entity_type', 'home_group')
+            .eq('linked_entity_id', g.id)
+            .eq('page_type', 'home_game')
+            .eq('is_public', true)
+            .maybeSingle();
+          if (sp?.slug) setPageSlug(sp.slug);
+          else setPageSlug(null);
+        }
       }
       if (membersData.members || membersData.data?.members) {
         setMembers(membersData.members || membersData.data.members || []);
@@ -1010,6 +1027,89 @@ export default function ManageHomeGamePage() {
                 )}
                 <p className="text-sm text-[#64748B] mt-2">Share This Code With Players You Want To Invite</p>
               </div>
+
+              {/* Public Page — shown only for public groups that have a social page */}
+              {pageSlug && (
+                <div className="cmd-panel p-6">
+                  <div className="flex items-start justify-between mb-4 gap-3 flex-wrap">
+                    <div>
+                      <h3 className="font-semibold text-white mb-1">Your Public Page</h3>
+                      <p className="text-sm text-[#64748B]">
+                        Share this URL anywhere — players can view your game, RSVP, and follow for updates without an account.
+                      </p>
+                    </div>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-bold bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30 whitespace-nowrap">
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
+                      LIVE
+                    </span>
+                  </div>
+                  <div className="flex flex-col md:flex-row gap-4 items-stretch">
+                    <div className="flex-1 min-w-0 flex flex-col gap-3">
+                      <div className="flex items-center gap-2">
+                        <code className="flex-1 px-4 py-3 bg-[#0D192E] rounded-lg font-mono text-sm text-[#E2E8F0] overflow-hidden text-ellipsis whitespace-nowrap" title={`https://smarter.poker/hub/home-games/${pageSlug}`}>
+                          smarter.poker/hub/home-games/{pageSlug}
+                        </code>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(`https://smarter.poker/hub/home-games/${pageSlug}`);
+                            setPageUrlCopied(true);
+                            setTimeout(() => setPageUrlCopied(false), 2000);
+                          }}
+                          className="cmd-btn cmd-btn-primary px-4 py-3 whitespace-nowrap"
+                        >
+                          {pageUrlCopied ? 'Copied!' : 'Copy URL'}
+                        </button>
+                      </div>
+                      <div className="flex gap-2 flex-wrap">
+                        <a
+                          href={`https://smarter.poker/hub/home-games/${pageSlug}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="cmd-btn cmd-btn-secondary px-4 py-2 inline-flex items-center gap-2"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                            <polyline points="15 3 21 3 21 9" />
+                            <line x1="10" y1="14" x2="21" y2="3" />
+                          </svg>
+                          Open Live
+                        </a>
+                        <button
+                          onClick={() => {
+                            const txt = encodeURIComponent(`Join us at ${group?.name || 'our poker home game'}: https://smarter.poker/hub/home-games/${pageSlug}`);
+                            window.open(`https://twitter.com/intent/tweet?text=${txt}`, '_blank', 'noopener');
+                          }}
+                          className="cmd-btn cmd-btn-secondary px-4 py-2 inline-flex items-center gap-2"
+                        >
+                          Share on X
+                        </button>
+                        <button
+                          onClick={() => {
+                            const txt = encodeURIComponent(`Join us at ${group?.name || 'our poker home game'}: https://smarter.poker/hub/home-games/${pageSlug}`);
+                            window.open(`https://wa.me/?text=${txt}`, '_blank', 'noopener');
+                          }}
+                          className="cmd-btn cmd-btn-secondary px-4 py-2 inline-flex items-center gap-2"
+                        >
+                          WhatsApp
+                        </button>
+                      </div>
+                      <p className="text-xs text-[#64748B] leading-relaxed">
+                        This page is indexed by search engines and carries Open Graph metadata — it'll render a rich preview card when shared on social media, iMessage, WhatsApp, and Slack.
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-center gap-2 bg-white p-3 rounded-lg self-start">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&margin=0&format=png&data=${encodeURIComponent(`https://smarter.poker/hub/home-games/${pageSlug}`)}`}
+                        alt="QR code to public page"
+                        width={140}
+                        height={140}
+                        style={{ display: 'block' }}
+                      />
+                      <span className="text-[10px] font-bold text-[#0D192E] tracking-wide">SCAN TO JOIN</span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Danger Zone */}
               <div className="cmd-panel border border-[#EF4444]/30 p-6">

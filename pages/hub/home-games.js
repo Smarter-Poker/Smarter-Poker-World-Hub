@@ -21,6 +21,313 @@ import { MapErrorBoundary } from '../../src/components/poker-near-me/VenueMap';
 const PAGE_SIZE = 12;
 
 // ═══════════════════════════════════════════════════════════════════
+// HomeGameCard — inline card component designed specifically for home
+// games. Richer than VenueCard (which is tuned for poker rooms): shows
+// the social-page cover + avatar, host name, stakes/frequency chips,
+// next upcoming game preview with seat count, and member/follower
+// counters. All data comes from /api/public/home-games/discover.
+// ═══════════════════════════════════════════════════════════════════
+function HomeGameCard({ venue, onNavigate, onFavorite, isFavorited }) {
+    const stakesLine = [
+        venue.default_game_type ? venue.default_game_type.toUpperCase() : '',
+        venue.default_stakes || '',
+    ].filter(Boolean).join(' ');
+
+    const freqLine = [
+        venue.frequency ? venue.frequency.charAt(0).toUpperCase() + venue.frequency.slice(1) : '',
+        venue.typical_day || '',
+    ].filter(Boolean).join(' · ');
+
+    const nextGameDate = venue.next_game_date
+        ? new Date(venue.next_game_date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+        : null;
+
+    const seatsLeft = venue.next_game_seats_left;
+    const isFull = seatsLeft === 0;
+    const hasSeats = seatsLeft !== null && seatsLeft > 0;
+
+    const handleCardClick = (e) => {
+        // Don't navigate when clicking interactive children
+        if (e?.target?.closest?.('button, a')) return;
+        if (onNavigate) onNavigate();
+    };
+    const handleKey = (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            if (onNavigate) onNavigate();
+        }
+    };
+
+    return (
+        <div className="hgc-card" role="button" tabIndex={0} onClick={handleCardClick} onKeyDown={handleKey}>
+            <div className="hgc-cover">
+                {venue.cover_url ? (
+                    <img src={venue.cover_url} alt="" className="hgc-cover-img" loading="lazy" />
+                ) : (
+                    <div className="hgc-cover-fallback" aria-hidden="true" />
+                )}
+                <div className="hgc-cover-fade" />
+                {onFavorite && (
+                    <button
+                        className={'hgc-fav' + (isFavorited ? ' hgc-fav-on' : '')}
+                        onClick={onFavorite}
+                        aria-label={isFavorited ? 'Unfavorite' : 'Favorite'}
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill={isFavorited ? '#ef4444' : 'none'} stroke="currentColor" strokeWidth="2">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                        </svg>
+                    </button>
+                )}
+                {hasSeats && (
+                    <div className="hgc-badge hgc-badge-live">
+                        {seatsLeft} SEAT{seatsLeft === 1 ? '' : 'S'} LEFT
+                    </div>
+                )}
+                {isFull && (
+                    <div className="hgc-badge hgc-badge-full">FULL</div>
+                )}
+            </div>
+
+            <div className="hgc-body">
+                <div className="hgc-head">
+                    <div className="hgc-avatar">
+                        {venue.avatar_url ? (
+                            <img src={venue.avatar_url} alt="" loading="lazy" />
+                        ) : (
+                            <div className="hgc-avatar-fallback">{(venue.name || 'H').charAt(0)}</div>
+                        )}
+                    </div>
+                    <div className="hgc-title-block">
+                        <h3 className="hgc-name" title={venue.name}>{venue.name}</h3>
+                        <div className="hgc-host">
+                            {venue.host_display_name ? `Hosted by ${venue.host_display_name}` : 'Home Game'}
+                        </div>
+                        <div className="hgc-location">
+                            {venue.city || ''}{venue.state ? `, ${venue.state}` : ''}
+                        </div>
+                    </div>
+                </div>
+
+                {(stakesLine || freqLine) && (
+                    <div className="hgc-chips">
+                        {stakesLine && <span className="hgc-chip">{stakesLine}</span>}
+                        {freqLine && <span className="hgc-chip hgc-chip-muted">{freqLine}</span>}
+                    </div>
+                )}
+
+                {nextGameDate && (
+                    <div className="hgc-next">
+                        <span className="hgc-next-label">NEXT</span>
+                        <span className="hgc-next-date">{nextGameDate}</span>
+                        {venue.next_game_title && (
+                            <span className="hgc-next-title">· {venue.next_game_title}</span>
+                        )}
+                    </div>
+                )}
+
+                <div className="hgc-stats">
+                    <span><strong>{venue.member_count || 0}</strong> members</span>
+                    <span>·</span>
+                    <span><strong>{venue.saves_count || 0}</strong> followers</span>
+                    {venue.games_hosted > 0 && (
+                        <>
+                            <span>·</span>
+                            <span><strong>{venue.games_hosted}</strong> played</span>
+                        </>
+                    )}
+                </div>
+            </div>
+
+            <style jsx>{`
+                .hgc-card {
+                    display: flex;
+                    flex-direction: column;
+                    background: linear-gradient(160deg, rgba(15,23,42,.85) 0%, rgba(8,14,26,.95) 100%);
+                    border: 1.5px solid rgba(148,163,184,.15);
+                    border-radius: 14px;
+                    overflow: hidden;
+                    cursor: pointer;
+                    transition: border-color .2s ease, transform .15s ease, box-shadow .2s ease;
+                    position: relative;
+                }
+                .hgc-card:hover,
+                .hgc-card:focus-visible {
+                    border-color: rgba(239,68,68,.5);
+                    transform: translateY(-2px);
+                    box-shadow: 0 10px 28px rgba(0,0,0,.5), 0 0 20px rgba(239,68,68,.12);
+                    outline: none;
+                }
+                .hgc-cover {
+                    position: relative;
+                    aspect-ratio: 16 / 9;
+                    background: linear-gradient(135deg, #1e293b, #0f172a);
+                    overflow: hidden;
+                }
+                .hgc-cover-img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                }
+                .hgc-cover-fallback {
+                    width: 100%;
+                    height: 100%;
+                    background: linear-gradient(135deg, #dc2626 0%, #7c2d12 50%, #0f172a 100%);
+                }
+                .hgc-cover-fade {
+                    position: absolute;
+                    inset: 0;
+                    background: linear-gradient(180deg, rgba(10,15,28,0) 60%, rgba(10,15,28,.5) 100%);
+                    pointer-events: none;
+                }
+                .hgc-fav {
+                    position: absolute;
+                    top: 10px;
+                    right: 10px;
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 50%;
+                    background: rgba(10,10,21,.65);
+                    border: 1px solid rgba(255,255,255,.1);
+                    color: rgba(255,255,255,.8);
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    backdrop-filter: blur(4px);
+                    -webkit-backdrop-filter: blur(4px);
+                    transition: background .15s ease;
+                }
+                .hgc-fav:hover { background: rgba(239,68,68,.4); }
+                .hgc-fav-on { color: #ef4444; }
+                .hgc-badge {
+                    position: absolute;
+                    bottom: 10px;
+                    left: 10px;
+                    padding: 4px 10px;
+                    color: #fff;
+                    font-size: 10px;
+                    font-weight: 900;
+                    letter-spacing: 1px;
+                    border-radius: 4px;
+                }
+                .hgc-badge-live { background: rgba(16,185,129,.92); box-shadow: 0 0 12px rgba(16,185,129,.4); }
+                .hgc-badge-full { background: rgba(148,163,184,.45); color: rgba(255,255,255,.8); }
+                .hgc-body {
+                    padding: 14px;
+                    flex: 1;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 10px;
+                }
+                .hgc-head { display: flex; gap: 10px; align-items: flex-start; }
+                .hgc-avatar {
+                    width: 44px;
+                    height: 44px;
+                    border-radius: 8px;
+                    overflow: hidden;
+                    background: #1a1f2e;
+                    flex-shrink: 0;
+                    border: 1px solid rgba(239,68,68,.25);
+                }
+                .hgc-avatar img { width: 100%; height: 100%; object-fit: cover; }
+                .hgc-avatar-fallback {
+                    width: 100%;
+                    height: 100%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 18px;
+                    font-weight: 900;
+                    color: #ef4444;
+                }
+                .hgc-title-block { min-width: 0; flex: 1; }
+                .hgc-name {
+                    font-size: 15px;
+                    font-weight: 800;
+                    margin: 0 0 2px;
+                    color: #fff;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                    letter-spacing: -.2px;
+                }
+                .hgc-host {
+                    font-size: 12px;
+                    color: rgba(255,255,255,.55);
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+                .hgc-location {
+                    font-size: 11px;
+                    color: rgba(148,163,184,.55);
+                    text-transform: uppercase;
+                    letter-spacing: .5px;
+                    margin-top: 1px;
+                }
+                .hgc-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+                .hgc-chip {
+                    padding: 3px 8px;
+                    background: rgba(239,68,68,.12);
+                    border: 1px solid rgba(239,68,68,.28);
+                    color: #ef4444;
+                    font-size: 11px;
+                    font-weight: 700;
+                    border-radius: 4px;
+                    text-transform: uppercase;
+                    letter-spacing: .5px;
+                }
+                .hgc-chip-muted {
+                    background: rgba(148,163,184,.08);
+                    border-color: rgba(148,163,184,.18);
+                    color: rgba(255,255,255,.55);
+                }
+                .hgc-next {
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    padding: 6px 10px;
+                    background: rgba(16,185,129,.08);
+                    border: 1px solid rgba(16,185,129,.2);
+                    border-radius: 6px;
+                    font-size: 12px;
+                    flex-wrap: wrap;
+                }
+                .hgc-next-label {
+                    font-size: 9px;
+                    font-weight: 900;
+                    color: #10b981;
+                    letter-spacing: 1px;
+                    padding: 2px 5px;
+                    background: rgba(16,185,129,.15);
+                    border-radius: 3px;
+                }
+                .hgc-next-date {
+                    font-weight: 700;
+                    color: rgba(255,255,255,.85);
+                }
+                .hgc-next-title {
+                    color: rgba(255,255,255,.5);
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+                .hgc-stats {
+                    display: flex;
+                    gap: 6px;
+                    font-size: 11px;
+                    color: rgba(255,255,255,.4);
+                    margin-top: auto;
+                    flex-wrap: wrap;
+                    align-items: center;
+                }
+                .hgc-stats strong { color: #fff; font-weight: 700; margin-right: 3px; }
+            `}</style>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // Mock seed data removed. Real home games are now loaded from
 // /api/public/home-games/discover which joins commander_home_groups
 // with social_pages. See migration unify_home_games_with_social_pages.
@@ -503,24 +810,19 @@ export default function HomeGamesPage() {
                                         <div className="hg-cards-section">
                                             <div className="hg-card-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', alignItems: 'stretch' }}>
                                                 {displayed.map((venue, i) => (
-                                                    <VenueCard
+                                                    <HomeGameCard
                                                         key={venue.id || i}
                                                         venue={venue}
-                                                        index={i}
                                                         isFavorited={!!favorites['venue-' + venue.id]}
                                                         onFavorite={(e) => toggleFavorite(venue.id, e, venue)}
-                                                        onNavigate={(path) => {
-                                                            // Unified routing: VenueCard's default path targets
-                                                            // /hub/venues/[id] which doesn't exist for home games.
-                                                            // Override to the canonical /hub/home-games/[slug] URL.
+                                                        onNavigate={() => {
+                                                            // Unified routing: prefer slug, fall back to invite/club code share page
                                                             if (venue?.slug) {
                                                                 router.push('/hub/home-games/' + venue.slug);
                                                             } else if (venue?.club_code) {
                                                                 router.push('/home-game/' + venue.club_code);
                                                             } else if (venue?.invite_code) {
                                                                 router.push('/home-game/' + venue.invite_code);
-                                                            } else {
-                                                                router.push(path);
                                                             }
                                                         }}
                                                     />
