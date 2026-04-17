@@ -1270,10 +1270,21 @@ export default function PokerNearMePage() {
         };
 
         // [GAP 4.3 FIX] Debounce DATA_MUTATED to prevent redundant fetches from rapid-fire events
+        // FIXED: mutateDebounce was a local let — not cleared on unmount. Timer would fire
+        // fetchVenuesRef/fetchLiveCount AFTER unmount → setState on unmounted component.
+        // FIXED: live_tables entity was triggering fetchVenuesRef (full DB re-fetch of poker_venues)
+        // on every scraper cycle. live_tables mutations should only refresh live counts, not venues.
         let mutateDebounce = null;
         const handleBusDataMutated = (event) => {
             const { entity } = event.payload || {};
-            if (entity === 'live_tables' || entity === 'venues') {
+            if (entity === 'live_tables') {
+                // Live data changed — only refresh live counts, NOT the full venue list
+                if (mutateDebounce) clearTimeout(mutateDebounce);
+                mutateDebounce = setTimeout(() => {
+                    if (typeof fetchLiveCount === 'function') fetchLiveCount();
+                }, 1000);
+            } else if (entity === 'venues') {
+                // Venue metadata changed — refresh venue list + live counts
                 if (mutateDebounce) clearTimeout(mutateDebounce);
                 mutateDebounce = setTimeout(() => {
                     if (fetchVenuesRef.current) fetchVenuesRef.current({ silent: true });
@@ -1302,6 +1313,7 @@ export default function PokerNearMePage() {
 
         return () => {
             window.removeEventListener('storage', handleStorageSync);
+            if (mutateDebounce) clearTimeout(mutateDebounce); // FIXED: prevent post-unmount setState
             if (unsubFav) unsubFav();
             if (unsubUnfav) unsubUnfav();
             if (unsubMutate) unsubMutate();
