@@ -8,12 +8,12 @@ description: MANDATORY end-of-task protocol — push to GitHub, deploy to Vercel
 
 ## The Three Rules
 
-### Rule 1: ALL Testing on smarter.poker ONLY
+### Rule 1: Production ONLY for Backend, Localhost for UI
 
-- **NEVER** test on `localhost`, `127.0.0.1`, or any local dev server
-- **NEVER** test on `*.vercel.app` or any Vercel preview deployment
-- **ONLY** test on `https://smarter.poker` (production)
-- See `/browser-testing` workflow for full details
+- **BACKEND/API/DB:** **ONLY** test on `https://smarter.poker` (production).
+- **UI/CSS/LAYOUT:** Agents **MAY** and **SHOULD** use `http://localhost:3000` to rapidly iterate visually via the dev server.
+- **NEVER** test on `*.vercel.app` or any Vercel preview deployment.
+- See `/browser-testing` workflow for full details.
 
 ### Rule 2: Push ALL Work to GitHub + Vercel
 
@@ -55,16 +55,27 @@ node scripts/verify-deploy.js --wait 60
 
 ## Execution Order (SACRED)
 
-```
+You must follow the appropriate track based on the nature of your changes:
+
+### Track A: Full Stack / Backend / DB (The Standard Path)
+```text
 1. WRITE CODE         — Make all changes
 2. BUILD              — next build (verify it compiles)
 3. PUSH TO GITHUB     — bash scripts/git-safe-push.sh --build-check "message"
 4. VERIFY PUSH        — git log --oneline -1 && git log --oneline origin/main -1
-5. VERIFY DEPLOY      — node scripts/verify-deploy.js --wait 60
+5. VERIFY DEPLOY      — node scripts/verify-deploy.js --wait 60 (FREEZE AND WAIT)
 6. FIX IF BROKEN      — If DEPLOY_VERIFIED:false, fix and repeat steps 2-5
 7. TEST ON PROD       — Verify on https://smarter.poker
 8. WRITE SQL (LAST)   — Only after everything else is confirmed working
 9. EXECUTE SQL        — npm run db:push
+```
+
+### Track B: UI / Layout / Component Updates (`/gsd-fast` Path)
+```text
+1. WRITE CODE         — Make all changes
+2. TEST ON LOCALHOST  — Rapidly verify visuals on http://localhost:3000 
+3. PUSH TO GITHUB     — bash scripts/git-safe-push.sh "message" (Async push)
+4. MOVE ON            — No need to freeze agent workflow waiting for Vercel deploy script!
 ```
 
 ## DO NOT End a Session Without

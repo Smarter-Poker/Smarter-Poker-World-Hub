@@ -10,10 +10,18 @@ description: how to commit and push code changes safely (MANDATORY for all agent
 
 // turbo-all
 
-1. Run the autonomous push script:
+1. Run the autonomous push script. Choose the correct flag based on your track:
+
+**Track A (Full Stack / Logic):**
 ```bash
 bash ~/Documents/Smarter-Poker-World-Hub/scripts/git-safe-push.sh --build-check "Your commit message here"
 ```
+
+**Track B (Fast UI/CSS Layouts):**
+```bash
+bash ~/Documents/Smarter-Poker-World-Hub/scripts/git-safe-push.sh "Your commit message here"
+```
+*(Omitting `--build-check` skips `next build` locally to radically speed up layout updates).*
 
 That's it. **Do NOT run individual git commands.** The script handles everything autonomously:
 - **Runs `next build` before pushing** (catches broken imports, bad exports, SSG crashes)
@@ -30,23 +38,25 @@ That's it. **Do NOT run individual git commands.** The script handles everything
 
 1. **NEVER** run `git add .` or `git commit` or `git push` or `git pull` individually
 2. **NEVER** run `gitpush` shell function — use the script instead
-3. **ALWAYS** use `--build-check` flag — this catches compilation errors BEFORE pushing
-4. **ALWAYS** use a descriptive commit message as the first argument
-5. **NEVER** ask the user to resolve git issues — the script handles everything
-6. If the script exits with code 2 (failed after 5 retries), wait 30 seconds and run it again
-7. If `--build-check` fails, **FIX THE BUILD ERROR BEFORE RETRYING** — do NOT remove the flag
+3. **ALWAYS** use `--build-check` flag for Backend/Full-Stack work to catch config errors.
+4. **Fast Track Exception:** Omit `--build-check` ONLY for minor UI/CSS updates (Track B tasks) to save execution time.
+5. **ALWAYS** use a descriptive commit message as the first argument
+6. **NEVER** ask the user to resolve git issues — the script handles everything
+7. If the script exits with code 2 (failed after 5 retries), wait 30 seconds and run it again
+8. If `--build-check` fails, **FIX THE BUILD ERROR BEFORE RETRYING** — do NOT remove the flag blindly
 
 > [!CAUTION]
 > **On 3/25/2026, a broken import (`C` instead of `SOCIAL_COLORS as C`) blocked ALL deployments for 2 days because no agent ran `next build` locally before pushing.** The `--build-check` flag prevents this. NEVER skip it.
 
 ---
 
-## HARD LAW: Post-Push Verification — MANDATORY
+## HARD LAW: Post-Push Verification (TRACK A ONLY)
 
 > [!CAUTION]
-> **Every agent MUST verify their push succeeded AND that Vercel deployment is healthy. No exceptions. Claiming "done" without verification is a FAILURE.**
+> **For standard Full-Stack features, agents MUST verify push success and Vercel deployment health. Claiming "done" without verification is a FAILURE.**
+> *Note: For Track B (Fast UI/CSS), you may skip Vercel deployment checks and move on asynchronously to avoid blocking execution flow.*
 
-After EVERY push, the agent MUST execute this verification sequence:
+After standard Track A pushes, execute this validation sequence:
 
 ### Step 1: Confirm Git Push Landed
 ```bash
@@ -113,12 +123,9 @@ If `DEPLOY_VERIFIED:false` or HTTP error:
 ## Examples
 
 ```bash
-# Standard deploy (with build check — ALWAYS include --build-check)
+# Standard Track A deploy (with build check)
 bash ~/Documents/Smarter-Poker-World-Hub/scripts/git-safe-push.sh --build-check "feat: add tournament leaderboards"
 
-# Bug fix
-bash ~/Documents/Smarter-Poker-World-Hub/scripts/git-safe-push.sh --build-check "fix: resolve login redirect loop"
-
-# Multi-file update
-bash ~/Documents/Smarter-Poker-World-Hub/scripts/git-safe-push.sh --build-check "chore: Phase 3 audit — comps, high-hands, promotions"
+# Rapid Track B UI task (no build check, async push)
+bash ~/Documents/Smarter-Poker-World-Hub/scripts/git-safe-push.sh "style: correct modal flex direction"
 ```

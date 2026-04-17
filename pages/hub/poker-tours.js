@@ -1926,7 +1926,7 @@ export default function PokerToursPage({ initialTours = [] }) {
                             letter-spacing: clamp(1px, 0.4vw, 2px);
                         }
                         .tours-search-bar { padding: 0 10px; margin-top: 12px; }
-                        .tours-search-wrap { height: 46px; border-radius: 12px; padding: 0 12px; }
+                        .tours-search-wrap { height: 44px; border-radius: 28px; padding: 0 12px; }
                         .tours-search-bar-input { font-size: 13px; }
                         .tours-date-select { font-size: 12px; min-width: 100px; }
                         .pnm-layout { flex-direction: column; }

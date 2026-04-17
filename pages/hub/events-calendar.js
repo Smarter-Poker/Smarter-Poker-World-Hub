@@ -222,28 +222,27 @@ const EventCard = memo(function EventCard({ event, todayKey }) {
   else if (event.series_id) href = `/hub/series/${event.series_id}`;
   else if (event.tour_code && event.source === 'tour') href = `/hub/poker-series?tour=${encodeURIComponent(event.tour_code)}`;
 
-  // Generate initials fallback for venues without logos
-  const initials = (event.venue_name || event.event_name || 'T')
-    .split(/\s+/)
-    .slice(0, 2)
-    .map(w => w[0])
-    .join('')
-    .toUpperCase();
+  // Generate programmatic official logo replacement via Google Favicon API
+  const guessedDomain = (event.venue_name || event.event_name || '').toLowerCase().replace(/[^a-z0-9]/g, '') + '.com';
+  const officialLogoFallback = `https://www.google.com/s2/favicons?domain=${guessedDomain}&sz=128`;
+  const [imgSrc, setImgSrc] = useState(event.logo_url || officialLogoFallback);
 
   return (
     <div className="ev-card" data-today={dateIsToday ? '1' : ''}>
       {/* ── LEFT: Full-height logo (appears ONCE) ── */}
       <div className="ev-card-logo">
-        {event.logo_url ? (
           <img
-            src={event.logo_url}
+            src={imgSrc}
             alt={event.venue_name || ''}
             className="ev-logo-img"
             loading="lazy"
+            onError={() => {
+              // If the favicon fails (rare), fall back to Smarter.Poker chips
+              if (imgSrc !== '/images/marketing/poker-chips.png') {
+                 setImgSrc('/images/marketing/poker-chips.png');
+              }
+            }}
           />
-        ) : (
-          <div className="ev-logo-fallback">{initials}</div>
-        )}
       </div>
 
       {/* ── RIGHT: All tournament data ── */}
@@ -805,7 +804,7 @@ export default function EventsCalendarPage({ fallbackData }) {
           </p>
           {/* Search box — absolute right */}
           <div style={{ position: 'absolute', top: 0, right: 0 }}>
-            <div className="ec-search-wrap" style={{ width: '200px', background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div className="ec-search-wrap" style={{ width: '200px', background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '500px', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <SearchIcon />
               <input
                 type="text"

@@ -780,7 +780,7 @@ export default function LiveGamesFeed({
         else if (vType === 'home_game') venueAccentColor = '#f59e0b';
         else if (['poker_tour', 'tour', 'tour_stop', 'series'].includes(vType)) venueAccentColor = '#ef4444';
         
-        const venueBorder = `1px solid ${venueAccentColor}`;
+        const venueBorder = `2px solid ${venueAccentColor}`;
         // Collect unique game type chips from breakdown
         const gameTypeChips = (() => {
             if (!v.games || v.games.length === 0) return [];

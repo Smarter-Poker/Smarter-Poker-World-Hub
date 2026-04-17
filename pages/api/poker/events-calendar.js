@@ -149,6 +149,10 @@ function formatMoney(amount) {
   return '$' + amount.toLocaleString();
 }
 
+// In-memory cache to massively speed up page loads for identical non-realtime queries
+const routeCache = new Map();
+const CACHE_TTL_MS = 60000; // 60 seconds
+
 async function handler(req, res) {
     try {
       if (req.method !== 'GET') {
@@ -160,6 +164,15 @@ async function handler(req, res) {
         res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
       } else {
         res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+        
+        // Memory Cache Check
+        const cacheKey = JSON.stringify(req.query);
+        if (routeCache.has(cacheKey)) {
+          const cached = routeCache.get(cacheKey);
+          if (Date.now() - cached.time < CACHE_TTL_MS) {
+            return res.status(200).json(cached.data);
+          }
+        }
       }
 
       if (!applyRateLimit(req, res, LIMITS.read)) return;
@@ -648,7 +661,7 @@ async function handler(req, res) {
     allEvents.forEach(e => { gameTypes[e.game_type || 'Unknown'] = (gameTypes[e.game_type || 'Unknown'] || 0) + 1; });
     const sourceCounts = { daily: dailyEvents.length, series: seriesEvents.length, tour: tourEvents.length };
 
-    return res.status(200).json({
+    const responsePayload = {
       success: true,
       events: paginatedEvents,
       total: totalCount,
@@ -667,7 +680,21 @@ async function handler(req, res) {
         maxBuyin: buyIns.length > 0 ? Math.max(...buyIns) : 0,
         byGameType: gameTypes,
       },
-    });
+    };
+
+    // Store in node-memory cache if not explicitly avoiding it
+    if (!req.query._rt) {
+      const cacheKey = JSON.stringify(req.query);
+      routeCache.set(cacheKey, { time: Date.now(), data: responsePayload });
+      
+      // Cleanup cache if it grows too large (prevent memory leak)
+      if (routeCache.size > 200) {
+        const oldestKey = routeCache.keys().next().value;
+        routeCache.delete(oldestKey);
+      }
+    }
+
+    return res.status(200).json(responsePayload);
   } catch (err) {
     console.error('[events-calendar] Fatal error:', err);
     // [EC7 FIX] Was res.status(200) — returning 200 for fatal errors lets Vercel CDN

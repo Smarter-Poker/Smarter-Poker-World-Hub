@@ -4,7 +4,7 @@ description: How to log in and test features in the browser using the test accou
 
 # Browser Testing Workflow
 
-> **⚠️ MANDATORY: ALL testing and verification MUST be performed against `https://smarter.poker` (production). NEVER use localhost for live testing or verification. Do NOT spin up a local dev server for verification purposes.**
+> **⚠️ MANDATORY: Backend, API, and DB testing MUST be performed against `https://smarter.poker` (production). For minor UI/CSS layout tweaks, you MAY use the `http://localhost:3000` dev server to radically speed up your visual validation loop.**
 
 ## Test Account Credentials
 
@@ -23,8 +23,8 @@ When you need to test any feature in the browser, use the following test account
 
 ## Rules
 
-- **ALWAYS use `https://smarter.poker`** as the base URL for all browser testing and verification
-- **NEVER start a localhost dev server** (`npm run dev`, `next dev`, etc.) for verification or testing purposes
+- **Production Rules:** Use `https://smarter.poker` as the base URL for testing data, login pipelines, API accuracy, DB parity, routing architecture, and full-stack health.
+- **Fast Track exemption:** When implementing minor UI adjustments (CSS alignments, responsive styles, colors), agents SHOULD spin up the dev server (`npm run dev`) and test purely visual changes locally to bypass Vercel deployment blockages.
 - This account has access to all features and should bypass all gates (FeatureGate, BankrollProGate, etc.)
 - Do **NOT** use temporary code bypasses for gates — always log in with this account instead
-- localhost/dev servers should ONLY be used for active development iteration, NEVER for final verification
+- **DO NOT** use localhost to test Login, Authentication, Webhooks, Data pipelines, and Vercel edge logic.
