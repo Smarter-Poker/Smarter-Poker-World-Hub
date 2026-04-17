@@ -104,7 +104,7 @@ export default function PokerToursPage({ initialTours = [] }) {
     const [loading, setLoading] = useState(false);
     
     const fetcher = url => fetch(url).then(res => res.json()).then(d => d.data || d);
-    const { data: liveTours, error: swrError } = useSWR('/api/poker/tours?include_series=true&limit=100', fetcher, {
+    const { data: liveTours, error: swrError } = useSWR('/api/poker/tours?include_series=true&limit=100&traveling_only=true', fetcher, {
         fallbackData: initialTours,
         refreshInterval: 300000, // 5 min background refresh
         revalidateOnFocus: true
@@ -1171,8 +1171,8 @@ export default function PokerToursPage({ initialTours = [] }) {
                         box-shadow: 0 4px 20px rgba(0,0,0,0.25);
                     }
                     .tours-search-wrap.focused {
-                        border-color: rgba(255,255,255,0.5);
-                        box-shadow: 0 0 24px rgba(255,255,255,0.15), 0 4px 20px rgba(0,0,0,0.25);
+                        border-color: rgba(255,255,255,0.2);
+                        box-shadow: 0 4px 20px rgba(0,0,0,0.25);
                     }
                     .tours-search-bar-icon {
                         flex-shrink: 0;
@@ -1180,7 +1180,7 @@ export default function PokerToursPage({ initialTours = [] }) {
                         transition: color 0.3s;
                     }
                     .tours-search-wrap.focused .tours-search-bar-icon {
-                        color: #ffffff;
+                        color: rgba(255,255,255,0.5);
                     }
                     .tours-search-bar-input {
                         flex: 1;
@@ -1247,8 +1247,6 @@ export default function PokerToursPage({ initialTours = [] }) {
                     .pnm-layout {
                         display: flex;
                         width: 100%;
-                        max-width: 1600px;
-                        margin: 0 auto;
                         min-height: calc(100vh - 160px);
                         gap: 0;
                     }
@@ -1440,14 +1438,15 @@ export default function PokerToursPage({ initialTours = [] }) {
                     .pnm-main {
                         flex: 1;
                         min-width: 0;
-                        padding: 0 clamp(10px, 1.5vw, 20px) 20px;
+                        padding: 0;
                     }
 
                     /* ═══ MAP CONTAINER ═══ */
                     .tours-map-container {
-                        margin-bottom: 16px;
-                        border-radius: 12px;
+                        margin-bottom: 0;
+                        border-radius: 0;
                         overflow: hidden;
+                        width: 100%;
                     }
 
                     /* ═══ RESULTS BAR ═══ */
@@ -1459,6 +1458,8 @@ export default function PokerToursPage({ initialTours = [] }) {
                         gap: 12px;
                         padding: 12px 16px;
                         margin-bottom: 16px;
+                        margin-left: clamp(10px, 1.5vw, 20px);
+                        margin-right: clamp(10px, 1.5vw, 20px);
                         background: linear-gradient(90deg, rgba(12,20,35,0.9) 0%, rgba(8,14,26,0.9) 100%);
                         border: 1px solid rgba(148,163,184,0.1);
                         border-radius: 10px;
@@ -1528,6 +1529,7 @@ export default function PokerToursPage({ initialTours = [] }) {
                         display: grid;
                         grid-template-columns: repeat(2, 1fr);
                         gap: 16px;
+                        margin: 0 clamp(10px, 1.5vw, 20px);
                     }
 
                     /* ═══ PREMIUM TOUR CARD ═══ */
@@ -1976,9 +1978,10 @@ export default function PokerToursPage({ initialTours = [] }) {
                         }
                         .sidebar-filter-group { margin-bottom: 0; flex: 1; min-width: 120px; }
                         .sidebar-active-filters { flex-basis: 100%; }
-                        .pnm-main { padding: 0 10px 40px; }
+                        .pnm-main { padding: 0; }
                         .tours-grid {
                             grid-template-columns: 1fr;
+                            margin: 0 10px;
                         }
                         .tour-card-name { font-size: 15px; }
                         .tours-results-bar { flex-direction: column; align-items: flex-start; gap: 8px; }

@@ -356,19 +356,35 @@ def write_heartbeat(status, extra=None):
 # FALLBACK FETCHER — TIER 2: PlayWrightFetcher
 # ============================================================
 def fallback_fetch_venue_playwright(slug):
-    """Tier 2 fallback: Use Scrapling's DynamicFetcher (non-stealth but faster reconnect)."""
+    """Tier 2 fallback: Use Scrapling's DynamicFetcher (non-stealth but faster reconnect).
+    Updated for Scrapling 0.4.x API: headless is configured via .configure() not __init__.
+    """
     try:
-        from scrapling.fetchers import DynamicFetcher
-        fetcher = DynamicFetcher(headless=True)
+        from scrapling.fetchers import PlaywrightFetcher
+        fetcher = PlaywrightFetcher(headless=True)
         url = BRAVO_VENUE_URL.format(slug=slug)
         resp = fetcher.fetch(url)
         if resp and resp.status == 200:
             html = resp.html_content or ''
             if not html:
-                html = resp.body.decode('utf-8', errors='ignore') if resp.body else ''
+                html = str(resp.body or '')
             if html and 'Current Live Games' in html:
-                log.info(f'  🔄 TIER-2 (PlayWrightFetcher) success for {slug}')
+                log.info(f'  🔄 TIER-2 (PlaywrightFetcher) success for {slug}')
                 return html
+    except ImportError:
+        # PlaywrightFetcher not available — try DynamicFetcher
+        try:
+            from scrapling.fetchers import DynamicFetcher
+            fetcher = DynamicFetcher(headless=True)
+            url = BRAVO_VENUE_URL.format(slug=slug)
+            resp = fetcher.fetch(url)
+            if resp and resp.status == 200:
+                html = resp.html_content or ''
+                if html and 'Current Live Games' in html:
+                    log.info(f'  🔄 TIER-2 (DynamicFetcher) success for {slug}')
+                    return html
+        except Exception as e2:
+            log.debug(f'  Tier-2 DynamicFetcher also failed for {slug}: {e2}')
     except Exception as e:
         log.debug(f'  Tier-2 failed for {slug}: {e}')
     return None
@@ -767,13 +783,24 @@ class BravoSessionManager:
         """Navigate to a venue page with multi-tier fallback.
         
         Tier 1: Primary StealthySession page navigation
-        Tier 2: PlayWrightFetcher (independent browser, no CF solve)
+        Tier 2: PlaywrightFetcher (independent browser, no CF solve)
         Tier 3: Raw urllib with cached CF cookies
+
+        IMPORTANT: ERR_HTTP_RESPONSE_CODE_FAILURE means the server returned a
+        4xx/5xx response (e.g. venue is closed/removed). This is a per-venue
+        skip — NOT a browser crash. Do NOT mark session dead on these.
+        ERR_ABORTED on venue pages is similarly a server-side redirect issue.
         """
         # === TIER 1: Primary StealthySession ===
+        # Use 'domcontentloaded' instead of 'load' — Playwright throws
+        # ERR_HTTP_RESPONSE_CODE_FAILURE on non-2xx with 'load' wait.
         for attempt in range(1 + VENUE_RETRY_COUNT):
             try:
-                self.page.goto(BRAVO_VENUE_URL.format(slug=slug), timeout=VENUE_TIMEOUT, wait_until='load')
+                self.page.goto(
+                    BRAVO_VENUE_URL.format(slug=slug),
+                    timeout=VENUE_TIMEOUT,
+                    wait_until='domcontentloaded'
+                )
 
                 content = self.page.content()
 
@@ -782,15 +809,21 @@ class BravoSessionManager:
                     log.warning(f'  ⚠️  Session expired during scrape, re-authenticating...')
                     if self._login():
                         # Retry the venue
-                        self.page.goto(BRAVO_VENUE_URL.format(slug=slug), timeout=VENUE_TIMEOUT, wait_until='load')
+                        self.page.goto(
+                            BRAVO_VENUE_URL.format(slug=slug),
+                            timeout=VENUE_TIMEOUT,
+                            wait_until='domcontentloaded'
+                        )
                         content = self.page.content()
                     else:
                         break  # Fall through to Tier 2
 
-                # Check for CF challenge
-                if 'Just a moment' in content:
-                    log.warning(f'  ⚠️  {ERROR_VENUE_403}: CF challenge on {slug}')
-                    break  # Fall through to Tier 2
+                # Check for CF challenge — treat as a per-venue skip.
+                # Breaking to Tier-2 won't help (no CF clearance there either)
+                # and would increment consecutive_nav_failures toward circuit breaker.
+                if 'Just a moment' in content or 'Performing security' in content:
+                    log.debug(f'  ⏭️  {slug}: CF challenge on venue page — skipping')
+                    return None  # Silent skip, no session death
 
                 # Success — reset failure counter, cache cookies for Tier 3
                 self.consecutive_nav_failures = 0
@@ -799,6 +832,13 @@ class BravoSessionManager:
 
             except Exception as e:
                 err_msg = str(e)
+
+                # PER-VENUE HTTP ERROR: Server returned 4xx/5xx or aborted.
+                # This is NOT a browser crash — skip this venue and keep going.
+                # Do NOT increment consecutive_nav_failures or mark session dead.
+                if 'ERR_HTTP_RESPONSE_CODE_FAILURE' in err_msg or 'ERR_ABORTED' in err_msg:
+                    log.debug(f'  ⏭️  {slug}: HTTP error (venue offline/removed) — skipping')
+                    return None  # Count as skip, not a session failure
 
                 # CRASH RECOVERY: Detect dead browser context
                 if 'has been closed' in err_msg or 'Target page' in err_msg:
@@ -821,7 +861,7 @@ class BravoSessionManager:
                 log.warning(f'  ❌ Tier-1 navigate error on {slug}: {e}')
                 break  # Fall through to Tier 2
 
-        # === TIER 2: PlayWrightFetcher (independent browser) ===
+        # === TIER 2: PlaywrightFetcher (independent browser) ===
         if self.tier2_failures < 5:  # Don't keep trying Tier 2 if it's dead too
             html = fallback_fetch_venue_playwright(slug)
             if html:

@@ -162,6 +162,10 @@ export default function LiveGamesFeed({
     const [lastRefreshTime, setLastRefreshTime] = useState(null);
     const [refreshCountdown, setRefreshCountdown] = useState(LIVE_REFRESH_MS / 1000);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    // ─── SCRAPER FALLBACK STATE ───
+    // When scrapers return 0 venues we NEVER wipe the feed — preserve last-known data
+    const [isScraperDead, setIsScraperDead] = useState(false);
+    const lastGoodLiveDataRef = useRef(null);
     
     // Global stats from API metadata
     const [globalStats, setGlobalStats] = useState({ venues: 0, tables: 0, waiting: 0, lastScrape: null });
@@ -326,7 +330,27 @@ export default function LiveGamesFeed({
                     const primarySource = sources.includes('bravo') ? 'bravo' : (sources[0] || 'bravo');
                     mapping[v.bravo_slug] = { ...v, totalTables, totalWait, primarySource };
                 });
-                setLiveData(mapping);
+
+                // ── SCRAPER FALLBACK POLICY ──────────────────────────────────────
+                // If the API returns 0 venues (scraper dead/offline), we NEVER wipe
+                // the feed. Instead we keep the last-known data and show an amber
+                // 'Using Cached Data' banner so the page always has content.
+                // ────────────────────────────────────────────────────────────────
+                if (Object.keys(mapping).length > 0) {
+                    setLiveData(mapping);
+                    lastGoodLiveDataRef.current = mapping;
+                    setIsScraperDead(false);
+                } else if (lastGoodLiveDataRef.current && Object.keys(lastGoodLiveDataRef.current).length > 0) {
+                    // Scrapers returned nothing — preserve last-known data silently
+                    console.warn('[LGF] Scraper returned 0 venues — preserving last-known data, feed intact.');
+                    setIsScraperDead(true);
+                    // DO NOT call setLiveData({}) — that would wipe the feed
+                } else {
+                    // Very first load with 0 venues — nothing to preserve
+                    setLiveData(mapping);
+                    setIsScraperDead(true);
+                }
+
                 // Store global stats from API metadata
                 if (json.metadata) {
                     setGlobalStats({
@@ -338,17 +362,27 @@ export default function LiveGamesFeed({
                 }
                 setLastRefreshTime(new Date());
                 setRefreshCountdown(LIVE_REFRESH_MS / 1000);
-                // Check staleness (#3)
+                // Check staleness
                 if (json.metadata?.last_scrape) {
                     const age = Date.now() - new Date(json.metadata.last_scrape).getTime();
                     setIsDataStale(age > STALE_THRESHOLD_MS);
                 }
                 
-                // Emitting DATA_MUTATED to notify the rest of the platform (like Game Trends & Heatmaps)
+                // Notify rest of platform (Game Trends & Heatmaps)
                 busEmit.dataMutated('live_tables');
+            } else {
+                // HTTP error — preserve last-known data
+                if (lastGoodLiveDataRef.current && Object.keys(lastGoodLiveDataRef.current).length > 0) {
+                    console.warn('[LGF] API HTTP error — preserving last-known data.');
+                    setIsScraperDead(true);
+                }
             }
         } catch (e) {
             console.error('Fetch global live data error:', e);
+            // Network failure — preserve last-known data
+            if (lastGoodLiveDataRef.current && Object.keys(lastGoodLiveDataRef.current).length > 0) {
+                setIsScraperDead(true);
+            }
         }
         setLiveLoading(false);
         setIsRefreshing(false);
@@ -1011,8 +1045,36 @@ export default function LiveGamesFeed({
 
             {/* GPS Location Banner removed — now displayed at top of sidebar in parent page */}
 
+            {/* ─── SCRAPER OFFLINE BANNER ─── */}
+            {isScraperDead && !selectedVenue && (
+                <div style={{
+                    margin: '0 16px 12px', padding: '10px 16px', borderRadius: 10,
+                    background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.25)',
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    boxShadow: '0 2px 8px rgba(245,158,11,0.08)'
+                }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.5" style={{ flexShrink: 0 }}>
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Using Cached Data — Intelligence Engines Are Syncing</div>
+                        <div style={{ fontSize: 10, color: 'rgba(245,158,11,0.7)', marginTop: 1 }}>
+                            Live scrapers are temporarily offline. Showing last-known game data — no information has been lost.
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => fetchGlobalLiveData(true)}
+                        disabled={isRefreshing}
+                        style={{ flexShrink: 0, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 7, padding: '5px 10px', color: '#f59e0b', fontSize: 11, fontWeight: 700, cursor: isRefreshing ? 'wait' : 'pointer', fontFamily: 'inherit' }}
+                    >
+                        {isRefreshing ? 'Retrying...' : 'Retry'}
+                    </button>
+                </div>
+            )}
+
             {/* ─── STALE DATA BANNER ─── */}
-            {isDataStale && !selectedVenue && (
+            {isDataStale && !isScraperDead && !selectedVenue && (
                 <div style={{
                     margin: '0 16px 16px', padding: '12px 16px', borderRadius: 10,
                     background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)',
@@ -1085,14 +1147,29 @@ export default function LiveGamesFeed({
                         )}
 
                         {mergedVenues.length === 0 ? (
+                            isScraperDead ? (
+                                // ── SCRAPER DEAD + NO CACHED DATA: show warm placeholder, never a hard "no games" ──
+                                <div style={{ textAlign: 'center', padding: 40, background: 'rgba(13,17,23,0.6)', borderRadius: 16, border: '1px dashed rgba(245,158,11,0.2)' }}>
+                                    <div style={{ width: 64, height: 64, borderRadius: 32, background: 'rgba(245,158,11,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(245,158,11,0.6)" strokeWidth="1.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                    </div>
+                                    <p style={{ fontSize: 16, fontWeight: 700, color: '#f59e0b', margin: '0 0 4px' }}>Intelligence Engines Are Syncing</p>
+                                    <p style={{ fontSize: 13, color: 'rgba(245,158,11,0.6)', marginBottom: 16 }}>Live game data is being refreshed. Check back in a few minutes.</p>
+                                    <button onClick={() => fetchGlobalLiveData(true)} disabled={isRefreshing} style={{ padding: '10px 20px', borderRadius: 10, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', color: '#f59e0b', fontSize: 13, fontWeight: 700, cursor: isRefreshing ? 'wait' : 'pointer', fontFamily: 'inherit' }}>
+                                        {isRefreshing ? 'Retrying...' : 'Retry Now'}
+                                    </button>
+                                </div>
+                            ) : (
                             <div style={{ textAlign: 'center', padding: 40, background: 'rgba(13,17,23,0.6)', borderRadius: 16, border: '1px dashed rgba(255,255,255,0.1)' }}>
                                 <div style={{ width: 64, height: 64, borderRadius: 32, background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
                                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5"><circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" /></svg>
                                 </div>
-                                <p style={{ fontSize: 16, fontWeight: 700, color: '#e0e8f0', margin: '0 0 4px' }}>No Active Games Found</p>
-                                <p style={{ fontSize: 13, color: 'rgba(200,214,229,0.5)', marginBottom: 16 }}>Try Expanding Your Filters Or Clearing The Game Type.</p>
+                                <p style={{ fontSize: 16, fontWeight: 700, color: '#e0e8f0', margin: '0 0 4px' }}>No Games In This Area</p>
+                                <p style={{ fontSize: 13, color: 'rgba(200,214,229,0.5)', marginBottom: 16 }}>Try Expanding Your Filters Or Search Radius.</p>
                                 <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
-
+                                    <button onClick={handleResetFilters} style={{ padding: '8px 16px', borderRadius: 8, background: 'rgba(110,231,239,0.1)', border: '1px solid rgba(110,231,239,0.3)', color: '#6ee7ef', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                                        Reset Filters
+                                    </button>
                                     {user && (
                                         <button onClick={() => { setReportVenue(null); setReportModalOpen(true); }} style={{ padding: '8px 16px', borderRadius: 8, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', color: '#22c55e', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}>
                                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
@@ -1101,6 +1178,7 @@ export default function LiveGamesFeed({
                                     )}
                                 </div>
                             </div>
+                            )
                         ) : (
                             (
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14, paddingBottom: 24, alignItems: 'stretch' }}>
@@ -1125,6 +1203,8 @@ export default function LiveGamesFeed({
                     fetchGlobalLiveData(true);
                 }}
                 user={user}
+                userLocation={effectiveLocation}
+                allVenues={mergedVenues}
             />
 
             {/* ─── REPORT SUCCESS TOAST ─── */}

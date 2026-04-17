@@ -368,7 +368,7 @@ export async function getMergedToursData(excludeStationary = false) {
 }
 
 export async function getAllToursForSSR() {
-    const { tours, registryTours } = await getMergedToursData(false);
+    const { tours, registryTours } = await getMergedToursData(true); // excludeStationary=true
     let finalTours = tours;
     // Attach upcoming
     const allUpcoming = getUpcomingSeries(null, registryTours);

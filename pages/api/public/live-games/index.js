@@ -2,12 +2,27 @@
  * Live Games API - Public endpoint for viewing live games
  *
  * GET: List live games (optionally filtered by location, game type, stakes)
- * POST: Report a new live game (requires auth)
+ * POST: Report a new live game (requires auth + geo-verification)
  */
 
 import { supabase } from '../../../../src/lib/supabase';
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
+
+// ─── Haversine distance (miles) ────────────────────────────────────────────────
+function haversineServerMiles(lat1, lon1, lat2, lon2) {
+    if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
+    const R = 3958.8;
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    const a = Math.sin(dLat / 2) ** 2 +
+        Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+        Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// Server-side geo tolerance (slightly more generous than client 0.5 mi, to handle GPS jitter)
+const GEO_SERVER_RADIUS_MILES = 1.0;
 
 // Admin client for RPC calls
 let _supabase = null;
@@ -165,7 +180,10 @@ async function handlePost(req, res) {
             waitlist_size = 0,
             table_count = 1,
             notes,
-            game_quality
+            game_quality,
+            // Geo evidence from client
+            reporter_lat,
+            reporter_lng,
         } = req.body;
 
         // Validate required fields
@@ -185,15 +203,36 @@ async function handlePost(req, res) {
             });
         }
 
-        // Verify venue exists
+        // Verify venue exists (also fetch coordinates for geo-check)
         const { data: venue, error: venueError } = await getSupabase()
             .from('poker_venues')
-            .select('id, name')
+            .select('id, name, latitude, longitude')
             .eq('id', parseInt(venue_id))
             .maybeSingle();
 
         if (venueError || !venue) {
             return res.status(404).json({ success: false, error: 'Venue not found' });
+        }
+
+        // ── SERVER-SIDE GEO-VERIFICATION ─────────────────────────────────────────
+        // If the client sends reporter coordinates, verify they are within 1 mile.
+        // This is the server-side backstop; the client already enforces 0.5 mi.
+        // We skip the check if the venue itself has no coordinates (rare edge case).
+        if (reporter_lat != null && reporter_lng != null && venue.latitude && venue.longitude) {
+            const dist = haversineServerMiles(
+                parseFloat(reporter_lat), parseFloat(reporter_lng),
+                venue.latitude, venue.longitude
+            );
+            if (dist > GEO_SERVER_RADIUS_MILES) {
+                console.warn(`[GEO_RESTRICTED] User ${user.id} tried to report at ${venue.name} from ${dist.toFixed(2)} mi away`);
+                return res.status(403).json({
+                    success: false,
+                    error: 'GEO_RESTRICTED',
+                    message: `You must be at the venue to report a live game. You are ${dist.toFixed(1)} miles away from ${venue.name}.`,
+                    distance_miles: dist,
+                    required_miles: GEO_SERVER_RADIUS_MILES,
+                });
+            }
         }
 
         // Use the report_live_game function
