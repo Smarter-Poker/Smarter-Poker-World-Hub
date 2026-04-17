@@ -986,6 +986,25 @@ export default function PokerNearMePage() {
         fetchAllData({ includeVenues: false });
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // ─── Fallback: if no location is available after GPS settles, fetch all venues ───
+    // Ensures the Venues tab is never blank for users without a saved location.
+    // The location-aware fetchVenues() below will override this once GPS resolves.
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const slug = window.location.pathname.split('/').pop();
+        const tabsNeedingVenues = ['venues', 'map', 'saved'];
+        if (!tabsNeedingVenues.includes(slug)) return;
+        // 800ms: gives the 600ms GPS auto-request time to fire first,
+        // then falls back to showing all venues if no location is available.
+        const timer = setTimeout(() => {
+            if (!userLocation && !selectedCity && !globalSearchModeRef.current) {
+                setHasSearched(true);
+                if (fetchVenuesRef.current) fetchVenuesRef.current({ silent: true });
+            }
+        }, 800);
+        return () => clearTimeout(timer);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
     // When city or GPS location is set, search for venues
     // GUARD: skip if globalSearchModeRef is active — user did a text search, don't overwrite results
     useEffect(() => {
