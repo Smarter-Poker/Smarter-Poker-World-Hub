@@ -211,30 +211,29 @@ async function createGroup(req, res) {
 
     if (error) throw error;
 
-    // --- PHASE 2: Auto-create linked Social Page ---
+    // Fetch the social_pages row the autocreate trigger just created.
+    // Relationship is reverse — social_pages.linked_entity_type='home_group'
+    // + social_pages.linked_entity_id=group.id::text (linked_entity_id is TEXT).
+    // We don't INSERT the page here; the database trigger
+    // trg_autocreate_home_group_social_page owns that path as of the
+    // home-games unification work. Historical code had a second manual
+    // insert here with category='home-game' that silently failed due to
+    // the page_type NOT NULL constraint — that has been removed.
     try {
       const { data: socialPage } = await getSupabase()
         .from('social_pages')
-        .insert({
-          owner_id: user.id,
-          name: `${name} Group`,
-          description: description || `Official social page for ${name}`,
-          category: 'home-game',
-          location_city: city || '',
-          location_state: state || '',
-          is_public: true,
-          metadata: { home_game_group_id: group.id }
-        })
-        .select()
+        .select('*')
+        .eq('linked_entity_type', 'home_group')
+        .eq('linked_entity_id', String(group.id))
         .maybeSingle();
 
       if (socialPage) {
-        // Append it to the response so the frontend knows the social page was created
         group.social_page = socialPage;
       }
-    } catch (createSocialError) {
-      console.error('Failed to auto-create social page:', createSocialError);
-      // Suppress error so we still return the home game successfully
+    } catch (fetchSocialPageErr) {
+      console.error('Failed to fetch auto-created social page:', fetchSocialPageErr);
+      // Non-fatal — group creation succeeded; caller can discover the
+      // social page on next load via the same linked_entity lookup.
     }
 
     return res.status(201).json({ group });

@@ -175,33 +175,13 @@ export default function CreateHomeGamePage() {
       if (data.success || data.group) {
         setCreatedGroup(data.group);
 
-        // Auto-create Social Page for this home game
-        try {
-          const pageRes = await fetch('/api/social/pages', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`
-            },
-            body: JSON.stringify({
-              name: formData.name,
-              page_type: 'home_game',
-              description: formData.description || `Home game: ${formData.name}`,
-              location_city: formData.city,
-              location_state: formData.state,
-              category: 'poker',
-              is_public: formData.visibility === 'public',
-            })
-          });
-          if (pageRes.ok) {
-            const pageData = await pageRes.json();
-            if (pageData.success && pageData.data) {
-              setCreatedSocialPage(pageData.data);
-            }
-          }
-        } catch (pageErr) {
-          console.error('[CreateHomeGame] Social page auto-create failed:', pageErr);
-          // Non-blocking — game still created successfully
+        // The commander-groups API auto-creates the linked social_pages
+        // row via trg_autocreate_home_group_social_page and attaches it
+        // to the response as `group.social_page`. Historical code here
+        // did a second POST to /api/social/pages which produced an
+        // orphan (non-linked) duplicate page — that's been removed.
+        if (data.group && data.group.social_page) {
+          setCreatedSocialPage(data.group.social_page);
         }
 
         setStep(4);
