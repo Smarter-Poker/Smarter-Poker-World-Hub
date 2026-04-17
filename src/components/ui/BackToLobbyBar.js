@@ -10,7 +10,7 @@ export default function BackToLobbyBar({ label = 'Poker Near Me' }) {
     <div className="back-to-lobby-bar">
       <button
         className="back-to-lobby-btn"
-        onClick={() => router.push('/hub/poker-near-me-lobby')}
+        onClick={() => router.push('/hub/poker-near-me')}
         aria-label={`Back to ${label}`}
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">

@@ -16,8 +16,16 @@ const ROUTE_TO_WORLD = {
     '/hub/preflop-charts': 'preflop-charts',
     '/hub/memory-games': 'preflop-charts', // Legacy redirect
     '/hub/bankroll-manager': 'bankroll-manager',
-    '/hub/poker-near-me-lobby': 'poker-near-me',
+    '/hub/poker-near-me-lobby': 'poker-near-me', // legacy — now redirects
     '/hub/poker-near-me': 'poker-near-me',
+    '/hub/poker-near-me/live-games': 'poker-near-me',
+    '/hub/poker-near-me/venues': 'poker-near-me',
+    '/hub/poker-near-me/map': 'poker-near-me',
+    '/hub/poker-near-me/saved': 'poker-near-me',
+    '/hub/poker-near-me/events': 'poker-near-me',
+    '/hub/poker-near-me/roadtrip': 'poker-near-me',
+    '/hub/poker-near-me/alerts': 'poker-near-me',
+    '/hub/poker-near-me/more': 'poker-near-me',
     '/hub/diamond-store': 'marketplace',
     '/hub/club-arena': 'club-arena',
     '/hub/video-library': 'video-library',

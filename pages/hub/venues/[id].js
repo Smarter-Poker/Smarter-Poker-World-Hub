@@ -1284,7 +1284,7 @@ export default function VenueDetailPage() {
                     <span className="breadcrumb-sep">/</span>
                   </li>
                   <li className="breadcrumb-item">
-                    <Link href="/hub/poker-near-me-lobby" legacyBehavior><a className="breadcrumb-link">Poker Near Me</a></Link>
+                    <Link href="/hub/poker-near-me" legacyBehavior><a className="breadcrumb-link">Poker Near Me</a></Link>
                     <span className="breadcrumb-sep">/</span>
                   </li>
                   <li className="breadcrumb-item breadcrumb-current">

@@ -417,7 +417,7 @@ export default function PokerNearMeLobby() {
     if (sortBy && sortBy !== 'trust') params.set('sort', sortBy);
     if (filters.radius && filters.radius !== '100') params.set('radius', filters.radius);
     const qs = params.toString();
-    const newUrl = qs ? `/hub/poker-near-me-lobby?${qs}` : '/hub/poker-near-me-lobby';
+    const newUrl = qs ? `/hub/poker-near-me?${qs}` : '/hub/poker-near-me';
     const currentUrl = window.location.pathname + window.location.search;
     if (currentUrl !== newUrl) {
       window.history.replaceState(null, '', newUrl);
@@ -2167,7 +2167,7 @@ export default function PokerNearMeLobby() {
       <SEOHead
         title="Poker Near Me — Find Live Poker Rooms & Casinos"
         description="Discover Live Poker Rooms, Casinos, And Card Rooms Near You. Real-Time Game Info, Tournament Schedules, And Interactive Maps."
-        canonical="/hub/poker-near-me-lobby"
+        canonical="/hub/poker-near-me"
       />
 
       <div className="pnm-lobby-page">
@@ -2479,7 +2479,7 @@ export default function PokerNearMeLobby() {
                   background: 'transparent', color: 'rgba(200,214,229,0.6)', fontSize: 14, fontWeight: 600,
                   cursor: 'pointer', fontFamily: 'inherit',
                 }}>Cancel</button>
-                <button onClick={() => { setShowLoginPrompt(false); router.push('/auth/login?redirect=' + encodeURIComponent('/hub/poker-near-me-lobby')); }} style={{
+                <button onClick={() => { setShowLoginPrompt(false); router.push('/auth/login?redirect=' + encodeURIComponent('/hub/poker-near-me')); }} style={{
                   padding: '10px 28px', borderRadius: 10, border: 'none',
                   background: 'linear-gradient(135deg, #d4a853, #b8860b)', color: '#0a1628', fontSize: 14, fontWeight: 700,
                   cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(0,212,255,0.25)',

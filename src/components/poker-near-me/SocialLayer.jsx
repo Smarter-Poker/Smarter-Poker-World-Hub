@@ -224,7 +224,7 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
                             : `None of your ${friendsList.length} friends are checked in right now`}
                     </p>
                     <div className="sl-empty-ctas">
-                        <button className="sl-cta-btn sl-cta-checkin" onClick={() => { if (typeof window !== 'undefined') window.location.href = '/hub/poker-near-me-lobby?tab=venues'; }}>
+                        <button className="sl-cta-btn sl-cta-checkin" onClick={() => { if (typeof window !== 'undefined') window.location.href = '/hub/poker-near-me/venues'; }}>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                 <path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
                             </svg>

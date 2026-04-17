@@ -447,7 +447,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                                     if (origin) params.set('from', origin);
                                     if (destination) params.set('to', destination);
                                     if (corridorMi !== 50) params.set('corridor', String(corridorMi));
-                                    const url = `${window.location.origin}/hub/poker-near-me-lobby?${params.toString()}`;
+                                    const url = `${window.location.origin}/hub/poker-near-me?${params.toString()}`;
                                     navigator.clipboard.writeText(url);
                                     alert('Trip link copied to clipboard!');
                                 } catch { alert('Failed to copy link.'); }

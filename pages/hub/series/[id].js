@@ -652,7 +652,7 @@ export default function SeriesDetailPage() {
               <span className="breadcrumb-sep">/</span>
             </li>
             <li className="breadcrumb-item">
-              <Link href="/hub/poker-near-me-lobby" legacyBehavior><a className="breadcrumb-link">Poker Near Me</a></Link>
+              <Link href="/hub/poker-near-me" legacyBehavior><a className="breadcrumb-link">Poker Near Me</a></Link>
               <span className="breadcrumb-sep">/</span>
             </li>
             {series.tour && series.tour.toUpperCase() !== 'INDEPENDENT' && (
@@ -855,7 +855,7 @@ export default function SeriesDetailPage() {
               )}
               {(venueName || location.city) && (
                 <Link
-                  href={'/hub/poker-near-me-lobby?q=' + encodeURIComponent(venueName || location.city)}
+                  href={'/hub/poker-near-me?q=' + encodeURIComponent(venueName || location.city)}
                   legacyBehavior
                 >
                   <a className="venue-link">

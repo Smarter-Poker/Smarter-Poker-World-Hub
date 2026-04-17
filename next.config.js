@@ -227,6 +227,9 @@ const nextConfig = {
       // Memory Games → Preflop Charts (renamed April 2026)
       { source: '/hub/memory-games', destination: '/hub/preflop-charts', permanent: true },
       { source: '/hub/memory-games/:path*', destination: '/hub/preflop-charts/:path*', permanent: true },
+      // ── Poker Near Me URL Migration (April 2026) ──────────────────────────
+      // Old lobby URL → new canonical landing page (301 permanent redirect)
+      { source: '/hub/poker-near-me-lobby', destination: '/hub/poker-near-me', permanent: true },
     ];
   },
 

@@ -106,7 +106,7 @@ export default function OrbPage() {
         const dedicatedPages = {
 
             'trivia': '/hub/trivia',
-            'poker-near-me': '/hub/poker-near-me-lobby',
+            'poker-near-me': '/hub/poker-near-me',
             'memory-games': '/hub/preflop-charts',
         };
 

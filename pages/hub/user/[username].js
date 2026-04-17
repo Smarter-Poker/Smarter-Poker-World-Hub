@@ -2557,7 +2557,7 @@ export default function UserProfilePage() {
                                 ) : (
                                     <div style={{ textAlign: 'center', padding: 20, color: C.textSec }}>
                                         <p style={{ margin: 0 }}>No Check-Ins Yet</p>
-                                        <Link href="/hub/poker-near-me-lobby" style={{ color: C.blue, fontWeight: 600, fontSize: 14, marginTop: 8, display: 'inline-block', textDecoration: 'none' }}>Find Nearby Venues</Link>
+                                        <Link href="/hub/poker-near-me" style={{ color: C.blue, fontWeight: 600, fontSize: 14, marginTop: 8, display: 'inline-block', textDecoration: 'none' }}>Find Nearby Venues</Link>
                                     </div>
                                 )}
                             </div>
@@ -2568,7 +2568,7 @@ export default function UserProfilePage() {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                                     {[
                                         { href: '/hub/pages', label: 'Browse All Pages', icon: 'M2 3h20v18H2V3zm0 6h20' },
-                                        { href: '/hub/poker-near-me-lobby', label: 'Poker Near Me', icon: 'M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z' },
+                                        { href: '/hub/poker-near-me', label: 'Poker Near Me', icon: 'M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z' },
                                         { href: '/hub/daily-tournaments', label: 'Daily Tournaments', icon: 'M8 2v4m8-4v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z' },
                                         { href: '/hub/promotions', label: 'Promotions & Deals', icon: 'M2 5h20v14H2V5zm0 5h20' },
                                     ].map(link => (

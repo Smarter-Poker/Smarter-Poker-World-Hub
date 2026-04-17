@@ -197,7 +197,7 @@ export default function ShareHandPage() {
                         Join Smarter.Poker
                     </a>
                     <a
-                        href="https://smarter.poker/hub/poker-near-me-lobby"
+                        href="https://smarter.poker/hub/poker-near-me"
                         style={{
                             padding: '14px 32px',
                             borderRadius: 12,

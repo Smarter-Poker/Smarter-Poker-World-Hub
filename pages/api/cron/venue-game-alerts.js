@@ -105,7 +105,7 @@ export default async function handler(req, res) {
             body: JSON.stringify({
               title: `${alert.game_type} is Running`,
               message: `${alert.venue_name} has ${totalRunning} ${alert.game_type} table${totalRunning > 1 ? 's' : ''} running right now.`,
-              url: `${baseUrl}/hub/poker-near-me-lobby?pod=live`,
+              url: `${baseUrl}/hub/poker-near-me/live-games`,
               externalUserIds: [alert.user_id],
               category: 'venue_alerts'
             })

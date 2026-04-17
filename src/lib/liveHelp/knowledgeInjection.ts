@@ -14,7 +14,7 @@ const JARVIS_KNOWLEDGE = {
             { name: 'Preflop Charts', orbNumber: 6, route: '/hub/preflop-charts', status: 'LIVE' },
             { name: 'Trivia', orbNumber: 7, route: '/hub/trivia', status: 'LIVE' },
             { name: 'Video Library', orbNumber: 8, route: '/hub/video-library', status: 'LIVE' },
-            { name: 'Poker Near Me', orbNumber: 9, route: '/hub/poker-near-me-lobby', status: 'LIVE' },
+            { name: 'Poker Near Me', orbNumber: 9, route: '/hub/poker-near-me', status: 'LIVE' },
             { name: 'AI Assistant', orbNumber: 10, route: '/hub/assistant', status: 'LIVE' },
             { name: 'Bankroll Tracker', orbNumber: 11, route: '/hub/bankroll', status: 'LIVE' },
             { name: 'Diamond Store', orbNumber: 12, route: '/hub/diamond-store', status: 'LIVE' },
@@ -184,7 +184,7 @@ export function getPageSpecificKnowledge(page: string): string {
         '/hub/club-arena': 'User is on Club Arena - emphasize club management, chip economy, rake system',
         '/hub/diamond-store': 'User is on Diamond Store - emphasize bundles, VIP tiers, checkout process',
         '/hub/social-media': 'User is on Social Hub - emphasize posts, reels, stories, messenger',
-        '/hub/poker-near-me-lobby': 'User is on Poker Near Me - emphasize venues, tours, live schedules',
+        '/hub/poker-near-me': 'User is on Poker Near Me - emphasize venues, tours, live schedules',
         '/hub/settings': 'User is on Settings - emphasize profile, privacy, notifications, security',
     };
 
