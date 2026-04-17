@@ -656,8 +656,12 @@ export default function PokerNearMePage() {
                     if (['tournament', 'mtt', 'tournaments'].includes(String(parsed.gameType).toLowerCase())) {
                         parsed.gameType = 'all';
                     }
-                    parsed.gameType = parsed.gameType || 'all';
-                    parsed.stakes = parsed.stakes || 'any';
+                    // Normalize stakes: 'any' means no filter — treat same as 'all'
+                    // BUG FIX: 'any' was stored as default but !== 'all', causing the client-side
+                    // stakes filter to fire with s.includes('any') → zero venues matched → blank page.
+                    parsed.stakes = (parsed.stakes && !['any', 'all', 'undefined', 'null', ''].includes(String(parsed.stakes).toLowerCase()))
+                        ? parsed.stakes
+                        : 'all';
                     // To safeguard tour pins from being filtered out entirely, the map will ignore cash filters for pins.
                     // Keep the user's saved radius — do NOT override it to 50mi
                     // Default to 25mi only if no saved radius exists
@@ -670,7 +674,7 @@ export default function PokerNearMePage() {
             radius: 25,
             venueType: 'all',
             gameType: 'all',
-            stakes: 'any',
+            stakes: 'all',
             hasNLH: false,
             hasPLO: false,
             hasMixed: false,
@@ -680,8 +684,6 @@ export default function PokerNearMePage() {
             selectedDay: getCurrentDay(),
             minBuyin: '',
             maxBuyin: '',
-            stakes: 'all',
-            gameType: 'all',
             selectedState: 'all'
         };
     });
@@ -2499,7 +2501,9 @@ export default function PokerNearMePage() {
         }
 
         // ─── CLIENT-SIDE: Auto-filter by stakes ───
-        if (filters.stakes && filters.stakes !== 'all') {
+        // BUG FIX: 'any' === no filter (same as 'all'). Must exclude 'any' from the guard
+        // or s.includes('any') returns false for every venue → blank page.
+        if (filters.stakes && filters.stakes !== 'all' && filters.stakes !== 'any') {
             combined = combined.filter(v => {
                 const games = v.games_offered || [];
                 return games.some(g => {
