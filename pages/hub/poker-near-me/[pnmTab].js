@@ -989,19 +989,21 @@ export default function PokerNearMePage() {
     // ─── Fallback: if no location is available after GPS settles, fetch all venues ───
     // Ensures the Venues tab is never blank for users without a saved location.
     // The location-aware fetchVenues() below will override this once GPS resolves.
+    // NOTE: silent:false is intentional — it sets venueLoading:true so the component
+    // shows a skeleton instead of the "No Venues Found" empty state while fetching.
     useEffect(() => {
         if (typeof window === 'undefined') return;
         const slug = window.location.pathname.split('/').pop();
         const tabsNeedingVenues = ['venues', 'map', 'saved'];
         if (!tabsNeedingVenues.includes(slug)) return;
-        // 800ms: gives the 600ms GPS auto-request time to fire first,
-        // then falls back to showing all venues if no location is available.
+        // 400ms: enough time for saved-location restore to run before we fall back.
+        // If a location IS found, this timer fires but the condition below blocks it.
         const timer = setTimeout(() => {
             if (!userLocation && !selectedCity && !globalSearchModeRef.current) {
                 setHasSearched(true);
-                if (fetchVenuesRef.current) fetchVenuesRef.current({ silent: true });
+                if (fetchVenuesRef.current) fetchVenuesRef.current(); // silent:false → shows loading skeleton
             }
-        }, 800);
+        }, 400);
         return () => clearTimeout(timer);
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1872,7 +1874,9 @@ export default function PokerNearMePage() {
 
             const today = new Date();
             const endDate = new Date();
-            endDate.setDate(today.getDate() + filters.seriesTimeframe);
+            // Guard: seriesTimeframe must be a valid positive number — fallback to 90 days
+            const seriesTimeframeDays = Number(filters.seriesTimeframe);
+            endDate.setDate(today.getDate() + (isNaN(seriesTimeframeDays) || seriesTimeframeDays <= 0 ? 90 : seriesTimeframeDays));
             params.set('end_date', endDate.toISOString().split('T')[0]);
 
             if (filters.seriesType !== 'all') {
