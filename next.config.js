@@ -64,13 +64,23 @@ const withPWA = require('@ducanh2912/next-pwa').default({
         expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 }, // 30 days
       },
     },
-    // Cache public API data - stale while revalidate
+    // Cache public API data - NetworkFirst for venues (must always be fresh, stale causes 0-venue blank page)
     {
-      urlPattern: /\/api\/(public|poker\/venues|poker\/daily-tournaments|training\/leaderboard|arcade\/leaderboard)/,
+      urlPattern: /\/api\/(public|poker\/daily-tournaments|training\/leaderboard|arcade\/leaderboard)/,
       handler: 'StaleWhileRevalidate',
       options: {
         cacheName: 'public-api',
         expiration: { maxEntries: 100, maxAgeSeconds: 60 * 5 }, // 5 min
+      },
+    },
+    // Venues API — ALWAYS fetch from network (location-sensitive, must never serve stale 0-venue cache)
+    {
+      urlPattern: /\/api\/poker\/venues/,
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'venues-api',
+        networkTimeoutSeconds: 8,
+        expiration: { maxEntries: 50, maxAgeSeconds: 60 * 2 }, // 2 min fallback only
       },
     },
     // Never cache auth, financial, or realtime routes
