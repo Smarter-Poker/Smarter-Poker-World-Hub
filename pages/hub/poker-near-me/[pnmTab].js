@@ -1626,6 +1626,11 @@ export default function PokerNearMePage() {
                         localStorage.setItem('pnm_last_state', parts[parts.length - 1]);
                     }
                 } catch (e) { /* ignore */ }
+                // Trigger a silent venue refetch now that we have the proper "City, ST" label.
+                // The initial GPS-triggered fetch runs while label is still coordinates ("41.7, -87.7"),
+                // which means user_state can't be extracted and the API returns 0 local venues.
+                // This corrective refetch ensures venues appear once geocoding completes (~1-2s later).
+                if (fetchVenuesRef.current) fetchVenuesRef.current({ silent: true });
             }
         });
     }, [reverseGeocode]); // eslint-disable-line react-hooks/exhaustive-deps
