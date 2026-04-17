@@ -654,7 +654,7 @@ class BravoSessionManager:
 
         for attempt in range(MAX_RETRIES):
             try:
-                self.page.goto(f'{BRAVO_LOGIN_URL}?ReturnUrl=%2fvenues%2f', timeout=LOGIN_TIMEOUT, wait_until='domcontentloaded')
+                self.page.goto(f'{BRAVO_LOGIN_URL}?ReturnUrl=%2f', timeout=LOGIN_TIMEOUT, wait_until='domcontentloaded')
                 time.sleep(3)  # Let page render — safer than networkidle which hangs on trackers
 
                 content = self.page.content()
@@ -823,7 +823,7 @@ class BravoSessionManager:
                 # and would increment consecutive_nav_failures toward circuit breaker.
                 if 'Just a moment' in content or 'Performing security' in content:
                     log.debug(f'  ⏭️  {slug}: CF challenge on venue page — skipping')
-                    return None  # Silent skip, no session death
+                    return '<SKIPPED_VENUE>'  # Silent skip, no session death
 
                 # Success — reset failure counter, cache cookies for Tier 3
                 self.consecutive_nav_failures = 0
@@ -843,7 +843,7 @@ class BravoSessionManager:
                         self.page.goto('about:blank', timeout=5000, wait_until='commit')
                     except Exception:
                         pass
-                    return None  # Count as skip, not a session failure
+                    return '<SKIPPED_VENUE>'  # Count as skip, not a session failure
 
                 # CHROME ERROR PAGE: navigation interrupted by chrome-error://
                 # Happens when previous venue's 4xx left page in error state.
@@ -854,7 +854,7 @@ class BravoSessionManager:
                         self.page.goto('about:blank', timeout=5000, wait_until='commit')
                     except Exception:
                         pass
-                    return None  # Skip, not a crash
+                    return '<SKIPPED_VENUE>'  # Skip, not a crash
 
                 # CRASH RECOVERY: Detect dead browser context
                 if 'has been closed' in err_msg or 'Target page' in err_msg:
@@ -1272,7 +1272,12 @@ def run_scrape_cycle(mgr):
             mgr.recycle_page()
 
         html = mgr.navigate_venue(slug)
-        if html is None:
+        if html == '<SKIPPED_VENUE>':
+            total_skipped += 1
+            # Do NOT increment consecutive_venue_failures or total_errors
+            # Just move to the next venue
+            continue
+        elif html is None:
             total_errors += 1
             consecutive_venue_failures += 1
             continue

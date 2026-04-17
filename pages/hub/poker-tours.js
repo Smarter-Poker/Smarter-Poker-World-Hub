@@ -1151,7 +1151,7 @@ export default function PokerToursPage({ initialTours = [] }) {
 
                     /* ═══ MAIN SEARCH BAR ═══ */
                     .tours-search-bar {
-                        max-width: 680px;
+                        max-width: 440px;
                         margin: 16px auto 0;
                         width: 100%;
                         padding: 0 16px;
@@ -1161,18 +1161,18 @@ export default function PokerToursPage({ initialTours = [] }) {
                         align-items: center;
                         gap: 10px;
                         padding: 0 16px;
-                        height: 52px;
+                        height: 44px;
                         background: rgba(6, 21, 37, 0.7);
                         backdrop-filter: blur(16px);
                         -webkit-backdrop-filter: blur(16px);
-                        border: 1.5px solid rgba(255,255,255,0.2);
-                        border-radius: 14px;
+                        border: 1px solid rgba(110, 231, 239, 0.2);
+                        border-radius: 28px;
                         transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
                         box-shadow: 0 4px 20px rgba(0,0,0,0.25);
                     }
                     .tours-search-wrap.focused {
-                        border-color: rgba(255,255,255,0.2);
-                        box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+                        border-color: rgba(110, 231, 239, 0.5);
+                        box-shadow: 0 0 24px rgba(110, 231, 239, 0.12);
                     }
                     .tours-search-bar-icon {
                         flex-shrink: 0;
@@ -1186,13 +1186,13 @@ export default function PokerToursPage({ initialTours = [] }) {
                         flex: 1;
                         background: transparent;
                         border: none;
-                        color: #e2e8f0;
-                        font-size: 15px;
+                        color: #e0e8f0;
+                        font-size: 14px;
                         font-family: inherit;
                         font-weight: 500;
                         outline: none;
                         min-width: 0;
-                        letter-spacing: 0.2px;
+                        letter-spacing: 0.02em;
                     }
                     .tours-search-bar-input::placeholder {
                         color: rgba(148,163,184,0.4);

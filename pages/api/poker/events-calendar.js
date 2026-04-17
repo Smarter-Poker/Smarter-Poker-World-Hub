@@ -457,33 +457,51 @@ async function handler(req, res) {
               continue;
             }
 
-            const eventDate = sStart > rangeStartKey ? sStart : rangeStartKey;
+            // Calculate the valid overlapping date range between the search window and the series window
+            const curStart = new Date(sStart + 'T12:00:00Z');
+            const curEnd = new Date(sEnd + 'T12:00:00Z');
+            const rStartDate = new Date(rangeStartKey + 'T12:00:00Z');
+            const rEndDate = new Date(rangeEndKey + 'T12:00:00Z');
+            
+            const loopStart = curStart < rStartDate ? rStartDate : curStart;
+            const loopEnd = curEnd > rEndDate ? rEndDate : curEnd;
 
-            seriesEvents.push({
-              source: 'series',
-              event_date: eventDate,
-              end_date: sEnd,
-              event_name: s.series_name || s.short_name || 'Poker Series',
-              venue_name: s.venue_name || null,
-              venue_id: s.venue_id || null,
-              series_id: s.id,
-              city: s.city || venueInfo?.city || null,
-              state: s.state || venueInfo?.state || null,
-              buy_in: s.main_event_buyin || s.buy_in_min || null,
-              buy_in_display: formatMoney(s.main_event_buyin || s.buy_in_min),
-              buy_in_range: s.buy_in_min && s.buy_in_max ? `${formatMoney(s.buy_in_min)} - ${formatMoney(s.buy_in_max)}` : null,
-              game_type: s.series_type || 'NLH',
-              guaranteed: s.total_guaranteed || s.main_event_guaranteed || null,
-              guaranteed_display: formatMoney(s.total_guaranteed || s.main_event_guaranteed),
-              start_time: null,
-              events_count: s.events_count || null,
-              tour_code: s.tour_code || null,
-              is_featured: s.is_featured || false,
-              distance_mi: distanceMi,
-              latitude: venueInfo?.latitude ? parseFloat(venueInfo.latitude) : null,
-              longitude: venueInfo?.longitude ? parseFloat(venueInfo.longitude) : null,
-              logo_url: s.logo_url || null,
-            });
+            const datesToPush = [];
+            let cDate = new Date(loopStart);
+            while (cDate <= loopEnd) {
+              datesToPush.push(getDateKey(cDate));
+              cDate.setDate(cDate.getDate() + 1);
+              // Safety limit to prevent memory blowout if data issue (e.g. 5 year long series)
+              if (datesToPush.length > 90) break;
+            }
+
+            for (const dk of datesToPush) {
+              seriesEvents.push({
+                source: 'series',
+                event_date: dk,
+                end_date: sEnd,
+                event_name: s.series_name || s.short_name || 'Poker Series',
+                venue_name: s.venue_name || null,
+                venue_id: s.venue_id || null,
+                series_id: s.id,
+                city: s.city || venueInfo?.city || null,
+                state: s.state || venueInfo?.state || null,
+                buy_in: s.main_event_buyin || s.buy_in_min || null,
+                buy_in_display: formatMoney(s.main_event_buyin || s.buy_in_min),
+                buy_in_range: s.buy_in_min && s.buy_in_max ? `${formatMoney(s.buy_in_min)} - ${formatMoney(s.buy_in_max)}` : null,
+                game_type: s.series_type || 'NLH',
+                guaranteed: s.total_guaranteed || s.main_event_guaranteed || null,
+                guaranteed_display: formatMoney(s.total_guaranteed || s.main_event_guaranteed),
+                start_time: null,
+                events_count: s.events_count || null,
+                tour_code: s.tour_code || null,
+                is_featured: s.is_featured || false,
+                distance_mi: distanceMi,
+                latitude: venueInfo?.latitude ? parseFloat(venueInfo.latitude) : null,
+                longitude: venueInfo?.longitude ? parseFloat(venueInfo.longitude) : null,
+                logo_url: s.logo_url || null,
+              });
+            }
           }
         }
       } catch (e) {
