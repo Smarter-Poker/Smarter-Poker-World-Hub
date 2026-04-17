@@ -4,27 +4,27 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
-import SEOHead from '../../src/components/seo/SEOHead';
+import { usePersistedFilters } from '../../../src/hooks/usePersistedFilters';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
-import { useAvatar } from '../../src/contexts/AvatarContext';
-import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
-import { getMenuConfig } from '../../src/config/hamburgerMenus';
-import { getPokerNearMePreferences, updatePokerNearMePreferences } from '../../src/services/pokerNearMePreferences';
-import { getVenueFavorites, addVenueFavorite, removeVenueFavorite } from '../../src/services/pokerNearMeFavorites';
-import { addSearchHistory as addSearchHistoryToDb, getSearchHistory as getSearchHistoryFromDb } from '../../src/services/pokerNearMeSearchHistory';
-import { eventBus, busEmit, EventType } from '../../src/engine/EventBus';
-import useTourMapStops from '../../src/hooks/useTourMapStops';
-import useVenueRealtime from '../../src/hooks/useVenueRealtime';
-import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import { useAvatar } from '../../../src/contexts/AvatarContext';
+import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../../src/config/hamburgerMenus';
+import { getPokerNearMePreferences, updatePokerNearMePreferences } from '../../../src/services/pokerNearMePreferences';
+import { getVenueFavorites, addVenueFavorite, removeVenueFavorite } from '../../../src/services/pokerNearMeFavorites';
+import { addSearchHistory as addSearchHistoryToDb, getSearchHistory as getSearchHistoryFromDb } from '../../../src/services/pokerNearMeSearchHistory';
+import { eventBus, busEmit, EventType } from '../../../src/engine/EventBus';
+import useTourMapStops from '../../../src/hooks/useTourMapStops';
+import useVenueRealtime from '../../../src/hooks/useVenueRealtime';
+import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 const GlobalSearchOverlay = dynamic(() => import('../../src/components/poker-near-me/GlobalSearchOverlay'), { ssr: false });
-import { useFeatureGate } from '../../src/components/gates/FeatureGatePopup';
+import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 const FullScreenPageOverlay = dynamic(() => import('../../src/components/ui/FullScreenPageOverlay'), { ssr: false });
 
-import BottomNavBar from '../../src/components/ui/BottomNavBar';
-import { PNM_TAB_TUTORIALS } from '../../src/components/poker-near-me/InteractiveTutorial';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
+import { PNM_TAB_TUTORIALS } from '../../../src/components/poker-near-me/InteractiveTutorial';
 const InteractiveTutorial = dynamic(() => import('../../src/components/poker-near-me/InteractiveTutorial'), { ssr: false });
 // Extracted tab panel components — lazy-loaded for code splitting
 const MapTabPanel = dynamic(() => import('../../src/components/poker-near-me/MapTabPanel'), { ssr: false });
@@ -42,8 +42,8 @@ const VoiceSearch = dynamic(() => import('../../src/components/poker-near-me/Voi
 const SeasonalCalendar = dynamic(() => import('../../src/components/poker-near-me/SeasonalCalendar'), { ssr: false });
 const LiveGamesFeed = dynamic(() => import('../../src/components/poker-near-me/LiveGamesFeed'), { ssr: false });
 
-import { cachedFetch, fetchWithRetry } from '../../src/components/poker-near-me/lobby/PnmApiCache';
-import { resolveCityCoordsArray as resolveCityCoords } from '../../src/data/city-coordinates';
+import { cachedFetch, fetchWithRetry } from '../../../src/components/poker-near-me/lobby/PnmApiCache';
+import { resolveCityCoordsArray as resolveCityCoords } from '../../../src/data/city-coordinates';
 const LocationEnableModal = dynamic(() => import('../../src/components/ui/LocationEnableModal'), { ssr: false });
 
 // Page configuration constants

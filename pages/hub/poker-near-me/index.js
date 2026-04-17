@@ -15,25 +15,25 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
-import SEOHead from '../../src/components/seo/SEOHead';
-import { useAvatar } from '../../src/contexts/AvatarContext';
-import UniversalHeader from '../../src/components/ui/UniversalHeader';
-import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
-import { getMenuConfig } from '../../src/config/hamburgerMenus';
-import { getVenueFavorites, addVenueFavorite, removeVenueFavorite } from '../../src/services/pokerNearMeFavorites';
-import { haversineMiles } from '../../src/components/poker-near-me/pnm-utils';
-import { addSearchHistory as addSearchHistoryToDb, getSearchHistory } from '../../src/services/pokerNearMeSearchHistory';
-import { getPokerNearMePreferences, updatePokerNearMePreferences } from '../../src/services/pokerNearMePreferences';
-import { supabase } from '../../src/lib/supabase';
-import useTrainingBus from '../../src/hooks/useTrainingBus';
-import useVenueRealtime from '../../src/hooks/useVenueRealtime';
-import { eventBus, EventType } from '../../src/engine/EventBus';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import { useAvatar } from '../../../src/contexts/AvatarContext';
+import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../../src/config/hamburgerMenus';
+import { getVenueFavorites, addVenueFavorite, removeVenueFavorite } from '../../../src/services/pokerNearMeFavorites';
+import { haversineMiles } from '../../../src/components/poker-near-me/pnm-utils';
+import { addSearchHistory as addSearchHistoryToDb, getSearchHistory } from '../../../src/services/pokerNearMeSearchHistory';
+import { getPokerNearMePreferences, updatePokerNearMePreferences } from '../../../src/services/pokerNearMePreferences';
+import { supabase } from '../../../src/lib/supabase';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import useVenueRealtime from '../../../src/hooks/useVenueRealtime';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 // BottomNavBar removed — Poker Near Me has its own navigation grid
 
 // ─── Extracted Utilities (Bundle Splitting) ───
-import { playClickSound, playPanelOpenSound, playPanelCloseSound } from '../../src/components/poker-near-me/lobby/PnmSoundUtils';
-import { cachedFetch, fetchWithRetry, invalidateCache, PAGE_SIZE, SEARCH_DEBOUNCE_MS, API_CACHE_TTL, LIVE_REFRESH_MS } from '../../src/components/poker-near-me/lobby/PnmApiCache';
-import { getCityCoordinatesMap } from '../../src/data/city-coordinates';
+import { playClickSound, playPanelOpenSound, playPanelCloseSound } from '../../../src/components/poker-near-me/lobby/PnmSoundUtils';
+import { cachedFetch, fetchWithRetry, invalidateCache, PAGE_SIZE, SEARCH_DEBOUNCE_MS, API_CACHE_TTL, LIVE_REFRESH_MS } from '../../../src/components/poker-near-me/lobby/PnmApiCache';
+import { getCityCoordinatesMap } from '../../../src/data/city-coordinates';
 
 // Dynamic import — 2D lobby background (client-only, no SSR)
 const LobbyCanvas = dynamic(

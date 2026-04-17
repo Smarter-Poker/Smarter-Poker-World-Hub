@@ -43,12 +43,18 @@ export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 # ── Parse flags ──
 DRY_RUN=false
 BUILD_CHECK=true  # DEFAULT ON — prevents broken imports from blocking CI for days
+# v4.2: pre-push hooks are ENFORCED by default. The hooks include Check 8
+# (broken-import resolution) which would have caught the Apr 16 2026 PNM
+# refactor that moved [pnmTab].js two dirs deeper without updating imports.
+# Use --skip-hooks only as an emergency bypass when the hooks themselves are broken.
+NO_VERIFY_FLAG=""
 POSITIONAL=()
 for arg in "$@"; do
     case "$arg" in
         --dry-run) DRY_RUN=true ;;
         --build-check) BUILD_CHECK=true ;;  # Explicit (already default)
         --skip-build|--no-build) BUILD_CHECK=false ;;  # Opt-out for hotfixes
+        --skip-hooks|--no-verify) NO_VERIFY_FLAG="--no-verify" ;;  # Emergency bypass
         --force-destructive) ;; # Handled later in Phase 0.5
         *) POSITIONAL+=("$arg") ;;
     esac
@@ -547,7 +553,7 @@ while [ $attempt -lt $MAX_RETRIES ]; do
     # Extract owner/repo from URL
     REPO_PATH=$(echo "$PUSH_URL" | sed 's|.*github.com[:/]||' | sed 's|\.git$||')
     AUTH_URL="https://x-access-token:${GH_TOKEN}@github.com/${REPO_PATH}.git"
-    if git push --no-verify "$AUTH_URL" "${BRANCH}" 2>&1; then
+    if git push $NO_VERIFY_FLAG "$AUTH_URL" "${BRANCH}" 2>&1; then
     PHASE3_END=$(date +%s)
     TOTAL_END=$(date +%s)
     COMMIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "N/A")
@@ -610,7 +616,7 @@ while [ $attempt -lt $MAX_RETRIES ]; do
    fi
   else
     # Fallback: no gh token or not a GitHub repo — use standard push
-    if git push --no-verify "${REMOTE}" "${BRANCH}" 2>&1; then
+    if git push $NO_VERIFY_FLAG "${REMOTE}" "${BRANCH}" 2>&1; then
       PHASE3_END=$(date +%s)
       TOTAL_END=$(date +%s)
       COMMIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "N/A")
