@@ -75,15 +75,16 @@ You must follow the appropriate track based on the nature of your changes:
 1. WRITE CODE         — Make all changes
 2. TEST ON LOCALHOST  — Rapidly verify visuals on http://localhost:3000 
 3. PUSH TO GITHUB     — bash scripts/git-safe-push.sh "message" (Async push)
-4. MOVE ON            — No need to freeze agent workflow waiting for Vercel deploy script!
+4. SKIP ARTIFACTS     — DO NOT generate `walkthrough.md` or `implementation_plan.md` artifacts.
+5. MOVE ON            — No need to freeze agent workflow waiting for Vercel deploy script!
 ```
 
 ## DO NOT End a Session Without
 
 - [ ] All code changes committed and pushed to GitHub
-- [ ] `git log` confirms local SHA matches `origin/main` SHA
-- [ ] `verify-deploy.js` returns `DEPLOY_VERIFIED:true`
-- [ ] If SHA mismatch, waited for Vercel build and re-verified
+- [ ] `git log` confirms local SHA matches `origin/main` SHA (Track A ONLY)
+- [ ] `verify-deploy.js` returns `DEPLOY_VERIFIED:true` (Track A ONLY)
+- [ ] If SHA mismatch, waited for Vercel build and re-verified (Track A ONLY)
 - [ ] SQL migrations written and executed (if any schema changes)
 
 ## HARD LAW: File Count Safety
