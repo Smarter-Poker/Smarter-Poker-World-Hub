@@ -128,53 +128,42 @@ export default function CreateHomeGamePage() {
   }
 
   // ── PHASE 17: LOGO UPLOAD HANDLER ─────────────────────────────────
-  // Uploads the selected file to Supabase Storage at
-  //   uploads/home-groups/pending-{userId}-{timestamp}/logo.{ext}
-  // and stores the public URL in formData.profile_photo_url. The server-
-  // side API validates the URL shape and refuses creation without it.
+  // Uses the SAME /api/social/upload endpoint Club Commander's
+  // ClubPageDashboard and Social Pages use for logo/avatar uploads.
+  // Server-side handles auth, file-type/size validation, and writes to
+  // the social-media bucket via service role. We just forward the file
+  // and store the returned publicUrl.
   async function handleLogoSelected(e) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Basic client-side validation before hitting Storage
-    if (!file.type.startsWith('image/')) {
-      setLogoError('Please choose an image file');
-      e.target.value = '';
-      return;
-    }
-    const MAX_BYTES = 10 * 1024 * 1024;  // 10MB
-    if (file.size > MAX_BYTES) {
-      setLogoError('Image must be under 10MB');
-      e.target.value = '';
-      return;
-    }
-
     setUploadingLogo(true);
     setLogoError(null);
     try {
-      const { ensureAuthReady } = await import('../../../../src/lib/authUtils');
-      const { supabase: sb } = await import('../../../../src/lib/supabase');
-      const authUser = await ensureAuthReady(sb);
-      if (!authUser) {
+      const token = getAccessToken();
+      if (!token) {
         setLogoError('Please sign in again before uploading');
         setUploadingLogo(false);
         return;
       }
 
-      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
-      // Path is scoped to the user's pending home-group (group_id doesn't exist yet).
-      // The server later validates the URL has '/home-groups/' in the path.
-      const path = `home-groups/pending-${authUser.id}-${Date.now()}/logo.${ext}`;
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('folder', 'logos');
+      fd.append('prefix', `home-group-pending-${Date.now()}`);
 
-      const { error: upErr } = await sb.storage
-        .from('uploads')
-        .upload(path, file, { upsert: true, contentType: file.type });
-      if (upErr) throw upErr;
+      const res = await fetch('/api/social/upload', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+      const json = await res.json();
 
-      const { data: { publicUrl } } = sb.storage.from('uploads').getPublicUrl(path);
-      if (!publicUrl) throw new Error('Upload succeeded but no public URL returned');
+      if (!json.success || !json.url) {
+        throw new Error(json.error || 'Upload failed');
+      }
 
-      updateField('profile_photo_url', publicUrl);
+      updateField('profile_photo_url', json.url);
     } catch (err) {
       console.error('Logo upload failed:', err);
       setLogoError(err?.message || 'Upload failed — please try again');

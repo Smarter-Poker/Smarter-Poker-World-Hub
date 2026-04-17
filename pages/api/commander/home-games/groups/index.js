@@ -175,21 +175,13 @@ async function createGroup(req, res) {
       frequency,
       settings,
       // ── PHASE 17 — HARD LOGO REQUIREMENT ────────────────────────────
-      //
-      // Dan's directive: "ALL HOME GAMES, CLUBS OR CHARITIES MUST HAVE A
-      // LOGO UPLOADED BEFORE COMPLETING OR FINISHING THEIR ACCOUNT
-      // CREATION. WE MUST HAVE ACTUAL IMAGE UPLOAD AS A REQUIREMENT TO
-      // ADVANCE."
-      //
-      // Client uploads the logo to Supabase Storage bucket 'uploads' at
-      //   home-groups/pending-{ownerId}-{ts}/logo.{ext}
-      // then includes the public URL in this field. We VALIDATE below:
-      //   - must be a non-empty string
-      //   - must start with our Supabase Storage public URL prefix
-      //     (blocks hot-linked or fabricated URLs pointing elsewhere)
-      //   - must contain '/home-groups/' in the path so the upload is
-      //     scoped to the home-group bucket folder
-      // Once validated, it's persisted to commander_home_groups.profile_photo_url.
+      // Client uploads the logo through /api/social/upload (the same
+      // endpoint Club Commander and Social Pages use for avatar/logo
+      // uploads) and sends us the returned public URL here. We don't
+      // re-validate the URL shape — /api/social/upload already
+      // authenticates the user, validates file type/size, and writes
+      // through the service role to the social-media bucket. Our job
+      // is just to enforce that we received SOME url.
       profile_photo_url
     } = req.body;
 
@@ -198,24 +190,10 @@ async function createGroup(req, res) {
     }
 
     // ── LOGO HARD REQUIREMENT ───────────────────────────────────────
-    if (!profile_photo_url || typeof profile_photo_url !== 'string') {
+    if (!profile_photo_url || typeof profile_photo_url !== 'string' || !profile_photo_url.trim()) {
       return res.status(400).json({
         error: 'Logo upload is required to create a home group',
         code: 'LOGO_REQUIRED'
-      });
-    }
-
-    // Validate the URL shape — must be a real Supabase Storage upload
-    // in the home-groups/ folder, not a hot-linked or arbitrary URL.
-    const SUPABASE_PUBLIC_PREFIX = 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/uploads/';
-    const isValidLogoUrl =
-      profile_photo_url.startsWith(SUPABASE_PUBLIC_PREFIX) &&
-      profile_photo_url.includes('/home-groups/');
-
-    if (!isValidLogoUrl) {
-      return res.status(400).json({
-        error: 'Logo must be uploaded through the app (Supabase Storage home-groups path required)',
-        code: 'LOGO_INVALID_SOURCE'
       });
     }
 
