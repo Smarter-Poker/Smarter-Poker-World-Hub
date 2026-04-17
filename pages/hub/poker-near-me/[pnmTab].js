@@ -453,7 +453,13 @@ export default function PokerNearMePage() {
                     if (v.bravo_slug) map[v.bravo_slug] = liveEntry;
                     if (normName) map[normName] = liveEntry;
                 });
-                setLiveDataMap(map);
+                setLiveDataMap(prev => {
+                    // POLICY: Never overwrite good data with empty data.
+                    // If the new fetch returns fewer venues, preserve entries from
+                    // previous fetch that aren't in the new response.
+                    const merged = { ...prev, ...map };
+                    return merged;
+                });
             })
             .catch(() => { /* silent — live data is best-effort */ });
     }, []);
@@ -480,16 +486,21 @@ export default function PokerNearMePage() {
                 const liveEntry = (venue.bravo_slug && liveDataMap[venue.bravo_slug])
                     || liveDataMap[normName]
                     || null;
-                const newLiveData = (liveEntry && liveEntry.tables_running > 0) ? liveEntry : null;
+                // POLICY: Never strip live_data from venue cards.
+                // Even when scraper is down and tables_running=0, show games list
+                // (stakes offered, game types). Only strip if the entry has zero games.
+                const hasGameData = liveEntry && (liveEntry.games || []).length > 0;
+                const newLiveData = hasGameData ? liveEntry : null;
                 // Skip if timestamp hasn't changed (avoid unnecessary object churn)
                 const curTs = venue.live_data?.last_updated;
                 const newTs = newLiveData?.last_updated;
                 if (!newLiveData && !venue.live_data) return venue; // no change
                 if (curTs && newTs && curTs === newTs) return venue; // same data
                 changed = true;
-                return newLiveData
-                    ? { ...venue, live_data: newLiveData }
-                    : { ...venue, live_data: null };
+                // POLICY: Never replace existing live_data with null.
+                // If the new data is empty but we had data before, keep the old data.
+                if (!newLiveData && venue.live_data) return venue;
+                return { ...venue, live_data: newLiveData };
             });
             return changed ? next : prev; // referential equality guard
         });
@@ -974,10 +985,18 @@ export default function PokerNearMePage() {
             const json = await res.json();
             if (json && json.metadata) {
                 if (typeof json.metadata.total_tables_running === 'number') {
-                    setLiveTableCount(json.metadata.total_tables_running);
+                    // POLICY: Never decrease live count to 0.
+                    // If API returns 0 (scraper down), keep the last known count.
+                    setLiveTableCount(prev => {
+                        if (json.metadata.total_tables_running > 0) return json.metadata.total_tables_running;
+                        return prev > 0 ? prev : 0; // keep previous if new is 0
+                    });
                 }
                 if (typeof json.metadata.venues_with_live_data === 'number') {
-                    setLiveVenueCount(json.metadata.venues_with_live_data);
+                    setLiveVenueCount(prev => {
+                        if (json.metadata.venues_with_live_data > 0) return json.metadata.venues_with_live_data;
+                        return prev > 0 ? prev : 0;
+                    });
                 }
             }
         } catch (e) {
@@ -1835,7 +1854,7 @@ export default function PokerNearMePage() {
                 const liveEntry = (venue.bravo_slug && liveDataMapRef.current[venue.bravo_slug])
                     || liveDataMapRef.current[normName]
                     || null;
-                if (liveEntry && liveEntry.tables_running > 0) {
+                if (liveEntry && (liveEntry.games || []).length > 0) {
                     return { ...venue, _liveMerged: true, live_data: liveEntry };
                 }
                 return { ...venue, _liveMerged: true };

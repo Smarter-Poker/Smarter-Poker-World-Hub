@@ -135,7 +135,11 @@ export default async function handler(req, res) {
     // Filter: only keep rows from the latest batch per venue + not too stale
     let dedupedRows = 0;
     let batchFilteredRows = 0;
-    const MAX_AGE_MS = 3 * 60 * 60 * 1000; // 3 hours
+    // POLICY: Never drop data just because the scraper is down.
+    // Retain rows up to 24 hours. The frontend will show a staleness indicator
+    // for data older than 3 hours, but the data will ALWAYS be visible.
+    const MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours — last known data always shows
+    const STALE_THRESHOLD_MS = 3 * 60 * 60 * 1000; // 3 hours — after this, flag as stale
 
     const batchFiltered = (data || []).filter(row => {
       const key = row.bravo_slug || normalizeForMatch(cleanVenueName(row.venue_name));
@@ -309,7 +313,10 @@ export default async function handler(req, res) {
         totalCatalogTables += venueTables;
       }
     }
-    const totalTables = totalLiveTables; // Stats card shows only confirmed live tables
+    // POLICY: Never show 0 tables. If no real-time Bravo data exists,
+    // fall back to catalog estimates so venues always have table info.
+    const totalTables = totalLiveTables > 0 ? totalLiveTables : totalCatalogTables;
+    const dataIsLive = totalLiveTables > 0; // true = real-time Bravo, false = catalog fallback
     const totalPlayersWaiting = venues.reduce(
       (sum, v) => sum + v.games.reduce((s, g) => s + (g.players_waiting || 0), 0), 0
     );
@@ -332,6 +339,8 @@ export default async function handler(req, res) {
           final_venues: venues.length,
           live_tables: totalLiveTables,
           catalog_estimate_tables: totalCatalogTables,
+          data_is_live: dataIsLive,
+          stale_threshold_hours: 3,
         },
       },
       venues,
