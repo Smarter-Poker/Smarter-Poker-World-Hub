@@ -324,9 +324,9 @@ function LiveGamesFeed({
                 const json = await res.json();
                 const mapping = {};
                 (json.venues || []).forEach(v => {
-                    const totalTables = v.games.reduce((acc, g) => acc + (g.tables_running || 0), 0);
-                    const totalWait = v.games.reduce((acc, g) => acc + (g.players_waiting || 0), 0);
-                    const sources = v.games.map(g => g.source).filter(Boolean);
+                    const totalTables = (v.games || []).reduce((acc, g) => acc + (g.tables_running || 0), 0);
+                    const totalWait = (v.games || []).reduce((acc, g) => acc + (g.players_waiting || 0), 0);
+                    const sources = (v.games || []).map(g => g.source).filter(Boolean);
                     const primarySource = sources.includes('bravo') ? 'bravo' : (sources[0] || 'bravo');
                     mapping[v.bravo_slug] = { ...v, totalTables, totalWait, primarySource };
                 });
@@ -452,8 +452,8 @@ function LiveGamesFeed({
                         nextV.games.push(mappedGame);
                     }
                     
-                    nextV.totalTables = nextV.games.reduce((acc, g) => acc + (g.tables_running || 0), 0);
-                    nextV.totalWait = nextV.games.reduce((acc, g) => acc + (g.players_waiting || 0), 0);
+                    nextV.totalTables = (nextV.games || []).reduce((acc, g) => acc + (g.tables_running || 0), 0);
+                    nextV.totalWait = (nextV.games || []).reduce((acc, g) => acc + (g.players_waiting || 0), 0);
                     
                     return { ...prev, [newRec.bravo_slug]: nextV };
                 });
@@ -634,12 +634,12 @@ function LiveGamesFeed({
 
         // 3. Filter by Game Type
         if (filterGameType !== 'all') {
-            list = list.filter(v => v.games.some(g => matchesGameType(g.game, filterGameType)));
+            list = list.filter(v => (v.games || []).some(g => matchesGameType(g.game, filterGameType)));
         }
 
         // 4. Filter by Stakes
         if (filterStakes !== 'any') {
-            list = list.filter(v => venueHasStakes(v.games, filterStakes));
+            list = list.filter(v => venueHasStakes(v.games || [], filterStakes));
         }
 
         // 5. Sort

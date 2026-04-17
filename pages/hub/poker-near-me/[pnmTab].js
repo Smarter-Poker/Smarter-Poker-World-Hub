@@ -414,8 +414,8 @@ export default function PokerNearMePage() {
                     const normName = (v.venue_name || '').toLowerCase()
                         .replace(/&/g, 'and').replace(/'/g, '').replace(/-/g, ' ')
                         .replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
-                    const totalTables = v.games.reduce((s, g) => s + (g.tables_running || 0), 0);
-                    const totalWaiting = v.games.reduce((s, g) => s + (g.players_waiting || 0), 0);
+                    const totalTables = (v.games || []).reduce((s, g) => s + (g.tables_running || 0), 0);
+                    const totalWaiting = (v.games || []).reduce((s, g) => s + (g.players_waiting || 0), 0);
                     const liveEntry = {
                         tables_running: totalTables,
                         players_waiting: totalWaiting,
