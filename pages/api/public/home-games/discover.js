@@ -84,11 +84,48 @@ export default async function handler(req, res) {
       game_type,
       frequency,
       search,
+      lat: rawLat,
+      lng: rawLng,
+      radius_miles: rawRadius,
       limit: rawLimit = '50',
     } = req.query;
 
     const limit = Math.min(Math.max(parseInt(rawLimit, 10) || 50, 1), 100);
     const supabase = getSupabase();
+
+    // ── PHASE 21 — GEO PARAMS ─────────────────────────────────────────
+    //
+    // Home Games Near Me passes lat/lng/radius_miles. We apply:
+    //   • Haversine distance from user → each group (on REAL coords,
+    //     computed BEFORE jittering for privacy)
+    //   • radius filter (drop groups beyond radius_miles)
+    //   • distance sort ascending
+    // Distance is exposed on the response as `distance_miles` for UI.
+    // If lat/lng aren't provided, behavior is unchanged (member_count sort).
+    function parseNum(v, min, max) {
+      const n = parseFloat(v);
+      if (!isFinite(n)) return null;
+      if (n < min || n > max) return null;
+      return n;
+    }
+    const userLat = rawLat != null ? parseNum(rawLat, -90, 90)   : null;
+    const userLng = rawLng != null ? parseNum(rawLng, -180, 180) : null;
+    const hasGps  = userLat != null && userLng != null;
+    const radiusMiles = hasGps
+      ? Math.min(Math.max(parseFloat(rawRadius) || 50, 1), 500)
+      : null;
+
+    // Haversine on real (unjittered) coordinates.
+    function haversineMiles(lat1, lng1, lat2, lng2) {
+      const R = 3958.8; // Earth radius in miles
+      const toRad = (d) => (d * Math.PI) / 180;
+      const dLat = toRad(lat2 - lat1);
+      const dLng = toRad(lng2 - lng1);
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+      return 2 * R * Math.asin(Math.min(1, Math.sqrt(a)));
+    }
 
     // ── 1. Query public+active home groups joined with their social pages.
     //      We go group-first because commander_home_groups holds the live
@@ -211,9 +248,20 @@ export default async function handler(req, res) {
 
     // ── 4. Shape response. Use social_page slug for canonical URL when present;
     //      fall back to club_code/invite_code so the card never has a null href.
-    const out = (groups || []).map((g) => {
+    let out = (groups || []).map((g) => {
       const page = pageByGroupId[String(g.id)] || null;
       const next = nextByGroupId[g.id] || null;
+      // ── Distance calc runs BEFORE jittering — use the real DB lat/lng
+      // so distance is accurate. The coordinates returned to the client
+      // are still jittered for privacy.
+      let distance_miles = null;
+      if (hasGps && g.latitude != null && g.longitude != null) {
+        distance_miles = haversineMiles(
+          userLat, userLng,
+          parseFloat(g.latitude), parseFloat(g.longitude)
+        );
+        distance_miles = Math.round(distance_miles * 10) / 10;
+      }
       const jittered = jitterCoord(g.id, g.latitude, g.longitude);
       return {
         id: g.id,
@@ -231,6 +279,7 @@ export default async function handler(req, res) {
         // Legacy aliases for VenueMap / VenueCard which read 'latitude'/'longitude'.
         latitude: jittered.lat,
         longitude: jittered.lng,
+        distance_miles,  // Phase 21 — null if no GPS in request
         avatar_url: page?.avatar_url || g.profile_photo_url || null,
         cover_url: page?.cover_url || g.cover_photo_url || null,
         default_game_type: g.default_game_type || null,
@@ -255,6 +304,26 @@ export default async function handler(req, res) {
           : null,
       };
     });
+
+    // ── PHASE 21 — GEO FILTER + SORT ──────────────────────────────────
+    // Applied AFTER shape so `distance_miles` is populated.
+    if (hasGps) {
+      // Filter out groups outside the radius (those without coords are kept;
+      // they have distance_miles=null and surface at the end of the list).
+      out = out.filter((g) =>
+        g.distance_miles == null || g.distance_miles <= radiusMiles
+      );
+      // Sort: groups with distance first (ascending), groups without
+      // coords after, tie-breaking on member_count.
+      out.sort((a, b) => {
+        if (a.distance_miles == null && b.distance_miles == null) {
+          return (b.member_count || 0) - (a.member_count || 0);
+        }
+        if (a.distance_miles == null) return 1;
+        if (b.distance_miles == null) return -1;
+        return a.distance_miles - b.distance_miles;
+      });
+    }
 
     return res.status(200).json({
       success: true,
