@@ -98,7 +98,7 @@ export default function useTourMapStops({ tours, allVenuesForMap, userLocation, 
         const tourPins = [];
         const seen = new Set();
 
-        const effRad = filters.radius === 'Any' ? 5000 : Number(filters.radius || 50);
+        const effRad = String(filters.radius).toLowerCase() === 'any' ? 5000 : Number(filters.radius || 50);
         let centerLat = null, centerLng = null;
         if (userLocation) {
             centerLat = userLocation.lat; centerLng = userLocation.lng;

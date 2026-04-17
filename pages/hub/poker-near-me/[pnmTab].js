@@ -64,6 +64,28 @@ const TAB_ORDER = ['venues', 'events', 'live', 'map', 'saved', 'more'];
 const EVENTS_SUB_TABS = ['tours', 'series', 'daily', 'calendar'];
 const MORE_SUB_TABS = ['overview', 'roadtrip', 'social', 'alerts', 'nearmenow', 'tripcost'];
 
+// ── Safe localStorage helper — evicts large cache blobs if quota is exceeded ──
+// Priority eviction order: offline-venues (largest), map-filters, analytics
+function safeSetItem(key, value) {
+    try {
+        localStorage.setItem(key, value);
+    } catch (e) {
+        if (e && (e.name === 'QuotaExceededError' || e.code === 22)) {
+            // Evict largest known cache blobs and retry once
+            const EVICT_KEYS = ['sp-offline-venues', 'sp-search-analytics', 'poker-near-me-map-filters'];
+            let freed = false;
+            for (const evictKey of EVICT_KEYS) {
+                if (evictKey !== key && localStorage.getItem(evictKey)) {
+                    localStorage.removeItem(evictKey);
+                    freed = true;
+                    try { localStorage.setItem(key, value); return; } catch (_) { /* continue evicting */ }
+                }
+            }
+            if (!freed) console.warn('[PNM] localStorage quota exhausted — could not write:', key);
+        }
+    }
+}
+
 // Search analytics tracker
 function trackSearchEvent(eventName, data) {
     try {
@@ -80,7 +102,7 @@ function trackSearchEvent(eventName, data) {
         existing.push({ event: eventName, ...safeData, ts: Date.now() });
         // Keep last 50 events
         if (existing.length > 50) existing.splice(0, existing.length - 50);
-        localStorage.setItem(key, JSON.stringify(existing));
+        safeSetItem(key, JSON.stringify(existing));
     } catch (e) { /* analytics should never break the app */ }
 }
 
@@ -688,7 +710,13 @@ export default function PokerNearMePage() {
         if (typeof window !== 'undefined') {
             const currentStr = JSON.stringify(filters);
             if (filterSyncPrevStrRef.current !== currentStr) {
-                localStorage.setItem('poker-near-me-search-filters', currentStr);
+                try {
+                    localStorage.setItem('poker-near-me-search-filters', currentStr);
+                } catch (e) {
+                    if (e.name === 'QuotaExceededError') {
+                        console.warn('[PNM] Storage quota exceeded, skipping filter persistence.');
+                    }
+                }
                 window.dispatchEvent(new CustomEvent('poker-near-me-filters-sync', { detail: filters }));
                 // Fulfill hard rule: Wire Real-Time pushes to the Global Event Bus 
                 eventBus.emit('PNM_FILTERS_UPDATED', filters);
@@ -806,7 +834,7 @@ export default function PokerNearMePage() {
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
-            localStorage.setItem('poker-near-me-map-filters', JSON.stringify(mapFilters));
+            safeSetItem('poker-near-me-map-filters', JSON.stringify(mapFilters));
             window.dispatchEvent(new CustomEvent('poker-near-me-map-filters-sync', { detail: mapFilters }));
         }
     }, [mapFilters]);
@@ -1010,7 +1038,7 @@ export default function PokerNearMePage() {
                         setHasSearched(true);
                         hasSavedLocation = true;
                         // Migrate to sp-user-gps for future consistency
-                        localStorage.setItem('sp-user-gps', JSON.stringify({
+                        safeSetItem('sp-user-gps', JSON.stringify({
                             lat: parsed.lat, lng: parsed.lng,
                             time: Date.now(),
                             label: city && state ? `${city}, ${state}` : null
@@ -1210,8 +1238,8 @@ export default function PokerNearMePage() {
             const newFavoritesState = JSON.stringify({ spFavs, seriesFavs });
             if (lastSavedFavoritesRef.current !== newFavoritesState) {
                 lastSavedFavoritesRef.current = newFavoritesState;
-                localStorage.setItem('sp-favorites', JSON.stringify(spFavs));
-                localStorage.setItem('followed-series', JSON.stringify(seriesFavs));
+                safeSetItem('sp-favorites', JSON.stringify(spFavs));
+                safeSetItem('followed-series', JSON.stringify(seriesFavs));
             }
         }
     }, [favorites]);
@@ -1412,7 +1440,7 @@ export default function PokerNearMePage() {
         setSearchHistory(prev => {
             const filtered = prev.filter(s => s !== trimmed);
             const next = [trimmed, ...filtered].slice(0, SEARCH_HISTORY_MAX);
-            localStorage.setItem('sp-search-history', JSON.stringify(next));
+            safeSetItem('sp-search-history', JSON.stringify(next));
             return next;
         });
         // Async sync to Supabase if logged in
@@ -2816,7 +2844,7 @@ export default function PokerNearMePage() {
                                 <select
                                     className="pnm-filter-select"
                                     value={filters.radius}
-                                    onChange={e => setFilters(f => ({ ...f, radius: e.target.value === 'Any' ? 'Any' : Number(e.target.value) }))}
+                                    onChange={e => setFilters(f => ({ ...f, radius: String(e.target.value).toLowerCase() === 'any' ? 'any' : Number(e.target.value) }))}
                                 >
                                     <option value={25}>25 Miles</option>
                                     <option value={50}>50 Miles</option>

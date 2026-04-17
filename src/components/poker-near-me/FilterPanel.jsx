@@ -357,7 +357,7 @@ export default function FilterPanel({
                         </label>
                         <select
                             value={localFilters.radius}
-                            onChange={e => handleChange('radius', e.target.value === 'Any' ? 'Any' : parseInt(e.target.value))}
+                            onChange={e => handleChange('radius', String(e.target.value).toLowerCase() === 'any' ? 'any' : parseInt(e.target.value))}
                             style={{
                                 width: '100%',
                                 padding: '10px 12px',

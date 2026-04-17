@@ -268,7 +268,7 @@ function LiveGamesFeed({
     const filterSort = internalFilterSort;
     const setFilterRadius = (val) => {
         if (globalFilters && setGlobalFilters) {
-            setGlobalFilters(prev => ({ ...prev, radius: val === 'any' ? 'Any' : Number(val) }));
+            setGlobalFilters(prev => ({ ...prev, radius: String(val).toLowerCase() === 'any' ? 'any' : Number(val) }));
         } else {
             setInternalFilterRadius(val);
         }
@@ -282,16 +282,7 @@ function LiveGamesFeed({
         }
     }, [mapExpanded, internalFilterState, internalFilterRadius, internalFilterSort, internalFilterGameType, internalFilterStakes, globalFilters]);
 
-    // ─── AUTO-APPLY LOCAL RADIUS when location becomes available ───
-    // If filterRadius is still 'any' but we now have a location, snap to 50mi
-    // This handles the case where location resolves after mount (GPS callback)
-    const locationAppliedRef = useRef(false);
-    useEffect(() => {
-        if (effectiveLocation && filterRadius === 'any' && !locationAppliedRef.current) {
-            locationAppliedRef.current = true;
-            setFilterRadius('50');
-        }
-    }, [effectiveLocation, filterRadius]);
+    // location snap removed to prevent overwriting persistent 'any' user choice
     
     // Single Venue drill-down (from autocomplete or clicking a card)
     const [searchQuery, setSearchQuery] = useState('');
@@ -691,7 +682,7 @@ function LiveGamesFeed({
             // Delegate to parent global state — reset all applicable filters
             setGlobalFilters(prev => ({
                 ...prev,
-                radius: newRadius === 'any' ? 'Any' : Number(newRadius),
+                radius: String(newRadius).toLowerCase() === 'any' ? 'any' : Number(newRadius),
                 gameType: 'all',
                 stakes: 'all',
                 selectedState: 'all',
@@ -833,14 +824,9 @@ function LiveGamesFeed({
                     animation: `lgf-fadeInUp 0.3s ease-out ${Math.min(index * 0.04, 0.4)}s both`,
                 }}
             >
-                {/* Top accent gradient line */}
-                <div style={{
-                    position: 'absolute', top: 0, left: 0, right: 0, height: 3, borderRadius: '14px 14px 0 0', zIndex: 2,
-                    background: `linear-gradient(90deg, ${heat.color}, ${heat.color}55, transparent)`,
-                }} />
-
                 {/* Venue Card */}
                 <div style={{ 
+                    position: 'relative',
                     background: 'linear-gradient(160deg, rgba(16,24,36,0.95) 0%, rgba(10,16,26,0.98) 100%)', 
                     border: venueBorder, 
                     borderRadius: 14, 
@@ -855,6 +841,11 @@ function LiveGamesFeed({
                 }}
                 onClick={() => { if (openVenueModal) openVenueModal(`/hub/venues/${v.id}`); else if (router) router.push(`/hub/venues/${v.id}`); }}
                 >
+                    {/* Top accent gradient line */}
+                    <div style={{
+                        position: 'absolute', top: 0, left: 0, right: 0, height: 3, zIndex: 2,
+                        background: `linear-gradient(90deg, ${heat.color}, ${heat.color}55, transparent)`,
+                    }} />
                     {/* === HEADER ZONE === */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                         <div style={{ display: 'flex', gap: 12, flex: 1, minWidth: 0, alignItems: 'center' }}>
@@ -1155,6 +1146,7 @@ function LiveGamesFeed({
                     <>
                         {/* Header stat bar */}
                         {!selectedVenue && (
+                            <>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, padding: '7px 12px', background: 'rgba(22,27,34,0.8)', borderRadius: 10, border: '1px solid rgba(48,54,61,0.5)' }}>
                                 <span style={{ fontSize: 12, color: '#c9d1d9', fontWeight: 600 }}>
                                     <span style={{ color: '#ef4444', fontWeight: 800 }}>{mergedVenues.length}</span> Live Venues
@@ -1177,6 +1169,16 @@ function LiveGamesFeed({
                                     {isRefreshing ? 'Refreshing...' : 'Refresh'}
                                 </button>
                             </div>
+
+                            {/* Color Coded Map Legend for Venues */}
+                            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16, padding: '0 4px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ffffff', boxShadow: '0 0 6px rgba(255,255,255,0.5)' }} /> <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>Casino</span></div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: '#4ade80', boxShadow: '0 0 6px rgba(74,222,128,0.5)' }} /> <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>Poker Club</span></div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: '#3b82f6', boxShadow: '0 0 6px rgba(59,130,246,0.5)' }} /> <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>Charity</span></div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: '#f59e0b', boxShadow: '0 0 6px rgba(245,158,11,0.5)' }} /> <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>Home Game</span></div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', boxShadow: '0 0 6px rgba(239,68,68,0.5)' }} /> <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>Poker Tour</span></div>
+                            </div>
+                            </>
                         )}
 
                         {mergedVenues.length === 0 ? (

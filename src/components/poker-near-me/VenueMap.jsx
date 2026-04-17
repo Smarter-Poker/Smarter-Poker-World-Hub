@@ -610,6 +610,7 @@ function buildPopupHtml(venue) {
       ${hours ? `<span style="font-size:11px;color:rgba(148,163,184,0.6);">· ${hours}</span>` : ''}
     </div>
     ${games ? `<div style="font-size:11px;color:rgba(148,163,184,0.6);margin-bottom:8px;">Games: ${games}</div>` : ''}
+    ${venue._isLive && venue.totalTables > 0 ? `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;"><span style="padding:2px 6px;border-radius:4px;background:rgba(239,68,68,0.12);color:#ef4444;font-size:9px;font-weight:800;letter-spacing:0.4px;border:1px solid rgba(239,68,68,0.25);">LIVE DATA</span><span style="font-size:11px;color:#4ade80;font-weight:700;">${venue.totalTables} Tables Running</span></div>` : ''}
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
       <div style="padding:4px 10px;border-radius:6px;background:${trust.bg};color:${trust.color};font-size:11px;font-weight:700;">Trust: ${trust.label}</div>
       <div style="font-size:11px;color:rgba(148,163,184,0.5);">${venue.trust_score || '—'}/5</div>
