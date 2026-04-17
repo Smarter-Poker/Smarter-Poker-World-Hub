@@ -923,7 +923,11 @@ export default function PokerNearMePage() {
 
     const fetchLiveCount = useCallback(async () => {
         try {
-            const json = await cachedFetch('/api/poker/live-tables');
+            // FIXED: was cachedFetch — could return 60s-stale data when called via DATA_MUTATED.
+            // Live counts displayed in the map header badge should always be fresh.
+            const res = await fetch('/api/poker/live-tables');
+            if (!res.ok) return;
+            const json = await res.json();
             if (json && json.metadata) {
                 if (typeof json.metadata.total_tables_running === 'number') {
                     setLiveTableCount(json.metadata.total_tables_running);
@@ -935,7 +939,7 @@ export default function PokerNearMePage() {
         } catch (e) {
             /* silent fail */
         }
-    }, [cachedFetch]);
+    }, []);
 
     // Fetch live table count for map stats header
     useEffect(() => {

@@ -772,8 +772,9 @@ export default function PokerNearMeLobby() {
   }, []);
 
   // ─── Fetch live game count + build live data map for VenueCards ───
+  // FIXED: was one-shot on mount. Now refreshes every 15 minutes to match scraper cadence.
   const [liveDataMap, setLiveDataMap] = useState({});
-  useEffect(() => {
+  const buildLobbyLiveDataMap = useCallback(() => {
     fetch('/api/poker/live-tables')
       .then(r => r.json())
       .then(j => {
@@ -801,25 +802,37 @@ export default function PokerNearMeLobby() {
       })
       .catch(() => { /* live game count unavailable */ });
   }, []);
+  useEffect(() => {
+    buildLobbyLiveDataMap(); // Initial fetch on mount
+    const refreshTimer = setInterval(buildLobbyLiveDataMap, 15 * 60 * 1000); // 15-min refresh
+    return () => clearInterval(refreshTimer);
+  }, [buildLobbyLiveDataMap]);
 
   // Merge live_data into venue objects whenever venues or liveDataMap changes
+  // FIXED: was guarded by _liveMerged one-shot flag — venues only merged once and never updated.
+  // Now always re-merges on liveDataMap change, using last_updated timestamp to skip unchanged venues.
   useEffect(() => {
     if (venues.length === 0 || Object.keys(liveDataMap).length === 0) return;
-    const hasNew = venues.some(v => !v._liveMerged);
-    if (!hasNew) return; // all venues already processed, stop
-    setVenues(prev => prev.map(venue => {
-      if (venue._liveMerged) return venue; // already processed
-      const normName = (venue.name || '').toLowerCase()
-        .replace(/&/g, 'and').replace(/'/g, '').replace(/-/g, ' ')
-        .replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
-      const liveEntry = (venue.bravo_slug && liveDataMap[venue.bravo_slug]) || liveDataMap[normName] || null;
-      // Always mark as merged — only inject live_data if tables are actually running
-      if (liveEntry && liveEntry.tables_running > 0) {
-        return { ...venue, _liveMerged: true, live_data: liveEntry };
-      }
-      return { ...venue, _liveMerged: true };
-    }));
-  }, [venues, liveDataMap]); // eslint-disable-line react-hooks/exhaustive-deps
+    setVenues(prev => {
+      let changed = false;
+      const next = prev.map(venue => {
+        const normName = (venue.name || '').toLowerCase()
+          .replace(/&/g, 'and').replace(/'/g, '').replace(/-/g, ' ')
+          .replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+        const liveEntry = (venue.bravo_slug && liveDataMap[venue.bravo_slug]) || liveDataMap[normName] || null;
+        const newLiveData = (liveEntry && liveEntry.tables_running > 0) ? liveEntry : null;
+        const curTs = venue.live_data?.last_updated;
+        const newTs = newLiveData?.last_updated;
+        if (!newLiveData && !venue.live_data) return venue;
+        if (curTs && newTs && curTs === newTs) return venue;
+        changed = true;
+        return newLiveData
+          ? { ...venue, live_data: newLiveData }
+          : { ...venue, live_data: null };
+      });
+      return changed ? next : prev;
+    });
+  }, [liveDataMap]); // Only re-run when live data changes, not on every venue update
 
 
 
@@ -849,14 +862,9 @@ export default function PokerNearMeLobby() {
       fetchFavorites();
       fetchSearchHistory();
     }
-    // Re-fetch live game count
-    fetch('/api/poker/live-tables')
-      .then(r => r.json())
-      .then(j => {
-        if (j.metadata?.total_tables_running != null) setLiveGameCount(j.metadata.total_tables_running);
-      })
-      .catch(() => {});
-  }, [fetchVenues, searchQuery, fetchTours, fetchSeries, fetchDaily, fetchFavorites, fetchSearchHistory, userId]);
+    // Re-fetch live game count + rebuild liveDataMap so VenueCards update too
+    buildLobbyLiveDataMap();
+  }, [fetchVenues, searchQuery, fetchTours, fetchSeries, fetchDaily, fetchFavorites, fetchSearchHistory, userId, buildLobbyLiveDataMap]);
 
   // ─── Live games refresh handled by <LiveGamesFeed> component ───
 
