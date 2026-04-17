@@ -130,10 +130,10 @@ export default async function handler(req, res) {
       .eq('is_active', true)
       .eq('is_private', false);
 
-    // ── PHASE 18 — 30-DAY AUTO-HIDE FILTER ────────────────────────────
+    // ── PHASE 18 — 45-DAY AUTO-HIDE FILTER ────────────────────────────
     //
     // Per Dan: groups hidden from Poker Near Me if they haven't posted
-    // or done anything new in 30 days. The `last_activity_at` column on
+    // or done anything new in 45 days. The `last_activity_at` column on
     // commander_home_groups is maintained by triggers on 6 source tables
     // representing human engagement (page posts, page reviews, member
     // joins, RSVPs, reviews, host edits). Auto-scheduled tournaments do
@@ -142,19 +142,20 @@ export default async function handler(req, res) {
     // nothing about whether the group is actually alive").
     //
     // A group is visible if ANY ONE of:
-    //   (a) last_activity_at >= 30 days ago                 (recent engagement)
-    //   (b) created_at       >= 30 days ago                 (new-group grace window)
+    //   (a) last_activity_at >= 45 days ago                 (recent engagement)
+    //   (b) created_at       >= 45 days ago                 (new-group grace window)
     //   (c) visibility_override_until > NOW()               (future host-paid override)
     //
     // We do NOT flip is_active=false — the host's own Commander dashboard
     // continues to show their group normally. This filter ONLY hides the
     // group from public discovery. One new post → last_activity_at bumps
     // → group instantly reappears, via trigger. Self-healing.
-    const thirtyDaysAgoIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-    const nowIso           = new Date().toISOString();
+    const HOME_GROUP_INACTIVITY_DAYS = 45;
+    const inactivityCutoffIso = new Date(Date.now() - HOME_GROUP_INACTIVITY_DAYS * 24 * 60 * 60 * 1000).toISOString();
+    const nowIso              = new Date().toISOString();
     q = q.or(
-      `last_activity_at.gte.${thirtyDaysAgoIso},` +
-      `created_at.gte.${thirtyDaysAgoIso},` +
+      `last_activity_at.gte.${inactivityCutoffIso},` +
+      `created_at.gte.${inactivityCutoffIso},` +
       `visibility_override_until.gt.${nowIso}`
     );
 

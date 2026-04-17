@@ -70,6 +70,235 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
     return R * c;
 }
 
+// ══════════════════════════════════════════════════════════════════════
+//  PHASE 19 — HOME GROUP UNION
+// ══════════════════════════════════════════════════════════════════════
+//
+//  Per Dan's directive: "Once a new club, home game or charity is
+//  created in Club Commander, it needs to be picked up and displayed
+//  inside of Poker Near Me automatically."
+//
+//  Clubs + charities already live in poker_venues so they flow through
+//  the existing path. Home groups live in commander_home_groups (their
+//  own schema island — Phase 16A tried shadow poker_venues rows and was
+//  reverted). We pick them up at READ time here, no cross-table writes.
+//
+//  Same pattern Daily Tournaments already uses (venue_daily_tournaments
+//  + charity_events_schedule + poker_tour_series_events UNIONed in
+//  /api/poker/daily-tournaments.js).
+//
+//  APPLIES THE PHASE 18 AUTO-HIDE FILTER
+//    Public + is_active + NOT stale (45 days):
+//      last_activity_at      >= NOW() - 45 days     OR
+//      created_at            >= NOW() - 45 days     OR   (new-group grace)
+//      visibility_override_until > NOW()                  (host override)
+//
+//  Home groups are returned under a TOP-LEVEL `home_groups` key on the
+//  response envelope, separate from `data`. Two reasons:
+//    1. No ID collision — venues use int id, home groups use uuid.
+//    2. Backward compatibility — old clients that only read `data` see
+//       no change in behavior.
+//
+//  Home groups are returned with venue-compatible field names where
+//  possible (name, city, state, latitude, longitude, profile_photo_url)
+//  plus home-group-specific fields (default_game_type, default_stakes,
+//  typical_day, typical_time, member_count, frequency, tagline, slug).
+//  A `venue_type: 'home_game'` discriminator lets frontend code
+//  iterate both arrays and distinguish by type.
+// ══════════════════════════════════════════════════════════════════════
+
+const HOME_GROUP_INACTIVITY_DAYS = 45;
+
+async function fetchPublicHomeGroups({ state, city, search, lat, lng, radius, effectiveType }) {
+    // When the caller specifically filters to a non-home-game venue type
+    // (e.g. ?type=casino), we skip the home-group fetch entirely.
+    if (effectiveType && effectiveType !== 'home_game' && effectiveType !== 'home_games') {
+        return [];
+    }
+
+    const sb = getSupabase();
+
+    const inactivityCutoffIso = new Date(
+        Date.now() - HOME_GROUP_INACTIVITY_DAYS * 24 * 60 * 60 * 1000
+    ).toISOString();
+    const nowIso = new Date().toISOString();
+
+    let q = sb
+        .from('commander_home_groups')
+        .select(`
+            id,
+            name,
+            description,
+            tagline,
+            city,
+            state,
+            latitude,
+            longitude,
+            default_game_type,
+            default_stakes,
+            typical_buyin_min,
+            typical_buyin_max,
+            frequency,
+            typical_day,
+            typical_time,
+            member_count,
+            games_hosted,
+            profile_photo_url,
+            cover_photo_url,
+            created_at,
+            last_activity_at,
+            visibility_override_until,
+            owner_id
+        `)
+        .eq('is_active', true)
+        .eq('is_private', false);
+
+    // Phase 18 — 45-day auto-hide filter (OR clause)
+    q = q.or(
+        `last_activity_at.gte.${inactivityCutoffIso},` +
+        `created_at.gte.${inactivityCutoffIso},` +
+        `visibility_override_until.gt.${nowIso}`
+    );
+
+    // Filter: state
+    if (state) {
+        q = q.eq('state', (state || '').toUpperCase().slice(0, 2));
+    }
+
+    // Filter: city — partial, case-insensitive
+    if (city) {
+        const escaped = String(city).replace(/[%_\\]/g, (c) => '\\' + c);
+        q = q.ilike('city', `%${escaped}%`);
+    }
+
+    // Filter: search — name / city / state
+    if (search && typeof search === 'string' && search.trim().length > 0) {
+        const s = search.trim().replace(/[%_\\]/g, (c) => '\\' + c);
+        q = q.or(`name.ilike.%${s}%,city.ilike.%${s}%,state.ilike.%${s}%`);
+    }
+
+    q = q.order('member_count', { ascending: false }).limit(500);
+
+    const { data, error } = await q;
+    if (error) {
+        console.warn('[venues] Home group UNION fetch failed (non-fatal):', error.message);
+        return [];
+    }
+
+    let rows = data || [];
+
+    // Also fetch linked social_pages (for slug + follower_count + cover_url sync)
+    // Only one extra round-trip even with lots of groups.
+    if (rows.length > 0) {
+        const groupIdStrings = rows.map((g) => String(g.id));
+        try {
+            const { data: pages } = await sb
+                .from('social_pages')
+                .select('id, slug, linked_entity_id, follower_count, avatar_url, cover_url')
+                .eq('linked_entity_type', 'home_group')
+                .in('linked_entity_id', groupIdStrings);
+            const pageByGroupId = new Map(
+                (pages || []).map((p) => [p.linked_entity_id, p])
+            );
+            rows = rows.map((g) => {
+                const p = pageByGroupId.get(String(g.id));
+                return {
+                    ...g,
+                    slug: p?.slug || null,
+                    follower_count: p?.follower_count ?? 0,
+                    social_page_id: p?.id || null,
+                };
+            });
+        } catch (e) {
+            // Non-fatal — continue without slug/follower enrichment.
+            console.warn('[venues] social_pages enrichment for home groups failed:', e.message);
+        }
+    }
+
+    // GPS distance + radius filter (reuses the same calculateDistance helper
+    // used for regular venues so the math and units match exactly).
+    const hasGps = !!(lat && lng);
+    if (hasGps) {
+        const userLat = parseFloat(lat);
+        const userLng = parseFloat(lng);
+        const maxRadius = Math.max(0, parseFloat(radius) || 100);
+
+        if (
+            !isNaN(userLat) && !isNaN(userLng) &&
+            userLat >= -90 && userLat <= 90 &&
+            userLng >= -180 && userLng <= 180
+        ) {
+            rows = rows.map((g) => {
+                if (g.latitude == null || g.longitude == null) {
+                    return { ...g, distance_km: null, distance_mi: null };
+                }
+                const distance = calculateDistance(
+                    userLat, userLng,
+                    parseFloat(g.latitude), parseFloat(g.longitude)
+                );
+                return {
+                    ...g,
+                    distance_km: Math.round(distance * 10) / 10,
+                    distance_mi: Math.round(distance * 0.621371 * 10) / 10,
+                };
+            });
+
+            // If this is a location-browse (no search term), filter by radius.
+            // Unlike regular venues, home groups always have approximate coords
+            // (populated at creation), so there's no no-coord fallback needed.
+            if (!search) {
+                rows = rows.filter(
+                    (g) => g.distance_mi != null && g.distance_mi <= maxRadius
+                );
+            }
+        }
+    }
+
+    // Final shape — add venue_type discriminator and normalize fields
+    // so the frontend map/list components can render home groups alongside
+    // regular venues.
+    return rows.map((g) => ({
+        id: g.id,                                // UUID (intentionally string, not int)
+        name: g.name,
+        description: g.description,
+        tagline: g.tagline,
+        venue_type: 'home_game',                 // Discriminator for frontend
+        city: g.city,
+        state: g.state,
+        latitude: g.latitude,
+        longitude: g.longitude,
+        profile_photo_url: g.profile_photo_url,
+        cover_photo_url: g.cover_photo_url,
+        logo_url: g.profile_photo_url,           // Alias — some components read logo_url
+        default_game_type: g.default_game_type,
+        default_stakes: g.default_stakes,
+        typical_buyin_min: g.typical_buyin_min,
+        typical_buyin_max: g.typical_buyin_max,
+        frequency: g.frequency,
+        typical_day: g.typical_day,
+        typical_time: g.typical_time,
+        member_count: g.member_count,
+        games_hosted: g.games_hosted,
+        follower_count: g.follower_count ?? 0,
+        slug: g.slug,
+        social_page_id: g.social_page_id,
+        owner_id: g.owner_id,
+        created_at: g.created_at,
+        last_activity_at: g.last_activity_at,
+        distance_km: g.distance_km,
+        distance_mi: g.distance_mi,
+        // Fields that regular venues have but home groups don't —
+        // nulled out so the frontend doesn't crash on missing keys.
+        address: null,
+        zip_code: null,
+        phone: null,
+        website: null,
+        commander_enabled: false,
+        is_suppressed: false,
+        has_tournaments: false,
+    }));
+}
+
 /**
  * Fuzzy match a venue name against tournament schedule venue names.
  * Returns the best matching tournament entry or null.
@@ -1388,10 +1617,32 @@ export default async function handler(req, res) {
           // No cap — return all venues (dataset is manageable size)
           const limited = venues;
 
+          // ── PHASE 19: HOME GROUP UNION ────────────────────────────────
+          // Fetch public home groups (Phase 18 auto-hide filter baked in)
+          // and return them under a separate top-level `home_groups` key.
+          // Skip when caller is looking at a single venue (id in query)
+          // since home groups aren't in poker_venues anyway.
+          let homeGroups = [];
+          try {
+              homeGroups = await fetchPublicHomeGroups({
+                  state,
+                  city,
+                  search,
+                  lat,
+                  lng,
+                  radius,
+                  effectiveType,
+              });
+          } catch (e) {
+              console.warn('[venues] Home group UNION failed (non-fatal):', e.message);
+          }
+
           return res.status(200).json({
               success: true,
               data: limited,
+              home_groups: homeGroups,
               total,
+              total_home_groups: homeGroups.length,
               hasGpsData: hasGps,
               offset,
           });
