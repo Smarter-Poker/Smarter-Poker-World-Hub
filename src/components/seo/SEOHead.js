@@ -110,7 +110,7 @@ export const schemas = {
         url: 'https://smarter.poker',
         potentialAction: {
             '@type': 'SearchAction',
-            target: 'https://smarter.poker/hub/poker-near-me?q={search_term_string}',
+            target: 'https://smarter.poker/hub/poker-near-me/lobby?q={search_term_string}',
             'query-input': 'required name=search_term_string',
         },
     },
