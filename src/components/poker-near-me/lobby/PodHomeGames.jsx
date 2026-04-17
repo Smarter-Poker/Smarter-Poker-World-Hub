@@ -204,7 +204,7 @@ export default function PodHomeGames({
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 5v14M5 12h14" />
           </svg>
-          {filters.showCreateHomeGame ? 'Cancel Listing' : 'List Your Home Game'}
+          {filters.showCreateHomeGame ? 'Hide' : 'List Your Home Game On Poker Near Me'}
         </button>
         {filters.showCreateHomeGame && (
           <div style={{
@@ -215,18 +215,6 @@ export default function PodHomeGames({
             overflow: 'hidden',
           }}>
             <CreateHomeGame
-              userId={userId}
-              onSuccess={(newGroup) => {
-                // Callback receives a commander_home_groups row. Bubble up so
-                // the parent can optionally refresh state. Then auto-run a
-                // search so the user sees their new listing immediately.
-                if (newGroup && onHomeGameCreated) {
-                  onHomeGameCreated(newGroup);
-                }
-                setFilters(prev => ({ ...prev, showCreateHomeGame: false, hgHasSearched: true }));
-                // Re-fetch on the next tick so state is stable first.
-                setTimeout(() => handleSearch(), 50);
-              }}
               onCancel={() => setFilters(prev => ({ ...prev, showCreateHomeGame: false }))}
             />
           </div>

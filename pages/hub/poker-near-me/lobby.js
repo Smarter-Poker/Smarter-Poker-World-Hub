@@ -72,7 +72,6 @@ const PeakActivityHeatmap = dynamic(() => import('../../../src/components/poker-
 const GameTrendsDashboard = dynamic(() => import('../../../src/components/poker-near-me/GameTrendsDashboard'), { ssr: false });
 const DailyTournamentsPanel = dynamic(() => import('../../../src/components/poker-near-me/DailyTournamentsPanel'), { ssr: false });
 const VenueGameAlerts = dynamic(() => import('../../../src/components/poker-near-me/VenueGameAlerts'), { ssr: false });
-const CreateHomeGame = dynamic(() => import('../../../src/components/poker-near-me/CreateHomeGame'), { ssr: false });
 const GeofenceAlertBanner = dynamic(() => import('../../../src/components/poker-near-me/GeofenceAlertBanner'), { ssr: false });
 const GlobalSearchOverlay = dynamic(() => import('../../../src/components/poker-near-me/GlobalSearchOverlay'), { ssr: false });
 const PodVenueSearchEngine = dynamic(() => import('../../../src/components/poker-near-me/lobby/PodVenueSearchEngine'), { ssr: false });

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
 import Head from 'next/head';
@@ -40,12 +40,40 @@ const US_STATES = [
   'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'
 ];
 
+/**
+ * Only permit return URLs that start with an internal /hub/commander path.
+ * This prevents open-redirect issues when callers pass ?return=https://attacker.com/.
+ */
+function sanitizeReturnPath(raw) {
+  if (typeof raw !== 'string') return null;
+  if (!raw.startsWith('/')) return null;
+  if (raw.startsWith('//')) return null;
+  if (!/^\/hub\/commander(\/|$|\?)/.test(raw)) return null;
+  return raw;
+}
+
 export default function RegisterPage() {
   const router = useRouter();
+
+  // ─── Query-param-driven customization ───────────────────────────
+  // ?tier=home_game           → lock tier, skip tier-pick step
+  // ?return=/hub/commander/.. → route here on completion; also auto-redirect
+  //                              already-activated users straight through
+  // ?existing=1               → pre-set "I already have a Smarter.Poker account"
+  const queryTier = typeof router.query.tier === 'string' ? router.query.tier : null;
+  const queryReturn = useMemo(
+    () => sanitizeReturnPath(router.query.return),
+    [router.query.return]
+  );
+  const queryExisting = router.query.existing === '1' || router.query.existing === 'true';
+  const lockedTier = queryTier && TIERS[queryTier] ? queryTier : null;
+  const isHomeGameFlow = lockedTier === 'home_game';
+
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [registrationResult, setRegistrationResult] = useState(null);
+  const [preCheckDone, setPreCheckDone] = useState(false);
 
   // ─── Step 1: Account fields ─────────────────────────────────────
   const [ownerName, setOwnerName] = useState('');
@@ -68,11 +96,88 @@ export default function RegisterPage() {
   });
 
   // ─── Step 3: Plan ───────────────────────────────────────────────
-  const [selectedTier, setSelectedTier] = useState('charity');
+  const [selectedTier, setSelectedTier] = useState(lockedTier || 'charity');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
-  // Address is optional for home_game and charity tiers
+  // Address is required only for the club tier. Home games + charity: optional.
   const isAddressRequired = selectedTier === 'club';
+
+  // Apply ?existing=1 once router.query is ready.
+  useEffect(() => {
+    if (!router.isReady) return;
+    if (queryExisting) setExistingAccount(true);
+  }, [router.isReady, queryExisting]);
+
+  // Lock selectedTier whenever a valid tier query param is supplied.
+  useEffect(() => {
+    if (lockedTier) setSelectedTier(lockedTier);
+  }, [lockedTier]);
+
+  // ─── Pre-check: if user is already signed in, prefill step 1 fields.
+  //     If they already have Commander access and a ?return= URL was
+  //     provided, bypass the wizard entirely and redirect to the target.
+  //     Otherwise (signed in, no commander access): jump straight to
+  //     step 2 so they don't have to re-enter data they already gave us.
+  useEffect(() => {
+    if (!router.isReady) return;
+    if (typeof window === 'undefined') return;
+
+    let authBlob = {};
+    try {
+      authBlob = JSON.parse(window.localStorage.getItem('smarter-poker-auth') || '{}');
+    } catch { /* corrupted blob — treat as signed-out */ }
+
+    const user = authBlob?.user || null;
+    const accessToken =
+      authBlob?.session?.access_token ||
+      authBlob?.access_token ||
+      authBlob?.currentSession?.access_token ||
+      null;
+
+    if (!user || !accessToken) {
+      setPreCheckDone(true);
+      return;
+    }
+
+    // Prefill step 1 from the existing account metadata.
+    const fullName = user.user_metadata?.full_name || user.user_metadata?.name || '';
+    const phone = user.user_metadata?.phone || user.phone || '';
+    if (fullName) setOwnerName(fullName);
+    if (user.email) setOwnerEmail(user.email);
+    if (phone) setOwnerPhone(phone);
+    setExistingAccount(true);
+
+    // Probe commander access. If already activated and we have a return path,
+    // send them straight through — no need to re-register.
+    let cancelled = false;
+    const finish = () => { if (!cancelled) setPreCheckDone(true); };
+
+    fetch('/api/commander/check-access', {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${accessToken}` },
+      credentials: 'include',
+    })
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(`status ${r.status}`)))
+      .then(data => {
+        if (cancelled) return;
+        if (data?.hasAccess && queryReturn) {
+          // Already activated → bypass wizard entirely.
+          router.replace(queryReturn);
+          return;
+        }
+        // Signed in but not activated: skip step 1, the user has already
+        // provided these details when they signed up for Smarter.Poker.
+        setStep(2);
+        finish();
+      })
+      .catch(() => {
+        // Check-access failure is non-fatal — just let the user proceed
+        // through the full wizard.
+        finish();
+      });
+
+    return () => { cancelled = true; };
+  }, [router.isReady, queryReturn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const validatePromoCode = async (code) => {
     if (!code.trim()) {
@@ -121,7 +226,6 @@ export default function RegisterPage() {
 
   const validateStep = (stepNum) => {
     setError('');
-
     // Step 1: Account
     if (stepNum === 1) {
       if (!ownerName.trim()) {
@@ -151,10 +255,17 @@ export default function RegisterPage() {
     // Step 2: Venue Details
     if (stepNum === 2) {
       if (!clubInfo.name.trim()) {
-        setError('Please Enter Your Venue/Club Name');
+        setError(isHomeGameFlow ? 'Please Enter A Name For Your Home Game' : 'Please Enter Your Venue/Club Name');
         return false;
       }
-      // Address is only required for club tier
+      // For home-game flow, we still want at least city+state so the listing geocodes.
+      if (isHomeGameFlow) {
+        if (!clubInfo.city.trim() || !clubInfo.state.trim()) {
+          setError('Please Enter City And State So Players Can Find Your Home Game');
+          return false;
+        }
+      }
+      // Club tier requires the full address.
       if (isAddressRequired) {
         if (!clubInfo.address || !clubInfo.city || !clubInfo.state || !clubInfo.zip) {
           setError('Please Fill In The Full Address For Your Club');
@@ -173,13 +284,36 @@ export default function RegisterPage() {
   };
 
   const nextStep = () => {
-    if (validateStep(step)) setStep(s => Math.min(s + 1, 4));
+    if (!validateStep(step)) return;
+
+    // When tier is locked via ?tier= query param, there is no "Select Plan"
+    // step. Step 2's "Continue" button submits directly.
+    if (lockedTier && step === 2) {
+      if (!agreedToTerms) {
+        setError('Please Agree To Terms And Conditions');
+        return;
+      }
+      handleSubmit();
+      return;
+    }
+
+    setStep(s => Math.min(s + 1, 4));
   };
 
   const prevStep = () => setStep(s => Math.max(s - 1, 1));
 
   const handleSubmit = async () => {
-    if (!validateStep(3)) return;
+    // When tier is locked, step 3 is skipped; validate step 2 instead.
+    if (lockedTier) {
+      if (!validateStep(2)) return;
+      if (!agreedToTerms) {
+        setError('Please Agree To Terms And Conditions');
+        return;
+      }
+    } else if (!validateStep(3)) {
+      return;
+    }
+
     setLoading(true);
     setError('');
     try {
@@ -240,29 +374,65 @@ export default function RegisterPage() {
     }
   };
 
+  const handleCompletionCta = () => {
+    if (queryReturn) {
+      router.push(queryReturn);
+      return;
+    }
+    window.location.href = '/commander/login';
+  };
+
   const inputClass = "w-full px-4 py-3 bg-[#3A3B3C] border border-[#4E4F50] rounded-lg text-[#E4E6EB] placeholder-[#8A8D91] focus:border-[#1877F2] focus:ring-2 focus:ring-[#1877F2]/20 focus:outline-none";
-  const steps = ['Create Account', 'Venue Details', 'Select Plan', 'Complete'];
+
+  // Progress bar steps. When tier is locked we skip the "Select Plan" step
+  // and show 3 circles instead of 4. Internal step state stays 1/2/4 so the
+  // existing Complete (step === 4) branch still renders; we just label it "3".
+  const steps = lockedTier
+    ? ['Your Account', isHomeGameFlow ? 'Home Game Details' : 'Details', 'Complete']
+    : ['Create Account', 'Venue Details', 'Select Plan', 'Complete'];
+  const displayStep = lockedTier ? (step === 4 ? 3 : step) : step;
+
+  const headerTitle = isHomeGameFlow
+    ? 'List Your Home Game - Club Commander'
+    : 'Register Your Club - Club Commander';
+  const headerSubtitle = isHomeGameFlow
+    ? 'Host Your Own Poker Home Game - 100% Free To Start'
+    : 'Set Up Your Poker Room In Minutes - 14-Day Free Trial';
+
+  // While the pre-check is running we render a minimal placeholder so the
+  // wizard doesn't flash before we know whether to redirect.
+  if (!preCheckDone) {
+    return (
+      <div className="min-h-screen bg-[#18191A] flex items-center justify-center">
+        <Head><title>{headerTitle}</title></Head>
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-[#3A3B3C] border-t-[#1877F2] rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-[#8A8D91] text-sm">Checking Your Commander Access...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#18191A]">
-      <Head><title>Register Your Club - Club Commander</title></Head>
+      <Head><title>{headerTitle}</title></Head>
 
       <div className="container mx-auto px-4 py-8 max-w-3xl">
         {/* Logo */}
         <div className="text-center mb-6">
           <Image src="/images/club-commander-logo.jpg" alt="Club Commander" width={1584} height={656} className="w-full max-w-md mx-auto rounded-lg" />
-          <p className="text-[#B0B3B8] mt-4">Set Up Your Poker Room In Minutes - 14-Day Free Trial</p>
+          <p className="text-[#B0B3B8] mt-4">{headerSubtitle}</p>
         </div>
 
         {/* Progress Steps */}
         <div className="flex justify-between items-center mb-8 relative">
           <div className="absolute top-5 left-0 right-0 h-0.5 bg-[#3A3B3C]">
-            <div className="h-full bg-[#1877F2] transition-all" style={{ width: `${((step - 1) / 3) * 100}%` }} />
+            <div className="h-full bg-[#1877F2] transition-all" style={{ width: `${((displayStep - 1) / (steps.length - 1)) * 100}%` }} />
           </div>
           {steps.map((label, idx) => (
             <div key={label} className="relative z-10 flex flex-col items-center">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${step > idx + 1 ? 'bg-[#31A24C] text-white' : step === idx + 1 ? 'bg-[#1877F2] text-white ring-4 ring-[#1877F2]/30' : 'bg-[#3A3B3C] text-[#8A8D91]'}`}>{idx + 1}</div>
-              <span className={`text-xs mt-2 ${step === idx + 1 ? 'text-[#E4E6EB]' : 'text-[#8A8D91]'}`}>{label}</span>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${displayStep > idx + 1 ? 'bg-[#31A24C] text-white' : displayStep === idx + 1 ? 'bg-[#1877F2] text-white ring-4 ring-[#1877F2]/30' : 'bg-[#3A3B3C] text-[#8A8D91]'}`}>{idx + 1}</div>
+              <span className={`text-xs mt-2 ${displayStep === idx + 1 ? 'text-[#E4E6EB]' : 'text-[#8A8D91]'}`}>{label}</span>
             </div>
           ))}
         </div>
@@ -277,9 +447,13 @@ export default function RegisterPage() {
           {step === 1 && (
             <div className="space-y-4">
               <h2 className="text-xl font-bold text-[#E4E6EB] mb-6">Create Your Account</h2>
-              <p className="text-sm text-[#8A8D91] mb-4">First, Set Up Your Login Credentials. You Can Add Venue Details Next.</p>
+              <p className="text-sm text-[#8A8D91] mb-4">
+                {isHomeGameFlow
+                  ? 'First, Set Up Your Login. Next You’ll Add Your Home Game Details.'
+                  : 'First, Set Up Your Login Credentials. You Can Add Venue Details Next.'}
+              </p>
 
-              <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Your Full Name *</label><input type="text" value={ownerName} onChange={e => setOwnerName(e.target.value)} className={inputClass} placeholder="Owner Or Manager Name" /></div>
+              <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Your Full Name *</label><input type="text" value={ownerName} onChange={e => setOwnerName(e.target.value)} className={inputClass} placeholder={isHomeGameFlow ? 'Host Name' : 'Owner Or Manager Name'} /></div>
               <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Email Address *</label><input type="email" value={ownerEmail} onChange={e => setOwnerEmail(e.target.value)} className={inputClass} placeholder="This Will Be Your Login Email" /></div>
               <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Phone Number</label><input type="tel" value={ownerPhone} onChange={e => setOwnerPhone(e.target.value)} className={inputClass} placeholder="Optional" /></div>
 
@@ -331,34 +505,104 @@ export default function RegisterPage() {
           )}
 
           {/* ═══════════════════════════════════════════════════════════ */}
-          {/* Step 2: Venue Details                                      */}
+          {/* Step 2: Venue / Home Game Details                          */}
           {/* ═══════════════════════════════════════════════════════════ */}
           {step === 2 && (
             <div className="space-y-4">
-              <h2 className="text-xl font-bold text-[#E4E6EB] mb-6">Venue Details</h2>
-              <p className="text-sm text-[#8A8D91] mb-4">Tell Us About Your Poker Room. Address Is Optional For Home Games And Charity Events.</p>
+              <h2 className="text-xl font-bold text-[#E4E6EB] mb-6">
+                {isHomeGameFlow ? 'Home Game Details' : 'Venue Details'}
+              </h2>
+              <p className="text-sm text-[#8A8D91] mb-4">
+                {isHomeGameFlow
+                  ? 'Tell Us About Your Home Game. Only Name, City, And State Are Required - You Can Add More Details After Setup.'
+                  : 'Tell Us About Your Poker Room. Address Is Optional For Home Games And Charity Events.'}
+              </p>
 
-              <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Club/Venue Name *</label><input type="text" name="name" value={clubInfo.name} onChange={handleClubInfoChange} className={inputClass} placeholder="Enter Your Venue Name" /></div>
+              <div>
+                <label className="block text-sm text-[#B0B3B8] mb-1.5">
+                  {isHomeGameFlow ? 'Home Game Name *' : 'Club/Venue Name *'}
+                </label>
+                <input type="text" name="name" value={clubInfo.name} onChange={handleClubInfoChange} className={inputClass} placeholder={isHomeGameFlow ? 'e.g. Saturday Night Hold’em' : 'Enter Your Venue Name'} />
+              </div>
 
-              <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Street Address{isAddressRequired ? ' *' : ' (Optional)'}</label><input type="text" name="address" value={clubInfo.address} onChange={handleClubInfoChange} className={inputClass} placeholder={isAddressRequired ? 'Required For Club Tier' : 'Optional For Home Games & Charity'} /></div>
+              {!isHomeGameFlow && (
+                <div>
+                  <label className="block text-sm text-[#B0B3B8] mb-1.5">Street Address{isAddressRequired ? ' *' : ' (Optional)'}</label>
+                  <input type="text" name="address" value={clubInfo.address} onChange={handleClubInfoChange} className={inputClass} placeholder={isAddressRequired ? 'Required For Club Tier' : 'Optional For Home Games & Charity'} />
+                </div>
+              )}
+
               <div className="grid grid-cols-3 gap-4">
-                <div><label className="block text-sm text-[#B0B3B8] mb-1.5">City{isAddressRequired ? ' *' : ''}</label><input type="text" name="city" value={clubInfo.city} onChange={handleClubInfoChange} className={inputClass} /></div>
-                <div><label className="block text-sm text-[#B0B3B8] mb-1.5">State{isAddressRequired ? ' *' : ''}</label><select name="state" value={clubInfo.state} onChange={handleClubInfoChange} className={inputClass}><option value="">Select</option>{US_STATES.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
-                <div><label className="block text-sm text-[#B0B3B8] mb-1.5">ZIP{isAddressRequired ? ' *' : ''}</label><input type="text" name="zip" value={clubInfo.zip} onChange={handleClubInfoChange} className={inputClass} /></div>
+                <div>
+                  <label className="block text-sm text-[#B0B3B8] mb-1.5">City{(isAddressRequired || isHomeGameFlow) ? ' *' : ''}</label>
+                  <input type="text" name="city" value={clubInfo.city} onChange={handleClubInfoChange} className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-sm text-[#B0B3B8] mb-1.5">State{(isAddressRequired || isHomeGameFlow) ? ' *' : ''}</label>
+                  <select name="state" value={clubInfo.state} onChange={handleClubInfoChange} className={inputClass}>
+                    <option value="">Select</option>
+                    {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm text-[#B0B3B8] mb-1.5">ZIP{isAddressRequired ? ' *' : ''}</label>
+                  <input type="text" name="zip" value={clubInfo.zip} onChange={handleClubInfoChange} className={inputClass} />
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Venue Phone</label><input type="tel" name="phone" value={clubInfo.phone} onChange={handleClubInfoChange} className={inputClass} placeholder="If Different From Your Phone" /></div>
-                <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Website</label><input type="url" name="website" value={clubInfo.website} onChange={handleClubInfoChange} className={inputClass} /></div>
+
+              {!isHomeGameFlow && (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Venue Phone</label><input type="tel" name="phone" value={clubInfo.phone} onChange={handleClubInfoChange} className={inputClass} placeholder="If Different From Your Phone" /></div>
+                    <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Website</label><input type="url" name="website" value={clubInfo.website} onChange={handleClubInfoChange} className={inputClass} /></div>
+                  </div>
+                  <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Number Of Tables</label><input type="number" name="tables" value={clubInfo.tables} onChange={handleClubInfoChange} className={inputClass} /></div>
+                </>
+              )}
+
+              <div>
+                <label className="block text-sm text-[#B0B3B8] mb-2">Games Offered</label>
+                <div className="flex flex-wrap gap-2">
+                  {['NLH', 'PLO', 'PLO8', 'Limit HE', 'Stud', 'Mixed', 'Tournaments'].map(game => (
+                    <button key={game} type="button" onClick={() => handleGameToggle(game)} className={`px-4 py-2 rounded-full text-sm ${clubInfo.gamesOffered.includes(game) ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'}`}>{game}</button>
+                  ))}
+                </div>
               </div>
-              <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Number Of Tables</label><input type="number" name="tables" value={clubInfo.tables} onChange={handleClubInfoChange} className={inputClass} /></div>
-              <div><label className="block text-sm text-[#B0B3B8] mb-2">Games Offered</label><div className="flex flex-wrap gap-2">{['NLH', 'PLO', 'PLO8', 'Limit HE', 'Stud', 'Mixed', 'Tournaments'].map(game => (<button key={game} type="button" onClick={() => handleGameToggle(game)} className={`px-4 py-2 rounded-full text-sm ${clubInfo.gamesOffered.includes(game) ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'}`}>{game}</button>))}</div></div>
+
+              {/* Inline terms + plan summary when tier is locked (step 3 is skipped) */}
+              {lockedTier && (
+                <div className="border-t border-[#3A3B3C] pt-5 mt-5 space-y-4">
+                  <div className="p-4 bg-[#31A24C]/10 border border-[#31A24C]/30 rounded-xl text-[#E4E6EB] text-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="font-semibold mb-1">
+                          {TIERS[lockedTier].name} Tier - 100% Free To Start
+                        </div>
+                        <div className="text-[#B0B3B8] text-xs">
+                          No credit card required. You can upgrade anytime.
+                        </div>
+                      </div>
+                      <div className="text-right whitespace-nowrap">
+                        <span className="text-2xl font-bold">${TIERS[lockedTier].price}</span>
+                        <span className="text-[#8A8D91]">/mo after trial</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <input type="checkbox" id="terms-inline" checked={agreedToTerms} onChange={e => setAgreedToTerms(e.target.checked)} className="mt-1 w-4 h-4 rounded" />
+                    <label htmlFor="terms-inline" className="text-sm text-[#B0B3B8]">
+                      I Agree To The <Link href="/terms" className="text-[#1877F2]">Terms</Link> And <Link href="/terms" className="text-[#1877F2]">Privacy Policy</Link>
+                    </label>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
           {/* ═══════════════════════════════════════════════════════════ */}
-          {/* Step 3: Select Plan                                        */}
+          {/* Step 3: Select Plan  (skipped when ?tier= locks the plan)  */}
           {/* ═══════════════════════════════════════════════════════════ */}
-          {step === 3 && (
+          {step === 3 && !lockedTier && (
             <div className="space-y-6">
               <h2 className="text-xl font-bold text-[#E4E6EB] mb-6">Select Your Plan</h2>
               <div className="grid gap-4">
@@ -386,8 +630,14 @@ export default function RegisterPage() {
           {step === 4 && (
             <div className="text-center space-y-6">
               <div className="w-20 h-20 bg-[#31A24C] rounded-full flex items-center justify-center mx-auto text-4xl text-white">✓</div>
-              <h2 className="text-2xl font-bold text-[#E4E6EB]">Welcome To Club Commander!</h2>
-              <p className="text-[#B0B3B8]">Your Account Has Been Created. Your 14-day Trial Starts Now.</p>
+              <h2 className="text-2xl font-bold text-[#E4E6EB]">
+                {isHomeGameFlow ? 'You’re All Set!' : 'Welcome To Club Commander!'}
+              </h2>
+              <p className="text-[#B0B3B8]">
+                {isHomeGameFlow
+                  ? 'Your Home Games Host Account Is Active. Let’s Create Your First Home Game.'
+                  : 'Your Account Has Been Created. Your 14-day Trial Starts Now.'}
+              </p>
               <div className="bg-[#1877F2]/10 border border-[#1877F2]/30 rounded-xl p-4 text-left">
                 <p className="text-sm text-[#B0B3B8] mb-1">Login Email:</p>
                 <p className="text-[#E4E6EB] font-semibold">{ownerEmail}</p>
@@ -397,24 +647,41 @@ export default function RegisterPage() {
                     : 'Use this email and your password to sign in at the login page.'}
                 </p>
               </div>
-              {registrationResult && <div className="bg-[#3A3B3C] rounded-xl p-5 text-left"><div className="flex justify-between mb-2"><span className="text-[#8A8D91]">Venue ID:</span><span className="text-[#E4E6EB] font-mono">{registrationResult.venueId}</span></div><div className="flex justify-between"><span className="text-[#8A8D91]">Plan:</span><span className="text-[#E4E6EB]">{selectedTier} (14-day trial)</span></div></div>}
-              <button onClick={() => { window.location.href = '/commander/login'; }} className="w-full py-4 bg-[#1877F2] hover:bg-[#1664d9] text-white rounded-xl font-semibold text-lg">Sign In To Dashboard</button>
+              {registrationResult && !isHomeGameFlow && <div className="bg-[#3A3B3C] rounded-xl p-5 text-left"><div className="flex justify-between mb-2"><span className="text-[#8A8D91]">Venue ID:</span><span className="text-[#E4E6EB] font-mono">{registrationResult.venueId}</span></div><div className="flex justify-between"><span className="text-[#8A8D91]">Plan:</span><span className="text-[#E4E6EB]">{selectedTier} (14-day trial)</span></div></div>}
+              <button
+                onClick={handleCompletionCta}
+                className="w-full py-4 bg-[#1877F2] hover:bg-[#1664d9] text-white rounded-xl font-semibold text-lg"
+              >
+                {queryReturn
+                  ? (isHomeGameFlow ? 'Continue To Create Your Home Game' : 'Continue')
+                  : 'Sign In To Dashboard'}
+              </button>
             </div>
           )}
 
           {/* Navigation Buttons */}
           {step === 1 && (
             <div className="flex justify-end mt-8">
-              <button onClick={nextStep} className="px-8 py-3 bg-[#1877F2] hover:bg-[#1664d9] text-white rounded-lg font-semibold">Continue To Venue Details</button>
+              <button onClick={nextStep} className="px-8 py-3 bg-[#1877F2] hover:bg-[#1664d9] text-white rounded-lg font-semibold">
+                {isHomeGameFlow ? 'Continue To Home Game Details' : 'Continue To Venue Details'}
+              </button>
             </div>
           )}
           {step === 2 && (
             <div className="flex justify-between mt-8">
               <button onClick={prevStep} className="px-6 py-3 rounded-lg bg-[#3A3B3C] text-[#E4E6EB] hover:bg-[#4E4F50]">Back</button>
-              <button onClick={nextStep} className="px-8 py-3 bg-[#1877F2] hover:bg-[#1664d9] text-white rounded-lg font-semibold">Continue To Plan Selection</button>
+              <button
+                onClick={nextStep}
+                disabled={loading || (lockedTier && !agreedToTerms)}
+                className="px-8 py-3 bg-[#1877F2] hover:bg-[#1664d9] text-white rounded-lg font-semibold disabled:opacity-50"
+              >
+                {lockedTier
+                  ? (loading ? 'Creating...' : (isHomeGameFlow ? 'Create My Home Games Host Account' : 'Create Account'))
+                  : 'Continue To Plan Selection'}
+              </button>
             </div>
           )}
-          {step === 3 && (
+          {step === 3 && !lockedTier && (
             <div className="flex justify-between mt-8">
               <button onClick={prevStep} className="px-6 py-3 rounded-lg bg-[#3A3B3C] text-[#E4E6EB] hover:bg-[#4E4F50]">Back</button>
               <button onClick={handleSubmit} disabled={loading || !agreedToTerms} className="px-8 py-3 bg-[#1877F2] hover:bg-[#1664d9] text-white rounded-lg font-semibold disabled:opacity-50">{loading ? 'Creating...' : 'Start Free Trial'}</button>

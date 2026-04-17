@@ -1,421 +1,203 @@
 /**
- * CreateHomeGame.jsx — List Your Home Game
+ * CreateHomeGame — PNM-lobby CTA card that launches the Club Commander
+ * home-game registration wizard.
  *
- * Creates a real commander_home_group via the canonical API:
- *     POST /api/commander/home-games/groups
+ * ARCHITECTURE NOTE: Creating a home game requires going through the
+ * Club Commander activation flow (at /commander/register). The wizard
+ * creates the venue_owner role, the commander_subscription, and the
+ * poker_venues row; after completing it, the user lands on
+ * /hub/commander/home-games/create to enter home-game-specific details
+ * (stakes, schedule, visibility, etc.). That final form then POSTs to
+ * /api/commander/home-games/groups which auto-creates the linked
+ * social_pages row via trg_autocreate_home_group_social_page.
  *
- * The DB trigger `trg_autocreate_home_group_social_page` auto-creates a
- * social_pages row of page_type='home_game' linked to the new group.
- * The geocode trigger populates latitude/longitude from city/state.
- * The resulting home game appears on:
- *   • /hub/home-games             (public discovery)
- *   • /hub/home-games/[slug]      (SSR profile page with JSON-LD)
- *   • /hub/commander/home-games   (owner dashboard)
- *   • /hub/poker-near-me/lobby    (PNM Home Games tab)
- *
- * IMPORTANT: This component must NEVER insert into poker_venues.
- * Home games are a distinct system from poker rooms — Dan's rule.
- * The `ck_poker_venues_not_home_game` DB constraint enforces this at the
- * data layer; this component respects the same boundary at the API layer.
- *
- * Requires authenticated user.
+ * IMPORTANT: This component must NEVER insert into poker_venues with
+ * venue_type='home_game', and must NEVER call /api/commander/home-games/groups
+ * directly. The DB-level `ck_poker_venues_not_home_game` check constraint
+ * will reject the former; the latter bypasses Club Commander activation
+ * and is inconsistent with the rest of the system. Route users through
+ * the wizard — that is the canonical path.
  */
+import React from 'react';
+import { useRouter } from 'next/router';
+import { Home, Sparkles, Calendar, Users, Shield, ArrowRight } from 'lucide-react';
 
-import React, { useState, useCallback } from 'react';
+const WIZARD_PATH = '/commander/register?tier=home_game&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate';
 
-const US_STATES = [
-  'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS',
-  'KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY',
-  'NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'
-];
+export default function CreateHomeGame({ onCancel }) {
+  const router = useRouter();
 
-// Form labels → canonical default_game_type codes that the API expects.
-// Commander pages render these as NLHE/PLO/etc. so we pass the internal codes.
-const GAME_TYPE_MAP = {
-  'NLH': 'nlhe',
-  'PLO': 'plo',
-  'Mixed': 'mixed',
-  'Stud': 'stud',
-  'HORSE': 'horse',
-  'Cash + Tournament': 'mixed',
-};
-
-const GAME_TYPES = ['NLH', 'PLO', 'Mixed', 'Stud', 'HORSE', 'Cash + Tournament'];
-const SCHEDULE_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-
-export default function CreateHomeGame({ userId, onSuccess, onCancel }) {
-  const [form, setForm] = useState({
-    name: '',
-    city: '',
-    state: '',
-    gameType: 'NLH',
-    stakes: '',
-    scheduleDays: [],
-    startTime: '19:00',
-    description: '',
-    maxPlayers: '9',
-    contactMethod: '',
-  });
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(false);
-
-  const updateField = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
-
-  const toggleDay = (day) => {
-    setForm(prev => ({
-      ...prev,
-      scheduleDays: prev.scheduleDays.includes(day)
-        ? prev.scheduleDays.filter(d => d !== day)
-        : [...prev.scheduleDays, day]
-    }));
+  const handleStart = () => {
+    router.push(WIZARD_PATH);
   };
 
-  const handleSubmit = useCallback(async (e) => {
-    e.preventDefault();
-    if (!userId) { setError('Please log in to list a home game.'); return; }
-    if (!form.name.trim()) { setError('Game name is required.'); return; }
-    if (!form.city.trim()) { setError('City is required.'); return; }
-    if (!form.state) { setError('State is required.'); return; }
-
-    setSubmitting(true);
-    setError(null);
-
-    try {
-      // Get a bearer token so the canonical endpoint can auth this request.
-      const { getAccessToken } = await import('../../../src/lib/authUtils');
-      const token = await getAccessToken();
-      if (!token) {
-        setError('Your session has expired. Please log in again.');
-        setSubmitting(false);
-        return;
-      }
-
-      // Map the UI label to the canonical game-type code.
-      const default_game_type = GAME_TYPE_MAP[form.gameType] || 'nlhe';
-
-      // Derive frequency from selected days. Most home games are either weekly
-      // (same day every week) or monthly (date-specific). Default to weekly when
-      // the user picked any day; fall back to 'occasional' for no selection.
-      const frequency = form.scheduleDays.length > 0 ? 'weekly' : 'occasional';
-      const typical_day = form.scheduleDays[0] || null;
-      const typical_time = form.startTime || null;
-
-      const descriptionFallback = `Home game in ${form.city}, ${form.state}. ${form.gameType}${form.stakes ? ' — ' + form.stakes : ''}. ${
-        form.scheduleDays.length ? 'Plays on ' + form.scheduleDays.join(', ') + '.' : ''
-      }`;
-
-      const payload = {
-        name: form.name.trim(),
-        description: form.description?.trim() || descriptionFallback,
-        is_private: false,          // PNM-listed games are publicly discoverable.
-        requires_approval: true,    // Host still approves each member.
-        city: form.city.trim(),
-        state: form.state,
-        // latitude/longitude left unset — the autogeocode trigger fills them from city+state.
-        default_game_type,
-        default_stakes: form.stakes?.trim() || null,
-        max_players: Math.max(2, Math.min(20, parseInt(form.maxPlayers, 10) || 9)),
-        typical_day,
-        typical_time,
-        frequency,
-        settings: {
-          source: 'pnm_lobby',
-          ui_game_type: form.gameType,
-          schedule_days: form.scheduleDays,
-          contact_method: form.contactMethod || null,
-        },
-      };
-
-      const resp = await fetch('/api/commander/home-games/groups', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const json = await resp.json().catch(() => ({}));
-      if (!resp.ok) {
-        throw new Error(json?.error || `Failed (HTTP ${resp.status})`);
-      }
-
-      // The commander endpoint returns { success, group } or { group, ... }.
-      // The DB trigger auto-creates the social_page, so we don't need to do
-      // anything else — just surface the new group to the parent.
-      const newGroup = json?.group || json?.data?.group || json;
-
-      setSuccess(true);
-      setTimeout(() => onSuccess?.(newGroup), 1500);
-    } catch (err) {
-      console.error('[CreateHomeGame] canonical create failed:', err);
-      setError(err?.message || 'Failed to list home game. Please try again.');
-    } finally {
-      setSubmitting(false);
-    }
-  }, [form, userId, onSuccess]);
-
-  if (success) {
-    return (
-      <div style={{
-        textAlign: 'center', padding: '60px 24px',
-        fontFamily: 'Inter, system-ui, sans-serif',
-      }}>
-        <div style={{ fontSize: 48, marginBottom: 16 }}>
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
-          </svg>
-        </div>
-        <h3 style={{ fontSize: 20, fontWeight: 800, color: '#22c55e', marginBottom: 8 }}>
-          Home Game Listed
-        </h3>
-        <p style={{ fontSize: 14, color: 'rgba(200,214,229,0.6)' }}>
-          Your game is now visible to players searching in {form.city}, {form.state}.
-        </p>
-      </div>
-    );
-  }
-
-  const inputStyle = {
-    width: '100%', padding: '10px 14px',
-    background: 'rgba(110,231,239,0.04)',
-    border: '1px solid rgba(110,231,239,0.15)',
-    borderRadius: 10, color: '#e0e8f0',
-    fontSize: 14, fontFamily: 'Inter, system-ui, sans-serif',
-    outline: 'none', transition: 'border-color 0.2s',
-    boxSizing: 'border-box',
-  };
-
-  const labelStyle = {
-    display: 'block', fontSize: 12, fontWeight: 600,
-    color: 'rgba(200,214,229,0.6)', marginBottom: 6,
-    letterSpacing: '0.02em',
-  };
+  const bullets = [
+    { Icon: Calendar, text: 'Set your schedule — one-off or recurring' },
+    { Icon: Users,    text: 'Manage RSVPs, waitlists, and attendance' },
+    { Icon: Shield,   text: 'Private or public — you control who can join' },
+    { Icon: Sparkles, text: 'Free public listing on Poker Near Me' },
+  ];
 
   return (
-    <form onSubmit={handleSubmit} style={{
-      padding: '20px 16px',
-      fontFamily: 'Inter, system-ui, sans-serif',
-      maxWidth: 500, margin: '0 auto',
-    }}>
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24,
-      }}>
-        <div style={{
-          width: 40, height: 40, borderRadius: 10,
-          background: 'linear-gradient(135deg, rgba(34,197,94,0.2), rgba(34,197,94,0.05))',
-          border: '1px solid rgba(34,197,94,0.3)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 5v14M5 12h14" />
-          </svg>
+    <div className="pnm-create-home-game-cta">
+      <div className="hg-cta-inner">
+        <div className="hg-cta-icon" aria-hidden="true">
+          <Home size={28} strokeWidth={1.8} />
         </div>
-        <div>
-          <h3 style={{ fontSize: 18, fontWeight: 800, color: '#e0e8f0', margin: 0 }}>
-            List Your Home Game
-          </h3>
-          <p style={{ fontSize: 12, color: 'rgba(200,214,229,0.45)', margin: 0 }}>
-            Visible to players searching nearby
-          </p>
-        </div>
-      </div>
 
-      {error && (
-        <div style={{
-          padding: '10px 14px', marginBottom: 16,
-          background: 'rgba(239,68,68,0.1)',
-          border: '1px solid rgba(239,68,68,0.25)',
-          borderRadius: 10, color: '#f87171',
-          fontSize: 13, fontWeight: 500,
-        }}>
-          {error}
-        </div>
-      )}
+        <h3 className="hg-cta-title">List Your Home Game On Poker Near Me</h3>
+        <p className="hg-cta-subtitle">
+          100% free to start. No credit card required. Host your own poker game, list it publicly,
+          and let players in your area find you.
+        </p>
 
-      {/* Game Name */}
-      <div style={{ marginBottom: 16 }}>
-        <label style={labelStyle}>Game Name *</label>
-        <input
-          type="text"
-          placeholder="e.g., Friday Night Poker"
-          value={form.name}
-          onChange={e => updateField('name', e.target.value)}
-          style={inputStyle}
-          required
-        />
-      </div>
-
-      {/* City + State */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12, marginBottom: 16 }}>
-        <div>
-          <label style={labelStyle}>City *</label>
-          <input
-            type="text"
-            placeholder="e.g., Austin"
-            value={form.city}
-            onChange={e => updateField('city', e.target.value)}
-            style={inputStyle}
-            required
-          />
-        </div>
-        <div>
-          <label style={labelStyle}>State *</label>
-          <select
-            value={form.state}
-            onChange={e => updateField('state', e.target.value)}
-            style={{ ...inputStyle, cursor: 'pointer' }}
-            required
-          >
-            <option value="">Select</option>
-            {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-        </div>
-      </div>
-
-      {/* Game Type + Stakes */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-        <div>
-          <label style={labelStyle}>Game Type</label>
-          <select
-            value={form.gameType}
-            onChange={e => updateField('gameType', e.target.value)}
-            style={{ ...inputStyle, cursor: 'pointer' }}
-          >
-            {GAME_TYPES.map(g => <option key={g} value={g}>{g}</option>)}
-          </select>
-        </div>
-        <div>
-          <label style={labelStyle}>Stakes</label>
-          <input
-            type="text"
-            placeholder="e.g., $1/$2"
-            value={form.stakes}
-            onChange={e => updateField('stakes', e.target.value)}
-            style={inputStyle}
-          />
-        </div>
-      </div>
-
-      {/* Schedule Days */}
-      <div style={{ marginBottom: 16 }}>
-        <label style={labelStyle}>Schedule Days</label>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          {SCHEDULE_DAYS.map(day => (
-            <button
-              key={day}
-              type="button"
-              onClick={() => toggleDay(day)}
-              style={{
-                padding: '6px 12px', borderRadius: 8,
-                border: form.scheduleDays.includes(day)
-                  ? '1px solid rgba(110,231,239,0.5)'
-                  : '1px solid rgba(110,231,239,0.12)',
-                background: form.scheduleDays.includes(day)
-                  ? 'rgba(110,231,239,0.12)'
-                  : 'transparent',
-                color: form.scheduleDays.includes(day)
-                  ? '#6ee7ef'
-                  : 'rgba(200,214,229,0.4)',
-                fontSize: 12, fontWeight: 600,
-                cursor: 'pointer', fontFamily: 'inherit',
-                transition: 'all 0.2s',
-              }}
-            >
-              {day.slice(0, 3)}
-            </button>
+        <ul className="hg-cta-bullets">
+          {bullets.map(({ Icon, text }, i) => (
+            <li key={i}>
+              <Icon size={16} strokeWidth={2} className="hg-cta-bullet-icon" aria-hidden="true" />
+              <span>{text}</span>
+            </li>
           ))}
-        </div>
-      </div>
+        </ul>
 
-      {/* Start Time + Max Players */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-        <div>
-          <label style={labelStyle}>Start Time</label>
-          <input
-            type="time"
-            value={form.startTime}
-            onChange={e => updateField('startTime', e.target.value)}
-            style={inputStyle}
-          />
-        </div>
-        <div>
-          <label style={labelStyle}>Max Players</label>
-          <input
-            type="number"
-            min="2" max="20"
-            value={form.maxPlayers}
-            onChange={e => updateField('maxPlayers', e.target.value)}
-            style={inputStyle}
-          />
-        </div>
-      </div>
-
-      {/* Contact */}
-      <div style={{ marginBottom: 16 }}>
-        <label style={labelStyle}>Contact Method (optional)</label>
-        <input
-          type="text"
-          placeholder="e.g., DM on Smarter.Poker or text 555-1234"
-          value={form.contactMethod}
-          onChange={e => updateField('contactMethod', e.target.value)}
-          style={inputStyle}
-        />
-      </div>
-
-      {/* Description */}
-      <div style={{ marginBottom: 24 }}>
-        <label style={labelStyle}>Description (optional)</label>
-        <textarea
-          placeholder="Tell players about your game — house rules, buy-in range, food/drink situation..."
-          value={form.description}
-          onChange={e => updateField('description', e.target.value)}
-          style={{
-            ...inputStyle,
-            minHeight: 80, resize: 'vertical',
-          }}
-        />
-      </div>
-
-      {/* Buttons */}
-      <div style={{ display: 'flex', gap: 12 }}>
-        {onCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            style={{
-              flex: 1, padding: '12px',
-              border: '1px solid rgba(200,214,229,0.15)',
-              borderRadius: 12, background: 'transparent',
-              color: 'rgba(200,214,229,0.5)',
-              fontSize: 14, fontWeight: 600,
-              cursor: 'pointer', fontFamily: 'inherit',
-            }}
-          >
-            Cancel
+        <div className="hg-cta-actions">
+          <button type="button" onClick={handleStart} className="hg-cta-primary">
+            Get Started - It's Free
+            <ArrowRight size={16} strokeWidth={2.4} />
           </button>
-        )}
-        <button
-          type="submit"
-          disabled={submitting}
-          style={{
-            flex: 2, padding: '12px',
-            border: 'none', borderRadius: 12,
-            background: submitting
-              ? 'rgba(34,197,94,0.15)'
-              : 'linear-gradient(135deg, #22c55e, #16a34a)',
-            color: submitting ? 'rgba(200,214,229,0.4)' : '#fff',
-            fontSize: 14, fontWeight: 700,
-            cursor: submitting ? 'wait' : 'pointer',
-            fontFamily: 'inherit',
-            boxShadow: submitting ? 'none' : '0 4px 16px rgba(34,197,94,0.3)',
-            transition: 'all 0.2s',
-          }}
-        >
-          {submitting ? 'Listing...' : 'List Home Game'}
-        </button>
+          {onCancel && (
+            <button type="button" onClick={onCancel} className="hg-cta-secondary">
+              Maybe Later
+            </button>
+          )}
+        </div>
+
+        <p className="hg-cta-fineprint">
+          Takes about 60 seconds. You'll be able to add stakes, schedule, and photos in the next step.
+        </p>
       </div>
-    </form>
+
+      <style jsx>{`
+        .pnm-create-home-game-cta {
+          display: flex;
+          align-items: stretch;
+          justify-content: center;
+          padding: 16px 8px 24px;
+        }
+        .hg-cta-inner {
+          width: 100%;
+          max-width: 560px;
+          padding: 28px 24px 24px;
+          background: linear-gradient(180deg, rgba(24, 119, 242, 0.08) 0%, rgba(36, 37, 38, 0.95) 70%);
+          border: 1px solid rgba(24, 119, 242, 0.35);
+          border-radius: 16px;
+          text-align: center;
+        }
+        .hg-cta-icon {
+          width: 56px;
+          height: 56px;
+          border-radius: 14px;
+          margin: 0 auto 16px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(24, 119, 242, 0.14);
+          color: #4a9fff;
+          border: 1px solid rgba(24, 119, 242, 0.35);
+        }
+        .hg-cta-title {
+          font-size: 20px;
+          font-weight: 700;
+          color: #E4E6EB;
+          margin: 0 0 10px;
+          line-height: 1.25;
+        }
+        .hg-cta-subtitle {
+          font-size: 14px;
+          color: #B0B3B8;
+          line-height: 1.5;
+          margin: 0 auto 20px;
+          max-width: 460px;
+        }
+        .hg-cta-bullets {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          padding: 0;
+          margin: 0 auto 24px;
+          list-style: none;
+          max-width: 420px;
+          text-align: left;
+        }
+        .hg-cta-bullets li {
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          font-size: 13px;
+          color: #DADDE1;
+          line-height: 1.5;
+        }
+        .hg-cta-bullet-icon {
+          color: #31A24C;
+          flex-shrink: 0;
+          margin-top: 2px;
+        }
+        .hg-cta-actions {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          margin-bottom: 14px;
+        }
+        .hg-cta-primary,
+        .hg-cta-secondary {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 12px 20px;
+          border-radius: 12px;
+          font-weight: 600;
+          font-size: 14px;
+          letter-spacing: 0.2px;
+          cursor: pointer;
+          transition: transform 0.08s ease, background 0.15s ease, border-color 0.15s ease;
+          border: 1px solid transparent;
+        }
+        .hg-cta-primary {
+          background: linear-gradient(180deg, #1877F2 0%, #1664d9 100%);
+          color: white;
+          box-shadow: 0 2px 10px rgba(24, 119, 242, 0.35);
+        }
+        .hg-cta-primary:hover { transform: translateY(-1px); }
+        .hg-cta-primary:active { transform: translateY(0); }
+        .hg-cta-secondary {
+          background: rgba(255, 255, 255, 0.04);
+          border-color: rgba(255, 255, 255, 0.12);
+          color: #B0B3B8;
+        }
+        .hg-cta-secondary:hover {
+          background: rgba(255, 255, 255, 0.08);
+          color: #E4E6EB;
+        }
+        .hg-cta-fineprint {
+          font-size: 12px;
+          color: #8A8D91;
+          margin: 0;
+          line-height: 1.5;
+        }
+
+        @media (min-width: 640px) {
+          .hg-cta-actions {
+            flex-direction: row;
+            justify-content: center;
+          }
+          .hg-cta-primary,
+          .hg-cta-secondary {
+            flex: 0 1 auto;
+            min-width: 160px;
+          }
+        }
+      `}</style>
+    </div>
   );
 }
