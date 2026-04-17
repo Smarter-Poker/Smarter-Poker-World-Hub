@@ -415,6 +415,12 @@ export default async function handler(req, res) {
                       .eq('is_suppressed', false) // Bug #1 Fix: never serve suppressed venues
 
                   if (state) q = q.ilike('state', state.length === 2 ? state.toUpperCase() : `%${state}%`);
+                  // When GPS is active with a known user_state, filter Supabase to same state.
+                  // Without this, the global top-500 by trust_score may exclude many local venues,
+                  // making the GPS radius filter return near-zero results.
+                  else if (lat && lng && user_state) {
+                      q = q.ilike('state', user_state.toUpperCase());
+                  }
                   if (city) q = q.ilike('city', `%${city}%`);
                   if (effectiveType) {
                       // Merge card_room into poker_club — they're the same thing
