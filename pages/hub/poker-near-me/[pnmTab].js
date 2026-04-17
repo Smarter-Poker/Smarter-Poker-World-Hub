@@ -1812,11 +1812,13 @@ export default function PokerNearMePage() {
 
             const url = '/api/poker/venues?' + params;
             const currentSeq = ++fetchSequenceRef.current;
+            console.log('[PNM-DIAG] fetchVenues →', url, '| seq=', currentSeq, '| silent=', silent, '| userLocation=', userLocation, '| gpsStateRef=', gpsStateRef.current);
             const json = await fetchWithRetry(url);
             
             // [HARDENING] Prevent Race Condition: discard if a newer fetch was initiated
             // IMPORTANT: must set venueLoading=false before returning so skeletons don't get stuck
             if (fetchSequenceRef.current !== currentSeq) {
+                console.log('[PNM-DIAG] fetchVenues DISCARDED (race) — seq=', currentSeq, 'current=', fetchSequenceRef.current);
                 if (!silent) setVenueLoading(false);
                 return;
             }
@@ -1839,6 +1841,7 @@ export default function PokerNearMePage() {
             });
 
             setVenues(filteredData);
+            console.log('[PNM-DIAG] setVenues called with', filteredData.length, 'venues. First:', filteredData[0]?.name);
             // Update stats from response (only update states, leave global total alone)
             if (json.total) {
                 const stateSet = new Set(filteredData.map(v => v.state).filter(Boolean));
@@ -1853,7 +1856,7 @@ export default function PokerNearMePage() {
             }
         } catch (e) {
             if (!silent) setLoading(false);
-            console.error('Fetch venues error:', e);
+            console.error('[PNM-DIAG] Fetch venues CATCH:', e.message, e);
             setFetchError('Failed to load venues. Tap to retry.');
             setVenues([]);
         }
@@ -2513,6 +2516,7 @@ export default function PokerNearMePage() {
             });
         }
 
+        console.log('[PNM-DIAG] venueCardList memo:', { inputVenues: venues.length, combined: combined.length, gameType: filters.gameType, stakes: filters.stakes });
         return combined;
     }, [venues, allVenuesWithTours, filters.gameType, filters.stakes]);
 

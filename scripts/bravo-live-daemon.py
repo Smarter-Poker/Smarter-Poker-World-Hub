@@ -104,11 +104,13 @@ BRAVO_EMAIL = CRED_POOL[0][0]
 BRAVO_PASS  = CRED_POOL[0][1]
 log_creds = f'{len(CRED_POOL)} account(s) in pool'
 
-# ── RESIDENTIAL PROXY ──
-# Set BRAVO_PROXY in .env.local to a rotating residential proxy endpoint.
-# Format: http://user:pass@proxy.webshare.io:80
-# If unset, connects directly (will get IP-blocked by Bravo).
-BRAVO_PROXY = os.environ.get('BRAVO_PROXY', '')  # e.g. http://user:pass@proxy.webshare.io:80
+# ── RESIDENTIAL PROXY (STICKY SESSION) ──
+# BRAVO_PROXY_BASE: Geonode base URL (no session ID).
+# The daemon injects -session-XXXXX into the username at each connect() so
+# the same residential IP is pinned for the full login + venue scrape cycle.
+# Format: http://user:pass@us.proxy.geonode.io:9000
+BRAVO_PROXY_BASE = os.environ.get('BRAVO_PROXY_BASE', '')
+BRAVO_PROXY = os.environ.get('BRAVO_PROXY', '')  # Legacy fallback (non-sticky)
 
 BRAVO_VENUE_URL = 'https://www.bravopokerlive.com/venues/{slug}/'
 
@@ -456,18 +458,33 @@ def save_cookies_from_page(page):
 # ============================================================
 # PROXY + CREDENTIAL ROTATION HELPERS
 # ============================================================
-def _proxy_kwargs():
-    """Return StealthySession proxy kwargs if BRAVO_PROXY is configured.
-    
-    Webshare rotating endpoint format:
-      http://user:pass@proxy.webshare.io:80
-    
-    Returns an empty dict if no proxy is configured so StealthySession
-    connects directly (legacy behavior).
+def _proxy_kwargs(session_id: str = ''):
+    """Return StealthySession proxy kwargs with sticky-session support.
+
+    Geonode sticky session format:
+      http://USER-session-SESSIONID:PASS@us.proxy.geonode.io:9000
+    Where SESSIONID is a random 8-char alphanumeric string injected into
+    the username. Using the same session ID for the full login + venue scrape
+    cycle pins the same residential IP so Bravo doesn't see an IP hop.
+
+    Falls back to BRAVO_PROXY (legacy rotating) if BRAVO_PROXY_BASE unset.
+    Returns {} (direct connection) if neither is configured.
     """
-    if not BRAVO_PROXY:
-        return {}
-    return {'proxy': BRAVO_PROXY}
+    if BRAVO_PROXY_BASE:
+        # Inject -session-XXXXX into the username portion of the URL
+        # URL format: http://USER:PASS@HOST:PORT
+        import re as _re
+        sid = session_id or uuid.uuid4().hex[:8]
+        proxy_url = _re.sub(
+            r'(http://)(geonode_[^:]+)(:)',
+            lambda m: f'{m.group(1)}{m.group(2)}-session-{sid}{m.group(3)}',
+            BRAVO_PROXY_BASE,
+        )
+        log.info(f'  📍 Sticky session ID: {sid} (same IP for entire cycle)')
+        return {'proxy': proxy_url}
+    if BRAVO_PROXY:
+        return {'proxy': BRAVO_PROXY}
+    return {}
 
 
 def _rotate_credentials_if_needed(mgr):
