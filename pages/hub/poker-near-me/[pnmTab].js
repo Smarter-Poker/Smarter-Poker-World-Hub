@@ -629,6 +629,8 @@ export default function PokerNearMePage() {
                     if (['tournament', 'mtt', 'tournaments'].includes(String(parsed.gameType).toLowerCase())) {
                         parsed.gameType = 'all';
                     }
+                    parsed.gameType = parsed.gameType || 'all';
+                    parsed.stakes = parsed.stakes || 'any';
                     // To safeguard tour pins from being filtered out entirely, the map will ignore cash filters for pins.
                     // Keep the user's saved radius — do NOT override it to 50mi
                     // Default to 25mi only if no saved radius exists
@@ -640,6 +642,8 @@ export default function PokerNearMePage() {
         return {
             radius: 25,
             venueType: 'all',
+            gameType: 'all',
+            stakes: 'any',
             hasNLH: false,
             hasPLO: false,
             hasMixed: false,

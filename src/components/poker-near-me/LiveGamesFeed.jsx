@@ -251,7 +251,7 @@ function LiveGamesFeed({
     if (globalFilters) {
         if (globalFilters.gameType === 'cash') computedGameType = 'all'; // 'cash' parent = show all cash game types
         else if (globalFilters.gameType === 'mtt') computedGameType = 'none'; // tournaments ONLY, so hide tables
-        else computedGameType = globalFilters.gameType; // 'all', 'nlh', 'plo', 'mixed'
+        else computedGameType = globalFilters.gameType || 'all'; // 'all', 'nlh', 'plo', 'mixed'
     }
     const filterGameType = computedGameType;
 
