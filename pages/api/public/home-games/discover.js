@@ -42,6 +42,31 @@ function escapeIlike(s) {
   return (s || '').replace(/[%_\\]/g, (c) => '\\' + c);
 }
 
+// Deterministic per-group jitter for approximate coordinates. We don't want
+// to leak the exact host address on a public map, but we also don't want a
+// marker to hop around on every page load. Seed the jitter off the group id
+// so it's stable for the same group but different for different groups.
+//
+// Approx bounds: ±0.005° lat ≈ ±0.35 mi, ±0.006° lng ≈ ±0.3 mi at US lats.
+function jitterCoord(groupId, lat, lng) {
+  if (lat == null || lng == null) return { lat: null, lng: null };
+  if (!groupId) return { lat: Number(lat), lng: Number(lng) };
+  // Cheap stable hash of the UUID string -> two signed offsets in ±0.005°.
+  let a = 0, b = 0;
+  const s = String(groupId);
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    a = (a * 31 + c) >>> 0;
+    b = (b * 37 + c * 7) >>> 0;
+  }
+  const dLat = ((a % 10000) / 10000 - 0.5) * 0.01;
+  const dLng = ((b % 10000) / 10000 - 0.5) * 0.012;
+  return {
+    lat: Number(lat) + dLat,
+    lng: Number(lng) + dLng,
+  };
+}
+
 export default async function handler(req, res) {
   try {
     if (!applyRateLimit(req, res, LIMITS.read)) return;
@@ -79,6 +104,8 @@ export default async function handler(req, res) {
         is_active,
         city,
         state,
+        latitude,
+        longitude,
         default_game_type,
         default_stakes,
         typical_buyin_min,
@@ -148,6 +175,7 @@ export default async function handler(req, res) {
     const out = (groups || []).map((g) => {
       const page = pageByGroupId[String(g.id)] || null;
       const next = nextByGroupId[g.id] || null;
+      const jittered = jitterCoord(g.id, g.latitude, g.longitude);
       return {
         id: g.id,
         slug: page?.slug || null,
@@ -158,6 +186,12 @@ export default async function handler(req, res) {
         city: g.city || '',
         state: g.state || '',
         country: 'US',
+        // Jittered ~0.3mi so exact host address isn't revealed. Stable per-group.
+        approximate_lat: jittered.lat,
+        approximate_lng: jittered.lng,
+        // Legacy aliases for VenueMap / VenueCard which read 'latitude'/'longitude'.
+        latitude: jittered.lat,
+        longitude: jittered.lng,
         avatar_url: page?.avatar_url || g.profile_photo_url || null,
         cover_url: page?.cover_url || g.cover_photo_url || null,
         default_game_type: g.default_game_type || null,

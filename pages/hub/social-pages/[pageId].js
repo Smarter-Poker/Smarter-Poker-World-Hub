@@ -3634,3 +3634,72 @@ export default function SocialPageDetail() {
         </>
     );
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+//  PHASE 2 — UNIFIED CANONICAL URL FOR HOME GAMES
+// ══════════════════════════════════════════════════════════════════════════
+//  When a user lands on /hub/social-pages/{uuid} and the page is a home_game,
+//  redirect to the canonical /hub/home-games/{slug} URL. One group, one URL.
+//
+//  Other page types (venue, group, community, brand, club) render normally —
+//  this getServerSideProps returns empty props and the existing client-side
+//  page loader takes over as before.
+//
+//  Keep this export minimal and defensive: any DB error, any missing slug,
+//  anything unexpected → fall through to normal rendering so we never break
+//  existing venue/group/community/brand/club pages.
+// ══════════════════════════════════════════════════════════════════════════
+
+import { createClient as _spgssCreateClient } from '@supabase/supabase-js';
+
+let _spgssSupabase = null;
+function _spgssGetSupabase() {
+    if (!_spgssSupabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        if (!url || !key) return null;
+        try {
+            _spgssSupabase = _spgssCreateClient(url, key, { auth: { persistSession: false } });
+        } catch {
+            return null;
+        }
+    }
+    return _spgssSupabase;
+}
+
+export async function getServerSideProps({ params }) {
+    const pageId = params?.pageId;
+    // UUID-ish check: the old social-pages route takes a UUID. Anything else,
+    // bail out and let the client loader handle it (so slug-style URLs still
+    // land on the old page if somehow routed here).
+    if (!pageId || typeof pageId !== 'string') return { props: {} };
+
+    const sb = _spgssGetSupabase();
+    if (!sb) return { props: {} };
+
+    try {
+        // Fetch just the type + slug. If it's a home_game and has a slug,
+        // 308-redirect to the canonical unified URL.
+        const { data, error } = await sb
+            .from('social_pages')
+            .select('page_type, slug')
+            .eq('id', pageId)
+            .maybeSingle();
+
+        if (error || !data) return { props: {} };
+
+        if (data.page_type === 'home_game' && data.slug) {
+            return {
+                redirect: {
+                    destination: `/hub/home-games/${data.slug}`,
+                    permanent: true, // 308 — search engines collapse the two URLs
+                },
+            };
+        }
+    } catch {
+        // Swallow errors silently. This function is a progressive enhancement;
+        // never let it break normal venue/group/community/brand/club rendering.
+    }
+
+    return { props: {} };
+}

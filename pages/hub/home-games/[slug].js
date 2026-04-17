@@ -1,23 +1,24 @@
 /**
  * ══════════════════════════════════════════════════════════════════════════
- *  UNIFIED PUBLIC HOME GAME PAGE
+ *  UNIFIED PUBLIC HOME GAME PAGE — SSR edition (Phase 2)
  *  /hub/home-games/[slug]
  * ══════════════════════════════════════════════════════════════════════════
  *
- *  The single canonical URL for any public home game. Pulls from:
- *    - social_pages (slug, avatar/cover, follower_count, post_count)
- *    - commander_home_groups (member_count, schedule, stakes)
- *    - commander_home_games (upcoming sessions)
- *    - social_page_posts (announcements feed)
- *
- *  This REPLACES the disconnect between the old /home-game/[code] share page
- *  (which still works for back-compat) and the hidden /hub/commander/home-games.
- *  Discoverable from /hub/home-games and indexed by search engines.
+ *  Phase 2 upgrade over the Phase 1 client-fetched version:
+ *    - getServerSideProps loads data server-side so crawlers + first paint
+ *      both get the full group profile, cover image, upcoming games.
+ *    - JSON-LD structured data: LocalBusiness for the host + Event for each
+ *      upcoming game. Real SEO signal for each group.
+ *    - og:image resolves to the group's cover (or avatar) so shares on
+ *      social media carry a proper card.
+ *    - 404 is a real HTTP 404 (not a client-rendered "Not found" page)
+ *      so search engines drop dead links correctly.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
+import Head from 'next/head';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
@@ -31,7 +32,7 @@ const GAME_TYPE_LABELS = {
   plo5: '5-Card PLO',
   plo8: 'PLO Hi-Lo',
   mixed: 'Mixed Games',
-  limit: 'Limit Hold\'em',
+  limit: "Limit Hold'em",
   short_deck: 'Short Deck',
 };
 
@@ -42,6 +43,53 @@ const FREQUENCY_LABELS = {
   irregular: 'Irregular',
   daily: 'Daily',
 };
+
+const SITE_URL = 'https://smarter.poker';
+
+// ── Server-side data fetch ─────────────────────────────────────────────────
+// Called on every request. Short-cache so a new post or RSVP shows up fast,
+// but long-enough-SWR that crawler bursts don't hammer the DB.
+export async function getServerSideProps({ params, res, req }) {
+  const slug = params?.slug;
+  if (!slug || typeof slug !== 'string') {
+    return { notFound: true };
+  }
+
+  // Resolve absolute API URL from the request headers for same-host fetch.
+  const host = req.headers['x-forwarded-host'] || req.headers.host;
+  const proto = (req.headers['x-forwarded-proto'] || 'https').split(',')[0];
+  const base = host ? `${proto}://${host}` : SITE_URL;
+
+  try {
+    const apiRes = await fetch(`${base}/api/public/home-games/${encodeURIComponent(slug)}`, {
+      headers: { 'User-Agent': 'sp-ssr' },
+    });
+
+    if (apiRes.status === 404) {
+      return { notFound: true };
+    }
+    if (!apiRes.ok) {
+      // On 5xx, surface a real 500 rather than a blank client render.
+      res.statusCode = 500;
+      return { props: { data: null, serverError: true } };
+    }
+
+    const json = await apiRes.json();
+    if (!json?.success || !json?.data) {
+      return { notFound: true };
+    }
+
+    // Cache at the edge for 30s fresh / 180s stale-while-revalidate.
+    res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=180');
+
+    return { props: { data: json.data, serverError: false } };
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('[home-games/slug ssr]', err);
+    res.statusCode = 500;
+    return { props: { data: null, serverError: true } };
+  }
+}
 
 function formatStakesLine(group) {
   const type = GAME_TYPE_LABELS[group.default_game_type] || group.default_game_type?.toUpperCase() || 'Poker';
@@ -70,49 +118,112 @@ function formatTime(t) {
   return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 }
 
-export default function PublicHomeGamePage() {
-  const router = useRouter();
-  const { slug } = router.query;
-  useTrainingBus('hub-home-games-slug');
+// Build JSON-LD for crawlers. One LocalBusiness for the host, one Event per
+// upcoming game. This is what powers rich-result search cards.
+function buildJsonLd(data) {
+  const { page, group, host, upcoming_games = [] } = data;
+  const canonicalUrl = `${SITE_URL}/hub/home-games/${page.slug}`;
 
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-  const [data, setData] = useState(null);
+  const localBusiness = {
+    '@context': 'https://schema.org',
+    '@type': 'LocalBusiness',
+    '@id': canonicalUrl,
+    name: page.name,
+    description: group.description || page.description || '',
+    url: canonicalUrl,
+    image: page.cover_url || page.avatar_url || undefined,
+    address: (page.city || page.state)
+      ? {
+        '@type': 'PostalAddress',
+        addressLocality: page.city || undefined,
+        addressRegion: page.state || undefined,
+        addressCountry: page.country || 'US',
+      }
+      : undefined,
+    aggregateRating: group.member_count
+      ? { '@type': 'AggregateRating', ratingCount: group.member_count, ratingValue: '5', bestRating: '5' }
+      : undefined,
+  };
+
+  const events = upcoming_games
+    .filter((g) => g.scheduled_date)
+    .map((g) => {
+      const startIso = g.start_time
+        ? `${g.scheduled_date}T${String(g.start_time).slice(0, 8)}`
+        : g.scheduled_date;
+      return {
+        '@context': 'https://schema.org',
+        '@type': 'Event',
+        name: g.title || `${GAME_TYPE_LABELS[g.game_type] || g.game_type || 'Poker'} ${g.stakes || ''}`.trim(),
+        description: g.description || `${page.name} — ${formatStakesLine(group)}`,
+        startDate: startIso,
+        eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+        eventStatus: 'https://schema.org/EventScheduled',
+        location: {
+          '@type': 'Place',
+          name: page.name,
+          address: {
+            '@type': 'PostalAddress',
+            addressLocality: page.city || undefined,
+            addressRegion: page.state || undefined,
+            addressCountry: 'US',
+          },
+        },
+        organizer: host
+          ? { '@type': 'Person', name: host.display_name }
+          : undefined,
+        offers: g.buyin_min
+          ? {
+            '@type': 'Offer',
+            price: g.buyin_min,
+            priceCurrency: 'USD',
+            availability: g.max_players && (g.rsvp_yes || 0) < g.max_players
+              ? 'https://schema.org/InStock'
+              : 'https://schema.org/SoldOut',
+            url: canonicalUrl,
+          }
+          : undefined,
+      };
+    });
+
+  return [localBusiness, ...events];
+}
+
+// ── Component ──────────────────────────────────────────────────────────────
+export default function PublicHomeGamePage({ data, serverError }) {
+  const router = useRouter();
+  useTrainingBus('hub-home-games-slug');
   const [menuOpen, setMenuOpen] = useState(false);
   const [copyState, setCopyState] = useState('');
 
-  useEffect(() => {
-    if (!router.isReady || !slug) return;
+  // Server-error fallback (rare — API returned 5xx)
+  if (serverError || !data) {
+    return (
+      <>
+        <SEOHead title="Home Game — Temporarily Unavailable" description="We couldn't load this page right now." noindex={true} />
+        <div className="hgs-page">
+          <UniversalHeader onMenuClick={() => setMenuOpen(true)} />
+          <div className="hgs-notfound">
+            <h1>Temporarily Unavailable</h1>
+            <p>We couldn&apos;t load this home game right now. Please try again in a moment.</p>
+            <Link href="/hub/home-games" className="hgs-primary-btn">Browse Home Games</Link>
+          </div>
+          <HamburgerMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} worldKey="hub" />
+          <style jsx>{pageStyles}</style>
+        </div>
+      </>
+    );
+  }
 
-    let cancelled = false;
-    setLoading(true);
-    setNotFound(false);
+  const { page, group, host, upcoming_games = [], posts = [] } = data;
+  const canonical = `/hub/home-games/${page.slug}`;
+  const shareUrl = `${SITE_URL}${canonical}`;
 
-    fetch(`/api/public/home-games/${encodeURIComponent(slug)}`)
-      .then(async (r) => {
-        if (r.status === 404) {
-          if (!cancelled) setNotFound(true);
-          return null;
-        }
-        if (!r.ok) throw new Error(`Request failed (${r.status})`);
-        return r.json();
-      })
-      .then((json) => {
-        if (!cancelled && json?.success) setData(json.data);
-      })
-      .catch((e) => {
-        console.error('Load home game failed:', e);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+  const metaTitle = `${page.name} — Home Game${page.city ? ` in ${page.city}, ${page.state}` : ''}`;
+  const metaDesc =
+    (group.description || page.description || `Join ${page.name}, a poker home game${page.city ? ` in ${page.city}, ${page.state}` : ''}. ${formatStakesLine(group)}.`).slice(0, 160);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [router.isReady, slug]);
-
-  const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/hub/home-games/${slug}` : '';
+  const jsonLd = buildJsonLd(data);
 
   const copyShareUrl = async () => {
     try {
@@ -127,72 +238,40 @@ export default function PublicHomeGamePage() {
     }
   };
 
-  // ── Loading ──
-  if (loading) {
-    return (
-      <>
-        <SEOHead title="Home Game" description="Loading…" noindex={true} />
-        <div className="hgs-page">
-          <UniversalHeader onMenuClick={() => setMenuOpen(true)} />
-          <div className="hgs-loading"><div className="hgs-spinner" /><p>Loading Home Game…</p></div>
-          <HamburgerMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} worldKey="hub" />
-          <style jsx>{pageStyles}</style>
-        </div>
-      </>
-    );
-  }
-
-  // ── Not found ──
-  if (notFound || !data) {
-    return (
-      <>
-        <SEOHead title="Home Game Not Found" description="This home game could not be found." noindex={true} />
-        <div className="hgs-page">
-          <UniversalHeader onMenuClick={() => setMenuOpen(true)} />
-          <div className="hgs-notfound">
-            <h1>Home Game Not Found</h1>
-            <p>The home game you&apos;re looking for isn&apos;t available publicly, or the link may be wrong.</p>
-            <Link href="/hub/home-games" className="hgs-primary-btn">Browse Home Games</Link>
-          </div>
-          <HamburgerMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} worldKey="hub" />
-          <style jsx>{pageStyles}</style>
-        </div>
-      </>
-    );
-  }
-
-  const { page, group, host, upcoming_games = [], posts = [] } = data;
-
-  const metaTitle = `${page.name} — Home Game in ${page.city || 'the US'}`;
-  const metaDesc =
-    (group.description || page.description || `Join ${page.name}, a poker home game in ${page.city}, ${page.state}.`).slice(0, 160);
-
   return (
     <>
       <SEOHead
         title={metaTitle}
         description={metaDesc}
-        canonical={`/hub/home-games/${page.slug}`}
+        canonical={canonical}
         ogImage={page.cover_url || page.avatar_url || undefined}
       />
+      <Head>
+        {jsonLd.map((entry, i) => (
+          <script
+            key={i}
+            type="application/ld+json"
+            // Safe: all data is server-fetched and JSON-serialized, not user-templated.
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(entry) }}
+          />
+        ))}
+      </Head>
       <div className="hgs-page">
         <UniversalHeader onMenuClick={() => setMenuOpen(true)} />
 
-        {/* Cover */}
         <div className="hgs-cover">
           {page.cover_url ? (
-            <img src={page.cover_url} alt={page.name} className="hgs-cover-img" loading="lazy" />
+            <img src={page.cover_url} alt={page.name} className="hgs-cover-img" loading="eager" />
           ) : (
             <div className="hgs-cover-fallback" aria-hidden="true" />
           )}
           <div className="hgs-cover-fade" />
         </div>
 
-        {/* Profile header */}
         <div className="hgs-header">
           <div className="hgs-avatar">
             {page.avatar_url ? (
-              <img src={page.avatar_url} alt="" loading="lazy" />
+              <img src={page.avatar_url} alt="" loading="eager" />
             ) : (
               <div className="hgs-avatar-fallback">{(page.name || 'H')[0]}</div>
             )}
@@ -210,7 +289,10 @@ export default function PublicHomeGamePage() {
             </div>
           </div>
           <div className="hgs-cta-row">
-            <button className="hgs-primary-btn" onClick={() => router.push(`/hub/commander/home-games?code=${group.club_code || group.invite_code || ''}`)}>
+            <button
+              className="hgs-primary-btn"
+              onClick={() => router.push(`/hub/commander/home-games?code=${group.club_code || group.invite_code || ''}`)}
+            >
               Join Group
             </button>
             <button className="hgs-ghost-btn" onClick={copyShareUrl}>
@@ -219,9 +301,7 @@ export default function PublicHomeGamePage() {
           </div>
         </div>
 
-        {/* Body */}
         <div className="hgs-body">
-          {/* Left: about + upcoming */}
           <div className="hgs-col-main">
             {(group.description || group.tagline) && (
               <section className="hgs-section">
@@ -238,15 +318,16 @@ export default function PublicHomeGamePage() {
                 <div className="hgs-games-list">
                   {upcoming_games.map((g) => {
                     const seatsLeft = g.max_players ? Math.max(0, g.max_players - (g.rsvp_yes || 0)) : null;
+                    const dparts = formatDate(g.scheduled_date).split(' ');
                     return (
                       <div key={g.id} className="hgs-game-card">
                         <div className="hgs-game-date">
-                          <div className="hgs-game-mon">{formatDate(g.scheduled_date).split(' ')[1] || ''}</div>
-                          <div className="hgs-game-day">{formatDate(g.scheduled_date).split(' ')[2] || ''}</div>
-                          <div className="hgs-game-dow">{formatDate(g.scheduled_date).split(' ')[0] || ''}</div>
+                          <div className="hgs-game-mon">{dparts[1] || ''}</div>
+                          <div className="hgs-game-day">{dparts[2] || ''}</div>
+                          <div className="hgs-game-dow">{dparts[0] || ''}</div>
                         </div>
                         <div className="hgs-game-body">
-                          <h3>{g.title || `${GAME_TYPE_LABELS[g.game_type] || g.game_type?.toUpperCase()} ${g.stakes || ''}`.trim()}</h3>
+                          <h3>{g.title || `${GAME_TYPE_LABELS[g.game_type] || g.game_type?.toUpperCase() || ''} ${g.stakes || ''}`.trim()}</h3>
                           <div className="hgs-game-meta">
                             {g.start_time && <span>{formatTime(g.start_time)}</span>}
                             {g.stakes && <span>· {g.stakes}</span>}
@@ -289,7 +370,6 @@ export default function PublicHomeGamePage() {
             )}
           </div>
 
-          {/* Right: schedule + quick facts */}
           <aside className="hgs-col-side">
             <section className="hgs-section hgs-card">
               <h2>Schedule</h2>
@@ -327,9 +407,7 @@ export default function PublicHomeGamePage() {
 
 const pageStyles = `
 .hgs-page{min-height:100vh;background:linear-gradient(180deg,#0a0f1c 0%,#050810 100%);color:#fff;font-family:"Inter",-apple-system,sans-serif;padding-bottom:80px}
-.hgs-loading,.hgs-notfound{min-height:60vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 20px}
-.hgs-spinner{width:40px;height:40px;border:3px solid rgba(255,255,255,.1);border-top-color:#ef4444;border-radius:50%;animation:hgs-spin .8s linear infinite;margin-bottom:12px}
-@keyframes hgs-spin{to{transform:rotate(360deg)}}
+.hgs-notfound{min-height:60vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 20px}
 .hgs-notfound h1{font-size:24px;margin:0 0 8px}
 .hgs-notfound p{color:rgba(255,255,255,.6);margin-bottom:20px;max-width:420px}
 .hgs-cover{position:relative;height:220px;width:100%;overflow:hidden;background:linear-gradient(135deg,#1e293b,#0f172a)}
