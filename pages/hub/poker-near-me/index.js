@@ -1531,18 +1531,18 @@ export default function PokerNearMeLobby() {
   // All 12 lobby grid icons route to their full standalone pages.
   // No more inline panel overlays — every feature gets its own page.
   const POD_ROUTES = {
-    nearme:    '/hub/poker-near-me?tab=venues',
+    nearme:    '/hub/poker-near-me/venues',
     homegames: '/hub/home-games',
-    livegames: '/hub/poker-near-me?tab=live',
+    livegames: '/hub/poker-near-me/live-games',
     tours:     '/hub/poker-tours',
-    mapview:   '/hub/poker-near-me?tab=map',
+    mapview:   '/hub/poker-near-me/map',
     calendar:  '/hub/events-calendar',
-    series:    '/hub/poker-near-me?tab=events&sub=series',
-    roadtrip:  '/hub/poker-near-me?tab=more',
+    series:    '/hub/poker-near-me/series',
+    roadtrip:  '/hub/poker-near-me/roadtrip',
     daily:     '/hub/daily-tournaments',
-    favorites: '/hub/poker-near-me?tab=saved',
+    favorites: '/hub/poker-near-me/saved',
     social:    '/hub/friends',
-    alerts:    '/hub/poker-near-me?tab=more',
+    alerts:    '/hub/poker-near-me/alerts',
   };
 
   const handlePodClick = useCallback((podId) => {

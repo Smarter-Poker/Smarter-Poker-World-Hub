@@ -627,7 +627,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
         if (cardId === 'poker-near-me') {
             // Set flag so poker-near-me page knows to play intro video
             try { sessionStorage.setItem('poker-near-me-from-hub', '1'); } catch {}
-            router.push('/hub/poker-near-me-lobby');
+            router.push('/hub/poker-near-me');
             return;
         }
 
@@ -695,11 +695,11 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
             return;
         }
 
-        // Poker Near Me routes to the 12-icon lobby, not the tab-based page
+        // Poker Near Me routes to the 12-icon lobby
         if (orbId === 'poker-near-me') {
             // Set flag so poker-near-me page knows to play intro video
             try { sessionStorage.setItem('poker-near-me-from-hub', '1'); } catch {}
-            router.push('/hub/poker-near-me-lobby');
+            router.push('/hub/poker-near-me');
             return;
         }
 

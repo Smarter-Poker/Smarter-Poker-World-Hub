@@ -2050,15 +2050,28 @@ export default function PokerNearMePage() {
         if (typeof window === 'undefined' || !router.isReady || !paramsAbsorbed.current) return;
         if (deepLinkRef.current) clearTimeout(deepLinkRef.current);
         deepLinkRef.current = setTimeout(() => {
+            let pathSlug = 'venues';
+            if (showLiveTab) {
+                pathSlug = 'live-games';
+            } else if (activeTab === 'map') {
+                pathSlug = 'map';
+            } else if (activeTab === 'saved') {
+                pathSlug = 'saved';
+            } else if (activeTab === 'more') {
+                pathSlug = activeMoreTab === 'alerts' ? 'alerts' : activeMoreTab === 'roadtrip' ? 'roadtrip' : 'more';
+            } else if (activeTab === 'events') {
+                pathSlug = activeEventTab || 'events';
+            } else if (activeTab === 'venues') {
+                pathSlug = 'venues';
+            }
+
             const params = new URLSearchParams();
-            if (activeTab !== 'venues') params.set('tab', activeTab);
-            if (activeTab === 'events' && activeEventTab !== 'daily') params.set('sub', activeEventTab);
             if (searchQuery) {
                 params.set('q', searchQuery);
             }
             if (filters.venueType !== 'all') params.set('filter', filters.venueType);
             const qs = params.toString();
-            const newUrl = '/hub/poker-near-me' + (qs ? '?' + qs : '');
+            const newUrl = '/hub/poker-near-me/' + pathSlug + (qs ? '?' + qs : '');
             
             // Re-read current path to check if we really need to replace
             const currentUrl = router.asPath;
@@ -2070,7 +2083,7 @@ export default function PokerNearMePage() {
             }
         }, 500);
         return () => { if (deepLinkRef.current) clearTimeout(deepLinkRef.current); };
-    }, [activeTab, activeEventTab, searchQuery, filters.venueType, router.isReady, router.asPath]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [activeTab, activeEventTab, activeMoreTab, showLiveTab, searchQuery, filters.venueType, router.isReady, router.asPath]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Read deep link params on mount (Bypass Next.js router.query hydration delays)
     useEffect(() => {
@@ -2083,29 +2096,52 @@ export default function PokerNearMePage() {
         const subParam = searchParams.get('sub');
         const filterParam = searchParams.get('filter');
 
+        const pathname = window.location.pathname;
+        const parts = pathname.split('/');
+        const slug = parts[parts.length - 1]; // e.g. 'live-games', 'map', 'venues'
+
         if (qParam) {
             setSearchQuery(qParam);
             setShowGlobalSearch(true); // Automatically open the global search modal!
         }
         
-        if (tabParam) {
-            // Legacy tab mapping: tours/series/daily/calendar → events + sub-tab
-            const LEGACY_EVENT_TABS = { tours: 'tours', series: 'series', daily: 'daily', calendar: 'calendar' };
-            if (LEGACY_EVENT_TABS[tabParam]) {
-                setActiveTab('events');
-                setActiveEventTab(LEGACY_EVENT_TABS[tabParam]);
-            } else if (tabParam === 'favorites') {
-                setActiveTab('saved');
-            } else if (tabParam === 'live') {
-                // Live tab is ephemeral — activate it but never persist to storage
+        if (slug) {
+            let internalTab = slug;
+            let internalSub = null;
+            let isLive = false;
+
+            if (slug === 'live-games') {
+                isLive = true;
+            } else if (slug === 'venues') {
+                internalTab = 'venues';
+            } else if (slug === 'map') {
+                internalTab = 'map';
+            } else if (slug === 'saved') {
+                internalTab = 'saved';
+            } else if (['series', 'tours', 'events', 'daily-tournaments', 'events-calendar'].includes(slug)) {
+                internalTab = 'events';
+                if (slug === 'daily-tournaments') internalSub = 'daily';
+                else if (slug === 'events-calendar') internalSub = 'calendar';
+                else internalSub = slug === 'events' ? 'series' : slug;
+            } else if (['roadtrip', 'alerts', 'more'].includes(slug)) {
+                internalTab = 'more';
+                if (slug === 'roadtrip' || slug === 'alerts') setActiveMoreTab(slug);
+            } else if (tabParam) {
+                // Fallback for legacy deep links (e.g. ?tab=live backwards compat)
+                if (tabParam === 'live') isLive = true;
+                else internalTab = tabParam === 'favorites' ? 'saved' : tabParam;
+            }
+
+            if (isLive) {
                 setShowLiveTab(true);
-                // Remove ?tab=live from URL so it doesn't persist on refresh
                 if (typeof window !== 'undefined') {
-                    const cleanUrl = window.location.pathname;
+                    // Update URL to clean format and drop query
+                    const cleanUrl = '/hub/poker-near-me/live-games' + (qParam ? '?q=' + qParam : '');
                     window.history.replaceState({}, '', cleanUrl);
                 }
-            } else if (TAB_ORDER.includes(tabParam)) {
-                setActiveTab(tabParam);
+            } else if (TAB_ORDER.includes(internalTab) || internalTab === 'events' || internalTab === 'more') {
+                setActiveTab(internalTab);
+                if (internalSub) setActiveEventTab(internalSub);
             }
         }
         
