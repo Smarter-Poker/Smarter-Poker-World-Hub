@@ -53,12 +53,39 @@ export default async function handler(req, res) {
       if (req.method === 'GET') {
           const { id, slug, page_type, owner_id, category, search, user_id, followed_only, linked_venue_id, limit = '20', offset = '0' } = req.query;
 
+          // ──────────────────────────────────────────────────────────────
+          //  HOME-GAME QUARANTINE (Phase 15)
+          //
+          //  Home groups own a row in social_pages for internal plumbing
+          //  (the /hub/home-games/{slug} SSR page resolves via that row,
+          //  and the follow API writes to social_page_followers). But
+          //  home groups must NOT appear in any Social Pages directory
+          //  surface — they have their own dedicated /hub/home-games/*
+          //  UX, and exposing them as generic social pages would let
+          //  users discover private home-game listings through the
+          //  general social directory.
+          //
+          //  Every branch below that returns social_pages data now
+          //  unconditionally excludes page_type='home_game'.
+          //
+          //  Callers that specifically want home-game data must use
+          //  the dedicated endpoints:
+          //    GET /api/public/home-games/{slug}
+          //    GET /api/public/home-games/discover
+          //
+          //  The single-page-by-ID and single-page-by-slug branches
+          //  return 404 with a redirect_to hint when the page_id or
+          //  slug resolves to a home_game page_type. The list branch
+          //  filters them out silently.
+          // ──────────────────────────────────────────────────────────────
+
           // Single page by ID
           if (id) {
               const { data, error } = await getSupabase()
                   .from('social_pages')
                   .select('*')
                   .eq('id', id)
+                  .neq('page_type', 'home_game')
                   .maybeSingle();
 
               if (error || !data) return res.status(404).json({ success: false, error: 'Page not found' });
@@ -98,6 +125,7 @@ export default async function handler(req, res) {
                   .from('social_pages')
                   .select('*')
                   .eq('slug', slug)
+                  .neq('page_type', 'home_game')
                   .maybeSingle();
 
               // #4: Slug history redirect — check if this was an old slug
@@ -178,11 +206,16 @@ export default async function handler(req, res) {
           // List pages with filters
           let query = getSupabase()
               .from('social_pages')
-              .select('*');
+              .select('*')
+              .neq('page_type', 'home_game');   // Phase 15: exclude home games from generic directory
 
           // Only filter by is_public when NOT fetching own pages
           if (!owner_id) query = query.eq('is_public', true);
 
+          // If the caller explicitly passes page_type, honor it BUT the
+          // neq('home_game') above still applies. page_type='home_game' will
+          // produce zero rows — that's intentional. Home-game consumers use
+          // /api/public/home-games/discover instead.
           if (page_type) query = query.eq('page_type', page_type);
           if (owner_id) query = query.eq('owner_id', owner_id);
           if (category && category !== 'all') query = query.eq('category', category);
