@@ -1,9 +1,70 @@
-import React from 'react';
+/**
+ * PodHomeGames.jsx — "Home Games" tab inside the PNM lobby.
+ *
+ * UNIFIED DATA SOURCE: /api/public/home-games/discover
+ *   Pulls from commander_home_groups (the canonical home-game table) joined
+ *   with their social_pages. This is the SAME feed as /hub/home-games, so a
+ *   home game listed via any surface (PNM create form, Commander dashboard,
+ *   or social-pages create) appears here automatically — no dual writes,
+ *   no separate venue_type='home_game' hack.
+ *
+ * Poker clubs (venue_type='poker_club' in poker_venues) are a different
+ * system and are NOT rendered here. They live in the "Poker Clubs" or
+ * "Near You" tab of the PNM lobby.
+ */
+
+import React, { useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import VenueCard from '../VenueCard';
 import { cachedFetch } from './PnmApiCache';
 
 const CreateHomeGame = dynamic(() => import('../CreateHomeGame'), { ssr: false });
+
+// Map a commander_home_groups-shaped row (as returned by the public discover
+// API) into the venue-shaped object VenueCard expects. This adapter lets us
+// keep the existing VenueCard UI while pulling from the canonical home-game
+// feed. Navigation is routed to /hub/home-games/[slug].
+function adaptHomeGameToVenueShape(g) {
+  const stakesArr = g.default_stakes ? [g.default_stakes] : [];
+  const gameTypeLabel = (g.default_game_type || '').toString().toUpperCase();
+  const gamesOffered = gameTypeLabel ? [gameTypeLabel] : [];
+  return {
+    id: g.id,
+    name: g.name,
+    // Tell VenueCard this is a home game (not a poker room / club / casino).
+    venue_type: 'home_game',
+    city: g.city,
+    state: g.state,
+    country: g.country || 'US',
+    latitude: g.approximate_lat ?? g.latitude ?? null,
+    longitude: g.approximate_lng ?? g.longitude ?? null,
+    lat: g.approximate_lat ?? g.latitude ?? null,
+    lng: g.approximate_lng ?? g.longitude ?? null,
+    games_offered: gamesOffered,
+    stakes_cash: stakesArr,
+    about: g.description || g.tagline || '',
+    tagline: g.tagline || '',
+    trust_score: 3.0,
+    is_active: true,
+    is_featured: false,
+    cover_photo_url: g.cover_url || null,
+    profile_photo_url: g.avatar_url || null,
+    logo_url: g.avatar_url || null,
+    follower_count: g.saves_count || g.follower_count || 0,
+    poker_tables: 1,
+    // Canonical identifiers used by onNavigate — prefer slug, fall back to code.
+    slug: g.slug || null,
+    invite_code: g.invite_code || null,
+    club_code: g.club_code || null,
+    // Preserve useful extras for card decorations if VenueCard knows them.
+    host_display_name: g.host_display_name || null,
+    member_count: g.member_count || 0,
+    games_hosted: g.games_hosted || 0,
+    next_game_date: g.next_game_date || null,
+    next_game_title: g.next_game_title || null,
+    next_game_seats_left: g.next_game_seats_left ?? null,
+  };
+}
 
 export default function PodHomeGames({
   filters, setFilters,
@@ -19,35 +80,44 @@ export default function PodHomeGames({
   const hgSearch = filters.hgSearch || '';
   const hgState = filters.hgState || 'all';
   const hgHasSearched = filters.hgHasSearched || false;
-  
-  let homeGames = venues.filter(v => v.venue_type === 'home_game');
-  if (hgSearch) {
-    const lower = hgSearch.toLowerCase();
-    homeGames = homeGames.filter(v => (v.name || '').toLowerCase().includes(lower) || (v.city || '').toLowerCase().includes(lower) || (v.state || '').toLowerCase().includes(lower));
-  }
-  if (hgState !== 'all') homeGames = homeGames.filter(v => v.state === hgState);
 
-  // If we have API fetched results specifically for pod, we use them if we searched via API
-  // However, the original code overwrites setPodHomeGames but relies back on filtering `venues`.
-  // Wait, let's fix it so it actually uses podHomeGames if it exists, or defaults back to filtered venues.
-  // Actually, the original code just read `venues.filter(...)` and ignored `podHomeGames` ! Wait, it fetched and set `setPodHomeGames(newVenues)` but then rendered `homeGames` which was derived from `venues`. This means the fetch result was completely ignored in UI! 
-  // We will honor the fetch result if `hgHasSearched` and `podHomeGames` is populated.
-  const displayGames = (hgHasSearched && podHomeGames && podHomeGames.length > 0) ? podHomeGames : homeGames;
+  // Only the canonical home-game feed populates this list. We no longer
+  // pull from `venues.filter(v => v.venue_type === 'home_game')` — that
+  // table is for commercial poker rooms and never contains home games.
+  const displayGames = Array.isArray(podHomeGames) ? podHomeGames : [];
 
-  const handleSearch = () => {
+  const handleSearch = useCallback(() => {
     setFilters(prev => ({ ...prev, hgHasSearched: true }));
-    // Fetch home games from API with venue_type filter
-    const hgApiState = hgState !== 'all' ? `&state=${hgState}` : '';
-    const hgApiSearch = hgSearch ? `&search=${encodeURIComponent(hgSearch)}` : '';
-    const hgApiLoc = userLocation ? `&lat=${userLocation.lat}&lng=${userLocation.lng}` : '';
-    const hgUrl = `/api/poker/venues?limit=200&offset=0&venue_type=home_game${hgApiState}${hgApiSearch}${hgApiLoc}`;
+    const params = new URLSearchParams();
+    params.set('limit', '100');
+    if (hgState && hgState !== 'all') params.set('state', hgState);
+    if (hgSearch && hgSearch.trim()) params.set('search', hgSearch.trim());
+    const url = `/api/public/home-games/discover?${params.toString()}`;
     setLoading(true);
-    cachedFetch(hgUrl).then(data => {
-      const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
-      setPodHomeGames(newVenues);
-    }).catch(err => console.error('Home games fetch failed:', err))
-    .finally(() => setLoading(false));
-  };
+    cachedFetch(url)
+      .then(data => {
+        const groups = Array.isArray(data?.groups) ? data.groups : [];
+        setPodHomeGames(groups.map(adaptHomeGameToVenueShape));
+      })
+      .catch(err => {
+        console.error('[PodHomeGames] discover fetch failed:', err);
+        setPodHomeGames([]);
+      })
+      .finally(() => setLoading(false));
+  }, [hgSearch, hgState, setFilters, setLoading, setPodHomeGames]);
+
+  // Unified per-card navigation: always route to the canonical
+  // /hub/home-games/[slug] page, never /hub/venues/[id] (which is for
+  // commercial venues only).
+  const navigateToHomeGame = useCallback((venue) => {
+    if (venue?.slug) {
+      handleVenueNavigate(`/hub/home-games/${venue.slug}`, venue);
+    } else if (venue?.club_code) {
+      handleVenueNavigate(`/home-game/${venue.club_code}`, venue);
+    } else if (venue?.invite_code) {
+      handleVenueNavigate(`/home-game/${venue.invite_code}`, venue);
+    }
+  }, [handleVenueNavigate]);
 
   return (
     <div>
@@ -78,7 +148,7 @@ export default function PodHomeGames({
             <span style={{ fontSize: 12, color: '#c9d1d9' }}>
               <span style={{ color: '#d4a853', fontWeight: 800 }}>{displayGames.length}</span> home game{displayGames.length !== 1 ? 's' : ''}
             </span>
-            <button onClick={() => setFilters(prev => ({ ...prev, hgSearch: '', hgState: 'all', hgHasSearched: false }))}
+            <button onClick={() => { setPodHomeGames([]); setFilters(prev => ({ ...prev, hgSearch: '', hgState: 'all', hgHasSearched: false })); }}
               style={{ background: 'none', border: 'none', color: '#8b949e', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>Clear</button>
           </div>
           {loading && <div style={{ display: 'grid', gap: 12 }}>
@@ -91,7 +161,7 @@ export default function PodHomeGames({
                 venue={v}
                 isFavorited={!!favorites['venue-' + v.id]}
                 onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(v.id, v); }}
-                onNavigate={(url) => handleVenueNavigate(url, v)}
+                onNavigate={() => navigateToHomeGame(v)}
                 userLocation={userLocation}
                 checkinCount={checkinCounts[String(v.id)] || 0}
                 reviewStats={reviewStatsMap[String(v.id)]}
@@ -146,11 +216,16 @@ export default function PodHomeGames({
           }}>
             <CreateHomeGame
               userId={userId}
-              onSuccess={(newVenue) => {
-                if (newVenue && onHomeGameCreated) {
-                  onHomeGameCreated(newVenue);
+              onSuccess={(newGroup) => {
+                // Callback receives a commander_home_groups row. Bubble up so
+                // the parent can optionally refresh state. Then auto-run a
+                // search so the user sees their new listing immediately.
+                if (newGroup && onHomeGameCreated) {
+                  onHomeGameCreated(newGroup);
                 }
                 setFilters(prev => ({ ...prev, showCreateHomeGame: false, hgHasSearched: true }));
+                // Re-fetch on the next tick so state is stable first.
+                setTimeout(() => handleSearch(), 50);
               }}
               onCancel={() => setFilters(prev => ({ ...prev, showCreateHomeGame: false }))}
             />

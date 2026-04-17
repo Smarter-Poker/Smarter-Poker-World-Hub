@@ -1,8 +1,23 @@
 /**
  * CreateHomeGame.jsx — List Your Home Game
  *
- * Simple form to create a home game listing visible in PNM search.
- * Submits to /api/poker/venues with venue_type='home_game'.
+ * Creates a real commander_home_group via the canonical API:
+ *     POST /api/commander/home-games/groups
+ *
+ * The DB trigger `trg_autocreate_home_group_social_page` auto-creates a
+ * social_pages row of page_type='home_game' linked to the new group.
+ * The geocode trigger populates latitude/longitude from city/state.
+ * The resulting home game appears on:
+ *   • /hub/home-games             (public discovery)
+ *   • /hub/home-games/[slug]      (SSR profile page with JSON-LD)
+ *   • /hub/commander/home-games   (owner dashboard)
+ *   • /hub/poker-near-me/lobby    (PNM Home Games tab)
+ *
+ * IMPORTANT: This component must NEVER insert into poker_venues.
+ * Home games are a distinct system from poker rooms — Dan's rule.
+ * The `ck_poker_venues_not_home_game` DB constraint enforces this at the
+ * data layer; this component respects the same boundary at the API layer.
+ *
  * Requires authenticated user.
  */
 
@@ -13,6 +28,17 @@ const US_STATES = [
   'KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY',
   'NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'
 ];
+
+// Form labels → canonical default_game_type codes that the API expects.
+// Commander pages render these as NLHE/PLO/etc. so we pass the internal codes.
+const GAME_TYPE_MAP = {
+  'NLH': 'nlhe',
+  'PLO': 'plo',
+  'Mixed': 'mixed',
+  'Stud': 'stud',
+  'HORSE': 'horse',
+  'Cash + Tournament': 'mixed',
+};
 
 const GAME_TYPES = ['NLH', 'PLO', 'Mixed', 'Stud', 'HORSE', 'Cash + Tournament'];
 const SCHEDULE_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -56,49 +82,75 @@ export default function CreateHomeGame({ userId, onSuccess, onCancel }) {
     setError(null);
 
     try {
-      // Use the Supabase client to insert directly into poker_venues
-      const { createClient } = await import('../../../src/lib/supabase');
-      const supabase = (await import('../../../src/lib/supabase')).supabase;
-      
-      const { data, error: dbError } = await supabase
-        .from('poker_venues')
-        .insert([{
-          name: form.name.trim(),
-          city: form.city.trim(),
-          state: form.state,
-          venue_type: 'home_game',
-          games_offered: [form.gameType],
-          stakes_cash: form.stakes ? [form.stakes] : [],
-          about: form.description || `Home game in ${form.city}, ${form.state}. ${form.gameType} - ${form.stakes || 'Various stakes'}. Schedule: ${form.scheduleDays.join(', ') || 'Contact for details'}. Start time: ${form.startTime}. Max ${form.maxPlayers} players.`,
-          poker_tables: parseInt(form.maxPlayers, 10) > 0 ? 1 : 1,
-          is_active: true,
-          is_featured: false,
-          has_tournaments: false,
-          trust_score: 3.0,
-          owner_id: userId,
-          hours_weekday: form.startTime,
-          hours_weekend: form.startTime,
-          metadata: {
-            source: 'user_submitted',
-            game_type: form.gameType,
-            stakes: form.stakes,
-            schedule_days: form.scheduleDays,
-            start_time: form.startTime,
-            max_players: form.maxPlayers,
-            contact_method: form.contactMethod,
-            created_by: userId,
-            created_at: new Date().toISOString(),
-          },
-        }])
-        .select();
+      // Get a bearer token so the canonical endpoint can auth this request.
+      const { getAccessToken } = await import('../../../src/lib/authUtils');
+      const token = await getAccessToken();
+      if (!token) {
+        setError('Your session has expired. Please log in again.');
+        setSubmitting(false);
+        return;
+      }
 
-      if (dbError) throw dbError;
-      
+      // Map the UI label to the canonical game-type code.
+      const default_game_type = GAME_TYPE_MAP[form.gameType] || 'nlhe';
+
+      // Derive frequency from selected days. Most home games are either weekly
+      // (same day every week) or monthly (date-specific). Default to weekly when
+      // the user picked any day; fall back to 'occasional' for no selection.
+      const frequency = form.scheduleDays.length > 0 ? 'weekly' : 'occasional';
+      const typical_day = form.scheduleDays[0] || null;
+      const typical_time = form.startTime || null;
+
+      const descriptionFallback = `Home game in ${form.city}, ${form.state}. ${form.gameType}${form.stakes ? ' — ' + form.stakes : ''}. ${
+        form.scheduleDays.length ? 'Plays on ' + form.scheduleDays.join(', ') + '.' : ''
+      }`;
+
+      const payload = {
+        name: form.name.trim(),
+        description: form.description?.trim() || descriptionFallback,
+        is_private: false,          // PNM-listed games are publicly discoverable.
+        requires_approval: true,    // Host still approves each member.
+        city: form.city.trim(),
+        state: form.state,
+        // latitude/longitude left unset — the autogeocode trigger fills them from city+state.
+        default_game_type,
+        default_stakes: form.stakes?.trim() || null,
+        max_players: Math.max(2, Math.min(20, parseInt(form.maxPlayers, 10) || 9)),
+        typical_day,
+        typical_time,
+        frequency,
+        settings: {
+          source: 'pnm_lobby',
+          ui_game_type: form.gameType,
+          schedule_days: form.scheduleDays,
+          contact_method: form.contactMethod || null,
+        },
+      };
+
+      const resp = await fetch('/api/commander/home-games/groups', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const json = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        throw new Error(json?.error || `Failed (HTTP ${resp.status})`);
+      }
+
+      // The commander endpoint returns { success, group } or { group, ... }.
+      // The DB trigger auto-creates the social_page, so we don't need to do
+      // anything else — just surface the new group to the parent.
+      const newGroup = json?.group || json?.data?.group || json;
+
       setSuccess(true);
-      setTimeout(() => onSuccess?.(data?.[0]), 1500);
+      setTimeout(() => onSuccess?.(newGroup), 1500);
     } catch (err) {
-      console.error('Failed to create home game:', err);
-      setError(err.message || 'Failed to list home game. Please try again.');
+      console.error('[CreateHomeGame] canonical create failed:', err);
+      setError(err?.message || 'Failed to list home game. Please try again.');
     } finally {
       setSubmitting(false);
     }

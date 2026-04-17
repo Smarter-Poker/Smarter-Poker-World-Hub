@@ -2162,7 +2162,12 @@ export default function PokerNearMeLobby() {
       calendarCount: dailyTournaments.length,
       alertCount: upcomingTours.length, // alerts = upcoming tour events only
       savedCount: Object.keys(favorites).filter(k => favorites[k]).length,
-      homeGameCount: venues.filter(v => v.venue_type === 'home_game').length,
+      // Home games live in commander_home_groups, NOT poker_venues. The
+      // podHomeGames state is populated from /api/public/home-games/discover
+      // when the tab is visited. Until then we report 0 rather than filtering
+      // `venues` (which is poker_venues-shaped and will never contain home games
+      // — enforced by the ck_poker_venues_not_home_game DB check constraint).
+      homeGameCount: Array.isArray(podHomeGames) ? podHomeGames.length : 0,
       // Map badge: only show when GPS is active (contextual: "X venues on your map")
       // Without GPS, map is still usable but badge count is misleading
       mappableCount: userLocation ? nearbyVenues.filter(v => v.latitude && v.longitude).length : 0,

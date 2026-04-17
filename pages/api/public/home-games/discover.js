@@ -83,6 +83,7 @@ export default async function handler(req, res) {
       city,
       game_type,
       frequency,
+      search,
       limit: rawLimit = '50',
     } = req.query;
 
@@ -132,6 +133,11 @@ export default async function handler(req, res) {
     if (city) q = q.ilike('city', `%${escapeIlike(city)}%`);
     if (game_type) q = q.eq('default_game_type', game_type);
     if (frequency) q = q.eq('frequency', frequency);
+    // Free-text search across name, city, state — used by the PNM lobby tab.
+    if (search && typeof search === 'string' && search.trim().length > 0) {
+      const s = escapeIlike(search.trim());
+      q = q.or(`name.ilike.%${s}%,city.ilike.%${s}%,state.ilike.%${s}%`);
+    }
 
     const { data: groups, error } = await q;
     if (error) throw error;
