@@ -6,6 +6,14 @@ export default async function handler(req, res) {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
+    // CRON auth: require Bearer CRON_SECRET (matches every other cron handler).
+    if (
+        process.env.CRON_SECRET &&
+        req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`
+    ) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
     try {
         const supabase = getSupabaseAdmin();
 
@@ -13,18 +21,16 @@ export default async function handler(req, res) {
         // checkin_time < NOW() - 6 hours
         // and review_prompt_sent == false
         // and review_completed == false
-        
+
         // Compute 6 hours ago timestamp
         const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
 
+        // Note: there is no FK from user_venue_checkins.venue_id → venues.id,
+        // so PostgREST cannot embed `venues(name)` directly — we do a manual
+        // second-pass lookup instead of relying on the relationship.
         const { data: eligibleCheckins, error } = await supabase
             .from('user_venue_checkins')
-            .select(`
-                id, 
-                user_id, 
-                venue_id, 
-                venues(name)
-            `)
+            .select('id, user_id, venue_id')
             .eq('review_prompt_sent', false)
             .eq('review_completed', false)
             .lt('checkin_time', sixHoursAgo)
@@ -39,10 +45,25 @@ export default async function handler(req, res) {
             return res.status(200).json({ success: true, processed: 0, message: 'No pending review prompts.' });
         }
 
+        // Batch-load venue names for all distinct venue_ids in one shot.
+        const venueIds = Array.from(new Set(eligibleCheckins.map((c) => c.venue_id).filter(Boolean)));
+        const venueNameById = {};
+        if (venueIds.length > 0) {
+            const { data: venues, error: venuesError } = await supabase
+                .from('venues')
+                .select('id, name')
+                .in('id', venueIds);
+            if (venuesError) {
+                console.error('[Venue Review Cron] Venue lookup error:', venuesError);
+            } else if (venues) {
+                for (const v of venues) venueNameById[v.id] = v.name;
+            }
+        }
+
         let processed = 0;
         for (const checkin of eligibleCheckins) {
             try {
-                const venueName = checkin.venues?.name || 'the venue';
+                const venueName = venueNameById[checkin.venue_id] || 'the venue';
 
                 await sendPushNotification(checkin.user_id, 'venue_review', {
                     title: '⭐ How was your session?',
