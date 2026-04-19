@@ -615,30 +615,7 @@ export default function PokerNearMeLobby() {
   useEffect(() => {
     dailyDayFilterRef.current = (filters.dailyDay === 'all' || !filters.dailyDay) ? null : filters.dailyDay;
   }, [filters.dailyDay]);
-  useVenueRealtime((payload) => {
-    // Only refresh if it's a hard reconnect (null payload) or a daily tournament change
-    if (payload && payload.table !== 'venue_daily_tournaments') return;
 
-    // Bust the cache for all daily-tournament URLs so next cachedFetch bypasses TTL
-    invalidateCache('/api/poker/daily-tournaments');
-    // [LB7 FIX] Read current day filter from ref — not stale closure
-    // (If not in the daily pod, dailyDayFilterRef.current is null, which fetches all today correctly for the badge)
-    const dayFilter = dailyDayFilterRef.current;
-    let url = '/api/poker/daily-tournaments';
-    const params = [`_rt=${Date.now()}`];
-    if (dayFilter) params.push(`day=${encodeURIComponent(dayFilter)}`);
-    url += '?' + params.join('&');
-    
-    fetch(url)
-        .then(r => r.json())
-        .then(data => {
-            if (data?.data) setDailyTournaments(data.data);
-            else if (data?.tournaments) setDailyTournaments(data.tournaments);
-            else if (Array.isArray(data)) setDailyTournaments(data);
-            if (data?.stats?.total != null) setTodaysTournamentCount(data.stats.total);
-        })
-        .catch(console.error);
-  });
 
   // [W3 FIX] Re-fetch daily tournaments when userLocation becomes available
   // (mount fires before GPS resolves, so initial fetchDaily gets no location context)
@@ -703,42 +680,49 @@ export default function PokerNearMeLobby() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Real-time Supabase Data Hydration ───
-  // [L1 FIX] Channel names now unique per mount — static names cause silent duplicate
-  // subscription conflicts when React StrictMode double-invokes effects or rapid nav occurs.
-  // [LB8 FIX] Changed event: 'UPDATE' to event: '*' — INSERT and DELETE were silently ignored.
-  // New venues added to DB or deleted venues were never reflected in the UI without a full refresh.
-  useEffect(() => {
-    const uid = Math.random().toString(36).substring(2, 8);
-    const venueChannel = supabase.channel(`public:venues_lobby_${uid}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'poker_venues' }, (payload) => {
+  // [L1 FIX + BILLING FIX] Consolidated 4 independent Realtime WebSockets into ONE multiplexed SWR channel
+  // via `useVenueRealtime`. This reduces Concurrent WebSocket usage by 75% per lobby visitor.
+  useVenueRealtime((payload) => {
+    if (!payload && !payload?.table) return; // Hard reconnect/visibility refresh (handled via SWR mounts)
+
+    if (payload.table === 'poker_venues') {
         if (payload.eventType === 'UPDATE') {
           setVenues(prev => prev.map(v => v.id === payload.new.id ? { ...v, ...payload.new } : v));
         } else if (payload.eventType === 'INSERT') {
-          // [LOBBY-BUG-1 FIX] Use ref — not stale closure — to get the current search query
           fetchVenues(searchQueryRef.current);
         } else if (payload.eventType === 'DELETE') {
           setVenues(prev => prev.filter(v => v.id !== payload.old.id));
         }
-      }).subscribe();
-      
-    const tourChannel = supabase.channel(`public:tours_lobby_${uid}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tour_source_registry' }, (payload) => {
+    } 
+    else if (payload.table === 'tour_source_registry') {
         if (payload.eventType === 'UPDATE') setTours(prev => prev.map(t => t.id === payload.new.id ? { ...t, ...payload.new } : t));
         else if (payload.eventType === 'DELETE') setTours(prev => prev.filter(t => t.id !== payload.old.id));
-      }).subscribe();
-
-    const seriesChannel = supabase.channel(`public:series_lobby_${uid}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tournament_series' }, (payload) => {
+    } 
+    else if (payload.table === 'tournament_series' || payload.table === 'poker_series') {
         if (payload.eventType === 'UPDATE') setSeries(prev => prev.map(s => s.id === payload.new.id ? { ...s, ...payload.new } : s));
         else if (payload.eventType === 'DELETE') setSeries(prev => prev.filter(s => s.id !== payload.old.id));
-      }).subscribe();
-
-    return () => {
-      supabase.removeChannel(venueChannel);
-      supabase.removeChannel(tourChannel);
-      supabase.removeChannel(seriesChannel);
-    };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    } 
+    else if (payload.table === 'venue_daily_tournaments') {
+        // Bust the cache for all daily-tournament URLs so next cachedFetch bypasses TTL
+        invalidateCache('/api/poker/daily-tournaments');
+        // [LB7 FIX] Read current day filter from ref — not stale closure
+        const dayFilter = dailyDayFilterRef.current;
+        let url = '/api/poker/daily-tournaments';
+        const params = [`_rt=${Date.now()}`];
+        if (dayFilter) params.push(`day=${encodeURIComponent(dayFilter)}`);
+        url += '?' + params.join('&');
+        
+        fetch(url)
+            .then(r => r.json())
+            .then(data => {
+                if (data?.data) setDailyTournaments(data.data);
+                else if (data?.tournaments) setDailyTournaments(data.tournaments);
+                else if (Array.isArray(data)) setDailyTournaments(data);
+                if (data?.stats?.total != null) setTodaysTournamentCount(data.stats.total);
+            })
+            .catch(console.error);
+    }
+  });
 
   // ─── Batch fetch check-in counts when venues change ───
   // [LB5 FIX] URL was unbounded (up to 200 IDs * 37 chars = 7,400 chars) — approaching nginx URL length limits.
