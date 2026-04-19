@@ -683,7 +683,13 @@ export default function PokerNearMeLobby() {
   // [L1 FIX + BILLING FIX] Consolidated 4 independent Realtime WebSockets into ONE multiplexed SWR channel
   // via `useVenueRealtime`. This reduces Concurrent WebSocket usage by 75% per lobby visitor.
   useVenueRealtime((payload) => {
-    if (!payload && !payload?.table) return; // Hard reconnect/visibility refresh (handled via SWR mounts)
+    if (!payload || !payload.table) {
+        // [LB9 FIX] Hard reconnect / visibility refresh. Since lobby.js uses static local arrays
+        // instead of SWR bindings, we must manually trigger a master re-fetch here if the mobile 
+        // OS suspends the background tab and restores the WebSocket pipeline later.
+        handleRefreshAll();
+        return;
+    }
 
     if (payload.table === 'poker_venues') {
         if (payload.eventType === 'UPDATE') {
