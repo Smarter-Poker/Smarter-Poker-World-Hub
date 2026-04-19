@@ -312,10 +312,6 @@
     {
       "path": "/api/cron/scrape-charity-schedules",
       "schedule": "0 3 */3 * *"
-    },
-    {
-      "path": "/api/cron/rls-monitor",
-      "schedule": "0 3 * * *"
     }
   ]
 }
