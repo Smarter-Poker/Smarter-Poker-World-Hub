@@ -4,7 +4,6 @@
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { supabase } from '../../../../src/lib/supabase';
@@ -38,7 +37,7 @@ function MemberCard({ member, isLeader, onRemove, canRemove }) {
     <div className="flex items-center justify-between p-3 bg-[#132240] rounded-lg border border-[#4A5E78]">
       <div className="flex items-center gap-3">
         {member.profiles?.avatar_url ? (
-          <Image src={member.profiles.avatar_url} alt="" width={40} height={40} className="w-10 h-10 rounded-full object-cover" style={{borderRadius:'50%'}} unoptimized />
+          <img src={member.profiles.avatar_url} alt="" width={40} height={40} loading="lazy" decoding="async" className="w-10 h-10 rounded-full object-cover" style={{borderRadius:'50%'}} />
         ) : (
           <div className="w-10 h-10 rounded-full bg-[#22D3EE]/10 flex items-center justify-center">
             <Users className="w-5 h-5 text-[#22D3EE]" />

@@ -5,7 +5,6 @@
  * Tap player -> action sheet: Move, Eliminate, Rebuy, Add-on, Update Chips, Seat Change
  */
 import { useState, useEffect, useCallback } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
@@ -385,7 +384,7 @@ ${receipts.map(r => `<div class="card">
               className="w-full flex items-center gap-3 px-4 py-3 bg-[#242526] rounded-xl border border-[#3A3B3C] active:bg-[#3A3B3C] text-left"
             >
               {player.avatar_url ? (
-                <Image src={player.avatar_url} alt="" width={36} height={36} className="w-9 h-9 rounded-full object-cover flex-shrink-0 border-2" />
+                <img src={player.avatar_url} alt="" width={36} height={36} loading="lazy" decoding="async" className="w-9 h-9 rounded-full object-cover flex-shrink-0 border-2" />
               ) : (
                 <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${player.status === 'active' ? 'bg-[#1877F2]/20 text-[#1877F2]' :
                   player.status === 'eliminated' ? 'bg-[#EF4444]/20 text-[#EF4444]' :

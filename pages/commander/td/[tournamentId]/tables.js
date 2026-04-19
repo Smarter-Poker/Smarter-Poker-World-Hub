@@ -6,7 +6,6 @@
  * Tap table -> detail modal with player list, chip counts, break button
  */
 import { useState, useEffect, useCallback } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
@@ -372,7 +371,7 @@ ${receipts.map(r => `<div class="card">
                       <div key={pos.seat} className="absolute flex flex-col items-center"
                         style={{ left: `${pos.x}%`, top: `${pos.y}%`, transform: 'translate(-50%, -50%)' }}>
                         {player?.avatar_url ? (
-                          <Image src={player.avatar_url} alt="" width={28} height={28} className="w-7 h-7 rounded-full object-cover border-2 border-white/30" />
+                          <img src={player.avatar_url} alt="" width={28} height={28} loading="lazy" decoding="async" className="w-7 h-7 rounded-full object-cover border-2 border-white/30" />
                         ) : (
                           <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold ${player ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'
                             }`}>
@@ -399,7 +398,7 @@ ${receipts.map(r => `<div class="card">
                       <div key={player.entry_id}
                         className="flex items-center gap-3 px-3 py-3 bg-[#3A3B3C]/50 rounded-xl">
                         {player.avatar_url ? (
-                          <Image src={player.avatar_url} alt="" width={28} height={28} className="w-7 h-7 rounded-full object-cover border-2 border-[#1877F2]/40 flex-shrink-0" />
+                          <img src={player.avatar_url} alt="" width={28} height={28} loading="lazy" decoding="async" className="w-7 h-7 rounded-full object-cover border-2 border-[#1877F2]/40 flex-shrink-0" />
                         ) : (
                           <span className="w-7 h-7 rounded-full bg-[#1877F2]/20 text-[#1877F2] flex items-center justify-center text-xs font-bold flex-shrink-0">
                             {player.seat_number}

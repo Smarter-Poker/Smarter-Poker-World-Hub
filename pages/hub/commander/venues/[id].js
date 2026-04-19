@@ -4,7 +4,6 @@
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState, useEffect, useCallback } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { ArrowLeft, MapPin, Clock, Users, Phone, Star, Gift, Loader2, MessageSquare, Zap } from 'lucide-react';
@@ -341,7 +340,7 @@ export default function VenueDetailPage() {
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-[#22D3EE]/10 flex items-center justify-center overflow-hidden">
                           {review.reviewer?.avatar_url ? (
-                            <Image src={review.reviewer.avatar_url} alt="" width={32} height={32} className="w-8 h-8 rounded-full object-cover" />
+                            <img src={review.reviewer.avatar_url} alt="" width={32} height={32} loading="lazy" decoding="async" className="w-8 h-8 rounded-full object-cover" />
                           ) : (
                             <Users className="w-4 h-4 text-[#22D3EE]" />
                           )}

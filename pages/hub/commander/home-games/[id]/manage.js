@@ -4,7 +4,6 @@
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState, useEffect, useCallback } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../../src/components/seo/SEOHead';
 import { ArrowLeft, Users, Calendar, Plus, Settings, UserMinus, Clock, DollarSign, Trash2, Loader2, X, Check, Wallet, ArrowUpRight, ArrowDownLeft, RefreshCw, AlertCircle, Heart } from 'lucide-react';
@@ -170,7 +169,7 @@ function MemberRow({ member, isHost, onApprove, onRemove }) {
     <div className="flex items-center gap-3 p-4 border-b border-[#4A5E78] last:border-b-0">
       <div className="w-10 h-10 rounded-full bg-[#22D3EE]/10 flex items-center justify-center overflow-hidden">
         {member.avatar_url ? (
-          <Image src={member.avatar_url} alt="" width={40} height={40} className="w-10 h-10 rounded-full object-cover" style={{borderRadius:'50%'}} unoptimized />
+          <img src={member.avatar_url} alt="" width={40} height={40} loading="lazy" decoding="async" className="w-10 h-10 rounded-full object-cover" style={{borderRadius:'50%'}} />
         ) : (
           <Users className="w-5 h-5 text-[#22D3EE]" />
         )}
@@ -761,7 +760,7 @@ export default function ManageHomeGamePage() {
                         <div key={saveItem.id} className="flex items-center gap-3 p-4">
                           <div className="w-10 h-10 rounded-full bg-[#EF4444]/10 flex items-center justify-center overflow-hidden">
                             {profile.avatar_url ? (
-                              <Image src={profile.avatar_url} alt="" width={40} height={40} className="w-10 h-10 rounded-full object-cover" unoptimized />
+                              <img src={profile.avatar_url} alt="" width={40} height={40} loading="lazy" decoding="async" className="w-10 h-10 rounded-full object-cover" />
                             ) : (
                               <Heart className="w-5 h-5 text-[#EF4444]" />
                             )}

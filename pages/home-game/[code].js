@@ -5,7 +5,6 @@
  * UI: SmarterPoker color scheme, no emojis, Inter font
  */
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
@@ -497,7 +496,7 @@ export default function HomeGamePage() {
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-[#10B981]/10 rounded-full flex items-center justify-center">
                     {group.host_avatar ? (
-                      <Image src={group.host_avatar} alt="" width={40} height={40} className="w-10 h-10 rounded-full object-cover" style={{ borderRadius: '50%' }} unoptimized />
+                      <img src={group.host_avatar} alt="" width={40} height={40} loading="lazy" decoding="async" className="w-10 h-10 rounded-full object-cover" style={{ borderRadius: '50%' }} />
                     ) : (
                       <Users className="w-5 h-5 text-[#10B981]" />
                     )}

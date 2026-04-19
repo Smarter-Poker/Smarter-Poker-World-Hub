@@ -5,7 +5,6 @@
  */
 
 import SEOHead from '../../../src/components/seo/SEOHead';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
@@ -421,7 +420,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
 
             <div style={{ padding: 12, display: 'flex', gap: 10, alignItems: 'center' }}>
                 <div style={{ position: 'relative', display: 'inline-block' }}>
-                    <Image src={author?.avatar_url || '/default-avatar.png'} alt="User avatar" width={40} height={40} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} loading="lazy" unoptimized />
+                    <img src={author?.avatar_url || '/default-avatar.png'} alt="User avatar" width={40} height={40} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} loading="lazy" decoding="async" />
                     {horseProfileIds.has(post.author_id) && isHorseOnlineNow(post.author_id) && (
                         <span style={{ position: 'absolute', bottom: 0, right: 0, width: 10, height: 10, background: '#31a24c', border: '2px solid white', borderRadius: '50%' }} />
                     )}
@@ -2243,7 +2242,7 @@ export default function UserProfilePage() {
                                     <div style={{ background: C.card, borderRadius: 12, padding: 16, marginBottom: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
                                         {!showPostComposer ? (
                                             <div style={{ display: 'flex', gap: 12, alignItems: 'center', cursor: 'pointer' }} onClick={() => setShowPostComposer(true)}>
-                                                <Image src={profile.avatar_url || currentUser.user_metadata?.avatar_url || '/default-avatar.png'} alt="User avatar" width={40} height={40} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} loading="lazy" unoptimized />
+                                                <img src={profile.avatar_url || currentUser.user_metadata?.avatar_url || '/default-avatar.png'} alt="User avatar" width={40} height={40} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} loading="lazy" decoding="async" />
                                                 <div style={{
                                                     flex: 1, padding: '10px 16px', background: C.bg, borderRadius: 20,
                                                     color: C.textSec, fontSize: 15
@@ -2252,7 +2251,7 @@ export default function UserProfilePage() {
                                         ) : (
                                             <>
                                                 <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
-                                                    <Image src={profile.avatar_url || currentUser.user_metadata?.avatar_url || '/default-avatar.png'} alt="User avatar" width={40} height={40} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} loading="lazy" unoptimized />
+                                                    <img src={profile.avatar_url || currentUser.user_metadata?.avatar_url || '/default-avatar.png'} alt="User avatar" width={40} height={40} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} loading="lazy" decoding="async" />
                                                     <textarea
                                                         value={postContent}
                                                         onChange={(e) => setPostContent(e.target.value)}

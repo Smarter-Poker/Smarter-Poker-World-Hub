@@ -4,7 +4,6 @@
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState, useEffect, useCallback } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { ArrowLeft, Home, Users, Calendar, MapPin, Clock, DollarSign, Share2, Settings, UserPlus, Check, X, Copy, Loader2, MessageSquare, Star } from 'lucide-react';
@@ -103,7 +102,7 @@ function MemberCard({ member, isHost }) {
     <div className="flex items-center gap-3 p-3">
       <div className="w-10 h-10 rounded-full bg-[#22D3EE]/10 flex items-center justify-center overflow-hidden">
         {member.avatar_url ? (
-          <Image src={member.avatar_url} alt="" width={40} height={40} className="w-10 h-10 rounded-full object-cover" />
+          <img src={member.avatar_url} alt="" width={40} height={40} loading="lazy" decoding="async" className="w-10 h-10 rounded-full object-cover" />
         ) : (
           <Users className="w-5 h-5 text-[#22D3EE]" />
         )}
@@ -650,7 +649,7 @@ export default function HomeGameDetailPage() {
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-[#22D3EE]/10 flex items-center justify-center">
                           {review.profiles?.avatar_url ? (
-                            <Image src={review.profiles.avatar_url} alt="" width={32} height={32} className="w-8 h-8 rounded-full object-cover" />
+                            <img src={review.profiles.avatar_url} alt="" width={32} height={32} loading="lazy" decoding="async" className="w-8 h-8 rounded-full object-cover" />
                           ) : (
                             <Users className="w-4 h-4 text-[#22D3EE]" />
                           )}

@@ -4,7 +4,6 @@
  * Features: Posts, Photos, Events, Reviews, Live Games
  * UI: SmarterPoker color scheme, no emojis, Inter font
  */
-import Image from 'next/image';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
@@ -1289,7 +1288,7 @@ export default function ClubPage() {
                       </div>
                       <div className="flex items-start gap-3">
                         {user.avatar_url ? (
-                          <Image src={user.avatar_url} alt="" width={40} height={40} className="w-10 h-10 rounded-full object-cover" style={{ borderRadius: '50%' }} unoptimized />
+                          <img src={user.avatar_url} alt="" width={40} height={40} loading="lazy" decoding="async" className="w-10 h-10 rounded-full object-cover" style={{ borderRadius: '50%' }} />
                         ) : (
                           <div className="w-10 h-10 bg-[#1877F2]/10 rounded-full flex items-center justify-center">
                             <span className="text-sm font-semibold text-[#1877F2]">{(user.display_name || 'P').charAt(0).toUpperCase()}</span>
