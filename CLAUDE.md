@@ -230,7 +230,7 @@ src/stores/             Zustand stores
 
 ### Club Arena (Vite SPA -- separate repo)
 ```
-Source:     ~/Documents/Smarter-Poker-Club-Arena/src/
+Source:     ~/Documents/club-arena/src/  (pending Phase 5.1.2 rename -> smarter-poker-club-arena/)
 Output:     public/hub/club-arena/ (DO NOT edit directly)
 API:        pages/api/club-arena/
 Rebuild:    Edit source -> Vite build -> copy dist/ to public/hub/club-arena/
