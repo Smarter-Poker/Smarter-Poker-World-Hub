@@ -608,26 +608,25 @@ export default function PokerNearMeLobby() {
     // Only refresh if it's a hard reconnect (null payload) or a daily tournament change
     if (payload && payload.table !== 'venue_daily_tournaments') return;
 
-    if (activePod === 'daily') {
-        // Bust the cache for all daily-tournament URLs so next cachedFetch bypasses TTL
-        invalidateCache('/api/poker/daily-tournaments');
-        // [LB7 FIX] Read current day filter from ref — not stale closure
-        const dayFilter = dailyDayFilterRef.current;
-        let url = '/api/poker/daily-tournaments';
-        const params = [`_rt=${Date.now()}`];
-        if (dayFilter) params.push(`day=${encodeURIComponent(dayFilter)}`);
-        url += '?' + params.join('&');
-        
-        fetch(url)
-            .then(r => r.json())
-            .then(data => {
-                if (data?.data) setDailyTournaments(data.data);
-                else if (data?.tournaments) setDailyTournaments(data.tournaments);
-                else if (Array.isArray(data)) setDailyTournaments(data);
-                if (data?.stats?.total != null) setTodaysTournamentCount(data.stats.total);
-            })
-            .catch(console.error);
-    }
+    // Bust the cache for all daily-tournament URLs so next cachedFetch bypasses TTL
+    invalidateCache('/api/poker/daily-tournaments');
+    // [LB7 FIX] Read current day filter from ref — not stale closure
+    // (If not in the daily pod, dailyDayFilterRef.current is null, which fetches all today correctly for the badge)
+    const dayFilter = dailyDayFilterRef.current;
+    let url = '/api/poker/daily-tournaments';
+    const params = [`_rt=${Date.now()}`];
+    if (dayFilter) params.push(`day=${encodeURIComponent(dayFilter)}`);
+    url += '?' + params.join('&');
+    
+    fetch(url)
+        .then(r => r.json())
+        .then(data => {
+            if (data?.data) setDailyTournaments(data.data);
+            else if (data?.tournaments) setDailyTournaments(data.tournaments);
+            else if (Array.isArray(data)) setDailyTournaments(data);
+            if (data?.stats?.total != null) setTodaysTournamentCount(data.stats.total);
+        })
+        .catch(console.error);
   });
 
   // [W3 FIX] Re-fetch daily tournaments when userLocation becomes available
@@ -2112,7 +2111,7 @@ export default function PokerNearMeLobby() {
       mappableCount: userLocation ? nearbyVenues.filter(v => v.latitude && v.longitude).length : 0,
       lastFetchTime: lastFetchTime,
     };
-  }, [venues, tours, series, dailyTournaments, favorites, liveGameCount, userLocation, lastFetchTime, toursLoaded, todaysTournamentCount]);
+  }, [venues, tours, series, dailyTournaments, favorites, liveGameCount, userLocation, lastFetchTime, toursLoaded, todaysTournamentCount, podHomeGames]);
 
   return (
     <>

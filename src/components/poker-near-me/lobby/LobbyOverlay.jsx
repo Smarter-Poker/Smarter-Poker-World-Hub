@@ -120,7 +120,12 @@ export default function LobbyOverlay({
                 tabIndex={0}
                 className="lobby-search-input"
                 onClick={() => onSearchBarClick?.()}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSearchBarClick?.(); }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onSearchBarClick?.();
+                  }
+                }}
                 aria-label="Search for poker venues, tours, and series"
                 style={{ cursor: 'text', userSelect: 'none', display: 'flex', alignItems: 'center' }}
               >
