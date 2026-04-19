@@ -12,18 +12,9 @@
  * Double-trigger prevention: checks last_hard_stop_date to avoid
  * re-triggering if the cron fires multiple times in the same minute
  */
-import { createClient } from '../../../src/lib/supabaseServerClient';
+import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
 
-let _supabase = null;
-function getSupabase() {
-    if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        if (!key) return null;
-        _supabase = createClient(url, key);
-    }
-    return _supabase;
-}
+const getSupabase = getSupabaseAdmin;
 
 /**
  * Get current time in CST (America/Chicago)

@@ -6,17 +6,9 @@
  * 
  * Cooldown: 4 hours between repeat alerts for the same match.
  */
-import { createClient } from '../../../src/lib/supabaseServerClient';
+import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
 
-let _supabase = null;
-function getSupabase() {
-  if (!_supabase) {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    _supabase = createClient(url, key);
-  }
-  return _supabase;
-}
+const getSupabase = getSupabaseAdmin;
 
 const COOLDOWN_MS = 4 * 60 * 60 * 1000; // 4 hours
 

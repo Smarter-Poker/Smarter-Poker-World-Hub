@@ -16,7 +16,7 @@
  *   - Auto-resolves: Sends "all clear" when data becomes fresh again
  */
 import { sendSMS, isTwilioConfigured } from '../../../src/lib/commander/twilio';
-import { createClient } from '../../../src/lib/supabaseServerClient';
+import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
 
 const ADMIN_PHONE = '+17086775221';
 const STALE_THRESHOLD_MIN = 45;    // Tier 2: SMS alert
@@ -24,15 +24,7 @@ const DEAD_THRESHOLD_MIN = 60;     // Tier 3: Escalated alert
 const TIER2_COOLDOWN_MS = 60 * 60 * 1000;  // 1 hour between Tier 2 alerts
 const TIER3_COOLDOWN_MS = 30 * 60 * 1000;  // 30 min between Tier 3 alerts
 
-let _supabase = null;
-function getSupabase() {
-  if (!_supabase) {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    _supabase = createClient(url, key);
-  }
-  return _supabase;
-}
+const getSupabase = getSupabaseAdmin;
 
 // ============================================================
 // PERSISTENT ALERT STATE (Supabase-backed)

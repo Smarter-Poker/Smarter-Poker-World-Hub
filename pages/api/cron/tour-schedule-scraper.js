@@ -52,7 +52,7 @@
  * @module api/cron/tour-schedule-scraper
  */
 
-import { createClient } from '../../../src/lib/supabaseServerClient';
+import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
 import { extractPdfSchedule, isPdfUrl, findPdfLinks, extractMsptPdfLinks } from '../../../src/lib/tourPdfExtractor';
 import { fetchAndExtract, fetchHtml } from '../../../src/lib/tourHtmlExtractor';
 import { evaluateAndAlert, alertScraperCritical } from '../../../src/lib/scraperAlerts';
@@ -73,15 +73,7 @@ const SOURCES_PATH = path.join(process.cwd(), 'data', 'tour-scrape-sources.json'
 const CURRENT_YEAR = new Date().getFullYear();
 
 // ─── Supabase (lazy init) ─────────────────────────────────────────────────────
-let _supabase = null;
-function getSupabase() {
-    if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        if (url && key) _supabase = createClient(url, key);
-    }
-    return _supabase;
-}
+const getSupabase = getSupabaseAdmin;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }

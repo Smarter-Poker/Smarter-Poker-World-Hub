@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
 import { sendPushNotification } from '../../../src/lib/pushAlerts';
 
 export default async function handler(req, res) {
@@ -7,11 +7,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-        if (!supabaseKey) throw new Error("No service role key configured");
-        
-        const supabase = createClient(supabaseUrl, supabaseKey);
+        const supabase = getSupabaseAdmin();
 
         // We want checkins where:
         // checkin_time < NOW() - 6 hours

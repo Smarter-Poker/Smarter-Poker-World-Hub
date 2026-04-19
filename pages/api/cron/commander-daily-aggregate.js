@@ -8,17 +8,9 @@
  * vercel.json cron config:
  * { "crons": [{ "path": "/api/cron/commander-daily-aggregate", "schedule": "0 4 * * *" }] }
  */
-import { createClient } from '../../../src/lib/supabaseServerClient';
+import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
 
-let _supabase = null;
-function getSupabase() {
-    if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        _supabase = createClient(url, key);
-    }
-    return _supabase;
-}
+const getSupabase = getSupabaseAdmin;
 
 export default async function handler(req, res) {
   try {

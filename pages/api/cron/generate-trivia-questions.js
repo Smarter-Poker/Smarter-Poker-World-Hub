@@ -20,19 +20,11 @@
  * Target: 3,000 questions per category = 18,000 total questions
  */
 
-import { createClient } from '../../../src/lib/supabaseServerClient';
+import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
 import { getGrokClient } from '../../../src/lib/grokClient';
 import { validateBatch } from '../../../src/lib/triviaValidator';
 
-let _supabase = null;
-function getSupabase() {
-    if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        _supabase = createClient(url, key);
-    }
-    return _supabase;
-}
+const getSupabase = getSupabaseAdmin;
 
 // Category definitions with subcategories for variety
 const CATEGORIES = [

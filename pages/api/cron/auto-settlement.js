@@ -20,12 +20,9 @@
  * { "path": "/api/cron/auto-settlement", "schedule": "0 10 * * 1" }
  * (10:00 UTC Monday = 4:00 AM CST Monday)
  */
-import { createClient } from '../../../src/lib/supabaseServerClient';
+import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+const supabaseAdmin = getSupabaseAdmin();
 
 // System user ID for automated transactions
 const SYSTEM_USER_ID = '00000000-0000-0000-0000-000000000000';

@@ -18,17 +18,9 @@
  * { "path": "/api/cron/auto-settlement-distribute", "schedule": "10 10 * * 1" }
  * (10:10 UTC Monday = 4:10 AM CST Monday)
  */
-import { createClient } from '../../../src/lib/supabaseServerClient';
+import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
 
-let _supabaseAdmin = null;
-function getSupabaseAdmin() {
-    if (!_supabaseAdmin) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        _supabaseAdmin = createClient(url, key);
-    }
-    return _supabaseAdmin;
-}
+// getSupabaseAdmin imported from ../../../lib/supabaseAdmin
 
 const SYSTEM_USER_ID = '00000000-0000-0000-0000-000000000000';
 
