@@ -20,6 +20,7 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { checkSandboxAccess } from '../../../../src/lib/personal-assistant/contextAuthority';
 import { getGrokClient } from '../../../../src/lib/grokClient';
+import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 let _supabase = null;
 function getSupabase() {
@@ -68,33 +69,11 @@ function getActionColor(actionLabel) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// RATE LIMITING & CACHING
+// CACHING
 // ═══════════════════════════════════════════════════════════════════════════
 
 const analysisCache = new Map();
-const rateLimitMap = new Map();
 const CACHE_TTL_MS = 5 * 60 * 1000;
-const RATE_LIMIT_WINDOW_MS = 60 * 1000;
-const MAX_REQUESTS_PER_WINDOW = 30;
-
-function checkRateLimit(userId) {
-  const now = Date.now();
-  const key = userId || 'anonymous';
-  if (!rateLimitMap.has(key)) {
-    rateLimitMap.set(key, { count: 1, windowStart: now });
-    return { allowed: true, remaining: MAX_REQUESTS_PER_WINDOW - 1 };
-  }
-  const entry = rateLimitMap.get(key);
-  if (now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
-    rateLimitMap.set(key, { count: 1, windowStart: now });
-    return { allowed: true, remaining: MAX_REQUESTS_PER_WINDOW - 1 };
-  }
-  if (entry.count >= MAX_REQUESTS_PER_WINDOW) {
-    return { allowed: false, remaining: 0, retryAfter: Math.ceil((entry.windowStart + RATE_LIMIT_WINDOW_MS - now) / 1000) };
-  }
-  entry.count++;
-  return { allowed: true, remaining: MAX_REQUESTS_PER_WINDOW - entry.count };
-}
 
 function getCacheKey(params) {
   const { heroHand, heroPosition, heroStack, gameType, board, exploitMode, bubbleFactor } = params;
@@ -764,12 +743,8 @@ export default async function handler(req, res) {
         }
       }
 
-      // Rate limit — use userId for auth'd users, IP for guests (stricter limit)
-      const rateLimitKey = userId || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'guest';
-      const rateLimit = checkRateLimit(rateLimitKey);
-      if (!rateLimit.allowed) {
-        return res.status(429).json({ success: false, error: 'Rate limit exceeded.', retryAfter: rateLimit.retryAfter });
-      }
+      // Rate limit — 30/min
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
 
       // Check cache
       const cacheKey = getCacheKey({ heroHand, heroPosition, heroStack, gameType, board, exploitMode, bubbleFactor });

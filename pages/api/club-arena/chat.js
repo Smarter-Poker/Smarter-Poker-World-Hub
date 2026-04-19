@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 const { sanitizeNote } = require('../../../src/lib/club-arena/sanitize');
 const { isUUID } = require('../../../src/lib/club-arena/validate');
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 let _supabase = null;
 function getSupabase() {
@@ -42,6 +43,7 @@ function isDuplicateChatPost(userId, clubId, message) {
  * GET:  load last 50 messages for a table (auth required, membership verified)
  */
 export default async function handler(req, res) {
+  if (!applyRateLimit(req, res, LIMITS.write)) return;
   try {
     // ─── Auth: required for ALL methods ────────────────────────
     const authHeader = req.headers.authorization;
