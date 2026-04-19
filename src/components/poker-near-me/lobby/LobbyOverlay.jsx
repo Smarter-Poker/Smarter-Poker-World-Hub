@@ -12,8 +12,7 @@
  * "More Tools" are accessible via the hamburger menu.
  */
 
-import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useMemo } from 'react';
 import InteractiveTutorial, { LOBBY_TUTORIAL_STEPS } from '../InteractiveTutorial';
 
 // 12 clickable areas laid over the single dynamic image, in a 4×3 grid.
@@ -46,65 +45,33 @@ const GRID_HOTSPOTS = [
  * LobbyOverlay — the full UI layer.
  */
 export default function LobbyOverlay({
-  activePod,
   onPodSelect,
-  onSearch,
   searchQuery,
-  onSearchChange,
   liveData = {},
   gpsActive,
   gpsLoading,
   onGpsClick,
-  citySuggestions = [],
-  onCitySelect,
   onVoiceClick,
   gpsError,
-  searchHistory = [],
-  onHistorySelect,
   locationCity,
   locationState,
   onManualLocation,
-  permissionState,
   onShowEnablePopup,
   savedLocation,
   savedLocationCity,
   savedLocationState,
   onUseSavedLocation,
-  onRefresh,
   showTutorial = false,
   onTutorialDismiss,
   venueCount = 0,
   // ─── Global Search Overlay trigger ───
   onSearchBarClick,
 }) {
-  const searchRef = useRef(null);
-  const [searchFocused, setSearchFocused] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  // tutorialStep state removed — managed by InteractiveTutorial
-
-  const [displayVenueCount, setDisplayVenueCount] = useState(venueCount);
-
-  useEffect(() => {
-    setDisplayVenueCount(venueCount);
-  }, [venueCount]);
-
   // Format venue count
   const formattedVenueCount = useMemo(() => {
-    if (displayVenueCount <= 0) return '0';
-    return displayVenueCount.toLocaleString();
-  }, [displayVenueCount]);
-
-  const handleSearchSubmit = useCallback((e) => {
-    e.preventDefault();
-    onSearch?.(searchQuery);
-    searchRef.current?.blur();
-    setShowSuggestions(false);
-  }, [searchQuery, onSearch]);
-
-  // Show/hide city suggestions
-  useEffect(() => {
-    setShowSuggestions(searchFocused && citySuggestions.length > 0);
-  }, [searchFocused, citySuggestions]);
+    if (venueCount <= 0) return '0';
+    return venueCount.toLocaleString();
+  }, [venueCount]);
 
 
 
@@ -136,12 +103,11 @@ export default function LobbyOverlay({
           pointerEvents: 'auto',
           position: 'relative',
         }}>
-          <form className="lobby-search-form" onSubmit={handleSearchSubmit} style={{ position: 'relative', flex: '0 0 auto', pointerEvents: 'auto' }}>
-            <div className={`lobby-search-wrap ${searchFocused ? 'focused' : ''}`} style={{
+          <div className="lobby-search-form" style={{ position: 'relative', flex: '0 0 auto', pointerEvents: 'auto' }}>
+            <div className="lobby-search-wrap" style={{
               backdropFilter: 'blur(16px)',
               background: 'rgba(6, 21, 37, 0.7)',
-              border: searchFocused ? '1px solid rgba(110, 231, 239, 0.5)' : '1px solid rgba(110, 231, 239, 0.2)',
-              boxShadow: searchFocused ? '0 0 24px rgba(110, 231, 239, 0.15)' : 'none',
+              border: '1px solid rgba(110, 231, 239, 0.2)',
               transition: 'all 0.25s',
             }}>
               <svg className="lobby-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" data-tutorial-id="lobby-search">
@@ -221,95 +187,7 @@ export default function LobbyOverlay({
                 </button>
               )}
             </div>
-
-            {/* City Autocomplete Dropdown */}
-            <AnimatePresence>
-              {showSuggestions && (
-                <motion.div
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.2 }}
-                  style={{
-                    position: 'absolute', top: '100%', left: 0, right: 0,
-                    marginTop: 4, background: 'rgba(12,18,28,0.97)',
-                    backdropFilter: 'blur(16px)',
-                    border: '1px solid rgba(110,231,239,0.2)',
-                    borderRadius: 12, overflow: 'hidden', zIndex: 60,
-                    boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-                  }}
-                >
-                  {citySuggestions.map((city, i) => (
-                    <button
-                      key={city}
-                      onClick={() => onCitySelect?.(city)}
-                      style={{
-                        display: 'block', width: '100%', padding: '10px 16px',
-                        background: 'transparent', border: 'none',
-                        borderBottom: i < citySuggestions.length - 1 ? '1px solid rgba(110,231,239,0.06)' : 'none',
-                        color: '#e0e8f0', fontSize: 13, textAlign: 'left',
-                        cursor: 'pointer', fontFamily: 'inherit',
-                        transition: 'background 0.15s',
-                      }}
-                      className="lobby-suggestion-btn"
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(110,231,239,0.5)" strokeWidth="2" style={{ marginRight: 8, verticalAlign: 'middle' }}>
-                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
-                        <circle cx="12" cy="10" r="3" />
-                      </svg>
-                      {city}
-                    </button>
-                  ))}
-                </motion.div>
-              )}
-
-              {/* Search History — shown when focused + empty query */}
-              {searchFocused && !searchQuery && searchHistory.length > 0 && !showSuggestions && (
-                <motion.div
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.2 }}
-                  style={{
-                    position: 'absolute', top: '100%', left: 0, right: 0,
-                    marginTop: 4, background: 'rgba(12,18,28,0.97)',
-                    backdropFilter: 'blur(16px)',
-                    border: '1px solid rgba(110,231,239,0.15)',
-                    borderRadius: 12, overflow: 'hidden', zIndex: 60,
-                    boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-                  }}
-                >
-                  <div style={{
-                    padding: '8px 16px 4px', fontSize: 10, color: 'rgba(200,214,229,0.35)',
-                    textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600,
-                  }}>
-                    Recent Searches
-                  </div>
-                  {searchHistory.slice(0, 6).map((item, i) => (
-                    <button
-                      key={item.id || i}
-                      onClick={() => onHistorySelect?.(item.search_query)}
-                      style={{
-                        display: 'block', width: '100%', padding: '8px 16px',
-                        background: 'transparent', border: 'none',
-                        borderBottom: i < Math.min(searchHistory.length, 6) - 1 ? '1px solid rgba(110,231,239,0.04)' : 'none',
-                        color: 'rgba(200,214,229,0.7)', fontSize: 13, textAlign: 'left',
-                        cursor: 'pointer', fontFamily: 'inherit',
-                        transition: 'background 0.15s',
-                      }}
-                      className="lobby-history-btn"
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(200,214,229,0.3)" strokeWidth="2" style={{ marginRight: 8, verticalAlign: 'middle' }}>
-                        <circle cx="12" cy="12" r="10" />
-                        <polyline points="12 6 12 12 16 14" />
-                      </svg>
-                      {item.search_query}
-                    </button>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </form>
+          </div>
 
           {/* GPS Location Status Indicator — shown INLINE to the RIGHT of the search bar */}
           {gpsActive && (locationCity || locationState) && (

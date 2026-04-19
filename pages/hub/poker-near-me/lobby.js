@@ -276,7 +276,7 @@ export default function PokerNearMeLobby() {
   const [sortBy, setSortBy] = useState('distance');
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({});
-  const [citySuggestions, setCitySuggestions] = useState([]);
+
   const [showVoiceSearch, setShowVoiceSearch] = useState(false);
   const [selectedVenueForReview, setSelectedVenueForReview] = useState(null);
   const [gpsError, setGpsError] = useState(null);
@@ -875,67 +875,7 @@ export default function PokerNearMeLobby() {
     };
   }, []);
 
-  const handleSearchChange = useCallback((value) => {
-    setSearchQuery(value);
 
-    // Dynamic autocomplete — search venues data + popular cities
-    if (value.length >= 2) {
-      const lower = value.toLowerCase();
-      // Search venue names and cities from loaded venues data
-      const venueMatches = venues
-        .filter(v => (v.name && v.name.toLowerCase().includes(lower)) || (v.city && v.city.toLowerCase().includes(lower)))
-        .slice(0, 3)
-        .map(v => v.city && v.state ? `${v.city}, ${v.state}` : v.name);
-      // Also include popular cities that match
-      const cityMatches = POPULAR_CITIES.filter(c => c.toLowerCase().includes(lower)).slice(0, 3);
-      // Deduplicate and limit to 6
-      const allMatches = [...new Set([...venueMatches, ...cityMatches])].slice(0, 6);
-      setCitySuggestions(allMatches);
-    } else {
-      setCitySuggestions([]);
-    }
-
-    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-    searchTimeoutRef.current = setTimeout(() => {
-      if (value.length >= 2) {
-        fetchVenues(value);
-        if (userId) {
-          addSearchHistoryToDb(userId, value).catch(() => { });
-          setSearchHistory(prev => {
-            const filtered = prev.filter(h => h.search_query !== value);
-            return [{ id: `local-${Date.now()}`, search_query: value, searched_at: new Date().toISOString() }, ...filtered].slice(0, 10);
-          });
-        }
-      }
-    }, SEARCH_DEBOUNCE_MS);
-  }, [fetchVenues, userId, venues]);
-
-  const handleSearch = useCallback((query) => {
-    setCitySuggestions([]);
-    if (query) {
-      fetchVenues(query);
-      // Auto-open the Search panel to show results
-      setActivePod('search');
-      setShowPanel(true);
-    }
-  }, [fetchVenues]);
-
-  const handleCitySelect = useCallback((city) => {
-    setSearchQuery(city);
-    setCitySuggestions([]);
-    fetchVenues(city);
-    // Auto-open the Search panel to show results for this city
-    setActivePod('search');
-    setShowPanel(true);
-    if (userId) {
-      addSearchHistoryToDb(userId, city).catch(() => { });
-      // Optimistically update local search history
-      setSearchHistory(prev => {
-        const filtered = prev.filter(h => h.search_query !== city);
-        return [{ id: `local-${Date.now()}`, search_query: city, searched_at: new Date().toISOString() }, ...filtered].slice(0, 10);
-      });
-    }
-  }, [fetchVenues, userId]);
 
   // ─── Voice search result handler ───
   const handleVoiceResult = useCallback((result) => {
@@ -2212,28 +2152,19 @@ export default function PokerNearMeLobby() {
 
         {/* Layer 2 — UI Overlay */}
         <LobbyOverlay
-          activePod={activePod}
           onPodSelect={handlePodClick}
-          onSearch={handleSearch}
           searchQuery={searchQuery}
-          onSearchChange={handleSearchChange}
           liveData={liveData}
-          onRefresh={handleRefreshAll}
           showTutorial={showTutorial}
           onTutorialDismiss={() => { setShowTutorial(false); try { localStorage.setItem('pnm_lobby_tutorial_seen', '1'); } catch {} }}
           gpsActive={gpsActive}
           gpsLoading={gpsLoading}
           onGpsClick={handleGpsClick}
-          citySuggestions={citySuggestions}
-          onCitySelect={handleCitySelect}
           onVoiceClick={() => setShowVoiceSearch(true)}
           gpsError={gpsError}
-          searchHistory={searchHistory}
-          onHistorySelect={handleCitySelect}
           locationCity={locationCity}
           locationState={locationState}
           onManualLocation={() => setShowManualLocation(true)}
-          permissionState={permissionState}
           onShowEnablePopup={() => setShowEnablePopup(true)}
           savedLocation={preferences?.lastLocation}
           savedLocationCity={preferences?.lastLocationCity}
