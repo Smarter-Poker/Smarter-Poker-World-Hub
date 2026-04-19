@@ -136,14 +136,10 @@ const nextConfig = {
     pagesBufferLength: 16,               // Keep 16 pages hot in memory (sufficient for active dev)
   },
 
-  // ─── Webpack Dev Stability Fix ─────────────────────────────────────────────
-  // PERMANENT FIX: Disable webpack filesystem persistent cache in dev mode.
-  // Without this, stale HMR hashes from old browser tabs cause the dev server to
-  // try to load .pack.gz files that no longer exist after a .next nuke, creating a
-  // crash loop. Memory-only cache is fast enough for dev and immune to corruption.
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  // ─── TypeScript Build Config ───────────────────────────────────────────────
+  // ignoreDuringBuilds (eslint) is already set above. Redeclaring it silently
+  // overrode the compress flag's ordering in pre-Next-14.1. Keep just typescript
+  // here since the eslint one was a duplicate.
   typescript: {
     ignoreBuildErrors: true,
   },
