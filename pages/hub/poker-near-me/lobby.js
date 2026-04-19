@@ -424,6 +424,13 @@ export default function PokerNearMeLobby() {
   }, [activePod, searchQuery, filters.selectedState, filters.gameType, sortBy, filters.radius]);
 
   // ─── Fetch venues ───
+  const userLocationRef = useRef(userLocation);
+  userLocationRef.current = userLocation;
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
+  const sortByRef = useRef(sortBy);
+  sortByRef.current = sortBy;
+
   const fetchVenues = useCallback(async (query = '', pageNum = 0, append = false) => {
     const currentSeq = ++fetchSequenceRef.current;
     setLoading(true);
@@ -431,19 +438,23 @@ export default function PokerNearMeLobby() {
     try {
       let url = `/api/poker/venues?limit=${PAGE_SIZE}&offset=${pageNum * PAGE_SIZE}`;
       if (query) url += `&search=${encodeURIComponent(query)}`;
-      if (userLocation) {
-        if (filters.radius) {
-          url += `&lat=${userLocation.lat}&lng=${userLocation.lng}&radius=${filters.radius}`;
+      const activeLoc = userLocationRef.current;
+      const activeFilters = filtersRef.current;
+      const activeSort = sortByRef.current;
+      
+      if (activeLoc) {
+        if (activeFilters.radius) {
+          url += `&lat=${activeLoc.lat}&lng=${activeLoc.lng}&radius=${activeFilters.radius}`;
         } else {
-          url += `&lat=${userLocation.lat}&lng=${userLocation.lng}&radius=50`;
+          url += `&lat=${activeLoc.lat}&lng=${activeLoc.lng}&radius=50`;
         }
       }
-      if (sortBy) url += `&sort=${sortBy}`;
+      if (activeSort) url += `&sort=${activeSort}`;
       // Apply filters
-      if (filters.gameType) url += `&game_type=${filters.gameType}`;
-      if (filters.stakes) url += `&stakes=${filters.stakes}`;
-      if (filters.venueType) url += `&venue_type=${filters.venueType}`;
-      if (filters.selectedState && filters.selectedState !== 'all') url += `&state=${filters.selectedState}`;
+      if (activeFilters.gameType) url += `&game_type=${activeFilters.gameType}`;
+      if (activeFilters.stakes) url += `&stakes=${activeFilters.stakes}`;
+      if (activeFilters.venueType) url += `&venue_type=${activeFilters.venueType}`;
+      if (activeFilters.selectedState && activeFilters.selectedState !== 'all') url += `&state=${activeFilters.selectedState}`;
 
       const data = await fetchWithRetry(url);
       if (fetchSequenceRef.current !== currentSeq) return;
@@ -464,7 +475,7 @@ export default function PokerNearMeLobby() {
         setLoading(false);
       }
     }
-  }, [userLocation, sortBy, filters]);
+  }, []);
 
   // ─── Load more ───
   const loadMore = useCallback(() => {
@@ -732,10 +743,20 @@ export default function PokerNearMeLobby() {
   // ─── Batch fetch check-in counts when venues change ───
   // [LB5 FIX] URL was unbounded (up to 200 IDs * 37 chars = 7,400 chars) — approaching nginx URL length limits.
   // Cap at 100 IDs per request to stay well under the 8,192-char limit.
+  const checkinCountsRef = useRef(checkinCounts);
+  checkinCountsRef.current = checkinCounts;
+  
   useEffect(() => {
     if (venues.length === 0) return;
-    const ids = venues.map(v => v.id).filter(Boolean).slice(0, 100).join(',');
-    if (!ids) return;
+    // Only fetch counts for IDs we haven't already fetched
+    const newIds = venues
+      .map(v => v.id)
+      .filter(id => id && checkinCountsRef.current[String(id)] === undefined)
+      .slice(0, 100);
+      
+    if (newIds.length === 0) return;
+    const ids = newIds.join(',');
+    
     fetch('/api/poker/checkins/batch-counts?venue_ids=' + ids)
       .then(r => r.json())
       .then(j => { if (j.success && j.counts) setCheckinCounts(prev => ({ ...prev, ...j.counts })); })
@@ -1150,6 +1171,7 @@ export default function PokerNearMeLobby() {
       setGpsActive(false);
       setGpsLoading(false);
       setUserLocation(null);
+      userLocationRef.current = null;
       setLocationToast(null);
       setLocationCity('');
       setLocationState('');
@@ -1163,6 +1185,8 @@ export default function PokerNearMeLobby() {
       if (userId) {
         updatePokerNearMePreferences(userId, { locationEnabled: false }).catch(() => {});
       }
+      // Re-fetch venues to clear GPS radius filter
+      fetchVenues(searchQuery);
       return;
     }
     if (!navigator.geolocation) {
