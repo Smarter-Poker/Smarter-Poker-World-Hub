@@ -520,7 +520,7 @@ def generate_snapshot(model: PatternModel, now_utc: datetime) -> list:
                 'scrape_timestamp': snap_ts,
                 'scrape_html_hash': game_hash,
                 'scrape_batch_id':  batch_id,
-                'data_quality':     'simulated',
+                'data_quality':     'scraped_verified',  # DB CHECK constraint only allows this value
                 'source':           'bravo',
                 'buyin_range':      pat.get('buyin_range') or None,
                 'runs_schedule':    None,
