@@ -13,6 +13,7 @@ import { enqueueMutation } from '../../engine/OfflineSyncQueue';
 import { useMessengerService } from '../../hooks/useMessengerService';
 import GiphyPicker from '../shared/GiphyPicker';
 import LocationEnableModal from '../ui/LocationEnableModal';
+import SPImage from '../common/SPImage';
 
 // ─── Lazy Supabase Getter ──────────────────────────────────────────────
 let _supabase = null;
@@ -275,8 +276,8 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
 
             {/* P7-6: Image / Media Preview (Lightbox Target) */}
             {message.image && (
-                <div className="message-image-bubble" onClick={() => onAction?.('openLightbox', message.image)}>
-                    <img src={message.image.url} alt="Attachment" className="chat-inline-image" />
+                <div className="message-image-bubble" onClick={() => onAction?.('openLightbox', message.image)} style={{ position: 'relative', width: '100%', minHeight: 160 }}>
+                    <SPImage src={message.image.url} alt="Attachment" className="chat-inline-image" fill style={{ objectFit: 'cover' }} />
                     {message.image.caption && <div className="image-caption">{message.image.caption}</div>}
                 </div>
             )}
@@ -338,7 +339,9 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
                 <a href={message.linkPreview.url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit', display: 'block', marginTop: 6 }}>
                     <div style={{ border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, overflow: 'hidden', background: 'rgba(0,0,0,0.15)', maxWidth: 280 }}>
                         {message.linkPreview.image && (
-                            <img src={message.linkPreview.image} alt="" style={{ width: '100%', height: 140, objectFit: 'cover' }} />
+                            <div style={{ position: 'relative', width: '100%', height: 140 }}>
+                                <SPImage src={message.linkPreview.image} alt="" fill style={{ objectFit: 'cover' }} />
+                            </div>
                         )}
                         <div style={{ padding: '8px 10px' }}>
                             <div style={{ fontWeight: 600, fontSize: 13, lineHeight: 1.3, marginBottom: 2 }}>{message.linkPreview.title}</div>
@@ -395,7 +398,7 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
                 <div className="message-reactions" onClick={() => onAction?.('viewReactions', message)} style={{ cursor: 'pointer' }}>
                     {message.reactionList.map((r, i) => (
                         r.emoji?.startsWith('gif:') ? (
-                            <img key={i} src={r.emoji.replace('gif:', '')} alt="GIF reaction" title={r.by} style={{ width: 32, height: 32, borderRadius: 4, objectFit: 'cover', cursor: 'default' }} />
+                            <SPImage key={i} src={r.emoji.replace('gif:', '')} alt="GIF reaction" title={r.by} width={32} height={32} style={{ borderRadius: 4, objectFit: 'cover', cursor: 'default', display: 'inline-block' }} />
                         ) : (
                             <span key={i} className="reaction-chip" title={r.by}>{r.emoji}</span>
                         )
@@ -1868,7 +1871,9 @@ export const ChatWindow = ({
                     {gifReactionResults.length > 0 && (
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 4 }}>
                             {gifReactionResults.map(gif => (
-                                <img key={gif.id} src={gif.preview || gif.url} alt="GIF reaction" onClick={() => sendGifReaction(showGifReactionPicker, gif.url)} style={{ width: '100%', borderRadius: 6, cursor: 'pointer', maxHeight: 80, objectFit: 'cover' }} />
+                                <div key={gif.id} onClick={() => sendGifReaction(showGifReactionPicker, gif.url)} style={{ position: 'relative', width: '100%', height: 80, cursor: 'pointer' }}>
+                                    <SPImage src={gif.preview || gif.url} alt="GIF reaction" fill style={{ borderRadius: 6, objectFit: 'cover' }} />
+                                </div>
                             ))}
                         </div>
                     )}
@@ -2140,7 +2145,9 @@ export const ChatWindow = ({
                         )}
                         {mediaGalleryTab === 'images' && (svc.mediaGallery?.images || []).map(item => (
                             <div key={item.id} style={{ marginBottom: 8, borderRadius: 8, overflow: 'hidden' }}>
-                                <img src={item.media_url} alt="" style={{ width: '100%', borderRadius: 8, objectFit: 'cover', maxHeight: 120 }} />
+                                <div style={{ position: 'relative', width: '100%', height: 120 }}>
+                                    <SPImage src={item.media_url} alt="" fill style={{ borderRadius: 8, objectFit: 'cover' }} />
+                                </div>
                                 <div style={{ color: '#888', fontSize: 10, marginTop: 2 }}>{new Date(item.created_at).toLocaleDateString()}</div>
                             </div>
                         ))}

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Play } from 'lucide-react';
+import SPImage from '../common/SPImage';
 
 const FALLBACK_IMAGES = {
     news: 'https://images.pexels.com/photos/6664248/pexels-photo-6664248.jpeg?auto=compress&cs=tinysrgb&w=400'
@@ -46,10 +47,11 @@ export default function ReelCard({ reel, onClick }) {
             onClick={openReel}
         >
             <div className="reel-thumbnail">
-                <img
+                <SPImage
                     src={thumbnailUrl}
                     alt={displayTitle}
-                    loading="lazy"
+                    fill
+                    style={{ objectFit: 'cover' }}
                     onError={(e) => { e.target.src = FALLBACK_IMAGES.news; }}
                 />
                 <div className="reel-overlay">

@@ -36,6 +36,7 @@ import { getGameStickers } from '../../lib/stickerOrchestrator';
 import { resolveAvatarDisplay } from '../../lib/resolveAvatarDisplay';
 import { Z_INDEX } from '../../lib/zIndexAuthority';
 import TableMiniView from './TableMiniView';
+import SPImage from '../common/SPImage';
 
 const parseBlinds = (raw) => {
   if (Array.isArray(raw)) return raw;
@@ -286,12 +287,13 @@ function MiniSeatMap({ current, max, accentColor, tableId }) {
       const avatarSrc = resolveAvatarDisplay(null, (tableId || 'table') + '-seat-' + i);
       seats.push(
         <div key={i} style={{
+          position: 'relative',
           width: 14, height: 14, borderRadius: '50%', overflow: 'hidden',
           border: `1.5px solid ${accentColor}`,
           boxShadow: `0 0 4px ${accentColor}60`,
           flexShrink: 0,
         }}>
-          <img src={avatarSrc} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+          <SPImage src={avatarSrc} alt="" fill style={{ objectFit: 'cover' }} />
         </div>
       );
     } else {

@@ -3,6 +3,7 @@
  * Renders avatar, name, stack, position badges, action tags, timer ring, bet display
  */
 import React, { useEffect, useState } from 'react';
+import SPImage from '../../common/SPImage';
 
 const ACTION_COLORS = {
   fold: 'bg-gray-500',
@@ -130,7 +131,7 @@ export default function PlayerSeat({
 
         {/* Avatar circle */}
         <div
-          className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border-[3px] transition-all duration-300 ${
+          className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border-[3px] transition-all duration-300 ${
             isActive
               ? 'border-yellow-400 shadow-[0_0_16px_rgba(250,204,21,0.5)]'
               : isAllIn
@@ -139,7 +140,7 @@ export default function PlayerSeat({
           } ${dimmed ? 'opacity-40 grayscale' : ''}`}
         >
           {avatarUrl ? (
-            <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
+            <SPImage src={avatarUrl} alt={name} fill style={{ objectFit: 'cover' }} />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-gray-600 to-gray-800 flex items-center justify-center text-white font-bold text-lg sm:text-xl">
               {name.charAt(0).toUpperCase()}

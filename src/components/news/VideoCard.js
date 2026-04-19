@@ -1,5 +1,6 @@
 import React from 'react';
 import { Play } from 'lucide-react';
+import SPImage from '../common/SPImage';
 
 function formatViews(num) {
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
@@ -13,8 +14,8 @@ export default function VideoCard({ video, onClick }) {
             className="video-card"
             onClick={() => onClick(video)}
         >
-            <div className="video-thumbnail">
-                <img src={video.thumbnail_url} alt={video.title} loading="lazy" />
+            <div className="video-thumbnail" style={{ position: 'relative' }}>
+                <SPImage src={video.thumbnail_url} alt={video.title} fill style={{ objectFit: 'cover' }} />
                 <div className="video-duration">{video.duration}</div>
                 <div className="play-button">
                     <Play size={24} fill="#fff" />

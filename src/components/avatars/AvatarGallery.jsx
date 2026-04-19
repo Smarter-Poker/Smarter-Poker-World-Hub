@@ -10,6 +10,7 @@ import { useAvatar } from '../../contexts/AvatarContext';
 import { getAvailableAvatars, getCustomAvatarGallery } from '../../services/avatar-service';
 import CustomAvatarBuilder from './CustomAvatarBuilder';
 import toast from '../../stores/toastStore';
+import SPImage from '../common/SPImage';
 
 export default function AvatarGallery({ onSelect }) {
   const { user, avatar: currentAvatar, selectPresetAvatar, setActiveAvatar, isVip, createCustomAvatar } = useAvatar();
@@ -368,10 +369,11 @@ export default function AvatarGallery({ onSelect }) {
                 className={`avatar-card ${currentAvatar?.type === 'custom' && currentAvatar?.imageUrl === customAvatar.image_url ? 'selected' : ''}`}
                 onClick={() => handleSelectCustomAvatar(customAvatar)}
               >
-                <img
+                <SPImage
                   src={customAvatar.image_url}
                   alt={`Custom Avatar ${index + 1}`}
-                  className="avatar-image"
+                  fill
+                  style={{ objectFit: 'cover' }}
                 />
 
                 {/* DELETE BUTTON */}
@@ -436,15 +438,19 @@ export default function AvatarGallery({ onSelect }) {
         }}>
           {/* Show active custom avatar thumbnail */}
           {customAvatars.length > 0 && customAvatars[0]?.image_url && (
-            <img
-              src={customAvatars[0].image_url}
-              alt="Active Custom Avatar"
-              style={{
-                width: 48, height: 48, borderRadius: '50%', objectFit: 'cover',
+            <div style={{
+                position: 'relative', width: 48, height: 48, borderRadius: '50%', overflow: 'hidden',
                 border: '2px solid #00f5ff',
                 boxShadow: '0 0 12px rgba(0, 245, 255, 0.4)',
-              }}
-            />
+                flexShrink: 0
+            }}>
+              <SPImage
+                src={customAvatars[0].image_url}
+                alt="Active Custom Avatar"
+                fill
+                style={{ objectFit: 'cover' }}
+              />
+            </div>
           )}
           <button
             onClick={handleCreateNewCustom}
@@ -544,10 +550,11 @@ export default function AvatarGallery({ onSelect }) {
                       onClick={() => handleSelectPresetAvatar(av)}
                       style={{ cursor: av.isLocked ? 'not-allowed' : 'pointer' }}
                     >
-                      <img
+                      <SPImage
                         src={av.image}
                         alt={av.name}
-                        className="avatar-image"
+                        fill
+                        style={{ objectFit: 'cover' }}
                       />
                       <div className="avatar-info">
                         <p className="avatar-name">{av.name}</p>
