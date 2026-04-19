@@ -85,7 +85,10 @@ const PodVenueSearchEngine = ({
     const d = getNearestTourDistance(t, userLocation);
     if (d === null) return false;
     return pRadius === 'any' || d <= Number(pRadius);
-  }).sort((a, b) => getNearestTourDistance(a, userLocation) - getNearestTourDistance(b, userLocation)) : [];
+  // FIX: getNearestTourDistance can return null for tours with no coordinate data.
+  // null - null = 0 (wrong, pushes no-location tours to top), null - 5 = -5 (incorrect order).
+  // Coerce null → Infinity so they sort to the bottom, not the top.
+  }).sort((a, b) => (getNearestTourDistance(a, userLocation) ?? Infinity) - (getNearestTourDistance(b, userLocation) ?? Infinity)) : [];
   
   const nearbySeries = userLocation ? series.filter(s => {
     if (!s.latitude || !s.longitude) return false;

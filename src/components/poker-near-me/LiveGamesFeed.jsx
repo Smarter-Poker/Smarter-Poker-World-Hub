@@ -295,6 +295,9 @@ function LiveGamesFeed({
     
     const debounceTimerRef = useRef(null);
     const countdownRef = useRef(null);
+    // FIX: locationAppliedRef was used in handleResetFilters (line 699) but never declared.
+    // Without this, handleResetFilters() throws a ReferenceError in strict mode / React 18.
+    const locationAppliedRef = useRef(!!userLocation);
 
     // ─── CONSOLIDATED DISTANCE CALC (uses effectiveLocation) ───
     const calcDist = useCallback((v) => {
@@ -366,6 +369,9 @@ function LiveGamesFeed({
                 if (lastGoodLiveDataRef.current && Object.keys(lastGoodLiveDataRef.current).length > 0) {
                     console.warn('[LGF] API HTTP error — preserving last-known data.');
                     setIsScraperDead(true);
+                    // FIX: Don't let a stale isDataStale=true bleed through from a prior good cycle;
+                    // on HTTP error we have no timestamp to compare against, so clear the stale flag.
+                    setIsDataStale(false);
                 }
             }
         } catch (e) {
@@ -373,6 +379,8 @@ function LiveGamesFeed({
             // Network failure — preserve last-known data
             if (lastGoodLiveDataRef.current && Object.keys(lastGoodLiveDataRef.current).length > 0) {
                 setIsScraperDead(true);
+                // FIX: Same as HTTP error path — don't persist stale warning without a valid timestamp.
+                setIsDataStale(false);
             }
         }
         setLiveLoading(false);
@@ -407,10 +415,28 @@ function LiveGamesFeed({
         const channelName = `lgf-live-tables-${Math.random().toString(36).substring(2, 10)}`;
         const liveChannel = supabase.channel(channelName)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'venue_live_tables' }, (payload) => {
-                if (!payload || !payload.new) return;
-                const { eventType, new: newRec } = payload;
+                if (!payload) return;
+                const { eventType } = payload;
+
+                // FIX: Handle DELETE events — simulator cycles DELETE all sim-% rows then INSERT
+                // fresh ones. Without DELETE handling, deleted games persist in liveData state
+                // for up to 2 minutes (until the polling cycle fires), causing stale game rows.
+                // When a DELETE arrives for a sim- batch, trigger a debounced full re-fetch
+                // so the new batch's INSERT events populate the feed without delay.
+                if (eventType === 'DELETE') {
+                    const oldRec = payload.old;
+                    // Only react if the deleted row was a simulator row (batch_id starts 'sim-')
+                    // Real rows should not trigger a re-fetch (they're replaced individually by UPDATE)
+                    if (oldRec?.scrape_batch_id?.startsWith('sim-')) {
+                        if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+                        debounceTimerRef.current = setTimeout(() => fetchGlobalLiveData(true), 3000);
+                    }
+                    return;
+                }
+
                 if (eventType !== 'UPDATE' && eventType !== 'INSERT') return;
-                if (!newRec.bravo_slug || !newRec.game_name) return; // Guard null game fields
+                const newRec = payload.new;
+                if (!newRec?.bravo_slug || !newRec?.game_name) return; // Guard null game fields
                 
                 // Surgical update: match venue by bravo_slug (the actual PK proxy on this table)
                 // Then map DB row fields → API game format so g.game is never undefined
