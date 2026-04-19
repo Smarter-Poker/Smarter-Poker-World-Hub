@@ -1,9 +1,14 @@
 /**
  * Twilio SMS Status Webhook
  * POST /api/commander/webhooks/twilio/status - Receive SMS delivery status updates
+ *
+ * SECURITY: Validates Twilio request signatures to prevent spoofed webhook calls.
+ * Attackers cannot forge delivery statuses without the TWILIO_AUTH_TOKEN secret.
+ * Reference: https://www.twilio.com/docs/usage/webhooks/webhooks-security
  */
 import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
+import crypto from 'crypto';
 
 let _supabase = null;
 function getSupabase() {
@@ -25,7 +30,50 @@ export default async function handler(req, res) {
       return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    try {
+    // ── Twilio Signature Validation ───────────────────────────────────────────
+    // Prevents unauthenticated callers from spoofing SMS delivery statuses.
+    // If TWILIO_AUTH_TOKEN is not set, we log a warning but still process
+    // (backwards-compat for venues not yet configured with Twilio).
+    const twilioAuthToken = process.env.TWILIO_AUTH_TOKEN;
+    if (twilioAuthToken) {
+      const twilioSignature = req.headers['x-twilio-signature'];
+      if (!twilioSignature) {
+        console.warn('[twilio-webhook] Missing X-Twilio-Signature header — rejecting');
+        return res.status(403).json({ error: 'Missing webhook signature' });
+      }
+
+      // Reconstruct the URL as Twilio sees it
+      const proto = req.headers['x-forwarded-proto'] || 'https';
+      const host = req.headers['x-forwarded-host'] || req.headers.host;
+      const webhookUrl = `${proto}://${host}/api/commander/webhooks/twilio/status`;
+
+      // Build the validation string: URL + sorted form params
+      const params = req.body || {};
+      const sortedKeys = Object.keys(params).sort();
+      const paramString = sortedKeys.reduce((acc, key) => acc + key + params[key], '');
+      const validationString = webhookUrl + paramString;
+
+      // Compute HMAC-SHA1
+      const expectedSignature = crypto
+        .createHmac('sha1', twilioAuthToken)
+        .update(Buffer.from(validationString, 'utf-8'))
+        .digest('base64');
+
+      // Constant-time comparison to prevent timing attacks
+      const expected = Buffer.from(expectedSignature);
+      const received = Buffer.from(twilioSignature);
+      const valid = expected.length === received.length &&
+        crypto.timingSafeEqual(expected, received);
+
+      if (!valid) {
+        console.warn('[twilio-webhook] Invalid signature — possible spoofed request');
+        return res.status(403).json({ error: 'Invalid webhook signature' });
+      }
+    } else {
+      console.warn('[twilio-webhook] TWILIO_AUTH_TOKEN not set — signature validation DISABLED');
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
       // Twilio sends form-encoded data
       const {
         MessageSid,
