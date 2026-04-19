@@ -48,8 +48,24 @@ export default async function handler(req, res) {
 
           const today = getTodayCST();
 
-          // For now, save as anonymous (would use auth in production)
-          const username = 'Guest_' + Math.random().toString(36).substring(2, 8);
+          // Use authenticated user's username if JWT present; otherwise anonymous
+          let username = 'Guest_' + Math.random().toString(36).substring(2, 8);
+          const authHeader = req.headers.authorization;
+          if (authHeader?.startsWith('Bearer ')) {
+              try {
+                  const token = authHeader.replace('Bearer ', '');
+                  const { data: { user } } = await getSupabase().auth.getUser(token);
+                  if (user) {
+                      // Try to get their profile username
+                      const { data: profile } = await getSupabase()
+                          .from('profiles')
+                          .select('username, full_name')
+                          .eq('id', user.id)
+                          .single();
+                      username = profile?.username || profile?.full_name || user.email?.split('@')[0] || username;
+                  }
+              } catch (e) { /* fall back to guest */ }
+          }
 
           // Save score to leaderboard
           const { error: insertError } = await getSupabase()

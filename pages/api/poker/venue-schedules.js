@@ -21,11 +21,23 @@ function getSupabase() {
 
 const DAYS_ORDER = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
-const CORS_HEADERS = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-};
+const ALLOWED_ORIGINS = ['https://smarter.poker', 'https://www.smarter.poker'];
+
+function getCorsHeaders(req, method) {
+    const origin = req.headers.origin || '';
+    // GET requests: allow any origin (public venue data)
+    // POST/DELETE: restrict to our own origin only
+    const allowedOrigin = method === 'GET'
+        ? '*'
+        : (ALLOWED_ORIGINS.includes(origin) ? origin : 'https://smarter.poker');
+    return {
+        'Access-Control-Allow-Origin': allowedOrigin,
+        'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Vary': 'Origin',
+    };
+}
+
 
 /**
  * Check if user is authorized to edit a venue's schedule:
@@ -61,8 +73,9 @@ async function isAuthorizedEditor(userId, venueId) {
 }
 
 export default async function handler(req, res) {
-    Object.entries(CORS_HEADERS).forEach(([k, v]) => res.setHeader(k, v));
+    Object.entries(getCorsHeaders(req, req.method)).forEach(([k, v]) => res.setHeader(k, v));
     if (req.method === 'OPTIONS') return res.status(200).end();
+
 
     try {
         // ─── GET: Fetch schedules for a venue ───

@@ -6,6 +6,7 @@
  * Auth: Bearer token
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 let _supabase = null;
 function getSupabase() {
@@ -19,6 +20,7 @@ function getSupabase() {
 
 export default async function handler(req, res) {
   try {
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
     if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
     const token = req.headers.authorization?.replace('Bearer ', '');

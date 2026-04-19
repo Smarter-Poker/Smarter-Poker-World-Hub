@@ -11,6 +11,7 @@
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 // ORB-0 FIX-5: No hardcoded fallbacks — env vars are mandatory
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -26,6 +27,7 @@ function getSupabase() {
 }
 
 export default async function handler(req, res) {
+  if (!applyRateLimit(req, res, LIMITS.write)) return;
   try {
       if (req.method !== 'POST') {
           return res.status(405).json({ error: 'Method not allowed' });

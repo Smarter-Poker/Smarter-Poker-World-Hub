@@ -200,11 +200,48 @@ const nextConfig = {
     minimumCacheTTL: 3600, // Cache optimized images for 1 hour
   },
 
-  // ─── Security & Permissions Headers ──────────────────────────────────────────
-  // Ensures geolocation (GPS), microphone, and camera permissions are properly
-  // granted to the page origin. Without this, some browsers/CDNs may block
-  // navigator.geolocation calls. These headers also apply in local dev.
+  // ─── HTTP Security Headers ────────────────────────────────────────────────
+  // Applied to all routes. CSP is in Report-Only mode: violations are logged
+  // to the browser console without breaking any functionality. Once violations
+  // have been monitored and confirmed zero, switch to Content-Security-Policy.
+  //
+  // External resources catalogued:
+  //   fonts.googleapis.com, fonts.gstatic.com  — Google Fonts
+  //   storage.googleapis.com                   — Supabase storage CDN
+  //   maps.googleapis.com                      — Google Maps
+  //   *.supabase.co                            — Supabase DB + auth + storage
+  //   cdn.onesignal.com, onesignal.com         — Push notifications
+  //   cdn.jsdelivr.net, unpkg.com              — jsQR, tessaract.js, Leaflet
+  //   api.giphy.com, media.giphy.com           — GIF search
+  //   livekit.smarter.poker, *.livekit.cloud  — LiveKit voice/video
+  //   *.smarter.poker                          — Platform sub-domains
   async headers() {
+    const csp = [
+      "default-src 'self'",
+      // Scripts: self + OneSignal SDK + Google Maps + jsDelivr + unpkg (Leaflet/jsQR)
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.onesignal.com https://onesignal.com https://maps.googleapis.com https://cdn.jsdelivr.net https://unpkg.com",
+      // Styles: self + inline + Google Fonts
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com https://cdn.jsdelivr.net",
+      // Fonts: Google Fonts CDN
+      "font-src 'self' https://fonts.gstatic.com data:",
+      // Images: self + Supabase + Google Storage + Maps static + QR + YouTube thumbs + Giphy + data URIs
+      "img-src 'self' data: blob: https://*.supabase.co https://storage.googleapis.com https://maps.googleapis.com https://maps.gstatic.com https://api.qrserver.com https://img.youtube.com https://media.giphy.com https://*.giphy.com https://images.unsplash.com",
+      // Connections: API calls to Supabase, OneSignal, Google Maps (geocode), Giphy, LiveKit
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.onesignal.com https://onesignal.com https://maps.googleapis.com https://api.giphy.com https://*.livekit.cloud wss://*.livekit.cloud https://smarter.poker https://*.smarter.poker",
+      // Media: self + blob (audio/video playback)
+      "media-src 'self' blob: https://*.supabase.co",
+      // Workers: self + blob (service worker, workbox)
+      "worker-src 'self' blob:",
+      // Frames: none (no iframes used)
+      "frame-src 'none'",
+      // Object (Flash etc): none
+      "object-src 'none'",
+      // Base URI: self only (prevent base tag injection)
+      "base-uri 'self'",
+      // Form submissions: self only
+      "form-action 'self'",
+    ].join('; ');
+
     return [
       {
         source: '/(.*)',
@@ -213,10 +250,18 @@ const nextConfig = {
             key: 'Permissions-Policy',
             value: 'geolocation=(self), microphone=(self), camera=(self), display-capture=(self)',
           },
+          {
+            // Report-Only: logs violations without blocking — safe to enable immediately.
+            // Monitor browser console and Sentry for violations, then graduate to
+            // Content-Security-Policy once the violation list is clean.
+            key: 'Content-Security-Policy-Report-Only',
+            value: csp,
+          },
         ],
       },
     ];
   },
+
 
   // Club Arena pages are served directly from this deployment (no external proxy)
   async redirects() {

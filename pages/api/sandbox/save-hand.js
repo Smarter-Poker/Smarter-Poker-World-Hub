@@ -4,6 +4,7 @@
  * Table: sandbox_saved_hands (id, user_id, folder_name, tags, state_json)
  */
 import { createClient } from '@supabase/supabase-js';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 function getSupabase() {
     return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
@@ -11,6 +12,7 @@ function getSupabase() {
 
 export default async function handler(req, res) {
   try {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
       if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
 
       try {
