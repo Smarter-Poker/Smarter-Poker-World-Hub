@@ -97,3 +97,8 @@ data/tournament-logs/*
 vercel_deploy_output.txt
 git_status_all.txt
 
+
+# Soft-deleted paths (sandboxed delete tombstones)
+*.dead
+**/*.dead/
+_legacy_club_arena_standalone_pages.dead/

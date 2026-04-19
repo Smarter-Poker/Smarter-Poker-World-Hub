@@ -115,7 +115,7 @@
   "crons": [
     {
       "path": "/api/cron/horses-social-all",
-      "schedule": "*/15 * * * *"
+      "schedule": "*/30 * * * *"
     },
     {
       "path": "/api/cron/horses-social-friends",
@@ -247,7 +247,7 @@
     },
     {
       "path": "/api/cron/trivia-pvp-cleanup",
-      "schedule": "0 * * * *"
+      "schedule": "0 */2 * * *"
     },
     {
       "path": "/api/cron/vip-diamond-stipend",
@@ -255,15 +255,11 @@
     },
     {
       "path": "/api/cron/vip-status-check",
-      "schedule": "0 * * * *"
+      "schedule": "0 */6 * * *"
     },
     {
       "path": "/api/cron/update-charity-locations",
       "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/cron/hard-stop",
-      "schedule": "* * * * *"
     },
     {
       "path": "/api/cron/auto-settlement",
@@ -282,16 +278,12 @@
       "schedule": "20 10 * * 1"
     },
     {
-      "path": "/api/cron/scheduled-table-opener",
-      "schedule": "*/5 * * * *"
-    },
-    {
       "path": "/api/cron/scraper-watchdog",
-      "schedule": "*/30 * * * *"
+      "schedule": "0 */2 * * *"
     },
     {
       "path": "/api/cron/venue-game-alerts",
-      "schedule": "*/15 * * * *"
+      "schedule": "*/30 * * * *"
     },
     {
       "path": "/api/cron/scraper-data-cleanup",
@@ -303,7 +295,7 @@
     },
     {
       "path": "/api/cron/venue-review-prompts",
-      "schedule": "0 * * * *"
+      "schedule": "0 */4 * * *"
     },
     {
       "path": "/api/cron/tour-schedule-scraper",
