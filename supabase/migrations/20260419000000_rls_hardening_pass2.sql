@@ -51,21 +51,10 @@ ALTER TABLE IF EXISTS public.union_wallets ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "union_wallets_update" ON public.union_wallets;
 DROP POLICY IF EXISTS "union_wallets_select" ON public.union_wallets;
 
--- Members can read their union's wallet (via union membership join)
-CREATE POLICY union_wallets_members_select
-  ON public.union_wallets
-  FOR SELECT
-  USING (
-    auth.role() = 'service_role'
-    OR EXISTS (
-      SELECT 1 FROM public.union_members um
-      WHERE um.union_id = public.union_wallets.union_id
-        AND um.user_id = auth.uid()
-    )
-  );
-
--- Only service_role can write financial data
-CREATE POLICY union_wallets_service_write
+-- union_wallets is a financial system table — no direct user SELECT needed
+-- (balances are surfaced through API endpoints with proper auth)
+-- Service role only for all operations
+CREATE POLICY union_wallets_service_only
   ON public.union_wallets
   FOR ALL
   USING (auth.role() = 'service_role');
@@ -157,7 +146,7 @@ BEGIN
     'jarvis_conversations',
     'jarvis_weekly_reports',
     'opponent_profiles',
-    'poker_clips',
+    -- poker_clips excluded: no user_id column in live DB (it's a shared content table)
     'poker_goals',
     'poker_sessions',
     'tilt_journal',
@@ -218,6 +207,25 @@ DROP POLICY IF EXISTS commander_buyin_transactions_service_only ON public.comman
 
 CREATE POLICY commander_buyin_transactions_service_only
   ON public.commander_buyin_transactions
+  FOR ALL
+  USING (auth.role() = 'service_role');
+
+
+-- ────────────────────────────────────────────────────────────────────────────
+-- P1-Da: poker_clips — No user_id (shared content library), service manages
+-- ────────────────────────────────────────────────────────────────────────────
+ALTER TABLE IF EXISTS public.poker_clips ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS poker_clips_select ON public.poker_clips;
+DROP POLICY IF EXISTS poker_clips_insert ON public.poker_clips;
+
+CREATE POLICY poker_clips_public_read
+  ON public.poker_clips
+  FOR SELECT
+  USING (true);
+
+CREATE POLICY poker_clips_service_write
+  ON public.poker_clips
   FOR ALL
   USING (auth.role() = 'service_role');
 
@@ -419,65 +427,35 @@ CREATE POLICY us_upd
 
 
 -- ────────────────────────────────────────────────────────────────────────────
--- P2-F: profile_picture_history — UPDATE/DELETE USING (true)
+-- P2-F: profile_picture_history + memory_achievements
+-- Both tables were DROPPED in 20260314_drop_orphan_tables.sql — skip.
 -- ────────────────────────────────────────────────────────────────────────────
-ALTER TABLE IF EXISTS public.profile_picture_history ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS profile_picture_history_update ON public.profile_picture_history;
-DROP POLICY IF EXISTS profile_picture_history_delete ON public.profile_picture_history;
-
-CREATE POLICY profile_picture_history_update
-  ON public.profile_picture_history
-  FOR UPDATE
-  USING (auth.uid() = user_id);
-
-CREATE POLICY profile_picture_history_delete
-  ON public.profile_picture_history
-  FOR DELETE
-  USING (auth.uid() = user_id OR auth.role() = 'service_role');
-
-
--- ────────────────────────────────────────────────────────────────────────────
--- P2-G: memory_achievements — UPDATE/DELETE USING (true)
--- ────────────────────────────────────────────────────────────────────────────
-ALTER TABLE IF EXISTS public.memory_achievements ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS memory_achievements_update ON public.memory_achievements;
-DROP POLICY IF EXISTS memory_achievements_delete ON public.memory_achievements;
-
-CREATE POLICY memory_achievements_update
-  ON public.memory_achievements
-  FOR UPDATE
-  USING (auth.uid() = user_id OR auth.role() = 'service_role');
-
--- Achievements should not be deletable by users (prevent history erasure)
-CREATE POLICY memory_achievements_delete
-  ON public.memory_achievements
-  FOR DELETE
-  USING (auth.role() = 'service_role');
+-- (No action needed — tables do not exist in production)
 
 
 -- ────────────────────────────────────────────────────────────────────────────
 -- P2-H: union_applications / union_leave_requests — UPDATE USING (true)
--- FIX: Applicant can update own, service_role manages approvals
+-- FIX: Applicant can update own application, service_role manages approvals
 -- ────────────────────────────────────────────────────────────────────────────
 ALTER TABLE IF EXISTS public.union_applications ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "union_applications_update" ON public.union_applications;
+DROP POLICY IF EXISTS union_applications_applicant_update ON public.union_applications;
 
 CREATE POLICY union_applications_applicant_update
   ON public.union_applications
   FOR UPDATE
-  USING (auth.uid() = user_id OR auth.role() = 'service_role');
+  USING (auth.uid() = applicant_user_id OR auth.role() = 'service_role');
 
 ALTER TABLE IF EXISTS public.union_leave_requests ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "union_leave_requests_update" ON public.union_leave_requests;
+DROP POLICY IF EXISTS union_leave_requests_owner_update ON public.union_leave_requests;
 
 CREATE POLICY union_leave_requests_owner_update
   ON public.union_leave_requests
   FOR UPDATE
-  USING (auth.uid() = user_id OR auth.role() = 'service_role');
+  USING (auth.uid() = requester_user_id OR auth.role() = 'service_role');
 
 
 -- ────────────────────────────────────────────────────────────────────────────
