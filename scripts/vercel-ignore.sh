@@ -3,19 +3,20 @@
 # VERCEL IGNORED BUILD STEP — hub-vanguard
 # ═══════════════════════════════════════════════════════════════════════════════
 #
-# Exit 0 = SKIP this build (only noise changed — docs, agents, arena artifacts)
-# Exit 1 = BUILD this (real Next.js source, pages, API routes, styles changed)
+# Exit 0 = SKIP this build (only noise — docs, agent files, Python scrapers)
+# Exit 1 = BUILD this (real source, pages, API routes, arena deploys)
 #
 # Setup in Vercel:
 #   hub-vanguard → Settings → Build and Deployment → Ignored Build Step
 #   Command: bash scripts/vercel-ignore.sh
 #
-# HOW THE DAILY CLUB ARENA DEPLOY WORKS:
-#   This script skips builds triggered by incremental arena sync commits.
-#   At 2PM CT daily, a Vercel Deploy Hook is POSTed by GitHub Actions
-#   (see .github/workflows/club-arena-scheduled-deploy.yml), which bypasses
-#   this ignore script entirely and forces a full fresh build with the
-#   latest club-arena assets already committed to main.
+# DESIGN INTENT:
+#   - Club Arena deploys via build-club-arena.sh are ALWAYS immediate.
+#     public/hub/club-arena/ changes are treated as real deployments.
+#   - Pure noise commits (docs, agent memory, Python scrapers, test files)
+#     are skipped — these don't affect what users see on smarter.poker.
+#   - The daily GitHub Actions safety-net (club-arena-scheduled-deploy.yml)
+#     fires at 2PM CT only if somehow no deploy happened that day.
 # ═══════════════════════════════════════════════════════════════════════════════
 
 set -e
@@ -42,44 +43,63 @@ echo "Changed files in this commit:"
 echo "$CHANGED"
 echo ""
 
-# ── Skip-list: paths that NEVER require a Next.js rebuild ────────────────────
+# ── SKIP LIST: pure noise that never affects what users see ──────────────────
 #
-# public/hub/club-arena/  → pre-built Vite SPA artifacts. Deployed via
-#                           the daily 2PM GitHub Actions Deploy Hook, NOT
-#                           on every incremental sync commit. Intentional skip.
+# NEVER SKIPPED (always builds):
+#   pages/                 → Next.js pages
+#   src/                   → Source components/hooks/lib
+#   styles/                → Global CSS
+#   public/hub/club-arena/ → Club Arena SPA (intentional deploys via build-club-arena.sh)
+#   next.config.js         → Build configuration
+#   vercel.json            → Vercel routing/headers/crons
+#   middleware.ts           → Edge middleware
+#   package.json           → Dependency changes
+#   tailwind.config.js     → CSS config
+#   tsconfig.json          → TypeScript config
+#   scripts/vercel-ignore.sh → This file itself
 #
-# .agent/, .agents/       → AI agent configs, workflows, skills, memory
-# .planning/              → GSD planning docs
-# .hive-mind/, .swarm/    → Multi-agent orchestration state
-# .memory/                → Claude memory files
-# .ocr/, .claude-flow/    → Code review / workflow state
-# docs/, _legacy_/        → Documentation and archived code
-# tmp/, logs/, data/      → Temp files, logs, scraped data
-# scripts/bravo*          → Python scrapers (run on Hetzner, not Vercel)
-# scripts/create-bravo*   → Same
-# playwright*             → E2E test files
-# __tests__/, tests/, e2e/ → Test suites
-# *.md, *.docx, *.txt     → Documentation files
-# *.log                   → Log files
-# *.py                    → Python server scripts
-# lint-errors.json        → ESLint cache
-# tsconfig.tsbuildinfo    → TypeScript incremental build info
+# ALWAYS SKIPPED (pure noise, no user-visible impact):
+#   .agent/, .agents/      → AI agent configs, workflows, skills, memory
+#   .planning/             → GSD planning docs
+#   .hive-mind/, .swarm/   → Multi-agent orchestration state
+#   .memory/               → Claude memory files
+#   .ocr/, .claude-flow/   → Code review / workflow state
+#   .cursorrules           → Editor config
+#   docs/                  → Documentation
+#   _legacy_*/             → Archived legacy code
+#   tmp/, logs/            → Temp files and logs
+#   data/                  → Scraped data files
+#   skills/, templates/    → Agent skill files
+#   output/                → Build/scraper output
+#   playwright*/           → E2E test infrastructure
+#   test-results/          → Test output
+#   __tests__/, tests/, e2e/ → Test suites (run in CI, not prod)
+#   scripts/bravo*         → Bravo Poker Python scrapers (run on Hetzner)
+#   scripts/create-bravo*  → Same
+#   scripts/scraper*       → Same
+#   *.md                   → Markdown documentation
+#   *.docx                 → Word documents
+#   *.log                  → Log files
+#   *.py                   → Python scripts (not deployed to Vercel)
+#   lint-errors.json       → ESLint artifact
+#   tsconfig.tsbuildinfo   → TypeScript incremental cache
+#   build_log.txt          → Build log
+#   debug_html.txt         → Debug output
+#   .buildstamp            → Daily deploy timestamp (managed by GitHub Actions)
 #
-SKIP_PATTERN='^(public/hub/club-arena/|\.agent/|\.agents/|\.planning/|\.hive-mind/|\.memory/|\.swarm/|\.claude/|\.ocr/|\.claude-flow/|\.cursorrules|\.editorconfig|docs/|_legacy_|tmp/|logs/|data/|skills/|templates/|output/|playwright|playwright-report|test-results|__tests__|tests/|e2e/|scripts/bravo|scripts/create-bravo|scripts/scraper|build_log\.txt|debug_html\.txt|lint-errors\.json|tsconfig\.tsbuildinfo|.*\.md$|.*\.docx$|.*\.txt$|.*\.log$|.*\.py$)'
+SKIP_PATTERN='^(\.agent/|\.agents/|\.planning/|\.hive-mind/|\.memory/|\.swarm/|\.claude/|\.ocr/|\.claude-flow/|\.cursorrules|\.editorconfig|docs/|_legacy_|tmp/|logs/|data/|skills/|templates/|output/|playwright|playwright-report|test-results|__tests__|tests/|e2e/|scripts/bravo|scripts/create-bravo|scripts/scraper|build_log\.txt|debug_html\.txt|lint-errors\.json|tsconfig\.tsbuildinfo|\.buildstamp|.*\.md$|.*\.docx$|.*\.log$|.*\.py$)'
 
-# ── Check if any IMPORTANT files changed ─────────────────────────────────────
+# ── Check if any REAL files changed ──────────────────────────────────────────
 IMPORTANT=$(echo "$CHANGED" | grep -vE "$SKIP_PATTERN" || true)
 
 if [ -z "$IMPORTANT" ]; then
-  echo "🚫 SKIPPING BUILD — only non-source files changed:"
+  echo "🚫 SKIPPING BUILD — only noise files changed (docs, agents, scrapers):"
   echo "$CHANGED"
-  echo ""
-  echo "  Next full deploy: daily 2PM CT via GitHub Actions Deploy Hook"
   echo "═══════════════════════════════════════════════════════"
   exit 0
 fi
 
-echo "✅ BUILDING — source files changed:"
+echo "✅ BUILDING — real source files changed:"
 echo "$IMPORTANT"
 echo "═══════════════════════════════════════════════════════"
 exit 1

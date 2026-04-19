@@ -1,0 +1,152 @@
+name: Club Arena — Daily Deploy Safety Net (2PM CT)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# WHAT THIS DOES:
+#   Safety-net workflow. Fires at 2PM CT daily.
+#   Checks if any Club Arena build happened today via a normal deploy.
+#   If NOT → triggers a forced Vercel deploy so the latest arena assets are
+#   always live by end of day even if no explicit build was run.
+#
+# NORMAL FLOW (this workflow does nothing):
+#   Developer runs: bash scripts/build-club-arena.sh "description"
+#   → builds arena, commits to main, pushes
+#   → Vercel auto-deploys immediately (vercel-ignore.sh sees arena files changed)
+#   → Production is live within ~3 minutes
+#   → At 2PM, this workflow sees today's deploy already happened → skips
+#
+# SAFETY-NET FLOW (this workflow fires):
+#   No build-club-arena.sh was run today (e.g., only docs/agents committed)
+#   → At 2PM CT, this workflow detects no arena commits today
+#   → POSTs to Vercel Deploy Hook (bypasses vercel-ignore.sh, always builds)
+#   → Today's latest arena assets go live
+#
+# HOW TO SET UP THE DEPLOY HOOK (ONE-TIME SETUP):
+#   1. Vercel → hub-vanguard → Settings → Git → Deploy Hooks
+#   2. Create hook: name="Daily Club Arena Safety Net", branch="main"
+#   3. Copy the generated URL
+#   4. GitHub → Repo → Settings → Secrets → Actions → New Secret
+#      Name:  VERCEL_HUB_VANGUARD_DEPLOY_HOOK
+#      Value: <the hook URL from Vercel>
+# ═══════════════════════════════════════════════════════════════════════════════
+
+on:
+  schedule:
+    # 2PM Central Time = 19:00 UTC (CDT, UTC-5)
+    # During CST (winter, UTC-6) this fires at 1PM CT — acceptable.
+    - cron: '0 19 * * *'
+
+  workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: 'Force deploy regardless of whether a build happened today'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+concurrency:
+  group: club-arena-daily-safety-net
+  cancel-in-progress: true
+
+jobs:
+  safety-net-deploy:
+    name: Safety Net — Deploy if No Build Today
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need full history to check today's commits
+
+      - name: Check if a deploy already happened today
+        id: check
+        run: |
+          echo "═══════════════════════════════════════════════════════"
+          echo "  CLUB ARENA SAFETY NET — $(date -u '+%Y-%m-%d %H:%M UTC')"
+          echo "═══════════════════════════════════════════════════════"
+          echo ""
+
+          # Force mode skips all checks
+          if [ "${{ github.event.inputs.force_deploy }}" = "true" ]; then
+            echo "🔧 Force deploy requested"
+            echo "needs_deploy=true" >> $GITHUB_OUTPUT
+            echo "reason=manual_force" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Check for Club Arena commits pushed today (UTC)
+          TODAY_START=$(date -u '+%Y-%m-%dT00:00:00')
+          ARENA_COMMITS_TODAY=$(git log --after="$TODAY_START" --oneline -- public/hub/club-arena/ 2>/dev/null)
+
+          echo "Arena commits pushed today:"
+          if [ -z "$ARENA_COMMITS_TODAY" ]; then
+            echo "  (none found)"
+          else
+            echo "$ARENA_COMMITS_TODAY"
+          fi
+          echo ""
+
+          if [ -n "$ARENA_COMMITS_TODAY" ]; then
+            echo "✅ Deploy already happened today — safety net not needed"
+            echo "needs_deploy=false" >> $GITHUB_OUTPUT
+            echo "reason=already_deployed_today" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️  No arena deploy found today — triggering safety-net deploy"
+            echo "needs_deploy=true" >> $GITHUB_OUTPUT
+            echo "reason=no_deploy_today" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Trigger Vercel Deploy Hook
+        if: steps.check.outputs.needs_deploy == 'true'
+        env:
+          DEPLOY_HOOK: ${{ secrets.VERCEL_HUB_VANGUARD_DEPLOY_HOOK }}
+        run: |
+          echo "═══════════════════════════════════════════════════════"
+          echo "  TRIGGERING VERCEL DEPLOY"
+          echo "  Reason: ${{ steps.check.outputs.reason }}"
+          echo "═══════════════════════════════════════════════════════"
+
+          if [ -z "$DEPLOY_HOOK" ]; then
+            echo ""
+            echo "❌ VERCEL_HUB_VANGUARD_DEPLOY_HOOK secret is not set."
+            echo ""
+            echo "One-time setup required:"
+            echo "  1. Vercel → hub-vanguard → Settings → Git → Deploy Hooks"
+            echo "  2. Create hook named 'Daily Club Arena Safety Net' on branch 'main'"
+            echo "  3. Add the URL as GitHub Secret: VERCEL_HUB_VANGUARD_DEPLOY_HOOK"
+            echo "     URL: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/settings/secrets/actions"
+            echo ""
+            echo "Deploy hook not configured — skipping (non-fatal)"
+            exit 0
+          fi
+
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$DEPLOY_HOOK")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -1)
+
+          echo "Response (HTTP $HTTP_CODE): $BODY"
+
+          if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ]; then
+            echo "✅ Safety-net deploy triggered — live in ~3-5 min"
+            echo "   https://vercel.com/smarter-poker/hub-vanguard"
+          else
+            echo "❌ Deploy hook returned HTTP $HTTP_CODE"
+            exit 1
+          fi
+
+      - name: Summary
+        if: always()
+        run: |
+          echo ""
+          echo "═══════════════════════════════════════════════════════"
+          echo "  SUMMARY: ${{ steps.check.outputs.reason || 'N/A' }}"
+          if [ "${{ steps.check.outputs.needs_deploy }}" = "true" ]; then
+            echo "  Action: DEPLOYED ✅"
+          else
+            echo "  Action: SKIPPED (deploy already happened today) ✅"
+          fi
+          echo "═══════════════════════════════════════════════════════"
