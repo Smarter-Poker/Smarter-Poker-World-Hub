@@ -703,7 +703,7 @@ export default function HomeGamesPage() {
                             {/* HOST A GAME CTA */}
                             <button
                                 className="hg-host-btn"
-                                onClick={() => router.push('/hub/commander/home-games/create')}
+                                onClick={() => router.push('/commander/register?tier=home_game&from=poker_near_me&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate')}
                             >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -800,7 +800,7 @@ export default function HomeGamesPage() {
                                             <p style={{ fontSize: 13, opacity: 0.5, marginTop: 4 }}>Try Adjusting Your Filters Or Expanding Your Radius</p>
                                             <button
                                                 className="hg-host-btn"
-                                                onClick={() => router.push('/hub/commander/home-games/create')}
+                                                onClick={() => router.push('/commander/register?tier=home_game&from=poker_near_me&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate')}
                                                 style={{ marginTop: 16 }}
                                             >
                                                 Host A Home Game

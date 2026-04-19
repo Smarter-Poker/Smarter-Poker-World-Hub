@@ -307,6 +307,21 @@ export default async function handler(req, res) {
               return res.status(400).json({ success: false, error: 'name and page_type are required' });
           }
 
+          // ── REGULATORY: home_game pages must come through the Club Commander
+          // Home Games signup flow. Direct creation here would produce a
+          // zombie social page with no underlying commander_home_groups row
+          // (and would sidestep the three-entry-port unified-funnel rule).
+          // The trg_autocreate_home_group_social_page trigger auto-provisions
+          // the social page when a home group is created via the proper path.
+          if (page_type === 'home_game') {
+              return res.status(400).json({
+                  success: false,
+                  error: 'Home Game pages are created through Club Commander Home Games signup, not the generic Social Pages creator.',
+                  code: 'HOME_GAME_WRONG_ENTRY',
+                  redirect: '/commander/register?tier=home_game&from=social_pages&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate'
+              });
+          }
+
           // Custom slug: validate if provided, otherwise auto-generate
           let slug;
           if (rawSlug && rawSlug.trim()) {

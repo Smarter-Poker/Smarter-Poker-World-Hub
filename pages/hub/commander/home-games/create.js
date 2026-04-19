@@ -300,6 +300,45 @@ export default function CreateHomeGamePage() {
           </div>
         </div>
 
+        {/* ── Club Commander Home Games — Unified Signup Banner ──
+            Shown identically whether the user arrived from Poker Near Me,
+            Social Pages, or Club Commander. The `from` query param (set by
+            the redirect links in each entry port) is surfaced as a small
+            badge so the user sees continuity, not a cold cut-over. */}
+        {step === 1 && (
+          <div className="max-w-2xl mx-auto px-4 pt-4">
+            <div className="rounded-lg border border-[#22D3EE]/30 bg-[#0F1C32] p-4">
+              <div className="flex items-start gap-3">
+                <div className="shrink-0 w-10 h-10 rounded-md bg-[#22D3EE]/10 flex items-center justify-center">
+                  <Home className="w-5 h-5 text-[#22D3EE]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="font-semibold text-white">Your Club Commander Home Games host account is active</h2>
+                    {(() => {
+                      const from = router?.query?.from;
+                      if (!from) return null;
+                      const label = from === 'social_pages' ? 'via Social Pages'
+                                  : from === 'poker_near_me' ? 'via Poker Near Me'
+                                  : from === 'club_commander' ? 'via Club Commander'
+                                  : null;
+                      if (!label) return null;
+                      return (
+                        <span className="text-[10px] font-bold uppercase tracking-wide text-[#22D3EE] bg-[#22D3EE]/10 px-2 py-0.5 rounded-full border border-[#22D3EE]/30">
+                          {label}
+                        </span>
+                      );
+                    })()}
+                  </div>
+                  <p className="text-sm text-[#94A3B8] mt-1">
+                    Signup complete. Let's create your first home game — this 3-step form sets up your group details, location, and schedule. The same flow no matter where you started.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Form Content */}
         <main className="max-w-2xl mx-auto px-4 py-6">
           {error && (

@@ -438,6 +438,23 @@ export default function RegisterPage() {
         <div className="text-center mb-6">
           <Image src="/images/club-commander-logo.jpg" alt="Club Commander" width={1584} height={656} className="w-full max-w-md mx-auto rounded-lg" />
           <p className="text-[#B0B3B8] mt-4">{headerSubtitle}</p>
+          {/* Entry-port indicator — same signup screen is reached from
+              Social Pages, Poker Near Me, and Club Commander. Surface the
+              `from` query so users see continuity across surfaces. */}
+          {isHomeGameFlow && router?.query?.from && (() => {
+            const from = router.query.from;
+            const label = from === 'social_pages'  ? 'Continuing from Social Pages'
+                        : from === 'poker_near_me' ? 'Continuing from Poker Near Me'
+                        : from === 'club_commander'? 'Continuing from Club Commander'
+                        : null;
+            if (!label) return null;
+            return (
+              <div className="inline-flex items-center gap-2 mt-3 px-3 py-1 rounded-full bg-[#1877F2]/10 border border-[#1877F2]/30">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1877F2" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                <span className="text-xs font-semibold text-[#1877F2] uppercase tracking-wide">{label}</span>
+              </div>
+            );
+          })()}
         </div>
 
         {/* Progress Steps */}

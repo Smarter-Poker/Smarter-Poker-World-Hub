@@ -280,6 +280,13 @@ export default function CreateSocialPage() {
                                         { type: 'community', name: 'Tournament Series', desc: 'Tournament circuit or series community page', cat: 'tournament circuit', icon: '🏆' },
                                     ].map(tmpl => (
                                         <button key={tmpl.cat} onClick={() => {
+                                            // Home Game Group quick-template also funnels to the
+                                            // canonical Club Commander Home Games signup, not the
+                                            // generic social-pages creator.
+                                            if (tmpl.cat === 'home game') {
+                                                router.push('/commander/register?tier=home_game&from=social_pages&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate');
+                                                return;
+                                            }
                                             update('page_type', tmpl.type);
                                             update('category', tmpl.cat);
                                             update('description', tmpl.desc);
@@ -316,7 +323,18 @@ export default function CreateSocialPage() {
                                         key={pt.key}
                                         whileHover={{ scale: 1.01 }}
                                         whileTap={{ scale: 0.99 }}
-                                        onClick={() => { update('page_type', pt.key); setStep(2); }}
+                                        onClick={() => {
+                                            // REGULATORY: home_game pages are auto-provisioned when a
+                                            // commander_home_groups row is created. All three entry
+                                            // ports (Social Pages / Poker Near Me / Club Commander)
+                                            // must funnel through the same canonical signup screen.
+                                            if (pt.key === 'home_game') {
+                                                router.push('/commander/register?tier=home_game&from=social_pages&return=%2Fhub%2Fcommander%2Fhome-games%2Fcreate');
+                                                return;
+                                            }
+                                            update('page_type', pt.key);
+                                            setStep(2);
+                                        }}
                                         style={{
                                             display: 'flex', alignItems: 'center', gap: 14, padding: 16,
                                             borderRadius: 10, cursor: 'pointer', textAlign: 'left',
