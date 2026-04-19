@@ -74,6 +74,7 @@ export default async function handler(req, res) {
     }
     // ─────────────────────────────────────────────────────────────────────────
 
+    try {
       // Twilio sends form-encoded data
       const {
         MessageSid,
@@ -105,7 +106,7 @@ export default async function handler(req, res) {
         .select('id')
         .eq('channel', 'sms')
         .contains('metadata', { message_sid: MessageSid })
-            .limit(100)
+        .limit(100);
 
       if (findError) {
         console.error('Find notification error:', findError);
@@ -136,10 +137,9 @@ export default async function handler(req, res) {
         }
       }
 
-      // Log the status update
-
-      // Always return 200 to acknowledge receipt
+      // Always return 200 to acknowledge receipt to Twilio
       return res.status(200).json({ received: true });
+
     } catch (error) {
       console.error('Twilio webhook error:', error);
       // Still return 200 to prevent Twilio from retrying
@@ -152,7 +152,7 @@ export default async function handler(req, res) {
   }
 }
 
-// Disable body parsing - Twilio sends form data
+// Body parsing enabled — Twilio sends form-encoded data
 export const config = {
   api: {
     bodyParser: true
