@@ -298,3 +298,25 @@ CREATE POLICY reward_definitions_service_write ON public.reward_definitions
 --   'commander_cash_transactions','staff_claim_tokens','wallets','diamond_ledger',
 --   'deploy_alerts','hand_state_snapshots','user_notification_preferences')
 -- ORDER BY tablename;
+
+-- ─── SECTION 6: Post-pass3 gap sweep fixes ────────────────────────────────────
+
+-- chip_escrow — open escrow_svc (ALL USING true) replaced with service-only
+-- Keep the existing escrow_read (player_id = auth.uid()) for player reads
+DROP POLICY IF EXISTS escrow_svc ON public.chip_escrow;
+DROP POLICY IF EXISTS chip_escrow_service_only ON public.chip_escrow;
+CREATE POLICY chip_escrow_service_only ON public.chip_escrow
+  FOR ALL USING (auth.role() = 'service_role');
+
+-- data_audit_log — SELECT was open to all authenticated; restrict to service_role
+DROP POLICY IF EXISTS service_role_select ON public.data_audit_log;
+DROP POLICY IF EXISTS data_audit_log_service_read ON public.data_audit_log;
+CREATE POLICY data_audit_log_service_read ON public.data_audit_log
+  FOR SELECT USING (auth.role() = 'service_role');
+
+-- execution_audit_logs — two open ALL policies replaced with single service_role gate
+DROP POLICY IF EXISTS "Service Role Full Access to Execution Logs" ON public.execution_audit_logs;
+DROP POLICY IF EXISTS "Postgres Role Full Access to Execution Logs" ON public.execution_audit_logs;
+DROP POLICY IF EXISTS execution_audit_logs_service_only ON public.execution_audit_logs;
+CREATE POLICY execution_audit_logs_service_only ON public.execution_audit_logs
+  FOR ALL USING (auth.role() = 'service_role');
