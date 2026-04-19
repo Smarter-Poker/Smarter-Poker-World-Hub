@@ -250,7 +250,7 @@
   "crons": [
     {
       "path": "/api/cron/horses-social-all",
-      "schedule": "*/30 * * * *"
+      "schedule": "0 */2 * * *"
     },
     {
       "path": "/api/cron/horses-social-friends",
@@ -382,7 +382,7 @@
     },
     {
       "path": "/api/cron/trivia-pvp-cleanup",
-      "schedule": "0 */2 * * *"
+      "schedule": "0 */4 * * *"
     },
     {
       "path": "/api/cron/vip-diamond-stipend",
@@ -418,7 +418,7 @@
     },
     {
       "path": "/api/cron/venue-game-alerts",
-      "schedule": "*/30 * * * *"
+      "schedule": "0 * * * *"
     },
     {
       "path": "/api/cron/scraper-data-cleanup",
@@ -430,7 +430,7 @@
     },
     {
       "path": "/api/cron/venue-review-prompts",
-      "schedule": "0 */4 * * *"
+      "schedule": "0 */6 * * *"
     },
     {
       "path": "/api/cron/tour-schedule-scraper",
