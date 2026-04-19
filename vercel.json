@@ -315,8 +315,7 @@
     },
     {
       "path": "/api/cron/rls-monitor",
-      "schedule": "0 3 * * *",
-      "_comment": "Daily RLS security audit — alerts Sentry if any table is missing policies"
+      "schedule": "0 3 * * *"
     }
   ]
 }
