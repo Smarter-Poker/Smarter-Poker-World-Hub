@@ -380,16 +380,17 @@ async function rollbackToDeploy(deploymentId) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Persistent circuit breaker: count [autofix] commits referencing the SHA
 // ─────────────────────────────────────────────────────────────────────────────
-async function countPersistentAttempts(commitSha, ghPat) {
+async function countPersistentAttempts(commitSha, branchName, ghPat) {
   if (!ghPat) return 0;
   // Defensive: commitSha='unknown' (fallback when webhook payload is missing it)
   // would match any commit message containing the word "unknown" and silently
   // trip the circuit breaker. Bail early for invalid/short SHAs.
   if (!commitSha || commitSha === 'unknown' || commitSha.length < 7) return 0;
   const shortSha = commitSha.substring(0, 8);
+  const targetBranch = branchName || 'main'; // Fallback to main if unknown
   try {
     const res = await fetchWithTimeout(
-      `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/commits?sha=main&per_page=15`,
+      `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/commits?sha=${encodeURIComponent(targetBranch)}&per_page=15`,
       { headers: { Authorization: `token ${ghPat}`, Accept: 'application/vnd.github.v3+json' } },
       8000
     );
@@ -583,7 +584,8 @@ Manual intervention required. The self-healing pipeline will NOT retry this comm
     }
 
     // ── Persistent circuit breaker ────────────────────────────────────────
-    const attempts = await countPersistentAttempts(commitSha, process.env.GH_PAT);
+    const branchName = deployment.meta?.githubCommitRef || 'main';
+    const attempts = await countPersistentAttempts(commitSha, branchName, process.env.GH_PAT);
     if (attempts >= MAX_FIX_ATTEMPTS) {
       console.log(`[deploy-monitor] Circuit breaker: ${commitSha} has ${attempts} autofix commits. Stopping.`);
       logTelemetry('circuit_breaker_tripped', {
