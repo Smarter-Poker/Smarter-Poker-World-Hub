@@ -8,6 +8,13 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import speakeasy from 'speakeasy';
 import crypto from 'crypto';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
+// [Phase 6.1.26] Even though disable.js already requires a fresh TOTP /
+// backup code to execute (that's the in-body `code` check below), we also
+// want a fresh mfa_session cookie so the disable button can't be clicked
+// from an old tab whose session hasn't been re-challenged in hours.
+// Note: if the user is disabling because they've LOST their second factor,
+// they won't have a valid cookie at all — in that case the support-contact
+// recovery path applies, not this endpoint.
 
 let _supabase = null;
 function getSupabase() {

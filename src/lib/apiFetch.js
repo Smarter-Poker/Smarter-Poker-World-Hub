@@ -89,11 +89,16 @@ export async function fetchWithMfa(url, token, options = {}) {
         const next = encodeURIComponent(
           window.location.pathname + window.location.search
         );
-        window.location.href = `/auth/mfa?next=${next}`;
+        // [Phase 6.1.26] Step-up reauth: tack on &stepUp=1 so the
+        // challenge page copy + behavior reflects "re-confirm" rather
+        // than "first-time sign-in".
+        const stepUp = json.requiresStepUp ? '&stepUp=1' : '';
+        window.location.href = `/auth/mfa?next=${next}${stepUp}`;
       }
       const err = new Error('MFA challenge required');
       err.status = 403;
       err.requiresMfa = true;
+      err.requiresStepUp = !!json.requiresStepUp;
       throw err;
     }
   }

@@ -27,6 +27,19 @@ import crypto from 'crypto';
 
 const MFA_TOKEN_TTL_MS = 12 * 60 * 60 * 1000; // 12h — matches challenge.js
 
+/**
+ * [Phase 6.1.26] Step-up reauth window.
+ *
+ * Some actions need a fresh MFA challenge even if the user already has a
+ * valid 12h session cookie — e.g. "change email", "withdraw funds",
+ * "delete account", "export all my data". Industry standard for step-up
+ * is ~5 minutes (Google/AWS/GitHub all cluster around 3-15min).
+ *
+ * Use `requireRecentMfa(req, user, maxAgeSec)` to enforce the tighter
+ * window on those routes.
+ */
+export const STEP_UP_MAX_AGE_SEC = 5 * 60; // 5 minutes — default step-up window
+
 function parseCookie(header, name) {
     if (!header) return null;
     const cookies = header.split(/;\s*/);
@@ -178,8 +191,70 @@ export async function requireMfaEnrolled(req, supabase, user) {
     return { ok: true, mfaUsed: true };
 }
 
+/**
+ * [Phase 6.1.26] Step-up reauth gate.
+ *
+ * Like `requireMfaEnrolled`, but in addition to the ordinary signature /
+ * TTL checks, also requires the MFA session to have been issued within
+ * `maxAgeSec` seconds. Use this on the highest-risk actions:
+ *
+ *   - Change account email or phone
+ *   - Withdraw funds / initiate payout
+ *   - Delete account (GDPR erase)
+ *   - Disable MFA
+ *   - Export all user data
+ *   - Change password (if session auth is used)
+ *
+ * Default window is 5 minutes. The client should respond to
+ * `requiresStepUp: true` by routing to `/auth/mfa?next=<cur>&stepUp=1`
+ * which forces a fresh challenge.
+ *
+ * If the user has no MFA enrolled at all, this returns `requiresEnrollment:
+ * true` — step-up implies enrolment. Routes that need step-up must also be
+ * reachable only via MFA-enrolled accounts (true for admin + VIP by policy,
+ * but some user-facing routes like withdrawals may need to fall back to
+ * email/SMS confirmation for non-enrolled users — handle that in the
+ * calling route, not here).
+ */
+export async function requireRecentMfa(
+    req,
+    supabase,
+    user,
+    maxAgeSec = STEP_UP_MAX_AGE_SEC,
+) {
+    const base = await requireMfaEnrolled(req, supabase, user);
+    if (!base.ok) {
+        return { ...base, requiresStepUp: true };
+    }
+
+    // requireMfaEnrolled already verified the signature + user binding.
+    // Re-verify here so we get at `issuedAt`.
+    const cookieCheck = verifyMfaCookie(req, user.id);
+    if (!cookieCheck.ok) {
+        // Shouldn't happen (base check already returned ok) — defensive.
+        return { ...cookieCheck, requiresMfa: true, requiresStepUp: true };
+    }
+
+    const ageMs = Date.now() - cookieCheck.issuedAt;
+    if (ageMs > maxAgeSec * 1000) {
+        return {
+            ok: false,
+            reason: 'This action requires a fresh second-factor confirmation',
+            status: 403,
+            requiresMfa: true,
+            requiresStepUp: true,
+            maxAgeSec,
+            currentAgeSec: Math.floor(ageMs / 1000),
+        };
+    }
+
+    return { ok: true, mfaUsed: true, stepUpOk: true };
+}
+
 export default {
+    STEP_UP_MAX_AGE_SEC,
     verifyMfaCookie,
     requireMfaIfEnrolled,
-    requireMfaEnrolled
+    requireMfaEnrolled,
+    requireRecentMfa,
 };

@@ -36,6 +36,11 @@ export default function MfaChallengePage() {
     const [session, setSession] = useState(null);
     const [checkingSession, setCheckingSession] = useState(true);
 
+    // [Phase 6.1.26] step-up flag. When true, the user is re-challenging
+    // for a high-risk action (change email, withdraw, disable MFA, etc.)
+    // even though they already have a valid 12h session cookie.
+    const isStepUp = router.query.stepUp === '1' || router.query.stepUp === 'true';
+
     // Where to send the user after successful challenge. Only internal
     // paths are allowed to prevent open-redirect abuse.
     const getNextUrl = () => {
@@ -150,11 +155,15 @@ export default function MfaChallengePage() {
                 <div style={cardStyle}>
                     <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
                         <div style={lockBadgeStyle}>🔒</div>
-                        <h1 style={titleStyle}>Two-Factor Authentication</h1>
+                        <h1 style={titleStyle}>
+                            {isStepUp ? 'Confirm it\'s you' : 'Two-Factor Authentication'}
+                        </h1>
                         <p style={subtitleStyle}>
-                            {useBackup
-                                ? 'Enter one of your backup codes.'
-                                : 'Enter the 6-digit code from your authenticator app.'}
+                            {isStepUp
+                                ? 'This action requires a fresh second-factor check.'
+                                : useBackup
+                                    ? 'Enter one of your backup codes.'
+                                    : 'Enter the 6-digit code from your authenticator app.'}
                         </p>
                     </div>
 
