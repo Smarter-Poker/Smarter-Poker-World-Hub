@@ -150,7 +150,7 @@ async function submitRsvp(req, res, eventId) {
     // Get event
     const { data: event, error: eventError } = await getSupabase()
       .from('commander_home_games')
-      .select('group_id, host_id, max_players, rsvp_yes, allow_guests, guest_limit, status')
+      .select('group_id, host_id, max_players, rsvp_yes, allow_guests, guest_limit, status, scheduled_date, start_time, rsvp_closes_at, cancelled_at')
       .eq('id', eventId)
       .maybeSingle();
 
@@ -158,8 +158,19 @@ async function submitRsvp(req, res, eventId) {
       return res.status(404).json({ error: 'Event not found' });
     }
 
-    if (event.status === 'cancelled' || event.status === 'completed') {
+    // phase40: time-window enforcement. Only 'scheduled' and 'confirmed' states
+    // are joinable. Draft is host-only; in_progress/completed/cancelled are
+    // past the point of RSVP. Belt + suspenders on cancelled_at in case status
+    // ever drifts from cancelled_at.
+    if (event.status !== 'scheduled' && event.status !== 'confirmed') {
       return res.status(400).json({ error: 'This event is no longer accepting RSVPs' });
+    }
+    if (event.cancelled_at) {
+      return res.status(400).json({ error: 'This event has been cancelled' });
+    }
+    // Hard deadline if host set one (unambiguous timestamptz)
+    if (event.rsvp_closes_at && new Date(event.rsvp_closes_at).getTime() <= Date.now()) {
+      return res.status(400).json({ error: 'RSVPs are closed for this event' });
     }
 
     // Check membership

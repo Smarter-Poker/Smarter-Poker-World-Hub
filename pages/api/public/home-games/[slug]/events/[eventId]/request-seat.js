@@ -106,7 +106,7 @@ export default async function handler(req, res) {
     const today = new Date().toISOString().slice(0, 10);
     const { data: event, error: eventErr } = await supabase
       .from('commander_home_games')
-      .select('id, group_id, host_id, scheduled_date, start_time, status, max_players, rsvp_yes, allow_guests, guest_limit, title')
+      .select('id, group_id, host_id, scheduled_date, start_time, status, max_players, rsvp_yes, allow_guests, guest_limit, title, rsvp_closes_at, cancelled_at')
       .eq('id', eventId)
       .maybeSingle();
 
@@ -119,10 +119,21 @@ export default async function handler(req, res) {
       // just 404 it to prevent cross-group event enumeration.
       return res.status(404).json({ success: false, error: 'Event not found' });
     }
-    if (event.status !== 'scheduled' || event.scheduled_date < today) {
+    // phase40: state + time-window gate. Public seat requests are only
+    // valid for games that are actively scheduled/confirmed, not cancelled,
+    // whose scheduled_date is today-or-later, and whose rsvp_closes_at (if
+    // set) hasn't elapsed.
+    const acceptingStatuses = new Set(['scheduled', 'confirmed']);
+    if (!acceptingStatuses.has(event.status) || event.cancelled_at || event.scheduled_date < today) {
       return res.status(400).json({
         success: false,
         error: 'This game is no longer accepting seat requests',
+      });
+    }
+    if (event.rsvp_closes_at && new Date(event.rsvp_closes_at).getTime() <= Date.now()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Seat requests are closed for this event',
       });
     }
 
