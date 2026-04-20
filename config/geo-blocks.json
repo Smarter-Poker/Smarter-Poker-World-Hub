@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "updated": "2026-04-19",
+  "notes": "ISO-3166-1 alpha-2 codes. Block list for play-money launch — jurisdictions where online poker (even play-money) is either explicitly illegal or carries a high legal risk for the operator. The real-money list will be stricter; see §1.3.3 of the launch-readiness plan.",
+  "mode": "deny",
+  "denied_countries": [
+    "CN",
+    "IR",
+    "KP",
+    "SY",
+    "CU",
+    "AF",
+    "SD",
+    "SS",
+    "LY",
+    "YE",
+    "VE",
+    "BY",
+    "MM",
+    "RU"
+  ],
+  "restricted_us_states": [
+    "WA",
+    "UT",
+    "LA",
+    "ID",
+    "MT",
+    "SD",
+    "IN",
+    "MI",
+    "MS",
+    "TN"
+  ],
+  "allow_paths": [
+    "/_next/",
+    "/api/health",
+    "/api/og",
+    "/api/sitemap",
+    "/jurisdiction-blocked",
+    "/legal/",
+    "/terms",
+    "/privacy",
+    "/favicon.ico",
+    "/robots.txt",
+    "/sitemap.xml"
+  ],
+  "admin_bypass_header": "x-geo-bypass"
+}
