@@ -165,10 +165,13 @@ function LiveGamesFeed({
     // When scrapers return 0 venues we NEVER wipe the feed — preserve last-known data
     const [isScraperDead, setIsScraperDead] = useState(false);
     const lastGoodLiveDataRef = useRef(null);
-    
     // Global stats from API metadata
     const [globalStats, setGlobalStats] = useState({ venues: 0, tables: 0, waiting: 0, lastScrape: null });
     const [isDataStale, setIsDataStale] = useState(false);
+    
+    // ─── REALTIME BUFFER STATE ───
+    const realtimeBufferRef = useRef([]);
+    const flushTimerRef = useRef(null);
 
     // ─── Filters & Persistence ───
     // [LGF1 FIX] Was read at render time on every re-render— moved to useRef so localStorage
@@ -438,43 +441,61 @@ function LiveGamesFeed({
                 const newRec = payload.new;
                 if (!newRec?.bravo_slug || !newRec?.game_name) return; // Guard null game fields
                 
-                // Surgical update: match venue by bravo_slug (the actual PK proxy on this table)
-                // Then map DB row fields → API game format so g.game is never undefined
-                setLiveData(prev => {
-                    const match = prev[newRec.bravo_slug];
-                    if (!match) {
-                        // New venue not yet in state — trigger a debounced full re-fetch
-                        if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-                        debounceTimerRef.current = setTimeout(() => fetchGlobalLiveData(true), 2000);
-                        return prev;
-                    }
-                    
-                    const nextV = { ...match, games: [...(match.games || [])] };
-                    // Map DB row → API game format (game_name → game, etc.)
-                    const mappedGame = {
-                        game: String(newRec.game_name).trim(),
-                        tables_running: newRec.tables_running || 0,
-                        players_waiting: newRec.players_waiting || 0,
-                        source: newRec.source || 'bravo',
-                        buyin: newRec.buyin_range || null,
-                        runs: newRec.runs_schedule || null,
-                        data_quality: newRec.data_quality || null,
-                        _rowId: newRec.id, // track DB row for dedup
-                    };
-                    // Replace if same game name already loaded, otherwise append
-                    const gameIdx = nextV.games.findIndex(g => g && g.game === mappedGame.game);
-                    if (gameIdx !== -1) {
-                        nextV.games[gameIdx] = mappedGame;
-                    } else {
-                        nextV.games.push(mappedGame);
-                    }
-                    
-                    nextV.totalTables = (nextV.games || []).reduce((acc, g) => acc + ((g && g.tables_running) || 0), 0);
-                    nextV.totalWait = (nextV.games || []).reduce((acc, g) => acc + ((g && g.players_waiting) || 0), 0);
-                    
-                    return { ...prev, [newRec.bravo_slug]: nextV };
-                });
+                // Buffer the incoming realtime payloads
+                realtimeBufferRef.current.push(newRec);
 
+                // Flush buffer to React state every 800ms to prevent render thrashing
+                if (!flushTimerRef.current) {
+                    flushTimerRef.current = setTimeout(() => {
+                        flushTimerRef.current = null;
+                        const buffer = [...realtimeBufferRef.current];
+                        realtimeBufferRef.current = [];
+                        
+                        setLiveData(prev => {
+                            const nextState = { ...prev };
+                            let needsRefetch = false;
+
+                            for (const rec of buffer) {
+                                const match = nextState[rec.bravo_slug];
+                                if (!match) {
+                                    needsRefetch = true;
+                                    continue;
+                                }
+                                
+                                const nextV = { ...match, games: [...(match.games || [])] };
+                                const mappedGame = {
+                                    game: String(rec.game_name).trim(),
+                                    tables_running: rec.tables_running || 0,
+                                    players_waiting: rec.players_waiting || 0,
+                                    source: rec.source || 'bravo',
+                                    buyin: rec.buyin_range || null,
+                                    runs: rec.runs_schedule || null,
+                                    data_quality: rec.data_quality || null,
+                                    _rowId: rec.id, // track DB row for dedup
+                                };
+                                
+                                const gameIdx = nextV.games.findIndex(g => g && g.game === mappedGame.game);
+                                if (gameIdx !== -1) {
+                                    nextV.games[gameIdx] = mappedGame;
+                                } else {
+                                    nextV.games.push(mappedGame);
+                                }
+                                
+                                nextV.totalTables = (nextV.games || []).reduce((acc, g) => acc + ((g && g.tables_running) || 0), 0);
+                                nextV.totalWait = (nextV.games || []).reduce((acc, g) => acc + ((g && g.players_waiting) || 0), 0);
+                                
+                                nextState[rec.bravo_slug] = nextV;
+                            }
+
+                            if (needsRefetch) {
+                                if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+                                debounceTimerRef.current = setTimeout(() => fetchGlobalLiveData(true), 2000);
+                            }
+                            
+                            return nextState;
+                        });
+                    }, 800);
+                }
                 // Notify rest of platform (Game Trends & Heatmaps) of instantaneous change via EventBus
                 // DEBOUNCED: Prevents DDOSing companion API routes during rapid batch mutations
                 if (busEmitDebounceRef.current) clearTimeout(busEmitDebounceRef.current);
@@ -487,6 +508,7 @@ function LiveGamesFeed({
         return () => { 
             if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
             if (busEmitDebounceRef.current) clearTimeout(busEmitDebounceRef.current);
+            if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
             if (liveChannel) supabase.removeChannel(liveChannel);
         };
     }, [fetchGlobalLiveData]);
