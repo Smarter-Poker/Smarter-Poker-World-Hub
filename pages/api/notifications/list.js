@@ -33,7 +33,10 @@ export default async function handler(req, res) {
 
       try {
           const limit = parseInt(req.query.limit || '50');
-          const blockedTypes = (req.query.blocked || 'like,comment,share,mention,tag,hand_reaction').split(',');
+          // Only filter types if caller explicitly passes ?blocked=type1,type2
+          // Default: show ALL notification types (matches header badge count)
+          const blockedParam = req.query.blocked;
+          const blockedTypes = blockedParam ? blockedParam.split(',').filter(Boolean) : [];
 
           // Fetch notifications
           let query = getSupabase()

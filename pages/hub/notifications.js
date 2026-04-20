@@ -69,8 +69,6 @@ function NotificationsPage() {
     const menuConfig = getMenuConfig('notifications', user, {}, {});
 
     useEffect(() => {
-        // Low-value notification types to suppress (noise reduction)
-        const BLOCKED_TYPES = ['like', 'comment', 'share', 'mention', 'tag', 'hand_reaction'];
         const controller = new AbortController();
         const { signal } = controller;
 
