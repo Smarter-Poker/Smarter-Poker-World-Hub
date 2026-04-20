@@ -117,6 +117,40 @@ export default async function handler(req, res) {
             }
           }
 
+          // ── Phase 7.1.5 — Responsible Gaming self-exclusion gate ──
+          // Block sit_down if the player is currently self-excluded.
+          // fn_rg_require_not_excluded returns { ok, error?, code?, self_excluded_until? }.
+          try {
+            const { data: rgCheck, error: rgErr } = await getSupabase().rpc(
+              'fn_rg_require_not_excluded',
+              { p_user_id: playerId }
+            );
+            if (rgErr) {
+              console.error('[seat.js] RG exclusion check failed:', rgErr.message);
+              // Fail-closed for gaming-compliance: reject on DB error.
+              return res.status(503).json({
+                success: false,
+                error: 'Responsible-gaming check unavailable. Please try again.',
+                code: 'RG_CHECK_UNAVAILABLE',
+              });
+            }
+            if (!rgCheck?.ok) {
+              return res.status(403).json({
+                success: false,
+                error: rgCheck?.error || 'You are currently self-excluded.',
+                code: rgCheck?.code || 'SELF_EXCLUDED',
+                self_excluded_until: rgCheck?.self_excluded_until || null,
+              });
+            }
+          } catch (e) {
+            console.error('[seat.js] RG exclusion check threw:', e?.message);
+            return res.status(503).json({
+              success: false,
+              error: 'Responsible-gaming check unavailable. Please try again.',
+              code: 'RG_CHECK_UNAVAILABLE',
+            });
+          }
+
           const buyInAmount = parseFloat(buyIn);
 
           // Anti-cheat pre-join check (IP, device, GPS, downline, emulator, rate limit)
