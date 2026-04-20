@@ -58,7 +58,11 @@ export default async function handler(req, res) {
 }
 
 async function handleGet(req, res) {
-    const { user_id, page_type, page_id } = req.query;
+    const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+    const user_id = safeQ(req.query.user_id);
+    const page_type = safeQ(req.query.page_type);
+    const page_id = safeQ(req.query.page_id);
+    const checkUserId = safeQ(req.query.check_user);
 
     // Get all follows for a user
     if (user_id) {
