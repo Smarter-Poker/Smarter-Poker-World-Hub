@@ -2827,7 +2827,7 @@ export default function PokerNearMePage({ initialTab }) {
                         if (typeof window !== 'undefined' && window.history.length > 1) {
                             router.back();
                         } else {
-                            router.push('/hub');
+                            router.push('/hub/poker-near-me/lobby');
                         }
                     }}
                     onMenuClick={() => setMenuOpen(true)} 
