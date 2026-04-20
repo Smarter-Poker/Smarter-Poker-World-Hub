@@ -573,7 +573,8 @@ export default async function handler(req, res) {
           const authUser = await requireAuth(req, res);
           if (!authUser) return;
 
-          const { id } = req.query;
+          const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+          const id = safeQ(req.query.id);
 
           if (!id) return res.status(400).json({ success: false, error: 'id is required' });
 

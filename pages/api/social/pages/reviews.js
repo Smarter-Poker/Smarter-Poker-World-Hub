@@ -27,7 +27,11 @@ export default async function handler(req, res) {
 
       try {
           if (req.method === 'GET') {
-              const { page_id, limit = 20, offset = 0, sort = 'recent' } = req.query;
+              const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+              const page_id = safeQ(req.query.page_id);
+              const limit = safeQ(req.query.limit) || 20;
+              const offset = safeQ(req.query.offset) || 0;
+              const sort = safeQ(req.query.sort) || 'recent';
 
               if (!page_id) {
                   return res.status(400).json({ success: false, error: 'page_id required' });

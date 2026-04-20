@@ -41,7 +41,9 @@ export default async function handler(req, res) {
       // GET: Fetch tournaments (upcoming, live, or completed)
       if (req.method === 'GET') {
           res.setHeader('Cache-Control', 'public, s-maxage=15, stale-while-revalidate=60');
-          const { status: rawStatus, tournamentId: rawTournamentId } = req.query;
+          const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+          const rawStatus = safeQ(req.query.status);
+          const rawTournamentId = safeQ(req.query.tournamentId);
           const status = ['live', 'scheduled', 'completed'].includes(rawStatus) ? rawStatus : null;
           const tournamentId = rawTournamentId ? sanitizeParam(rawTournamentId, 100) : null;
 

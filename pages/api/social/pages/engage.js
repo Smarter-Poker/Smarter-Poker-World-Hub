@@ -228,7 +228,9 @@ export default async function handler(req, res) {
           return res.status(400).json({ success: false, error: 'Invalid action. Use "like", "comment", "like_comment", or "bookmark"' });
 
       } else if (req.method === 'GET') {
-          const { post_id, limit = '50' } = req.query;
+          const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+          const post_id = safeQ(req.query.post_id);
+          const limit = safeQ(req.query.limit) || '50';
 
           if (!post_id) {
               return res.status(400).json({ success: false, error: 'post_id required' });
@@ -325,7 +327,9 @@ export default async function handler(req, res) {
           const authUser = await requireAuth(req, res);
           if (!authUser) return;
 
-          const { id, type } = req.query;
+          const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+          const id = safeQ(req.query.id);
+          const type = safeQ(req.query.type);
           const user_id = authUser.id;
 
           if (!id) {

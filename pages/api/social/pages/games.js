@@ -43,7 +43,9 @@ export default async function handler(req, res) {
 
       // ===== GET =====
       if (req.method === 'GET') {
-          const { page_id, game_id } = req.query;
+          const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+          const page_id = safeQ(req.query.page_id);
+          const game_id = safeQ(req.query.game_id);
 
           if (game_id) {
               // Single game with all seats
@@ -521,7 +523,8 @@ export default async function handler(req, res) {
           const authUser = await requireAuth(req, res);
           if (!authUser) return;
 
-          const { id } = req.query;
+          const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+          const id = safeQ(req.query.id);
           if (!id) return res.status(400).json({ success: false, error: 'id required' });
 
           // Verify game ownership: must be creator or page owner

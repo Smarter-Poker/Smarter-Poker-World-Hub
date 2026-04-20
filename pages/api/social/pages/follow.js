@@ -201,7 +201,11 @@ export default async function handler(req, res) {
           return res.status(201).json({ success: true, following: true, status: followStatus, pending: requiresApproval, data });
 
       } else if (req.method === 'GET') {
-          const { page_id, user_id, role, requester_id } = req.query;
+          const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+          const page_id = safeQ(req.query.page_id);
+          const user_id = safeQ(req.query.user_id);
+          const role = safeQ(req.query.role);
+          const requester_id = safeQ(req.query.requester_id);
 
           if (page_id) {
               // Get followers for a page
