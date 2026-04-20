@@ -54,4 +54,56 @@ export async function fetchWithAuth(url, token, options = {}) {
   });
 }
 
+/**
+ * [Phase 6.1.23] MFA-aware fetch wrapper.
+ *
+ * If the server responds 403 with { requiresMfa: true }, we route the user
+ * to /auth/mfa?next=<current-path> before rejecting. Callers get a typed
+ * Error back with `.requiresMfa = true` so they can avoid double-handling.
+ *
+ * Usage:
+ *   try {
+ *     const data = await fetchWithMfa('/api/admin/pause-table', token, {
+ *       method: 'POST', body: JSON.stringify({ tableId }),
+ *     });
+ *   } catch (err) {
+ *     if (err.requiresMfa) return; // redirect already in flight
+ *     // handle other errors
+ *   }
+ */
+export async function fetchWithMfa(url, token, options = {}) {
+  const res = await fetch(url, {
+    credentials: 'include',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(options.headers || {}),
+    },
+  });
+
+  if (res.status === 403) {
+    const json = await res.clone().json().catch(() => ({}));
+    if (json && json.requiresMfa) {
+      if (typeof window !== 'undefined') {
+        const next = encodeURIComponent(
+          window.location.pathname + window.location.search
+        );
+        window.location.href = `/auth/mfa?next=${next}`;
+      }
+      const err = new Error('MFA challenge required');
+      err.status = 403;
+      err.requiresMfa = true;
+      throw err;
+    }
+  }
+
+  if (!res.ok) {
+    const err = new Error(`API ${res.status}: ${url}`);
+    err.status = res.status;
+    throw err;
+  }
+  return res.json();
+}
+
 export default fetchWithSignal;

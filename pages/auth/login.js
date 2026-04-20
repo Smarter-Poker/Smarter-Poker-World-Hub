@@ -97,6 +97,40 @@ export default function LoginPage() {
                 localStorage.removeItem('smarter-poker-remember-me');
             }
 
+            // ── [Phase 6.1.23] MFA challenge gate ──────────────────────────
+            // If the user has MFA enrolled (or mfa_required=true), send them
+            // to the challenge page before the hub. We check both signals:
+            //   - user_mfa_factors.enabled — actual TOTP enrolled
+            //   - profiles.mfa_required    — role-based enforcement (admin/VIP)
+            // Either one keeps us out of the hub until a valid mfa_session
+            // cookie has been issued by /api/auth/mfa/challenge.
+            try {
+                const [factorRes, profileRes] = await Promise.all([
+                    supabase
+                        .from('user_mfa_factors')
+                        .select('enabled')
+                        .eq('user_id', data.user.id)
+                        .maybeSingle(),
+                    supabase
+                        .from('profiles')
+                        .select('mfa_required')
+                        .eq('id', data.user.id)
+                        .maybeSingle(),
+                ]);
+                const hasMfa = !!factorRes?.data?.enabled;
+                const mfaRequired = !!profileRes?.data?.mfa_required;
+                if (hasMfa || mfaRequired) {
+                    const next = encodeURIComponent(getRedirectUrl());
+                    router.push(`/auth/mfa?next=${next}`);
+                    return;
+                }
+            } catch (mfaProbeErr) {
+                // Fail-open on probe error — the edge middleware still gates
+                // admin routes, so a probe failure can't expose anything
+                // sensitive. We log so we notice if it's flapping.
+                console.warn('[login] MFA probe failed, continuing:', mfaProbeErr);
+            }
+
             // Set flag so hub plays intro animation
             sessionStorage.setItem('just_authenticated', 'true');
             router.push(getRedirectUrl());
