@@ -248,6 +248,35 @@ export default async function handler(req, res) {
               if ([403, 404, 451].includes(response.status)) {
                   res.setHeader('Content-Type', 'text/html; charset=utf-8');
                   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+
+                  // Specialized fallback: Cardplayer blocks server fetches but their RSS feed provides full content.
+                  if (targetOrigin.includes('cardplayer.com')) {
+                      try {
+                          const rssRes = await fetch("https://www.cardplayer.com/poker-news/feed", {
+                              headers: { 'User-Agent': 'SmarterPokerProxy/1.0' }
+                          });
+                          if (rssRes.ok) {
+                              const rssXml = await rssRes.text();
+                              const slugMatch = targetUrl.split('/').pop().match(/^[0-9]+-(.+)$/);
+                              const pureSlug = slugMatch ? slugMatch[1] : targetUrl.split('/').pop();
+                              
+                              const items = rssXml.split('<item>');
+                              for(let i=1; i<items.length; i++) {
+                                  const item = items[i];
+                                  if (item.includes(pureSlug)) {
+                                      const titleMatch = item.match(/<title><!\[CDATA\[([\s\S]*?)\]\]><\/title>/) || item.match(/<title>([\s\S]*?)<\/title>/);
+                                      const contentMatch = item.match(/<content:encoded><!\[CDATA\[([\s\S]*?)\]\]><\/content:encoded>/);
+                                      if (titleMatch && contentMatch) {
+                                          return res.status(200).send(buildArticleReaderView(titleMatch[1], contentMatch[1], targetUrl));
+                                      }
+                                  }
+                              }
+                          }
+                      } catch (e) {
+                          // Fall back to blocked layout if RSS fetch fails
+                      }
+                  }
+
                   return res.status(200).send(buildBlockedFallback(targetUrl, response.status));
               }
 
@@ -527,12 +556,46 @@ function buildBlockedFallback(url, status) {
 </head>
 <body>
   <div class="card">
-    <div class="icon">🔒</div>
-    <h2>Article Blocked by Publisher</h2>
-    <p>${msg}</p>
+    <div class="icon">📰</div>
+    <h2>Article Unavailable</h2>
+    <p>This publisher restricts third-party readers. The original article must be viewed outside the platform.</p>
     <div class="domain">${domain}</div>
-    <a class="btn" href="${url}" target="_blank" rel="noopener noreferrer">Open Full Article ↗</a>
   </div>
+</body>
+</html>`;
+}
+
+function buildArticleReaderView(title, content, originalUrl) {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${title}</title>
+    <style>
+        body { margin: 0; background: #0a0e1a; color: #f2f4f7; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; line-height: 1.6; }
+        .reader-container { max-width: 760px; margin: 0 auto; padding: 40px 24px 80px; }
+        .article-source { color: #d4af37; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+        .article-title { font-size: 34px; font-weight: 800; line-height: 1.25; margin: 0 0 24px 0; color: #ffffff; letter-spacing: -0.5px; }
+        .article-content { font-size: 18px; color: #d1d5db; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 32px;}
+        .article-content p { margin-bottom: 24px; }
+        .article-content a { color: #2e7bf6; text-decoration: none; }
+        .article-content a:hover { text-decoration: underline; }
+        .article-content img { max-width: 100%; height: auto; border-radius: 8px; margin: 32px 0; display: block; }
+        .article-content blockquote { margin: 0 0 32px 0; padding: 20px 24px; background: #151b2b; border-left: 4px solid #d4af37; border-radius: 4px; font-style: italic; color: #fff; }
+    </style>
+</head>
+<body>
+    <div class="reader-container">
+        <div class="article-source">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8V6Z"/></svg>
+            Smarter.Poker Reader
+        </div>
+        <h1 class="article-title">${title}</h1>
+        <div class="article-content">
+            ${content}
+        </div>
+    </div>
 </body>
 </html>`;
 }
