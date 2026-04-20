@@ -202,61 +202,37 @@ async function joinOrInvite(req, res, groupId) {
     }
 
     // User joining themselves
-    // Check for existing membership
-    const { data: existing } = await getSupabase()
-      .from('commander_home_members')
-      .select('id, status')
-      .eq('group_id', groupId)
-      .eq('user_id', user.id)
-      .maybeSingle();
+    const { data: result, error: rpcError } = await getSupabase().rpc('join_home_group', {
+      p_group_id: groupId,
+      p_user_id: user.id,
+      p_invite_code: invite_code || null
+    });
 
-    if (existing) {
-      if (existing.status === 'approved') {
-        return res.status(400).json({ success: false, error: 'You are already a member' });
-      }
-      if (existing.status === 'pending') {
-        return res.status(400).json({ success: false, error: 'Your membership request is pending' });
-      }
-      if (existing.status === 'banned') {
-        return res.status(403).json({ success: false, error: 'You have been banned from this group' });
-      }
-    }
+    if (rpcError) throw rpcError;
 
-    // Validate invite code for private groups
-    let autoApprove = false;
-    if (group.is_private) {
-      if (invite_code && invite_code.toUpperCase() === group.invite_code) {
-        autoApprove = true;
-      } else if (!invite_code) {
-        return res.status(403).json({ success: false, error: 'This is a private group. An invite code is required.' });
-      } else {
-        return res.status(403).json({ success: false, error: 'Invalid invite code' });
+    if (!result.success) {
+      switch (result.error) {
+        case 'INVALID_INVITE_CODE':
+          return res.status(403).json({ success: false, error: 'Invite code is incorrect' });
+        case 'RATE_LIMITED':
+          return res.status(429).json({ success: false, error: 'Too many attempts. Try again in a few minutes.' });
+        case 'BANNED':
+          return res.status(403).json({ success: false, error: "You're banned from this group" });
+        case 'ALREADY_MEMBER':
+          return res.status(400).json({ success: false, error: 'You are already a member' });
+        case 'PENDING_APPROVAL':
+          return res.status(400).json({ success: false, error: 'Your membership request is pending approval' });
+        default:
+          return res.status(400).json({ success: false, error: result.error || 'Failed to join group' });
       }
     }
 
-    // Determine initial status
-    const initialStatus = autoApprove || !group.requires_approval ? 'approved' : 'pending';
-
-    const { data: member, error } = await getSupabase()
-      .from('commander_home_members')
-      .insert({
-        group_id: groupId,
-        user_id: user.id,
-        role: 'member',
-        status: initialStatus,
-        joined_at: initialStatus === 'approved' ? new Date().toISOString() : null
-      })
-      .select(`
-        *,
-        profiles:user_id (id, display_name, avatar_url)
-      `)
-      .maybeSingle();
-
-    if (error) throw error;
+    const { membership: member } = result;
+    const isApproved = member?.status === 'approved';
 
     return res.status(201).json({
       member,
-      message: initialStatus === 'approved'
+      message: isApproved
         ? 'You have joined the group'
         : 'Your membership request is pending approval'
     });

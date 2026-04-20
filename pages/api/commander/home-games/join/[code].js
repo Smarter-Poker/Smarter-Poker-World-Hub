@@ -139,58 +139,40 @@ async function joinClubByCode(req, res, code) {
       return res.status(404).json({ error: 'Club not found. Check the code and try again.' });
     }
 
-    // Check for existing membership
-    const { data: existing } = await getSupabase()
-      .from('commander_home_members')
-      .select('id, status')
-      .eq('group_id', group.id)
-      .eq('user_id', user.id)
-      .maybeSingle();
+    // Use the RPC for Phase 40
+    const { data: result, error: rpcError } = await getSupabase().rpc('join_home_group', {
+      p_group_id: group.id,
+      p_user_id: user.id,
+      p_invite_code: code
+    });
 
-    if (existing) {
-      if (existing.status === 'approved') {
-        return res.status(400).json({ error: 'You are already a member of this club' });
-      }
-      if (existing.status === 'pending') {
-        return res.status(400).json({ error: 'Your membership request is pending approval' });
-      }
-      if (existing.status === 'banned') {
-        return res.status(403).json({ error: 'You have been banned from this club' });
+    if (rpcError) {
+      throw rpcError; // Hard error
+    }
+
+    if (!result.success) {
+      // Soft failures mapped to friendly messages
+      switch (result.error) {
+        case 'INVALID_INVITE_CODE':
+          return res.status(403).json({ error: 'Invite code is incorrect' });
+        case 'RATE_LIMITED':
+          return res.status(429).json({ error: 'Too many attempts. Try again in a few minutes.' });
+        case 'BANNED':
+          return res.status(403).json({ error: "You're banned from this group" });
+        case 'ALREADY_MEMBER':
+          return res.status(400).json({ error: 'You are already a member of this club' });
+        case 'PENDING_APPROVAL':
+          return res.status(400).json({ error: 'Your membership request is pending approval' });
+        default:
+          return res.status(400).json({ error: result.error || 'Failed to join group' });
       }
     }
 
-    // Determine if auto-approved
-    // Using invite_code (8 chars) = auto approve
-    // Using club_code (6 chars) = follows group rules
-    const usedInviteCode = upperCode === group.invite_code;
-    const autoApprove = usedInviteCode || !group.requires_approval;
-
-    const status = autoApprove ? 'approved' : 'pending';
-
-    // Create membership
-    const { data: membership, error } = await getSupabase()
-      .from('commander_home_members')
-      .upsert({
-        group_id: group.id,
-        user_id: user.id,
-        role: 'member',
-        status,
-        joined_at: status === 'approved' ? new Date().toISOString() : null,
-        notifications_enabled: true,
-        notify_announcements: true,
-        notify_new_games: true,
-        notify_game_reminders: true,
-        notify_rsvp_updates: true
-      }, {
-        onConflict: 'group_id,user_id'
-      })
-      .select()
-      .maybeSingle();
-
-    if (error) throw error;
-
+    // Success response should mimic the expected return structure from the RPC,
+    // which likely contains the membership object
+    const status = result.membership?.status || 'approved';
     return res.status(200).json({
-      membership,
+      membership: result.membership,
       group: { id: group.id, name: group.name },
       message: status === 'approved'
         ? `Welcome to ${group.name}!`
