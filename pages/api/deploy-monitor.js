@@ -221,7 +221,7 @@ async function sendSmsAlert(message) {
     const body = new URLSearchParams({
       From: fromPhone,
       To: ownerPhone,
-      Body: message.substring(0, 160) // Keep short for SMS
+      Body: Array.from(message).slice(0, 1000).join('') // Safe unicode-aware truncation
     });
 
     const res = await fetch(
