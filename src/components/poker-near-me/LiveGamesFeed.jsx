@@ -134,7 +134,15 @@ const STAKES_FILTERS = [
 function venueHasStakes(games, minStake) {
     if (minStake === 'any' || !minStake) return true;
     const threshold = parseInt(minStake);
-    return (games || []).some(g => g && g.game && parseMinStake(g.game) >= threshold);
+    return (games || []).some(g => {
+        if (!g) return false;
+        // Primary: parse stakes from the game name (e.g. "NLH 1/2", "PLO 2/5")
+        const fromName = g.game ? parseMinStake(g.game) : 0;
+        if (fromName >= threshold) return true;
+        // Fallback: parse from g.buyin field — PokerAtlas stores "1/2" or "$1/$2" here
+        const fromBuyin = g.buyin ? parseMinStake(String(g.buyin)) : 0;
+        return fromBuyin >= threshold;
+    });
 }
 
 function LiveGamesFeed({

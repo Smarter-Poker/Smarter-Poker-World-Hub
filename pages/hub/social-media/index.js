@@ -6343,7 +6343,19 @@ function SocialMediaPage() {
                                                     onLike={handleLike}
                                                     onDelete={handleDelete}
                                                     onBlock={handleBlockUser}
-                                                    onOpenArticle={(url) => setArticleReader({ open: true, url, title: p.link_title || null })}
+                                                    onOpenArticle={(url) => {
+                                                        // Known Cloudflare-protected sites block server-side proxy access to individual articles.
+                                                        // For these domains, open directly in a new tab instead of attempting the proxy.
+                                                        const DIRECT_OPEN_DOMAINS = ['cardplayer.com', 'www.cardplayer.com'];
+                                                        try {
+                                                            const domain = new URL(url).hostname;
+                                                            if (DIRECT_OPEN_DOMAINS.some(d => domain === d || domain.endsWith('.' + d))) {
+                                                                window.open(url, '_blank', 'noopener,noreferrer');
+                                                                return;
+                                                            }
+                                                        } catch {}
+                                                        setArticleReader({ open: true, url, title: p.link_title || null });
+                                                    }}
                                                     horseProfileIds={horseProfileIds}
                                                 />
                                                 {/* Insert Reels carousel after 3rd post */}
