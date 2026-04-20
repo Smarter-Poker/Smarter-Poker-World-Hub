@@ -168,8 +168,14 @@ export default function PokerNearMeLobby() {
     // When hitting the lobby natively, enforce default 50-mile radius
     try {
         if (!sessionStorage.getItem('pnm-radius-set-this-session')) {
-            const savedStr = localStorage.getItem('poker-near-me-search-filters');
-            let parsed = savedStr ? JSON.parse(savedStr) : {};
+            let parsed = {};
+            try {
+                const savedStr = localStorage.getItem('poker-near-me-search-filters');
+                parsed = savedStr ? JSON.parse(savedStr) : {};
+            } catch (_parseErr) {
+                // Corrupt localStorage — start fresh
+                parsed = {};
+            }
             parsed.radius = 50;
             localStorage.setItem('poker-near-me-search-filters', JSON.stringify(parsed));
             // Force Lobby's default pod memory to 50mi immediately
@@ -177,7 +183,7 @@ export default function PokerNearMeLobby() {
             sessionStorage.setItem('pnm-radius-set-this-session', 'true');
         }
     } catch (e) {
-        console.warn('Failed to reset radius on entry');
+        console.warn('Failed to reset radius on entry', e);
     }
 
     const unsubFav = eventBus.on('venue:favorite', (event) => {
@@ -187,11 +193,11 @@ export default function PokerNearMeLobby() {
     
     const unsubFilters = eventBus.on('PNM_FILTERS_UPDATED', (event) => {
       const activeFilters = event?.payload || event;
-      if (activeFilters && activeFilters.radius) {
-         setFilters(prev => ({ 
-             ...prev, 
-             nmRadius: String(activeFilters.radius) === 'any' ? 'any' : String(activeFilters.radius)
-         }));
+      if (activeFilters && activeFilters.radius != null) {
+        // Cap incoming radius to prevent rogue events from setting huge values
+        const raw = activeFilters.radius;
+        const capped = raw === 'any' ? 'any' : String(Math.min(parseInt(raw, 10) || 50, 150));
+        setFilters(prev => ({ ...prev, nmRadius: capped }));
       }
     });
 
