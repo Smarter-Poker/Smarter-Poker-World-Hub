@@ -568,6 +568,30 @@ export default async function handler(req, res) {
                   effectiveLat = String(cityCoords.lat);
                   effectiveLng = String(cityCoords.lng);
                   effectiveRadius = effectiveRadius || '50'; // default 50mi for city searches
+              } else {
+                  // [GEOFENCE SUBURB FIX] If not in builtin map, but looks like a valid City, State (min 2 chars for city)
+                  // dynamically resolve using free Nominatim API so suburban users (e.g. Oak Lawn, IL)
+                  // aren't stuck with 0 venues when searching for their city.
+                  const cityMatch = rawSearch.match(/^([^,]{2,}),\s*([a-z]{2})$/);
+                  if (cityMatch) {
+                      try {
+                          const cityName = encodeURIComponent(cityMatch[1].trim());
+                          const stateCode = encodeURIComponent(cityMatch[2].trim());
+                          const url = `https://nominatim.openstreetmap.org/search?city=${cityName}&state=${stateCode}&country=us&format=json&limit=1`;
+                          const gResp = await fetch(url, { headers: { 'User-Agent': 'SmarterPoker/1.0', 'Accept-Language': 'en-US,en' } });
+                          if (gResp.ok) {
+                              const data = await gResp.json();
+                              if (data && data.length > 0) {
+                                  effectiveLat = String(data[0].lat);
+                                  effectiveLng = String(data[0].lon);
+                                  effectiveRadius = effectiveRadius || '50';
+                                  console.log(`[venues] Dynamically geocoded ${rawSearch} to ${effectiveLat}, ${effectiveLng}`);
+                              }
+                          }
+                      } catch (e) {
+                          console.warn('[venues] Dynamic geocode failed for:', rawSearch, e.message);
+                      }
+                  }
               }
           }
 
