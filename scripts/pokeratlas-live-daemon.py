@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PokerAtlas Live Games — Autonomous Scraper Daemon v2.0
+PokerAtlas Live Games — Autonomous Scraper Daemon v3.1
 =====================================================
 Uses Scrapling + Camoufox StealthySession for Cloudflare bypass.
 
@@ -9,6 +9,10 @@ Scrapes game catalog data from PokerAtlas region pages:
 - This data COMPLEMENTS Bravo's real-time table counts
 
 Architecture mirrors bravo-live-daemon.py with source='pokeratlas'.
+
+CRITICAL: Requires Python <=3.13. greenlet 3.x has a known infinite
+CPU spin bug on Python 3.14+ (check_switch_allowed loop). The venv
+MUST be built with python3.13.
 """
 
 import hashlib
@@ -27,6 +31,19 @@ import subprocess
 import threading
 from typing import Dict, List, Optional
 from pathlib import Path
+
+# ── PYTHON RUNTIME COMPATIBILITY GUARD ──
+# greenlet 3.x has a known infinite CPU spin bug on Python 3.14+.
+# The process will appear to run (PID alive, 80%+ CPU) but produce
+# zero output, zero logs, zero data — a silent catastrophic failure.
+if sys.version_info >= (3, 14):
+    print(
+        f'FATAL: Python {sys.version_info.major}.{sys.version_info.minor} detected. '
+        f'greenlet has a known CPU spin bug on Python >=3.14. '
+        f'Rebuild venv with Python 3.13: '
+        f'/opt/homebrew/bin/python3.13 -m venv /Users/smarter.poker/.local/share/smarter-poker-venv'
+    )
+    sys.exit(1)
 from dotenv import load_dotenv
 
 # Resolve the absolute path to the project root and load the correct .env file
@@ -1425,7 +1442,7 @@ def _hard_kill_on_hang(reason):
 def main():
     write_heartbeat('starting')
     log.info('=' * 60)
-    log.info('POKER ATLAS LIVE GAMES — AUTONOMOUS DAEMON v3.0')
+    log.info('POKER ATLAS LIVE GAMES — AUTONOMOUS DAEMON v3.1')
     log.info(f'Interval: {SCRAPE_INTERVAL}s ({SCRAPE_INTERVAL // 60}min)')
     log.info(f'Strategy: session.fetch() per region (no login needed)')
     log.info(f'Data: game catalog + buy-in + run schedule')
