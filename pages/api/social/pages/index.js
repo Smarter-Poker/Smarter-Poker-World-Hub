@@ -52,7 +52,20 @@ export default async function handler(req, res) {
       }
 
       if (req.method === 'GET') {
-          const { id, slug, page_type, owner_id, category, search, user_id, followed_only, linked_venue_id, limit = '20', offset = '0' } = req.query;
+          const safeP = (v) => Array.isArray(v) ? v[0] : (v || '');
+          const id = safeP(req.query.id) || null;
+          const slug = safeP(req.query.slug) || null;
+          const page_type = safeP(req.query.page_type);
+          const owner_id = safeP(req.query.owner_id);
+          const category = safeP(req.query.category);
+          const rawSearch = safeP(req.query.search);
+          // Sanitize: strip LIKE wildcards, cap at 200 chars
+          const search = rawSearch ? rawSearch.slice(0, 200).replace(/[%_\\]/g, (c) => '\\' + c) : null;
+          const user_id = safeP(req.query.user_id);
+          const followed_only = safeP(req.query.followed_only);
+          const linked_venue_id = safeP(req.query.linked_venue_id);
+          const limit = Math.min(parseInt(safeP(req.query.limit)) || 20, 100);
+          const offset = Math.min(Math.max(parseInt(safeP(req.query.offset)) || 0, 0), 10000);
 
           // ──────────────────────────────────────────────────────────────
           //  HOME-GAME QUARANTINE (Phase 15)
@@ -240,7 +253,7 @@ export default async function handler(req, res) {
 
           query = query
               .order('follower_count', { ascending: false })
-              .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
+              .range(offset, offset + limit - 1);
 
           const { data, error, count } = await query;
 
