@@ -685,6 +685,13 @@ https://vercel.com/smarter-poker/hub-vanguard/deployments`,
 
     if (!buildErrors) {
       console.log(`[deploy-monitor] Could not extract build errors for ${deploymentId}`);
+      // Fire agent notification — empty log = pipeline blind spot, not a benign skip.
+      // The deployment failed but we cannot auto-fix. Human or agent must investigate.
+      await createAlertIssue(
+        `Deploy failed — logs unavailable for ${commitSha.substring(0, 8)}`,
+        `## Vercel Deployment Failed — Build Log Unavailable\n\n**Commit:** \`${commitSha}\`\n**Message:** ${commitMsg.substring(0, 200)}\n**Deployment:** ${deploymentId}\n**Auth:** ${authMethod}\n\nThe Vercel deployment failed, but the build log API returned no error lines to analyze.\nThis could mean:\n- The build log was empty (infrastructure failure)\n- The error happened before Next.js compilation (install/config phase)\n- The deployment ID is synthetic or expired\n\nManual investigation required: https://vercel.com/smarter-poker/hub-vanguard/deployments`,
+        { alertKey: `no_build_logs_${deploymentId}`, ghPat: process.env.GH_PAT }
+      );
       return res.status(200).json({
         action: 'skipped',
         reason: 'Could not extract build errors from deployment logs',

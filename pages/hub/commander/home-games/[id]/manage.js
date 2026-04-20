@@ -6,7 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../../src/components/seo/SEOHead';
-import { ArrowLeft, Users, Calendar, Plus, Settings, UserMinus, Clock, DollarSign, Trash2, Loader2, X, Check, Wallet, ArrowUpRight, ArrowDownLeft, RefreshCw, AlertCircle, Heart } from 'lucide-react';
+import { ArrowLeft, Users, Calendar, Plus, Settings, UserMinus, Clock, DollarSign, Trash2, Loader2, X, Check, Wallet, ArrowUpRight, ArrowDownLeft, RefreshCw, AlertCircle, Heart, List, Megaphone, MessageSquare } from 'lucide-react';
 import RSVPManager from '../../../../../src/components/commander/home-games/RSVPManager';
 import { supabase } from '../../../../../src/lib/supabase';
 import { useRequireAuth, getAccessToken } from '../../../../../src/lib/authUtils';
@@ -961,6 +961,45 @@ export default function ManageHomeGamePage() {
           {/* Settings Tab */}
           {activeTab === 'settings' && (
             <div className="space-y-4">
+
+              {/* Roster + Announce Quick Actions */}
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => router.push(`/hub/commander/home-games/${id}/roster`)}
+                  className="cmd-panel p-4 flex flex-col items-center gap-2 hover:bg-[#1A2E4A] transition-colors text-center"
+                >
+                  <List className="w-6 h-6 text-[#22D3EE]" />
+                  <span className="text-sm font-semibold text-white">Database of Players</span>
+                  <span className="text-xs text-[#64748B]">View and manage full roster</span>
+                </button>
+                <button
+                  onClick={async () => {
+                    const msg = window.prompt('Broadcast announcement to all group members:');
+                    if (!msg?.trim()) return;
+                    try {
+                      const token = getAccessToken();
+                      const res = await fetch(`/api/commander/home-games/groups/${id}/broadcast`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                        body: JSON.stringify({ message_text: msg.trim() })
+                      });
+                      const data = await res.json();
+                      if (data.success) {
+                        const r = data.result || {};
+                        toast.success(`Sent to ${r.members_notified || 0} members, ${r.followers_notified || 0} followers`);
+                      } else {
+                        toast.error(data.error?.message || data.error || 'Broadcast failed');
+                      }
+                    } catch (e) { toast.error('Broadcast failed'); }
+                  }}
+                  className="cmd-panel p-4 flex flex-col items-center gap-2 hover:bg-[#1A2E4A] transition-colors text-center"
+                >
+                  <Megaphone className="w-6 h-6 text-[#F59E0B]" />
+                  <span className="text-sm font-semibold text-white">Broadcast</span>
+                  <span className="text-xs text-[#64748B]">Message all players</span>
+                </button>
+              </div>
+
               {/* Basic Settings */}
               <div className="cmd-panel p-6">
                 <h3 className="font-semibold text-white mb-4">Group Settings</h3>
