@@ -309,6 +309,10 @@
       "schedule": "0 8 * * *"
     },
     {
+      "path": "/api/cron/purge-idempotency-keys",
+      "schedule": "30 8 * * *"
+    },
+    {
       "path": "/api/cron/memory-matrix-daily-challenge",
       "schedule": "0 6 * * *"
     },
