@@ -681,7 +681,28 @@ export default function SignUpPage() {
 
         } catch (err) {
             console.error('Signup error:', err);
-            setError(err.message || 'Failed to create account');
+            // ── [Phase 6.1.19] Account enumeration defense ──────────────────
+            // If Supabase returned "User already registered" (or any variant
+            // that would leak whether the email maps to a real account), we
+            // normalise the UX to look identical to a successful signup that
+            // requires email confirmation. The legitimate owner of that
+            // address will get a confirmation/password-reset email from
+            // Supabase anyway (or can use the magic-link path on /auth/login);
+            // an attacker gets the same UI either way, with no enumeration
+            // signal. All other errors (validation, rate limit, network)
+            // continue to display a generic failure.
+            const msg = (err?.message || '').toLowerCase();
+            const looksLikeEnumeration =
+                msg.includes('already registered') ||
+                msg.includes('user already') ||
+                msg.includes('email already') ||
+                msg.includes('duplicate key') ||
+                msg.includes('identity already exists');
+            if (looksLikeEnumeration) {
+                setStep('email_pending');
+            } else {
+                setError('Failed to create account. Please check your details and try again.');
+            }
         } finally {
             setLoading(false);
         }

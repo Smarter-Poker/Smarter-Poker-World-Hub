@@ -103,11 +103,22 @@ export default function LoginPage() {
         } catch (err) {
             console.error('Login error:', err);
 
-            // Contextual Error Recovery
-            if (err.message && err.message.toLowerCase().includes('invalid login credentials')) {
-                setError('Invalid Password. If You Forgot It, Use The Magic Link Below To Sign In Instantly Without A Password!');
+            // ── [Phase 6.1.19] Account enumeration defense ──────────────────
+            // Supabase normalises both "email not found" and "wrong password"
+            // to a single `invalid login credentials` error, so the backend
+            // itself is enumeration-safe. The legacy copy said "Invalid
+            // Password" which implied the email was valid — we replace it
+            // with neutral wording. For rate limit / server errors we still
+            // show a generic message.
+            const msg = (err?.message || '').toLowerCase();
+            if (msg.includes('invalid login credentials') || msg.includes('invalid credentials')) {
+                setError("Email Or Password Doesn't Match. Use The Magic Link Below To Sign In Without A Password.");
+            } else if (msg.includes('email not confirmed')) {
+                setError('Please Confirm Your Email Before Signing In. Check Your Inbox For The Confirmation Link.');
+            } else if (msg.includes('rate limit') || msg.includes('too many')) {
+                setError('Too Many Sign-In Attempts. Please Wait A Minute And Try Again.');
             } else {
-                setError(err.message || 'Login failed');
+                setError('Unable To Sign In Right Now. Please Try Again In A Moment.');
             }
         } finally {
             setIsLoading(false);

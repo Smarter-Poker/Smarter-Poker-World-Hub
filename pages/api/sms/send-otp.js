@@ -85,21 +85,19 @@ export default async function handler(req, res) {
               return res.status(400).json({ success: false, error: 'Please enter a valid 10-digit US phone number' });
           }
 
-          // ── Guard: Phone Uniqueness ──────────────────────────────────────
-          // Prevent users from farming multiple VIP cards with the same phone number
-          const { data: existingProfiles } = await supabase
-              .from('profiles')
-              .select('id, phone_verified')
-              .eq('phone', cleanPhone)
-              .eq('phone_verified', true)
-              .limit(1);
-
-          if (existingProfiles && existingProfiles.length > 0) {
-              // Note: If this is the current user re-verifying, that's fine, but send-otp doesn't know userId yet. 
-              // In the VIP Modal we only show it if the user IS NOT verified. 
-              // So if ANY user has this phone verified, we reject it to stop abuse.
-              return res.status(409).json({ success: false, error: 'This phone number is already registered to a verified account.' });
-          }
+          // ── [Phase 6.1.19] Phone Uniqueness — MOVED downstream ──────────
+          // Previously: we queried `profiles` here for an existing phone and
+          // returned a 409 "already registered" error before sending an OTP.
+          // That turned this endpoint into an account-enumeration oracle:
+          // anyone could probe arbitrary phone numbers and learn which were
+          // linked to real accounts. The duplicate-phone guard still exists
+          // at verify-otp (line ~165) — it catches the abuse at the step
+          // that actually writes to `profiles`, inside an authenticated
+          // context, which is where business logic belongs anyway.
+          //
+          // Net effect: legitimate users see identical behavior; enumeration
+          // attackers now just waste SMS quota with no signal. Rate limiting
+          // (below) caps the quota drain at 5 codes / hour / phone.
 
           // ── Housekeeping: purge ALL expired OTP rows (any phone) ─────────
           // Keeps the table lean — runs on every send request
