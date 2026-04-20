@@ -644,7 +644,6 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
   const userMarkerRef = useRef(null);
   const radiusCircleRef = useRef(null);
   const onOpenIframeModalRef = useRef(onOpenIframeModal);
-  const mountedRef = useRef(true);
   const [mapReady, setMapReady] = useState(false);
 
   // Keep the ref current without triggering re-init
