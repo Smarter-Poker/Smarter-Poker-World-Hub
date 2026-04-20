@@ -896,7 +896,7 @@ export default function PokerToursPage({ initialTours = [] }) {
                     if (typeof window !== 'undefined' && window.history.length > 1) {
                         router.back();
                     } else {
-                        router.push('/hub/poker-near-me/lobby');
+                        router.push('/hub');
                     }
                 }} />
 

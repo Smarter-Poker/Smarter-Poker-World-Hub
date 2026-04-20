@@ -2151,7 +2151,15 @@ export default function PokerNearMeLobby() {
               onBackClick={() => {
                 if (typeof window !== 'undefined') {
                   const referrer = document.referrer || '';
-                  if (referrer.includes(window.location.hostname)) {
+                  let safeBack = false;
+                  try {
+                    if (referrer) {
+                      const refUrl = new URL(referrer);
+                      if (refUrl.hostname === window.location.hostname) safeBack = true;
+                    }
+                  } catch (e) { /* ignore invalid referrer URLs */ }
+                  
+                  if (safeBack) {
                     router.back();
                   } else {
                     router.push('/hub');

@@ -365,7 +365,7 @@ export default function DailyTournaments() {
                     if (typeof window !== 'undefined' && window.history.length > 1) {
                         router.back();
                     } else {
-                        router.push('/hub/poker-near-me/lobby');
+                        router.push('/hub');
                     }
                 }} />
                 <HamburgerMenu

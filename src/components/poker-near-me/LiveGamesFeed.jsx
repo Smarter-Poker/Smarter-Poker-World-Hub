@@ -386,9 +386,7 @@ function LiveGamesFeed({
                 if (lastGoodLiveDataRef.current && Object.keys(lastGoodLiveDataRef.current).length > 0) {
                     console.warn('[LGF] API HTTP error — preserving last-known data.');
                     setIsScraperDead(true);
-                    // FIX: Don't let a stale isDataStale=true bleed through from a prior good cycle;
-                    // on HTTP error we have no timestamp to compare against, so clear the stale flag.
-                    setIsDataStale(false);
+                    // Do NOT clear isDataStale — offline data continues aging.
                 }
             }
         } catch (e) {
@@ -396,8 +394,7 @@ function LiveGamesFeed({
             // Network failure — preserve last-known data
             if (lastGoodLiveDataRef.current && Object.keys(lastGoodLiveDataRef.current).length > 0) {
                 setIsScraperDead(true);
-                // FIX: Same as HTTP error path — don't persist stale warning without a valid timestamp.
-                setIsDataStale(false);
+                // Do NOT clear isDataStale — offline data continues aging.
             }
         }
         setLiveLoading(false);
@@ -700,7 +697,8 @@ function LiveGamesFeed({
             // Unlocated catalog venues should be dropped to avoid spamming the local feed with unverified locations.
             const unlocatedActive = list.filter(v => (!v.latitude || !v.longitude) && v._isLive);
             
-            const inRadius = located.filter(v => calcDist(v) <= Number(filterRadius));
+            const effectiveRadius = isNaN(Number(filterRadius)) ? 50 : Number(filterRadius);
+            const inRadius = located.filter(v => calcDist(v) <= effectiveRadius);
             list = [...inRadius, ...unlocatedActive];
         }
 
