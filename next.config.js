@@ -243,21 +243,88 @@ const nextConfig = {
       "worker-src 'self' blob:",
       // Frames: none (no iframes used)
       "frame-src 'none'",
+      // [Phase 6.1.14] frame-ancestors 'none' — CSP equivalent of X-Frame-Options: DENY.
+      // Blocks every origin (including our own) from embedding smarter.poker in an
+      // iframe. Prevents clickjacking of the login + check-in + diamond-transfer UIs.
+      "frame-ancestors 'none'",
       // Object (Flash etc): none
       "object-src 'none'",
       // Base URI: self only (prevent base tag injection)
       "base-uri 'self'",
       // Form submissions: self only
       "form-action 'self'",
+      // [Phase 6.1.14] Auto-upgrade any lingering http:// sub-resource requests
+      // (e.g. inline <img src="http://..."> in user-generated content) to https.
+      "upgrade-insecure-requests",
     ].join('; ');
 
     return [
       {
         source: '/(.*)',
         headers: [
+          // [Phase 6.1.14] HSTS — force HTTPS for 2 years + subdomains + preload
+          // list eligibility. Vercel already redirects http→https at the edge, but
+          // this header tells the browser to refuse http:// entirely for subsequent
+          // visits and propagate the policy to every *.smarter.poker host. The
+          // `preload` directive lets us submit to hstspreload.org so fresh browsers
+          // never make a plaintext request to us in their entire lifetime.
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains; preload',
+          },
+          // [Phase 6.1.14] X-Frame-Options: belt-and-braces clickjacking defense.
+          // CSP `frame-ancestors 'none'` is the modern equivalent (see csp below)
+          // but XFO is still honored by legacy browsers and some embedded webviews.
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          // [Phase 6.1.14] Block MIME sniffing — stops browsers from interpreting
+          // a user-uploaded text file as HTML/JS. Critical because we accept avatars,
+          // chat attachments, and venue photos to Supabase storage.
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          // [Phase 6.1.14] Referrer-Policy — don't leak full URLs (which may
+          // include query params like ?session_token=...) to third parties.
+          // strict-origin-when-cross-origin sends full path to same-origin,
+          // origin-only to cross-origin, nothing on HTTPS→HTTP downgrade.
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+          // [Phase 6.1.14] Optional perf/privacy headers.
+          {
+            key: 'X-DNS-Prefetch-Control',
+            value: 'on',
+          },
+          // [Phase 6.1.14] Expanded Permissions-Policy — explicitly deny features
+          // we never use. Stops ad-tech fingerprinting vectors (browsing-topics,
+          // interest-cohort) and prevents a compromised third-party script from
+          // silently tapping into sensors, USB, serial, Bluetooth, etc.
           {
             key: 'Permissions-Policy',
-            value: 'geolocation=(self), microphone=(self), camera=(self), display-capture=(self)',
+            value: [
+              'geolocation=(self)',
+              'microphone=(self)',
+              'camera=(self)',
+              'display-capture=(self)',
+              'payment=()',
+              'usb=()',
+              'serial=()',
+              'bluetooth=()',
+              'midi=()',
+              'magnetometer=()',
+              'gyroscope=()',
+              'accelerometer=()',
+              'ambient-light-sensor=()',
+              'autoplay=(self)',
+              'fullscreen=(self)',
+              'picture-in-picture=(self)',
+              'browsing-topics=()',
+              'interest-cohort=()',
+            ].join(', '),
           },
           {
             // Report-Only: logs violations without blocking — safe to enable immediately.
@@ -265,6 +332,23 @@ const nextConfig = {
             // Content-Security-Policy once the violation list is clean.
             key: 'Content-Security-Policy-Report-Only',
             value: csp,
+          },
+        ],
+      },
+      // [Phase 6.1.14] Extra-strict headers for the jurisdiction-blocked inert
+      // page — no scripts needed, no framing, no referrer leakage. This is the
+      // only page served to geo-blocked users, so it pays to harden it further
+      // than the app-wide baseline.
+      {
+        source: '/jurisdiction-blocked',
+        headers: [
+          {
+            key: 'X-Robots-Tag',
+            value: 'noindex, nofollow',
+          },
+          {
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate, proxy-revalidate',
           },
         ],
       },
