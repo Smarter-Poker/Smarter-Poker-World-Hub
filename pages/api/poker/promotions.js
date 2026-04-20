@@ -2,6 +2,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import allVenuesData from '../../../data/all-venues.json';
 import tourSeriesData from '../../../data/poker-tour-series-2026.json';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+const { applyCors } = require('../../../src/lib/cors');
 
 let _supabase = null;
 function getSupabase() {
@@ -76,23 +77,12 @@ function lookupPageName(lookups, pageType, pageId) {
   return null;
 }
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, x-user-id',
-};
+
 
 export default async function handler(req, res) {
-  try {
+    if (!applyCors(req, res, { methods: 'GET, OPTIONS', headers: 'Content-Type, x-user-id' })) return;
+try {
     if (!applyRateLimit(req, res, LIMITS.read)) return;
-
-    Object.entries(CORS_HEADERS).forEach(([key, value]) => {
-      res.setHeader(key, value);
-    });
-
-    if (req.method === 'OPTIONS') {
-      return res.status(200).end();
-    }
 
     if (req.method !== 'GET') {
       return res.status(405).json({ success: false, error: 'Method not allowed' });

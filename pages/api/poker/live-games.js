@@ -1,6 +1,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import allVenuesData from '../../../data/all-venues.json';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+const { applyCors } = require('../../../src/lib/cors');
 
 let _supabase = null;
 function getSupabase() {
@@ -24,24 +25,13 @@ function enrichGamesWithVenue(games) {
   }));
 }
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, x-user-id, Authorization',
-};
+
 
 export default async function handler(req, res) {
-  try {
+    if (!applyCors(req, res, { methods: 'GET, POST, PUT, DELETE, OPTIONS', headers: 'Content-Type, x-user-id, Authorization' })) return;
+try {
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
-    }
-
-    Object.entries(CORS_HEADERS).forEach(([key, value]) => {
-      res.setHeader(key, value);
-    });
-
-    if (req.method === 'OPTIONS') {
-      return res.status(200).end();
     }
 
     try {

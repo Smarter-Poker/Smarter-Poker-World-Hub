@@ -6,18 +6,14 @@
  */
 
 import { getController } from '../../../../src/lib/poker-engine/GameController';
+const { applyCors } = require('../../../../src/lib/cors');
 const { applyRateLimit } = require('../../../../src/lib/poker-engine/RateLimiter');
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, x-user-id, Authorization',
-};
+
 
 export default async function handler(req, res) {
-  Object.entries(CORS).forEach(([k, v]) => res.setHeader(k, v));
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' });
+    if (!applyCors(req, res, { methods: 'GET, OPTIONS', headers: 'Content-Type, x-user-id, Authorization' })) return;
+if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' });
 
   // Rate limit
   if (!applyRateLimit(req, res, 'poker/engine/state')) return;

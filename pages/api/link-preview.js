@@ -39,14 +39,16 @@ function isBlockedUrl(urlStr) {
 }
 
 import { applyRateLimit, LIMITS } from '../../src/lib/apiRateLimit';
+const { applyCors } = require('../../src/lib/cors');
 
 export default async function handler(req, res) {
-    // Rate limit — this endpoint makes external requests, protect against abuse
+      if (!applyCors(req, res, { methods: 'GET', headers: 'Content-Type, Authorization' })) return;
+// Rate limit — this endpoint makes external requests, protect against abuse
     if (!applyRateLimit(req, res, LIMITS.read)) return;
 
     // Allow CORS
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET');
+    
+    
     // Cache link preview responses for 1 hour (browser) / 24 hours (CDN)
     // This prevents N+1 API calls when the same URLs appear across page loads
     res.setHeader('Cache-Control', 'public, s-maxage=86400, max-age=3600, stale-while-revalidate=86400');

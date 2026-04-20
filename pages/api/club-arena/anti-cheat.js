@@ -17,6 +17,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+const { applyCors } = require('../../../src/lib/cors');
 
 let _supabase = null;
 function getSupabase() {
@@ -29,11 +30,7 @@ function getSupabase() {
     return _supabase;
 }
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Idempotency-Key',
-};
+
 
 // ─── Idempotency Store (in-memory, TTL-based) ────────────────
 // Prevents double-tap / fat-finger duplicate mutations.
@@ -53,13 +50,11 @@ if (typeof setInterval !== 'undefined') {
 }
 
 export default async function handler(req, res) {
-  try {
+    if (!applyCors(req, res, { methods: 'POST, OPTIONS', headers: 'Content-Type, Authorization, X-Idempotency-Key' })) return;
+try {
     if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
-
-    Object.entries(CORS).forEach(([k, v]) => res.setHeader(k, v));
-    if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
     // ── Idempotency Check: dedup mutation requests ──

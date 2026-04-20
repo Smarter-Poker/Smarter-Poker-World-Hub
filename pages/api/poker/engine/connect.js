@@ -13,18 +13,14 @@
 import { getController } from '../../../../src/lib/poker-engine/GameController';
 const { applyRateLimit } = require('../../../../src/lib/poker-engine/RateLimiter');
 import { createClient } from '../../../../src/lib/supabaseServerClient';
+const { applyCors } = require('../../../../src/lib/cors');
 const _supaAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, x-user-id, Authorization',
-};
+
 
 export default async function handler(req, res) {
-  try {
-    Object.entries(CORS).forEach(([k, v]) => res.setHeader(k, v));
-    if (req.method === 'OPTIONS') return res.status(200).end();
+    if (!applyCors(req, res, { methods: 'POST, GET, OPTIONS', headers: 'Content-Type, x-user-id, Authorization' })) return;
+try {
 
     // Rate limit
     if (!applyRateLimit(req, res, 'poker/engine/connect')) return;

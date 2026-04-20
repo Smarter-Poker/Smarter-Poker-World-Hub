@@ -1,5 +1,6 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+const { applyCors } = require('../../../src/lib/cors');
 
 let _supabase = null;
 function getSupabase() {
@@ -12,22 +13,20 @@ function getSupabase() {
 }
 
 function setCorsHeaders(res) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-user-id');
+    
+    
+    
 }
 
 export default async function handler(req, res) {
-  try {
+    if (!applyCors(req, res, { methods: 'GET, POST, OPTIONS', headers: 'Content-Type, x-user-id' })) return;
+try {
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
 
       setCorsHeaders(res);
-
-      if (req.method === 'OPTIONS') {
-          return res.status(200).end();
-      }
+}
 
       try {
           if (req.method === 'GET') {

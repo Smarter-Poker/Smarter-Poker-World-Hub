@@ -1,5 +1,6 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+const { applyCors } = require('../../../src/lib/cors');
 
 let _supabase = null;
 function getSupabase() {
@@ -11,11 +12,7 @@ function getSupabase() {
     return _supabase;
 }
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, x-user-id, Authorization',
-};
+
 
 /** Helper: extract verified user ID from JWT, or null */
 async function getVerifiedUserId(req) {
@@ -26,7 +23,8 @@ async function getVerifiedUserId(req) {
 }
 
 export default async function handler(req, res) {
-  try {
+    if (!applyCors(req, res, { methods: 'GET, POST, PUT, DELETE, OPTIONS', headers: 'Content-Type, x-user-id, Authorization' })) return;
+try {
     // CDN cache: fresh for 60s, serve stale up to 300s
     if (req.method === 'GET') {
       res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
@@ -37,14 +35,8 @@ export default async function handler(req, res) {
     }
 
     // Set CORS headers
-    Object.entries(CORS_HEADERS).forEach(([key, value]) => {
-      res.setHeader(key, value);
-    });
 
     // Handle preflight
-    if (req.method === 'OPTIONS') {
-      return res.status(200).end();
-    }
 
     try {
       if (req.method === 'POST') {

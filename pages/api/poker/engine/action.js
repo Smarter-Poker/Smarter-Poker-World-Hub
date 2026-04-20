@@ -8,6 +8,7 @@
  */
 
 import { getController } from '../../../../src/lib/poker-engine/GameController';
+const { applyCors } = require('../../../../src/lib/cors');
 const { AntiCheat } = require('../../../../src/lib/poker-engine/AntiCheat');
 const { applyRateLimit } = require('../../../../src/lib/poker-engine/RateLimiter');
 const { createClient } = require('../../../../src/lib/supabaseServerClient');
@@ -25,18 +26,13 @@ function getSupabase() {
 if (!globalThis.__ANTI_CHEAT__) globalThis.__ANTI_CHEAT__ = new AntiCheat(supabaseAdmin);
 const antiCheat = globalThis.__ANTI_CHEAT__;
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, x-user-id, Authorization',
-};
+
 
 const VALID_ACTIONS = new Set(['fold', 'check', 'call', 'bet', 'raise', 'all_in']);
 
 export default async function handler(req, res) {
-  try {
-    Object.entries(CORS).forEach(([k, v]) => res.setHeader(k, v));
-    if (req.method === 'OPTIONS') return res.status(200).end();
+    if (!applyCors(req, res, { methods: 'POST, OPTIONS', headers: 'Content-Type, x-user-id, Authorization' })) return;
+try {
     if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
     // Rate limit

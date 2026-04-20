@@ -15,6 +15,7 @@
 
 import { getController } from '../../../../src/lib/poker-engine/GameController';
 import { createClient } from '../../../../src/lib/supabaseServerClient';
+const { applyCors } = require('../../../../src/lib/cors');
 const { applyRateLimit } = require('../../../../src/lib/poker-engine/RateLimiter');
 
 let _supabase = null;
@@ -27,16 +28,11 @@ function getSupabase() {
     return _supabase;
 }
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, x-user-id, Authorization',
-};
+
 
 export default async function handler(req, res) {
-  try {
-    Object.entries(CORS).forEach(([k, v]) => res.setHeader(k, v));
-    if (req.method === 'OPTIONS') return res.status(200).end();
+    if (!applyCors(req, res, { methods: 'POST, OPTIONS', headers: 'Content-Type, x-user-id, Authorization' })) return;
+try {
     if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
     try {

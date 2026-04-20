@@ -11,6 +11,7 @@
  */
 import { withSentry } from '../../../src/lib/sentry';
 import { createClient } from '../../../src/lib/supabaseServerClient';
+const { applyCors } = require('../../../src/lib/cors');
 
 let _sb = null;
 function getSupabase() {
@@ -23,11 +24,7 @@ function getSupabase() {
     return _sb;
 }
 
-const CORS = {
-    'Access-Control-Allow-Origin':  '*',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-};
+
 
 const DAYS_ORDER = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday','Daily'];
 
@@ -49,8 +46,6 @@ function formatMoney(n) {
 }
 
 async function handler(req, res) {
-    Object.entries(CORS).forEach(([k, v]) => res.setHeader(k, v));
-    if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'GET') return res.status(405).json({ success: false, error: 'Method not allowed' });
 
     // Cache: fresh 5 min, stale 30 min (tournament schedules don't change hourly)

@@ -19,6 +19,7 @@
 
 import { getController } from '../../../../src/lib/poker-engine/GameController';
 const ChipBridge = require('../../../../src/lib/poker-engine/ChipBridge');
+const { applyCors } = require('../../../../src/lib/cors');
 const { applyRateLimit } = require('../../../../src/lib/poker-engine/RateLimiter');
 const { createClient } = require('../../../../src/lib/supabaseServerClient');
 
@@ -33,11 +34,7 @@ function getSupabase() {
     return _supabase;
 }
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, x-user-id, Authorization',
-};
+
 
 const VALID_SEAT_ACTIONS = new Set([
   'sit_down', 'stand_up', 'sit_out', 'sit_in',
@@ -51,9 +48,8 @@ const VALID_SEAT_ACTIONS = new Set([
 ]);
 
 export default async function handler(req, res) {
-  try {
-    Object.entries(CORS).forEach(([k, v]) => res.setHeader(k, v));
-    if (req.method === 'OPTIONS') return res.status(200).end();
+    if (!applyCors(req, res, { methods: 'POST, OPTIONS', headers: 'Content-Type, x-user-id, Authorization' })) return;
+try {
     if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
     // Rate limit

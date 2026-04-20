@@ -21,21 +21,17 @@ function getSupabase() {
 
 const DAYS_ORDER = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
-const ALLOWED_ORIGINS = ['https://smarter.poker', 'https://www.smarter.poker'];
+// [Phase 6.1.13] Origin-scoped via shared helper. GETs used to allow `*`
+// (public venue data) but that let any site — including ad frames —
+// pull authenticated venue data if the user happened to be signed in.
+// Now same-origin + our domains + localhost + Vercel previews only.
+const { corsHeaders } = require('../../../src/lib/cors');
 
-function getCorsHeaders(req, method) {
-    const origin = req.headers.origin || '';
-    // GET requests: allow any origin (public venue data)
-    // POST/DELETE: restrict to our own origin only
-    const allowedOrigin = method === 'GET'
-        ? '*'
-        : (ALLOWED_ORIGINS.includes(origin) ? origin : 'https://smarter.poker');
-    return {
-        'Access-Control-Allow-Origin': allowedOrigin,
-        'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        'Vary': 'Origin',
-    };
+function getCorsHeaders(req /*, method */) {
+    return corsHeaders(req, {
+        methods: 'GET, POST, DELETE, OPTIONS',
+        headers: 'Content-Type, Authorization',
+    });
 }
 
 
