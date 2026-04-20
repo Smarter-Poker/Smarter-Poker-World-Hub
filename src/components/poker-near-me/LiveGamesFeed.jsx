@@ -259,7 +259,9 @@ function LiveGamesFeed({
     const [internalFilterStakes, setInternalFilterStakes] = useState(savedFilters.filterStakes || 'any');
 
     const filterState = globalFilters ? (globalFilters.selectedState || 'all') : internalFilterState;
-    const filterRadius = globalFilters ? (globalFilters.radius === 'any' || globalFilters.radius === 'Any' ? 'any' : String(globalFilters.radius)) : internalFilterRadius;
+    const filterRadius = globalFilters ? 
+        (globalFilters.radius === 'any' || globalFilters.radius === 'Any' ? 'any' : String(Math.min(Number(globalFilters.radius) || 50, 150))) 
+        : internalFilterRadius;
     
     // Map main UI gameType to LiveGamesFeed format if needed
     let computedGameType = internalFilterGameType;

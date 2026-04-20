@@ -171,7 +171,7 @@ export default async function handler(req, res) {
                   notes: 'Welcome-back bonus',
               });
 
-              notifyUser(supabaseAdmin, {
+              await notifyUser(supabaseAdmin, {
                   userId: playerId,
                   type: 'welcome_back',
                   title: '🎁 Welcome Back!',

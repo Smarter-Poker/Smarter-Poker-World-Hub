@@ -196,7 +196,7 @@ export default async function handler(req, res) {
       }
 
       // Fire-and-forget: notify recipient
-      notifyUser(supabaseAdmin, {
+      await notifyUser(supabaseAdmin, {
         userId: toUserId,
         type: 'chip_distribution',
         title: `💰 ${amount.toLocaleString()} Chips Received`,

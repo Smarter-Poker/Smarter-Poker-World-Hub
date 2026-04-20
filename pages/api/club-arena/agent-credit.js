@@ -171,7 +171,7 @@ export default async function handler(req, res) {
           notes: notes || `Credit line issued: +${amount.toLocaleString()} (limit now ${newLimit.toLocaleString()})`,
         });
 
-        notifyUser(supabaseAdmin, {
+        await notifyUser(supabaseAdmin, {
           userId: agentUserId,
           type: 'agent_credit_issued',
           title: 'Credit Line Updated',
@@ -210,7 +210,7 @@ export default async function handler(req, res) {
           notes: notes || `Prepaid chips issued: ${amount.toLocaleString()}`,
         });
 
-        notifyUser(supabaseAdmin, {
+        await notifyUser(supabaseAdmin, {
           userId: agentUserId,
           type: 'agent_prepaid_added',
           title: 'Prepaid Chips Added',
@@ -261,7 +261,7 @@ export default async function handler(req, res) {
           .update({ credit_limit: finalLimit })
           .eq('id', agentRecord.id);
 
-        notifyUser(supabaseAdmin, {
+        await notifyUser(supabaseAdmin, {
           userId: agentUserId,
           type: 'agent_credit_revoked',
           title: 'Credit Line Revoked',

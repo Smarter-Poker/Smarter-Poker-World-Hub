@@ -276,7 +276,7 @@ export default async function handler(req, res) {
 
         logAudit(supabaseAdmin, { actionType: 'agent_promoted', userId: user.id, targetUserId, clubId, ip: extractIP(req), details: { agentId: agentRecord.id, agentTier, commissionRate, isPrepaid, rakebackPercentage: rakebackPercentage || 0 } });
 
-        notifyUser(supabaseAdmin, {
+        await notifyUser(supabaseAdmin, {
           userId: targetUserId,
           type: 'agent_promoted',
           title: 'Promoted to Agent',
@@ -374,7 +374,7 @@ export default async function handler(req, res) {
 
         logAudit(supabaseAdmin, { actionType: 'agent_demoted', userId: user.id, targetUserId, clubId, ip: extractIP(req), details: { playersReassigned: playerCount, reassignedTo: reassignTo || 'unassigned' } });
 
-        notifyUser(supabaseAdmin, {
+        await notifyUser(supabaseAdmin, {
           userId: targetUserId,
           type: 'agent_demoted',
           title: 'Agent Status Revoked',
@@ -555,7 +555,7 @@ export default async function handler(req, res) {
           ? 'Your agent account has been temporarily suspended by club management.'
           : 'Your agent account has been reactivated.';
 
-        notifyUser(supabaseAdmin, {
+        await notifyUser(supabaseAdmin, {
           userId: targetUserId,
           type: `agent_${action}`,
           title: statusTitle,
@@ -1351,7 +1351,7 @@ export default async function handler(req, res) {
           .eq('user_id', user.id);
 
         logAudit(supabaseAdmin, { actionType: 'ownership_transferred', userId: user.id, targetUserId, clubId, ip: extractIP(req), details: { oldOwner: user.id, newOwner: targetUserId } });
-        notifyUser(supabaseAdmin, {
+        await notifyUser(supabaseAdmin, {
           userId: targetUserId, type: 'ownership_transfer',
           title: '👑 Club Ownership Transferred',
           message: `You are now the owner of this club. The previous owner has been moved to admin role.`,

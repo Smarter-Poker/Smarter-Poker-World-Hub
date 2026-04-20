@@ -282,7 +282,7 @@ export default async function handler(req, res) {
 
           // Notify players with rakeback available (fire-and-forget)
           for (const ins of inserts.filter(i => i.rakeback_amount > 0)) {
-            notifyUser(supabaseAdmin, {
+            await notifyUser(supabaseAdmin, {
               userId: ins.player_id, type: 'rakeback_available',
               title: `🎁 Rakeback Available: ${ins.rakeback_amount.toLocaleString()}`,
               message: `You have ${ins.rakeback_amount.toLocaleString()} chips in unclaimed rakeback. Claim now in the cashier!`,

@@ -143,7 +143,7 @@ export default async function handler(req, res) {
                                       .eq('id', reg.id);
 
                                   // Notify player
-                                  notifyUser(supabase, {
+                                  await notifyUser(supabase, {
                                       userId: reg.user_id,
                                       type: 'tournament_cancelled',
                                       title: `❌ Cancelled: ${tourn.name}`,
@@ -196,7 +196,7 @@ export default async function handler(req, res) {
                       .limit(500);
 
                   for (const reg of (regs || [])) {
-                      notifyUser(supabase, {
+                      await notifyUser(supabase, {
                           userId: reg.user_id,
                           type: 'tournament_reminder',
                           title: `⏰ ${tourn.name} starts in 15 minutes!`,

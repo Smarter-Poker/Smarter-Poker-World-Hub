@@ -231,7 +231,7 @@ export default async function handler(req, res) {
         },
       });
 
-      notifyUser(supabaseAdmin, {
+      await notifyUser(supabaseAdmin, {
         userId: txn.to_user_id,
         type: 'clawback',
         title: 'Chips Clawed Back',

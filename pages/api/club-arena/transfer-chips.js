@@ -128,7 +128,7 @@ export default async function handler(req, res) {
       }
 
       // Record transactions (fire-and-forget — transfer already atomic)
-      getSupabase().from('chip_transactions').insert([
+      await getSupabase().from('chip_transactions').insert([
         {
           club_id: clubId, from_user_id: user.id, to_user_id: toUserId,
           amount: -amount, transaction_type: 'transfer_out',
@@ -139,10 +139,10 @@ export default async function handler(req, res) {
           amount, transaction_type: 'transfer_in',
           notes: note || `Transfer from player`,
         },
-      ]).then(() => { }).catch(() => { });
+      ]);
 
       // Notify recipient
-      notifyUser(supabaseAdmin, {
+      await notifyUser(supabaseAdmin, {
         userId: toUserId, type: 'chip_transfer',
         title: `💰 ${amount.toLocaleString()} Chips Received`,
         message: `A player sent you ${amount.toLocaleString()} chips${note ? ` — ${note}` : ''}.`,

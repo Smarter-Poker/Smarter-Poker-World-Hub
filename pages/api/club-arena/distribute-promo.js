@@ -141,7 +141,7 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: result?.error || 'Distribution failed', details: result });
           }
 
-          notifyUser(supabaseAdmin, {
+          await notifyUser(supabaseAdmin, {
             userId: targetUserId,
             type: 'promo_received',
             title: 'Promo Chips Received!',

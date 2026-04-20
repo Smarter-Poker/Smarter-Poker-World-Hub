@@ -158,11 +158,10 @@ const nextConfig = {
     // (e.g. from decision-bridge.js) resolve to the mock and crash the app.
     // This forces ALL imports of supabase.js to use the real .ts client instead.
     const path = require('path');
-    config.resolve.alias = {
-      ...config.resolve.alias,
+    config.resolve.alias = Object.assign(config.resolve.alias || {}, {
       [path.resolve(__dirname, 'src/lib/supabase.js')]:
         path.resolve(__dirname, 'src/lib/supabase.ts'),
-    };
+    });
 
     if (dev) {
       // Prevent CPU/RAM burnout by explicitly ignoring core dependencies from the HMR watcher.

@@ -1,0 +1,484 @@
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"
+	xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+	xmlns:dc="http://purl.org/dc/elements/1.1/"
+	xmlns:atom="http://www.w3.org/2005/Atom"
+	xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
+	xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+	>
+
+<channel>
+	<title>Poker News Stories</title>
+	<atom:link href="https://www.cardplayer.com/poker-news/feed" rel="self" type="application/rss+xml" />
+	<link>https://www.cardplayer.com/poker-news/feed</link>
+	<description></description>
+	<lastBuildDate>Mon, 20 Apr 2026 06:38:21 +0000</lastBuildDate>
+	<language>en-US</language>
+	<sy:updatePeriod>
+	hourly	</sy:updatePeriod>
+	<sy:updateFrequency>
+	1	</sy:updateFrequency>
+	<generator>https://wordpress.org/?v=6.9.4</generator>
+
+<image>
+	<url>https://www.cardplayer.com/wp-content/uploads/2024/12/apple-touch-icon-150x150.png</url>
+	<title>Poker News Stories</title>
+	<link>https://www.cardplayer.com/poker-news/feed</link>
+	<width>32</width>
+	<height>32</height>
+</image> 
+	<item>
+		<title>Poker Strategy With Jonathan Little: A Costly Preflop Mistake</title>
+		<link>https://www.cardplayer.com/poker-news/1646965-poker-strategy-with-jonathan-little-a-costly-preflop-mistake</link>
+		
+		<dc:creator><![CDATA[Jonathan Little]]></dc:creator>
+		<pubDate>Mon, 20 Apr 2026 06:38:20 +0000</pubDate>
+				<guid isPermaLink="false">https://www.cardplayer.com/?post_type=poker-news&#038;p=1646965</guid>
+
+					<description><![CDATA[<p>Jonathan Little explains how a small preflop mistake can snowball into a big error that can cost you your entire stack.</p>
+<p>The post <a href="https://www.cardplayer.com/poker-news/1646965-poker-strategy-with-jonathan-little-a-costly-preflop-mistake">Poker Strategy With Jonathan Little: A Costly Preflop Mistake</a> appeared first on <a href="https://www.cardplayer.com">Card Player</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<p><img fetchpriority="high" decoding="async" class="alignnone size-full wp-image-1641314" src="https://www.cardplayer.com/wp-content/uploads/2026/03/Jonathan-Little_US-Poker-Open_AntonioA_DSC03772-scaled.jpg" alt="Jonathan Little" width="2560" height="1376" srcset="https://www.cardplayer.com/wp-content/uploads/2026/03/Jonathan-Little_US-Poker-Open_AntonioA_DSC03772-scaled.jpg 2560w, https://www.cardplayer.com/wp-content/uploads/2026/03/Jonathan-Little_US-Poker-Open_AntonioA_DSC03772-300x161.jpg 300w, https://www.cardplayer.com/wp-content/uploads/2026/03/Jonathan-Little_US-Poker-Open_AntonioA_DSC03772-1024x550.jpg 1024w, https://www.cardplayer.com/wp-content/uploads/2026/03/Jonathan-Little_US-Poker-Open_AntonioA_DSC03772-768x413.jpg 768w, https://www.cardplayer.com/wp-content/uploads/2026/03/Jonathan-Little_US-Poker-Open_AntonioA_DSC03772-1536x825.jpg 1536w, https://www.cardplayer.com/wp-content/uploads/2026/03/Jonathan-Little_US-Poker-Open_AntonioA_DSC03772-2048x1101.jpg 2048w" sizes="(max-width: 2560px) 100vw, 2560px" /></p>
+<p><strong><em>If you want to increase your poker skills and learn to crush games, check out Jonathan Little’s <a href="https://pages.pokercoaching.com/cardplayer">elite training site</a> at PokerCoaching.com.</em></strong></p>
+<p>Someone on Twitter recently told about a hand from a $500 buy-in tournament that illustrates a common mistake that many poker players are unaware they make.</p>
+<h3>The Hand</h3>
+<p>With blinds at 800-1,600 with a 1,600 big blind ante, a loose, but straightforward player raised to 4,000 out of his 56,000 effective stack. A tight player called in the cutoff. Our Hero in the small blind three-bet to 14,000 with 9-9.</p>
+<p>This three-bet size is not ideal at all. When faced with a three-bet that is only 10,000 more, both the preflop raiser and the caller are getting excellent pot odds, meaning they should continue almost every time. This would be fine if Hero had an extremely strong hand like A-A that is unlikely to get outdrawn, but most flops bring at least one overcard to pairs like nines, and unpaired hands are unlikely to make a pair.</p>
+<p>If I wanted to three-bet with 9-9, I would have gone all-in for 56,000 total. While this will force many marginal and weak hands to fold, our Hero will often scoop the 12,000 pot with no showdown. When he happens to get called, he will usually be against a decently strong range of big pairs, A-K and A-Q, but even that is not too terrible because Hero will win roughly 35% of the time.</p>
+<p>While going all-in risks going broke, it is almost certainly the most profitable option. Calling to try to see a favorable flop is also acceptable, especially if the initial raiser is overly tight (meaning he will rarely fold to any three-bet).</p>
+<p>As expected, both opponents called the 14,000 three-bet. The flop came <span class='pcblock pcblock- pcblock-English-poker-standard pcblock-font-Fira_Sans_Condensed'><span class='pccard pccard-spades pccard-' title='King of Spades'><span class='pcrank'>K</span><span class='pcsuite pcsuite-spades'>&spades;</span></span><span class='pccard pccard-hearts pccard-' title='Jack of Hearts'><span class='pcrank'>J</span><span class='pcsuite pcsuite-hearts'>&hearts;</span></span><span class='pccard pccard-diams pccard-' title='Six of Diamonds'><span class='pcrank'>6</span><span class='pcsuite pcsuite-diams'>&diams;</span></span></span>. Hero checked and then folded when the initial raiser bet 12,000 into the 45,200 pot.</p>
+<p>While this may seem like an innocuous hand because Hero made an easy check-fold in a multi-way pot on a flop that is awful for him, he was completely unaware that a simple all-in before the flop would have likely won the pot with relatively little risk, especially given the preflop raiser is somewhat loose.</p>
+<h3>The Math</h3>
+<p>To help ensure you do not make this mistake, use the following equation to determine if a preflop all-in is profitable.</p>
+<p>If the all-in is decently profitable, it is usually the best play. If it is only marginally profitable, calling the preflop raise (or folding if your hand is junky) is likely best. Most of the time when your stack is roughly 20 big blinds or shorter (or even a bit deeper if there is a raise and a call before the action gets to you), three-betting small is not a wise play.</p>
+<p>Profit for an all-in over a raise = (% everyone folds) x (amount you win when they fold) + (% someone calls) x (equity in the pot when called – amount you put in the pot)</p>
+<p>You first must figure out how often someone yet to act will call. While it is difficult to determine with a high degree of certainty, you can estimate. The big blind will rarely call and the preflop caller is also unlikely to call because if he had a premium hand, he would have three-bet before the flop. The preflop raiser will usually only call with A-A, K-K, Q-Q, J-J, 10-10, A-K, and A-Q. That range is a total of 62 combinations of hands.</p>
+<p>Most loose players raise from middle position with all sorts of hands, such as A-2 suited, 9-7 suited, and J-10 offsuit. This will be roughly 310 combinations of hands, meaning Hero will get called by the preflop raiser 62/310 = 20% of the time. To account for the players yet to act, let’s assume Hero actually gets called 35% of the time.</p>
+<p>When Hero gets called, he will win the 119,200 pot 35% of the time, meaning his equity when called is .35 X 119,200 = 41,720. Plugging in the numbers, we have:</p>
+<p>Profit = (.65)(11,200) + (.35)(41,720 – 56,000)</p>
+<p>Profit = 7,280 – 4,998 = 2,282</p>
+<p>While profiting 2,282 (or about 1.5 big blinds) on an all-in may not seem like much, it is actually a hefty profit to extract from out of position. Also, I assumed that the preflop raiser is tighter than many loose players are, and also that the players yet to act will call more often than many will. So, profiting 1.5 big blinds is essentially the “worst-case scenario.” When the worst-case scenario is a decent profit, that play should strongly be considered.</p>
+<p>You may be wondering how you are supposed to do this math at the poker table. Well, you aren’t!</p>
+<p>You should spend significant time away from the table to determine when you should make these all-ins so you can easily recognize them when they arise. If you run enough simulations away from the table, you will understand better when this maneuver is justified.</p>
+<h3>Level Up Your Game</h3>
+<p>If you want more resources to help you improve your game, check out the <em>Card Player</em> Poker School! When you join the <a href="https://cardplayer.pokercoaching.com/courses/"><em>Card Player</em> Poker School</a> (it’s free), you’ll also get:</p>
+<ul>
+<li>Free Downloadable Preflop Charts</li>
+<li><span class="caps"><span class="caps">GTO</span></span> Preflop Charts</li>
+<li>Video Classes</li>
+<li>Interactive Hand Quizzes</li>
+<li>Free Course: Master The Fundamentals</li>
+<li>Free Course: The 25 Biggest Leaks And How To Fix Them</li>
+<li>Free Training Every Week</li>
+</ul>
+<p><img decoding="async" class="right alignright" style="width: 107px; height: 107px; margin: 2px; border: 2px solid;" src="https://media.cardplayer.com/assets/000/036/180/JonathanLittle2024_copy.jpeg" alt="" width="261" height="261" /><em><a href="https://www.cardplayer.com/poker-players/34909-jonathan-little">Jonathan Little</a> is a WSOP bracelet winner, two-time <span class="caps"><span class="caps">WPT</span></span> winner, and the 2024 PokerGO Cup champion with $9 million million in live tournament earnings. He is a best-selling author of 15 educational poker books, and the 2019 <span class="caps"><span class="caps">GPI</span></span> Poker Personality of the Year. If you want to increase your poker skills and learn to crush the games, check out his training site at <a href="https://pages.pokercoaching.com/cardplayer">PokerCoaching.com/cardplayer</a>.</em></p>
+<p>The post <a href="https://www.cardplayer.com/poker-news/1646965-poker-strategy-with-jonathan-little-a-costly-preflop-mistake">Poker Strategy With Jonathan Little: A Costly Preflop Mistake</a> appeared first on <a href="https://www.cardplayer.com">Card Player</a>.</p>
+]]></content:encoded>
+					
+		
+		
+			</item>
+		<item>
+		<title>WATCH: Nick Schulman Calls Out Poker Pro&#8217;s Cards In High Roller Tournament</title>
+		<link>https://www.cardplayer.com/poker-news/1646960-watch-nick-schulman-calls-out-poker-pros-cards-in-high-roller-tournament</link>
+		
+		<dc:creator><![CDATA[Julio Rodriguez]]></dc:creator>
+		<pubDate>Mon, 20 Apr 2026 05:42:12 +0000</pubDate>
+				<guid isPermaLink="false">https://www.cardplayer.com/?post_type=poker-news&#038;p=1646960</guid>
+
+					<description><![CDATA[<p>Nick Schulman added another clip to his highlight reel with a soul read, not only picking off a bluff, but naming his opponent's exact cards.</p>
+<p>The post <a href="https://www.cardplayer.com/poker-news/1646960-watch-nick-schulman-calls-out-poker-pros-cards-in-high-roller-tournament">WATCH: Nick Schulman Calls Out Poker Pro&#8217;s Cards In High Roller Tournament</a> appeared first on <a href="https://www.cardplayer.com">Card Player</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<p><img decoding="async" class="alignnone size-full wp-image-1646962" src="https://www.cardplayer.com/wp-content/uploads/2026/04/Nick-Schulman_USPO_Joey-Leonador__DSC5884-scaled.jpg" alt="Nick Schulman Stares Down Jeremy Becker" width="2560" height="1706" srcset="https://www.cardplayer.com/wp-content/uploads/2026/04/Nick-Schulman_USPO_Joey-Leonador__DSC5884-scaled.jpg 2560w, https://www.cardplayer.com/wp-content/uploads/2026/04/Nick-Schulman_USPO_Joey-Leonador__DSC5884-300x200.jpg 300w, https://www.cardplayer.com/wp-content/uploads/2026/04/Nick-Schulman_USPO_Joey-Leonador__DSC5884-1024x683.jpg 1024w, https://www.cardplayer.com/wp-content/uploads/2026/04/Nick-Schulman_USPO_Joey-Leonador__DSC5884-768x512.jpg 768w, https://www.cardplayer.com/wp-content/uploads/2026/04/Nick-Schulman_USPO_Joey-Leonador__DSC5884-1536x1024.jpg 1536w, https://www.cardplayer.com/wp-content/uploads/2026/04/Nick-Schulman_USPO_Joey-Leonador__DSC5884-2048x1365.jpg 2048w" sizes="(max-width: 2560px) 100vw, 2560px" /></p>
+<p>Seven-time bracelet winner <a href="https://www.cardplayer.com/poker-players/23830-nick-schulman">Nick Schulman</a> recently reminded us why he was a <a href="https://www.cardplayer.com/poker-news/nick-schulman-enters-wsop-hall-of-fame-as-2025-inductee">slam dunk choice for the Poker Hall of Fame</a>. The <em>High Stakes Poker</em> commentator was on the other side of the camera this time around, battling for a <em>U.S. Poker Open</em> title at the PokerGO studio in Las Vegas.</p>
+<p>The New York native not only found a huge hero call with third pair, but he also correctly called out his opponent&#8217;s exact hole cards in the process.</p>
+<h3>The Action</h3>
+<p>With blinds of 30,000-60,000 with a 60,000 big blind ante, each player had already locked up $104,000, with $144,000 earmarked for second, and $224,000 set aside for the winner.</p>
+<p>Brock Wilson folded the button, and Schulman raised to 180,000 from the small blind with <span class='pcblock pcblock- pcblock-English-poker-standard pcblock-font-Fira_Sans_Condensed'><span class='pccard pccard-hearts pccard-' title='Seven of Hearts'><span class='pcrank'>7</span><span class='pcsuite pcsuite-hearts'>&hearts;</span></span><span class='pccard pccard-hearts pccard-' title='Six of Hearts'><span class='pcrank'>6</span><span class='pcsuite pcsuite-hearts'>&hearts;</span></span></span>. Jeremy Becker was the short stack, but still had 27 blinds to work with. He looked down at <span class='pcblock pcblock- pcblock-English-poker-standard pcblock-font-Fira_Sans_Condensed'><span class='pccard pccard-hearts pccard-' title='King of Hearts'><span class='pcrank'>K</span><span class='pcsuite pcsuite-hearts'>&hearts;</span></span><span class='pccard pccard-diams pccard-' title='Four of Diamonds'><span class='pcrank'>4</span><span class='pcsuite pcsuite-diams'>&diams;</span></span></span> and opted to three-bet to 400,000, and Schulman made the call.</p>
+<p>The flop came down <span class='pcblock pcblock- pcblock-English-poker-standard pcblock-font-Fira_Sans_Condensed'><span class='pccard pccard-diams pccard-' title='Ace of Diamonds'><span class='pcrank'>A</span><span class='pcsuite pcsuite-diams'>&diams;</span></span><span class='pccard pccard-clubs pccard-' title='Six of Clubs'><span class='pcrank'>6</span><span class='pcsuite pcsuite-clubs'>&clubs;</span></span><span class='pccard pccard-spades pccard-' title='Five of Spades'><span class='pcrank'>5</span><span class='pcsuite pcsuite-spades'>&spades;</span></span></span> and Schulman checked. Becker decided to continuation bet 190,000, and Schulman called. The turn was the <span class='pcblock pcblock- pcblock-English-poker-standard pcblock-font-Fira_Sans_Condensed'><span class='pccard pccard-hearts pccard-' title='Two of Hearts'><span class='pcrank'>2</span><span class='pcsuite pcsuite-hearts'>&hearts;</span></span></span>.</p>
+<p>Schulman checked once again, and Becker kept his foot on the gas with a bet of 300,000. Schulman thought for a bit, using a single time extension before making the call.</p>
+<p>The river was the <span class='pcblock pcblock- pcblock-English-poker-standard pcblock-font-Fira_Sans_Condensed'><span class='pccard pccard-hearts pccard-' title='Jack of Hearts'><span class='pcrank'>J</span><span class='pcsuite pcsuite-hearts'>&hearts;</span></span></span>, and Schulman checked for a third time. With 695,000 remaining in his stack, Becker moved all in.</p>
+<p>&#8220;I love it,&#8221; said commentator Brent Hanks. &#8220;Schulman is asking for a count because he knows that Becker is capable of [bluffing].&#8221;</p>
+<h3>Watch The Hand</h3>
+<blockquote class="twitter-tweet" data-media-max-width="560">
+<p dir="ltr" lang="en">HEAVENS TO BETSY <a href="https://twitter.com/NickSchulman?ref_src=twsrc%5Etfw">@NICKSCHULMAN</a> MY OH MY</p>
+<p>Watch the U.S. Poker Open on <a href="https://t.co/2RQh5RNM18">https://t.co/2RQh5RNM18</a>, live and on demand. <a href="https://t.co/Wy3UxZpghC">pic.twitter.com/Wy3UxZpghC</a></p>
+<p>— PokerGO (@PokerGO) <a href="https://twitter.com/PokerGO/status/2045252956723765647?ref_src=twsrc%5Etfw">April 17, 2026</a></p></blockquote>
+<p><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script></p>
+<h3>The Result</h3>
+<p>&#8220;[You] got K-4 over there?&#8221; Schulman asked. &#8220;I guess you can&#8217;t tell me.&#8221;</p>
+<p>Becker sat motionless as Schulman called out his exact hand. After about a minute, Schulman threw in a chip to signal his call, turning over his pair of sixes.</p>
+<p>&#8220;Dude! Are you&#8230;.?&#8221; an incredulous Becker asked as he showed his cards. &#8220;Is this like solver approved or something?&#8221;</p>
+<p>&#8220;If you never fold, it looks amazing,&#8221; Schulman joked as Becker exited the stage.</p>
+<p>Although he went into heads-up play with the lead, Schulman ultimately finished runner up, adding $144,000 to his $26 million in career tournament earnings.</p>
+<p>Wilson would earn the win and $224,000. It was <a href="https://www.cardplayer.com/poker-news/1646540-brock-wilson-seizes-second-title-at-u-s-poker-open">his second victory of the week</a>, and came just two days after his girlfriend <a href="https://www.cardplayer.com/poker-news/1646079-cherish-andrews-wins-at-u-s-poker-open-for-second-career-pgt-title">Cherish Andrews also found the winner&#8217;s circle</a>. Wilson has five wins on the year already, having also <a href="https://www.cardplayer.com/poker-news/1641772-brock-wilson-crowned-2026-pokergo-cup-champion">won twice at <em>PokerGO Cup</em> in March</a>.</p>
+<p><img decoding="async" class="alignnone size-full wp-image-1646963" src="https://www.cardplayer.com/wp-content/uploads/2026/04/MixCollage-19-Apr-2026-10-31-PM-4467-scaled.jpg" alt="Schulman vs. Becker" width="2560" height="1280" srcset="https://www.cardplayer.com/wp-content/uploads/2026/04/MixCollage-19-Apr-2026-10-31-PM-4467-scaled.jpg 2560w, https://www.cardplayer.com/wp-content/uploads/2026/04/MixCollage-19-Apr-2026-10-31-PM-4467-300x150.jpg 300w, https://www.cardplayer.com/wp-content/uploads/2026/04/MixCollage-19-Apr-2026-10-31-PM-4467-1024x512.jpg 1024w, https://www.cardplayer.com/wp-content/uploads/2026/04/MixCollage-19-Apr-2026-10-31-PM-4467-768x384.jpg 768w, https://www.cardplayer.com/wp-content/uploads/2026/04/MixCollage-19-Apr-2026-10-31-PM-4467-1536x768.jpg 1536w, https://www.cardplayer.com/wp-content/uploads/2026/04/MixCollage-19-Apr-2026-10-31-PM-4467-2048x1024.jpg 2048w" sizes="(max-width: 2560px) 100vw, 2560px" /></p>
+<ul>
+<li>Photos by PokerGO &#8211; Joey Leonador</li>
+</ul>
+<p>The post <a href="https://www.cardplayer.com/poker-news/1646960-watch-nick-schulman-calls-out-poker-pros-cards-in-high-roller-tournament">WATCH: Nick Schulman Calls Out Poker Pro&#8217;s Cards In High Roller Tournament</a> appeared first on <a href="https://www.cardplayer.com">Card Player</a>.</p>
+]]></content:encoded>
+					
+		
+		
+			</item>
+		<item>
+		<title>Ohio Gaming Regulators Fine Kalshi $5 Million</title>
+		<link>https://www.cardplayer.com/poker-news/1646096-ohio-gaming-regulators-fine-kalshi-5-million</link>
+		
+		<dc:creator><![CDATA[Sean Chaffin]]></dc:creator>
+		<pubDate>Sun, 19 Apr 2026 23:50:59 +0000</pubDate>
+				<guid isPermaLink="false">https://www.cardplayer.com/?post_type=poker-news&#038;p=1646096</guid>
+
+					<description><![CDATA[<p>The Ohio Casino Control Commission levied a $5 million fine on prediction market firm Kalshi over the company offering sports contracts.</p>
+<p>The post <a href="https://www.cardplayer.com/poker-news/1646096-ohio-gaming-regulators-fine-kalshi-5-million">Ohio Gaming Regulators Fine Kalshi $5 Million</a> appeared first on <a href="https://www.cardplayer.com">Card Player</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<h4><img decoding="async" class="aligncenter wp-image-1646952 size-full" src="https://www.cardplayer.com/wp-content/uploads/2026/04/Ohio-fines-Kalshi-5-million.jpg" alt="A picture of a judge's gavel with money underneath it" width="1600" height="859" srcset="https://www.cardplayer.com/wp-content/uploads/2026/04/Ohio-fines-Kalshi-5-million.jpg 1600w, https://www.cardplayer.com/wp-content/uploads/2026/04/Ohio-fines-Kalshi-5-million-300x161.jpg 300w, https://www.cardplayer.com/wp-content/uploads/2026/04/Ohio-fines-Kalshi-5-million-1024x550.jpg 1024w, https://www.cardplayer.com/wp-content/uploads/2026/04/Ohio-fines-Kalshi-5-million-768x412.jpg 768w, https://www.cardplayer.com/wp-content/uploads/2026/04/Ohio-fines-Kalshi-5-million-1536x825.jpg 1536w" sizes="(max-width: 1600px) 100vw, 1600px" /></h4>
+<p>Ohio gaming regulators have handed Kalshi a <a href="https://www.dispatch.com/story/news/casino/2026/04/14/kalshi-faces-5-million-fine-for-unlicensed-sports-gaming-in-ohio/89611822007/" target="_blank" rel="noopener">$5 million fine</a> for violating state gaming laws, ramping up the war between states and prediction market firms.</p>
+<p>The Ohio Casino Control Commission (OCCC) slapped the company with the financial penalty on Tuesday after arguing the company offers illegal sports betting in the Buckeye State. The commission levied the fine because Kalshi didn&#8217;t stop offering sports event contracts in Ohio. The OCCC ordered Kalshi to cease offering those markets in the Buckeye State.</p>
+<p>&#8220;The commission takes its regulatory responsibilities to ensure compliance with the law and the integrity of sports gaming in Ohio seriously,&#8221; the commission said.</p>
+<h3>Legal Battle Continues</h3>
+<p>The fine comes after Kalshi secured a key legal victory earlier this month. A federal appeals court ruled that the Commodity Futures Trading Commission <a href="https://www.cardplayer.com/poker-news/1644055-kalshi-wins-key-appeals-court-ruling-in-new-jersey" target="_blank" rel="noopener">should regulate prediction markets</a>, not state gambling regulators.</p>
+<p>However, a federal judge in Ohio also ruled this month that Kalshi and similar platforms must follow state gaming laws. The platforms have argued their offerings are different from traditional sports betting. Kalshi officials referenced some of the recent court rulings in its response to the OCCC fine and is considering the company’s legal options.</p>
+<p>“We are disappointed in this latest development, especially considering our ongoing litigation with Ohio and recent rulings in other courts confirming our right to operate as a federally licensed exchange,” a company representative told the <em>Columbus Dispatch</em>.</p>
+<p>“We are reviewing the gaming commission’s letter.”</p>
+<h3>A Hefty Fine By Any Measure</h3>
+<p>Ohio regulators imposed one of the heftier amounts ever seen in the gambling world. By comparison, Nevada regulators fined Steve Wynn $10 million as part of a settlement following <a href="https://www.cardplayer.com/poker-news/24357-nevada-gaming-control-board-seeks-to-strip-gaming-license-from-former-wynn-resorts-ceo-steve-wynn" target="_blank" rel="noopener">sexual assault allegations</a> in 2023. Then, they fined Wynn Resorts $20 million for the scandal.</p>
+<p>Last year, Resorts World Las Vegas was <a href="https://www.cardplayer.com/poker-news/29972-nevada-regulators-hand-out-second-largest-fine-ever-to-las-vegas-strip-casino" target="_blank" rel="noopener">ordered to pay $10.5 million</a> for not following anti-money laundering procedures and allowing illegal bookies to gamble large sums of money. MGM Resorts also <a href="https://www.cardplayer.com/poker-news/30098-mgm-resorts-agrees-to-8-5-million-fine-with-nevada-regulators" target="_blank" rel="noopener">agreed to an $8.5 million fine</a> and Caesars Entertainment <a href="https://www.cardplayer.com/poker-news/1626125-caesars-fined-7-8-million-by-nevada-regulators" target="_blank" rel="noopener">paid out $7.8 million</a> over similar issues.</p>
+<h3>Kalshi Sues Montana Attorney General</h3>
+<p>In other prediction market news, Kalshi has filed a federal lawsuit against Montana Attorney General Austin Knudsen to prevent the state from enforcing state gambling laws against the company.</p>
+<p>“Because traders do not take a position against the exchange itself, traders’ ability to hedge risk requires counterparties willing to assume risk in the hope of seeing a return,” company attorneys wrote in the lawsuit.</p>
+<p>The move follows the state attempting to <a href="https://www.cardplayer.com/poker-news/30047-montana-cracks-down-on-illegal-online-gambling" target="_blank" rel="noopener">crack down on the industry</a> over the last year. Regulators in the state argued the companies are providing illegal sports betting “because participants risk money or other things of value for a gain that is contingent in whole or in part upon lot, chance, or the operation of a gambling enterprise.”</p>
+<p>The post <a href="https://www.cardplayer.com/poker-news/1646096-ohio-gaming-regulators-fine-kalshi-5-million">Ohio Gaming Regulators Fine Kalshi $5 Million</a> appeared first on <a href="https://www.cardplayer.com">Card Player</a>.</p>
+]]></content:encoded>
+					
+		
+		
+			</item>
+		<item>
+		<title>MGM&#8217;s Ohio Racino To Close Next Week</title>
+		<link>https://www.cardplayer.com/poker-news/1646423-mgms-ohio-racino-to-close-next-week</link>
+		
+		<dc:creator><![CDATA[Sean Chaffin]]></dc:creator>
+		<pubDate>Sun, 19 Apr 2026 23:36:00 +0000</pubDate>
+				<guid isPermaLink="false">https://www.cardplayer.com/?post_type=poker-news&#038;p=1646423</guid>
+
+					<description><![CDATA[<p>The MGM Northfield Park Racino in Ohio will close for a couple days next week as a new ownership team takes the reins.</p>
+<p>The post <a href="https://www.cardplayer.com/poker-news/1646423-mgms-ohio-racino-to-close-next-week">MGM&#8217;s Ohio Racino To Close Next Week</a> appeared first on <a href="https://www.cardplayer.com">Card Player</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<h4><img decoding="async" class="aligncenter wp-image-1646942 size-full" src="https://www.cardplayer.com/wp-content/uploads/2026/04/MGM-Northfield-Park-Closing.jpg" alt="A &quot;closed&quot; sign" width="1600" height="861" srcset="https://www.cardplayer.com/wp-content/uploads/2026/04/MGM-Northfield-Park-Closing.jpg 1600w, https://www.cardplayer.com/wp-content/uploads/2026/04/MGM-Northfield-Park-Closing-300x161.jpg 300w, https://www.cardplayer.com/wp-content/uploads/2026/04/MGM-Northfield-Park-Closing-1024x551.jpg 1024w, https://www.cardplayer.com/wp-content/uploads/2026/04/MGM-Northfield-Park-Closing-768x413.jpg 768w, https://www.cardplayer.com/wp-content/uploads/2026/04/MGM-Northfield-Park-Closing-1536x827.jpg 1536w" sizes="(max-width: 1600px) 100vw, 1600px" /></h4>
+<p>MGM Resorts is <a href="https://www.beaconjournal.com/story/entertainment/2026/04/15/mgm-northfield-park-racino-closing-april-20-22-for-ownership-change/89629438007/" target="_blank" rel="noopener">closing its Ohio property</a> for a few days this week. The company is shuttering MGM Northfield Park for a few days this week as part of a change in ownership.</p>
+<p>The property is located about 30 minutes southeast of Cleveland. However, MGM sold the racino in October for $540 million and the facility will now close on April 20 before officially reopening on April 22, according to MGM.</p>
+<p>&#8220;New website and information about the property’s new rewards program will be provided soon,&#8221; the company posted on X/Twitter.</p>
+<blockquote class="twitter-tweet">
+<p dir="ltr" lang="en">MGM Northfield Park will temporarily close April 20 as it transitions to new ownership and is expected to reopen April 22.</p>
+<p>Your <a href="https://twitter.com/MGMRewards?ref_src=twsrc%5Etfw">@MGMRewards</a> benefits will continue at other MGM Resorts destinations nationwide.</p>
+<p>Information about the new property’s rewards program will be… <a href="https://t.co/O3b80pSeXr">pic.twitter.com/O3b80pSeXr</a></p>
+<p>— MGM Northfield Park (@MGMNorthfield) <a href="https://twitter.com/MGMNorthfield/status/2044415440374395388?ref_src=twsrc%5Etfw">April 15, 2026</a></p></blockquote>
+<p><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script></p>
+<h3>Private Equity Firm Acquires Operation</h3>
+<p>Clairvest Group, a private equity management firm based in Toronto, acquired the venue’s gaming operations. The company also reached a 25-year lease on the property, which is owned by VICI Properties.</p>
+<p>This isn’t the first foray into gaming for the private equity firm. The Clairvest portfolio also includes the Wyoming Downs racetrack, Nash Casino in New Hampshire, Delaware Park Casino, and Meadowlands Racing and Entertainment in New Jersey.</p>
+<p>The Northfield racetrack dates back to the 1930s, according to the <em>Akron Beacon Journal</em>, and added a casino in 2009 after Ohio legalized gambling. The property boasts video lottery terminal (slot-like) machines as well as a BetMGM Sportsbook.</p>
+<p>Northfield hosts harness racing more than 200 days a year along with simulcast wagering. MGM purchased the property, which was previously known as the Hard Rock Rocksino Northfield Park, in 2018 for $275 million.</p>
+<p>In other state gaming news, Wisconsin <a href="https://www.cardplayer.com/poker-news/1644483-wisconsin-governor-signs-mobile-sports-betting-into-law" target="_blank" rel="noopener">recently officially legalized online sports betting</a>. In Maine, one of the state’s two commercial casinos has <a href="https://www.cardplayer.com/poker-news/1634505-maine-casino-sues-to-block-online-casino-law" target="_blank" rel="noopener">filed a lawsuit</a> to block the new law <a href="https://www.cardplayer.com/poker-news/1631973-online-poker-casinos-legalized-in-maine" target="_blank" rel="noopener">legalizing online gaming</a> through the state’s four federally recognized tribal groups.</p>
+<p>The post <a href="https://www.cardplayer.com/poker-news/1646423-mgms-ohio-racino-to-close-next-week">MGM&#8217;s Ohio Racino To Close Next Week</a> appeared first on <a href="https://www.cardplayer.com">Card Player</a>.</p>
+]]></content:encoded>
+					
+		
+		
+			</item>
+		<item>
+		<title>Offshore Poker Sites Ordered Out Of Michigan</title>
+		<link>https://www.cardplayer.com/poker-news/1646389-offshore-poker-sites-ordered-out-of-michigan</link>
+		
+		<dc:creator><![CDATA[Sean Chaffin]]></dc:creator>
+		<pubDate>Sun, 19 Apr 2026 23:21:16 +0000</pubDate>
+				<guid isPermaLink="false">https://www.cardplayer.com/?post_type=poker-news&#038;p=1646389</guid>
+
+					<description><![CDATA[<p>Michigan gaming regulators have recently targeted 45 offshore gambling sites, including poker sites, they say are operating illegally.</p>
+<p>The post <a href="https://www.cardplayer.com/poker-news/1646389-offshore-poker-sites-ordered-out-of-michigan">Offshore Poker Sites Ordered Out Of Michigan</a> appeared first on <a href="https://www.cardplayer.com">Card Player</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<h4><img decoding="async" class="aligncenter wp-image-1646935 size-full" src="https://www.cardplayer.com/wp-content/uploads/2026/04/Michigan-targets-offshore-poker-sites.jpg" alt="A definition of a cease and desist order" width="1600" height="860" srcset="https://www.cardplayer.com/wp-content/uploads/2026/04/Michigan-targets-offshore-poker-sites.jpg 1600w, https://www.cardplayer.com/wp-content/uploads/2026/04/Michigan-targets-offshore-poker-sites-300x161.jpg 300w, https://www.cardplayer.com/wp-content/uploads/2026/04/Michigan-targets-offshore-poker-sites-1024x550.jpg 1024w, https://www.cardplayer.com/wp-content/uploads/2026/04/Michigan-targets-offshore-poker-sites-768x413.jpg 768w, https://www.cardplayer.com/wp-content/uploads/2026/04/Michigan-targets-offshore-poker-sites-1536x826.jpg 1536w" sizes="(max-width: 1600px) 100vw, 1600px" /></h4>
+<p>Michigan gaming regulators have continued their efforts to root out unregulated online gaming operators from the state in 2026.</p>
+<p>The Michigan Gaming Control Board (MGCB) <a href="https://www.michigan.gov/mgcb/news/2026/04/07/mgcb-issues-cease-and-desist-orders-to-45-illegal-offshore-gambling-operators" target="_blank" rel="noopener">issued cease-and-desist orders</a> to 45 offshore operators over the past four months, including some popular poker sites. The board said last week the platforms have been unlawfully offering online casino games, sports betting, and poker to residents in the Wolverine State.</p>
+<p>“The scope of this action sends a clear message: Michigan will not tolerate illegal operators targeting our residents or undermining the lawful businesses that have invested in complying with state law,” MGCB Executive Director Henry Williams said.</p>
+<p>“Our investigators work with unwavering focus to identify, document, and act against every unlicensed site that puts Michigan players at risk. This is an ongoing effort, and we will continue to take action against illegal gambling operators.”</p>
+<h3>Poker Sites Included In List</h3>
+<p>The MGCB released a list of 45 operators that were ordered to cease operations in the state. Some of those included sports wagering, online casino, and cryptocurrency gaming sites.</p>
+<p>A few poker sites were also included on the list, including ACR, True Poker, BetOnline, and SportsBetting.ag.</p>
+<p>So far, none of the companies have responded to the MGCB action. And since the platforms are operated offshore, it seems unlikely that any of the companies will block users from Michigan.</p>
+<p>The state <a href="https://www.cardplayer.com/poker-news/24536-michigan-governor-signs-online-poker-bill-into-law" target="_blank" rel="noopener">legalized online gaming and poker</a> in 2019 and saw the first <a href="https://www.cardplayer.com/poker-news/25657-online-poker-launches-in-michigan-friday-morning" target="_blank" rel="noopener">regulated sites go live in 2021</a>. Over the last few years, the board has worked to force unregulated operators and sweepstakes casinos out of the market. How successful that has been for offshore sites isn’t known, but some sweeps operators have exited the market.</p>
+<h3>MGCB Warns Of Risks</h3>
+<p>The gaming regulator noted that the companies operate outside the state’s regulatory framework and lack consumer protections. The regulator also said offshore sites may have unfair or manipulated games and systems that don&#8217;t protect user data.</p>
+<p>In 2024, the state <a href="https://www.cardplayer.com/poker-news/28548-michigan-demands-social-casinos-stop-operations-in-state" target="_blank" rel="noopener">sent cease-and-desist letters</a> to VGW Holdings, the parent company of Global Poker and Chumba Casino, and two other operators. The MGCB has also demanded dozens of other operators cease operations in Michigan over the last few years.</p>
+<p>Michigan is one of a handful of US states with legalized online gaming. Maine <a href="https://www.cardplayer.com/poker-news/1631973-online-poker-casinos-legalized-in-maine" target="_blank" rel="noopener">joined that group</a> in January by legalizing iGaming and online poker through the state’s four federally-recognized tribes. However, one of the state’s two commercial casinos <a href="https://www.cardplayer.com/poker-news/1634505-maine-casino-sues-to-block-online-casino-law">has sued</a> to block the law from going into effect.</p>
+<p>The post <a href="https://www.cardplayer.com/poker-news/1646389-offshore-poker-sites-ordered-out-of-michigan">Offshore Poker Sites Ordered Out Of Michigan</a> appeared first on <a href="https://www.cardplayer.com">Card Player</a>.</p>
+]]></content:encoded>
+					
+		
+		
+			</item>
+		<item>
+		<title>Alex Foxen Secures Record-Tying 13th PGT Title At U.S. Poker Open</title>
+		<link>https://www.cardplayer.com/poker-news/1646917-alex-foxen-secures-record-tying-13th-pgt-title-at-u-s-poker-open</link>
+		
+		<dc:creator><![CDATA[Tim Fiorvanti]]></dc:creator>
+		<pubDate>Sun, 19 Apr 2026 17:30:54 +0000</pubDate>
+				<guid isPermaLink="false">https://www.cardplayer.com/?post_type=poker-news&#038;p=1646917</guid>
+
+					<description><![CDATA[<p>Alex Foxen tied Sam Soverel for the most wins in PokerGO Tour history, securing his 13th career PGT title in event 7 of the U.S. Poker Open.</p>
+<p>The post <a href="https://www.cardplayer.com/poker-news/1646917-alex-foxen-secures-record-tying-13th-pgt-title-at-u-s-poker-open">Alex Foxen Secures Record-Tying 13th PGT Title At U.S. Poker Open</a> appeared first on <a href="https://www.cardplayer.com">Card Player</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<p><img decoding="async" class="alignnone size-full wp-image-1646918" src="https://www.cardplayer.com/wp-content/uploads/2026/04/CP-featured-image-creator-4360-x-2340-px12-scaled.jpg" alt="" width="2560" height="1374" srcset="https://www.cardplayer.com/wp-content/uploads/2026/04/CP-featured-image-creator-4360-x-2340-px12-scaled.jpg 2560w, https://www.cardplayer.com/wp-content/uploads/2026/04/CP-featured-image-creator-4360-x-2340-px12-300x161.jpg 300w, https://www.cardplayer.com/wp-content/uploads/2026/04/CP-featured-image-creator-4360-x-2340-px12-1024x550.jpg 1024w, https://www.cardplayer.com/wp-content/uploads/2026/04/CP-featured-image-creator-4360-x-2340-px12-768x412.jpg 768w, https://www.cardplayer.com/wp-content/uploads/2026/04/CP-featured-image-creator-4360-x-2340-px12-1536x824.jpg 1536w, https://www.cardplayer.com/wp-content/uploads/2026/04/CP-featured-image-creator-4360-x-2340-px12-2048x1099.jpg 2048w" sizes="(max-width: 2560px) 100vw, 2560px" /></p>
+<p><a href="https://www.cardplayer.com/poker-players/267845-alex-foxen">Alex Foxen</a> won his first ever <em>PokerGO Tour</em> title at the 2021 <em>PokerGO Cup</em>. Less than five years later, he&#8217;s pushed his total up to 13 <em>PGT</em> victories, adding his latest trophy in event no. 7 of the 2026 <em>U.S. Poker Open</em>.</p>
+<p>Foxen&#8217;s $210,000 win in the <a href="https://www.cardplayer.com/poker-tournaments/1641003-2026-u-s-poker-open/1641035/results">$10,500 no-limit hold&#8217;em</a> tournament ties him with Sam Soverel for the all-time record for most triumphs on the tour. It also comes just three days after his wife, <a href="https://www.cardplayer.com/poker-news/1646156-kristen-foxen-extends-womens-money-list-lead-with-u-s-poker-open-victory">Kristen Foxen, won event no. 4.</a></p>
+<p>Incredibly, both Alex and Kristen defeated <a href="https://www.cardplayer.com/poker-players/45721-jeremy-ausmus">Jeremy Ausmus</a> heads up to claim their respective golden eagle trophies. Ausmus now has three runner-up finishes during this series in total, also falling one spot short of victory against two-time <em>U.S. Poker Open</em> champion Brock Wilson in the series opener. Like the Foxens, Wilson is part of a poker power couple that has crushed this series. He has <a href="https://www.cardplayer.com/poker-news/1646540-brock-wilson-seizes-second-title-at-u-s-poker-open">won two titles</a> so far, while his significant other Cherish Andrews <a href="https://www.cardplayer.com/poker-news/1646079-cherish-andrews-wins-at-u-s-poker-open-for-second-career-pgt-title">took down event no. 3.</a></p>
+<p>This was Foxen&#8217;s 37th recorded tournament title. The 35-year-old poker pro now has nearly $58.5 million in career cashes to his name, which is currently good for eighth place on <a href="https://www.cardplayer.com/poker-players?c=recorded_earnings&amp;d=DESC">poker&#8217;s all-time money list.</a></p>
+<h5><strong>Thinning The Field</strong></h5>
+<p>Alex&#8217;s latest win saw him top a field of 70 entrants to earn 420 <a href="https://www.cardplayer.com/poker-players/player-of-the-year"><em>Card Player</em> Player of the Year</a> points, improving his overall standing to 7th on the yearlong leaderboard presented by <a href="https://www.cardplayer.com/online-poker/visit/coinpoker-poker">CoinPoker</a>.</p>
+<p>The money bubble burst late on the first day of action. Five players were eliminated in the money, including two players, in John Andress (7th) and Sam Laskowitz (6th), who technically made the final table. Foxen carried the chip lead into day 2, wielding a significant advantage over his four remaining competitors. He never relinquished the top spot and scored the final three eliminations on his way to victory.</p>
+<p><a href="https://www.cardplayer.com/poker-players/322915-aram-zobian">Aram Zobian</a> struck the first blow of the day, taking out a short-stacked Michael Berk (5th &#8211; $52,500) with a rivered pair of kings. That would, however, be the high point of the day for Zobian. He lost most of his chips to <a href="https://www.cardplayer.com/poker-players/70171-qinghai-pan">Qinghai Pan</a>, running <span class='pcblock pcblock- pcblock-English-poker-standard pcblock-font-Fira_Sans_Condensed'><span class='pccard pccard-clubs pccard-' title='Ace of Clubs'><span class='pcrank'>A</span><span class='pcsuite pcsuite-clubs'>&clubs;</span></span><span class='pccard pccard-hearts pccard-' title='Ten of Hearts'><span class='pcrank'>10</span><span class='pcsuite pcsuite-hearts'>&hearts;</span></span></span> into Pan&#8217;s pocket jacks.</p>
+<p>Foxen picked up Zobian&#8217;s last few big blinds with his own rivered pair of jacks, sending the <em>World Series of Poker </em>bracelet winner out in fourth place ($70,000).</p>
+<h5><strong>Closing Out The Win</strong></h5>
+<p>While neither Pan nor Ausmus got particularly close to snatching Foxen&#8217;s chip lead, both players hung around for long stretches as they threatened big comebacks. Pan doubled for the second time at the final table, and then a third, and then Ausmus cracked Foxen&#8217;s pocket kings with <span class='pcblock pcblock- pcblock-English-poker-standard pcblock-font-Fira_Sans_Condensed'><span class='pccard pccard-hearts pccard-' title='Nine of Hearts'><span class='pcrank'>9</span><span class='pcsuite pcsuite-hearts'>&hearts;</span></span><span class='pccard pccard-hearts pccard-' title='Seven of Hearts'><span class='pcrank'>7</span><span class='pcsuite pcsuite-hearts'>&hearts;</span></span></span>, rivering trip nines.</p>
+<p>Foxen finally picked off Pan in third, turning a pair of sixes with <span class='pcblock pcblock- pcblock-English-poker-standard pcblock-font-Fira_Sans_Condensed'><span class='pccard pccard-hearts pccard-' title='Seven of Hearts'><span class='pcrank'>7</span><span class='pcsuite pcsuite-hearts'>&hearts;</span></span><span class='pccard pccard-spades pccard-' title='Six of Spades'><span class='pcrank'>6</span><span class='pcsuite pcsuite-spades'>&spades;</span></span></span> to beat Pan&#8217;s <span class='pcblock pcblock- pcblock-English-poker-standard pcblock-font-Fira_Sans_Condensed'><span class='pccard pccard-diams pccard-' title='Ace of Diamonds'><span class='pcrank'>A</span><span class='pcsuite pcsuite-diams'>&diams;</span></span><span class='pccard pccard-spades pccard-' title='Queen of Spades'><span class='pcrank'>Q</span><span class='pcsuite pcsuite-spades'>&spades;</span></span></span>. Pan, a three-time bracelet winner who finished second in event no. 5 of this series, added a third-place finish in this tournament. He earned $94,500 for his latest deep run. He is now ranked second in the season-long <em>PGT</em> points race, having already cashed 13 times in 2026.</p>
+<blockquote class="twitter-tweet" data-media-max-width="560">
+<p dir="ltr" lang="en">What a finish!!!<a href="https://twitter.com/jeremyausmus?ref_src=twsrc%5Etfw">@jeremyausmus</a> bluffs all in with eight high on the river with $210,000 on the line, and <a href="https://twitter.com/WAFoxen?ref_src=twsrc%5Etfw">@WAFoxen</a> joins his wife, <a href="https://twitter.com/krissyb24poker?ref_src=twsrc%5Etfw">@krissyb24poker</a>, in becoming a 2026 U.S. Poker Open champion! <a href="https://t.co/ge2fH48ylJ">pic.twitter.com/ge2fH48ylJ</a></p>
+<p>— PokerGO (@PokerGO) <a href="https://twitter.com/PokerGO/status/2045635361402126484?ref_src=twsrc%5Etfw">April 18, 2026</a></p></blockquote>
+<p><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script></p>
+<p>Ausmus&#8217; final hand saw him attempt to run a pure bluff across multiple streets of a <span class='pcblock pcblock- pcblock-English-poker-standard pcblock-font-Fira_Sans_Condensed'><span class='pccard pccard-spades pccard-' title='King of Spades'><span class='pcrank'>K</span><span class='pcsuite pcsuite-spades'>&spades;</span></span><span class='pccard pccard-clubs pccard-' title='Four of Clubs'><span class='pcrank'>4</span><span class='pcsuite pcsuite-clubs'>&clubs;</span></span><span class='pccard pccard-clubs pccard-' title='Three of Clubs'><span class='pcrank'>3</span><span class='pcsuite pcsuite-clubs'>&clubs;</span></span><span class='pccard pccard-spades pccard-' title='Four of Spades'><span class='pcrank'>4</span><span class='pcsuite pcsuite-spades'>&spades;</span></span><span class='pccard pccard-clubs pccard-' title='Seven of Clubs'><span class='pcrank'>7</span><span class='pcsuite pcsuite-clubs'>&clubs;</span></span></span> board with <span class='pcblock pcblock- pcblock-English-poker-standard pcblock-font-Fira_Sans_Condensed'><span class='pccard pccard-clubs pccard-' title='Eight of Clubs'><span class='pcrank'>8</span><span class='pcsuite pcsuite-clubs'>&clubs;</span></span><span class='pccard pccard-hearts pccard-' title='Five of Hearts'><span class='pcrank'>5</span><span class='pcsuite pcsuite-hearts'>&hearts;</span></span></span>. Foxen ultimately called Ausmus&#8217; river shove with <span class='pcblock pcblock- pcblock-English-poker-standard pcblock-font-Fira_Sans_Condensed'><span class='pccard pccard-spades pccard-' title='Seven of Spades'><span class='pcrank'>7</span><span class='pcsuite pcsuite-spades'>&spades;</span></span><span class='pccard pccard-spades pccard-' title='Three of Spades'><span class='pcrank'>3</span><span class='pcsuite pcsuite-spades'>&spades;</span></span></span>, which was good enough to seal the victory. Ausmus settled for $136,500 as the runner-up. That brought his total haul to $354,175 for the series.</p>
+<p>Foxen&#8217;s win was worth 210 <em>PGT</em> points, and his third cash of the series put him in fifth place on the 2026 <em>U.S. Poker Open </em>leaderboard. He, like everyone else, is looking up at Wilson, whose two titles have him out in front in the race for player of the series with 495 <em>PGT </em>points. Ausmus&#8217; three runner-up finishes and four overall cashes thus far at the <em>U.S.P.O.</em> put him within range of Wilson, in second place overall with 399 <em>PGT </em>points.</p>
+<p>Wilson also leads the season-long <a href="https://www.pgt.com/leaderboard"><em>PGT</em> leaderboard</a> with four total wins, with his 1,219 points giving him a 157-point lead on Pan.</p>
+<h5><strong>Final Table Results</strong></h5>
+<table>
+<tbody>
+<tr>
+<td><b>Place</b></td>
+<td><b>Player</b></td>
+<td><b>Payout</b></td>
+<td><b>Points</b></td>
+<td><b>PGT Points</b></td>
+</tr>
+<tr>
+<td>1</td>
+<td>Alex Foxen</td>
+<td>$210,000</td>
+<td>420</td>
+<td>210</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Jeremy Ausmus</td>
+<td>$136,500</td>
+<td>350</td>
+<td>137</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Qinghai Pan</td>
+<td>$94,500</td>
+<td>280</td>
+<td>95</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Aram Zobian</td>
+<td>$70,000</td>
+<td>210</td>
+<td>70</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Michael Berk</td>
+<td>$52,500</td>
+<td>175</td>
+<td>53</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Sam Laskowitz</td>
+<td>$38,500</td>
+<td>140</td>
+<td>39</td>
+</tr>
+<tr>
+<td>7</td>
+<td>John Andress</td>
+<td>$28,000</td>
+<td>105</td>
+<td>28</td>
+</tr>
+</tbody>
+</table>
+<p><em>Photo credit: PGT.</em></p>
+<p>The post <a href="https://www.cardplayer.com/poker-news/1646917-alex-foxen-secures-record-tying-13th-pgt-title-at-u-s-poker-open">Alex Foxen Secures Record-Tying 13th PGT Title At U.S. Poker Open</a> appeared first on <a href="https://www.cardplayer.com">Card Player</a>.</p>
+]]></content:encoded>
+					
+		
+		
+			</item>
+		<item>
+		<title>Professors Argue Against Allowing Any Tax Deductions On Gambling Losses</title>
+		<link>https://www.cardplayer.com/poker-news/1646105-professors-argue-against-allowing-any-tax-deductions-on-gambling-losses</link>
+		
+		<dc:creator><![CDATA[Sean Chaffin]]></dc:creator>
+		<pubDate>Sat, 18 Apr 2026 22:43:27 +0000</pubDate>
+				<guid isPermaLink="false">https://www.cardplayer.com/?post_type=poker-news&#038;p=1646105</guid>
+
+					<description><![CDATA[<p>Two professors conclude that not only should the gambling loss tax provision not be restored to 100%, but no deductions should be allowed.</p>
+<p>The post <a href="https://www.cardplayer.com/poker-news/1646105-professors-argue-against-allowing-any-tax-deductions-on-gambling-losses">Professors Argue Against Allowing Any Tax Deductions On Gambling Losses</a> appeared first on <a href="https://www.cardplayer.com">Card Player</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<h4><img decoding="async" class="aligncenter wp-image-1646897 size-full" src="https://www.cardplayer.com/wp-content/uploads/2026/04/professors-argue-against-gambling-tax-deductions.jpg" alt="A picture of tax forms" width="1600" height="859" srcset="https://www.cardplayer.com/wp-content/uploads/2026/04/professors-argue-against-gambling-tax-deductions.jpg 1600w, https://www.cardplayer.com/wp-content/uploads/2026/04/professors-argue-against-gambling-tax-deductions-300x161.jpg 300w, https://www.cardplayer.com/wp-content/uploads/2026/04/professors-argue-against-gambling-tax-deductions-1024x550.jpg 1024w, https://www.cardplayer.com/wp-content/uploads/2026/04/professors-argue-against-gambling-tax-deductions-768x412.jpg 768w, https://www.cardplayer.com/wp-content/uploads/2026/04/professors-argue-against-gambling-tax-deductions-1536x825.jpg 1536w" sizes="(max-width: 1600px) 100vw, 1600px" /></h4>
+<p>A pair of academics recently teamed up on <a href="https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6503138" target="_blank" rel="noopener">a study</a> arguing against restoring the law that allowed 100% tax deductions for gambling losses. In fact, the professors believe there should be no gambling deductions.</p>
+<p>The study was conducted by University of Alabama law professor Mirit Eyal-Cohen and Rutgers University professor of taxation Jay A. Soled. The One Big Beautiful Bill Act, which went into effect on Jan. 1, lowered allowable deductions to 90%.</p>
+<p>Poker players were the first to <a href="https://www.cardplayer.com/poker-news/big-beautiful-bill-tax-implications-poker-pros" target="_blank" rel="noopener">sound the alarm on the issue</a>. They pointed out the law could create &#8220;phantom income,&#8221; whereby gamblers pay taxes on money they didn&#8217;t win. In fact, poker legend <a href="https://www.cardplayer.com/poker-players/735-erik-seidel" target="_blank" rel="noopener">Erik Seidel</a> said the new law could <a href="https://www.cardplayer.com/poker-news/1627879-poker-legend-erik-seidel-says-hell-semi-retire-over-gambling-tax-change" target="_blank" rel="noopener">force him into retirement</a>.</p>
+<p>But the pair of academics didn&#8217;t just stick to a study. They amplified their beliefs with an <a href="https://thehill.com/opinion/finance/5803980-gambling-entertainment-tax-code/" target="_blank" rel="noopener">op-ed on the subject</a> in <em>The Hill. </em></p>
+<p>“Because gambling is a form of entertainment, the tax code should eliminate gambling loss deductions in their entirety,” the professors said in the op-ed. “More specifically, it is a form of personal consumption – not a productive economic activity. As such, the tax code precludes expenditures of this nature from being deductible (e.g., food and shelter purchases), as opposed to business and investment-related expenses, which are deductible (e.g., office supply purchases).”</p>
+<h3>Deduction Mostly Affects Wealthy Americans</h3>
+<p>Beyond the entertainment aspect of gambling, the study also notes that gambling deductions don&#8217;t apply to most people. Statistics back that up, as the Tax Policy Center reports that only 10% of tax filers itemized deductions in 2022.</p>
+<p>That was down from 31% in 2017 and came as a result of the Tax Cuts and Jobs Act, which became law that year and significantly increased the standard deduction. The act also restricted or eliminated some itemized deductions through 2025.</p>
+<p>The One Big Bill further increased the standard deduction.</p>
+<p>“High-income taxpayers are much more likely to itemize than others,” the Tax Policy Center reports. “In tax year 2022, nearly two-thirds of tax returns reporting adjusted gross income (AGI) over $500,000 itemized deductions, compared with 10% of those with AGI between $50,000 and $100,000 and 2% of those with AGI under $30,000.”</p>
+<p>The changes, however, <a href="https://www.cardplayer.com/poker-news/big-beautiful-bill-tax-implications-poker-pros">could negatively impact high-stakes poker players</a> and sports bettors. Some critics have predicted the changes will have <a href="https://www.cardplayer.com/poker-news/report-gambling-tax-provisions-costs-sportsbook-18-billion-handle">major repercussions</a> on the gaming industry as a whole.</p>
+<h3>Trump Expected To Be Asked About Tax Issue On Las Vegas Trip</h3>
+<p>Despite congressional efforts to reverse the tax change, the 90% deduction provision remains in effect. President Trump visited Las Vegas on Thursday to hold a roundtable discussion and rally on his administration&#8217;s tax policies.</p>
+<p>But Rep. Dina Titus (D-NV), who filed legislation to eliminate the new provision, urged locals to question him on the tax policy as well.</p>
+<blockquote class="twitter-tweet">
+<p dir="ltr" lang="en">When <a href="https://twitter.com/POTUS?ref_src=twsrc%5Etfw">@POTUS</a> comes to Nevada this week, we must urge him to restore the 100% tax deduction for gambling losses. That’s fair policy. <a href="https://t.co/tP1ehqUCrw">pic.twitter.com/tP1ehqUCrw</a></p>
+<p>— Dina Titus (@repdinatitus) <a href="https://twitter.com/repdinatitus/status/2043503035943371110?ref_src=twsrc%5Etfw">April 13, 2026</a></p></blockquote>
+<p><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script></p>
+<p>In December, Trump signaled that he could support <a href="https://www.cardplayer.com/poker-news/1627957-trump-says-he-would-consider-eliminating-gambling-taxes" target="_blank" rel="noopener">eliminating gambling taxes</a> altogether, let alone restoring the 100% deduction.</p>
+<p>The post <a href="https://www.cardplayer.com/poker-news/1646105-professors-argue-against-allowing-any-tax-deductions-on-gambling-losses">Professors Argue Against Allowing Any Tax Deductions On Gambling Losses</a> appeared first on <a href="https://www.cardplayer.com">Card Player</a>.</p>
+]]></content:encoded>
+					
+		
+		
+			</item>
+		<item>
+		<title>Carnegie Mellon Stats Professor Hosts Sports Betting Class</title>
+		<link>https://www.cardplayer.com/poker-news/1646081-carnegie-mellon-stats-professor-hosts-sports-betting-class</link>
+		
+		<dc:creator><![CDATA[Sean Chaffin]]></dc:creator>
+		<pubDate>Sat, 18 Apr 2026 22:27:40 +0000</pubDate>
+				<guid isPermaLink="false">https://www.cardplayer.com/?post_type=poker-news&#038;p=1646081</guid>
+
+					<description><![CDATA[<p>A Carnegie Mellon sports betting class focuses on the difficulty of winning, while Harvard hosts speakers who tout the benefits of poker.</p>
+<p>The post <a href="https://www.cardplayer.com/poker-news/1646081-carnegie-mellon-stats-professor-hosts-sports-betting-class">Carnegie Mellon Stats Professor Hosts Sports Betting Class</a> appeared first on <a href="https://www.cardplayer.com">Card Player</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<h4><img decoding="async" class="aligncenter wp-image-1646893 size-full" src="https://www.cardplayer.com/wp-content/uploads/2026/04/Carnegie-Mellon-Sports-Betting-Class.jpg" alt="A picture of a sign at Carnegie Mellon University" width="1600" height="861" srcset="https://www.cardplayer.com/wp-content/uploads/2026/04/Carnegie-Mellon-Sports-Betting-Class.jpg 1600w, https://www.cardplayer.com/wp-content/uploads/2026/04/Carnegie-Mellon-Sports-Betting-Class-300x161.jpg 300w, https://www.cardplayer.com/wp-content/uploads/2026/04/Carnegie-Mellon-Sports-Betting-Class-1024x551.jpg 1024w, https://www.cardplayer.com/wp-content/uploads/2026/04/Carnegie-Mellon-Sports-Betting-Class-768x413.jpg 768w, https://www.cardplayer.com/wp-content/uploads/2026/04/Carnegie-Mellon-Sports-Betting-Class-1536x827.jpg 1536w" sizes="(max-width: 1600px) 100vw, 1600px" /></h4>
+<p>Carnegie Mellon University is bringing a bit of sports betting to the classroom this semester. A pair of professors are teaching a course focusing on the statistical and cognitive aspects of wagering.</p>
+<p>The class is run by assistant teaching professor Ron Yurko and cognitive neuroscience professor Linda Moya. They titled the class “Sports Betting, Highs and Lows: Your Brain on Stats.” It seeks to examine probability, addiction, cognitive biases in decision-making, the business of American sportsbooks, and more.</p>
+<p>Yurko and Moya <a href="https://www.post-gazette.com/news/education/2026/04/14/cmu-sports-betting-class-gambling/stories/202604100081" target="_blank" rel="noopener">teach the class</a> to 41 freshmen, which comes as more young Americans become immersed in sports betting.</p>
+<p>“I think it&#8217;s immensely valuable that we get to do this in their first year at college,” Yurko said. “They&#8217;re on their own for the first time, and they&#8217;re going to get exposed to how random this is and how difficult it is to truly be a professional bettor.”</p>
+<h3>Responsible Gambling Message</h3>
+<p>Yurko told the <em>Pittsburgh Post-Gazette</em> that the idea for the class came to him after observing students betting in class. After the Supreme Court <a href="https://www.cardplayer.com/poker-news/22785-federal-sports-betting-ban-overturned-by-supreme-court-online-poker-to-benefit" target="_blank" rel="noopener">overturned the virtual ban</a> on sports betting outside Nevada, Yurko said he began getting emails seeking his analysis on betting.</p>
+<p>The class seemed like a natural fit to merge statistical analysis and responsible gaming.</p>
+<p>The seminar course also ran in the fall. The two professors used stats and neuroscience to highlight how difficult it is to win long term against the sportsbooks. However, it also explored why so many gamblers believe they have an edge.</p>
+<p>Yurko said he hopes the course can “hopefully prevent them from going down a dark path.”</p>
+<p>The efforts come as some are concerned about the pervasiveness of betting in American society. A <a href="https://www.ncaa.org/news/2023/5/24/media-center-ncaa-releases-sports-wagering-survey-data.aspx" target="_blank" rel="noopener">2023 study by the NCAA</a> found that 58% of adults 18 to 22 have wagered on sports at least once.</p>
+<p>Additionally, a study in 2023 by the University of Southern California reported that <a href="https://www.cardplayer.com/poker-news/29199-study-bankruptcies-up-28-in-states-with-online-sports-betting" target="_blank" rel="noopener">bankruptcies rose 28%</a> in the states where wagering on sports is more easily accessible.</p>
+<h3>Universities Treat Poker Differently</h3>
+<p>The sports betting offering is a different approach to gambling compared to universities&#8217; use of poker in the classroom. Many schools teach poker as a strategy game, with some aspects that could carry over to the business world and life in general.</p>
+<p>In October, <a href="https://www.cardplayer.com/poker-players/6422-bart-hanson" target="_blank" rel="noopener">Bart Hanson</a> gave a one-hour lecture at Harvard University. The poker pro offered insight on live poker concepts and conducted a question-and-answer session with students. He recently posted it on his Crush Live Poker YouTube channel.</p>
+<p>The school regularly schedules a poker lecturer. Past speakers have included Tiffany Michelle, who spoke on “what poker has taught you that you wish you’d known in college.” <a href="https://www.cardplayer.com/poker-players/51096-david-paredes" target="_blank" rel="noopener">David Paredes</a> spoke in 2021 and ran a sit-and-go tournament with students.</p>
+<p>The Massachusetts Institute of Technology has <a href="https://www.cardplayer.com/poker-news/28555-mit-offers-the-public-free-poker-courses-online">hosted a public poker course</a> online for several years as part of the institution’s Open Learning program. In 2017, Carnegie Mellon had poker pros <a href="https://www.cardplayer.com/poker-news/21247-poker-pros-face-nearly-insurmountable-deficit-against-bot" target="_blank" rel="noopener">battle a poker-playing bot</a> to test the advances in computer technology.</p>
+<p>Those looking for more advanced poker training may also want to check out the <a href="https://cardplayer.pokercoaching.com/courses/"><em>Card Player</em> Poker School</a>, which has some free courses.</p>
+<p>The post <a href="https://www.cardplayer.com/poker-news/1646081-carnegie-mellon-stats-professor-hosts-sports-betting-class">Carnegie Mellon Stats Professor Hosts Sports Betting Class</a> appeared first on <a href="https://www.cardplayer.com">Card Player</a>.</p>
+]]></content:encoded>
+					
+		
+		
+			</item>
+		<item>
+		<title>ACR Poker’s High Five Series Returns With $4 Million Guaranteed</title>
+		<link>https://www.cardplayer.com/poker-news/1646562-acr-pokers-high-five-series-returns-with-4-million-guaranteed</link>
+		
+		<dc:creator><![CDATA[Card Player News Team]]></dc:creator>
+		<pubDate>Sat, 18 Apr 2026 04:16:35 +0000</pubDate>
+				<guid isPermaLink="false">https://www.cardplayer.com/?post_type=poker-news&#038;p=1646562</guid>
+
+					<description><![CDATA[<p>ACR Poker's High Five Series has returned with more events than ever and there's still time to earn your Dual Mystery Bounty Venom seat.</p>
+<p>The post <a href="https://www.cardplayer.com/poker-news/1646562-acr-pokers-high-five-series-returns-with-4-million-guaranteed">ACR Poker’s High Five Series Returns With $4 Million Guaranteed</a> appeared first on <a href="https://www.cardplayer.com">Card Player</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<p><a href="https://www.cardplayer.com/visit/acr"><img decoding="async" class="alignnone size-full wp-image-1646563" src="https://www.cardplayer.com/wp-content/uploads/2026/04/screenshot.12.jpg" alt="ACR Poker High Five" width="1113" height="616" srcset="https://www.cardplayer.com/wp-content/uploads/2026/04/screenshot.12.jpg 1113w, https://www.cardplayer.com/wp-content/uploads/2026/04/screenshot.12-300x166.jpg 300w, https://www.cardplayer.com/wp-content/uploads/2026/04/screenshot.12-1024x567.jpg 1024w, https://www.cardplayer.com/wp-content/uploads/2026/04/screenshot.12-768x425.jpg 768w" sizes="(max-width: 1113px) 100vw, 1113px" /></a></p>
+<p>ACR Poker’s 420-friendly <em>High Five Tournament Series</em> returns on Sunday, April 19 with $4 million guaranteed across a five-day schedule.</p>
+<p>The series runs through April 23 and includes 50 events, with 10 tournaments taking place each day. The daily slate is split between higher buy-in events starting at $44 and lower buy-in tournaments priced at $33 and under.</p>
+<p>Added on top this year are the “Highest Five” tournaments, with two high roller events running each day. The brand-new lineup offers tournaments with buy-ins ranging from $5,200 to $25,500. These nosebleed buy-ins mark the largest stakes offered on the platform to date and add a high-end tier to the schedule.</p>
+<h3>More To Win</h3>
+<p>The $420 buy-in Main Event takes place on Monday, April 20 with a $200,000 guarantee. Rebuy and add-on day is also that Monday, while Wednesday is Pot-limit Omaha day.</p>
+<p>More than $25,000 in leaderboard prizes will be awarded during the series. Players earn points by playing High Five events, with separate standings for higher buy-ins ($44 and above) and lower buy-ins ($33 and under). Prizes include tournament tickets, Venom seats, and three Golden Bong trophies.</p>
+<p>ACR Pro Chris Moneymaker and CEO Phil Nagy will play in all the Highest Five events.</p>
+<p><a href="https://www.cardplayer.com/online-poker/visit/venomforever"><img decoding="async" class="alignnone wp-image-1644628 size-full" src="https://www.cardplayer.com/wp-content/uploads/2026/04/Venom-Fever-Apr2026.jpg" alt="" width="1200" height="675" srcset="https://www.cardplayer.com/wp-content/uploads/2026/04/Venom-Fever-Apr2026.jpg 1200w, https://www.cardplayer.com/wp-content/uploads/2026/04/Venom-Fever-Apr2026-300x169.jpg 300w, https://www.cardplayer.com/wp-content/uploads/2026/04/Venom-Fever-Apr2026-1024x576.jpg 1024w, https://www.cardplayer.com/wp-content/uploads/2026/04/Venom-Fever-Apr2026-768x432.jpg 768w" sizes="(max-width: 1200px) 100vw, 1200px" /></a></p>
+<h3>Mystery Bounty Venom</h3>
+<p>A special High Five edition of the <a href="https://www.cardplayer.com/online-poker/visit/dualvenom">Dual Mystery Bounty Venom</a> tournaments is running alongside the series. It features an $8 million guaranteed no-limit hold’em and $2 million pot-limit Omaha tournament. Both events carry a $2,650 buy-in, with players able to qualify for way less through Venom Fever satellites.</p>
+<p>Direct satellites start at $33 and will award 310 seats to the NLH event and 42 seats to the PLO tournament. Mega satellites are underway with buy-in paths starting at $0, awarding 210 seats to the NLH tourney and 30 to the PLO event.</p>
+<p>Weekly Beast satellites also run every Sunday at 5:05 p.m. ET through April 19 and each guarantees between 20 and 30 seats in the $8 million NLH Mystery Bounty Venom. Players can buy in for $95 or qualify for free through the weekly Beast leaderboard.</p>
+<p>Day 1C of the Dual Mystery Bounty Venoms is scheduled for this Sunday, April 19 at 12:05pm ET, with Day 1D on Thursday, April 23 and Day 1E on Sunday, April 26. There will even be a special bonus flight on Saturday, April 25.</p>
+<h3><img decoding="async" class="alignright  wp-image-1643283" src="https://www.cardplayer.com/wp-content/uploads/2026/03/ACR-Poker.jpg" alt="ACR Poker" width="190" height="102" srcset="https://www.cardplayer.com/wp-content/uploads/2026/03/ACR-Poker.jpg 372w, https://www.cardplayer.com/wp-content/uploads/2026/03/ACR-Poker-300x161.jpg 300w" sizes="(max-width: 190px) 100vw, 190px" />About ACR Poker</h3>
+<p><a href="https://www.cardplayer.com/visit/acr">ACR Poker</a> has been a leader in online poker since 2001, serving players across the U.S., Latin America, and beyond. The online poker site is renowned for its massive tournament guarantees and innovative formats. ACR has a rewarding loyalty ecosystem that includes rakeback, reload bonuses, and leaderboard races.</p>
+<p>The post <a href="https://www.cardplayer.com/poker-news/1646562-acr-pokers-high-five-series-returns-with-4-million-guaranteed">ACR Poker’s High Five Series Returns With $4 Million Guaranteed</a> appeared first on <a href="https://www.cardplayer.com">Card Player</a>.</p>
+]]></content:encoded>
+					
+		
+		
+			</item>
+		<item>
+		<title>CoinPoker Kicks Off World Poker Masters On May 3</title>
+		<link>https://www.cardplayer.com/poker-news/1646557-coinpoker-kicks-off-world-poker-masters-on-may-3</link>
+		
+		<dc:creator><![CDATA[Card Player News Team]]></dc:creator>
+		<pubDate>Sat, 18 Apr 2026 02:59:20 +0000</pubDate>
+				<guid isPermaLink="false">https://www.cardplayer.com/?post_type=poker-news&#038;p=1646557</guid>
+
+					<description><![CDATA[<p>With $25 million in guarantees, the crypto-centric online poker room is running the largest tournament series in the history of the site. </p>
+<p>The post <a href="https://www.cardplayer.com/poker-news/1646557-coinpoker-kicks-off-world-poker-masters-on-may-3">CoinPoker Kicks Off World Poker Masters On May 3</a> appeared first on <a href="https://www.cardplayer.com">Card Player</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<p><img decoding="async" class="aligncenter wp-image-1646560 size-full" src="https://www.cardplayer.com/wp-content/uploads/2026/04/wpm-press-release-graphic-1200x686-1.jpg" alt="" width="1200" height="686" srcset="https://www.cardplayer.com/wp-content/uploads/2026/04/wpm-press-release-graphic-1200x686-1.jpg 1200w, https://www.cardplayer.com/wp-content/uploads/2026/04/wpm-press-release-graphic-1200x686-1-300x172.jpg 300w, https://www.cardplayer.com/wp-content/uploads/2026/04/wpm-press-release-graphic-1200x686-1-1024x585.jpg 1024w, https://www.cardplayer.com/wp-content/uploads/2026/04/wpm-press-release-graphic-1200x686-1-768x439.jpg 768w" sizes="(max-width: 1200px) 100vw, 1200px" /></p>
+<p>The largest crypto-focused online poker platform in the world is hosting the largest tournament series in the site&#8217;s history.</p>
+<p><a href="https://www.cardplayer.com/visit/coinpoker" target="_blank" rel="noopener">CoinPoker</a> kicks off the <a href="https://coinpoker.com/tournaments/world-poker-masters/" target="_blank" rel="noopener">World Poker Masters</a> on <strong>May 3</strong>. The tournament series features <strong>$25 million</strong> in guaranteed prize pools and runs until <strong>June 1</strong>.</p>
+<p>Additionally, there are buy-ins for every bankroll size. There&#8217;s a $55 mini main event, a $530 main event, and even $25,000 high rollers.</p>
+<blockquote class="twitter-tweet">
+<p dir="ltr" lang="en">Just a couple weeks until the World Poker Masters <img src="https://s.w.org/images/core/emoji/17.0.2/72x72/1f440.png" alt="👀" class="wp-smiley" style="height: 1em; max-height: 1em;" /></p>
+<p>$25M in prize pools.</p>
+<p>$530 Main $2.5M GTD<br />
+$55 Mini Main $500K GTD</p>
+<p>PLUS high rollers up to $25K.</p>
+<p>May 3 – June 1.<br />
+Click the link below for the full schedule <img src="https://s.w.org/images/core/emoji/17.0.2/72x72/1f447.png" alt="👇" class="wp-smiley" style="height: 1em; max-height: 1em;" /> <a href="https://t.co/iMXNCYPxD3">pic.twitter.com/iMXNCYPxD3</a></p>
+<p>— CoinPoker (@CoinPoker_OFF) <a href="https://twitter.com/CoinPoker_OFF/status/2045171995789475855?ref_src=twsrc%5Etfw">April 17, 2026</a></p></blockquote>
+<p><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script></p>
+<h3>Main Event Headlines Series With $2.5M Guaranteed</h3>
+<p>The nearly month-long series culminates with the $530 World Poker Masters main event. The multi-flight structure runs a starting flight every Sunday of the series with the Day 1E completing the Day 1&#8217;s on May 31.</p>
+<p>Then, the surviving players advance to Day 2 on June 1 and will play to a winner.</p>
+<p>The main event carries the largest guaranteed prize pool of the series, but there are several other events with a seven-figure guarantee. The $215 CoinMillion and the $1,500 CoinMasters BITCOIN High Roller both carry a $1 million guarantee.</p>
+<p>Lastly, every high roller event, with buy-ins ranging from $1,500 to $25,000 will carry guarantees, but some will have at least seven figures in the prize pool.</p>
+<p>The $55 mini main has a $500,000 guarantee with starting flights every day of the series. The survivors combine for Day 2, the final day, on May 31.</p>
+<h3>Leaderboards Put Extra Money Up For Grabs</h3>
+<p>For players that put in a large amount of volume, they can earn more than just their fair share of the prize pools with weekly leaderboards.</p>
+<p>Each of the leaderboards is divided into two tiers. The high-stakes tier is for events with a buy-in of $109 or larger, while the low-stakes tier is for events between the $11-$88 buy-in levels.</p>
+<p>The $75,000 Champions Leaderboard tracks the overall performance and pays up to $30,000 for the series&#8217; most successful player.</p>
+<p>Then, there are the $425,000 weekly leaderboards where players in their respective tier can win up to an additional $15,000 each week. Here are the four scoring periods.</p>
+<ul>
+<li>May 3-9</li>
+<li>May 10-16</li>
+<li>May 17-23</li>
+<li>May 24 &#8211; June 1</li>
+</ul>
+<p><img decoding="async" class="aligncenter wp-image-1646561 size-full" src="https://www.cardplayer.com/wp-content/uploads/2026/04/wpm-banner-image-desktop_1600x115.jpg" alt="" width="1600" height="115" srcset="https://www.cardplayer.com/wp-content/uploads/2026/04/wpm-banner-image-desktop_1600x115.jpg 1600w, https://www.cardplayer.com/wp-content/uploads/2026/04/wpm-banner-image-desktop_1600x115-300x22.jpg 300w, https://www.cardplayer.com/wp-content/uploads/2026/04/wpm-banner-image-desktop_1600x115-1024x74.jpg 1024w, https://www.cardplayer.com/wp-content/uploads/2026/04/wpm-banner-image-desktop_1600x115-768x55.jpg 768w, https://www.cardplayer.com/wp-content/uploads/2026/04/wpm-banner-image-desktop_1600x115-1536x110.jpg 1536w" sizes="(max-width: 1600px) 100vw, 1600px" /></p>
+<h3>WPM Warm-Up And Satellites Start April 26</h3>
+<p>Instead of rushing right into the high-stakes events, CoinPoker is giving players a chance to get their feet wet with smaller buy-ins.</p>
+<p>The World Poker Masters Warm-Up starts on April 26 and runs through May 2. The short series focuses on small-stakes events and satellite tournaments, giving players with a smaller bankroll a chance to get into the action at a smaller price point.</p>
+<h3>CoinPoker Debuts Trophy Cabinet</h3>
+<p>Last, but certainly not least, the World Poker Masters marks the debut of CoinPoker&#8217;s Trophy Cabinet.</p>
+<p>In the live arena, winning a tournament is usually accompanied with a trophy of some sort. But online events lack the tangible recognition of the win.</p>
+<p>Until now.</p>
+<p>The new Trophy Cabinet feature creates a visible record of tournament wins and overall performance across the site&#8217;s major events.</p>
+<p>The post <a href="https://www.cardplayer.com/poker-news/1646557-coinpoker-kicks-off-world-poker-masters-on-may-3">CoinPoker Kicks Off World Poker Masters On May 3</a> appeared first on <a href="https://www.cardplayer.com">Card Player</a>.</p>
+]]></content:encoded>
+					
+		
+		
+			</item>
+	</channel>
+</rss>

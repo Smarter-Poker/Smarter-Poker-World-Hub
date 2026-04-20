@@ -265,7 +265,7 @@ export default async function handler(req, res) {
 
           // Notify club members of new table (fire-and-forget)
           const tableName = table?.name || `${gv.toUpperCase()} ${sb}/${bb}`;
-          notifyClubMembers(supabaseAdmin, {
+          await notifyClubMembers(supabaseAdmin, {
               clubId, type: 'table_created',
               title: `🎲 New Table: ${tableName}`,
               message: `A new ${gv.toUpperCase()} ${sb}/${bb} cash game is now open!`,

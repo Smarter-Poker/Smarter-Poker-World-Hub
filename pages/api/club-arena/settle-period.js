@@ -726,7 +726,7 @@ export default async function handler(req, res) {
       for (const cr of pending.filter(c => paidIds.includes(c.id) && c.commission_amount > 0)) {
         const { data: ag } = await supabaseAdmin.from('agents').select('user_id').eq('id', cr.agent_id).maybeSingle();
         if (ag?.user_id) {
-          notifyUser(supabaseAdmin, {
+          await notifyUser(supabaseAdmin, {
             userId: ag.user_id, type: 'commission_paid',
             title: `💵 Commission Paid: ${cr.commission_amount.toLocaleString()}`,
             message: `Your commission of ${cr.commission_amount.toLocaleString()} chips has been paid.`,

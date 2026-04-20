@@ -263,7 +263,7 @@ async function fetchPublicHomeGroups({ state, city, search, lat, lng, radius, ef
         const userLat = parseFloat(lat);
         const userLng = parseFloat(lng);
         const parsedRadius = parseFloat(radius);
-        const maxRadius = isNaN(parsedRadius) ? Infinity : Math.max(0, parsedRadius);
+        const maxRadius = isNaN(parsedRadius) ? 150 : Math.min(Math.max(0, parsedRadius), 150);
 
         if (
             !isNaN(userLat) && !isNaN(userLng) &&
@@ -716,7 +716,7 @@ export default async function handler(req, res) {
                   else if (effectiveLat && effectiveLng && effectiveRadius) {
                       const userLat = parseFloat(effectiveLat);
                       const userLng = parseFloat(effectiveLng);
-                      const radiusMi = Math.min(Math.max(0, parseFloat(effectiveRadius) || 50), 300); // server cap: 300mi max
+                      const radiusMi = Math.min(Math.max(0, parseFloat(effectiveRadius) || 50), 150); // server cap: 150mi max
                       if (!isNaN(userLat) && !isNaN(userLng)) {
                           // 1 degree latitude ≈ 69 miles; 1 degree longitude ≈ 69*cos(lat) miles.
                           // Pad by 20% so bounding box is always larger than the radius circle.
@@ -1186,7 +1186,7 @@ export default async function handler(req, res) {
           if (hasGps) {
               const userLat = parseFloat(effectiveLat);
               const userLng = parseFloat(effectiveLng);
-              const maxRadius = Math.max(0, parseFloat(effectiveRadius) || 100);
+              const maxRadius = Math.min(Math.max(0, parseFloat(effectiveRadius) || 100), 150); // Hard cap 150mi limit
 
               // Validate GPS coordinates
               if (isNaN(userLat) || isNaN(userLng) || userLat < -90 || userLat > 90 || userLng < -180 || userLng > 180) {

@@ -390,7 +390,7 @@ export default async function handler(req, res) {
           }
 
           // Notify registrant
-          notifyUser(supabaseAdmin, {
+          await notifyUser(supabaseAdmin, {
             userId: user.id, type: 'tournament_registered',
             title: `🏆 Registered: ${tourn.name}`,
             message: `You're registered for ${tourn.name}. ${currentCount}/${tourn.max_players} players.`,
@@ -566,7 +566,7 @@ export default async function handler(req, res) {
           }
 
           // Notify all club members that tournament started
-          notifyClubMembers(supabaseAdmin, {
+          await notifyClubMembers(supabaseAdmin, {
             clubId: tourn.club_id, type: 'tournament_started',
             title: `🏆 Tournament Starting: ${tourn.name}`,
             message: `${tourn.name} is now live with ${tourn.registered_count} players!`,
