@@ -8,6 +8,7 @@ import { isTwilioConfigured } from '../../../src/lib/commander/twilio';
 import { getOneSignalStatus } from '../../../src/lib/commander/pushNotifications';
 import { getEmailStatus } from '../../../src/lib/emailTemplates';
 import { getSentryStatus } from '../../../src/lib/sentry';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 export default async function handler(req, res) {
   try {
@@ -62,6 +63,7 @@ export default async function handler(req, res) {
       });
 
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }

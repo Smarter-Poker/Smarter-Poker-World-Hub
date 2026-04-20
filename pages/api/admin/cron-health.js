@@ -8,6 +8,7 @@
 
 import { createClient as supabaseServerClient } from '../../../src/lib/supabaseServerClient';
 import { rateLimit as apiRateLimit } from '../../../src/lib/apiRateLimit';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 /** Registry of all expected cron jobs and their intervals (in minutes) */
 const CRON_REGISTRY = [
@@ -98,6 +99,7 @@ export default async function handler(req, res) {
             checkedAt: new Date().toISOString(),
         });
     } catch (err) {
+        try { reportApiError(err, req); } catch (_sentryErr) {}
         console.error('[CronHealth] Error:', err);
         return res.status(500).json({ error: 'Failed to check cron health' });
     }

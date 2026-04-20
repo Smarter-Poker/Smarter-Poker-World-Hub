@@ -13,6 +13,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 let _supabase = null;
@@ -187,6 +188,7 @@ export default async function handler(req, res) {
 
         return res.status(405).json({ error: 'Method not allowed' });
     } catch (err) {
+        try { reportApiError(err, req); } catch (_sentryErr) {}
         console.error('[Live Session API] Error:', err);
         return res.status(500).json({ error: err.message || 'Internal server error' });
     }

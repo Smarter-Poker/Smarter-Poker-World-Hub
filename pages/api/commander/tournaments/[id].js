@@ -9,6 +9,7 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { logAction } from '../../../../src/lib/commander/audit';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
+import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 let _supabase = null;
 function getSupabase() {
@@ -52,6 +53,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ success: false, error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' } });
 
   } catch (err) {
+    try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
@@ -208,6 +210,7 @@ async function cancelTournament(req, res, id, staff) {
 
     return res.status(200).json({ success: true, data: { tournament, message: 'Tournament cancelled' } });
   } catch (error) {
+      try { reportApiError(error, req); } catch (_sentryErr) {}
     console.error('Cancel tournament error:', error);
     return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Internal server error' } });
   }

@@ -10,6 +10,7 @@
 import { getGrokClient } from '../../../src/lib/grokClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { createClient as _createAuthClient } from '../../../src/lib/supabaseServerClient';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 
@@ -165,6 +166,7 @@ export default async function handler(req, res) {
       }
 
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }

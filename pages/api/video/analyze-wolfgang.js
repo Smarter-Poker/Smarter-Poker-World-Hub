@@ -1,3 +1,4 @@
+import { reportApiError } from '../../../src/lib/sentryWrap';
 /**
  * Batch analyze Wolfgang Poker videos
  * Triggers AI analysis for all 4 Wolfgang Poker videos
@@ -35,6 +36,7 @@ export default async function handler(req, res) {
                 summary: data.analysis?.summary?.substring(0, 100) || 'N/A'
             });
         } catch (error) {
+            try { reportApiError(error, req); } catch (_sentryErr) {}
             results.push({
                 videoId: video.videoId,
                 title: video.title,

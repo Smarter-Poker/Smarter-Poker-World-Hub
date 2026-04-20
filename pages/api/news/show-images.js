@@ -2,6 +2,7 @@
  * Show what images are actually stored in the database
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -35,6 +36,7 @@ function getSupabase() {
     return res.status(200).json({ articles: summary });
 
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }

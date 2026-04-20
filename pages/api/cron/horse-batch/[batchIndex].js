@@ -25,6 +25,7 @@ function getSupabase() {
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import Parser from 'rss-parser';
 import { getGrokClient } from '../../../../src/lib/grokClient.js';
+import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 // ClipLibrary for poker video clips - loaded dynamically
 let getRandomClip, CLIP_LIBRARY, clipLibraryLoaded = false;
@@ -585,6 +586,7 @@ export default async function handler(req, res) {
       }
 
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }

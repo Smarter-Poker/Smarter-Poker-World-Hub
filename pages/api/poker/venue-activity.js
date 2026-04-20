@@ -9,6 +9,7 @@
 
 import { createClient as supabaseServerClient } from '../../../src/lib/supabaseServerClient';
 import { rateLimit as apiRateLimit } from '../../../src/lib/apiRateLimit';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
@@ -109,6 +110,7 @@ export default async function handler(req, res) {
             weekdayActivity,
         });
     } catch (err) {
+        try { reportApiError(err, req); } catch (_sentryErr) {}
         console.error('[VenueActivity] Error:', err);
         return res.status(500).json({ error: 'Internal server error' });
     }

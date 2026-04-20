@@ -1,3 +1,4 @@
+import { reportApiError } from '../../src/lib/sentryWrap';
 /**
  * /api/deploy-autofix — AI-Powered Auto-Fix for Failed Deployments
  *
@@ -611,6 +612,7 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
     });
 
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     // Handle AbortController timeout specifically
     if (err.name === 'AbortError') {
       console.error('[deploy-autofix] Anthropic API call timed out (45s limit)');

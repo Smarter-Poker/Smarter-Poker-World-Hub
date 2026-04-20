@@ -21,6 +21,7 @@
  * (10:00 UTC Monday = 4:00 AM CST Monday)
  */
 import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 const supabaseAdmin = getSupabaseAdmin();
 
@@ -661,6 +662,7 @@ export default async function handler(req, res) {
         .update({ settlement_locked: false, settlement_locked_until: null })
         .eq('settlement_locked', true);
     } catch (unlockErr) {
+        try { reportApiError(unlockErr, req); } catch (_sentryErr) {}
       results.errors.push({ phase: 'emergency_unlock', error: unlockErr.message });
     }
 

@@ -4,6 +4,7 @@
  * Table: sandbox_shared_scenarios (id, creator_id, state_json)
  */
 import { createClient } from '@supabase/supabase-js';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 function getSupabase() {
     return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
@@ -72,6 +73,7 @@ export default async function handler(req, res) {
       }
 
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }

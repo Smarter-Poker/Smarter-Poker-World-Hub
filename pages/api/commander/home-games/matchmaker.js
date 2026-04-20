@@ -7,6 +7,7 @@
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { getAIClient } from '../../../../src/lib/grokClient';
+import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
@@ -156,6 +157,7 @@ export default async function handler(req, res) {
     }
 
   } catch (err) {
+    try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
@@ -404,6 +406,7 @@ Find the best matches for this player.`;
       }));
 
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('Grok matchmaker error:', err);
     // Fallback: basic scoring without AI
     return fallbackMatching(playerCtx, groups, games, maxResults);

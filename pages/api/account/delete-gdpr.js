@@ -30,6 +30,7 @@
  */
 import { createClient } from "../../../src/lib/supabaseServerClient";
 import { rateLimit } from "../../../src/lib/apiRateLimit";
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 let _supabase = null;
 function getSupabase() {
@@ -201,6 +202,7 @@ export default async function handler(req, res) {
             message: "Your account has been deleted in accordance with GDPR.",
         });
     } catch (err) {
+        try { reportApiError(err, req); } catch (_sentryErr) {}
         console.error("[GDPR delete] unexpected error:", err);
         if (!res.headersSent) {
             return res

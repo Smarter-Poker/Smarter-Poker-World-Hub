@@ -1,3 +1,4 @@
+import { reportApiError } from '../../../src/lib/sentryWrap';
 /**
  * ClawBot Status Dashboard API
  * 
@@ -94,6 +95,7 @@ export default async function handler(req, res) {
       },
     });
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[ClawBot Status] Error:', err.message);
     return res.status(500).json({
       success: false,

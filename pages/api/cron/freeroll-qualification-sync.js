@@ -13,6 +13,7 @@
  * { "crons": [{ "path": "/api/cron/freeroll-qualification-sync", "schedule": "0 0,6,12,18 * * *" }] }
  */
 import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 
 /* ── Points table for tournament finish positions ── */
@@ -332,6 +333,7 @@ export default async function handler(req, res) {
       }
 
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }

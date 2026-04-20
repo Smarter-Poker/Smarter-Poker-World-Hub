@@ -19,6 +19,7 @@
  * (10:10 UTC Monday = 4:10 AM CST Monday)
  */
 import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 // getSupabaseAdmin imported from ../../../lib/supabaseAdmin
 
@@ -365,6 +366,7 @@ export default async function handler(req, res) {
     }
 
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }

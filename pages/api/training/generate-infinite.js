@@ -11,6 +11,7 @@ import { getGrokClient } from '../../../src/lib/grokClient';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 // ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
 let _supabaseAdmin = null;
@@ -244,6 +245,7 @@ export default async function handler(req, res) {
       }
 
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }

@@ -4,6 +4,7 @@ import Stripe from 'stripe';
 import { checkMemoryRateLimit } from '../../../src/lib/commander/rateLimit';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { COMMANDER_FREE_MODE } from '../../../src/lib/commander/tierConfig';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 // Note: No auth guard — this route is called during REGISTRATION before any session exists.
 // It creates the user account itself, so no pre-existing auth is possible.
 
@@ -559,6 +560,7 @@ export default async function handler(req, res) {
     }
 
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }

@@ -13,6 +13,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 // Supabase client
 let _supabase = null;
@@ -109,6 +110,7 @@ export default async function handler(req, res) {
       }
 
   } catch (err) {
+    try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
@@ -219,6 +221,7 @@ async function checkCachedImage(cacheKey) {
             return data.publicUrl;
         }
     } catch (error) {
+        try { reportApiError(error, req); } catch (_sentryErr) {}
         // File doesn't exist, continue to generate
     }
     return null;

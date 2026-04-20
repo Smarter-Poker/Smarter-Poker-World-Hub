@@ -27,6 +27,7 @@
  */
 
 import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 export const config = {
   maxDuration: 300 // 5 min — scan may touch many hands
@@ -402,6 +403,7 @@ export default async function handler(req, res) {
       duration_ms: durationMs
     });
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error("[collusion-scan] fatal:", err);
     return res.status(500).json({ error: err.message || "scan failed" });
   }

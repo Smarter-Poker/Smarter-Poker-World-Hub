@@ -8,6 +8,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 let _supabase = null;
 function getSupabase() {
@@ -65,6 +66,7 @@ export default async function handler(req, res) {
 
         return res.status(200).json({ success: true });
     } catch (e) {
+        try { reportApiError(e, req); } catch (_sentryErr) {}
         console.error('[Follow Notification] Error:', e);
         return res.status(500).json({ success: false, error: 'Internal error' });
     }

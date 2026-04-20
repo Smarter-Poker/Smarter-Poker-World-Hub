@@ -8,6 +8,7 @@
 import { getController } from '../../../../src/lib/poker-engine/GameController';
 const { applyCors } = require('../../../../src/lib/cors');
 const { applyRateLimit } = require('../../../../src/lib/poker-engine/RateLimiter');
+import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 
 
@@ -51,6 +52,7 @@ if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' });
       presets: actions?.presets || null,
     });
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[engine/state]', err);
     return res.status(500).json({ error: 'Internal error' });
   }

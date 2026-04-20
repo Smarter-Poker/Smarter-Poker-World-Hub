@@ -3,6 +3,7 @@
  * GET /api/poker-brain/sessions?page=1&limit=20&variant=nlhe
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 let _supabase = null;
 function getSupabase() {
@@ -81,6 +82,7 @@ export default async function handler(req, res) {
       limit
     });
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[poker-brain/sessions] error:', err);
     return res.status(500).json({ error: 'Internal server error' });
   }

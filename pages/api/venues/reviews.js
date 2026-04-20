@@ -1,6 +1,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 const { getServerUser } = require('../../../src/lib/serverAuth');
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -103,6 +104,7 @@ export default async function handler(req, res) {
 
         return res.status(200).json({ success: true, message: 'Review saved, 50 diamonds awarded!' });
     } catch (err) {
+        try { reportApiError(err, req); } catch (_sentryErr) {}
         console.error('[API Error] reviews:', err);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }

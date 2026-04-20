@@ -19,6 +19,7 @@
 
 import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
+import { reportApiError } from '../../../../../src/lib/sentryWrap';
 
 let _supabase = null;
 function getSupabase() {
@@ -191,6 +192,7 @@ export default async function handler(req, res) {
     // Unreachable; guard above returns 405.
     return res.status(405).end();
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     // eslint-disable-next-line no-console
     console.error('[public/home-games/slug/follow]', err);
     if (!res.headersSent) {

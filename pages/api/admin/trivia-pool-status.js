@@ -8,6 +8,7 @@
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 let _supabase = null;
@@ -172,6 +173,7 @@ export default async function handler(req, res) {
         return res.status(200).json(poolStatus);
 
     } catch (error) {
+        try { reportApiError(error, req); } catch (_sentryErr) {}
         console.error('[Trivia Pool Status] Error:', error);
         return res.status(500).json({ error: error.message });
     }

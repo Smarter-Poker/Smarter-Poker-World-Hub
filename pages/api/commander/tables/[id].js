@@ -7,6 +7,7 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { verifyStaffSession } from '../../../../src/lib/commander/auth';
 import { logAction, AuditActions } from '../../../../src/lib/commander/audit';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
+import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 let _supabase = null;
 function getSupabase() {
@@ -50,6 +51,7 @@ export default async function handler(req, res) {
     }
 
   } catch (err) {
+    try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
@@ -333,6 +335,7 @@ async function handleDelete(req, res, tableId) {
       data: { message: 'Table deleted successfully' }
     });
   } catch (error) {
+      try { reportApiError(error, req); } catch (_sentryErr) {}
     console.error('Commander table DELETE error:', error);
     return res.status(500).json({
       success: false,

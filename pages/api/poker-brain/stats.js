@@ -3,6 +3,7 @@
  * GET /api/poker-brain/stats?variant=nlhe&period=30d
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 let _supabase = null;
 function getSupabase() {
@@ -153,6 +154,7 @@ export default async function handler(req, res) {
       decisionsFollowed: { total: followed + ignored, followed, ignored }
     });
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[poker-brain/stats] error:', err);
     return res.status(500).json({ error: 'Internal server error' });
   }

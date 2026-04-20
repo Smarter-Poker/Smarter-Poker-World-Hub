@@ -12,6 +12,7 @@
 
 import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
 import * as Sentry from '@sentry/nextjs';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 const getSupabase = getSupabaseAdmin;
 
@@ -191,6 +192,7 @@ export default async function handler(req, res) {
       });
 
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }

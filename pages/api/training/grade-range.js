@@ -33,6 +33,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { getAllHands, getCombos, VALID_POSITIONS, VALID_SCENARIOS, withTiming } from '../../../src/utils/trainingApiUtils';
 // ── Phase 4 Engine: Range Grading with category breakdowns + heatmap ────
 import { gradeRange, generateHeatmapGrid, generateGradingSummary, HAND_CATEGORIES } from '../../../src/engines/RangeGradingEngine';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 // ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
 let _supabase = null;
@@ -298,6 +299,7 @@ export default async function handler(req, res) {
       }
 
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }

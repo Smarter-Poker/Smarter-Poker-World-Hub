@@ -8,6 +8,7 @@
  *   - Prevents unbounded table growth (~19K rows/day → ~1.7M rows/90 days)
  */
 import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 const getSupabase = getSupabaseAdmin;
 
@@ -90,6 +91,7 @@ export default async function handler(req, res) {
         updated_at: new Date().toISOString(),
       }, { onConflict: 'key' });
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('Failed to log cleanup execution:', err.message);
   }
 

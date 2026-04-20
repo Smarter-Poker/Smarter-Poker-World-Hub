@@ -6,6 +6,7 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import Stripe from 'stripe';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
+import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 // Helper to read raw body from request stream
 async function getRawBody(req) {
@@ -114,6 +115,7 @@ export default async function handler(req, res) {
       }
 
   } catch (err) {
+    try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
@@ -187,6 +189,7 @@ async function handleCheckoutCompleted(session) {
             // Create/update vip_subscriptions record
             await handleSubscriptionUpdate(subscription);
         } catch (subErr) {
+            try { reportApiError(subErr, req); } catch (_sentryErr) {}
             console.error('Error processing VIP subscription checkout:', subErr);
         }
     }

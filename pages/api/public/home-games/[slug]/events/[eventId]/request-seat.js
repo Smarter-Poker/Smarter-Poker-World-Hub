@@ -44,6 +44,7 @@ import { createClient } from '../../../../../../../src/lib/supabaseServerClient'
 import { applyRateLimit, LIMITS } from '../../../../../../../src/lib/apiRateLimit';
 import { sendPushNotification } from '../../../../../../../src/lib/commander/pushNotifications';
 import { sendDirectMessageBetweenUsers } from '../../../../../../../src/lib/home-games/messenger';
+import { reportApiError } from '../../../../../../../src/lib/sentryWrap';
 
 let _supabase = null;
 function getSupabase() {
@@ -447,6 +448,7 @@ async function dispatchHostNotification(supabase, ctx) {
       messageType: 'text',
     });
   } catch (e) {
+      try { reportApiError(e, req); } catch (_sentryErr) {}
     console.warn('[request-seat] DM dispatch threw:', e?.message || e);
   }
 }

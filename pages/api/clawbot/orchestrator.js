@@ -1,3 +1,4 @@
+import { reportApiError } from '../../../src/lib/sentryWrap';
 /**
  * ClawBot Orchestrator
  * 
@@ -83,6 +84,7 @@ export default async function handler(req, res) {
         summary: body?.data?.summary || body?.summary || (response.ok ? 'OK' : body?.error),
       });
     } catch (err) {
+        try { reportApiError(err, req); } catch (_sentryErr) {}
       results.push({
         task_id: task.id,
         name: task.name,

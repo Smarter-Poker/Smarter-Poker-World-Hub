@@ -10,6 +10,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { sendPushNotification } from '../../../src/lib/onesignal-server';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 const ONESIGNAL_APP_ID = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
 const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
@@ -120,6 +121,7 @@ export default async function handler(req, res) {
       }
 
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }

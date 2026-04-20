@@ -4,6 +4,7 @@
  * Reads from sandbox_coach_accuracy view.
  */
 import { createClient } from '@supabase/supabase-js';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 function getSupabase() {
     return createClient(
@@ -77,6 +78,7 @@ export default async function handler(req, res) {
       }
 
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }

@@ -12,6 +12,7 @@
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 const MANUS_API_KEY = process.env.MANUS_API_KEY || '';
 const MANUS_API_URL = 'https://api.manus.ai/v1/tasks';
@@ -171,6 +172,7 @@ export default async function handler(req, res) {
         });
 
     } catch (err) {
+        try { reportApiError(err, req); } catch (_sentryErr) {}
         console.error('[Auto-Sync Error]', err);
         return res.status(500).json({ error: err.message });
     }

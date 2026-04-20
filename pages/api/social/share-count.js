@@ -10,6 +10,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -68,6 +69,7 @@ export default async function handler(req, res) {
 
         return res.status(200).json({ success: true });
     } catch (err) {
+        try { reportApiError(err, req); } catch (_sentryErr) {}
         console.error('Share count API error:', err);
         return res.status(200).json({ success: false }); // Don't fail the request
     }

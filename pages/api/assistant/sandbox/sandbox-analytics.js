@@ -4,6 +4,7 @@
  * GET:  Return aggregate stats and study patterns
  */
 import { createClient } from '@supabase/supabase-js';
+import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 let _supabase = null;
@@ -115,6 +116,7 @@ export default async function handler(req, res) {
 
         return res.status(405).json({ error: 'Method not allowed' });
     } catch (e) {
+        try { reportApiError(e, req); } catch (_sentryErr) {}
         console.error('[Analytics API] Error:', e);
         return res.status(500).json({ error: 'Internal server error' });
     }

@@ -1,3 +1,4 @@
+import { reportApiError } from '../../../src/lib/sentryWrap';
 /**
  * Generate Club Logo API — Server-side proxy to xAI Grok
  * ═══════════════════════════════════════════════════════════════
@@ -71,6 +72,7 @@ export default async function handler(req, res) {
 
         return res.status(200).json({ success: true, logoUrl });
     } catch (error) {
+        try { reportApiError(error, req); } catch (_sentryErr) {}
         console.error('[generate-logo] Failed:', error);
         return res.status(500).json({
             success: false,

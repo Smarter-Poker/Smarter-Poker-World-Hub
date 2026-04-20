@@ -7,6 +7,8 @@
  * at showdown in the Live Table Mini-View broadcast.
  */
 
+import { reportApiError } from '../../../../src/lib/sentryWrap';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'POST only' });
@@ -47,6 +49,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ ok: true, key, show: !!show });
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[show-cards] Error:', err.message);
     return res.status(500).json({ error: 'Internal server error' });
   }

@@ -1,6 +1,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { withSentry } from '../../../src/lib/sentry';
 import { sendPushNotification } from '../../../src/lib/onesignal-server';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 async function handler(req, res) {
     if (req.method !== 'GET' && req.method !== 'POST') {
@@ -115,6 +116,7 @@ async function handler(req, res) {
         });
 
     } catch (e) {
+        try { reportApiError(e, req); } catch (_sentryErr) {}
         console.error('[game-threshold-cron] FAILED', e);
         return res.status(500).json({ success: false, error: e.message });
     }

@@ -7,6 +7,7 @@
 import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff, verifyStaffSession } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
+import { reportApiError } from '../../../../../src/lib/sentryWrap';
 
 let _supabase = null;
 function getSupabase() {
@@ -50,6 +51,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
 
   } catch (err) {
+    try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
@@ -261,6 +263,7 @@ async function calculateAllEntries(req, res, leaderboard) {
       entries_updated: entries.length
     });
   } catch (error) {
+      try { reportApiError(error, req); } catch (_sentryErr) {}
     console.error('Calculate entries error:', error);
     return res.status(500).json({ error: error.message });
   }

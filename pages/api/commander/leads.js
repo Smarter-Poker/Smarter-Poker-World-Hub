@@ -5,6 +5,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { checkMemoryRateLimit } from '../../../src/lib/commander/rateLimit';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 // Note: No auth guard — this is a public lead capture form. Protected by IP rate limiting.
 
 let _supabase = null;
@@ -112,6 +113,7 @@ export default async function handler(req, res) {
     }
 
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }

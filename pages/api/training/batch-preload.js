@@ -13,6 +13,7 @@ import { deterministicEngine } from '../../../src/engines/DeterministicGTOEngine
 import { pioQueryService } from '../../../src/services/PIOQueryService';
 import { getGameConfig as getGameCfg } from '../../../src/config/gameConfigs';
 import { getGameScenarioConfig } from '../../../src/config/GameScenarioMap';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 // ── Deterministic hash for seeded fallback data (avoids Math.random in data gen) ──
 function hashSeed(str) {
@@ -372,6 +373,7 @@ export default async function handler(req, res) {
       }
 
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }

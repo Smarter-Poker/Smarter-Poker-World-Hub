@@ -9,6 +9,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 // ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
 let _supabase = null;
@@ -67,6 +68,7 @@ export default async function handler(req, res) {
         });
 
     } catch (err) {
+        try { reportApiError(err, req); } catch (_sentryErr) {}
         console.error('[Health] Error:', err);
         if (!res.headersSent) return res.status(500).json({
             status: 'error',

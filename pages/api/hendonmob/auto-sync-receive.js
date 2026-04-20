@@ -10,6 +10,7 @@
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 const AUTO_SYNC_SECRET = process.env.HENDON_AUTO_SYNC_SECRET || '';
 
@@ -86,6 +87,7 @@ export default async function handler(req, res) {
             updated: updateData,
         });
     } catch (err) {
+        try { reportApiError(err, req); } catch (_sentryErr) {}
         console.error('[Auto-Sync Receive Error]', err);
         return res.status(500).json({ error: err.message });
     }

@@ -9,6 +9,8 @@
  * V2: Uses table.getState(null) for correct observer-safe field access.
  */
 
+import { reportApiError } from '../../../../src/lib/sentryWrap';
+
 // ── Phase mapping: engine phases → display phases ──
 const DISPLAY_PHASE = {
   idle: 'idle',
@@ -154,6 +156,7 @@ export default async function handler(req, res) {
     res.setHeader('Cache-Control', 'public, max-age=2');
     return res.status(200).json(results);
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[mini-state] Error:', err.message);
     return res.status(500).json({ error: 'Internal server error' });
   }

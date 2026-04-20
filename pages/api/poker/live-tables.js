@@ -17,6 +17,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { resolveVenueName } from './venue-dedup';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 // Decode HTML entities and fix pipe separators in venue names
 function cleanVenueName(str) {
@@ -346,6 +347,7 @@ export default async function handler(req, res) {
       venues,
     });
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('Live tables API error:', err);
     return res.status(500).json({ error: 'Internal server error' });
   }

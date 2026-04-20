@@ -14,6 +14,7 @@ const { runStandardGuards } = require('../../../src/lib/club-arena/redteam-valid
 const { isUUID } = require('../../../src/lib/club-arena/validate');
 const { safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 const VALID_ACTIONS = ['close', 'delete', 'pause', 'resume'];
 
@@ -278,6 +279,7 @@ export default async function handler(req, res) {
     }
 
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }

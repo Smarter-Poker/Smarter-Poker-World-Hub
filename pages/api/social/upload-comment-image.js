@@ -9,6 +9,7 @@
 
 import { IncomingForm } from 'formidable';
 import fs from 'fs';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 function getSupabase() {
   const { createClient } = require('@supabase/supabase-js');
@@ -99,6 +100,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ success: true, url: publicUrl });
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[CommentUpload] Error:', err);
     return res.status(500).json({ error: 'Upload failed' });
   }

@@ -11,6 +11,7 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { gameShortLabel } from '../../../src/components/poker-near-me/normalize-game';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 let _supabase = null;
 function getSupabase() {
@@ -333,6 +334,7 @@ export default async function handler(req, res) {
       analyzed_at: new Date().toISOString(),
     });
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('venue-predictions-batch error:', err);
     return res.status(500).json({ success: false, error: err.message });
   }

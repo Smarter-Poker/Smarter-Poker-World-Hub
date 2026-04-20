@@ -4,6 +4,7 @@
  * No authentication required - returns only public data
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
+import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 let _supabase = null;
 function getSupabase() {
@@ -184,6 +185,7 @@ export default async function handler(req, res) {
     }
 
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }

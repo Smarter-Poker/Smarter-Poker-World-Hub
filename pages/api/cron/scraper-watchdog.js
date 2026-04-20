@@ -17,6 +17,7 @@
  */
 import { sendSMS, isTwilioConfigured } from '../../../src/lib/commander/twilio';
 import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 const ADMIN_PHONE = '+17086775221';
 const STALE_THRESHOLD_MIN = 45;    // Tier 2: SMS alert
@@ -267,6 +268,7 @@ async function sendRecoveryAlert(supabase, source, minutesAgo, results) {
       await sendSMS(ADMIN_PHONE, message);
       results.resolved.push({ source, type: 'sms', sent: true });
     } catch (err) {
+        try { reportApiError(err, req); } catch (_sentryErr) {}
       results.resolved.push({ source, type: 'sms', error: err.message });
     }
   }

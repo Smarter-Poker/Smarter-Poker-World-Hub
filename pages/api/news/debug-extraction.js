@@ -2,6 +2,7 @@
  * Debug Image Extraction - Shows exactly what RSS feeds contain
  */
 import Parser from 'rss-parser';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 const rssParser = new Parser({
     customFields: {
@@ -105,6 +106,7 @@ export default async function handler(req, res) {
                 ...extractImage(item)
             });
         } catch (error) {
+            try { reportApiError(error, req); } catch (_sentryErr) {}
             results.push({ source: feed.name, error: error.message });
         }
     }

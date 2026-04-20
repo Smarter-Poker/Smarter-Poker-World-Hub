@@ -15,6 +15,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { validateUnionWallet } from '../../../src/contracts/orb4_syndicate';
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -335,6 +336,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ success: false, error: `Unknown action: ${action}` });
 
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[union-wallet]', err);
     return res.status(500).json({ success: false, error: 'Server error' });
   }

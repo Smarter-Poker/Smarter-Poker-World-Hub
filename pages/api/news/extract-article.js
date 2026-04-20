@@ -1,3 +1,4 @@
+import { reportApiError } from '../../../src/lib/sentryWrap';
 /**
  * Article Content Extraction API — FULL ARTICLE BODY
  * Two-phase approach:
@@ -73,6 +74,7 @@ export default async function handler(req, res) {
         });
 
     } catch (error) {
+        try { reportApiError(error, req); } catch (_sentryErr) {}
         console.error('[Article Extract] Error:', error);
         return res.status(500).json({
             success: false,

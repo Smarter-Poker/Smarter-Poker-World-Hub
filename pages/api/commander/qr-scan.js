@@ -5,6 +5,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { guardWriteStaff } from '../../../src/lib/commander/auth';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 let _supabase = null;
 function getSupabase() {
@@ -84,6 +85,7 @@ export default async function handler(req, res) {
     res.setHeader('Allow', 'GET, POST');
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[pages/api/commander/qr-scan.js]', err);
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }

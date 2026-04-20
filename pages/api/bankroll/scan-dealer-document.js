@@ -5,6 +5,7 @@
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { checkFeatureAccess } from '../../../src/lib/gates/premiumFeatureGate';
@@ -72,6 +73,7 @@ export default async function handler(req, res) {
       }
 
   } catch (err) {
+    try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
@@ -145,6 +147,7 @@ If any field is not visible or not relevant to the document type, use null. Be s
         try {
             return JSON.parse(jsonMatch[0]);
         } catch (e) {
+            try { reportApiError(e, req); } catch (_sentryErr) {}
             console.error('OCR Vault JSON Parse Error:', e);
             throw new Error('Failed to parse structured data from AI response.');
         }

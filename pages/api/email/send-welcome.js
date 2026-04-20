@@ -3,6 +3,7 @@
 
 import { Resend } from 'resend';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -165,6 +166,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ success: true, id: data.id });
   } catch (error) {
+      try { reportApiError(error, req); } catch (_sentryErr) {}
     console.error('Email error:', error);
     return res.status(500).json({ success: false, error: error.message });
   }

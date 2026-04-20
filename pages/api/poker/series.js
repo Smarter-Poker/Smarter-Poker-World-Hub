@@ -14,6 +14,7 @@ import msptEvents from '../../../data/mspt-2026-events.json';
 import rgpsEvents from '../../../data/rgps-2026-events.json';
 import venetianEvents from '../../../data/venetian-2026-events.json';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 let _supabase = null;
 function getSupabase() {
@@ -570,6 +571,7 @@ async function handler(req, res) {
     }
 
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }

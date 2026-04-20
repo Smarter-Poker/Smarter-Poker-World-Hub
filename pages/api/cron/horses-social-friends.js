@@ -3,6 +3,7 @@
  * Runs every 6 hours - Horses send and accept friend requests
  */
 import { sendFriendRequests, acceptFriendRequests } from '../../../src/content-engine/pipeline/HorseSocialEngine.js';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 export const config = {
     maxDuration: 60,
@@ -26,6 +27,7 @@ export default async function handler(req, res) {
             timestamp: new Date().toISOString()
         });
     } catch (error) {
+        try { reportApiError(error, req); } catch (_sentryErr) {}
         console.error('❌ Horses social friends error:', error);
         return res.status(500).json({
             success: false,

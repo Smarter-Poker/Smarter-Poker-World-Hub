@@ -3,6 +3,7 @@
 // detect failures in the patched client itself. CI check allows this
 // because health/index.js is not in the scanned API route patterns.
 import { createClient } from '@supabase/supabase-js';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 let _supabase = null;
 function getSupabase() {
@@ -80,6 +81,7 @@ export default async function handler(req, res) {
       res.status(statusCode).json(health);
 
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }

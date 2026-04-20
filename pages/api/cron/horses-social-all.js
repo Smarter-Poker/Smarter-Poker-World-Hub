@@ -10,6 +10,7 @@
 
 import { likePosts, commentOnPosts, replyToComments } from '../../../src/content-engine/pipeline/HorseSocialEngine.js';
 import { processDirectMessages } from '../../../src/content-engine/pipeline/HorseMessengerEngine.js';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 export const config = {
     maxDuration: 60,
@@ -30,6 +31,7 @@ async function withDeadline(fn, deadlineMs, label) {
             )
         ]);
     } catch (err) {
+        try { reportApiError(err, req); } catch (_sentryErr) {}
         console.warn(`   [DEADLINE] ${label}: ${err.message}`);
         return null;
     }

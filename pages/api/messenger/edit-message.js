@@ -1,6 +1,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { sanitizeMessage } from '../../../src/utils/messageSanitizer';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 const EDIT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -89,6 +90,7 @@ export default async function handler(req, res) {
       }
 
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }

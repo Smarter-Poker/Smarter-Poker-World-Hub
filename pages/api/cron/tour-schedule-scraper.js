@@ -60,6 +60,7 @@ import https from 'https';
 import http from 'http';
 import fs from 'fs';
 import path from 'path';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 // ─── Configuration ────────────────────────────────────────────────────────────
 const RATE_LIMIT_MS = 5000;
@@ -717,6 +718,7 @@ export default async function handler(req, res) {
         return res.status(200).json(stats);
 
     } catch (err) {
+        try { reportApiError(err, req); } catch (_sentryErr) {}
         console.error('[Tour Schedule Scraper FATAL]', err);
 
         // Send critical SMS on unhandled error

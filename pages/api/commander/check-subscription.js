@@ -5,6 +5,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { checkMemoryRateLimit } from '../../../src/lib/commander/rateLimit';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 // Note: No auth guard — this route is called during login BEFORE staff session exists.
 // It has its own inline JWT validation below.
 
@@ -76,6 +77,7 @@ export default async function handler(req, res) {
       }
 
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }

@@ -12,6 +12,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 function getSupabase() {
     return createClient(
@@ -491,6 +492,7 @@ async function returnRegistryFallback(tour_code, stop, res) {
       events,
     });
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     return res.status(500).json({ success: false, error: err.message, tour_code });
   }
 }

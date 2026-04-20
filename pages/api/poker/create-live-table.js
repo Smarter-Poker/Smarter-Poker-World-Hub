@@ -11,6 +11,7 @@
 import { getController } from '../../../src/lib/poker-engine/GameController';
 const { applyCors } = require('../../../src/lib/cors');
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 export default async function handler(req, res) {
   if (!applyCors(req, res, { methods: 'POST, OPTIONS', headers: 'Content-Type, x-user-id, Authorization' })) return;
@@ -47,6 +48,7 @@ if (req.method !== 'POST') return res.status(405).json({ success: false, error: 
       tableId: result.tableId,
     });
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[create-live-table]', err);
     return res.status(500).json({ success: false, error: 'Internal error' });
   }

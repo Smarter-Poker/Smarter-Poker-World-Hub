@@ -1,3 +1,4 @@
+import { reportApiError } from '../../../src/lib/sentryWrap';
 /**
  * CB-01: Sentry Error Triage Pipeline
  * 
@@ -291,6 +292,7 @@ async function createGithubIssues(errors) {
         user_count: error.user_count,
       });
     } catch (err) {
+        try { reportApiError(err, req); } catch (_sentryErr) {}
       console.error(`[CB-01] Failed to create GitHub issue for ${error.sentry_issue_id}:`, err.message);
       await logAudit(TASK_IDS.SENTRY_TRIAGE, 'github_issue_creation_failed', {
         sentry_id: error.sentry_issue_id,

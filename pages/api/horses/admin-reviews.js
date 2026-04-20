@@ -7,6 +7,7 @@
  * All endpoints require admin/superadmin/god role via JWT.
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 let _supabase = null;
@@ -231,6 +232,7 @@ export default async function handler(req, res) {
         return res.status(405).json({ success: false, error: `Method ${req.method} not allowed` });
 
     } catch (err) {
+        try { reportApiError(err, req); } catch (_sentryErr) {}
         console.error('[Admin Reviews API] Error:', err);
         if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
     }

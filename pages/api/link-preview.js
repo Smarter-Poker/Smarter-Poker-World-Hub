@@ -40,6 +40,7 @@ function isBlockedUrl(urlStr) {
 
 import { applyRateLimit, LIMITS } from '../../src/lib/apiRateLimit';
 const { applyCors } = require('../../src/lib/cors');
+import { reportApiError } from '../../src/lib/sentryWrap';
 
 export default async function handler(req, res) {
       if (!applyCors(req, res, { methods: 'GET', headers: 'Content-Type, Authorization' })) return;
@@ -290,6 +291,7 @@ function extractFallbackMetadata(url) {
             siteName: domain,
         };
     } catch (e) {
+        try { reportApiError(e, req); } catch (_sentryErr) {}
         return {
             url,
             title: 'Link',

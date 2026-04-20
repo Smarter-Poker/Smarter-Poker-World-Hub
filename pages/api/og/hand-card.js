@@ -6,6 +6,7 @@
  * Every element MUST have display:'flex' for Satori compatibility.
  */
 import { ImageResponse } from '@vercel/og';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 export const config = { runtime: 'edge' };
 
@@ -292,6 +293,7 @@ export default async function handler(req) {
             { width: 800, height: 420 }
         );
     } catch (err) {
+        try { reportApiError(err, req); } catch (_sentryErr) {}
         console.error('[OG Hand Card] Error:', err);
         return new Response('Error generating image', { status: 500 });
     }

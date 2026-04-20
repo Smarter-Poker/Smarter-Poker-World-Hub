@@ -30,6 +30,7 @@
  */
 
 import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 export const config = {
   maxDuration: 300 // 5 min — RPC scans every wallet + club.chip_pool row
@@ -91,6 +92,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json(payload);
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error("[ledger-reconcile] unhandled error:", err);
     return res
       .status(500)

@@ -24,6 +24,7 @@ import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settle
 const { isUUID, rejectBadPayload } = require('../../../src/lib/club-arena/validate');
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 const { safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -357,6 +358,7 @@ export default async function handler(req, res) {
     return res.status(200).json(responseBody);
 
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[leave-club]', err);
     return res.status(500).json(safeErrorResponse(err, 'Failed to leave club'));
   }

@@ -27,6 +27,7 @@
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 let _supabase = null;
 function getSupabase() {
@@ -384,6 +385,7 @@ export default async function handler(req, res) {
     });
 
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     const isTimeout = err.message && err.message.includes('timed out');
     console.error('[poker-brain/decide] error:', isTimeout ? 'TIMEOUT' : err.message);
     return res.status(isTimeout ? 504 : 500).json({

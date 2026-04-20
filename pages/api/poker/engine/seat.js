@@ -22,6 +22,7 @@ const ChipBridge = require('../../../../src/lib/poker-engine/ChipBridge');
 const { applyCors } = require('../../../../src/lib/cors');
 const { applyRateLimit } = require('../../../../src/lib/poker-engine/RateLimiter');
 const { createClient } = require('../../../../src/lib/supabaseServerClient');
+import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 // Supabase admin for buy-in auth and chip operations
 let _supabase = null;
@@ -496,6 +497,7 @@ try {
     }
 
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }

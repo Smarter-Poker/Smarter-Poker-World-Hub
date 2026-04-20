@@ -29,6 +29,7 @@ import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
 import https from 'https';
 import http from 'http';
 import { createHash } from 'crypto';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 // ── Supabase singleton ──────────────────────────────────────────────────────
 const getSupabase = getSupabaseAdmin;
@@ -519,6 +520,7 @@ export default async function handler(req, res) {
     });
 
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[scrape-charity-schedules] Fatal:', err);
     if (!res.headersSent) {
       return res.status(500).json({ success: false, error: err.message || 'Internal server error' });

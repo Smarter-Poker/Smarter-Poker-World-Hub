@@ -21,6 +21,7 @@ const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena
 const { runStandardGuards } = require('../../../src/lib/club-arena/redteam-validation');
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 const { safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 let _supabase = null;
 function getSupabase() {
@@ -239,6 +240,7 @@ export default async function handler(req, res) {
     }
 
   } catch (err) {
+    try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
@@ -290,6 +292,7 @@ async function notifyPlayer(cashout, playerName, agentName, messageText, pushTex
       });
     }
   } catch (e) {
+      try { reportApiError(e, req); } catch (_sentryErr) {}
     console.warn('[approve-cashout] Push notification failed:', e.message);
   }
 }

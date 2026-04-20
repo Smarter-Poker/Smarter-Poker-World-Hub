@@ -35,6 +35,7 @@
  */
 
 import crypto from 'crypto';
+import { reportApiError } from '../../src/lib/sentryWrap';
 
 // Disable Next.js body parsing so we can HMAC-verify the raw request bytes.
 export const config = {
@@ -808,6 +809,7 @@ Manual intervention needed. Check the Vercel build: https://vercel.com/smarter-p
       authMethod,
     });
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[deploy-monitor] Error:', err);
     // Pipeline-level errors also deserve an alert
     await createAlertIssue(

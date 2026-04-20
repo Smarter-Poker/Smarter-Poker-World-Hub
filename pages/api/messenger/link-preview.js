@@ -9,6 +9,7 @@
  */
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 // In-memory cache (survives across requests in the same serverless instance)
 const previewCache = new Map();
@@ -95,6 +96,7 @@ export default async function handler(req, res) {
 
         return res.json({ success: true, preview });
     } catch (e) {
+        try { reportApiError(e, req); } catch (_sentryErr) {}
         if (e.name === 'AbortError') {
             return res.json({ success: false, error: 'Request timeout' });
         }

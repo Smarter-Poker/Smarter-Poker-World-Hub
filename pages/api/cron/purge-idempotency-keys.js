@@ -14,6 +14,7 @@
  */
 
 import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 export const config = {
   maxDuration: 60
@@ -51,6 +52,7 @@ export default async function handler(req, res) {
       run_at: new Date().toISOString()
     });
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error("[purge-idempotency-keys] unhandled:", err);
     return res
       .status(500)

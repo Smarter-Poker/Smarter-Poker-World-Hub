@@ -15,6 +15,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 const { applyCors } = require('../../../src/lib/cors');
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 let _supabase = null;
 function getSupabase() {
@@ -53,6 +54,7 @@ try {
       }
 
   } catch (err) {
+    try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
@@ -172,6 +174,7 @@ async function syncToSocialPageFollowers(userId, pageType, pageIdStr, action) {
                 .eq('user_id', userId);
         }
     } catch (e) {
+        try { reportApiError(e, req); } catch (_sentryErr) {}
         // Silent - cross-sync is best-effort
         console.warn('[Follow API] Social page cross-sync error:', e.message);
     }

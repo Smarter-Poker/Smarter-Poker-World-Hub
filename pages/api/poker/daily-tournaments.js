@@ -14,6 +14,7 @@ import { withSentry } from '../../../src/lib/sentry';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import tournamentVenues from '../../../data/tournament-venues.json';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 // Any tournament starting before 10:00 AM is treated as a data quality error
 // (scraper artifacts produce 12 AM / 1 AM times that don't exist in reality).
@@ -693,6 +694,7 @@ async function handler(req, res) {
       }
 
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }

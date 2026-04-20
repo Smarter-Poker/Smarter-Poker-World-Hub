@@ -17,6 +17,7 @@ import { checkAndExecuteAutoBreak } from '../../../../../src/lib/commander/tourn
 import { logAction } from '../../../../../src/lib/commander/audit';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 import { parseBlindStructure } from '../../../../../src/lib/parseBlindStructure';
+import { reportApiError } from '../../../../../src/lib/sentryWrap';
 
 
 let _supabase = null;
@@ -62,6 +63,7 @@ export default async function handler(req, res) {
     });
 
   } catch (err) {
+    try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
@@ -515,6 +517,7 @@ async function handleClockAction(req, res, tournamentId, staff) {
       }
     });
   } catch (error) {
+      try { reportApiError(error, req); } catch (_sentryErr) {}
     console.error('[clock.js] Clock action exception:', error.message, error.stack);
     return res.status(500).json({
       success: false,

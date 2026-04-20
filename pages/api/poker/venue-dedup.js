@@ -4,6 +4,7 @@
  * Used by the live-tables API to combine data from both sources for matching venues.
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 let _supabase = null;
 function getSupabase() {
@@ -119,6 +120,7 @@ export default async function handler(req, res) {
       alias_registry_size: Object.keys(VENUE_ALIASES).length,
     });
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('Venue dedup error:', err);
     res.status(500).json({ error: err.message });
   }

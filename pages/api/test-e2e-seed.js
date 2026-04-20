@@ -1,5 +1,6 @@
 // Force Webpack re-compile
 import { getController } from '../../src/lib/poker-engine/GameController';
+import { reportApiError } from '../../src/lib/sentryWrap';
 
 export default async function handler(req, res) {
   try {
@@ -31,6 +32,7 @@ export default async function handler(req, res) {
     
     res.status(200).json({ success: true, tableId, phase: entry.table.game?.phase });
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     res.status(500).json({ error: err.message, stack: err.stack });
   }
 }

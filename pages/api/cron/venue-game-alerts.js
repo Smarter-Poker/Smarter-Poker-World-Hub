@@ -7,6 +7,7 @@
  * Cooldown: 4 hours between repeat alerts for the same match.
  */
 import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 const getSupabase = getSupabaseAdmin;
 
@@ -117,6 +118,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json(results);
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('Venue game alerts cron error:', err);
     return res.status(500).json({ error: err.message });
   }

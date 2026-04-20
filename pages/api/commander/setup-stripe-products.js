@@ -5,6 +5,7 @@
 import Stripe from 'stripe';
 import { guardManager } from '../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -117,6 +118,7 @@ export default async function handler(req, res) {
       message: 'Add these to your .env file',
     });
   } catch (error) {
+      try { reportApiError(error, req); } catch (_sentryErr) {}
     console.error('Stripe setup error:', error);
     res.status(500).json({
       success: false, error: error.message,

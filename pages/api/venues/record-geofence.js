@@ -2,6 +2,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { sendPushNotification } from '../../../src/lib/pushAlerts';
 const { getServerUser } = require('../../../src/lib/serverAuth');
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 // Send push max once per 12 hours per venue per user
 const COOLDOWN_MS = 12 * 60 * 60 * 1000; 
@@ -70,6 +71,7 @@ export default async function handler(req, res) {
 
         return res.status(200).json({ success: true, message: 'Geofence ping recorded, push sent if opted in' });
     } catch (err) {
+        try { reportApiError(err, req); } catch (_sentryErr) {}
         console.error('[API Error] record-geofence:', err);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }

@@ -25,6 +25,7 @@
  */
 import { createClient } from "../../../../src/lib/supabaseServerClient";
 import { rateLimit } from "../../../../src/lib/apiRateLimit";
+import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 let _supabase = null;
 function getSupabase() {
@@ -95,6 +96,7 @@ export default async function handler(req, res) {
 
         return res.status(200).json(data);
     } catch (err) {
+        try { reportApiError(err, req); } catch (_sentryErr) {}
         console.error("[rg/session/reality-check] unhandled:", err);
         return res
             .status(500)

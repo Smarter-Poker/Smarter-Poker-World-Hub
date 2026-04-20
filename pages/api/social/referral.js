@@ -7,6 +7,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 // Lazy-init Supabase client (RAT-AUTH-NUCLEAR compliant)
@@ -208,6 +209,7 @@ export default async function handler(req, res) {
                     referrerUsername: referrer.username,
                 });
             } catch (err) {
+                try { reportApiError(err, req); } catch (_sentryErr) {}
                 console.error('[Referral] Apply error:', err);
                 return res.status(500).json({ error: 'Failed to apply referral' });
             }

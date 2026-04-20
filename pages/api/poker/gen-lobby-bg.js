@@ -1,3 +1,4 @@
+import { reportApiError } from '../../../src/lib/sentryWrap';
 /**
  * /api/poker/gen-lobby-bg
  * Generates a cinematic lobby background image via Grok API.
@@ -44,6 +45,7 @@ export default async function handler(req, res) {
       size: b64.length,
     });
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error(`[gen-lobby-bg] Error:`, err);
     return res.status(500).json({ error: err.message });
   }

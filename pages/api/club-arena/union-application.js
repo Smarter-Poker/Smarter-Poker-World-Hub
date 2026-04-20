@@ -18,6 +18,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { validateUnionApplication } from '../../../src/contracts/orb4_syndicate';
 import { checkIdempotency, cacheResponse } from '../../../src/lib/club-arena/idempotency';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -293,6 +294,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ success: false, error: `Unknown action: ${action}` });
 
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[union-application]', err);
     return res.status(500).json({ success: false, error: 'Server error' });
   }

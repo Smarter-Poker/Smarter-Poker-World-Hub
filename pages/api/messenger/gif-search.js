@@ -1,3 +1,4 @@
+import { reportApiError } from '../../../src/lib/sentryWrap';
 /**
  * GIF/Sticker Search API — Server-side proxy for GIPHY API
  * ═══════════════════════════════════════════════════════════════════════════
@@ -57,6 +58,7 @@ export default async function handler(req, res) {
             total: data.pagination?.total_count || 0,
         });
     } catch (error) {
+        try { reportApiError(error, req); } catch (_sentryErr) {}
         console.error('[GIF Search] Error:', error);
         return res.status(500).json({ success: false, error: 'GIF search failed' });
     }

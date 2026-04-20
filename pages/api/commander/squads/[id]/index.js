@@ -6,6 +6,7 @@
 import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardUser } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
+import { reportApiError } from '../../../../../src/lib/sentryWrap';
 
 let _supabase = null;
 function getSupabase() {
@@ -40,6 +41,7 @@ export default async function handler(req, res) {
     });
 
   } catch (err) {
+    try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
@@ -124,6 +126,7 @@ async function handleDelete(req, res, id) {
       data: { message: 'Squad disbanded' }
     });
   } catch (error) {
+      try { reportApiError(error, req); } catch (_sentryErr) {}
     console.error('Delete squad error:', error);
     return res.status(500).json({
       success: false,

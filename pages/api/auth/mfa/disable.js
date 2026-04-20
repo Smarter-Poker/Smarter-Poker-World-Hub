@@ -8,6 +8,7 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import speakeasy from 'speakeasy';
 import crypto from 'crypto';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
+import { reportApiError } from '../../../../src/lib/sentryWrap';
 // [Phase 6.1.26] Even though disable.js already requires a fresh TOTP /
 // backup code to execute (that's the in-body `code` check below), we also
 // want a fresh mfa_session cookie so the disable button can't be clicked
@@ -127,6 +128,7 @@ export default async function handler(req, res) {
       }
 
   } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
