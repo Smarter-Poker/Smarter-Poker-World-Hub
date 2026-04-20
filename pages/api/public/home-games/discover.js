@@ -205,9 +205,17 @@ export default async function handler(req, res) {
     if (game_type) q = q.eq('default_game_type', game_type);
     if (frequency) q = q.eq('frequency', frequency);
     // Free-text search across name, city, state — used by the PNM lobby tab.
-    if (search && typeof search === 'string' && search.trim().length > 0) {
-      const s = escapeIlike(search.trim());
-      q = q.or(`name.ilike.%${s}%,city.ilike.%${s}%,state.ilike.%${s}%`);
+    // Cap at 200 chars: anything longer is almost certainly a DoS probe
+    // (8KB+ URL fails at the edge before reaching this handler anyway, but
+    // giving a clean 400 for anything plausibly long is better UX).
+    if (search != null) {
+      if (typeof search !== 'string' || search.length > 200) {
+        return res.status(400).json({ success: false, error: 'search too long (max 200 chars)' });
+      }
+      if (search.trim().length > 0) {
+        const s = escapeIlike(search.trim());
+        q = q.or(`name.ilike.%${s}%,city.ilike.%${s}%,state.ilike.%${s}%`);
+      }
     }
 
     const { data: groups, error } = await q;
