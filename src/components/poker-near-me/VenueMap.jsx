@@ -629,6 +629,14 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
   const [nearestVenue, setNearestVenue] = useState(null);
   const [visibleCount, setVisibleCount] = useState(0);
   const mapContainerRef = useRef(null);
+  const mountedRef = useRef(true);
+
+  // Unconditional unmount handler for background polling safety
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
   const mapInstanceRef = useRef(null);
   const clusterGroupRef = useRef(null);
   const tourLayerRef = useRef(null); // ← Tour stops NEVER cluster
@@ -961,7 +969,6 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
     }
 
     return () => {
-      mountedRef.current = false;
       container.removeEventListener('click', handlePopupClicks);
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
