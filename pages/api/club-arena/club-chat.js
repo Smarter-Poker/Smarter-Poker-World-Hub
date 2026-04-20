@@ -33,7 +33,8 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       if (!applyRateLimit(req, res, 'club-arena/club-chat-read')) return;
 
-      const clubId = req.query.clubId;
+      const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+      const clubId = safeQ(req.query.clubId);
       if (!clubId) return res.status(400).json({ error: 'clubId required' });
 
       // Verify membership

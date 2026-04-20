@@ -51,7 +51,9 @@ export default async function handler(req, res) {
       }
 
       try {
-          const { limit = 20, channel } = req.query;
+          const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+          const limit = safeQ(req.query.limit) || 20;
+          const channel = safeQ(req.query.channel);
 
           // Read from social_reels — the table pokernews-videos cron populates
           let query = getSupabase()

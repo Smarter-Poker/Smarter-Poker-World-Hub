@@ -84,7 +84,9 @@ export default async function handler(req, res) {
     res.setHeader('Cache-Control', 'public, s-maxage=5, stale-while-revalidate=10');
 
     try {
-        const { slug: rawSlug, page_id } = req.query;
+        const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+        const rawSlug = safeQ(req.query.slug);
+        const page_id = safeQ(req.query.page_id);
 
         if (!rawSlug) {
             return res.status(400).json({ success: false, available: false, error: 'slug parameter is required' });

@@ -23,7 +23,12 @@ export default async function handler(req, res) {
 
       if (req.method === 'GET') {
           try {
-              const { category, search, limit = 20, offset = 0, featured } = req.query;
+              const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+              const category = safeQ(req.query.category);
+              const search = safeQ(req.query.search);
+              const limit = safeQ(req.query.limit) || 20;
+              const offset = safeQ(req.query.offset) || 0;
+              const featured = safeQ(req.query.featured);
 
               let query = getSupabase()
                   .from('poker_news')

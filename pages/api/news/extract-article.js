@@ -7,7 +7,8 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
  */
 
 export default async function handler(req, res) {
-    const { url } = req.query;
+    const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+    const url = safeQ(req.query.url);
 
     if (!url) {
         return res.status(400).json({ success: false, error: 'URL parameter required' });

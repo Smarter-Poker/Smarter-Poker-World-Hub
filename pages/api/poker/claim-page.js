@@ -98,7 +98,10 @@ try {
       }
 
       if (req.method === 'GET') {
-        const { page_type, page_id, user_id } = req.query;
+        const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+        const page_type = safeQ(req.query.page_type);
+        const page_id = safeQ(req.query.page_id);
+        const user_id = safeQ(req.query.user_id);
 
         // Get claim status for a specific page
         if (page_type && page_id) {
