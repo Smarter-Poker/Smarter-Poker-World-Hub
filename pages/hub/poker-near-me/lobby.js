@@ -444,10 +444,18 @@ export default function PokerNearMeLobby() {
       const activeSort = sortByRef.current;
       
       if (activeLoc) {
-        if (activeFilters.radius) {
-          url += `&lat=${activeLoc.lat}&lng=${activeLoc.lng}&radius=${activeFilters.radius}`;
+        // STRICT RADIUS ENFORCEMENT: parse, cap at 150mi, default 50mi.
+        // Never trust raw filter string — stale URL params or sessions
+        // can carry old large values (100, 200, etc.) and bypass the 50mi default.
+        const rawRadius = activeFilters.radius;
+        const parsedRadius = rawRadius === 'any' ? null : parseInt(rawRadius, 10);
+        const safeRadius = (!parsedRadius || isNaN(parsedRadius))
+          ? 50
+          : Math.min(parsedRadius, 150);
+        if (rawRadius === 'any') {
+          url += `&lat=${activeLoc.lat}&lng=${activeLoc.lng}`;
         } else {
-          url += `&lat=${activeLoc.lat}&lng=${activeLoc.lng}&radius=50`;
+          url += `&lat=${activeLoc.lat}&lng=${activeLoc.lng}&radius=${safeRadius}`;
         }
       }
       if (activeSort) url += `&sort=${activeSort}`;

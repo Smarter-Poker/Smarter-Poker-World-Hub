@@ -244,6 +244,8 @@ export default async function handler(req, res) {
 
               // Non-retryable status codes — return a friendly HTML fallback instead of raw JSON
               if ([403, 404, 451].includes(response.status)) {
+                  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+                  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
                   return res.status(response.status).send(buildBlockedFallback(targetUrl, response.status));
               }
 

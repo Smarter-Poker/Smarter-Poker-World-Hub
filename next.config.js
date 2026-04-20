@@ -339,6 +339,18 @@ const nextConfig = {
           },
         ],
       },
+      // [In-App Article Reader] The proxy API serves external pages inside an
+      // iframe on smarter.poker. We must allow same-origin framing for this
+      // route only — overrides the global X-Frame-Options: DENY to SAMEORIGIN.
+      {
+        source: '/api/proxy',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: 'SAMEORIGIN',
+          },
+        ],
+      },
       // [Phase 6.1.14] Extra-strict headers for the jurisdiction-blocked inert
       // page — no scripts needed, no framing, no referrer leakage. This is the
       // only page served to geo-blocked users, so it pays to harden it further
