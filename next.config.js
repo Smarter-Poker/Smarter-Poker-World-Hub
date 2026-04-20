@@ -446,14 +446,22 @@ const sentryWebpackPluginOptions = {
 
 // Sentry SDK options
 const sentryOptions = {
-  // Upload source maps for better error tracking
-  widenClientFileUpload: true,
+  // [Phase 5.2.1e] Disabled widenClientFileUpload to cut build memory.
+  // With 952 pages + standalone output, widening the source-map upload set
+  // plus autoInstrumentServerFunctions pushed the Vercel 8GB build container
+  // into the kernel OOM killer (SIGKILL) after every mass-file commit.
+  // Narrow upload scope only; errors still symbolicate on the files Sentry
+  // cares about (pages + app routes).
+  widenClientFileUpload: false,
 
   // Hide source maps from client bundles
   hideSourceMaps: true,
 
-  // Automatically instrument API routes
-  autoInstrumentServerFunctions: true,
+  // [Phase 5.2.1e] Disabled autoInstrumentServerFunctions — it wraps every
+  // API route with Sentry tracing at build time, allocating a huge closure
+  // map. Runtime Sentry.init() still captures all thrown errors; only the
+  // automatic performance-tracing wrapping is skipped.
+  autoInstrumentServerFunctions: false,
 
   // Disable verbose logging
   disableLogger: true,
