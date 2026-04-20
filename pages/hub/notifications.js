@@ -4,6 +4,7 @@
  */
 
 import SEOHead from '../../src/components/seo/SEOHead';
+import { ThumbsUp, Heart, MessageCircle, AtSign, UserPlus, UserCheck, Eye, Radio, Spade, Bell, Share2, Star, Trophy, Banknote, ShieldCheck, Users, Megaphone, Gift, TrendingUp, Zap } from 'lucide-react';
 import { useRouter } from 'next/router';
 import toast from '../../src/stores/toastStore';
 import { useState, useEffect, useRef } from 'react';
@@ -478,8 +479,38 @@ function NotificationsPage() {
                     ) : (
                         notifications.map(n => {
                             const isPoker = n._source === 'poker';
-                            const actionIcon = isPoker ? 's' : n.type === 'like' ? '👍' : n.type === 'comment' ? '' : n.type === 'mention' ? '@' : n.type === 'friend_request' ? '' : n.type === 'friend_accepted' ? '' : n.type === 'new_follow' ? '' : n.type === 'live' ? '🔴' : '';
-                            const iconBg = isPoker ? '#2D8B4E' : n.type === 'like' ? '#1877F2' : n.type === 'comment' ? '#44BD32' : n.type === 'live' ? '#FA383E' : n.type === 'friend_request' || n.type === 'friend_accepted' ? '#42B72A' : '#65676B';
+                            // Notification type icon map — Lucide SVGs, no empty circles
+                            const getNotifIcon = () => {
+                                const s = 14; const clr = '#fff';
+                                if (isPoker) {
+                                    // Poker sub-types from message content
+                                    const msg = (n.message || '').toLowerCase();
+                                    if (msg.includes('settlement') || msg.includes('chips')) return { icon: <Banknote size={s} color={clr} />, bg: '#2D8B4E' };
+                                    if (msg.includes('roster') || msg.includes('seat')) return { icon: <Users size={s} color={clr} />, bg: '#6366F1' };
+                                    if (msg.includes('tournament') || msg.includes('trophy')) return { icon: <Trophy size={s} color={clr} />, bg: '#F59E0B' };
+                                    if (msg.includes('security') || msg.includes('phase')) return { icon: <ShieldCheck size={s} color={clr} />, bg: '#8B5CF6' };
+                                    return { icon: <Spade size={s} color={clr} />, bg: '#2D8B4E' };
+                                }
+                                switch (n.type) {
+                                    case 'like': return { icon: <ThumbsUp size={s} color={clr} />, bg: '#1877F2' };
+                                    case 'love': return { icon: <Heart size={s} color={clr} />, bg: '#F33E58' };
+                                    case 'comment': return { icon: <MessageCircle size={s} color={clr} />, bg: '#44BD32' };
+                                    case 'mention': return { icon: <AtSign size={s} color={clr} />, bg: '#8B5CF6' };
+                                    case 'tag': return { icon: <AtSign size={s} color={clr} />, bg: '#8B5CF6' };
+                                    case 'friend_request': return { icon: <UserPlus size={s} color={clr} />, bg: '#42B72A' };
+                                    case 'friend_accepted': return { icon: <UserCheck size={s} color={clr} />, bg: '#42B72A' };
+                                    case 'new_follow': return { icon: <Eye size={s} color={clr} />, bg: '#0EA5E9' };
+                                    case 'live': return { icon: <Radio size={s} color={clr} />, bg: '#FA383E' };
+                                    case 'share': return { icon: <Share2 size={s} color={clr} />, bg: '#6366F1' };
+                                    case 'achievement': return { icon: <Star size={s} color={clr} />, bg: '#F59E0B' };
+                                    case 'reward': case 'gift': return { icon: <Gift size={s} color={clr} />, bg: '#EC4899' };
+                                    case 'announcement': return { icon: <Megaphone size={s} color={clr} />, bg: '#6366F1' };
+                                    case 'level_up': return { icon: <TrendingUp size={s} color={clr} />, bg: '#10B981' };
+                                    case 'system': return { icon: <Zap size={s} color={clr} />, bg: '#8B5CF6' };
+                                    default: return { icon: <Bell size={s} color={clr} />, bg: '#6366F1' };
+                                }
+                            };
+                            const { icon: ActionIcon, bg: iconBg } = getNotifIcon();
 
                             // Navigate to page detail for poker, user profile for social
                             const handleClick = () => {
@@ -506,7 +537,7 @@ function NotificationsPage() {
                                         borderBottom: `1px solid ${C.border}`, cursor: isClickable ? 'pointer' : 'default'
                                     }}
                                 >
-                                    {/* SmarterPoker-style avatar with action icon */}
+                                    {/* Avatar with Lucide action badge */}
                                     <div style={{ position: 'relative', flexShrink: 0 }}>
                                         <img
                                             src={n.actor_avatar_url || '/default-avatar.png'}
@@ -519,9 +550,8 @@ function NotificationsPage() {
                                             position: 'absolute', bottom: -2, right: -2,
                                             width: 24, height: 24, borderRadius: '50%',
                                             background: iconBg, border: '2px solid white',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            fontSize: 12
-                                        }}>{actionIcon}</div>
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                        }}>{ActionIcon}</div>
                                     </div>
                                     <div style={{ flex: 1 }}>
                                         <div style={{ fontSize: 15, color: C.text, lineHeight: 1.4 }}>
