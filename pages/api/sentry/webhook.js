@@ -1,36 +1,45 @@
 /**
- * /api/sentry/webhook — Universal Sentry Error Receiver
+ * /api/sentry/webhook — Sentry → GitHub repository_dispatch bridge.
  *
- * Catches EVERY Sentry event (runtime errors, performance issues, crashes)
- * and immediately:
- *   1. Sends SMS alert via Twilio
- *   2. Triggers the deploy-autofix pipeline with full error context
- *   3. Creates a GitHub Issue for tracking
+ * Receives Sentry Internal Integration webhooks (issue.created,
+ * issue.triggered, issue.escalating, issue.regression) and fires a
+ * `repository_dispatch` of type `sentry-autofix` at the repo matching the
+ * issue's Sentry project slug. The `sentry-autofix.yml` workflow in each
+ * repo is listening for that event and owns the full autofix loop
+ * (fetch event → call Claude → apply patch → open draft PR).
  *
- * SETUP IN SENTRY:
- *   Settings → Developer Settings → Internal Integrations → smarter-poker
- *   → Webhooks → enable "issue" events
- *   → Webhook URL: https://smarter.poker/api/sentry/webhook
- *   → Add header: x-sentry-hook-secret: <SENTRY_WEBHOOK_SECRET>
+ * This file is the ONLY trigger surface between Sentry and GitHub. It MUST:
+ *   - verify the Sentry webhook HMAC
+ *   - acknowledge fast (<15s; Sentry retries otherwise)
+ *   - route by sentry_project slug to the correct GitHub repo
+ *   - record the attempt in Supabase so we can dedup + track
  *
- * ENV VARS:
- *   SENTRY_WEBHOOK_SECRET  — shared secret from Sentry integration
- *   TWILIO_ACCOUNT_SID     — SMS sender
- *   TWILIO_AUTH_TOKEN
- *   TWILIO_PHONE_NUMBER    — "from" number
- *   TWILIO_TO_NUMBER       — your number to receive alerts
- *   GH_PAT                 — GitHub PAT for issue creation
- *   ANTHROPIC_API_KEY      — for auto-fix
+ * ENV (required):
+ *   SENTRY_WEBHOOK_SECRET       — HMAC secret shared with Sentry integration
+ *   AUTOFIX_GITHUB_TOKEN        — classic PAT with `repo` scope
+ *     (falls back to GITHUB_TOKEN or GH_PAT)
+ *   SUPABASE_URL                — for autofix_attempts ledger
+ *   SUPABASE_SERVICE_ROLE_KEY
+ *
+ * ENV (optional):
+ *   TWILIO_* / ONESIGNAL_*      — human SMS / push alerts (fire-and-forget)
  */
 
 import crypto from 'crypto';
 
 export const config = { api: { bodyParser: false } };
 
-const GITHUB_OWNER = 'Smarter-Poker';
-const GITHUB_REPO  = 'Smarter-Poker-World-Hub';
+// Project slug → GitHub repo routing. When Sentry captures an issue, its
+// project.slug (verified per-event — NOT user-controllable) decides which
+// repo gets the repository_dispatch.
+const PROJECT_TO_REPO = {
+  'javascript-nextjsmarter-poker-world-hubs': { owner: 'Smarter-Poker', repo: 'Smarter-Poker-World-Hub' },
+  'javascript-react':                           { owner: 'Smarter-Poker', repo: 'Smarter-Poker-Club-Arena'   },
+  'javascript-react-3h':                        { owner: 'Smarter-Poker', repo: 'Smarter-Poker-Club-Commander' },
+};
 
-// ─── Raw body reader ──────────────────────────────────────────────────────────
+const DISPATCH_EVENT = 'sentry-autofix';
+
 function readRawBody(req) {
   return new Promise((resolve, reject) => {
     const chunks = [];
@@ -40,188 +49,181 @@ function readRawBody(req) {
   });
 }
 
-// ─── HMAC verification against Sentry webhook secret ─────────────────────────
+// Sentry signs the request body with HMAC-SHA256 over the shared secret and
+// sends the digest in `sentry-hook-signature`. Must be timing-safe.
 function verifySignature(rawBody, headerSig, secret) {
   if (!headerSig || !secret) return false;
-  const expected = crypto
-    .createHmac('sha256', secret)
-    .update(rawBody)
-    .digest('hex');
+  const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
   try {
     return crypto.timingSafeEqual(
       Buffer.from(headerSig.replace(/^sha256=/, ''), 'hex'),
-      Buffer.from(expected, 'hex')
+      Buffer.from(expected, 'hex'),
     );
   } catch { return false; }
 }
 
-// ─── SMS via Twilio ───────────────────────────────────────────────────────────
-async function sendSmsAlert(message) {
-  const sid   = process.env.TWILIO_ACCOUNT_SID;
-  const token = process.env.TWILIO_AUTH_TOKEN;
-  const from  = process.env.TWILIO_PHONE_NUMBER;
-  const to    = process.env.TWILIO_TO_NUMBER;
-  if (!sid || !token || !from || !to) {
-    console.warn('[sentry-webhook] Twilio not configured — skipping SMS');
-    return;
-  }
+async function recordAttempt({ issueId, shortId, projectSlug, repo }) {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return null;
   try {
-    const body = new URLSearchParams({ From: from, To: to, Body: message.slice(0, 1600) });
-    const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
+    const body = {
+      sentry_issue_id: String(issueId),
+      sentry_short_id: shortId || null,
+      sentry_project:  projectSlug,
+      repo:            repo,
+      status:          'dispatched',
+      created_at:      new Date().toISOString(),
+      updated_at:      new Date().toISOString(),
+    };
+    const res = await fetch(`${url}/rest/v1/autofix_attempts`, {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + Buffer.from(`${sid}:${token}`).toString('base64'),
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body,
-    });
-    if (!res.ok) console.error('[sentry-webhook] SMS failed:', await res.text());
-    else console.log('[sentry-webhook] SMS sent');
-  } catch (e) { console.error('[sentry-webhook] SMS error:', e.message); }
-}
-
-// ─── GitHub Issue creation ────────────────────────────────────────────────────
-async function createGitHubIssue(title, body) {
-  const pat = process.env.GH_PAT;
-  if (!pat) return;
-  try {
-    await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/issues`, {
-      method: 'POST',
-      headers: {
-        Authorization: `token ${pat}`,
+        apikey: key,
+        Authorization: `Bearer ${key}`,
         'Content-Type': 'application/json',
-        Accept: 'application/vnd.github.v3+json',
+        Prefer: 'return=representation,resolution=ignore-duplicates',
       },
-      body: JSON.stringify({ title, body, labels: ['autofix', 'sentry-error'] }),
+      body: JSON.stringify(body),
     });
-  } catch (e) { console.error('[sentry-webhook] GitHub issue failed:', e.message); }
-}
-
-// ─── Trigger auto-fix with Anthropic ─────────────────────────────────────────
-async function triggerAutofix(issueData) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  const pat    = process.env.GH_PAT;
-  if (!apiKey || !pat) {
-    console.warn('[sentry-webhook] ANTHROPIC_API_KEY or GH_PAT missing — skipping autofix');
-    return;
-  }
-
-  // Build fix prompt
-  const errorTitle = issueData.title || 'Unknown Error';
-  const errorCulprit = issueData.culprit || '';
-  const errorType  = issueData.metadata?.type || '';
-  const errorValue = issueData.metadata?.value || '';
-  const stacktrace = issueData.exceptions?.[0]?.stacktrace?.frames
-    ?.slice(-5)
-    .map(f => `  ${f.filename}:${f.lineno} in ${f.function}`)
-    .join('\n') || 'No stacktrace available';
-
-  const prompt = `You are an expert Next.js engineer fixing a production runtime error on smarter.poker.
-
-SENTRY ERROR REPORT:
-Title: ${errorTitle}
-Type: ${errorType}
-Value: ${errorValue}
-Culprit: ${errorCulprit}
-
-Stack Trace (last 5 frames):
-${stacktrace}
-
-GitHub Repo: ${GITHUB_OWNER}/${GITHUB_REPO}
-
-Your task:
-1. Use the GitHub API (token: provided) to read the failing file
-2. Identify the exact bug causing this runtime error
-3. Apply the minimal fix using the GitHub Contents API (create a commit with message "[autofix] sentry: ${errorTitle.slice(0,60)}")
-4. Fix only the specific file referenced in the culprit/stacktrace
-5. Do NOT refactor unrelated code
-
-Use GitHub API base: https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}
-Authorization: token ${pat}
-
-Be surgical. Fix the error. Commit it.`;
-
-  try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'claude-3-7-sonnet-20250219',
-        max_tokens: 8000,
-        messages: [{ role: 'user', content: prompt }],
-      }),
-    });
-    const result = await resp.json();
-    console.log('[sentry-webhook] Autofix response:', result?.content?.[0]?.text?.slice(0, 300));
+    if (!res.ok) {
+      console.warn('[sentry-webhook] Supabase insert failed', res.status, await res.text().catch(()=> ''));
+      return null;
+    }
+    const rows = await res.json().catch(() => []);
+    return rows?.[0]?.id || null;
   } catch (e) {
-    console.error('[sentry-webhook] Autofix failed:', e.message);
+    console.warn('[sentry-webhook] Supabase error', e.message);
+    return null;
   }
 }
 
-// ─── Main handler ─────────────────────────────────────────────────────────────
+async function fireDispatch({ owner, repo, issueId, shortId, projectSlug, title, level, attemptId }) {
+  const token = process.env.AUTOFIX_GITHUB_TOKEN || process.env.GITHUB_TOKEN || process.env.GH_PAT;
+  if (!token) throw new Error('AUTOFIX_GITHUB_TOKEN missing');
+  const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/dispatches`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      'Content-Type': 'application/json',
+      'User-Agent': 'smarter-poker-sentry-webhook/1.0',
+    },
+    body: JSON.stringify({
+      event_type: DISPATCH_EVENT,
+      client_payload: {
+        issue_id: String(issueId),
+        short_id: shortId || '',
+        sentry_project: projectSlug,
+        sentry_org: 'smarter-software-inc',
+        issue_title: (title || '').slice(0, 200),
+        issue_level: level || 'error',
+        attempt_id: attemptId || '',
+        source: 'sentry-webhook',
+      },
+    }),
+  });
+  if (!res.ok && res.status !== 204) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`GitHub dispatch failed: ${res.status} ${text.slice(0, 400)}`);
+  }
+  return { status: res.status };
+}
+
+// Best-effort human alerts — do not block the main path.
+async function sendHumanAlerts({ title, level, projectSlug, permalink }) {
+  const sid = process.env.TWILIO_ACCOUNT_SID;
+  const tok = process.env.TWILIO_AUTH_TOKEN;
+  const from = process.env.TWILIO_PHONE_NUMBER;
+  const to   = process.env.TWILIO_TO_NUMBER;
+  if (sid && tok && from && to) {
+    const msg = `Smarter.Poker ${String(level).toUpperCase()} [${projectSlug}] ${title}\n${permalink}`;
+    try {
+      await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
+        method: 'POST',
+        headers: {
+          Authorization: 'Basic ' + Buffer.from(`${sid}:${tok}`).toString('base64'),
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({ From: from, To: to, Body: msg.slice(0, 1600) }),
+      });
+    } catch (e) { console.warn('[sentry-webhook] SMS failed', e.message); }
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
   let rawBody;
   try { rawBody = await readRawBody(req); }
-  catch (e) { return res.status(400).json({ error: 'Failed to read body' }); }
+  catch { return res.status(400).json({ error: 'bad body' }); }
 
-  // Verify Sentry signature
   const secret = process.env.SENTRY_WEBHOOK_SECRET;
-  const sigHeader = req.headers['sentry-hook-signature'] || req.headers['x-sentry-hook-secret'];
-  if (secret && !verifySignature(rawBody, sigHeader, secret)) {
-    console.error('[sentry-webhook] Signature verification FAILED');
-    return res.status(401).json({ error: 'Unauthorized' });
+  // Sentry internal-integration header is `sentry-hook-signature`.
+  const sig = req.headers['sentry-hook-signature'] || req.headers['x-sentry-hook-signature'];
+  if (!secret) {
+    console.error('[sentry-webhook] SENTRY_WEBHOOK_SECRET missing');
+    return res.status(500).json({ error: 'server misconfigured' });
+  }
+  if (!verifySignature(rawBody, sig, secret)) {
+    return res.status(401).json({ error: 'bad signature' });
   }
 
   let payload;
   try { payload = JSON.parse(rawBody.toString('utf8')); }
-  catch (e) { return res.status(400).json({ error: 'Invalid JSON' }); }
+  catch { return res.status(400).json({ error: 'bad json' }); }
 
-  const action = payload.action;
-  const issue  = payload.data?.issue || payload.issue || {};
-  const event  = payload.data?.event || {};
+  const action  = payload.action;
+  const issue   = payload.data?.issue || payload.issue || {};
+  const project = issue.project?.slug || payload.data?.issue?.project?.slug || '';
 
-  console.log(`[sentry-webhook] Received: action=${action} issue=${issue.id} title=${issue.title}`);
-
-  // We care about ALL error actions: created, triggered, escalating, regression
-  const actionsThatNeedFix = ['created', 'triggered', 'escalating', 'regression'];
-  if (!actionsThatNeedFix.includes(action)) {
-    return res.status(200).json({ ok: true, message: `Ignored action: ${action}` });
+  // Accept creation, escalation, regression, and "triggered" (alert-rule relay).
+  const dispatchable = ['created', 'triggered', 'escalating', 'regression'];
+  if (!dispatchable.includes(action)) {
+    return res.status(200).json({ ok: true, ignored: action });
   }
 
-  // Acknowledge immediately — Sentry has a 15s timeout
-  res.status(200).json({ ok: true, action, issue: issue.id });
+  const route = PROJECT_TO_REPO[project];
+  if (!route) {
+    console.warn('[sentry-webhook] unknown project', project);
+    return res.status(200).json({ ok: true, ignored_project: project });
+  }
 
-  // ── Async handling after response sent ────────────────────────────────────
-  const errorTitle  = issue.title || event.title || 'Unknown Error';
-  const errorType   = issue.metadata?.type || issue.type || '';
-  const errorValue  = issue.metadata?.value || '';
-  const culprit     = issue.culprit || event.culprit || '';
-  const sentryUrl   = issue.permalink || `https://smarter-software-inc.sentry.io/issues/${issue.id}/`;
-  const level       = issue.level || 'error';
-  const project     = issue.project?.slug || 'unknown';
+  // ACK fast — Sentry retries on >15s.
+  res.status(202).json({ ok: true, action, issue: issue.id, project, repo: `${route.owner}/${route.repo}` });
 
-  const smsMessage = `🚨 Smarter.Poker ${level.toUpperCase()} [${project}]\n${errorTitle}\nCulprit: ${culprit}\n${sentryUrl}`;
+  // Fire-and-forget downstream.
+  const attemptId = await recordAttempt({
+    issueId: issue.id,
+    shortId: issue.shortId || issue.short_id,
+    projectSlug: project,
+    repo: `${route.owner}/${route.repo}`,
+  });
 
-  // Fire all three in parallel
-  await Promise.allSettled([
-    sendSmsAlert(smsMessage),
-    createGitHubIssue(
-      `[autofix] ${errorTitle}`,
-      `## Sentry Runtime Error\n\n**Action:** ${action}\n**Level:** ${level}\n**Culprit:** \`${culprit}\`\n**Type:** \`${errorType}\`\n**Value:** \`${errorValue}\`\n\n[View in Sentry](${sentryUrl})\n\n---\n*Auto-detected by Sentry webhook receiver*`
-    ),
-    triggerAutofix({
-      title: errorTitle,
-      culprit,
-      metadata: { type: errorType, value: errorValue },
-      exceptions: event.exception?.values || [],
+  const tasks = [
+    fireDispatch({
+      owner: route.owner,
+      repo:  route.repo,
+      issueId: issue.id,
+      shortId: issue.shortId || issue.short_id,
+      projectSlug: project,
+      title: issue.title,
+      level: issue.level,
+      attemptId,
     }),
-  ]);
-
-  console.log(`[sentry-webhook] Handled: ${errorTitle}`);
+    sendHumanAlerts({
+      title: issue.title || 'Unknown',
+      level: issue.level || 'error',
+      projectSlug: project,
+      permalink: issue.permalink || `https://smarter-software-inc.sentry.io/issues/${issue.id}/`,
+    }),
+  ];
+  const results = await Promise.allSettled(tasks);
+  results.forEach((r, i) => {
+    if (r.status === 'rejected') {
+      console.error(`[sentry-webhook] task ${i} failed`, r.reason?.message || r.reason);
+    }
+  });
+  console.log(`[sentry-webhook] dispatched ${issue.id} → ${route.owner}/${route.repo} (attempt ${attemptId || 'none'})`);
 }
