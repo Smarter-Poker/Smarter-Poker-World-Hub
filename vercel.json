@@ -301,6 +301,10 @@
       "schedule": "5 0 * * *"
     },
     {
+      "path": "/api/cron/collusion-scan",
+      "schedule": "30 3 * * *"
+    },
+    {
       "path": "/api/cron/memory-matrix-daily-challenge",
       "schedule": "0 6 * * *"
     },
