@@ -9,6 +9,15 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { supabase } from '../../src/lib/supabase';
+// [Phase 6.1.20] Password strength + HIBP breach-list check
+import {
+    validatePassword,
+    validatePasswordLocal,
+    estimateEntropyBits,
+    entropyToScore,
+    MIN_LENGTH as PW_MIN_LENGTH,
+    MIN_ENTROPY_BITS
+} from '../../src/lib/passwordStrength';
 
 // US States for dropdown
 const US_STATES = [
@@ -415,8 +424,15 @@ export default function SignUpPage() {
             return;
         }
 
-        if (formData.password.length < 6) {
-            setError('Password Must Be At Least 6 Characters');
+        // ── [Phase 6.1.20] Password strength + HIBP breach-list ─────────
+        // Replaces the old 6-char rule with an entropy check + pwned-
+        // passwords API lookup. Network call to HIBP is fail-open (we
+        // don't block signup if HIBP is down), but the entropy check is
+        // fully local.
+        const pwCheck = await validatePassword(formData.password);
+        if (!pwCheck.ok) {
+            setError(pwCheck.reason || 'Password does not meet our security requirements.');
+            setLoading(false);
             return;
         }
 
@@ -890,7 +906,7 @@ export default function SignUpPage() {
                                         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                         placeholder=""
                                         style={styles.inputSingle}
-                                        minLength={6}
+                                        minLength={PW_MIN_LENGTH}
                                         required
                                     />
                                     <button
@@ -924,7 +940,7 @@ export default function SignUpPage() {
                                         onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                                         placeholder=""
                                         style={styles.inputSingle}
-                                        minLength={6}
+                                        minLength={PW_MIN_LENGTH}
                                         required
                                     />
                                     <button
