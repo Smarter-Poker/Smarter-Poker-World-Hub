@@ -305,6 +305,10 @@
       "schedule": "30 3 * * *"
     },
     {
+      "path": "/api/cron/ledger-reconcile",
+      "schedule": "0 8 * * *"
+    },
+    {
       "path": "/api/cron/memory-matrix-daily-challenge",
       "schedule": "0 6 * * *"
     },
