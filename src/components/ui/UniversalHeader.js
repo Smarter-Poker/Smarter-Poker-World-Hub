@@ -520,14 +520,10 @@ export default function UniversalHeader({
         // CRITICAL: Use router.back() — NOT window.history.back().
         // window.history.back() updates the URL bar but does NOT trigger
         // Next.js re-renders, so the user sees the old page content.
-        // router.back() is the Next.js-aware equivalent that properly
-        // unmounts the current page and mounts the previous one.
-        if (window.history.length > 1) {
-            router.back();
-        } else {
-            // No history at all — hard navigate to hub as last resort
-            window.location.href = '/hub';
-        }
+        // router.back() is always correct for SPA navigation. Do NOT gate
+        // on window.history.length — it is unreliable in Mobile Chrome
+        // and across SPA sessions (can be 1 even after several pushes).
+        router.back();
 
         // Release the guard after a short delay to prevent double-clicks
         setTimeout(() => {

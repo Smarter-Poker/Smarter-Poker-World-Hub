@@ -3,6 +3,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { supabase } from '../../src/lib/supabase';
@@ -20,6 +21,7 @@ const C = {
 };
 
 export default function LivesPage() {
+    const router = useRouter();
     const [streams, setStreams] = useState([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [loading, setLoading] = useState(true);
@@ -274,7 +276,7 @@ export default function LivesPage() {
                         justifyContent: 'space-between',
                     }}>
                         <button 
-                            onClick={() => window.history.length > 1 ? window.history.back() : window.location.href = '/hub'}
+                            onClick={() => router.back()}
                             style={{ 
                                 width: 32, 
                                 height: 32, 
