@@ -187,7 +187,7 @@ export default async function handler(req, res) {
                   }
               }
 
-              // Audit
+              // Audit — execution_audit_logs (legacy, full SQL text)
               try {
                   const principal = token === process.env.SUPABASE_SERVICE_ROLE_KEY ? 'SERVICE_ROLE_AGENT' : 'ADMIN_UI_USER';
                   await client.query(
@@ -195,6 +195,37 @@ export default async function handler(req, res) {
                       ['api-route', principal, sql, ms, success, errorMessage]
                   );
               } catch (auditErr) { console.error('Audit log failed', auditErr); }
+
+              // Audit — admin_audit_log (Phase 6.1.8 — unified admin trail)
+              // Only logged for browser-user admin sessions; service-role agents
+              // already get logged in execution_audit_logs above, and admin_user_id
+              // for them isn't a real auth.uid().
+              try {
+                  if (token !== process.env.SUPABASE_SERVICE_ROLE_KEY) {
+                      const { data: { user: auditUser } } = await getSupabase().auth.getUser(token);
+                      if (auditUser?.id) {
+                          await getSupabase().rpc('fn_log_admin_action', {
+                              p_admin_user_id: auditUser.id,
+                              p_action: success ? 'admin.sql_executed' : 'admin.sql_failed',
+                              p_target_type: 'database',
+                              p_target_id: null,
+                              p_details: {
+                                  sql_preview: sql.length > 500 ? `${sql.slice(0, 500)}…` : sql,
+                                  sql_length: sql.length,
+                                  command: finalCommand,
+                                  row_count: finalRowCount,
+                                  execution_ms: ms,
+                                  error: errorMessage,
+                              },
+                              p_before_state: null,
+                              p_after_state: null,
+                              p_ip_address: req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.headers['x-real-ip'] || null,
+                              p_user_agent: req.headers['user-agent'] || null,
+                              p_request_id: req.headers['x-vercel-id'] || req.headers['x-request-id'] || null,
+                          });
+                      }
+                  }
+              } catch (auditErr) { console.error('admin_audit_log failed', auditErr?.message || auditErr); }
 
               if (!success) {
                   return res.status(400).json({

@@ -96,20 +96,63 @@ function extractClientIP(req) {
 
 /**
  * Log an admin action to the admin_audit_log table.
+ *
+ * Phase 6.1.8 — now routes through fn_log_admin_action (SECURITY DEFINER)
+ * so callers don't need INSERT permission on admin_audit_log and the server
+ * can capture actor_role, user_agent, and request_id from the request headers.
+ *
  * @param {object} supabase - Supabase client (service role)
- * @param {object} opts - { admin_user_id, action, target_type, target_id, details, ip_address }
+ * @param {object} opts - {
+ *   admin_user_id, action, target_type, target_id, details,
+ *   before, after, ip_address, user_agent, request_id, req
+ * }
+ *
+ * If `req` is provided we derive ip_address / user_agent / request_id from
+ * headers when the caller didn't pass them explicitly.
  */
 async function logAdminAction(supabase, opts) {
     try {
-        await supabase.from('admin_audit_log').insert({
-            admin_user_id: opts.admin_user_id || null,
-            action: opts.action,
-            target_type: opts.target_type || null,
-            target_id: opts.target_id || null,
-            details: opts.details || {},
-            ip_address: opts.ip_address || null,
-            created_at: new Date().toISOString(),
+        const req = opts.req;
+        const ip =
+            opts.ip_address ||
+            (req ? extractClientIP(req) : null);
+        const ua =
+            opts.user_agent ||
+            (req ? req.headers?.['user-agent'] || null : null);
+        const rid =
+            opts.request_id ||
+            (req ? (req.headers?.['x-vercel-id'] || req.headers?.['x-request-id'] || null) : null);
+        const targetId = opts.target_id == null ? null : String(opts.target_id);
+
+        const { error } = await supabase.rpc('fn_log_admin_action', {
+            p_admin_user_id: opts.admin_user_id || null,
+            p_action: opts.action,
+            p_target_type: opts.target_type || null,
+            p_target_id: targetId,
+            p_details: opts.details || {},
+            p_before_state: opts.before || null,
+            p_after_state: opts.after || null,
+            p_ip_address: ip,
+            p_user_agent: ua,
+            p_request_id: rid,
         });
+        if (error) {
+            // Fall back to direct insert (service-role bypasses RLS) so logging
+            // never silently drops even if the RPC is ever unavailable.
+            await supabase.from('admin_audit_log').insert({
+                admin_user_id: opts.admin_user_id || null,
+                action: opts.action,
+                target_type: opts.target_type || null,
+                target_id: targetId,
+                details: opts.details || {},
+                ip_address: ip,
+                user_agent: ua,
+                before_state: opts.before || null,
+                after_state: opts.after || null,
+                request_id: rid,
+                created_at: new Date().toISOString(),
+            });
+        }
     } catch (err) {
         console.warn('[AUDIT] Failed to log admin action:', err.message);
     }

@@ -111,14 +111,15 @@ export default async function handler(req, res) {
                   throw error;
               }
 
-              // Audit log
-              await logAdminAction(supabaseAdmin, {
+              // Audit log (Phase 6.1.8 — routed via fn_log_admin_action RPC)
+              await logAdminAction(getSupabase(), {
                   admin_user_id: user.id,
-                  action: 'promo_code_created',
+                  action: 'promo_code.created',
                   target_type: 'promo_code',
                   target_id: data.id,
                   details: { code: promoCode, type, value, maxUses, expiresAt },
-                  ip_address: extractClientIP(req),
+                  after: data,
+                  req,
               });
 
               return res.status(201).json({ code: data });
@@ -141,13 +142,15 @@ export default async function handler(req, res) {
 
               if (error) throw error;
 
-              // Audit log
-              await logAdminAction(supabaseAdmin, {
+              // Audit log (Phase 6.1.8)
+              await logAdminAction(getSupabase(), {
                   admin_user_id: user.id,
-                  action: 'promo_code_deactivated',
+                  action: 'promo_code.deactivated',
                   target_type: 'promo_code',
                   target_id: id,
-                  ip_address: extractClientIP(req),
+                  before: { is_active: true },
+                  after: { is_active: false },
+                  req,
               });
 
               return res.status(200).json({ success: true });
@@ -190,14 +193,15 @@ export default async function handler(req, res) {
                   throw error;
               }
 
-              // Audit log for PATCH
-              await logAdminAction(supabaseAdmin, {
+              // Audit log for PATCH (Phase 6.1.8)
+              await logAdminAction(getSupabase(), {
                   admin_user_id: user.id,
-                  action: 'promo_code_updated',
+                  action: 'promo_code.updated',
                   target_type: 'promo_code',
                   target_id: id,
-                  details: updates,
-                  ip_address: extractClientIP(req),
+                  details: { updates },
+                  after: data,
+                  req,
               });
 
               return res.status(200).json({ success: true, code: data });
