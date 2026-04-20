@@ -1,6 +1,8 @@
 import React from 'react';
-// BAD IMPORT — intentional build breaker for autopilot test
-import { BrokenThing } from '../src/components/DOES_NOT_EXIST_autopilot_v2';
+
+function BrokenThing() {
+  return <span>Autopilot placeholder component</span>;
+}
 
 export default function AutofixAutopilotTestV2() {
   return (
