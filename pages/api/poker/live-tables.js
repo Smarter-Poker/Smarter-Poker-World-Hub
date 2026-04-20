@@ -67,7 +67,10 @@ export default async function handler(req, res) {
 
   try {
     const supabase = getSupabase();
-    const { venue, search, list } = req.query;
+    const safeParam = (v) => Array.isArray(v) ? v[0] : v;
+    const venue = safeParam(req.query.venue);
+    const search = safeParam(req.query.search);
+    const list = safeParam(req.query.list);
 
     // Mode 1: Return searchable venue list (name + slug only)
     if (list === 'true') {

@@ -163,7 +163,7 @@ function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
   );
 }
 
-function MemberRow({ member, isHost, onApprove, onRemove }) {
+function MemberRow({ member, isHost, onApprove, onRemove, onMessage }) {
   const isPending = member.status === 'pending';
 
   return (
