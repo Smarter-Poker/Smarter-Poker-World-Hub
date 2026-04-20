@@ -85,7 +85,7 @@ export default async function handler(req, res) {
                 .maybeSingle();
             if (error) {
                 console.error("[rg/limits:GET]", error);
-                return res.status(500).json({ error: error.message });
+                return res.status(500).json({ error: 'Internal server error' });
             }
             return res.status(200).json({ ok: true, limits: data || null });
         }

@@ -63,37 +63,37 @@ export default async function handler(req, res) {
           // Parallel fetch all data for this venue
           const [sessionsRes, tournamentsRes, waitlistRes, timeBillingRes, cashRes, awardsRes, incidentsRes] = await Promise.all([
             // Player sessions
-            supabase.from('commander_player_sessions')
+            getSupabase().from('commander_player_sessions')
               .select('id, player_id, total_time_minutes, total_buyin, games_played')
               .eq('venue_id', venue.id)
               .gte('check_in_at', dayStart).lt('check_in_at', dayEnd),
             // Tournaments
-            supabase.from('commander_tournaments')
+            getSupabase().from('commander_tournaments')
               .select('id, current_entries, buyin_amount, buyin_fee, prize_pool, status')
               .eq('venue_id', venue.id)
               .gte('scheduled_start', dayStart).lt('scheduled_start', dayEnd),
             // Waitlist entries
-            supabase.from('commander_waitlist')
+            getSupabase().from('commander_waitlist')
               .select('id, status, created_at, called_at, seated_at')
               .eq('venue_id', venue.id)
               .gte('created_at', dayStart).lt('created_at', dayEnd),
             // Time billing sessions
-            supabase.from('commander_table_sessions')
+            getSupabase().from('commander_table_sessions')
               .select('id, duration_minutes, amount_charged')
               .eq('venue_id', venue.id)
               .gte('created_at', dayStart).lt('created_at', dayEnd),
             // Cash transactions
-            supabase.from('commander_cash_transactions')
+            getSupabase().from('commander_cash_transactions')
               .select('id, type, amount')
               .eq('venue_id', venue.id)
               .gte('created_at', dayStart).lt('created_at', dayEnd),
             // Promotion awards
-            supabase.from('commander_promotion_awards')
+            getSupabase().from('commander_promotion_awards')
               .select('id, prize_value')
               .eq('venue_id', venue.id)
               .gte('created_at', dayStart).lt('created_at', dayEnd),
             // Incidents
-            supabase.from('commander_incidents')
+            getSupabase().from('commander_incidents')
               .select('id')
               .eq('venue_id', venue.id)
               .gte('created_at', dayStart).lt('created_at', dayEnd)

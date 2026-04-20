@@ -92,7 +92,7 @@ try {
               // Table may not exist — handle gracefully
               if (error && error.code !== 'PGRST116' && !error.message?.includes('does not exist')) {
                   console.error('Error fetching alert prefs:', error);
-                  return res.status(500).json({ success: false, error: error.message });
+                  return res.status(500).json({ success: false, error: 'Internal server error' });
               }
 
               return res.status(200).json({ success: true, prefs: prefs || null });
@@ -127,7 +127,7 @@ try {
                       return res.status(200).json({ success: true, prefs: prefsData, note: 'Saved locally only (table not created yet)' });
                   }
                   console.error('Error saving alert prefs:', error);
-                  return res.status(500).json({ success: false, error: error.message });
+                  return res.status(500).json({ success: false, error: 'Internal server error' });
               }
 
               return res.status(200).json({ success: true, prefs: data });
@@ -142,7 +142,7 @@ try {
 
               if (error && !error.message?.includes('does not exist')) {
                   console.error('Error deleting alert prefs:', error);
-                  return res.status(500).json({ success: false, error: error.message });
+                  return res.status(500).json({ success: false, error: 'Internal server error' });
               }
 
               return res.status(200).json({ success: true });
@@ -157,6 +157,6 @@ try {
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

@@ -80,7 +80,7 @@ try {
 
         if (error) {
           console.error('Error creating checkin:', error);
-          return res.status(500).json({ success: false, error: error.message });
+          return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
         // Auto-create social post for check-in
@@ -135,7 +135,7 @@ try {
             .gte('created_at', twentyFourHoursAgo);
           if (error) {
             console.error('Error fetching global today checkins:', error);
-            return res.status(500).json({ success: false, error: error.message });
+            return res.status(500).json({ success: false, error: 'Internal server error' });
           }
           return res.status(200).json({ success: true, data: data || [] });
         }
@@ -159,7 +159,7 @@ try {
 
             if (error) {
               console.error('Error counting checkins:', error);
-              return res.status(500).json({ success: false, error: error.message });
+              return res.status(500).json({ success: false, error: 'Internal server error' });
             }
 
             return res.status(200).json({ success: true, venue_id: venueIdNum, count: count || 0 });
@@ -175,7 +175,7 @@ try {
 
           if (error) {
             console.error('Error fetching checkins:', error);
-            return res.status(500).json({ success: false, error: error.message });
+            return res.status(500).json({ success: false, error: 'Internal server error' });
           }
 
           return res.status(200).json({
@@ -196,7 +196,7 @@ try {
 
           if (error) {
             console.error('Error fetching user checkins:', error);
-            return res.status(500).json({ success: false, error: error.message });
+            return res.status(500).json({ success: false, error: 'Internal server error' });
           }
 
           // Enrich with venue names from poker_venues
@@ -234,6 +234,6 @@ try {
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

@@ -56,7 +56,7 @@ export default async function handler(req, res) {
 
         if (error) {
             console.error('[Schedule API] Error:', error);
-            return res.status(500).json({ success: false, error: error.message });
+            return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
         // Also fetch recently completed (last 7 days) for reference
@@ -119,6 +119,6 @@ export default async function handler(req, res) {
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) {}
         console.error('[Schedule API Error]', err);
-        if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+        if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

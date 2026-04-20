@@ -59,7 +59,7 @@ export default async function handler(req, res) {
 
         if (error) {
             console.error('Batch counts error:', error);
-            return res.status(500).json({ success: false, error: error.message });
+            return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
         // Build count map — initialize all requested IDs to 0

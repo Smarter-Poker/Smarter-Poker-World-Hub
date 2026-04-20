@@ -57,7 +57,7 @@ export default async function handler(req, res) {
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
 
@@ -118,7 +118,7 @@ async function listMembers(req, res, groupId) {
     });
   } catch (error) {
     console.error('List members error:', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
 
@@ -238,7 +238,7 @@ async function joinOrInvite(req, res, groupId) {
     });
   } catch (error) {
     console.error('Join/invite error:', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
 
@@ -344,7 +344,7 @@ async function updateMembership(req, res, groupId) {
     return res.status(200).json({ member: updated });
   } catch (error) {
     console.error('Update membership error:', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
 
@@ -430,6 +430,6 @@ async function leaveOrRemove(req, res, groupId) {
   } catch (error) {
       try { reportApiError(error, req); } catch (_sentryErr) {}
     console.error('Leave/remove error:', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

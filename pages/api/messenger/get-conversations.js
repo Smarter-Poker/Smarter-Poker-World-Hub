@@ -236,7 +236,7 @@ export default async function handler(req, res) {
         // eslint-disable-next-line no-console
         console.error('[get-conversations]', err);
         if (!res.headersSent) {
-            return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+            return res.status(500).json({ success: false, error: 'Internal server error' });
         }
     }
 }

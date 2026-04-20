@@ -168,6 +168,6 @@ export default async function handler(req, res) {
   } catch (error) {
       try { reportApiError(error, req); } catch (_sentryErr) {}
     console.error('Email error:', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

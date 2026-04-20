@@ -213,7 +213,10 @@ export default async function handler(req, res) {
                   .eq('linked_venue_id', String(linked_venue_id))
                   .limit(parseInt(limit, 10) || 1);
 
-              if (error) return res.status(500).json({ success: false, error: error.message });
+              if (error) {
+                  console.error('[SocialPages] linked_venue_id query error:', error);
+                  return res.status(500).json({ success: false, error: 'Database query failed' });
+              }
               return res.status(200).json({ success: true, data: data || [] });
           }
 
@@ -257,7 +260,10 @@ export default async function handler(req, res) {
 
           const { data, error, count } = await query;
 
-          if (error) return res.status(500).json({ success: false, error: error.message });
+          if (error) {
+              console.error('[SocialPages] List query error:', error);
+              return res.status(500).json({ success: false, error: 'Database query failed' });
+          }
 
           // Check follow status for each page
           let enriched = data || [];
@@ -380,7 +386,10 @@ export default async function handler(req, res) {
               .select()
               .maybeSingle();
 
-          if (error) return res.status(500).json({ success: false, error: error.message });
+          if (error) {
+              console.error('[SocialPages] Insert error:', error);
+              return res.status(500).json({ success: false, error: 'Failed to create page' });
+          }
 
           if (!data) return res.status(500).json({ success: false, error: 'Failed to create page' });
 
@@ -494,7 +503,10 @@ export default async function handler(req, res) {
               .select()
               .maybeSingle();
 
-          if (error) return res.status(500).json({ success: false, error: error.message });
+          if (error) {
+              console.error('[SocialPages] Update error:', error);
+              return res.status(500).json({ success: false, error: 'Failed to update page' });
+          }
 
           // Auto-post for profile changes (non-blocking, fire-and-forget)
           const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
@@ -555,14 +567,15 @@ export default async function handler(req, res) {
               if (updates.location_city) venueUpdates.city = updates.location_city;
               if (updates.location_state) venueUpdates.state = updates.location_state;
               if (Object.keys(venueUpdates).length > 0) {
-                  getSupabase().from('poker_venues')
-                      .update(venueUpdates)
-                      .eq('id', data.linked_venue_id)
-                      .then(({ error: venueErr }) => {
-                          if (venueErr) console.error('[VenueSync] Failed to sync:', venueErr.message);
-                          else console.log('[VenueSync] Synced venue', data.linked_venue_id, ':', Object.keys(venueUpdates).join(', '));
-                      })
-                      .catch(err => console.error('[VenueSync] Error:', err.message));
+                  try {
+                      const { error: venueErr } = await getSupabase().from('poker_venues')
+                          .update(venueUpdates)
+                          .eq('id', data.linked_venue_id);
+                      if (venueErr) console.error('[VenueSync] Failed to sync:', venueErr.message);
+                      else console.log('[VenueSync] Synced venue', data.linked_venue_id, ':', Object.keys(venueUpdates).join(', '));
+                  } catch (err) {
+                      console.error('[VenueSync] Error:', err.message);
+                  }
               }
           }
 
@@ -604,7 +617,10 @@ export default async function handler(req, res) {
               .delete()
               .eq('id', id);
 
-          if (error) return res.status(500).json({ success: false, error: error.message });
+          if (error) {
+              console.error('[SocialPages] Delete error:', error);
+              return res.status(500).json({ success: false, error: 'Failed to delete page' });
+          }
           return res.status(200).json({ success: true });
 
       } else {
@@ -614,6 +630,6 @@ export default async function handler(req, res) {
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

@@ -41,7 +41,7 @@ export default async function handler(req, res) {
                 .order('created_at', { ascending: false })
                 .limit(20);
 
-            if (error) return res.status(500).json({ error: error.message });
+            if (error) return res.status(500).json({ error: 'Internal server error' });
             return res.status(200).json({ templates: data || [] });
         }
 
@@ -61,7 +61,7 @@ export default async function handler(req, res) {
 
             if (error) {
                 console.warn('[Templates] Save error:', error.message);
-                return res.status(500).json({ error: error.message });
+                return res.status(500).json({ error: 'Internal server error' });
             }
 
             return res.status(201).json({ template: data });
@@ -77,7 +77,7 @@ export default async function handler(req, res) {
                 .eq('id', id)
                 .eq('user_id', user.id);
 
-            if (error) return res.status(500).json({ error: error.message });
+            if (error) return res.status(500).json({ error: 'Internal server error' });
             return res.status(200).json({ success: true });
         }
 

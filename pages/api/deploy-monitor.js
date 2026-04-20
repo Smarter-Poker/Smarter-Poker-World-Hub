@@ -922,7 +922,7 @@ Manual intervention needed. Check the Vercel build: https://vercel.com/smarter-p
       { alertKey: `monitor_exception_fallback`, ghPat: process.env.GH_PAT }
     );
     return res.status(500).json({
-      error: err.message || 'Internal server error',
+      error: 'Internal server error',
       timestamp: new Date().toISOString(),
     });
   }

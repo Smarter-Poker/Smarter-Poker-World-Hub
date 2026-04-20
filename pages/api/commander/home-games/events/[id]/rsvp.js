@@ -52,7 +52,7 @@ export default async function handler(req, res) {
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
 
@@ -123,7 +123,7 @@ async function getRsvps(req, res, eventId) {
     });
   } catch (error) {
     console.error('Get RSVPs error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }
 
@@ -269,7 +269,7 @@ async function submitRsvp(req, res, eventId) {
     });
   } catch (error) {
     console.error('Submit RSVP error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }
 
@@ -372,6 +372,6 @@ async function updateRsvp(req, res, eventId) {
   } catch (error) {
       try { reportApiError(error, req); } catch (_sentryErr) {}
     console.error('Update RSVP error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }

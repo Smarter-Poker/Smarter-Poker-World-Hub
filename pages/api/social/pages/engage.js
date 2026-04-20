@@ -148,7 +148,7 @@ export default async function handler(req, res) {
                   .select()
                   .maybeSingle();
 
-              if (error) return res.status(500).json({ success: false, error: error.message });
+              if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
               if (!data) return res.status(500).json({ success: false, error: 'Failed to create comment' });
 
               // Enrich with profile
@@ -243,7 +243,7 @@ export default async function handler(req, res) {
               .order('created_at', { ascending: true })
               .limit(parseInt(limit));
 
-          if (error) return res.status(500).json({ success: false, error: error.message });
+          if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
 
           // Enrich with profiles
           const userIds = [...new Set((data || []).map(c => c.user_id))];
@@ -319,7 +319,7 @@ export default async function handler(req, res) {
               .eq('id', id)
               .select()
               .maybeSingle();
-          if (error) return res.status(500).json({ success: false, error: error.message });
+          if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
           return res.status(200).json({ success: true, data });
 
       } else if (req.method === 'DELETE') {
@@ -362,14 +362,14 @@ export default async function handler(req, res) {
                   .from('social_page_post_comments')
                   .delete()
                   .eq('id', id);
-              if (error) return res.status(500).json({ success: false, error: error.message });
+              if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
           } else {
               const { error } = await getSupabase()
                   .from('social_page_post_likes')
                   .delete()
                   .eq('id', id)
                   .eq('user_id', user_id);
-              if (error) return res.status(500).json({ success: false, error: error.message });
+              if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
           }
 
           return res.status(200).json({ success: true });
@@ -381,6 +381,6 @@ export default async function handler(req, res) {
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

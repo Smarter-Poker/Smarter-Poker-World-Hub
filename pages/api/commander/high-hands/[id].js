@@ -73,7 +73,7 @@ async function getHighHand(req, res, id) {
     return res.status(200).json({ high_hand: highHand });
   } catch (error) {
     console.error('Get high hand error:', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
 
@@ -168,7 +168,7 @@ async function updateHighHand(req, res, id) {
     return res.status(200).json({ high_hand: highHand });
   } catch (error) {
     console.error('Update high hand error:', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
 
@@ -227,6 +227,6 @@ async function deleteHighHand(req, res, id) {
   } catch (error) {
       try { reportApiError(error, req); } catch (_sentryErr) {}
     console.error('Delete high hand error:', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

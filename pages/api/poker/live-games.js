@@ -83,7 +83,7 @@ try {
 
         if (error) {
           console.error('Error creating live game:', error);
-          return res.status(500).json({ success: false, error: error.message });
+          return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
         return res.status(201).json({ success: true, game: data });
@@ -119,7 +119,7 @@ try {
 
           if (error) {
             console.error('Error fetching live games:', error);
-            return res.status(500).json({ success: false, error: error.message });
+            return res.status(500).json({ success: false, error: 'Internal server error' });
           }
 
           return res.status(200).json({ success: true, games: enrichGamesWithVenue(data) });
@@ -143,7 +143,7 @@ try {
 
           if (error) {
             console.error('Error fetching active games:', error);
-            return res.status(500).json({ success: false, error: error.message });
+            return res.status(500).json({ success: false, error: 'Internal server error' });
           }
 
           // Enrich with venue names and group by venue_id
@@ -184,7 +184,7 @@ try {
 
         if (error) {
           console.error('Error deleting live game:', error);
-          return res.status(500).json({ success: false, error: error.message });
+          return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
         if (!data || data.length === 0) {
@@ -203,6 +203,6 @@ try {
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

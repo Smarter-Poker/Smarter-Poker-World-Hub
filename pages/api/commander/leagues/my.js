@@ -29,7 +29,7 @@ export default async function handler(req, res) {
       .order('created_at', { ascending: false })
           .limit(100);
 
-    if (error) return res.status(500).json({ success: false, error: error.message });
+    if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
     return res.json({ success: true, data: { leagues: standings } });
     } catch (err) {
       console.error('[pages/api/commander/leagues/my.js]', err);
@@ -39,6 +39,6 @@ export default async function handler(req, res) {
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

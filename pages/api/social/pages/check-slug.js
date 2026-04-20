@@ -124,7 +124,7 @@ export default async function handler(req, res) {
         const { data, error } = await query.maybeSingle();
 
         if (error) {
-            return res.status(500).json({ success: false, error: error.message });
+            return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
         const available = !data;
@@ -174,6 +174,6 @@ export default async function handler(req, res) {
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) {}
         console.error('[check-slug]', err);
-        return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

@@ -41,7 +41,7 @@ export default async function handler(req, res) {
         .eq('group_id', id)
         .eq('id', memberId);
 
-      if (error) return res.status(500).json({ success: false, error: error.message });
+      if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
       return res.json({ success: true });
     }
 
@@ -50,6 +50,6 @@ export default async function handler(req, res) {
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

@@ -97,7 +97,7 @@ export default async function handler(req, res) {
       try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[arrive] Error:', err);
     if (!res.headersSent) {
-      return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+      return res.status(500).json({ success: false, error: 'Internal server error' });
     }
   }
 }

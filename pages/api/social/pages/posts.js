@@ -67,7 +67,7 @@ export default async function handler(req, res) {
               .range(offset, offset + limit - 1);
 
           const { data, error } = await query;
-          if (error) return res.status(500).json({ success: false, error: error.message });
+          if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
 
           // Enrich with author profiles
           const authorIds = [...new Set((data || []).map(p => p.author_id))];
@@ -163,7 +163,7 @@ export default async function handler(req, res) {
               .select()
               .maybeSingle();
 
-          if (error) return res.status(500).json({ success: false, error: error.message });
+          if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
 
           // Mirror to social_posts for global feed visibility (non-blocking)
           // Only mirror approved, public posts
@@ -251,7 +251,7 @@ export default async function handler(req, res) {
               .select()
               .maybeSingle();
 
-          if (error) return res.status(500).json({ success: false, error: error.message });
+          if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
           return res.status(200).json({ success: true, data });
 
       } else if (req.method === 'DELETE') {
@@ -294,7 +294,7 @@ export default async function handler(req, res) {
               .delete()
               .eq('id', id);
 
-          if (error) return res.status(500).json({ success: false, error: error.message });
+          if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
           return res.status(200).json({ success: true });
 
       } else {
@@ -304,6 +304,6 @@ export default async function handler(req, res) {
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

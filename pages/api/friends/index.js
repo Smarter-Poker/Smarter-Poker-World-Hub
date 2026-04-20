@@ -193,7 +193,7 @@ export default async function handler(req, res) {
         return res.status(201).json({ success: true, data: { friendship: data } });
       } catch (error) {
         console.error('Add friend error:', error);
-        return res.status(500).json({ success: false, error: error.message });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
       }
     }
 
@@ -202,6 +202,6 @@ export default async function handler(req, res) {
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

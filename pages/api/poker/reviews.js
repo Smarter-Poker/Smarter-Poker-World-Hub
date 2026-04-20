@@ -176,7 +176,7 @@ try {
 
         if (error) {
           console.error('Error creating review:', error);
-          return res.status(500).json({ success: false, error: error.message });
+          return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
         // Recalculate venue trust_score from review average
@@ -364,7 +364,7 @@ try {
 
         if (error) {
           console.error('Error deleting review:', error);
-          return res.status(500).json({ success: false, error: error.message });
+          return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
         if (!data || data.length === 0) {
@@ -427,6 +427,6 @@ try {
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

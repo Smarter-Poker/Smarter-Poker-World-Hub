@@ -102,7 +102,7 @@ export default async function handler(req, res) {
 
             if (error) {
                 console.error('[venue-schedules] GET error:', error);
-                return res.status(500).json({ success: false, error: error.message });
+                return res.status(500).json({ success: false, error: 'Internal server error' });
             }
 
             // Group by day of week
@@ -178,7 +178,7 @@ export default async function handler(req, res) {
 
                 if (error) {
                     console.error('[venue-schedules] UPDATE error:', error);
-                    return res.status(500).json({ success: false, error: error.message });
+                    return res.status(500).json({ success: false, error: 'Internal server error' });
                 }
 
                 return res.status(200).json({ success: true, data, action: 'updated' });
@@ -201,7 +201,7 @@ export default async function handler(req, res) {
 
                 if (error) {
                     console.error('[venue-schedules] INSERT error:', error);
-                    return res.status(500).json({ success: false, error: error.message });
+                    return res.status(500).json({ success: false, error: 'Internal server error' });
                 }
 
                 return res.status(201).json({ success: true, data, action: 'created' });
@@ -243,7 +243,7 @@ export default async function handler(req, res) {
 
             if (error) {
                 console.error('[venue-schedules] DELETE error:', error);
-                return res.status(500).json({ success: false, error: error.message });
+                return res.status(500).json({ success: false, error: 'Internal server error' });
             }
 
             return res.status(200).json({ success: true, action: 'deleted' });

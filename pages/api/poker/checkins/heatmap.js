@@ -40,7 +40,7 @@ export default async function handler(req, res) {
         const { data: checkins, error } = await query;
 
         if (error) {
-            return res.status(500).json({ success: false, error: error.message });
+            return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
         // Build 7x24 heatmap grid

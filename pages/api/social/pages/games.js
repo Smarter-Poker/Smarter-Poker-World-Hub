@@ -69,7 +69,7 @@ export default async function handler(req, res) {
                   .order('created_at', { ascending: false })
                       .limit(100);
 
-              if (error) return res.status(500).json({ success: false, error: error.message });
+              if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
 
               // Fetch all seats for these games
               const gameIds = (games || []).map(g => g.id);
@@ -367,7 +367,7 @@ export default async function handler(req, res) {
 
               if (error) {
                   if (error.code === '23505') return res.status(409).json({ success: false, error: 'Seat already taken', code: 'SEAT_TAKEN' });
-                  return res.status(500).json({ success: false, error: error.message });
+                  return res.status(500).json({ success: false, error: 'Internal server error' });
               }
               return res.status(201).json({ success: true, data });
           }
@@ -399,7 +399,7 @@ export default async function handler(req, res) {
                       player_name, status: 'waitlist', waitlist_position: nextPos
                   }).select().maybeSingle();
 
-              if (error) return res.status(500).json({ success: false, error: error.message });
+              if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
               return res.status(201).json({ success: true, data, position: nextPos });
           }
 
@@ -443,7 +443,7 @@ export default async function handler(req, res) {
               else return res.status(400).json({ success: false, error: 'player_name or seat_id required' });
 
               const { error } = await query;
-              if (error) return res.status(500).json({ success: false, error: error.message });
+              if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
               return res.status(200).json({ success: true });
           }
 
@@ -475,7 +475,7 @@ export default async function handler(req, res) {
                   created_by: verified_user_id, status: 'open'
               }).select().maybeSingle();
 
-          if (error) return res.status(500).json({ success: false, error: error.message });
+          if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
           return res.status(201).json({ success: true, data });
       }
 
@@ -540,7 +540,7 @@ export default async function handler(req, res) {
           }
 
           const { error } = await getSupabase().from('club_live_games').delete().eq('id', id);
-          if (error) return res.status(500).json({ success: false, error: error.message });
+          if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
           return res.status(200).json({ success: true });
       }
 
@@ -549,6 +549,6 @@ export default async function handler(req, res) {
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

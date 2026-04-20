@@ -624,7 +624,7 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
     console.error('[deploy-autofix] Error:', err);
     return res.status(500).json({
       action: 'error',
-      error: err.message || 'Internal server error',
+      error: 'Internal server error',
     });
   }
 }

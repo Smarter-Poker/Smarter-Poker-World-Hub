@@ -59,7 +59,7 @@ export default async function handler(req, res) {
               .limit(100);
 
           if (error) {
-              return res.status(500).json({ success: false, error: error.message });
+              return res.status(500).json({ success: false, error: 'Internal server error' });
           }
 
           // Get comments - social_comments table may not exist, fall back to interactions
@@ -177,7 +177,7 @@ export default async function handler(req, res) {
                       if (fbError || !fallback) return res.status(500).json({ success: false, error: fbError?.message || 'Failed to create comment' });
                       return res.status(201).json({ interaction: fallback });
                   }
-                  return res.status(500).json({ success: false, error: error.message });
+                  return res.status(500).json({ success: false, error: 'Internal server error' });
               }
 
               if (!data) return res.status(500).json({ success: false, error: 'Failed to create comment' });
@@ -243,7 +243,7 @@ export default async function handler(req, res) {
                       .from('social_interactions')
                       .insert({ post_id, user_id, interaction_type });
 
-                  if (error) return res.status(500).json({ success: false, error: error.message });
+                  if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
 
                   // Increment like count
                   try {
@@ -268,7 +268,7 @@ export default async function handler(req, res) {
                   .upsert({ post_id, user_id, interaction_type: 'share' }, { onConflict: 'post_id,user_id,interaction_type' });
 
               if (error && error.code !== '23505') {
-                  return res.status(500).json({ success: false, error: error.message });
+                  return res.status(500).json({ success: false, error: 'Internal server error' });
               }
 
               // Atomic increment share count
@@ -323,7 +323,7 @@ export default async function handler(req, res) {
           }
 
           const { error } = await deleteQuery;
-          if (error) return res.status(500).json({ success: false, error: error.message });
+          if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
 
            // Decrement counts on social_posts for deleted interactions
           if (toDelete && toDelete.length > 0) {
@@ -353,6 +353,6 @@ export default async function handler(req, res) {
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

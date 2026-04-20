@@ -49,7 +49,7 @@ export default async function handler(req, res) {
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
 
@@ -99,7 +99,7 @@ async function handleUpdate(req, res, id) {
 
     if (error) {
         console.error('Member update error:', error);
-        return res.status(500).json({ success: false, error: error.message });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
     return res.status(200).json({ success: true, data: { member } });
@@ -119,7 +119,7 @@ async function handleDelete(req, res, id) {
 
     if (error) {
         console.error('Member delete error:', error);
-        return res.status(500).json({ success: false, error: error.message });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
     return res.status(200).json({ success: true, data: { member } });

@@ -52,7 +52,7 @@ export default async function handler(req, res) {
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
 
@@ -161,7 +161,7 @@ async function getGroup(req, res, id) {
     });
   } catch (error) {
     console.error('Get group error:', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
 
@@ -228,7 +228,7 @@ async function updateGroup(req, res, id) {
     return res.status(200).json({ success: true, group: updated });
   } catch (error) {
     console.error('Update group error:', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
 
@@ -272,6 +272,6 @@ async function deleteGroup(req, res, id) {
   } catch (error) {
       try { reportApiError(error, req); } catch (_sentryErr) {}
     console.error('Delete group error:', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

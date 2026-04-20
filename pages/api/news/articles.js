@@ -64,7 +64,7 @@ export default async function handler(req, res) {
               res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60');
       return res.status(200).json({ success: true, data });
           } catch (error) {
-              return res.status(500).json({ success: false, error: error.message });
+              return res.status(500).json({ success: false, error: 'Internal server error' });
           }
       }
 
@@ -80,7 +80,7 @@ export default async function handler(req, res) {
 
               return res.status(200).json({ success: true });
           } catch (error) {
-              return res.status(500).json({ success: false, error: error.message });
+              return res.status(500).json({ success: false, error: 'Internal server error' });
           }
       }
 
@@ -89,6 +89,6 @@ export default async function handler(req, res) {
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

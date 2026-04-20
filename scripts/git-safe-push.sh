@@ -206,6 +206,23 @@ fi
 
 echo "✅ .env safety check passed"
 
+# ── 0c. VERCEL CRON LOCKOUT ──
+# Enforce the strict ban on adding new crons to vercel.json. We are locked at max 40 legacy crons.
+if [ -f "vercel.json" ]; then
+    # Measure cron array, safely fallback to 0 if no crons present or jq fails
+    CRON_COUNT=$(jq '.crons | length' vercel.json 2>/dev/null || echo "0")
+    if [ "$CRON_COUNT" -gt 40 ]; then
+        echo "❌ FATAL: VERCEL CRON LIMIT EXCEEDED ($CRON_COUNT / 40 permitted)"
+        echo "   You have added a new cron to vercel.json."
+        echo "   This is STRICTLY FORBIDDEN. All new scheduled jobs must use Open Claw exclusively."
+        echo "   Revert your vercel.json modifications and use Open Claw."
+        echo "PUSH_OK:false"
+        echo "REASON:vercel_cron_lockout"
+        exit 2
+    fi
+fi
+echo "✅ Vercel cron lockout passed"
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # PHASE 0.5: DESTRUCTIVE CHANGE DETECTION
 # Prevents AI agents from accidentally wiping mobile CSS, @media rules,

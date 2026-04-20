@@ -53,7 +53,7 @@ export default async function handler(req, res) {
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
 
@@ -220,7 +220,7 @@ async function handleRegister(req, res, tournamentId, staff) {
       const startTime = tournament.scheduled_start
         ? new Date(tournament.scheduled_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         : 'TBD';
-      sendPushNotification({
+      await sendPushNotification({
         externalUserIds: [player_id],
         title: 'Registration Confirmed',
         message: `You're registered for ${tournament.name}! Starts at ${startTime}.`,
@@ -231,16 +231,18 @@ async function handleRegister(req, res, tournamentId, staff) {
 
     // --- Auto-Story: Registration ---
     if (player_id) {
-      getSupabase()
-        .from('social_stories')
-        .insert({
-          author_id: player_id,
-          content: `Just registered for ${tournament.name}! Let's go!`,
-          media_type: 'text',
-          background_color: 'linear-gradient(135deg, #1877F2 0%, #0A5DC2 100%)'
-        })
-        .then(() => { })
-        .catch(err => console.error('[register.js] Auto-story failed:', err.message));
+      try {
+        await getSupabase()
+          .from('social_stories')
+          .insert({
+            author_id: player_id,
+            content: `Just registered for ${tournament.name}! Let's go!`,
+            media_type: 'text',
+            background_color: 'linear-gradient(135deg, #1877F2 0%, #0A5DC2 100%)'
+          });
+      } catch (err) {
+        console.error('[register.js] Auto-story failed:', err.message);
+      }
     }
 
     // Audit log

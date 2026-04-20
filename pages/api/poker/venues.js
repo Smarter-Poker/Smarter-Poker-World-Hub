@@ -529,7 +529,7 @@ export default async function handler(req, res) {
 
           // [B1 FIX] Guard against array injection — Next.js parses ?search[]=A&search[]=B as an array.
           // Passing an array to .ilike() silently breaks the Supabase filter (matches nothing).
-          const safeStr = (v) => Array.isArray(v) ? v[0] : v;
+          const safeStr = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : (v === 0 ? '0' : v);
           const id = safeStr(_id);
           const state = safeStr(_state);
           const city = safeStr(_city);

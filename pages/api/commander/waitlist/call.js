@@ -60,7 +60,7 @@ export default async function handler(req, res) {
         .select()
         .maybeSingle();
 
-      if (error) return res.status(500).json({ success: false, error: error.message });
+      if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
 
       // Send SMS notification if phone on file
       let smsResult = null;
@@ -117,6 +117,6 @@ export default async function handler(req, res) {
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

@@ -30,7 +30,7 @@ export default async function handler(req, res) {
 
         if (error) {
             console.error('Streak leaderboard error:', error);
-            return res.status(500).json({ success: false, error: error.message });
+            return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
         if (!checkins || checkins.length === 0) {

@@ -48,7 +48,7 @@ export default async function handler(req, res) {
 
             if (error) {
                 console.warn('[Analytics] Log error:', error.message);
-                return res.status(500).json({ error: error.message });
+                return res.status(500).json({ error: 'Internal server error' });
             }
 
             return res.status(201).json({ success: true });

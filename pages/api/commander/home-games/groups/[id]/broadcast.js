@@ -98,7 +98,7 @@ export default async function handler(req, res) {
         if (error) {
             // eslint-disable-next-line no-console
             console.error('[broadcast] RPC error:', error);
-            return res.status(500).json({ success: false, error: error.message });
+            return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
         if (result && result.success === false) {
@@ -124,7 +124,7 @@ export default async function handler(req, res) {
         // eslint-disable-next-line no-console
         console.error('[broadcast]', err);
         if (!res.headersSent) {
-            return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+            return res.status(500).json({ success: false, error: 'Internal server error' });
         }
     }
 }

@@ -116,6 +116,6 @@ export default async function handler(req, res) {
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[Billing API API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ error: err.message || 'Internal server error' });
+    if (!res.headersSent) return res.status(500).json({ error: 'Internal server error' });
   }
 }

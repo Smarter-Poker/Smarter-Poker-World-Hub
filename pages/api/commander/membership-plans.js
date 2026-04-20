@@ -46,7 +46,7 @@ export default async function handler(req, res) {
     if (!include_inactive) query = query.eq('is_active', true);
 
     const { data, error } = await query;
-    if (error) return res.status(500).json({ success: false, error: error.message });
+    if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
 
     // Auto-seed default interval plans for new venues
     if (!data || data.length === 0) {
@@ -146,7 +146,7 @@ export default async function handler(req, res) {
       .select()
       .maybeSingle();
 
-    if (error) return res.status(500).json({ success: false, error: error.message });
+    if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
     return res.json({ success: true, data: { plan: data } });
   }
 
@@ -167,7 +167,7 @@ export default async function handler(req, res) {
       .select()
       .maybeSingle();
 
-    if (error) return res.status(500).json({ success: false, error: error.message });
+    if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
     return res.json({ success: true, data: { plan: data } });
   }
 
@@ -183,7 +183,7 @@ export default async function handler(req, res) {
       .select()
       .maybeSingle();
 
-    if (error) return res.status(500).json({ success: false, error: error.message });
+    if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
     return res.json({ success: true, data: { plan: data } });
   }
 

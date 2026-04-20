@@ -144,7 +144,7 @@ export default async function handler(req, res) {
         try { reportApiError(err, req); } catch (_sentryErr) {}
         console.error('[mfa/challenge] Error:', err);
         if (!res.headersSent) {
-            return res.status(500).json({ error: err.message || 'Internal server error' });
+            return res.status(500).json({ error: 'Internal server error' });
         }
     }
 }

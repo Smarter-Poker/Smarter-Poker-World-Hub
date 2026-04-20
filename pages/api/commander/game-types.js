@@ -76,7 +76,7 @@ export default async function handler(req, res) {
         }
 
         const { data, error } = await query;
-        if (error) return res.status(500).json({ success: false, error: error.message });
+        if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
         return res.status(200).json({ success: true, data: data || [] });
       }
 
@@ -112,7 +112,7 @@ export default async function handler(req, res) {
           .select()
           .maybeSingle();
 
-        if (error) return res.status(500).json({ success: false, error: error.message });
+        if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
         if (!data) return res.status(500).json({ success: false, error: 'Failed to create game type' });
 
         // Log
@@ -155,7 +155,7 @@ export default async function handler(req, res) {
           .select()
           .maybeSingle();
 
-        if (error) return res.status(500).json({ success: false, error: error.message });
+        if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
         if (!data) return res.status(404).json({ success: false, error: 'Game type not found' });
         return res.status(200).json({ success: true, data });
       }
@@ -177,7 +177,7 @@ export default async function handler(req, res) {
           .select()
           .maybeSingle();
 
-        if (error) return res.status(500).json({ success: false, error: error.message });
+        if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
         if (!data) return res.status(404).json({ success: false, error: 'Game type not found' });
         return res.status(200).json({ success: true, data });
       }
@@ -191,6 +191,6 @@ export default async function handler(req, res) {
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

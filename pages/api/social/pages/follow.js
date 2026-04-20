@@ -119,7 +119,7 @@ export default async function handler(req, res) {
                       .eq('page_id', page_id)
                       .eq('user_id', follower_id)
                       .select().maybeSingle();
-                  if (error) return res.status(500).json({ success: false, error: error.message });
+                  if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
                   return res.status(200).json({ success: true, data });
               } else {
                   const { error } = await getSupabase()
@@ -127,7 +127,7 @@ export default async function handler(req, res) {
                       .delete()
                       .eq('page_id', page_id)
                       .eq('user_id', follower_id);
-                  if (error) return res.status(500).json({ success: false, error: error.message });
+                  if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
                   return res.status(200).json({ success: true });
               }
           }
@@ -139,7 +139,7 @@ export default async function handler(req, res) {
                   .eq('page_id', page_id)
                   .eq('user_id', user_id);
 
-              if (error) return res.status(500).json({ success: false, error: error.message });
+              if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
               // Reverse bridge: sync unfollow to venue system
               syncToVenueFollowers(user_id, page_id, 'unfollow');
               return res.status(200).json({ success: true, following: false });
@@ -168,7 +168,7 @@ export default async function handler(req, res) {
               .select()
               .maybeSingle();
 
-          if (error) return res.status(500).json({ success: false, error: error.message });
+          if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
 
           // Send push notification to page owner about new follower
           try {
@@ -219,7 +219,7 @@ export default async function handler(req, res) {
 
               const { data, error } = await query.order('created_at', { ascending: false })
                   .limit(100);
-              if (error) return res.status(500).json({ success: false, error: error.message });
+              if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
 
               // Determine if requester is page owner
               const { data: pageInfo } = await getSupabase()
@@ -272,7 +272,7 @@ export default async function handler(req, res) {
                   .eq('user_id', user_id)
                       .limit(100);
 
-              if (error) return res.status(500).json({ success: false, error: error.message });
+              if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
 
               // Get page details
               const pageIds = (data || []).map(f => f.page_id);
@@ -328,7 +328,7 @@ export default async function handler(req, res) {
               .select()
               .maybeSingle();
 
-          if (error) return res.status(500).json({ success: false, error: error.message });
+          if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
           return res.status(200).json({ success: true, data });
 
       } else {
@@ -338,6 +338,6 @@ export default async function handler(req, res) {
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

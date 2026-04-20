@@ -111,7 +111,7 @@ export default async function handler(req, res) {
 
         if (error) {
             console.error("[kyc/webhook] RPC error:", error);
-            return res.status(500).json({ error: error.message });
+            return res.status(500).json({ error: 'Internal server error' });
         }
 
         if (!data?.ok) {
