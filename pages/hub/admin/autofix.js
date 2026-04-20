@@ -74,7 +74,7 @@ export default function AutofixDashboard() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/admin/autofix-status');
+      const res = await fetch('/api/deploy-status');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       setData(json);
