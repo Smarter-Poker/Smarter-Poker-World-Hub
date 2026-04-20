@@ -7,7 +7,7 @@
  *
  * WEBHOOK SETUP (Vercel Dashboard → Team Settings → Webhooks):
  *   URL:    https://smarter.poker/api/deploy-monitor
- *   Events: deployment.error, deployment.canceled
+ *   Events: deployment (ALL events — error, canceled, failed, check-rerequested)
  *   Secret: (copy the value of DEPLOY_WEBHOOK_SECRET env var)
  *
  * AUTH (three-tier, checked in order):
@@ -579,24 +579,38 @@ Alert is rate-limited to 1 issue/comment per hour.`,
   }
 
   // ── From here on: the webhook is authenticated. Proceed with handling. ──
-  const eventType = payload.type;
-  if (eventType !== 'deployment.error' && eventType !== 'deployment.canceled') {
+  const eventType = payload.type || '';
+
+  // Broad failure detection: catch ANY event that indicates a problem.
+  // This includes deployment.error, deployment.canceled, deployment.check-rerequested,
+  // as well as any event where the internal deployment state is ERROR/FAILED/CANCELED.
+  const deployment = payload.payload?.deployment || payload.payload || {};
+  const deployState = (deployment.state || deployment.readyState || '').toUpperCase();
+  const isFailureEvent = (
+    eventType.includes('error') ||
+    eventType.includes('fail') ||
+    eventType.includes('cancel') ||
+    eventType.includes('timeout') ||
+    eventType.includes('check') ||
+    ['ERROR', 'FAILED', 'CANCELED', 'CANCELLED'].includes(deployState)
+  );
+
+  if (!isFailureEvent) {
     return res.status(200).json({
       action: 'ignored',
       authMethod,
-      reason: `Event type ${eventType} is not a failure — no action needed`,
+      reason: `Event type '${eventType}' with state '${deployState}' is not a failure — no action needed`,
     });
   }
 
   try {
-    const deployment = payload.payload?.deployment || payload.payload || {};
     const deploymentId = deployment.id || deployment.uid || 'unknown';
     const projectId = deployment.projectId || payload.payload?.projectId || null;
     const commitSha = deployment.meta?.githubCommitSha || 'unknown';
     const commitMsg = deployment.meta?.githubCommitMessage || '';
-    const state = deployment.state || deployment.readyState || eventType;
+    const state = deployState || eventType;
 
-    console.log(`[deploy-monitor] Received ${eventType} for deployment ${deploymentId} (project: ${projectId}, SHA: ${commitSha}, auth: ${authMethod})`);
+    console.log(`[deploy-monitor] Received ${eventType}/${state} for deployment ${deploymentId} (project: ${projectId}, SHA: ${commitSha}, auth: ${authMethod})`);
 
     // ── Project filter (HARDENED): require exact match ────────────────────
     // Previous version allowed projectId === 'unknown' through. That meant any
