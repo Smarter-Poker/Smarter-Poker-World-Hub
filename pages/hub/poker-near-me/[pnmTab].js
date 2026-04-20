@@ -735,7 +735,7 @@ export default function PokerNearMePage({ initialTab }) {
     // and styling enhancements, none of the core rendering).
     const centerLat = userLocation?.lat ?? selectedCity?.latitude ?? null;
     const centerLng = userLocation?.lng ?? selectedCity?.longitude ?? null;
-    const effRad = (filters && typeof filters.radius === 'number') ? filters.radius : 25;
+    const effRad = (filters && (filters.radius === 'any' || String(filters.radius).toLowerCase() === 'any')) ? 25000 : (filters && typeof filters.radius === 'number') ? filters.radius : 50;
     const consumedVenueNames = typeof Set !== 'undefined' ? new Set() : {};
     const consumedVenueStems = typeof Set !== 'undefined' ? new Set() : {};
     const charityBestIds = typeof Set !== 'undefined' ? new Set() : {};

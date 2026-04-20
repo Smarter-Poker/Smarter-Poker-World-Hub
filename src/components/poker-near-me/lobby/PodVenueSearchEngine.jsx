@@ -35,7 +35,9 @@ const PodVenueSearchEngine = ({
   const pState = filters[`${prefix}State`] || 'all';
   const pVenueType = filters[`${prefix}VenueType`] || 'all';
   const pGameType = filters[`${prefix}GameType`] || 'all';
-  const pRadius = filters[`${prefix}Radius`] || '100';
+  // Cap radius from filters state at 150mi — guards against stale localStorage values
+  const rawPRadius = filters[`${prefix}Radius`] || '100';
+  const pRadius = rawPRadius === 'any' ? 'any' : String(Math.min(parseInt(rawPRadius) || 100, 150));
   const pSort = filters[`${prefix}Sort`] || (userLocation ? 'distance' : 'trust');
   const pSearched = filters[`${prefix}Searched`] || false;
   
@@ -114,7 +116,7 @@ const PodVenueSearchEngine = ({
           <select value={pRadius} onChange={(e) => setFilters(prev => ({ ...prev, [`${prefix}Radius`]: e.target.value }))}
             style={{ background: 'rgba(13,17,23,0.9)', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '8px 10px', color: '#c9d1d9', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer' }}>
             <option value="5">5 miles</option><option value="10">10 miles</option><option value="25">25 miles</option>
-            <option value="50">50 miles</option><option value="100">100 miles</option><option value="250">250 miles</option><option value="any">Any distance</option>
+            <option value="50">50 miles</option><option value="100">100 miles</option><option value="150">150 miles</option><option value="any">Any distance</option>
           </select>
         </div>
 
