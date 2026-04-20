@@ -12,7 +12,7 @@ import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import StopScheduleModal from '../../../src/components/tours/StopScheduleModal';
-import { busEmit } from '../../../src/engine/EventBus';
+import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 
 
 const TOUR_COLORS = {
@@ -194,6 +194,18 @@ export default function TourDetailPage() {
       .then(r => r.json())
       .then(d => { if (d.is_following !== undefined) setIsFollowed(d.is_following); })
       .catch(() => {});
+  }, [code]);
+
+  // Listen to cross-tab Follow events
+  useEffect(() => {
+    if (!code) return;
+    const unsub = eventBus.on(EventType.SOCIAL_FOLLOW_CHANGED, (e) => {
+      const { followedId, added } = e.payload || {};
+      if (followedId === String(code) && typeof added === 'boolean') {
+        setIsFollowed(added);
+      }
+    });
+    return () => unsub();
   }, [code]);
 
   // SWR — parallel fetch all tour data
