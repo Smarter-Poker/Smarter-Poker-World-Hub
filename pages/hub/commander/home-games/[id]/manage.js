@@ -748,15 +748,18 @@ export default function ManageHomeGamePage() {
                             gameId={event.id}
                             currentUserId={currentUserId}
                             isHost={true}
-                            onOpenRosterPicker={({ tableId, seatNumber }) => {
-                              // Find the table so we can pass occupied seats + max seats
-                              // to the modal even before it fetches (smoother UX)
+                            onOpenRosterPicker={({ tableId, seatNumber, maxSeats, occupiedSeats }) => {
+                              // All four values are authoritative — resolved by
+                              // HomeGamesSeatReservation from the live tables state.
+                              // Previously this hardcoded maxSeats=9 + empty
+                              // occupiedSeats, which broke 6-max tables and
+                              // offered seats that were already taken.
                               setRosterPickerState({
                                 gameId: event.id,
                                 tableId,
                                 seatNumber: seatNumber || null,
-                                maxSeats: 9,       // resolved inside the grid; safe default
-                                occupiedSeats: new Set()
+                                maxSeats: maxSeats || 9,
+                                occupiedSeats: occupiedSeats || new Set(),
                               });
                             }}
                             onCreateTable={() => {

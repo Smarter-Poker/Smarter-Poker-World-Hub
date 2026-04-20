@@ -180,12 +180,32 @@ export default function HomeGamesSeatReservation({
   }, [load]);
 
   const handleHostSeatMember = useCallback((tableId, seatNumber) => {
-    if (onOpenRosterPicker) {
-      onOpenRosterPicker({ tableId, seatNumber });
-    } else {
+    if (!onOpenRosterPicker) {
       toast('Host seating UI coming next', { icon: 'ℹ️' });
+      return;
     }
-  }, [onOpenRosterPicker]);
+    // Look up the target table from our own state so the picker modal receives
+    // authoritative context.  Previously we passed only {tableId, seatNumber}
+    // and the caller hardcoded maxSeats=9 + occupiedSeats=empty, which meant:
+    //   (a) 6-max tables would offer seats 7-9 that fail DB SEAT_OUT_OF_BOUNDS
+    //   (b) already-claimed seats weren't dimmed in the picker
+    const table = tables.find((t) => t.id === tableId);
+    if (!table) {
+      toast.error('Table not found');
+      return;
+    }
+    const occupied = new Set(
+      (table.reservations || [])
+        .filter((r) => r.status === 'reserved' || r.status === 'seated')
+        .map((r) => r.seat_number)
+    );
+    onOpenRosterPicker({
+      tableId,
+      seatNumber: seatNumber || null,
+      maxSeats: table.max_seats || 9,
+      occupiedSeats: occupied,
+    });
+  }, [onOpenRosterPicker, tables]);
 
   // ───────────────────────────── rendering ────────────────────────────────
   if (loading) {
