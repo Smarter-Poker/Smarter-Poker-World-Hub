@@ -14,6 +14,7 @@
  * Auth: Bearer token (agent who owns the player, or club owner/admin)
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { requireRecentMfa } from '../../../src/lib/mfaGate';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
@@ -57,6 +58,38 @@ export default async function handler(req, res) {
     const { cashoutId, action, note } = req.body;
     if (!cashoutId || !['approve', 'cancel'].includes(action)) {
       return res.status(400).json({ success: false, error: 'cashoutId and action (approve/cancel) required' });
+    }
+
+    // ── [Phase 6.1.27] Step-up MFA gate on cashout APPROVALS ─────────────
+    // Approving a cashout moves real chips off the player's balance and
+    // into club treasury (settling off-platform fiat downstream). Require
+    // a fresh (within-5-min) MFA confirmation from the approving agent/
+    // owner so a stolen 12h cookie can't drain accounts.
+    // Cancel action is reversible (chips return to balance) — we skip the
+    // step-up gate for cancel so operators aren't friction-slowed on the
+    // happy-path rollback.
+    if (action === 'approve') {
+      // Only gate if the user has MFA enrolled — agents who haven't
+      // enrolled fall back to the existing chip-velocity + audit-log
+      // controls. (See Phase 6.1.28 follow-up: make MFA mandatory for
+      // any agent handling cashouts.)
+      const { data: factor } = await getSupabase()
+        .from('user_mfa_factors')
+        .select('enabled')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (factor?.enabled) {
+        const gate = await requireRecentMfa(req, getSupabase(), user);
+        if (!gate.ok) {
+          return res.status(gate.status || 403).json({
+            success: false,
+            error: gate.reason || 'Step-up confirmation required',
+            requiresMfa: true,
+            requiresStepUp: gate.requiresStepUp === true,
+            maxAgeSec: gate.maxAgeSec,
+          });
+        }
+      }
     }
 
     // Rate limit

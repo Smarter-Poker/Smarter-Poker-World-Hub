@@ -9,6 +9,7 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { rateLimit } from '../../../src/lib/apiRateLimit';
+import { requireRecentMfa } from '../../../src/lib/mfaGate';
 
 let _supabase = null;
 function getSupabase() {
@@ -39,6 +40,34 @@ export default async function handler(req, res) {
 
       if (authError || !user) {
           return res.status(401).json({ error: 'Invalid or expired session' });
+      }
+
+      // ── [Phase 6.1.27] Step-up MFA gate ─────────────────────────────────
+      // Account deletion is irreversible after the 30-day grace window. A
+      // stolen 12h mfa_session cookie can't be allowed to trigger erase —
+      // require a fresh (within-5-min) second-factor confirmation.
+      //
+      // If the user has no MFA enrolled at all, we fall back to the rate
+      // limit + email-confirmation-link pattern that was in place before
+      // 6.1.21 (they can still delete, just more slowly). This prevents
+      // soft-locking accounts that never enrolled a second factor.
+      {
+          const { data: factor } = await getSupabase()
+              .from('user_mfa_factors')
+              .select('enabled')
+              .eq('user_id', user.id)
+              .maybeSingle();
+          if (factor?.enabled) {
+              const gate = await requireRecentMfa(req, getSupabase(), user);
+              if (!gate.ok) {
+                  return res.status(gate.status || 403).json({
+                      error: gate.reason || 'Step-up confirmation required',
+                      requiresMfa: true,
+                      requiresStepUp: gate.requiresStepUp === true,
+                      maxAgeSec: gate.maxAgeSec,
+                  });
+              }
+          }
       }
 
       try {

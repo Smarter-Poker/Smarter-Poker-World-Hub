@@ -11,6 +11,7 @@
  * Response: { ok, request_id, summary, auth_deleted }
  */
 import { createClient } from "../../../../src/lib/supabaseServerClient";
+import { requireRecentMfa } from "../../../../src/lib/mfaGate";
 const {
     logAdminAction,
 } = require("../../../../src/lib/antiAbuse");
@@ -78,6 +79,25 @@ export default async function handler(req, res) {
                     success: false,
                     error: "Platform admin role required.",
                 });
+        }
+
+        // ── [Phase 6.1.27] Step-up MFA gate ─────────────────────────────
+        // Admin-driven GDPR erasure is the highest-impact admin action on
+        // the platform — irrecoverable deletion of another user's entire
+        // data footprint. Require a fresh (within-5-min) MFA confirmation
+        // on top of the base admin-route MFA gate in middleware.ts.
+        {
+            const gate = await requireRecentMfa(req, supabase, admin);
+            if (!gate.ok) {
+                return res.status(gate.status || 403).json({
+                    success: false,
+                    error: gate.reason || "Step-up confirmation required",
+                    requiresMfa: true,
+                    requiresStepUp: gate.requiresStepUp === true,
+                    requiresEnrollment: gate.requiresEnrollment === true,
+                    maxAgeSec: gate.maxAgeSec,
+                });
+            }
         }
 
         const body =
