@@ -145,7 +145,7 @@ async function createAlertIssue(title, body, { alertKey, ghPat } = {}) {
     if (searchRes.ok) {
       const existing = await searchRes.json();
       if (Array.isArray(existing) && existing.length > 0) {
-        await fetchWithTimeout(
+        const res = await fetchWithTimeout(
           `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/issues/${existing[0].number}/comments`,
           {
             method: 'POST',
@@ -158,12 +158,13 @@ async function createAlertIssue(title, body, { alertKey, ghPat } = {}) {
           },
           8000
         );
+        if (!res.ok) throw new Error(`GitHub comment API failed: ${res.status}`);
         console.log(`[deploy-monitor] Alert comment added to issue #${existing[0].number}`);
         return;
       }
     }
 
-    await fetchWithTimeout(
+    const res = await fetchWithTimeout(
       `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/issues`,
       {
         method: 'POST',
@@ -176,6 +177,7 @@ async function createAlertIssue(title, body, { alertKey, ghPat } = {}) {
       },
       8000
     );
+    if (!res.ok) throw new Error(`GitHub issues API failed: ${res.status}`);
     console.log('[deploy-monitor] Alert issue created on GitHub');
   } catch (err) {
     console.error('[deploy-monitor] Failed to create alert issue:', err.message);
@@ -721,7 +723,23 @@ https://vercel.com/smarter-poker/hub-vanguard/deployments`,
       }),
     }, 55000);
 
-    const autofixResult = await autofixRes.json();
+    let autofixResult = {};
+    if (!autofixRes.ok) {
+      const errText = await autofixRes.text().catch(() => '');
+      autofixResult = {
+        action: 'api_error',
+        reason: `Autofix API returned ${autofixRes.status}: ${errText.substring(0, 200)}`,
+      };
+    } else {
+      try {
+        autofixResult = await autofixRes.json();
+      } catch (e) {
+        autofixResult = {
+          action: 'api_error',
+          reason: `Autofix API returned invalid JSON: ${e.message}`,
+        };
+      }
+    }
     const duration = Date.now() - startTime;
     console.log(`[deploy-monitor] Autofix result: ${autofixResult.action} (${duration}ms)`);
 
@@ -784,7 +802,8 @@ Vercel will NOT rebuild main until you merge. Production continues serving the l
     }
 
     // Failure notification — any outcome that did NOT produce a fix on main or a PR
-    else if (autofixResult.action && autofixResult.action !== 'refused' && autofixResult.action !== 'ignored') {
+    // Failure notification — any outcome that did NOT produce a fix on main or a PR
+    else if (autofixResult.action !== 'refused' && autofixResult.action !== 'ignored') {
       const markdownBody = `## Autofix could not repair this build
 
 **Commit:** \`${commitSha}\`
@@ -830,7 +849,7 @@ Manual intervention needed. Check the Vercel build: https://vercel.com/smarter-p
     await createAlertIssue(
       `deploy-monitor threw an exception — ${new Date().toISOString().slice(0, 10)}`,
       `The monitor handler threw during webhook processing. Check Vercel runtime logs.\n\nError: \`${err.message || 'unknown'}\`\nStack:\n\`\`\`\n${(err.stack || '').substring(0, 2000)}\n\`\`\``,
-      { alertKey: 'monitor_exception', ghPat: process.env.GH_PAT }
+      { alertKey: `monitor_exception_${commitSha.substring(0, 8)}`, ghPat: process.env.GH_PAT }
     );
     return res.status(500).json({
       error: err.message || 'Internal server error',
