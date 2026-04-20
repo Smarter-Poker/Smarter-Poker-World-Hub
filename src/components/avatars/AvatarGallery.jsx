@@ -400,8 +400,8 @@ export default function AvatarGallery({ onSelect }) {
                     transition: 'all 0.2s ease',
                     opacity: isVip ? 1 : 0.5
                   }}
-                  onMouseOver={(e) => e.target.style.background = '#ff0000'}
-                  onMouseOut={(e) => e.target.style.background = 'rgba(255, 68, 68, 0.9)'}
+                  onMouseOver={(e) => e.currentTarget.style.background = '#ff0000'}
+                  onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255, 68, 68, 0.9)'}
                   title={isVip ? "Delete This Avatar" : "Delete Avatar (Warning: Cannot create another one without VIP)"}
                 >
                   ✕
@@ -522,14 +522,14 @@ export default function AvatarGallery({ onSelect }) {
                   }}
                   onMouseOver={(e) => {
                     if (activeCategory !== cat) {
-                      e.target.style.background = 'rgba(255, 255, 255, 0.1)';
-                      e.target.style.color = '#fff';
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                      e.currentTarget.style.color = '#fff';
                     }
                   }}
                   onMouseOut={(e) => {
                     if (activeCategory !== cat) {
-                      e.target.style.background = 'rgba(255, 255, 255, 0.05)';
-                      e.target.style.color = '#888';
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                      e.currentTarget.style.color = '#888';
                     }
                   }}
                 >
