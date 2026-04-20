@@ -2823,7 +2823,13 @@ export default function PokerNearMePage({ initialTab }) {
 
                 <UniversalHeader 
                     pageDepth={2} 
-                    onBackClick={() => window.location.href = '/hub/poker-near-me/lobby'}
+                    onBackClick={() => {
+                        if (typeof window !== 'undefined' && window.history.length > 2) {
+                            router.back();
+                        } else {
+                            router.push('/hub');
+                        }
+                    }}
                     onMenuClick={() => setMenuOpen(true)} 
                 />
 

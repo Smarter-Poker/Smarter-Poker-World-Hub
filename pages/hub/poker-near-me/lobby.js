@@ -2148,7 +2148,13 @@ export default function PokerNearMeLobby() {
             <UniversalHeader
               pageDepth={2}
               hideLeftIcon={false}
-              onBackClick={() => window.location.href = '/hub'}
+              onBackClick={() => {
+                if (typeof window !== 'undefined' && window.history.length > 2) {
+                  router.back();
+                } else {
+                  router.push('/hub');
+                }
+              }}
               onMenuClick={() => setMenuOpen(true)}
             />
           </div>

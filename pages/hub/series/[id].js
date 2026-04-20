@@ -521,7 +521,13 @@ export default function SeriesDetailPage() {
         <UniversalHeader 
           pageDepth={2} 
           onMenuClick={() => setMenuOpen(true)}
-          onBackClick={() => router.push('/hub/poker-series')}
+          onBackClick={() => {
+          if (typeof window !== 'undefined' && window.history.length > 2) {
+            router.back();
+          } else {
+            router.push('/hub/poker-series');
+          }
+        }}
         />
         <HamburgerMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
         <div className="series-page">
@@ -543,7 +549,13 @@ export default function SeriesDetailPage() {
         <UniversalHeader 
           pageDepth={2} 
           onMenuClick={() => setMenuOpen(true)}
-          onBackClick={() => router.push('/hub/poker-series')}
+          onBackClick={() => {
+          if (typeof window !== 'undefined' && window.history.length > 2) {
+            router.back();
+          } else {
+            router.push('/hub/poker-series');
+          }
+        }}
         />
         <HamburgerMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
         <div className="series-page">
@@ -633,7 +645,13 @@ export default function SeriesDetailPage() {
       <UniversalHeader 
         pageDepth={2} 
         onMenuClick={() => setMenuOpen(true)}
-        onBackClick={() => router.push('/hub/poker-series')}
+        onBackClick={() => {
+          if (typeof window !== 'undefined' && window.history.length > 2) {
+            router.back();
+          } else {
+            router.push('/hub/poker-series');
+          }
+        }}
       />
 
       <HamburgerMenu

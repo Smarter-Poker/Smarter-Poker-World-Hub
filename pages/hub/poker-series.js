@@ -738,7 +738,13 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                 <div className="space-overlay" />
 
                 {/* Header */}
-                <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} onBackClick={() => router.push('/hub/poker-near-me/lobby')} />
+                <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} onBackClick={() => {
+                    if (typeof window !== 'undefined' && window.history.length > 2) {
+                        router.back();
+                    } else {
+                        router.push('/hub/poker-near-me/lobby');
+                    }
+                }} />
 
                 {/* Hamburger Menu */}
                 <HamburgerMenu
