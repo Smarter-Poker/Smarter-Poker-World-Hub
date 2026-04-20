@@ -3,72 +3,156 @@
  *
  * Extracts user identity from the JWT Authorization header.
  *
- * WHY THIS EXISTS:
- * supabase.auth.getUser(token) makes an HTTP call to GoTrue which intermittently
- * fails on Vercel edge (timeout/network issues), causing ALL API routes to return 401.
+ * SECURITY NOTE (phase40, 2026-04-20):
+ * Previous version used `jwt.decode()` which only BASE64-decodes the payload
+ * without verifying the HMAC signature. That allowed any attacker to forge
+ * a JWT with an arbitrary `sub` claim and impersonate any user on routes
+ * that used `getServerUser`. This version verifies the HMAC-SHA256 signature
+ * against SUPABASE_JWT_SECRET before trusting any claim.
  *
- * This utility decodes the JWT locally (no network call) to extract the user's UUID.
- * Since API routes already use the SUPABASE_SERVICE_ROLE_KEY for all database queries
- * (bypassing RLS), we only need the user's `sub` claim from the token — not full
- * session verification.
+ * If SUPABASE_JWT_SECRET is not configured, verification FAILS CLOSED — the
+ * function returns null and every caller gets a 401. That's strictly better
+ * than silently accepting forged tokens.
  *
- * USAGE:
+ * USAGE (unchanged from previous version):
  *   import { getServerUser } from '../lib/serverAuth';
  *
  *   const user = getServerUser(req);
  *   if (!user) return res.status(401).json({ error: 'Auth required' });
  *   // user.id is the UUID
+ *
+ * Also exported:
+ *   getServerUserWithFallback(req, supabase) — async variant that falls back
+ *   to supabase.auth.getUser(token) if local verification is unavailable
+ *   (e.g., SUPABASE_JWT_SECRET missing). Useful for routes that need to keep
+ *   working during a rotation window. Must never be used to bypass verification.
  */
 
-const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+
+function base64UrlDecode(str) {
+    // Convert base64url → base64, then decode.
+    let b64 = String(str).replace(/-/g, '+').replace(/_/g, '/');
+    // Pad to multiple of 4.
+    while (b64.length % 4) b64 += '=';
+    return Buffer.from(b64, 'base64');
+}
 
 /**
- * Extract user from the Authorization header JWT.
- * Returns { id, email, role, ... } or null if no valid token.
+ * Verify a Supabase JWT (HS256) locally. Returns the decoded payload object
+ * or null if the token is malformed, wrong algorithm, signature invalid, or
+ * expired. No network calls.
+ */
+function verifySupabaseJwt(token, secret) {
+    if (typeof token !== 'string' || typeof secret !== 'string' || !secret) return null;
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+
+    const [headerB64, payloadB64, signatureB64] = parts;
+
+    // Parse header — must be HS256 (what Supabase signs with).
+    let header;
+    try {
+        header = JSON.parse(base64UrlDecode(headerB64).toString('utf8'));
+    } catch (_e) {
+        return null;
+    }
+    if (!header || header.alg !== 'HS256' || (header.typ && header.typ !== 'JWT')) {
+        return null;
+    }
+
+    // Recompute the signature over the signing input.
+    const signingInput = `${headerB64}.${payloadB64}`;
+    const expected = crypto.createHmac('sha256', secret).update(signingInput).digest();
+    const got = base64UrlDecode(signatureB64);
+
+    // Length check first, then timing-safe compare.
+    if (expected.length !== got.length) return null;
+    let equal = false;
+    try {
+        equal = crypto.timingSafeEqual(expected, got);
+    } catch (_e) {
+        return null;
+    }
+    if (!equal) return null;
+
+    // Parse payload.
+    let payload;
+    try {
+        payload = JSON.parse(base64UrlDecode(payloadB64).toString('utf8'));
+    } catch (_e) {
+        return null;
+    }
+
+    // Reject expired tokens (exp is required on Supabase JWTs).
+    const nowSec = Math.floor(Date.now() / 1000);
+    if (typeof payload.exp !== 'number' || payload.exp <= nowSec) return null;
+
+    // Reject tokens not yet valid.
+    if (typeof payload.nbf === 'number' && payload.nbf > nowSec) return null;
+
+    return payload;
+}
+
+/**
+ * Extract a verified user from the Authorization header JWT.
+ * Returns { id, email, role, aud } or null if no valid token.
+ *
+ * Fails closed if SUPABASE_JWT_SECRET is not configured.
  */
 function getServerUser(req) {
     try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+        const authHeader = req?.headers?.authorization;
+        if (!authHeader || typeof authHeader !== 'string') return null;
+        if (!authHeader.startsWith('Bearer ')) return null;
 
-        const token = authHeader.replace('Bearer ', '');
-        if (!token || token.length < 10) return null;
+        const token = authHeader.slice(7).trim();
+        if (!token || token.length < 20) return null;
 
-        // Decode the JWT payload (no verification — token originated from our own Supabase)
-        const decoded = jwt.decode(token);
-        if (!decoded) return null;
-
-        // Check token expiration
-        if (decoded.exp && decoded.exp < Math.floor(Date.now() / 1000)) {
-            return null; // Token expired
+        const secret = process.env.SUPABASE_JWT_SECRET;
+        if (!secret) {
+            // Fail closed: refuse to accept any token if we cannot verify it.
+            // Log once per cold start so the misconfig is observable.
+            if (!getServerUser._warnedMissingSecret) {
+                getServerUser._warnedMissingSecret = true;
+                // eslint-disable-next-line no-console
+                console.error('[serverAuth] SUPABASE_JWT_SECRET not set — all JWT verification will fail. Set this env var in Vercel to restore auth.');
+            }
+            return null;
         }
 
-        // Supabase JWTs have the user UUID in the `sub` claim
-        const userId = decoded.sub;
-        if (!userId) return null;
+        const payload = verifySupabaseJwt(token, secret);
+        if (!payload) return null;
+
+        const userId = payload.sub;
+        if (!userId || typeof userId !== 'string') return null;
 
         return {
             id: userId,
-            email: decoded.email || null,
-            role: decoded.role || 'authenticated',
-            aud: decoded.aud || null,
+            email: payload.email || null,
+            role: payload.role || 'authenticated',
+            aud: payload.aud || null,
         };
     } catch (e) {
-        console.error('[serverAuth] JWT decode error:', e.message);
+        // eslint-disable-next-line no-console
+        console.error('[serverAuth] JWT verify error:', e.message);
         return null;
     }
 }
 
 /**
  * Full auth extraction with supabase.auth.getUser fallback.
- * Tries local decode first, then network call as fallback.
+ * Tries local HMAC verification first, then network call to GoTrue.
+ *
+ * The fallback is safe (GoTrue verifies the signature), but slower. Use only
+ * when you need operational resilience during a JWT_SECRET rotation window.
  */
 async function getServerUserWithFallback(req, supabase) {
-    // 1. Fast path: local JWT decode
+    // 1. Fast path: local HMAC verification.
     const localUser = getServerUser(req);
     if (localUser) return { user: localUser, error: null };
 
-    // 2. Fallback: network call to GoTrue
+    // 2. Fallback: network call to GoTrue (verifies signature server-side).
     try {
         const token = req.headers.authorization?.replace('Bearer ', '');
         if (!token) return { user: null, error: 'No token' };
@@ -81,4 +165,4 @@ async function getServerUserWithFallback(req, supabase) {
     }
 }
 
-module.exports = { getServerUser, getServerUserWithFallback };
+module.exports = { getServerUser, getServerUserWithFallback, verifySupabaseJwt };
