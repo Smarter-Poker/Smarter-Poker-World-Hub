@@ -4,7 +4,7 @@ FAST TARGETED SCRAPER — 13 Poker Tours (Cloudflare Bypass + JS Render)
 ======================================================================
 Uses Scrapling's StealthySession to render JS from official tour sites and 
 PokerAtlas, solving 403s and 404s natively. Then pipes the rendered DOM into
-OpenAI for high-fidelity extraction.
+Grok (xAI) for high-fidelity extraction.
 """
 import json, re, sys, os, time, signal, uuid, hashlib, urllib.request, urllib.parse
 from pathlib import Path
@@ -15,7 +15,7 @@ CRED_PATH = ROOT / '.agent' / 'skills' / 'credentials' / '.env'
 EVIDENCE_DIR = ROOT / 'data' / 'scrape-evidence'
 SOURCES_FILE = ROOT / 'data' / 'tour-scrape-sources.json'
 
-OPENAI_API_KEY = ''
+XAI_API_KEY = ''
 SUPABASE_URL = 'https://kuklfnapbkmacvwxktbh.supabase.co'
 SERVICE_KEY = ''
 TWILIO_ACCOUNT_SID = ''
@@ -26,7 +26,7 @@ for line in CRED_PATH.read_text().splitlines():
     if '=' in line and not line.strip().startswith('#'):
         k, _, v = line.partition('=')
         v_clean = v.strip().strip('"\'')
-        if k.strip() == 'OPENAI_API_KEY': OPENAI_API_KEY = v_clean
+        if k.strip() == 'XAI_API_KEY': XAI_API_KEY = v_clean
         if k.strip() == 'SUPABASE_SERVICE_ROLE_KEY': SERVICE_KEY = v_clean
         if k.strip() == 'TWILIO_ACCOUNT_SID': TWILIO_ACCOUNT_SID = v_clean
         if k.strip() == 'TWILIO_AUTH_TOKEN': TWILIO_AUTH_TOKEN = v_clean
@@ -70,23 +70,23 @@ def rest_post(data):
         return 500
 
 def extract_with_llm(html_text, tour_code):
-    if not OPENAI_API_KEY:
-        print("    ⚠️  Missing OPENAI_API_KEY. Skipping LLM.")
+    if not XAI_API_KEY:
+        print("    ⚠️  Missing XAI_API_KEY. Skipping LLM.")
         return []
         
     text = html_text[:15000]
     prompt = f"Extract ALL poker tournament events from this {tour_code} schedule page. Return ONLY a JSON array. Each object: {{event_name, buy_in (integer), start_date, guaranteed (integer), starting_chips, game_type, event_type}}. Return [] if none.\n\Text:\n{text}"
     
     body = json.dumps({
-        "model": "gpt-4o-mini",
+        "model": "grok-3-mini",
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0
     }).encode()
     
     try:
-        req = urllib.request.Request("https://api.openai.com/v1/chat/completions", data=body, headers={
+        req = urllib.request.Request("https://api.x.ai/v1/chat/completions", data=body, headers={
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {OPENAI_API_KEY}"
+            "Authorization": f"Bearer {XAI_API_KEY}"
         })
         with urllib.request.urlopen(req, timeout=45) as r:
             res = json.loads(r.read())

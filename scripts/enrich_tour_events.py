@@ -26,13 +26,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent.parent / ".env.local")
 
-OPENAI_API_KEY = ""
-cred_path = Path(__file__).parent.parent / ".agent" / "skills" / "credentials" / ".env"
-if cred_path.exists():
-    for line in cred_path.read_text().splitlines():
-        if line.startswith("OPENAI_API_KEY="):
-            OPENAI_API_KEY = line.split("=", 1)[1].strip().strip('"\'')
-
+# AI enrichment uses XAI_API_KEY via grokClient — loaded at API call time if needed
 import psycopg2
 import psycopg2.extras
 

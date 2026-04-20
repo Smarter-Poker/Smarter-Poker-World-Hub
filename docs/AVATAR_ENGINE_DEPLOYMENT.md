@@ -1,4 +1,6 @@
-# 🎉 AVATAR ENGINE - DEPLOYMENT COMPLETE
+> ⚠️ **DEPRECATED** — This document references OpenAI which is no longer used. All AI features now use **Grok (xAI)** via `XAI_API_KEY`. The code snippet in ACTION 6 referencing `OPENAI_API_KEY` is obsolete — use `grokClient.js` instead.
+
+# 🎉 AVATAR ENGINE — DEPLOYMENT (ARCHIVED)
 
 ## ✅ Phase 1-6 COMPLETE
 

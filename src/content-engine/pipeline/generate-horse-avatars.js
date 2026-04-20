@@ -7,7 +7,7 @@ import { config } from 'dotenv';
 config({ path: '.env.local' });
 
 import { createClient } from '@supabase/supabase-js';
-import OpenAI from 'openai';
+import { getGrokClient } from '../../lib/grokClient.js';
 import fs from 'fs';
 import https from 'https';
 
@@ -15,7 +15,7 @@ const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const grok = getGrokClient();
 
 // Avatar prompt variations for diversity
 const AVATAR_STYLES = [
@@ -60,8 +60,8 @@ Style: Authentic poker player aesthetic, highly realistic, professional lighting
     console.log(`🎨 Generating avatar for ${horse.name} (${horse.gender})...`);
 
     try {
-        const response = await openai.images.generate({
-            model: 'dall-e-3',
+        const response = await grok.images.generate({
+            model: 'dall-e-3',  // maps to grok-imagine-image via grokClient
             prompt: prompt,
             n: 1,
             size: '1024x1024',

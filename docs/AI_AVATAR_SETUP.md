@@ -1,4 +1,6 @@
-# 🎨 AI AVATAR GENERATION - OPENAI SETUP
+> ⚠️ **DEPRECATED** — This document references OpenAI which is no longer used. All AI features now use **Grok (xAI)** via `XAI_API_KEY`. See `src/lib/grokClient.js` for the current integration.
+
+# 🎨 AI AVATAR GENERATION - SETUP (ARCHIVED)
 
 ## Overview
 The Avatar Engine uses **OpenAI's DALL-E 3** and **GPT-4 Vision** for AI-powered avatar generation:

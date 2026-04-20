@@ -24,7 +24,7 @@ import { createClient } from '@supabase/supabase-js';
 const CONFIG = {
     SUPABASE_URL: process.env.SUPABASE_URL,
     SUPABASE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
-    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    // AI: Uses XAI_API_KEY via grokClient — Grok ONLY, no OpenAI
 
     // Content settings
     POSTS_PER_DAY: 20,

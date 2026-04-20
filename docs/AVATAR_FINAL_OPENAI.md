@@ -1,4 +1,6 @@
-# ✅ AVATAR ENGINE - FINAL IMPLEMENTATION (OpenAI)
+> ⚠️ **DEPRECATED** — This document references OpenAI which is no longer used. All AI features now use **Grok (xAI)** via `XAI_API_KEY`. See `src/lib/grokClient.js` for the current integration.
+
+# ✅ AVATAR ENGINE — IMPLEMENTATION SUMMARY (ARCHIVED)
 
 ## 🎉 Complete Implementation Summary
 

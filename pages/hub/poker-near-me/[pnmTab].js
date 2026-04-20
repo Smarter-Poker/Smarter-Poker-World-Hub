@@ -692,8 +692,8 @@ export default function PokerNearMePage({ initialTab }) {
                         : 'all';
                     // To safeguard tour pins from being filtered out entirely, the map will ignore cash filters for pins.
                     // Keep the user's saved radius — do NOT override it to 50mi
-                    // Default to 25mi only if no saved radius exists
-                    if (!parsed.radius) parsed.radius = 25;
+                    // Default to 50mi only if no saved radius exists
+                    if (!parsed.radius) parsed.radius = 50;
                     parsed.gameType = parsed.gameType || 'all';
                     // Write sanitized filters BACK to localStorage to prevent stale 'any' from persisting
                     try { localStorage.setItem('poker-near-me-search-filters', JSON.stringify(parsed)); } catch (e) {}
@@ -702,7 +702,7 @@ export default function PokerNearMePage({ initialTab }) {
             } catch (e) { console.error(e); }
         }
         return {
-            radius: 25,
+            radius: 50,
             venueType: 'all',
             gameType: 'all',
             stakes: 'all',
@@ -2460,7 +2460,7 @@ export default function PokerNearMePage({ initialTab }) {
         setSortBy('default');
         setDisplayCount(prev => ({ ...prev, venues: PAGE_SIZE }));
         setFilters({
-            radius: 25,
+            radius: 50,
             venueType: 'all',
             hasNLH: false,
             hasPLO: false,

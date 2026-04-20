@@ -53,7 +53,8 @@ TWILIO_ACCOUNT_SID = ''
 TWILIO_AUTH_TOKEN = ''
 TWILIO_PHONE_FROM = ''
 ALERT_PHONE_TO = '+17086775221'
-OPENAI_API_KEY = ''
+OPENAI_API_KEY = ''  # Legacy name kept for compatibility — maps to XAI_API_KEY
+XAI_API_KEY = ''
 
 if CRED_PATH.exists():
     for _line in CRED_PATH.read_text().splitlines():
@@ -64,7 +65,8 @@ if CRED_PATH.exists():
             if _k.strip() == 'TWILIO_ACCOUNT_SID': TWILIO_ACCOUNT_SID = _v
             if _k.strip() == 'TWILIO_AUTH_TOKEN': TWILIO_AUTH_TOKEN = _v
             if _k.strip() == 'TWILIO_PHONE_NUMBER': TWILIO_PHONE_FROM = _v
-            if _k.strip() == 'OPENAI_API_KEY': OPENAI_API_KEY = _v
+            if _k.strip() == 'XAI_API_KEY': XAI_API_KEY = _v
+            if _k.strip() == 'OPENAI_API_KEY': pass  # Deprecated: do not use
 
 BATCH_ID = str(uuid.uuid4())
 DRY_RUN = '--dry-run' in sys.argv
@@ -860,16 +862,15 @@ def _extract_context_fields(day, start_time, context, source_url):
 
 def extract_schedules_via_vision(base64_jpeg, source_url):
     """
-    Phase 4 Fallback: Pass the screenshot to GPT-4o OCR for visual extraction.
+    Phase 4 Fallback: Pass the screenshot to Grok Vision OCR for visual extraction.
     Returns list of parsed schedule dicts.
     """
-    if not OPENAI_API_KEY:
-        print('    ⚠️  OPENAI_API_KEY not found — skipping Vision OCR.')
+    if not XAI_API_KEY:
+        print('    ⚠️  XAI_API_KEY not found — skipping Vision OCR.')
         return []
     
-    import openai
-    print(f'    👁️  Vision Fallback: sending screenshot to GPT-4o OCR...')
-    client = openai.OpenAI(api_key=OPENAI_API_KEY)
+    import urllib.request as _req
+    print(f'    👁️  Vision Fallback: sending screenshot to Grok Vision OCR...')
     
     prompt = '''Extract all recurring poker tournaments detailed in this image.
 Return ONLY a valid JSON object with a single "schedules" array. Each object MUST contain EXACTLY these keys:
@@ -883,27 +884,26 @@ Return ONLY a valid JSON object with a single "schedules" array. Each object MUS
 - "guaranteed": integer prize pool or null
 If no regular tournament schedule is found, return {"schedules": []}.'''
 
+    body = json.dumps({
+        "model": "grok-vision-beta",
+        "response_format": {"type": "json_object"},
+        "messages": [{
+            "role": "user",
+            "content": [
+                {"type": "text", "text": prompt},
+                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_jpeg}"}}
+            ]
+        }]
+    }).encode('utf-8')
+
     try:
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            response_format={"type": "json_object"},
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": prompt},
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/jpeg;base64,{base64_jpeg}"
-                            }
-                        }
-                    ]
-                }
-            ],
-            timeout=40
-        )
-        content = response.choices[0].message.content
+        req = _req.Request("https://api.x.ai/v1/chat/completions", data=body, headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {XAI_API_KEY}"
+        })
+        with _req.urlopen(req, timeout=40) as r:
+            response_data = json.loads(r.read())
+        content = response_data.get('choices', [{}])[0].get('message', {}).get('content', '{}')
         data = json.loads(content)
         schedules = data.get('schedules', [])
         

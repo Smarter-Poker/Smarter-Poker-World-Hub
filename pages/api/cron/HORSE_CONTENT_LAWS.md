@@ -104,7 +104,7 @@ Before deployment, verify:
 - [ ] All horses have profile pictures
 - [ ] RLS policies allow horse operations
 - [ ] Vercel cron jobs are configured
-- [ ] OPENAI_API_KEY is set (for captions only)
+- [ ] XAI_API_KEY is set (Grok — for AI captions)
 - [ ] SUPABASE keys are set
 
 ---

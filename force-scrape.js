@@ -44,7 +44,7 @@ async function processSource(tourCode, config) {
                 events = res.events || [];
             } else if (src.method === 'html_extract') {
                 const res = await fetchAndExtract(src.url, tourCode, sname, {
-                    openaiApiKey: process.env.OPENAI_API_KEY,
+                    xaiApiKey: process.env.XAI_API_KEY,
                     minExpected: 3,
                     headers: { 'User-Agent': 'Mozilla/5.0' }
                 });
@@ -114,7 +114,7 @@ async function processSource(tourCode, config) {
 }
 
 async function run() {
-    process.env.OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
+    process.env.XAI_API_KEY = process.env.XAI_API_KEY || '';
     const activeTours = ['WSOP', 'WPT', 'WSOPC', 'PGT', 'RGPS'];
     for (const [tourCode, config] of Object.entries(sources.tours)) {
         if (!activeTours.includes(tourCode)) continue;

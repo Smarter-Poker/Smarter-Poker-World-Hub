@@ -2,6 +2,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 const { applyCors } = require('../../../src/lib/cors');
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { getGrokClient } from '../../../src/lib/grokClient';
 
 let _supabase = null;
 function getSupabase() {
@@ -55,38 +56,29 @@ try {
           return res.status(400).json({ success: false, error: 'Rating must be an integer between 1 and 5' });
         }
 
-        // OpenAI Auto-Triage Moderation
+        // Grok AI Auto-Triage Moderation
         let is_flagged = false;
         let flag_reason = null;
 
-        if (review_text && review_text.trim() && process.env.OPENAI_API_KEY) {
+        if (review_text && review_text.trim() && process.env.XAI_API_KEY) {
            try {
-             const aiResp = await fetch('https://api.openai.com/v1/chat/completions', {
-               method: 'POST',
-               headers: {
-                 'Content-Type': 'application/json',
-                 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
-               },
-               body: JSON.stringify({
-                 model: 'gpt-4o',
-                 messages: [{
-                   role: 'system',
-                   content: 'You are an automated moderation system. Analyze this poker venue user review. If it contains hate speech, extreme profanity, discrimination, or spam, respond with ONLY the word "FLAG". If acceptable, respond with ONLY "PASS".'
-                 }, {
-                   role: 'user',
-                   content: review_text
-                 }],
-                 temperature: 0,
-                 max_tokens: 10
-               })
+             const grok = getGrokClient();
+             const aiResult = await grok.chat.completions.create({
+               model: 'gpt-4o',  // maps to grok-3 via grokClient
+               messages: [{
+                 role: 'system',
+                 content: 'You are an automated moderation system. Analyze this poker venue user review. If it contains hate speech, extreme profanity, discrimination, or spam, respond with ONLY the word "FLAG". If acceptable, respond with ONLY "PASS".'
+               }, {
+                 role: 'user',
+                 content: review_text
+               }],
+               temperature: 0,
+               max_tokens: 10
              });
-             if (aiResp.ok) {
-                const aiData = await aiResp.json();
-                const decision = aiData.choices?.[0]?.message?.content?.trim();
-                if (decision === 'FLAG') {
-                   is_flagged = true;
-                   flag_reason = 'AI auto-flagged for toxicity';
-                }
+             const decision = aiResult.choices?.[0]?.message?.content?.trim();
+             if (decision === 'FLAG') {
+                is_flagged = true;
+                flag_reason = 'AI auto-flagged for toxicity';
              }
            } catch (aiErr) {
              console.error("[Moderation AI] error:", aiErr);

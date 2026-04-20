@@ -35,12 +35,12 @@ from pathlib import Path
 from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent.parent / ".env.local")
 
-OPENAI_API_KEY = ""
+XAI_API_KEY = ""
 cred_path = Path(__file__).parent.parent / ".agent" / "skills" / "credentials" / ".env"
 if cred_path.exists():
     for line in cred_path.read_text().splitlines():
-        if line.startswith("OPENAI_API_KEY="):
-            OPENAI_API_KEY = line.split("=", 1)[1].strip().strip('"\'')
+        if line.startswith("XAI_API_KEY="):
+            XAI_API_KEY = line.split("=", 1)[1].strip().strip('"\'')
 
 try:
     import pypdf
@@ -281,8 +281,8 @@ def expand_dates_if_recurring(records: list) -> list:
 # ── PDF Engine ────────────────────────────────────────────────────────────────
 def extract_pdf_scheduled_events(records: list, tour_code: str) -> list:
     """Detects if a record has a structure PDF, downloads it, hashes it, and queries GPT-4o for child events."""
-    if not OPENAI_API_KEY:
-        print("  ⚠️ Missing OPENAI_API_KEY, skipping PDF Engine.")
+    if not XAI_API_KEY:
+        print("  ⚠️ Missing XAI_API_KEY, skipping PDF Engine.")
         return records
     if "pypdf" not in sys.modules:
         print("  ⚠️ pypdf not installed, skipping PDF Engine.")
@@ -336,16 +336,16 @@ Return ONLY a JSON array. Each object MUST have exactly these keys:
 Text to parse:
 {text_preview}
 """
-            print("  [PDF ENGINE] 🧠 Querying GPT-4o Vision OCR Fallback...")
+            print("  [PDF ENGINE] 🧠 Querying Grok LLM for structured event extraction...")
             try:
                 body = json.dumps({
-                    "model": "gpt-4o",
+                    "model": "grok-3",
                     "messages": [{"role": "user", "content": prompt}],
                     "temperature": 0
                 }).encode("utf-8")
-                req = urllib.request.Request("https://api.openai.com/v1/chat/completions", data=body, headers={
+                req = urllib.request.Request("https://api.x.ai/v1/chat/completions", data=body, headers={
                     "Content-Type": "application/json",
-                    "Authorization": f"Bearer {OPENAI_API_KEY}"
+                    "Authorization": f"Bearer {XAI_API_KEY}"
                 })
                 with urllib.request.urlopen(req, timeout=60) as r:
                     res = json.loads(r.read())

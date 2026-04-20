@@ -22,7 +22,7 @@
  *   - NEXT_PUBLIC_SUPABASE_ANON_KEY  → client Supabase SDK
  *
  * Recommended-but-not-fatal in production (logs a warning):
- *   - OPENAI_API_KEY                 → Geeves assistant
+ *   - XAI_API_KEY                    → Grok AI (xAI) — used for all AI features
  *   - RESEND_API_KEY                 → transactional email
  *   - SENTRY_DSN                     → error tracking
  *
@@ -41,7 +41,7 @@ const REQUIRED_IN_PRODUCTION = [
 ];
 
 const RECOMMENDED_IN_PRODUCTION = [
-    'OPENAI_API_KEY',
+    'XAI_API_KEY',
     'RESEND_API_KEY',
     'SENTRY_DSN'
 ];

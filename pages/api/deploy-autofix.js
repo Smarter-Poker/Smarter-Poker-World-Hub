@@ -203,8 +203,8 @@ export default async function handler(req, res) {
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
   const ghPat = process.env.GH_PAT;
 
-  if (!anthropicKey) {
-    return res.status(500).json({ action: 'skipped', reason: 'ANTHROPIC_API_KEY not configured' });
+  if (!anthropicKey && !process.env.XAI_API_KEY) {
+    return res.status(500).json({ action: 'skipped', reason: 'Neither ANTHROPIC_API_KEY nor XAI_API_KEY configured' });
   }
   if (!ghPat) {
     return res.status(500).json({ action: 'skipped', reason: 'GH_PAT not configured' });
@@ -374,11 +374,8 @@ async function fixSingleFile({ errorFile, buildErrors, commitSha, attempt, anthr
     const originalContent = Buffer.from(fileData.content, 'base64').toString('utf-8');
     const fileSha = fileData.sha;
 
-    // ── Step 3: Ask Claude to fix it ──
-    console.log(`[deploy-autofix] Calling Anthropic API to fix ${normalizedPath} (${originalContent.length} chars)...`);
-
+    // ── Step 3: Ask AI to fix it (Anthropic with OpenAI fallback) ──
     // Sanitize build errors to prevent prompt injection via crafted error output.
-    // Remove any text that looks like it's trying to override Claude's instructions.
     const sanitizedErrors = buildErrors
       .substring(0, 3000)
       .replace(/ignore (all |previous |above )?instructions/gi, '[REDACTED]')
@@ -387,26 +384,7 @@ async function fixSingleFile({ errorFile, buildErrors, commitSha, attempt, anthr
       .replace(/\bact as\b/gi, '[REDACTED]')
       .replace(/do not follow/gi, '[REDACTED]');
 
-    // Timeout guard: Vercel functions have a 60s limit (Pro plan).
-    // The Claude API call is the slowest part of the chain. Cap it at 45s
-    // to leave headroom for the GitHub push that follows.
-    const abortController = new AbortController();
-    const apiTimeout = setTimeout(() => abortController.abort(), 45000);
-
-    const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      signal: abortController.signal,
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': anthropicKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: CLAUDE_MODEL,
-        max_tokens: 8192,
-        messages: [{
-          role: 'user',
-          content: `You are an expert Next.js/React developer fixing a Vercel build error.
+    const promptContent = `You are an expert Next.js/React developer fixing a Vercel build error.
 
 THE BUILD ERROR:
 \`\`\`
@@ -429,29 +407,89 @@ RULES:
 - If the error is an unused variable/import, remove it
 - If the error is a merge conflict marker, resolve it keeping the newer code
 
-Return ONLY the complete fixed file content. No explanation, no markdown fences, no commentary. Just the raw file content that should replace the current file.`
-        }],
-      }),
-    });
+Return ONLY the complete fixed file content. No explanation, no markdown fences, no commentary. Just the raw file content that should replace the current file.`;
+
+    console.log(`[deploy-autofix] Calling AI to fix ${normalizedPath} (${originalContent.length} chars)...`);
+    let fixedContent = '';
+    let apiError = '';
+
+    const abortController = new AbortController();
+    const apiTimeout = setTimeout(() => abortController.abort(), 45000);
+
+    // ── Primary: Anthropic Claude ──
+    if (anthropicKey) {
+      try {
+        console.log(`[deploy-autofix] Trying Anthropic (${CLAUDE_MODEL})...`);
+        const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          signal: abortController.signal,
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': anthropicKey,
+            'anthropic-version': '2023-06-01',
+          },
+          body: JSON.stringify({
+            model: CLAUDE_MODEL,
+            max_tokens: 8192,
+            messages: [{ role: 'user', content: promptContent }],
+          }),
+        });
+
+        if (claudeRes.ok) {
+          const claudeData = await claudeRes.json();
+          const textBlocks = Array.isArray(claudeData.content)
+            ? claudeData.content.filter((b) => b && b.type === 'text').map((b) => b.text || '')
+            : [];
+          fixedContent = textBlocks.join('\n').trim();
+        } else {
+          apiError = `Anthropic API returned ${claudeRes.status}: ${await claudeRes.text()}`;
+          console.error(`[deploy-autofix] ${apiError}`);
+        }
+      } catch (e) {
+        apiError = `Anthropic request failed: ${e.message}`;
+        console.error(`[deploy-autofix] ${apiError}`);
+      }
+    }
+
+    // ── Fallback: Grok (xAI) — OpenAI-compatible API ──
+    if (!fixedContent && process.env.XAI_API_KEY) {
+      console.log(`[deploy-autofix] Anthropic unavailable — falling back to Grok...`);
+      try {
+        const grokRes = await fetch('https://api.x.ai/v1/chat/completions', {
+          method: 'POST',
+          signal: abortController.signal,
+          headers: {
+            'Authorization': `Bearer ${process.env.XAI_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'grok-3-latest',
+            messages: [{ role: 'user', content: promptContent }],
+          }),
+        });
+
+        if (grokRes.ok) {
+          const grokData = await grokRes.json();
+          fixedContent = (grokData.choices?.[0]?.message?.content || '').trim();
+        } else {
+          const errBody = await grokRes.text();
+          apiError += ` | Grok error: ${grokRes.status}: ${errBody.substring(0, 200)}`;
+          console.error(`[deploy-autofix] Grok API error: ${grokRes.status}`);
+        }
+      } catch (e) {
+        apiError += ` | Grok request failed: ${e.message}`;
+        console.error(`[deploy-autofix] Grok request failed: ${e.message}`);
+      }
+    }
 
     clearTimeout(apiTimeout);
 
-    if (!claudeRes.ok) {
-      const errBody = await claudeRes.text();
-      console.error(`[deploy-autofix] Anthropic API error: ${claudeRes.status} ${errBody}`);
+    if (!fixedContent) {
       return {
         action: 'api_error',
-        reason: `Anthropic API returned ${claudeRes.status}`,
+        reason: `All AI autofix attempts failed. Errors: ${apiError.substring(0, 200)}`,
       };
     }
-
-    const claudeData = await claudeRes.json();
-    // Extract text from all content blocks typed 'text' (defensive against
-    // future Claude responses that return thinking/tool_use blocks first).
-    const textBlocks = Array.isArray(claudeData.content)
-      ? claudeData.content.filter((b) => b && b.type === 'text').map((b) => b.text || '')
-      : [];
-    let fixedContent = textBlocks.join('\n').trim();
 
     // Strip markdown fences — robust to Claude wrapping output in prose or using
     // multiple fences. Approach: if there's a fenced block anywhere, extract its

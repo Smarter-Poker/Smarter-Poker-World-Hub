@@ -731,13 +731,9 @@ export default async function handler(req, res) {
                       .eq('is_active', true)
                       .eq('is_suppressed', false) // Bug #1 Fix: never serve suppressed venues
 
-                  if (state) q = q.ilike('state', state.length === 2 ? state.toUpperCase() : `%${state}%`);
-                  // [GEOFENCE FIX] When GPS is active with a radius, use a lat/lng bounding box
-                  // instead of a hard state filter. A single-state filter incorrectly drops
-                  // cross-border venues (e.g. Horseshoe Hammond IN is only 22mi from Chicago IL).
-                  // The bounding box over-fetches from neighboring states; the distance filter at
-                  // line ~1117 then trims results to the exact requested radius.
-                  else if (effectiveLat && effectiveLng && effectiveRadius) {
+                  const useBoundingBox = !!(effectiveLat && effectiveLng && effectiveRadius);
+                  
+                  if (useBoundingBox) {
                       const userLat = parseFloat(effectiveLat);
                       const userLng = parseFloat(effectiveLng);
                       const radiusMi = Math.min(Math.max(0, parseFloat(effectiveRadius) || 50), 150); // server cap: 150mi max
@@ -751,11 +747,18 @@ export default async function handler(req, res) {
                                .gte('longitude', userLng - lngDelta)
                                .lte('longitude', userLng + lngDelta);
                       }
-                  } else if (lat && lng && user_state) {
-                      // GPS active without radius — fallback: same-state filter to avoid global top-500
-                      q = q.ilike('state', user_state.toUpperCase());
+                  } else {
+                      if (state) {
+                          q = q.ilike('state', state.length === 2 ? state.toUpperCase() : `%${state}%`);
+                      } else if (lat && lng && user_state) {
+                          // GPS active without radius — fallback: same-state filter to avoid global top-500
+                          q = q.ilike('state', user_state.toUpperCase());
+                      }
                   }
-                  if (city) q = q.ilike('city', `%${city}%`);
+
+                  if (city && !useBoundingBox) {
+                      q = q.ilike('city', `%${city}%`);
+                  }
                   if (effectiveType) {
                       // Merge card_room into poker_club — they're the same thing
                       if (effectiveType === 'poker_club') {

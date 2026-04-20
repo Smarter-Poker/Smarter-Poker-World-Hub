@@ -345,8 +345,8 @@ async function scrapeTour(tourCode, sources, registry, stats) {
     const sourceEntries = Object.entries(tourSources.sources || {})
         .filter(([, config]) => !config.method?.startsWith('pdf'));
 
-    // OpenAI key for LLM fallback in tourHtmlExtractor
-    const openaiApiKey = process.env.OPENAI_API_KEY;
+    // XAI (Grok) key for LLM fallback in tourHtmlExtractor
+    const xaiApiKey = process.env.XAI_API_KEY;
 
     let bestResult = null;
     let lastError = null;
@@ -365,7 +365,7 @@ async function scrapeTour(tourCode, sources, registry, stats) {
             if (sourceConfig.method === 'html_extract' || sourceConfig.method === 'scrapling') {
                 // Use new extractor — handles bespoke parsing + LLM fallback
                 const result = await fetchAndExtract(url, tourCode, sourceName, {
-                    openaiApiKey,
+                    xaiApiKey,
                     minExpected: 5,
                 });
                 extractedEvents = result.events || [];

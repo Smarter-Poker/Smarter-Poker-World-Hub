@@ -6,12 +6,12 @@
  * ═══════════════════════════════════════════════════════════════════
  */
 
-import OpenAI from 'openai';
+import { getGrokClient } from '../../../src/lib/grokClient';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const grok = getGrokClient();
 
 const DEALER_SYSTEM_PROMPT = `You are Jarvis, an elite poker dealer assistant with encyclopedic knowledge of:
 - TDA (Tournament Directors Association) rules and procedures
@@ -45,7 +45,7 @@ export default async function handler(req, res) {
           return res.status(405).json({ error: 'Method not allowed' });
       }
 
-      // BUG #248 FIX: Require JWT auth — this route uses paid OpenAI API
+      // BUG #248 FIX: Require JWT auth — this route uses Grok AI API
       const _token = req.headers.authorization?.replace('Bearer ', '');
       if (!_token) return res.status(401).json({ error: 'Auth required' });
       const { data: { user: _authUser }, error: _authErr } = await getSupabase().auth.getUser(_token);
@@ -68,8 +68,8 @@ export default async function handler(req, res) {
               { role: 'assistant', content: turn.answer },
           ]);
 
-          const completion = await openai.chat.completions.create({
-              model: 'gpt-4o-mini',
+          const completion = await grok.chat.completions.create({
+              model: 'gpt-4o-mini',  // maps to grok-3-mini via grokClient
               messages: [
                   { role: 'system', content: DEALER_SYSTEM_PROMPT },
                   ...recentHistory,

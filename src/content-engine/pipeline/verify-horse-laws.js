@@ -183,9 +183,9 @@ async function verifyLaws() {
         'Missing Supabase key'
     );
     test(
-        'OPENAI_API_KEY is set',
-        !!process.env.OPENAI_API_KEY,
-        'Missing OpenAI key (needed for captions)'
+        'XAI_API_KEY is set',
+        !!process.env.XAI_API_KEY,
+        'Missing Grok/xAI key (needed for AI features)'
     );
 
     // Check active horses count

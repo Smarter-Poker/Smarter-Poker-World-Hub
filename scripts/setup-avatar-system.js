@@ -20,7 +20,7 @@ async function setupAvatarSystem() {
     const requiredEnvVars = [
         'NEXT_PUBLIC_SUPABASE_URL',
         'NEXT_PUBLIC_SUPABASE_ANON_KEY',
-        'OPENAI_API_KEY'
+        'XAI_API_KEY'
     ];
 
     const missingVars = requiredEnvVars.filter(v => !process.env[v]);
@@ -131,22 +131,22 @@ async function setupAvatarSystem() {
     }
     console.log('');
 
-    // 5. Test OpenAI connection
-    console.log('5️⃣ Testing OpenAI connection...');
+    // 5. Test Grok (xAI) connection
+    console.log('5️⃣ Testing Grok (xAI) connection...');
     try {
-        const response = await fetch('https://api.openai.com/v1/models', {
+        const response = await fetch('https://api.x.ai/v1/models', {
             headers: {
-                'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+                'Authorization': `Bearer ${process.env.XAI_API_KEY}`
             }
         });
 
         if (response.ok) {
-            console.log('✅ OpenAI API key is valid');
+            console.log('✅ Grok (xAI) API key is valid');
         } else {
-            console.log('⚠️  OpenAI API key may be invalid (status:', response.status, ')');
+            console.log('⚠️  Grok (xAI) API key may be invalid (status:', response.status, ')');
         }
     } catch (error) {
-        console.log('⚠️  Error testing OpenAI:', error.message);
+        console.log('⚠️  Error testing Grok (xAI):', error.message);
     }
     console.log('');
 

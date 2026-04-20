@@ -12,7 +12,7 @@
  *
  * Extraction methods:
  *   - Bespoke regex parsers for known tour HTML layouts (fast, zero cost)
- *   - LLM fallback via OpenAI GPT-4o-mini for any layout we can't regex parse
+ *   - LLM fallback via Grok (xAI) for any layout we can't regex parse
  *
  * @module src/lib/tourHtmlExtractor
  */
@@ -23,7 +23,9 @@ import http from 'http';
 // ─── Constants ────────────────────────────────────────────────────────────────
 const REQUEST_TIMEOUT_MS = 20000;
 const MAX_LLM_CHARS = 12000;   // Trim HTML text before sending to LLM
-const LLM_MODEL = 'gpt-4o-mini';
+const LLM_MODEL = 'grok-3-mini'; // Grok model for LLM fallback
+const XAI_BASE_URL = 'api.x.ai';
+const XAI_API_PATH = '/v1/chat/completions';
 
 // ─── HTTP Fetch ───────────────────────────────────────────────────────────────
 export async function fetchHtml(url, redirects = 0) {
@@ -414,10 +416,10 @@ function getParser(tourCode) {
     return TOUR_PARSERS[tourCode] || parseGenericTourHtml;
 }
 
-// ─── LLM Extraction (OpenAI GPT-4o-mini) ─────────────────────────────────────
+// ─── LLM Extraction (Grok / xAI) ────────────────────────────────────────────
 async function extractWithLLM(text, tourCode, sourceName, apiKey) {
     if (!apiKey) {
-        console.log(`  [LLM:${tourCode}] No OpenAI API key — skipping LLM extraction`);
+        console.log(`  [LLM:${tourCode}] No XAI_API_KEY — skipping LLM extraction`);
         return [];
     }
 
@@ -458,9 +460,9 @@ ${trimmedText}`;
         });
 
         const options = {
-            hostname: 'api.openai.com',
+            hostname: XAI_BASE_URL,
             port: 443,
-            path: '/v1/chat/completions',
+            path: XAI_API_PATH,
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -534,12 +536,14 @@ ${trimmedText}`;
  * @param {string} tourCode - e.g. 'WSOP', 'WPT', 'MSPT'
  * @param {string} sourceName - Human-readable source label (for logging)
  * @param {object} options
- * @param {string} options.openaiApiKey - OpenAI API key for LLM fallback
+ * @param {string} options.xaiApiKey - xAI (Grok) API key for LLM fallback
  * @param {number} options.minExpected - Min events before triggering LLM fallback (default: 5)
  * @returns {Promise<{ events: Array, source: string, llm_used: boolean }>}
  */
 export async function extractScheduleFromHtml(html, tourCode, sourceName = '', options = {}) {
-    const { openaiApiKey, minExpected = 5 } = options;
+    const { xaiApiKey, openaiApiKey, minExpected = 5 } = options;
+    // Support both xaiApiKey and legacy openaiApiKey (mapped to XAI_API_KEY)
+    const apiKey = xaiApiKey || openaiApiKey || process.env.XAI_API_KEY;
 
     if (!html || html.length < 200) {
         return { events: [], source: sourceName, llm_used: false, error: 'Empty HTML' };
@@ -553,10 +557,10 @@ export async function extractScheduleFromHtml(html, tourCode, sourceName = '', o
     let llmUsed = false;
 
     // LLM fallback if bespoke parser got too few results
-    if (events.length < minExpected && openaiApiKey) {
+    if (events.length < minExpected && apiKey) {
         console.log(`  [HTML:${tourCode}] Below threshold (${events.length} < ${minExpected}) — trying LLM...`);
         const text = htmlToText(html);
-        const llmEvents = await extractWithLLM(text, tourCode, sourceName, openaiApiKey);
+        const llmEvents = await extractWithLLM(text, tourCode, sourceName, apiKey);
 
         if (llmEvents.length > events.length) {
             events = dedup([...llmEvents, ...events]);
@@ -579,7 +583,7 @@ export async function extractScheduleFromHtml(html, tourCode, sourceName = '', o
  * @param {string} url
  * @param {string} tourCode
  * @param {string} sourceName
- * @param {object} options - { openaiApiKey, minExpected }
+ * @param {object} options - { xaiApiKey, minExpected }
  */
 export async function fetchAndExtract(url, tourCode, sourceName = '', options = {}) {
     try {

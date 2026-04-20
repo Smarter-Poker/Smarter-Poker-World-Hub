@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Poker Series Logo Generator — Batch v3.0
-Uses OpenAI DALL-E 3, uploads to Supabase Storage, writes logo_url to DB.
+Uses Grok Aurora (xAI), uploads to Supabase Storage, writes logo_url to DB.
 Resumes from /tmp/series_logo_progress.json if interrupted.
 """
 
@@ -13,11 +13,11 @@ load_dotenv('/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/.env.local')
 
 SUPABASE_URL = os.environ.get('NEXT_PUBLIC_SUPABASE_URL', 'https://kuklfnapbkmacvwxktbh.supabase.co')
 SERVICE_KEY  = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
-OPENAI_KEY   = os.environ.get('OPENAI_API_KEY', '')
+XAI_KEY      = os.environ.get('XAI_API_KEY', '') or os.environ.get('GROK_API_KEY', '')
 BUCKET       = 'series-logos'
 
 if not SERVICE_KEY: raise RuntimeError('Missing SUPABASE_SERVICE_ROLE_KEY')
-if not OPENAI_KEY:  raise RuntimeError('Missing OPENAI_API_KEY')
+if not XAI_KEY:  raise RuntimeError('Missing XAI_API_KEY')
 
 sb = create_client(SUPABASE_URL, SERVICE_KEY)
 
@@ -341,14 +341,14 @@ Design rules:
 - High quality, premium tournament poster aesthetic"""
 
 
-def generate_dalle(prompt):
-    headers = {'Authorization': f'Bearer {OPENAI_KEY}', 'Content-Type': 'application/json'}
-    payload = {'model': 'dall-e-3', 'prompt': prompt, 'n': 1,
+def generate_image(prompt):
+    headers = {'Authorization': f'Bearer {XAI_KEY}', 'Content-Type': 'application/json'}
+    payload = {'model': 'aurora', 'prompt': prompt, 'n': 1,
                 'size': '1024x1024', 'quality': 'standard', 'style': 'vivid'}
-    resp = requests.post('https://api.openai.com/v1/images/generations',
+    resp = requests.post('https://api.x.ai/v1/images/generations',
                          headers=headers, json=payload, timeout=90)
     if resp.status_code != 200:
-        raise Exception(f'DALL-E {resp.status_code}: {resp.text[:300]}')
+        raise Exception(f'xAI Image API {resp.status_code}: {resp.text[:300]}')
     url = resp.json()['data'][0]['url']
     return requests.get(url, timeout=60).content
 
@@ -385,7 +385,7 @@ def is_tour(name):
 
 def main():
     print('='*60)
-    print('🎴 Poker Series Logo Generator v3.0 — DALL-E 3')
+    print('🎴 Poker Series Logo Generator v3.0 — Grok Aurora')
     print('='*60)
 
     progress_file = '/tmp/series_logo_progress.json'
@@ -428,7 +428,7 @@ def main():
 
         try:
             prompt    = build_prompt(series)
-            img_bytes = generate_dalle(prompt)
+            img_bytes = generate_image(prompt)
             url       = upload_and_save(sid, slug, img_bytes)
 
             done_ids.add(sid)
