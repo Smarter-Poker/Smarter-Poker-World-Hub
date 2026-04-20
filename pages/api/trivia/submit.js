@@ -62,7 +62,7 @@ export default async function handler(req, res) {
                           .from('profiles')
                           .select('username, full_name')
                           .eq('id', user.id)
-                          .single();
+                          .maybeSingle();
                       username = profile?.username || profile?.full_name || user.email?.split('@')[0] || username;
                   }
               } catch (e) { /* fall back to guest */ }

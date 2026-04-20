@@ -66,7 +66,7 @@ export default async function handler(req, res) {
                 "kyc_status, kyc_provider, kyc_completed_at, kyc_rejection_reason, age_verified, age_verified_at, jurisdiction_country"
             )
             .eq("id", user.id)
-            .single();
+            .maybeSingle();
 
         if (error) {
             console.error("[kyc/status] select error:", error);
