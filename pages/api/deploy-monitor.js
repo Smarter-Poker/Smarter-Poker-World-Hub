@@ -760,7 +760,8 @@ https://vercel.com/smarter-poker/hub-vanguard/deployments`,
     console.log(`[deploy-monitor] Build errors extracted (${buildErrors.length} chars). Calling autofix...`);
 
     // ── Call autofix ──────────────────────────────────────────────────────
-    const autofixUrl = `https://${req.headers.host}/api/deploy-autofix`;
+    const host = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.NEXT_PUBLIC_SITE_URL?.replace(/^https?:\/\//, '') || 'smarter.poker';
+    const autofixUrl = `https://${host}/api/deploy-autofix`;
     const autofixHeaders = { 'Content-Type': 'application/json' };
     if (process.env.DEPLOY_INTERNAL_SECRET) {
       autofixHeaders['x-internal-secret'] = process.env.DEPLOY_INTERNAL_SECRET;

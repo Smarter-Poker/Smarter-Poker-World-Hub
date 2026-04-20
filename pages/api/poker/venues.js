@@ -222,7 +222,8 @@ async function fetchPublicHomeGroups({ state, city, search, lat, lng, radius, ef
     if (hasGps) {
         const userLat = parseFloat(lat);
         const userLng = parseFloat(lng);
-        const maxRadius = Math.max(0, parseFloat(radius) || 100);
+        const parsedRadius = parseFloat(radius);
+        const maxRadius = isNaN(parsedRadius) ? Infinity : Math.max(0, parsedRadius);
 
         if (
             !isNaN(userLat) && !isNaN(userLng) &&
