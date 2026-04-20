@@ -1,27 +1,46 @@
 /**
  * GET /api/cron/union-rakeback
  *
- * WEEKLY UNION RAKE REDISTRIBUTION
+ * WEEKLY UNION RAKE REDISTRIBUTION  (Phase 7.1.7 — replay-safe)
  * Runs every Monday at 10:20 UTC (4:20 AM CST) — after settle + distribute finish.
  *
- * FLOW:
- * For every union that has a non-zero rake_wallet balance:
- *   1. Read each member club's club_commission_rate (their % share of rake)
- *   2. Calculate each club's share of the available rake_wallet balance
- *   3. Credit the club treasury with its share
- *   4. Debit the union rake_wallet by the total redistributed
- *   5. Write union_wallet_transactions ledger entries
- *   6. Write chip_transactions entries per club
+ * REPLAY SAFETY (Phase 7.1.7):
+ * Before any writes, the handler claims a settlement_journal row keyed by
+ * `union_rakeback:${union_id}:${period_start_iso}`. If the claim fails
+ * (key already exists), the union is skipped — the previous run either
+ * completed or is still in-flight. After writes, the claim is finalized
+ * with the aggregate totals and per-club summary.
  *
- * Clubs with auto_settlement_enabled = false are skipped.
- * The union's chip_balance, bbj_wallet, and promo_wallet are NOT touched.
+ * FLOW per union:
+ *   1. Compute period_start (last Monday 00:00 UTC) → idempotency_key
+ *   2. fn_claim_settlement_period(key, 'union_rakeback', union_id, start, end)
+ *      → if already_claimed: skip this union, record in results.already_settled
+ *   3. Read each member club's club_commission_rate
+ *   4. Credit club treasury with its share + write ledger rows
+ *   5. Debit the union rake_wallet by the total redistributed
+ *   6. fn_finalize_settlement_period(claim_id, 'settled', ...) — atomic close
+ *   7. On any error: fn_finalize_settlement_period(claim_id, 'failed', ...) + log
  *
  * Vercel cron:
  * { "path": "/api/cron/union-rakeback", "schedule": "20 10 * * 1" }
+ *
+ * Future: move to Hetzner cron-01 (long-running, DB-heavy).
  */
 import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
 
 const supabaseAdmin = getSupabaseAdmin();
+
+/**
+ * Returns the ISO timestamp of the most recent Monday 00:00 UTC at or before `now`.
+ * Used as the period_start for the weekly idempotency key.
+ */
+function lastMondayUtc(now = new Date()) {
+  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const dow = d.getUTCDay(); // 0 = Sun, 1 = Mon
+  const daysBack = dow === 0 ? 6 : dow - 1;
+  d.setUTCDate(d.getUTCDate() - daysBack);
+  return d.toISOString();
+}
 
 export default async function handler(req, res) {
   try {
@@ -45,11 +64,16 @@ export default async function handler(req, res) {
     }
 
     const startedAt = new Date().toISOString();
+    const periodStart = lastMondayUtc();
+    const periodEnd = startedAt;
     const results = {
       unions_processed: 0,
       unions_skipped: 0,
+      unions_already_settled: 0,
       clubs_credited: 0,
       total_redistributed: 0,
+      period_start: periodStart,
+      period_end: periodEnd,
       errors: [],
     };
 
@@ -65,9 +89,34 @@ export default async function handler(req, res) {
       }
 
       for (const union of unions) {
+        let claimId = null;
         try {
           const rakeBalance = Number(union.rake_wallet || 0);
           if (rakeBalance <= 0) { results.unions_skipped++; continue; }
+
+          // ── Phase 7.1.7 — claim an idempotency slot BEFORE any writes ──
+          const idempotencyKey = `union_rakeback:${union.id}:${periodStart}`;
+          const { data: claim, error: claimErr } = await supabaseAdmin.rpc(
+            'fn_claim_settlement_period',
+            {
+              p_idempotency_key: idempotencyKey,
+              p_period_kind: 'union_rakeback',
+              p_union_id: union.id,
+              p_period_start: periodStart,
+              p_period_end: periodEnd,
+            }
+          );
+          if (claimErr) {
+            results.errors.push(`Union ${union.id} claim error: ${claimErr.message}`);
+            results.unions_skipped++;
+            continue;
+          }
+          if (!claim?.ok) {
+            // Already claimed (settled or in-flight) — skip.
+            results.unions_already_settled++;
+            continue;
+          }
+          claimId = claim.id;
 
           // Load all active member clubs with their commission rates
           const { data: unionClubs } = await supabaseAdmin
@@ -76,7 +125,20 @@ export default async function handler(req, res) {
             .eq('union_id', union.id)
             .limit(500);
 
-          if (!unionClubs || unionClubs.length === 0) { results.unions_skipped++; continue; }
+          if (!unionClubs || unionClubs.length === 0) {
+            await supabaseAdmin.rpc('fn_finalize_settlement_period', {
+              p_id: claimId,
+              p_status: 'settled',
+              p_clubs_affected: 0,
+              p_players_affected: 0,
+              p_total_rake: rakeBalance,
+              p_total_rakeback: 0,
+              p_summary: { note: 'no union_clubs rows' },
+              p_error_detail: null,
+            }).catch(() => {});
+            results.unions_skipped++;
+            continue;
+          }
 
           const clubIds = unionClubs.map(uc => uc.club_id);
           const { data: clubs } = await supabaseAdmin
@@ -86,7 +148,20 @@ export default async function handler(req, res) {
             .eq('auto_settlement_enabled', true)
             .limit(500);
 
-          if (!clubs || clubs.length === 0) { results.unions_skipped++; continue; }
+          if (!clubs || clubs.length === 0) {
+            await supabaseAdmin.rpc('fn_finalize_settlement_period', {
+              p_id: claimId,
+              p_status: 'settled',
+              p_clubs_affected: 0,
+              p_players_affected: 0,
+              p_total_rake: rakeBalance,
+              p_total_rakeback: 0,
+              p_summary: { note: 'no auto_settlement_enabled clubs' },
+              p_error_detail: null,
+            }).catch(() => {});
+            results.unions_skipped++;
+            continue;
+          }
 
           // Build commission rate map from union_clubs
           const rateMap = {};
@@ -149,11 +224,45 @@ export default async function handler(req, res) {
             }).catch(e => results.errors.push(`Union ${union.id} debit error: ${e.message}`));
           }
 
+          // ── Phase 7.1.7 — finalize the settlement_journal claim ──
+          if (claimId) {
+            await supabaseAdmin.rpc('fn_finalize_settlement_period', {
+              p_id: claimId,
+              p_status: 'settled',
+              p_clubs_affected: distributions.length,
+              p_players_affected: 0,   // not tracked at this layer yet
+              p_total_rake: rakeBalance,
+              p_total_rakeback: totalDistributed,
+              p_summary: {
+                union_name: union.name,
+                distributions: distributions.map(d => ({
+                  club_id: d.club.id,
+                  club_name: d.club.name,
+                  amount: d.amount,
+                })),
+              },
+              p_error_detail: null,
+            }).catch(e => results.errors.push(`Union ${union.id} finalize error: ${e.message}`));
+          }
+
           results.unions_processed++;
           results.total_redistributed += totalDistributed;
         } catch (unionErr) {
           results.errors.push(`Union ${union.id}: ${unionErr.message}`);
           results.unions_skipped++;
+          // Best-effort: mark the claim as failed so a future replay can proceed.
+          if (claimId) {
+            await supabaseAdmin.rpc('fn_finalize_settlement_period', {
+              p_id: claimId,
+              p_status: 'failed',
+              p_clubs_affected: 0,
+              p_players_affected: 0,
+              p_total_rake: 0,
+              p_total_rakeback: 0,
+              p_summary: {},
+              p_error_detail: unionErr?.message || String(unionErr),
+            }).catch(() => {});
+          }
         }
       }
 
