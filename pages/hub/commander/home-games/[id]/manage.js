@@ -12,6 +12,7 @@ import { supabase } from '../../../../../src/lib/supabase';
 import { useRequireAuth, getAccessToken } from '../../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../../../src/engine/EventBus';
+import { toast } from 'react-hot-toast';
 
 function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
   const [eventData, setEventData] = useState({
@@ -346,6 +347,7 @@ export default function ManageHomeGamePage() {
       fetchData();
     } catch (error) {
       console.error('Approve failed:', error);
+      toast.error(error.message || 'Approve failed');
     }
   }
 
@@ -362,6 +364,7 @@ export default function ManageHomeGamePage() {
       fetchData();
     } catch (error) {
       console.error('Remove failed:', error);
+      toast.error(error.message || 'Remove failed');
     }
   }
 
@@ -414,6 +417,7 @@ export default function ManageHomeGamePage() {
     } catch (error) {
       setRsvpLoading(false);
       console.error('Delete failed:', error);
+      toast.error(error.message || 'Delete failed');
     }
   }
 
@@ -436,9 +440,12 @@ export default function ManageHomeGamePage() {
       if (data.success) {
         busEmit.dataMutated('home-games');
         fetchData();
+      } else {
+        toast.error(data.error?.message || data.error || 'Failed to release escrow');
       }
     } catch (error) {
       console.error('Release failed:', error);
+      toast.error(error.message || 'Release failed');
     } finally {
       setProcessingEscrow(null);
     }
@@ -464,9 +471,12 @@ export default function ManageHomeGamePage() {
       if (data.success) {
         busEmit.dataMutated('home-games');
         fetchData();
+      } else {
+        toast.error(data.error?.message || data.error || 'Failed to refund escrow');
       }
     } catch (error) {
       console.error('Refund failed:', error);
+      toast.error(error.message || 'Refund failed');
     } finally {
       setProcessingEscrow(null);
     }

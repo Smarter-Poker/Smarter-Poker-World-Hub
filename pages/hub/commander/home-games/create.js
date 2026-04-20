@@ -252,7 +252,7 @@ export default function CreateHomeGamePage() {
 
         setStep(4);
       } else {
-        setError(data.error?.message || 'Failed to create group');
+        setError(data.error?.message || (typeof data.error === 'string' ? data.error : null) || 'Failed to create group');
       }
     } catch (err) {
       setError('Connection error. Please try again.');

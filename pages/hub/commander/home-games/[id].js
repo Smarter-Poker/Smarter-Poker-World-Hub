@@ -3,7 +3,7 @@
  * View group info, upcoming events, members, and RSVP
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { ArrowLeft, Home, Users, Calendar, MapPin, Clock, DollarSign, Share2, Settings, UserPlus, Check, X, Copy, Loader2, MessageSquare, Star } from 'lucide-react';
@@ -11,6 +11,7 @@ import RsvpForm from '../../../../src/components/commander/home-games/RsvpForm';
 import PlayerRating from '../../../../src/components/commander/home-games/PlayerRating';
 import { supabase } from '../../../../src/lib/supabase';
 import { getAccessToken } from '../../../../src/lib/authUtils';
+import { toast } from 'react-hot-toast';
 
 function EventCard({ event, onRsvp, userRsvp }) {
   const eventDate = new Date(event.scheduled_date);
@@ -226,10 +227,20 @@ export default function HomeGameDetailPage() {
     const ch = supabase
       .channel(`hg-detail:${id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_home_games', filter: `group_id=eq.${id}` }, () => { fetchGroup(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_home_rsvps' }, () => { fetchGroup(); })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [id]);
+
+  // Realtime listener — rsvps
+  useEffect(() => {
+    if (events.length === 0) return;
+    const gameIds = events.map(e => e.id);
+    const ch = supabase
+      .channel(`hg-rsvps:group-${id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_home_rsvps', filter: `game_id=in.(${gameIds.join(',')})` }, () => { fetchGroup(); })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [events]);
 
   // Fetch reviews for past events
   useEffect(() => {
@@ -311,7 +322,7 @@ export default function HomeGameDetailPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ status })
+        body: JSON.stringify({ response: status })
       });
 
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -319,9 +330,12 @@ export default function HomeGameDetailPage() {
       if (data.success) {
         setRsvps(prev => ({ ...prev, [event.id]: status }));
         fetchGroup();
+      } else {
+        toast.error(data.error?.message || data.error || 'Failed to RSVP');
       }
     } catch (error) {
       console.error('RSVP failed:', error);
+      toast.error(error.message || 'Failed to RSVP');
     }
   }
 

@@ -25,14 +25,17 @@ export default async function handler(req, res) {
     }
 
 
-    // Auth guard: require user auth for writes
-    if (req.method !== "GET") { const _user = await guardUser(req, res); if (!_user) return; }
+    let userObj = null;
+    if (req.method !== "GET") { 
+      userObj = await guardUser(req, res); 
+      if (!userObj) return; 
+    }
     const { id } = req.query;
 
     if (req.method === 'GET') {
       return handleGet(req, res, id);
     } else if (req.method === 'POST') {
-      return handleCreate(req, res, id);
+      return handleCreate(req, res, id, userObj);
     }
 
     return res.status(405).json({
@@ -83,13 +86,14 @@ async function handleGet(req, res, eventId) {
   }
 }
 
-async function handleCreate(req, res, eventId) {
-  const { player_id, rating, comment, is_anonymous = false } = req.body;
+async function handleCreate(req, res, eventId, _user) {
+  const { rating, comment, is_anonymous = false } = req.body;
+  const player_id = _user.id;
 
-  if (!player_id || !rating) {
+  if (!rating) {
     return res.status(400).json({
       success: false,
-      error: { code: 'MISSING_FIELDS', message: 'player_id and rating required' }
+      error: { code: 'MISSING_FIELDS', message: 'rating required' }
     });
   }
 
