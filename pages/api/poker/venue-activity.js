@@ -16,11 +16,12 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const rateLimitResult = await apiRateLimit(req, { maxRequests: 60, windowMs: 60000 });
+    const rateLimitResult = apiRateLimit(req, { max: 60, windowMs: 60000 });
     if (rateLimitResult) return res.status(429).json({ error: 'Too many requests' });
 
     const supabase = supabaseServerClient(req);
-    const { venueId } = req.query;
+    const rawVenueId = req.query.venueId;
+    const venueId = Array.isArray(rawVenueId) ? rawVenueId[0] : rawVenueId;
 
     if (!venueId) {
         return res.status(400).json({ error: 'venueId is required' });

@@ -2540,18 +2540,13 @@ export default function PokerNearMePage({ initialTab }) {
             });
         }
 
-        // ─── CLIENT-SIDE: Auto-filter by stakes ───
-        // BUG FIX: 'any' === no filter (same as 'all'). Must exclude 'any' from the guard
-        // or s.includes('any') returns false for every venue → blank page.
-        if (filters.stakes && filters.stakes !== 'all' && filters.stakes !== 'any') {
-            combined = combined.filter(v => {
-                const games = v.games_offered || [];
-                return games.some(g => {
-                    const s = (g.stakes || g.stake || g || '').toString();
-                    return s.includes(filters.stakes.replace('$', ''));
-                }); // STRICT: must explicitly match stakes
-            });
-        }
+        // ─── CLIENT-SIDE: Stakes filter ───
+        // NOTE: The catalog's `games_offered` stores game type names (["NLH","PLO"]) with no
+        // stake data, so `.includes('1/2')` will NEVER match → every catalog venue gets hidden.
+        // Stakes filtering is only valid in the LiveGamesFeed where Bravo/PA data includes
+        // actual stake strings per game. Skip catalog stakes filter to prevent blank page.
+        // TODO: Enable once `poker_venues.games_offered` includes per-game stake ranges.
+        // if (filters.stakes && filters.stakes !== 'all' && filters.stakes !== 'any') { ... }
 
         return combined;
     }, [venues, allVenuesWithTours, filters.gameType, filters.stakes]);
