@@ -119,7 +119,9 @@ export default async function handler(req, res) {
 
     // ── Step 2: Check if latest deploy is READY or BUILDING ──
     const latestDeploy = deployments[0];
-    if (latestDeploy && (latestDeploy.state === 'READY' || latestDeploy.state === 'BUILDING' || latestDeploy.state === 'QUEUED')) {
+    if (latestDeploy && (latestDeploy.state === 'READY' || latestDeploy.state === 'BUILDING')) {
+      // NOTE: QUEUED intentionally NOT included — queued deploys can get CANCELED by Vercel,
+      // leaving an ERROR deployment permanently unprocessed. Only skip when confirmed READY/BUILDING.
       // ── Post-fix verification: check if a previous autofix deploy went READY ──
       const latestMsg = latestDeploy.meta?.githubCommitMessage || '';
       if (latestDeploy.state === 'READY' && latestMsg.includes('[autofix]')) {
@@ -246,11 +248,11 @@ export default async function handler(req, res) {
             'Module not found', 'Cannot find', 'SyntaxError', 'Type error', 'TypeError',
             'Failed to compile', 'Build failed', 'error TS', 'Unexpected token',
             'ReferenceError', 'is not a module', 'does not provide an export',
-            'Cannot read properties', 'exited with', 'Error:',
+            'Cannot read properties', 'exited with',
             // TypeScript-specific patterns
             'TS2304', 'TS2305', 'TS2307', 'TS2345', 'TS2322', 'TS2339', 'TS2551',
             'TS7006', 'TS2554', 'TS1005', 'TS1128', 'TS2741',
-            'Property', 'does not exist on type',
+            'does not exist on type',
           ];
           const includedIndices = new Set();
           allLines.forEach((line, idx) => {

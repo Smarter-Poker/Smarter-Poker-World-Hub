@@ -1,17 +1,19 @@
 // Prompt construction for the autofix Claude call.
 //
+// Contract v2 (2026-04-20): Claude returns WHOLE file contents in JSON, not a diff.
+// Unified-diff output was failing `git apply` with "corrupt patch at line N" too often
+// because Claude's hunk math isn't perfectly reliable. Structured file replacement
+// removes the whole class of parse failures.
+//
 // We tell Claude:
 //   - What the bug is (Sentry issue summary + stack).
 //   - The source files it's allowed to read (we supply the content).
 //   - The hard rules (never touch denylisted paths, must include a test,
-//     must respond with a single unified diff in <patch>…</patch>).
-//
-// We force a structured XML response so the parser is trivial and we
-// never eval or guess where the diff ends.
+//     must respond in the structured JSON block).
 
-export const SYSTEM_PROMPT = `You are the autonomous autofix agent for smarter.poker's World Hub + Club Commander
-production codebase (Next.js 14 Pages Router monolith). You receive a real Sentry-captured error and must
-produce a minimal, correct patch that eliminates the root cause.
+export const SYSTEM_PROMPT = `You are the autonomous autofix agent for smarter.poker's production
+codebase. You receive a real Sentry-captured error and must produce a minimal, correct patch
+that eliminates the root cause.
 
 You are not a general assistant here. You are a code-fix agent. You must:
 
@@ -90,66 +92,31 @@ Rules for the <files_updated> block:
  * actual hot spot we care about.
  */
 function renderFiles(files) {
-  return files.map(({ path, content }) => {
-    const lines = content.split('\n');
-    const clipped = lines.length > 400
-      ? [...lines.slice(0, 200), '// ... (file truncated; ' + (lines.length - 400) + ' lines omitted) ...', ...lines.slice(-200)]
-      : lines;
-    return '--- FILE: ' + path + ' ---\n' + clipped.join('\n');
+  return files.map(f => {
+    const lines = f.content.split('\n');
+    const clipped = lines.length > 400 ? lines.slice(0, 400).concat(['…', `(${lines.length - 400} lines truncated for context window)`]) : lines;
+    return `<file path="${f.path}">\n${clipped.join('\n')}\n</file>`;
   }).join('\n\n');
 }
 
-function renderStack(stack) {
-  const { exception, frames } = stack;
-  const head = `EXCEPTION: ${exception.type}: ${exception.value}`;
-  const body = frames.map((f, i) => {
-    const loc = `${f.filename || '?'}:${f.lineno || '?'}${f.colno ? ':' + f.colno : ''}`;
-    const fn = f.function ? ` in ${f.function}` : '';
-    const context = [
-      ...(f.pre_context || []).map(l => '    ' + l),
-      '>>> ' + (f.context_line || ''),
-      ...(f.post_context || []).map(l => '    ' + l),
-    ].join('\n');
-    return `#${i} ${loc}${fn}${context ? '\n' + context : ''}`;
-  }).join('\n');
-  return head + '\n' + body;
-}
+export function buildMessages({ issue, stack, files }) {
+  const stackText = stack.frames.map((f, i) =>
+    `  #${i}  ${f.filename || '?'}:${f.lineno || '?'}  ${f.function || '?'}${f.context_line ? '\n       > ' + f.context_line : ''}`
+  ).join('\n');
 
-/**
- * @param {object} args
- * @param {object} args.issue   Sentry issue JSON
- * @param {object} args.stack   result of extractStack(event)
- * @param {Array<{path,content}>} args.files  source files to include
- * @param {string} args.repoName  repo slug ("Smarter-Poker/Smarter-Poker-Club-Arena")
- */
-export function buildMessages({ issue, stack, files, repoName }) {
-  const user = `# Sentry issue
+  const userMessage = [
+    `Sentry issue ${issue.shortId || issue.id}: ${issue.title || issue.culprit || '(no title)'}`,
+    `Level: ${issue.level || 'error'}`,
+    issue.culprit ? `Culprit: ${issue.culprit}` : '',
+    '',
+    'Stack trace (most recent frame first):',
+    stackText,
+    '',
+    'Source files (you may only modify these):',
+    renderFiles(files),
+    '',
+    'Produce your response strictly in the required XML format.',
+  ].filter(Boolean).join('\n');
 
-- Repo: ${repoName}
-- Title: ${issue.title || '(no title)'}
-- Short ID: ${issue.shortId || issue.short_id || '(unknown)'}
-- Level: ${issue.level || '(unknown)'}
-- Count: ${issue.count || '?'}  users: ${issue.userCount || '?'}
-- First seen: ${issue.firstSeen || '?'}
-- Last seen: ${issue.lastSeen || '?'}
-- Permalink: ${issue.permalink || '(unknown)'}
-- Culprit: ${issue.culprit || '(unknown)'}
-
-# Stack trace (innermost first)
-
-${renderStack(stack)}
-
-# Relevant source files from the repo
-
-${renderFiles(files)}
-
-# Task
-
-Fix this bug at its root cause with the smallest possible change. Add a
-regression test next to the affected module's existing tests (or respond
-with <test_note>none-possible</test_note> if no framework is set up).
-Respond in the exact XML format from the system prompt.
-`;
-
-  return [{ role: 'user', content: user }];
+  return [{ role: 'user', content: userMessage }];
 }

@@ -97,9 +97,9 @@ export default function AutofixDashboard() {
     <>
       <Head>
         <title>Autofix Pipeline | Admin | Smarter.Poker</title>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
         <style>{`
           body { background: #0a0e17; color: #e0e0e0; font-family: 'Inter', -apple-system, sans-serif; margin: 0; }
-          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         `}</style>
       </Head>
 

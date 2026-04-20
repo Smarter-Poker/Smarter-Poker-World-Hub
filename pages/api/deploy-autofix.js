@@ -40,8 +40,11 @@ const PROTECTED_FILES = [
   // Pipeline self-protection: autofix must never modify its own code
   'pages/api/deploy-monitor.js',
   'pages/api/deploy-autofix.js',
+  'pages/api/cron/deploy-error-poll.js',
+  'pages/api/deploy-status.js',
   'scripts/git-safe-push.sh',
   'scripts/verify-deploy.js',
+  'scripts/openclaw-cron-dispatcher.py',
 ];
 
 // Directories autofix is allowed to modify
