@@ -708,10 +708,10 @@ export default async function handler(req, res) {
                   // cross-border venues (e.g. Horseshoe Hammond IN is only 22mi from Chicago IL).
                   // The bounding box over-fetches from neighboring states; the distance filter at
                   // line ~1117 then trims results to the exact requested radius.
-                  else if (lat && lng && radius) {
-                      const userLat = parseFloat(lat);
-                      const userLng = parseFloat(lng);
-                      const radiusMi = Math.min(Math.max(0, parseFloat(radius) || 50), 300); // server cap: 300mi max
+                  else if (effectiveLat && effectiveLng && effectiveRadius) {
+                      const userLat = parseFloat(effectiveLat);
+                      const userLng = parseFloat(effectiveLng);
+                      const radiusMi = Math.min(Math.max(0, parseFloat(effectiveRadius) || 50), 300); // server cap: 300mi max
                       if (!isNaN(userLat) && !isNaN(userLng)) {
                           // 1 degree latitude ≈ 69 miles; 1 degree longitude ≈ 69*cos(lat) miles.
                           // Pad by 20% so bounding box is always larger than the radius circle.
@@ -1172,11 +1172,11 @@ export default async function handler(req, res) {
           }
 
           // --- GPS-based distance calculation and filtering ---
-          const hasGps = !!(lat && lng);
+          const hasGps = !!(effectiveLat && effectiveLng);
           if (hasGps) {
-              const userLat = parseFloat(lat);
-              const userLng = parseFloat(lng);
-              const maxRadius = Math.max(0, parseFloat(radius) || 100);
+              const userLat = parseFloat(effectiveLat);
+              const userLng = parseFloat(effectiveLng);
+              const maxRadius = Math.max(0, parseFloat(effectiveRadius) || 100);
 
               // Validate GPS coordinates
               if (isNaN(userLat) || isNaN(userLng) || userLat < -90 || userLat > 90 || userLng < -180 || userLng > 180) {
@@ -1197,8 +1197,8 @@ export default async function handler(req, res) {
                   };
               });
 
-              if (!search) {
-                  // Location-browse: filter by radius.
+              if (!search || (search && !lat && !lng)) {
+                  // Location-browse OR auto-geocoded city search: filter by radius.
                   // PRIMARY: venues within the radius that have coordinates.
                   const withinRadius = venues.filter(v =>
                       (v.distance_mi != null && v.distance_mi <= maxRadius) ||
@@ -1210,7 +1210,7 @@ export default async function handler(req, res) {
                   // so the page is never blank just because coordinate data is sparse.
                   let noCoordVenues = [];
                   const effectiveUserState = user_state || state;
-                  if (effectiveUserState) {
+                  if (effectiveUserState && lat && lng) { // Only for real GPS (not auto-geocoded)
                       const stateUpper = effectiveUserState.toUpperCase();
                       noCoordVenues = venues.filter(v =>
                           v.distance_mi == null &&
