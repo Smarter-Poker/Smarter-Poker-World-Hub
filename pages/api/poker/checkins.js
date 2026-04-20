@@ -119,7 +119,12 @@ try {
       }
 
       if (req.method === 'GET') {
-        const { venue_id, user_id, count_only, today } = req.query;
+        const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+        const venue_id = safeQ(req.query.venue_id);
+        const user_id = safeQ(req.query.user_id);
+        const count_only = safeQ(req.query.count_only);
+        const today = safeQ(req.query.today);
+        const since = safeQ(req.query.since);
 
         // Global check-ins (last 24 hours) for map count aggregation
         if (today === 'true') {
