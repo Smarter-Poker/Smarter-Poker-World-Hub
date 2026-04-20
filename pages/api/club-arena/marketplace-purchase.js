@@ -8,6 +8,7 @@ import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settle
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
+const { requireEmailVerified } = require('../../../src/lib/emailVerifiedGate');
 
 let _supabase = null;
 function getSupabase() {
@@ -40,6 +41,10 @@ export default async function handler(req, res) {
 
       const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+
+      // [Phase 6.1.12] Email must be verified before chip/diamond purchases
+      const emailGate = requireEmailVerified(user);
+      if (!emailGate.ok) return res.status(emailGate.status).json(emailGate.body);
 
       const { clubId, itemId } = req.body;
       if (!clubId || !itemId) return res.status(400).json({ success: false, error: 'clubId and itemId required' });

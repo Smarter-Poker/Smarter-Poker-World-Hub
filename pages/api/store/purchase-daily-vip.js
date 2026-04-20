@@ -5,6 +5,7 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+const { requireEmailVerified } = require('../../../src/lib/emailVerifiedGate');
 
 let _supabase = null;
 function getSupabase() {
@@ -37,6 +38,10 @@ export default async function handler(req, res) {
           if (authError || !user) {
               return res.status(401).json({ success: false, error: 'Invalid session' });
           }
+
+          // [Phase 6.1.12] Email must be verified before chip/diamond purchases
+          const emailGate = requireEmailVerified(user);
+          if (!emailGate.ok) return res.status(emailGate.status).json(emailGate.body);
 
           // Configuration
           const COST = 150;

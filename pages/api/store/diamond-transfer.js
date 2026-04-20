@@ -24,6 +24,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 const { getServerUser } = require('../../../src/lib/serverAuth');
+const { requireEmailVerifiedByUserId } = require('../../../src/lib/emailVerifiedGate');
 
 let _supabase = null;
 function getSupabase() {
@@ -74,6 +75,10 @@ export default async function handler(req, res) {
             }
             userId = user.id;
         }
+
+        // [Phase 6.1.12] Email must be verified before diamond transfers
+        const emailGate = await requireEmailVerifiedByUserId(getSupabase(), userId);
+        if (!emailGate.ok) return res.status(emailGate.status).json(emailGate.body);
 
         // ── Parse body ──
         const { recipientId, amount: rawAmount } = req.body || {};
