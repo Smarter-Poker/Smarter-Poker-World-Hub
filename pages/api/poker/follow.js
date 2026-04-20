@@ -46,19 +46,19 @@ export default async function handler(req, res) {
               return res.status(405).json({ success: false, error: 'Method not allowed' });
           }
       } catch (error) {
-          console.error('Follow API error:', error);
-          return res.status(500).json({ success: false, error: error.message });
+          console.error('[Follow API] Execution error:', error);
+          return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
 
 async function handleGet(req, res) {
-    const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+    const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
     const user_id = safeQ(req.query.user_id);
     const page_type = safeQ(req.query.page_type);
     const page_id = safeQ(req.query.page_id);
@@ -146,15 +146,16 @@ async function handleGet(req, res) {
  */
 async function syncToSocialPageFollowers(userId, pageType, pageIdStr, action) {
     try {
-        // Only sync venue follows (social pages link via linked_venue_id)
-        if (pageType !== 'venue') return;
+        // Only sync entities that have social pages (venues, tours, series, home_groups, charity)
+        if (!['venue', 'tour', 'series', 'home_group', 'charity'].includes(pageType)) return;
         // Skip anonymous user IDs (not valid UUIDs for social_page_followers FK)
         if (!userId || userId.startsWith('anon-')) return;
 
         const { data: socialPage } = await getSupabase()
             .from('social_pages')
             .select('id')
-            .eq('linked_venue_id', pageIdStr)
+            .eq('linked_entity_type', pageType)
+            .eq('linked_entity_id', pageIdStr)
             .maybeSingle();
 
         if (!socialPage) return;
@@ -198,8 +199,8 @@ async function handlePost(req, res) {
     if (typeof page_type !== 'string' || (typeof page_id !== 'string' && typeof page_id !== 'number')) {
         return res.status(400).json({ success: false, error: 'Invalid input types' });
     }
-    if (!['venue', 'tour', 'series'].includes(page_type)) {
-        return res.status(400).json({ success: false, error: 'page_type must be venue, tour, or series' });
+    if (!['venue', 'tour', 'series', 'home_group', 'charity'].includes(page_type)) {
+        return res.status(400).json({ success: false, error: 'invalid_page_type' });
     }
     if (!['follow', 'unfollow'].includes(action)) {
         return res.status(400).json({ success: false, error: 'action must be follow or unfollow' });
