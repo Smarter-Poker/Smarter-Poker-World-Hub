@@ -546,78 +546,81 @@ function LiveGamesFeed({
 
         let list = [];
 
-        if (liveEntries.length > 0) {
-            // PRIMARY: Use live data when available
-            list = liveEntries.map(liveEntry => {
-                const parentVenue = findParentVenue(liveEntry.bravo_slug, liveEntry.venue_name);
-                const logoUrl = getVenueLogoUrl(parentVenue || { website: null });
-                const waitEst = liveEntry.totalWait > 0 
-                    ? estimateWaitTime(liveEntry.totalWait, liveEntry.totalTables) 
-                    : null;
-                
+        // PRIMARY: Map live data when available
+        const liveMapped = liveEntries.map(liveEntry => {
+            const parentVenue = findParentVenue(liveEntry.bravo_slug, liveEntry.venue_name);
+            const logoUrl = getVenueLogoUrl(parentVenue || { website: null });
+            const waitEst = liveEntry.totalWait > 0 
+                ? estimateWaitTime(liveEntry.totalWait, liveEntry.totalTables) 
+                : null;
+            
+            return {
+                bravo_slug: liveEntry.bravo_slug,
+                name: parentVenue?.name || decodeHtmlEntities(liveEntry.venue_name),
+                venue_name: parentVenue?.name || decodeHtmlEntities(liveEntry.venue_name),
+                totalTables: liveEntry.totalTables || 0,
+                totalWait: liveEntry.totalWait || 0,
+                games: liveEntry.games || [],
+                last_updated: liveEntry.last_updated,
+                primarySource: liveEntry.primarySource || 'bravo',
+                id: parentVenue?.id || liveEntry.bravo_slug,
+                latitude: parentVenue?.latitude || null,
+                longitude: parentVenue?.longitude || null,
+                state: parentVenue?.state || null,
+                city: parentVenue?.city || null,
+                venue_type: parentVenue?.venue_type || 'casino',
+                trust_score: parentVenue?.trust_score || 0,
+                address: parentVenue?.address || '',
+                phone: parentVenue?.phone || '',
+                website: parentVenue?.website || '',
+                logo_url: logoUrl,
+                logoUrl,
+                is_social_page: parentVenue?.is_social_page || false,
+                social_page_id: parentVenue?.social_page_id || null,
+                waitEstimate: waitEst,
+                _hasParentVenue: !!parentVenue,
+                _isLive: true,
+            };
+        });
+
+        // FALLBACK: Add last-known venue data for venues not in live data
+        const liveIds = new Set(liveMapped.map(v => v.id));
+        const catalogMapped = venues
+            .filter(v => v.games_offered && v.games_offered.length > 0 && v.poker_tables > 0)
+            .filter(v => !liveIds.has(v.id)) // Exclude those already in live data
+            .map(v => {
+                const logoUrl = getVenueLogoUrl(v);
                 return {
-                    bravo_slug: liveEntry.bravo_slug,
-                    name: parentVenue?.name || decodeHtmlEntities(liveEntry.venue_name),
-                    venue_name: parentVenue?.name || decodeHtmlEntities(liveEntry.venue_name),
-                    totalTables: liveEntry.totalTables || 0,
-                    totalWait: liveEntry.totalWait || 0,
-                    games: liveEntry.games || [],
-                    last_updated: liveEntry.last_updated,
-                    primarySource: liveEntry.primarySource || 'bravo',
-                    id: parentVenue?.id || liveEntry.bravo_slug,
-                    latitude: parentVenue?.latitude || null,
-                    longitude: parentVenue?.longitude || null,
-                    state: parentVenue?.state || null,
-                    city: parentVenue?.city || null,
-                    venue_type: parentVenue?.venue_type || 'casino',
-                    trust_score: parentVenue?.trust_score || 0,
-                    address: parentVenue?.address || '',
-                    phone: parentVenue?.phone || '',
-                    website: parentVenue?.website || '',
+                    bravo_slug: v.bravo_slug || v.slug || `venue-${v.id}`,
+                    name: v.name,
+                    venue_name: v.name,
+                    totalTables: v.poker_tables || 0,
+                    totalWait: 0,
+                    games: (v.games_offered || []).map(g => ({ game: g, tables_running: 0, source: 'catalog' })),
+                    last_updated: null,
+                    primarySource: 'catalog',
+                    id: v.id,
+                    latitude: v.latitude,
+                    longitude: v.longitude,
+                    state: v.state,
+                    city: v.city,
+                    venue_type: v.venue_type || 'casino',
+                    trust_score: v.trust_score || 0,
+                    address: v.address || '',
+                    phone: v.phone || '',
+                    website: v.website || '',
                     logo_url: logoUrl,
                     logoUrl,
-                    is_social_page: parentVenue?.is_social_page || false,
-                    social_page_id: parentVenue?.social_page_id || null,
-                    waitEstimate: waitEst,
-                    _hasParentVenue: !!parentVenue,
-                    _isLive: true,
+                    is_social_page: v.is_social_page || false,
+                    social_page_id: v.social_page_id || null,
+                    waitEstimate: null,
+                    _hasParentVenue: true,
+                    _isLive: false,
                 };
             });
-        } else {
-            // FALLBACK: Show last-known venue data when no live data
-            list = venues
-                .filter(v => v.games_offered && v.games_offered.length > 0 && v.poker_tables > 0)
-                .map(v => {
-                    const logoUrl = getVenueLogoUrl(v);
-                    return {
-                        bravo_slug: v.bravo_slug || v.slug || `venue-${v.id}`,
-                        name: v.name,
-                        venue_name: v.name,
-                        totalTables: v.poker_tables || 0,
-                        totalWait: 0,
-                        games: (v.games_offered || []).map(g => ({ game: g, tables_running: 0, source: 'catalog' })),
-                        last_updated: null,
-                        primarySource: 'catalog',
-                        id: v.id,
-                        latitude: v.latitude,
-                        longitude: v.longitude,
-                        state: v.state,
-                        city: v.city,
-                        venue_type: v.venue_type || 'casino',
-                        trust_score: v.trust_score || 0,
-                        address: v.address || '',
-                        phone: v.phone || '',
-                        website: v.website || '',
-                        logo_url: logoUrl,
-                        logoUrl,
-                        is_social_page: v.is_social_page || false,
-                        social_page_id: v.social_page_id || null,
-                        waitEstimate: null,
-                        _hasParentVenue: true,
-                        _isLive: false,
-                    };
-                });
-        }
+
+        // Combine them so the feed has both active live tables and static known poker rooms
+        list = [...liveMapped, ...catalogMapped];
 
         // Single venue override
         if (selectedVenue) {
@@ -631,22 +634,22 @@ function LiveGamesFeed({
         }
 
         // 2. Filter by Distance
-        // CRITICAL: Only apply radius filter when we have a real location AND at least
-        // some live venues were enriched with coordinates (i.e., the venue-DB lookup
-        // ran successfully). If ALL live venues lack coordinates (empty venues prop),
-        // the enrichment hasn't had a chance to run — show everything rather than
-        // returning zero results.
+        // POLICY: Live venues whose parent record couldn't be matched (no lat/lng) must
+        // NOT be silently dropped when a radius filter is active — they have real game data
+        // and may be near the user; we just haven't linked them to coordinates yet.
+        // Strategy: split into located vs unlocated, distance-filter only located ones,
+        // then append unlocated at the end so the feed always has content.
         if (effectiveLocation && filterRadius !== 'any') {
-            const anyHaveCoords = list.some(v => v.latitude && v.longitude);
-            if (anyHaveCoords) {
-                // Enrichment worked for some venues — apply radius filter normally
-                list = list.filter(v => {
-                    if (!v.latitude || !v.longitude) return false; // unmatched — exclude
-                    return calcDist(v) <= Number(filterRadius);
-                });
+            const located = list.filter(v => v.latitude && v.longitude);
+            const unlocated = list.filter(v => !v.latitude || !v.longitude);
+            if (located.length > 0) {
+                // Distance-filter the venues we have coordinates for
+                const inRadius = located.filter(v => calcDist(v) <= Number(filterRadius));
+                // Append unlocated venues after the located ones so real live data is
+                // never hidden — user can scroll down to see them with "distance unknown"
+                list = [...inRadius, ...unlocated];
             }
-            // If zero venues have coordinates, skip the filter entirely — the DB hasn't
-            // loaded yet; show all live venues so the feed isn't empty on first load.
+            // If zero located venues exist, skip the filter — enrichment hasn't run yet
         }
 
         // 3. Filter by Game Type
