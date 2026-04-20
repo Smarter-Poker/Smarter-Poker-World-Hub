@@ -77,7 +77,11 @@ async function listAnnouncements(req, res, groupId) {
       return res.status(403).json({ error: 'You are not a member of this group' });
     }
 
-    const { limit = 20, before } = req.query;
+    const rawLimit = Array.isArray(req.query.limit) ? req.query.limit[0] : req.query.limit;
+    const rawBefore = Array.isArray(req.query.before) ? req.query.before[0] : req.query.before;
+    const limit = rawLimit;
+    // Validate before as a valid ISO 8601 timestamp to prevent PostgREST injection
+    const before = rawBefore && !isNaN(Date.parse(rawBefore)) ? rawBefore : null;
 
     let query = getSupabase()
       .from('commander_club_announcements')
@@ -92,7 +96,7 @@ async function listAnnouncements(req, res, groupId) {
       .limit(Math.min(parseInt(limit) || 50, 500));
 
     if (before) {
-      query = query.lt('sent_at', before);
+      query = query.lt('sent_at', new Date(rawBefore).toISOString());
     }
 
     const { data, error } = await query;
@@ -285,7 +289,6 @@ async function sendPushNotifications(groupId, announcement, targetAll, targetMem
     } else {
     }
   } catch (error) {
-      try { reportApiError(error, req); } catch (_sentryErr) {}
     console.error('Send push notifications error:', error);
   }
 }

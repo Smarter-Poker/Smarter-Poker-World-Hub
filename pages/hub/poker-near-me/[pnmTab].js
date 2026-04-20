@@ -2824,11 +2824,7 @@ export default function PokerNearMePage({ initialTab }) {
                 <UniversalHeader 
                     pageDepth={2} 
                     onBackClick={() => {
-                        if (typeof window !== 'undefined' && window.history.length > 1) {
-                            router.back();
-                        } else {
-                            router.push('/hub/poker-near-me/lobby');
-                        }
+                        router.back();
                     }}
                     onMenuClick={() => setMenuOpen(true)} 
                 />

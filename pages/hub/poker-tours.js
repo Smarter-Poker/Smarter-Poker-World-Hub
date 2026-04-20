@@ -893,11 +893,7 @@ export default function PokerToursPage({ initialTours = [] }) {
 
                 {/* Header */}
                 <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} onBackClick={() => {
-                    if (typeof window !== 'undefined' && window.history.length > 1) {
-                        router.back();
-                    } else {
-                        router.push('/hub');
-                    }
+                    router.back();
                 }} />
 
                 {/* Hamburger Menu */}

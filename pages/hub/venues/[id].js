@@ -1248,11 +1248,7 @@ export default function VenueDetailPage() {
           pageDepth={2} 
           onMenuClick={() => setMenuOpen(true)}
           onBackClick={() => {
-            if (typeof window !== 'undefined' && window.history.length > 1) {
-              router.back();
-            } else {
-              router.push('/hub/poker-near-me/lobby');
-            }
+            router.back();
           }}
         />
       )}

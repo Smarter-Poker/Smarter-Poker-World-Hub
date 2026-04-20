@@ -522,11 +522,7 @@ export default function SeriesDetailPage() {
           pageDepth={2} 
           onMenuClick={() => setMenuOpen(true)}
           onBackClick={() => {
-          if (typeof window !== 'undefined' && window.history.length > 1) {
-            router.back();
-          } else {
-            router.push('/hub/poker-series');
-          }
+          router.back();
         }}
         />
         <HamburgerMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
@@ -550,11 +546,7 @@ export default function SeriesDetailPage() {
           pageDepth={2} 
           onMenuClick={() => setMenuOpen(true)}
           onBackClick={() => {
-          if (typeof window !== 'undefined' && window.history.length > 1) {
-            router.back();
-          } else {
-            router.push('/hub/poker-series');
-          }
+          router.back();
         }}
         />
         <HamburgerMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
@@ -646,11 +638,7 @@ export default function SeriesDetailPage() {
         pageDepth={2} 
         onMenuClick={() => setMenuOpen(true)}
         onBackClick={() => {
-          if (typeof window !== 'undefined' && window.history.length > 1) {
-            router.back();
-          } else {
-            router.push('/hub/poker-series');
-          }
+          router.back();
         }}
       />
 

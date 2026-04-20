@@ -64,7 +64,9 @@ export default async function handler(req, res) {
       }
 
       if (req.method === 'GET') {
-        const { limit = 20, offset = 0 } = req.query;
+        const safeP = (v) => Array.isArray(v) ? v[0] : v;
+        const limit = Math.min(parseInt(safeP(req.query.limit)) || 20, 100);
+        const offset = Math.min(Math.max(parseInt(safeP(req.query.offset)) || 0, 0), 10000);
 
         const { data, error, count } = await getSupabase()
           .from('commander_home_posts')
@@ -76,7 +78,7 @@ export default async function handler(req, res) {
           .eq('is_published', true)
           .order('is_pinned', { ascending: false })
           .order('created_at', { ascending: false })
-          .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
+          .range(offset, offset + limit - 1);
 
         if (error) throw error;
 
