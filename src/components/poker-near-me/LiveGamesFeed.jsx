@@ -533,6 +533,8 @@ function LiveGamesFeed({
             if (v.bravo_slug) venueBySlug[v.bravo_slug] = v;
             // Also index by 'slug' — all-venues.json uses 'slug' not 'bravo_slug'
             if (v.slug && !venueBySlug[v.slug]) venueBySlug[v.slug] = v;
+            // Track PA slugs so external sources match perfectly without hard aliases
+            if (v.pokeratlas_slug && !venueBySlug[v.pokeratlas_slug]) venueBySlug[v.pokeratlas_slug] = v;
         }
 
         // 4-layer parent venue finder: slug → stripped slug → decoded name → word overlap
@@ -542,7 +544,9 @@ function LiveGamesFeed({
             'rivers-casino-des-plaines': 'rivers-casino-il',
             'wind-creek-chicago-southland': 'wind-creek-chicago-southland-il',
             'rivers-casino-philadelphia': 'rivers-casino-philadelphia',
-            'rivers-casino-portsmouth': 'rivers-casino-portsmouth'
+            'rivers-casino-portsmouth': 'rivers-casino-portsmouth',
+            'horseshoe-hammond': 'horseshoe-hammond-hammond',
+            'pa-horseshoe-hammond': 'horseshoe-hammond-hammond'
         };
 
         const findParentVenue = (bravoSlug, venueName) => {
@@ -686,15 +690,12 @@ function LiveGamesFeed({
         // then append unlocated at the end so the feed always has content.
         if (effectiveLocation && filterRadius !== 'any') {
             const located = list.filter(v => v.latitude && v.longitude);
-            const unlocated = list.filter(v => !v.latitude || !v.longitude);
             if (located.length > 0) {
                 // Distance-filter the venues we have coordinates for
-                const inRadius = located.filter(v => calcDist(v) <= Number(filterRadius));
-                // Append unlocated venues after the located ones so real live data is
-                // never hidden — user can scroll down to see them with "distance unknown"
-                list = [...inRadius, ...unlocated];
+                // We intentionally drop unlocated proxy venues if a local geofence is active,
+                // instead of dumping 150+ nationwide orphaned cardrooms into a 25mi city view.
+                list = located.filter(v => calcDist(v) <= Number(filterRadius));
             }
-            // If zero located venues exist, skip the filter — enrichment hasn't run yet
         }
 
         // 3. Filter by Game Type
