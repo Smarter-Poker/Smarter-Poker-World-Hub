@@ -79,6 +79,7 @@
     "react-confetti": "^6.4.0",
     "react-dom": "18.3.1",
     "react-hook-form": "^7.71.1",
+    "react-hot-toast": "^2.6.0",
     "react-onesignal": "^3.4.6",
     "react-player": "^3.4.0",
     "react-toastify": "^11.0.5",

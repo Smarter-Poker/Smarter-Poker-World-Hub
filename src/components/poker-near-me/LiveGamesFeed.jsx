@@ -506,9 +506,24 @@ function LiveGamesFeed({
         }
 
         // 4-layer parent venue finder: slug → stripped slug → decoded name → word overlap
+        // Hardcoded alias fallback for critical mismatches not correctly populated in poker_venues
+        const KNOWN_ALIASES = {
+            'grand-victoria-casino-elgin': 'grand-victoria-casino-il',
+            'rivers-casino-des-plaines': 'rivers-casino-il',
+            'wind-creek-chicago-southland': 'wind-creek-chicago-southland-il',
+            'rivers-casino-philadelphia': 'rivers-casino-philadelphia',
+            'rivers-casino-portsmouth': 'rivers-casino-portsmouth'
+        };
+
         const findParentVenue = (bravoSlug, venueName) => {
+            if (!bravoSlug && !venueName) return null;
+            
             // Layer 1: Exact slug match
             if (bravoSlug && venueBySlug[bravoSlug]) return venueBySlug[bravoSlug];
+            // Layer 1.5: Alias match 
+            if (bravoSlug && KNOWN_ALIASES[bravoSlug] && venueBySlug[KNOWN_ALIASES[bravoSlug]]) {
+                return venueBySlug[KNOWN_ALIASES[bravoSlug]];
+            }
             // Layer 2: Strip pa- prefix from bravo slug
             if (bravoSlug && bravoSlug.startsWith('pa-')) {
                 const stripped = bravoSlug.slice(3);

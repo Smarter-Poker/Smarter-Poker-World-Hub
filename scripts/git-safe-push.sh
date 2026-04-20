@@ -435,6 +435,31 @@ if [ "$DRY_RUN" = true ]; then
 fi
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# PHASE 2.4: NPM VERSION REGISTRY VALIDATION
+# ═══════════════════════════════════════════════════════════════════════════════
+# Catches `npm error notarget` / ETARGET BEFORE it hits Vercel.
+# Born from the 2026-04-19 deploy-failure chain where posthog-node@^4.20.0
+# and serialize-javascript@^6.1.2 (both invalid) broke 15+ consecutive prod
+# deploys. Only runs if package.json was changed in this commit.
+
+if git diff --name-only HEAD~1 HEAD 2>/dev/null | grep -q '^package\.json$'; then
+  if [ -f "scripts/verify-npm-versions.js" ]; then
+    echo ""
+    echo "🔎 Phase 2.4: npm version registry validation..."
+    if ! node scripts/verify-npm-versions.js --changed 2>&1; then
+      echo ""
+      echo "❌ NPM VERSION VALIDATION FAILED — Aborting push."
+      echo "   Invalid version specs would cause Vercel ETARGET on deploy."
+      echo "   Fix the offending specs above and re-run the push."
+      echo "PUSH_OK:false"
+      echo "REASON:npm_invalid_versions"
+      exit 2
+    fi
+    echo "✅ All npm version specs resolve against the registry"
+  fi
+fi
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # PHASE 2.5: BUILD GATE (optional)
 # ═══════════════════════════════════════════════════════════════════════════════
 

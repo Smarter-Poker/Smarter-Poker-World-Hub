@@ -108,6 +108,31 @@ function satisfies(version, range) {
     return cmpVersion(v, base) >= 0;
   }
 
+  // X.Y — npm treats bare "2.16" as "2.16.x" (>=2.16.0 <2.17.0)
+  if (/^\d+\.\d+$/.test(range)) {
+    const [maj, min] = range.split('.').map(Number);
+    return v.major === maj && v.minor === min;
+  }
+
+  // X — npm treats bare "2" as "2.x" (>=2.0.0 <3.0.0)
+  if (/^\d+$/.test(range)) {
+    const maj = Number(range);
+    return v.major === maj;
+  }
+
+  // X.Y.x / X.x — wildcard patch/minor
+  if (/^\d+\.\d+\.x$/i.test(range)) {
+    const [maj, min] = range.split('.').map((p) => Number(p));
+    return v.major === maj && v.minor === min;
+  }
+  if (/^\d+\.x(\.x)?$/i.test(range)) {
+    const maj = Number(range.split('.')[0]);
+    return v.major === maj;
+  }
+
+  // * / x — match any version
+  if (range === '*' || range.toLowerCase() === 'x') return true;
+
   // Exact pin
   const base = parseVersion(range);
   if (!base) return false;

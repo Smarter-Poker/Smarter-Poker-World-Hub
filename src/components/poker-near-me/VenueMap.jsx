@@ -776,15 +776,15 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
     // on every re-render where mapReady changed with an already-initialized map instance.
     const container = mapContainerRef.current;
 
-    // [VM3 FIX] Move listener attachment AFTER the early-return guard.
-    // Previous: listener added before guard, then if map already existed, returned a cleanup
-    // that only removed that listener. On re-mount with existing mapInstanceRef, listeners
-    // could accumulate if the effect re-ran before the cleanup ran.
+    // If a map instance somehow already exists on this container (e.g. Strict Mode),
+    // we MUST destroy it completely before recreating, otherwise Leaflet throws
+    // "Map container is already initialized."
     if (mapInstanceRef.current) {
-        container.addEventListener('click', handlePopupClicks);
-        return () => container.removeEventListener('click', handlePopupClicks);
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
     }
-    // New mount — add listener for this session (cleaned up in the full destructor below)
+
+    // New mount — add listener for this session
     container.addEventListener('click', handlePopupClicks);
 
     const L = window.L;
