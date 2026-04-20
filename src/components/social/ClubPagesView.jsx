@@ -98,6 +98,11 @@ export default function ClubPagesView({ C, pages, setPages, loading, setLoading,
                 if (sbKeys.length > 0) { const td = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}'); _token = td.access_token || null; }
             } catch { }
             if (!_token) return; // Skip — anonymous users only get localStorage state synced above
+
+            // Only venue/tour/series types are supported by /api/poker/follow
+            // home_game/charity/club are Club Social Pages — follows persist via ClubPageDashboard's own API
+            if (!['venue', 'tour', 'series'].includes(pageType)) return;
+
             await fetch('/api/poker/follow', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _token },
