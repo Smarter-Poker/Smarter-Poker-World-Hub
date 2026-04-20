@@ -635,9 +635,9 @@ export default function TourDetailPage() {
                 <div className="empty-state"><p>No stops announced yet.</p></div>
               )}
               <div className="series-grid">
-                {(allStops.length > 0 ? allStops : (tour.upcoming_series || [])).map((s, idx) => (
+                {(allStops.length > 0 ? allStops : []).map((s, idx) => (
                   <div
-                    key={idx}
+                    key={'db-' + idx}
                     className="series-card series-card-clickable"
                     onClick={() => setSelectedStop(s)}
                     role="button" tabIndex={0}
@@ -681,7 +681,7 @@ export default function TourDetailPage() {
                   };
                   return (
                     <div
-                      key={idx}
+                      key={'reg-' + idx}
                       className="series-card series-card-clickable"
                       onClick={() => setSelectedStop(stopShape)}
                       role="button" tabIndex={0}
