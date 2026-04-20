@@ -38,13 +38,15 @@ export default function LivesPage() {
     const containerRef = useRef(null);
     const videoRefs = useRef({});
 
+    // Expose user at component scope so render code can safely reference it
+    const user = typeof window !== 'undefined' ? getAuthUser() : null;
+
     // Get auth user for FeatureGate
     useEffect(() => {    const _c = new AbortController();
 
-        const user = getAuthUser();
         if (user) setUserId(user.id);
     return () => _c.abort();
-  }, []);
+  }, [user]);
 
     // ═══ ACTION GATE: Users can explore/watch, but interactions are gated ═══
     const { guardAction, UpgradePopup } = useFeatureGate('lives');
@@ -142,12 +144,12 @@ export default function LivesPage() {
         setLikeBusy(true);
         const wasLiked = likedStreams[currentStream.id];
         setLikedStreams(prev => ({ ...prev, [currentStream.id]: !wasLiked }));
-        const userId = typeof window !== 'undefined' ? localStorage.getItem('sp-anon-uid') : null;
-        if (userId) {
+        const localUserId = typeof window !== 'undefined' ? localStorage.getItem('sp-anon-uid') : null;
+        if (localUserId) {
             authedFetch('/api/social/interactions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ post_id: currentStream.id, user_id: userId, interaction_type: 'like' })
+                body: JSON.stringify({ post_id: currentStream.id, user_id: localUserId, interaction_type: 'like' })
             }).catch(() => {
                 setLikedStreams(prev => ({ ...prev, [currentStream.id]: wasLiked }));
             }).finally(() => setLikeBusy(false));
@@ -173,14 +175,14 @@ export default function LivesPage() {
 
     const submitChatMsg = async () => {
         if (!chatText.trim()) return;
-        const userId = typeof window !== 'undefined' ? localStorage.getItem('sp-anon-uid') : null;
-        if (!userId) return;
+        const localUserId = typeof window !== 'undefined' ? localStorage.getItem('sp-anon-uid') : null;
+        if (!localUserId) return;
         setSubmittingChat(true);
         try {
             const res = await authedFetch('/api/social/interactions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ post_id: currentStream.id, user_id: userId, interaction_type: 'comment', content: chatText.trim() })
+                body: JSON.stringify({ post_id: currentStream.id, user_id: localUserId, interaction_type: 'comment', content: chatText.trim() })
             });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
@@ -199,253 +201,156 @@ export default function LivesPage() {
         setShareBusy(true);
         const url = window.location.origin + '/hub/lives?id=' + currentStream.id;
         try {
-            await navigator.clipboard.writeText(url);
-            setShareMsg('Copied!');
-            setTimeout(() => setShareMsg(''), 2000);
-            const userId = typeof window !== 'undefined' ? localStorage.getItem('sp-anon-uid') : null;
-            if (userId) {
-                authedFetch('/api/social/interactions', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ post_id: currentStream.id, user_id: userId, interaction_type: 'share' })
-                }).catch(() => { }).finally(() => setShareBusy(false));
+            if (navigator.share) {
+                await navigator.share({ title: currentStream.title || 'Live Stream', url });
             } else {
-                setShareBusy(false);
+                await navigator.clipboard.writeText(url);
+                setShareMsg('Copied!');
+                setTimeout(() => setShareMsg(''), 2000);
             }
-        } catch {
-            setShareMsg('Failed');
-            setTimeout(() => setShareMsg(''), 2000);
-            setShareBusy(false);
-        }
+        } catch (e) { console.error('Share:', e); }
+        setShareBusy(false);
     };
 
-    // Reset chat when switching streams
-    useEffect(() => {    const _c = new AbortController();
+    // Loading state
+    if (loading) {
+        return (
+            <>
+                <SEOHead title="Lives | Smarter Poker" description="Watch live poker streams" />
+                <div style={{
+                    minHeight: '100vh', background: C.bg, display: 'flex',
+                    alignItems: 'center', justifyContent: 'center', color: C.text
+                }}>
+                    <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 40, marginBottom: 16, animation: 'pulse 1.5s infinite' }}>📡</div>
+                        <div style={{ fontSize: 16, color: C.textSec }}>Loading streams...</div>
+                    </div>
+                </div>
+            </>
+        );
+    }
 
-        setShowChat(false);
-        setChatMessages([]);
-        setChatText('');
-    return () => _c.abort();
-  }, [currentIndex]);
-  // Realtime subscription — live updates
-  useEffect(() => {
-    if (!user?.id) return;
-    const _ch = supabase
-      .channel(`lives:${user?.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'live_streams' }, () => {
-        loadStreams();
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(_ch); };
-  }, [user?.id]);
+    // Empty state
+    if (streams.length === 0) {
+        return (
+            <>
+                <SEOHead title="Lives | Smarter Poker" description="Watch live poker streams" />
+                <div style={{
+                    minHeight: '100vh', background: C.bg, display: 'flex',
+                    alignItems: 'center', justifyContent: 'center', color: C.text, padding: 20
+                }}>
+                    <div style={{ textAlign: 'center', maxWidth: 400 }}>
+                        <div style={{ fontSize: 60, marginBottom: 16 }}>📺</div>
+                        <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8 }}>No Streams Yet</h2>
+                        <p style={{ color: C.textSec, fontSize: 15, marginBottom: 24 }}>
+                            Be the first to go live! Start streaming your poker sessions.
+                        </p>
+                        <Link href="/hub" style={{
+                            display: 'inline-block', padding: '12px 24px',
+                            background: C.red, color: 'white', borderRadius: 12,
+                            fontWeight: 600, textDecoration: 'none'
+                        }}>
+                            Back to Hub
+                        </Link>
+                    </div>
+                </div>
+            </>
+        );
+    }
 
     return (
         <>
-            <SEOHead
-                title="Live Streams — Watch Poker Live"
-                description="Watch Live Poker Streams And Events. Follow Your Favorite Players And Catch The Action In Real Time."
-                canonical="/hub/lives"
-            />
+            <SEOHead title="Lives | Smarter Poker" description="Watch live poker streams" />
 
+                {/* Back Button */}
+                <div style={{
+                    position: 'absolute', top: 16, left: 16, zIndex: 100,
+                }}>
+                    <Link href="/hub" style={{
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        color: 'white', textDecoration: 'none', fontSize: 14,
+                        background: 'rgba(0,0,0,0.5)', padding: '8px 14px',
+                        borderRadius: 20, backdropFilter: 'blur(10px)'
+                    }}>
+                        ← Hub
+                    </Link>
+                </div>
+
+                {/* Main Swipe Container */}
                 <div
                     ref={containerRef}
                     onTouchStart={handleTouchStart}
                     onTouchEnd={handleTouchEnd}
                     onWheel={handleWheel}
                     style={{
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        background: C.bg,
-                        overflow: 'hidden',
+                        height: '100vh', width: '100vw', overflow: 'hidden',
+                        background: C.bg, position: 'relative',
                     }}
                 >
-                    {/* Header */}
-                    <div style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        padding: '16px 20px',
-                        background: 'linear-gradient(to bottom, rgba(0,0,0,0.8), transparent)',
-                        zIndex: 100,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                    }}>
-                        <button 
-                            onClick={() => router.back()}
-                            style={{ 
-                                width: 32, 
-                                height: 32, 
-                                background: 'none', 
-                                border: 'none', 
-                                color: 'white', 
-                                fontSize: 24, 
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                            }}
-                        >
-                            ←
-                        </button>
-                        <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'white' }}>
-                            🔴 Lives
-                        </h1>
-                        <div style={{ width: 32 }} />
-                    </div>
-
-                    {/* Loading State */}
-                    {loading && (
-                        <div style={{
-                            position: 'absolute',
-                            top: '50%',
-                            left: '50%',
-                            transform: 'translate(-50%, -50%)',
-                            color: 'white',
-                            textAlign: 'center',
-                        }}>
-                            <div style={{ fontSize: 40, marginBottom: 16 }}>📺</div>
-                            <div>Loading Streams...</div>
-                        </div>
-                    )}
-
-                    {/* Empty State */}
-                    {!loading && streams.length === 0 && (
-                        <div style={{
-                            position: 'absolute',
-                            top: '50%',
-                            left: '50%',
-                            transform: 'translate(-50%, -50%)',
-                            color: 'white',
-                            textAlign: 'center',
-                            padding: 40,
-                        }}>
-                            <div style={{ fontSize: 64, marginBottom: 20 }}>🔴</div>
-                            <h2 style={{ margin: '0 0 12px', fontSize: 24 }}>No Lives Yet</h2>
-                            <p style={{ color: C.textSec, margin: '0 0 24px' }}>
-                                Be the first to go live and share with the community!
-                            </p>
-                            <Link href="/hub/social-media" style={{
-                                display: 'inline-block',
-                                padding: '14px 28px',
-                                background: C.red,
-                                color: 'white',
-                                borderRadius: 8,
-                                fontWeight: 600,
-                                textDecoration: 'none',
-                            }}>
-                                Go Live Now
-                            </Link>
-                        </div>
-                    )}
-
-                    {/* Stream Videos */}
                     {streams.map((stream, idx) => (
                         <div
                             key={stream.id}
                             style={{
                                 position: 'absolute',
-                                top: 0,
-                                left: 0,
-                                right: 0,
-                                bottom: 0,
-                                transition: 'transform 0.3s ease-out, opacity 0.3s ease-out',
+                                top: 0, left: 0, width: '100%', height: '100%',
                                 transform: `translateY(${(idx - currentIndex) * 100}%)`,
-                                opacity: Math.abs(idx - currentIndex) <= 1 ? 1 : 0,
+                                transition: 'transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
                             }}
                         >
-                            {/* Video Player */}
+                            {/* Video/Thumbnail */}
                             {stream.video_url ? (
                                 <video
-                                    ref={el => videoRefs.current[idx] = el}
+                                    ref={el => { if (el) videoRefs.current[idx] = el; }}
                                     src={stream.video_url}
-                                    poster={stream.thumbnail_url}
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                     loop
                                     muted
                                     playsInline
-                                    style={{
-                                        width: '100%',
-                                        height: '100%',
-                                        objectFit: 'contain',
-                                        background: '#000',
-                                    }}
-                                    onClick={(e) => {
-                                        // Toggle play/pause on tap
-                                        if (e.target.paused) {
-                                            e.target.play();
-                                        } else {
-                                            e.target.pause();
-                                        }
-                                    }}
                                 />
-                            ) : stream.thumbnail_url ? (
-                                <img
-                                    src={stream.thumbnail_url}
-                                    alt={stream.title}
-                                    style={{
-                                        width: '100%',
-                                        height: '100%',
-                                        objectFit: 'contain',
-                                    }}
-                                 loading="lazy" />
                             ) : (
                                 <div style={{
-                                    width: '100%',
-                                    height: '100%',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    color: C.textSec,
-                                    fontSize: 60,
+                                    width: '100%', height: '100%',
+                                    background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    flexDirection: 'column', gap: 16,
                                 }}>
-                                    📺
+                                    <div style={{ fontSize: 60 }}>{stream.isLive ? '🔴' : '📹'}</div>
+                                    <div style={{ color: 'white', fontSize: 18, fontWeight: 600 }}>
+                                        {stream.title || 'Stream'}
+                                    </div>
                                 </div>
                             )}
 
                             {/* Live Badge */}
                             {stream.isLive && (
                                 <div style={{
-                                    position: 'absolute',
-                                    top: 70,
-                                    left: 20,
-                                    background: C.red,
-                                    color: 'white',
-                                    padding: '6px 12px',
-                                    borderRadius: 6,
-                                    fontSize: 14,
-                                    fontWeight: 700,
-                                    animation: 'pulse 1.5s infinite',
+                                    position: 'absolute', top: 60, left: 16,
+                                    background: C.red, color: 'white',
+                                    padding: '4px 12px', borderRadius: 4,
+                                    fontSize: 12, fontWeight: 700, letterSpacing: 1,
                                 }}>
-                                    🔴 LIVE
+                                    ● LIVE
                                 </div>
                             )}
 
                             {/* Bottom Info Overlay */}
                             <div style={{
                                 position: 'absolute',
-                                bottom: 0,
-                                left: 0,
-                                right: 80, // Leave room for action buttons
-                                padding: '40px 20px',
-                                background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)',
+                                bottom: 80,
+                                left: 12,
+                                right: 80,
+                                zIndex: 10,
                             }}>
                                 {/* Broadcaster Info */}
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                                    <img
-                                        src={stream.profiles?.avatar_url || '/avatars/default.png'}
-                                        alt={stream.profiles?.username}
-                                        style={{
-                                            width: 44,
-                                            height: 44,
-                                            borderRadius: '50%',
-                                            border: '2px solid white',
-                                            objectFit: 'cover',
-                                        }}
-                                     loading="lazy" />
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                                    <div style={{
+                                        width: 40, height: 40, borderRadius: '50%',
+                                        background: 'rgba(255,255,255,0.2)',
+                                        backgroundImage: stream.profiles?.avatar_url ? `url(${stream.profiles.avatar_url})` : 'none',
+                                        backgroundSize: 'cover',
+                                        border: stream.isLive ? `2px solid ${C.red}` : '2px solid rgba(255,255,255,0.3)',
+                                    }} />
                                     <div>
                                         <div style={{ fontWeight: 700, color: 'white', fontSize: 16 }}>
                                             @{stream.profiles?.username || 'Unknown'}
@@ -493,7 +398,7 @@ export default function LivesPage() {
                                     alignItems: 'center',
                                     gap: 4,
                                 }}>
-                                    {likedStreams[stream.id] ? '' : ''}
+                                    {likedStreams[stream.id] ? '❤️' : '🤍'}
                                     <span style={{ fontSize: 12 }}>{likedStreams[stream.id] ? 'Liked' : 'Like'}</span>
                                 </button>
 
@@ -509,7 +414,7 @@ export default function LivesPage() {
                                     alignItems: 'center',
                                     gap: 4,
                                 }}>
-
+                                    💬
                                     <span style={{ fontSize: 12 }}>Chat</span>
                                 </button>
 
@@ -525,7 +430,7 @@ export default function LivesPage() {
                                     alignItems: 'center',
                                     gap: 4,
                                 }}>
-
+                                    🔗
                                     <span style={{ fontSize: 12 }}>{shareMsg || 'Share'}</span>
                                 </button>
                             </div>
