@@ -1557,7 +1557,7 @@ export default function PokerNearMeLobby() {
   // would throw ReferenceError at runtime.
   const getAuthToken = useCallback(async () => {
     try {
-      const { data } = await supabase.auth.getSession();
+      const { data } = await getAuthUser();
       return data?.session?.access_token || null;
     } catch {
       return null;
@@ -1568,7 +1568,7 @@ export default function PokerNearMeLobby() {
   const handleToggleFavorite = useCallback(async (id, dataObj, type = 'venue') => {
     if (!userId && type === 'venue') return; // Venues currently require userId for PG tables
     // [LB6 FIX] Was window.__supabaseToken — bypassed SDK auth, silent failure if undefined.
-    // Now uses supabase.auth.getSession() via getAuthToken() helper for reliable JWT retrieval.
+    // Now uses getAuthUser() via getAuthToken() helper for reliable JWT retrieval.
     const token = type !== 'venue' ? await getAuthToken() : null;
     if (!token && type !== 'venue') return; // Series/Tours follow API requires JWT
     
