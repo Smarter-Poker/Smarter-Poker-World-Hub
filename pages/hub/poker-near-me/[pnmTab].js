@@ -2290,7 +2290,7 @@ export default function PokerNearMePage({ initialTab }) {
                 if (typeof window !== 'undefined') {
                     // Update URL to clean format and drop query
                     const cleanUrl = '/hub/poker-near-me/live-games' + (qParam ? '?q=' + qParam : '');
-                    window.history.replaceState({}, '', cleanUrl);
+                    window.history.replaceState({ ...window.history.state, as: cleanUrl, url: cleanUrl }, '', cleanUrl);
                 }
             } else if (TAB_ORDER.includes(internalTab) || internalTab === 'events' || internalTab === 'more') {
                 setShowLiveTab(false); // Reset live tab when navigating to any other tab
