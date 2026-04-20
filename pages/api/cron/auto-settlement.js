@@ -104,14 +104,16 @@ export default async function handler(req, res) {
     const unlockAt = new Date(now.getTime() + 10 * 60 * 1000); // +10 minutes
 
     // Expire any stale locks first
-    await supabaseAdmin.rpc('expire_settlement_locks').catch(() => {
+    try {
+      await supabaseAdmin.rpc('expire_settlement_locks');
+    } catch {
       // RPC may not exist yet, manual fallback
-      return supabaseAdmin
+      await supabaseAdmin
         .from('settlement_locks')
         .update({ is_active: false, unlocked_at: now.toISOString() })
         .eq('is_active', true)
         .lt('unlock_at', now.toISOString());
-    });
+    }
 
     // Create settlement locks for all clubs
     for (const club of clubs) {

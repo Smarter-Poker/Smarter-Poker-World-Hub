@@ -134,7 +134,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
             {/* Avatar */}
             {!isOwn && (
                 showAvatar ? (
-                    <Avatar src={sender?.avatar_url} name={sender?.username} size={28} showOnline={false} />
+                    <img src={sender?.avatar_url || '/default-avatar.png'} alt={sender?.username || 'User'} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} loading="lazy" />
                 ) : (
                     <div style={{ width: 28 }} />
                 )

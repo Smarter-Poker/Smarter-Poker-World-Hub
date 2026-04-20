@@ -538,9 +538,8 @@ function RangeGridSection({ rawFrequencies, heroHand, actions, board, heroPositi
         return { heroEquity: Math.max(15, Math.min(85, heroEq)), villainEquity: Math.max(15, Math.min(85, 100 - heroEq)) };
     }, [gridData]);
 
-    if (!gridData || Object.keys(gridData).length === 0) return null;
-
     // ═══ PHASE 21: Build gridData for BlockerScorePanel (13x13 with cell.actions) ═══
+    // Must be before early return to satisfy Rules of Hooks
     const blockerGridData = useMemo(() => {
         if (!gridData) return null;
         const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
@@ -559,6 +558,8 @@ function RangeGridSection({ rawFrequencies, heroHand, actions, board, heroPositi
         }
         return grid;
     }, [gridData]);
+
+    if (!gridData || Object.keys(gridData).length === 0) return null;
 
     return (
         <motion.div

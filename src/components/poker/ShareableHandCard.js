@@ -25,19 +25,17 @@ export default function ShareableHandCard({ hand, onClose }) {
     const [copied, setCopied] = useState(false);
     const [sharing, setSharing] = useState(false);
 
-    if (!hand) return null;
-
-    // Build the OG image URL
+    // Build the OG image URL (safe to call even if hand is null — hooks must always run)
     const params = new URLSearchParams({
-        hero: (hand.heroCards || []).join(','),
-        board: (hand.board || []).join(','),
-        result: hand.result || 'Played',
-        amount: hand.amount || '$0',
-        stakes: hand.stakes || 'Cash Game',
-        venue: hand.venue || 'Live Poker',
-        pot: hand.pot || '$0',
-        player: hand.playerName || 'Smarter.Poker Player',
-        hand: hand.handName || '',
+        hero: (hand?.heroCards || []).join(','),
+        board: (hand?.board || []).join(','),
+        result: hand?.result || 'Played',
+        amount: hand?.amount || '$0',
+        stakes: hand?.stakes || 'Cash Game',
+        venue: hand?.venue || 'Live Poker',
+        pot: hand?.pot || '$0',
+        player: hand?.playerName || 'Smarter.Poker Player',
+        hand: hand?.handName || '',
     });
 
     const imageUrl = `/api/og/hand-card?${params.toString()}`;
@@ -66,8 +64,8 @@ export default function ShareableHandCard({ hand, onClose }) {
             setSharing(true);
             try {
                 await navigator.share({
-                    title: `${hand.result || 'Hand'} at ${hand.venue || 'Poker'}`,
-                    text: `Check out my ${hand.handName || 'hand'} — ${hand.amount || ''} at ${hand.stakes || 'cash game'}!`,
+                    title: `${hand?.result || 'Hand'} at ${hand?.venue || 'Poker'}`,
+                    text: `Check out my ${hand?.handName || 'hand'} — ${hand?.amount || ''} at ${hand?.stakes || 'cash game'}!`,
                     url: shareUrl,
                 });
             } catch { }
@@ -91,6 +89,9 @@ export default function ShareableHandCard({ hand, onClose }) {
             console.error('[ShareCard] Download failed:', err);
         }
     }, [imageUrl]);
+
+    // Early return AFTER all hooks — never before
+    if (!hand) return null;
 
     return (
         <div

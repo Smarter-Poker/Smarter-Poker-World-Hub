@@ -969,6 +969,11 @@ function ReelViewer({ reels, startIndex, onClose }) {
     handleSaveRef.current = handleSave;
     handleCommentsRef.current = handleToggleComments;
 
+    // Cleanup RAF on unmount to prevent memory leak — must be before early return
+    useEffect(() => {
+        return () => { if (progressRAF.current) cancelAnimationFrame(progressRAF.current); };
+    }, []);
+
     // Keyboard navigation
     useEffect(() => {
         const handleKey = (e) => {
@@ -1065,11 +1070,6 @@ function ReelViewer({ reels, startIndex, onClose }) {
         }
         progressRAF.current = requestAnimationFrame(updateProgress);
     };
-
-    // Cleanup RAF on unmount to prevent memory leak
-    useEffect(() => {
-        return () => { if (progressRAF.current) cancelAnimationFrame(progressRAF.current); };
-    }, []);
 
     return (
         <div

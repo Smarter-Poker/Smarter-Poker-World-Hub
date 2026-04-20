@@ -220,20 +220,24 @@ export default async function handler(req, res) {
                     .eq('invoice_type', 'agent_to_player')
                     .eq('to_entity_id', dist.player_user_id);
 
-                  // Notify player
-                  await getSupabaseAdmin().from('notifications').insert({
-                    user_id: dist.player_user_id,
-                    type: 'rakeback',
-                    title: '💰 Rakeback Received!',
-                    message: `You received ${dist.rakeback_amount.toLocaleString()} chips rakeback (${(dist.rakeback_percentage * 100).toFixed(1)}% of your ${dist.player_rake_contributed.toLocaleString()} rake). Chips added to your balance!`,
-                    data: {
-                      club_id: clubId,
-                      period_id: dist.period_id,
-                      rakeback_amount: dist.rakeback_amount,
-                      agent_user_id: agentUserId,
-                    },
-                    read: false,
-                  }).catch(e => console.error('[rakeback-notify] Error:', e.message));
+                  // Notify player (best-effort)
+                  try {
+                    await getSupabaseAdmin().from('notifications').insert({
+                      user_id: dist.player_user_id,
+                      type: 'rakeback',
+                      title: '💰 Rakeback Received!',
+                      message: `You received ${dist.rakeback_amount.toLocaleString()} chips rakeback (${(dist.rakeback_percentage * 100).toFixed(1)}% of your ${dist.player_rake_contributed.toLocaleString()} rake). Chips added to your balance!`,
+                      data: {
+                        club_id: clubId,
+                        period_id: dist.period_id,
+                        rakeback_amount: dist.rakeback_amount,
+                        agent_user_id: agentUserId,
+                      },
+                      read: false,
+                    });
+                  } catch (notifyErr) {
+                    console.error('[rakeback-notify] Error:', notifyErr.message);
+                  }
 
                   agentTotalDeducted += dist.rakeback_amount;
                   playersDistributed++;
@@ -252,8 +256,8 @@ export default async function handler(req, res) {
                 }
               }
 
-              // Notify agent of distributions
-              if (agentTotalDeducted > 0) {
+              // Notify agent (best-effort)
+              try {
                 await getSupabaseAdmin().from('notifications').insert({
                   user_id: agentUserId,
                   type: 'rakeback_sent',
@@ -265,9 +269,10 @@ export default async function handler(req, res) {
                     player_count: playersDistributed,
                   },
                   read: false,
-                }).catch(e => console.error('[rakeback-agent-notify] Error:', e.message));
-
+                });
                 results.messages_sent++;
+              } catch (notifyErr) {
+                console.error('[rakeback-agent-notify] Error:', notifyErr.message);
               }
 
             } catch (agentErr) {
@@ -361,6 +366,7 @@ export default async function handler(req, res) {
       }
 
       results.phase = 'failed';
+      results.fatal_error = err?.message || String(err);
       results.duration_ms = Date.now() - startTime;
       return res.status(500).json({ error: 'Distribution failed', results });
     }

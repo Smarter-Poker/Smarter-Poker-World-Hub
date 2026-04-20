@@ -117,11 +117,15 @@ export default async function handler(req, res) {
 // ─── Helpers ────────────────────────────────────────────────────────
 
 function getBaseUrl(req) {
-  // In Vercel, use the deployment URL
+  // Prefer explicit site URL env var — always the canonical production domain
+  if (process.env.NEXT_PUBLIC_SITE_URL) {
+    return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, '');
+  }
+  // VERCEL_URL is the deployment-specific subdomain (not smarter.poker) — only use as last resort
   if (process.env.VERCEL_URL) {
     return `https://${process.env.VERCEL_URL}`;
   }
-  // Fallback: construct from request headers
+  // Local dev: construct from request headers
   const proto = req.headers['x-forwarded-proto'] || 'http';
   const host = req.headers.host || 'localhost:3000';
   return `${proto}://${host}`;

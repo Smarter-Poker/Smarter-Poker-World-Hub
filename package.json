@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
+    "@eslint/eslintrc": "^3.3.5",
     "@fingerprintjs/fingerprintjs": "^5.0.1",
     "@livekit/components-react": "^2.9.19",
     "@livekit/components-styles": "^1.2.0",
