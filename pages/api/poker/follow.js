@@ -192,9 +192,11 @@ async function handlePost(req, res) {
     if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
     const userId = authUser.id;
 
-    // Validate inputs
     if (!page_type || !page_id) {
         return res.status(400).json({ success: false, error: 'page_type and page_id are required' });
+    }
+    if (typeof page_type !== 'string' || (typeof page_id !== 'string' && typeof page_id !== 'number')) {
+        return res.status(400).json({ success: false, error: 'Invalid input types' });
     }
     if (!['venue', 'tour', 'series'].includes(page_type)) {
         return res.status(400).json({ success: false, error: 'page_type must be venue, tour, or series' });
@@ -250,7 +252,7 @@ async function handlePost(req, res) {
         }
 
         // Cross-sync to social page followers (best-effort)
-        syncToSocialPageFollowers(userId, page_type, pageIdStr, 'follow');
+        await syncToSocialPageFollowers(userId, page_type, pageIdStr, 'follow');
 
         return res.status(200).json({
             success: true,
@@ -274,7 +276,7 @@ async function handlePost(req, res) {
         }
 
         // Cross-sync to social page followers (best-effort)
-        syncToSocialPageFollowers(userId, page_type, pageIdStr, 'unfollow');
+        await syncToSocialPageFollowers(userId, page_type, pageIdStr, 'unfollow');
 
         return res.status(200).json({
             success: true,

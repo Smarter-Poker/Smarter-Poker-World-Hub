@@ -3209,7 +3209,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                         <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>Live Games</h2>
                         <p style={{ margin: '2px 0 0', fontSize: 13, opacity: 0.8 }}>{pageName || 'Club Games'}</p>
                     </div>
-                    {onClose && <button onClick={() => router.back()} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.15)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>← Back</button>}
+                    {onClose && <button onClick={() => onClose ? onClose() : router.back()} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.15)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>← Back</button>}
                 </div>
 
                 {/* Follow Status Banner */}
