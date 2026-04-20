@@ -242,11 +242,13 @@ export default async function handler(req, res) {
 
               if (response.ok) break;
 
-              // Non-retryable status codes — return a friendly HTML fallback instead of raw JSON
+              // Non-retryable status codes — return a friendly HTML fallback instead of raw JSON.
+              // Return HTTP 200 so the iframe can render it: Next.js global X-Frame-Options: DENY
+              // overrides our SAMEORIGIN setHeader for non-2xx responses, blocking the iframe.
               if ([403, 404, 451].includes(response.status)) {
                   res.setHeader('Content-Type', 'text/html; charset=utf-8');
                   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-                  return res.status(response.status).send(buildBlockedFallback(targetUrl, response.status));
+                  return res.status(200).send(buildBlockedFallback(targetUrl, response.status));
               }
 
               lastError = new Error(`HTTP ${response.status}`);

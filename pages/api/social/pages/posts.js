@@ -38,7 +38,13 @@ export default async function handler(req, res) {
 
 
       if (req.method === 'GET') {
-          const { page_id, author_id, user_id, pinned_only, limit = '20', offset = '0' } = req.query;
+          const safeP = (v) => Array.isArray(v) ? v[0] : v;
+          const page_id = safeP(req.query.page_id);
+          const author_id = safeP(req.query.author_id);
+          const user_id = safeP(req.query.user_id);
+          const pinned_only = safeP(req.query.pinned_only);
+          const limit = Math.min(parseInt(safeP(req.query.limit)) || 20, 100);
+          const offset = Math.min(Math.max(parseInt(safeP(req.query.offset)) || 0, 0), 10000);
 
           if (!page_id && !author_id) {
               return res.status(400).json({ success: false, error: 'page_id or author_id required' });
@@ -58,7 +64,7 @@ export default async function handler(req, res) {
           query = query
               .order('is_pinned', { ascending: false })
               .order('created_at', { ascending: false })
-              .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
+              .range(offset, offset + limit - 1);
 
           const { data, error } = await query;
           if (error) return res.status(500).json({ success: false, error: error.message });
