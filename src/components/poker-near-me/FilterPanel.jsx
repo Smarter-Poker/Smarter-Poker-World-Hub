@@ -38,9 +38,7 @@ const RADIUS_OPTIONS = [
     { value: 25, label: '25 Miles' },
     { value: 50, label: '50 Miles' },
     { value: 100, label: '100 Miles' },
-    { value: 200, label: '200 Miles' },
-    { value: 250, label: '250 Miles' },
-    { value: 500, label: '500 Miles' },
+    { value: 150, label: '150 Miles' },
     { value: 'any', label: 'Any Distance' }
 ];
 
@@ -61,11 +59,16 @@ export default function FilterPanel({
             return filters || { gameType: 'all', stakes: 'all', venueType: 'all', radius: 50, hasLiveGames: false, hasTournaments: false };
         }
         const savedFilters = loadFilters('fp', {});
+        // Cap saved radius at 150 miles to prevent stale over-range values from persisting
+        const rawRadius = savedFilters.radius;
+        const safeRadius = rawRadius && rawRadius !== 'any'
+            ? Math.min(parseInt(rawRadius) || 50, 150)
+            : (rawRadius || 50);
         return filters || {
             gameType: savedFilters.gameType || 'all',
             stakes: savedFilters.stakes || 'all',
             venueType: savedFilters.venueType || 'all',
-            radius: savedFilters.radius || 50,
+            radius: safeRadius,
             hasLiveGames: savedFilters.hasLiveGames || false,
             hasTournaments: savedFilters.hasTournaments || false
         };

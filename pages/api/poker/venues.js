@@ -53,6 +53,46 @@ function resolveStateAbbrev(term) {
     return STATE_NAME_TO_ABBREV[term.toLowerCase()] || null;
 }
 
+// --- Built-in city geocoding lookup for cross-state radius searches ---
+// Keyed as "city, state" (lowercase). Used when user searches by city name without GPS.
+const BUILTIN_CITY_COORDS = {
+    'las vegas, nv':   { lat: 36.1699, lng: -115.1398 },
+    'los angeles, ca': { lat: 34.0522, lng: -118.2437 },
+    'phoenix, az':     { lat: 33.4484, lng: -112.0740 },
+    'houston, tx':     { lat: 29.7604, lng: -95.3698 },
+    'miami, fl':       { lat: 25.7617, lng: -80.1918 },
+    'new york, ny':    { lat: 40.7128, lng: -74.0060 },
+    'chicago, il':     { lat: 41.8781, lng: -87.6298 },
+    'denver, co':      { lat: 39.7392, lng: -104.9903 },
+    'atlanta, ga':     { lat: 33.7490, lng: -84.3880 },
+    'seattle, wa':     { lat: 47.6062, lng: -122.3321 },
+    'san francisco, ca': { lat: 37.7749, lng: -122.4194 },
+    'dallas, tx':      { lat: 32.7767, lng: -96.7970 },
+    'orlando, fl':     { lat: 28.5383, lng: -81.3792 },
+    'san diego, ca':   { lat: 32.7157, lng: -117.1611 },
+    'tampa, fl':       { lat: 27.9506, lng: -82.4572 },
+    'portland, or':    { lat: 45.5051, lng: -122.6750 },
+    'nashville, tn':   { lat: 36.1627, lng: -86.7816 },
+    'austin, tx':      { lat: 30.2672, lng: -97.7431 },
+    'new orleans, la': { lat: 29.9511, lng: -90.0715 },
+    'philadelphia, pa':{ lat: 39.9526, lng: -75.1652 },
+    'detroit, mi':     { lat: 42.3314, lng: -83.0458 },
+    'minneapolis, mn': { lat: 44.9778, lng: -93.2650 },
+    'boston, ma':      { lat: 42.3601, lng: -71.0589 },
+    'sacramento, ca':  { lat: 38.5816, lng: -121.4944 },
+    'reno, nv':        { lat: 39.5296, lng: -119.8138 },
+    'atlantic city, nj': { lat: 39.3643, lng: -74.4229 },
+    'biloxi, ms':      { lat: 30.3960, lng: -88.8853 },
+    'tunica, ms':      { lat: 34.6851, lng: -90.3837 },
+    'oklahoma city, ok': { lat: 35.4676, lng: -97.5164 },
+    'kansas city, mo': { lat: 39.0997, lng: -94.5786 },
+    'cleveland, oh':   { lat: 41.4993, lng: -81.6944 },
+    'cincinnati, oh':  { lat: 39.1031, lng: -84.5120 },
+    'pittsburgh, pa':  { lat: 40.4406, lng: -79.9959 },
+    'shreveport, la':  { lat: 32.5252, lng: -93.7502 },
+    'henderson, nv':   { lat: 36.0395, lng: -114.9817 },
+};
+
 // --- In-memory cache for JSON venue data with Map index ---
 const CACHE_TTL = 60000; // 60 seconds
 let _jsonVenueCache = null;
@@ -509,6 +549,23 @@ export default async function handler(req, res) {
           // Used to include no-coordinate venues from the same state when GPS browsing.
           const user_state = safeStr(req.query.user_state);
 
+          // [GEOFENCE FIX] City-search auto-geocoding:
+          // If no GPS (lat/lng) was provided but search looks like "City, State",
+          // resolve the city to built-in coordinates so the bounding-box filter
+          // can capture cross-state venues (e.g. "Chicago, IL" → include Hammond IN).
+          let effectiveLat = lat;
+          let effectiveLng = lng;
+          let effectiveRadius = radius;
+          if (!lat && !lng && search) {
+              const rawSearch = search.trim().toLowerCase().replace(/[()'",;]/g, '');
+              const cityCoords = BUILTIN_CITY_COORDS[rawSearch];
+              if (cityCoords) {
+                  effectiveLat = String(cityCoords.lat);
+                  effectiveLng = String(cityCoords.lng);
+                  effectiveRadius = effectiveRadius || '50'; // default 50mi for city searches
+              }
+          }
+
 
           const maxResults = Math.min(parseInt(limit, 10) || 1000, 1000);
           const offset = parseInt(req.query.offset, 10) || 0;
@@ -695,13 +752,13 @@ export default async function handler(req, res) {
                           const cityPart = cityStateMatch[1].trim();
                           const statePart = cityStateMatch[2].trim();
                           const stateAbbrev = resolveStateAbbrev(statePart);
-                          // [GEOFENCE FIX] When GPS+radius is active alongside a city,state search,
-                          // only filter by city name — NOT state. This prevents cross-state venues
-                          // (e.g. "Chicago, IL" search excluding Hammond IN) from being dropped.
-                          // The distance filter handles the actual radius cutoff.
-                          if (lat && lng && radius) {
-                              // GPS active: name or city match — don't restrict to a single state
-                              q = q.or(`name.ilike.%${cityPart}%,city.ilike.%${cityPart}%`);
+                          // [GEOFENCE FIX] When we have effective coordinates (from real GPS OR auto-geocoded
+                          // from city name), skip the state filter entirely — let the bounding box + distance
+                          // filter handle inclusion. This allows cross-state venues within the radius to appear.
+                          if (effectiveLat && effectiveLng) {
+                              // GPS or auto-geocoded: bounding box already applied above. No state restriction.
+                              // Only apply if the city name doesn't include specific venue names.
+                              // If it's truly a city search, don't restrict by city name either (bounding box handles it)
                           } else {
                               q = q.ilike('city', `%${cityPart}%`);
                               if (stateAbbrev) q = q.ilike('state', stateAbbrev);

@@ -10,7 +10,7 @@ const VenueCard = dynamic(() => import('./VenueCard'), { ssr: false });
 const VenueMap = dynamic(() => import('./VenueMap'), { ssr: false });
 const RichTourCard = dynamic(() => import('./RichTourCard'), { ssr: false });
 
-const RADIUS_TIERS = [50, 100, 200, 500];
+const RADIUS_TIERS = [50, 100, 150]; // max 150mi matches lobby + API caps
 
 export default function VenuesTabPanel({
     venues,

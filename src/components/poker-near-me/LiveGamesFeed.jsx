@@ -235,11 +235,16 @@ function LiveGamesFeed({
     // If globalFilters are provided by the parent, use them. Otherwise, fall back to internal local state.
     const [internalFilterState, setInternalFilterState] = useState(savedFilters.filterState || 'all');
     const [internalFilterRadius, setInternalFilterRadius] = useState(() => {
-        if (savedFilters.filterRadius && savedFilters.filterRadius !== 'any') return savedFilters.filterRadius;
-        const hasLocation = !!(userLocation) || !!(typeof window !== 'undefined' && (
-            localStorage.getItem('sp-user-gps') || (localStorage.getItem('pnm_last_location') && localStorage.getItem('pnm_location_enabled') === '1')
-        ));
-        return hasLocation ? '50' : 'any';
+        // Cap any persisted radius at 150 miles — old localStorage may hold stale values (250, 500)
+        const raw = savedFilters.filterRadius;
+        if (!raw || raw === 'any') {
+            const hasLocation = !!(userLocation) || !!(typeof window !== 'undefined' && (
+                localStorage.getItem('sp-user-gps') || (localStorage.getItem('pnm_last_location') && localStorage.getItem('pnm_location_enabled') === '1')
+            ));
+            return hasLocation ? '50' : 'any';
+        }
+        const parsed = Number(raw);
+        return isNaN(parsed) ? '50' : String(Math.min(parsed, 150));
     });
     const [internalFilterSort, setInternalFilterSort] = useState(savedFilters.filterSort || 'distance');
     const [internalFilterGameType, setInternalFilterGameType] = useState(savedFilters.filterGameType || 'all');
