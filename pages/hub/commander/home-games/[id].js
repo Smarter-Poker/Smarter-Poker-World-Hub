@@ -331,7 +331,15 @@ export default function HomeGameDetailPage() {
         setRsvps(prev => ({ ...prev, [event.id]: status }));
         fetchGroup();
       } else {
-        toast.error(data.error?.message || data.error || 'Failed to RSVP');
+        const errCode = data.error?.code || data.error;
+        if (errCode === 'GAME_STARTED') {
+          toast.error('This game started already — messaging the host');
+          setTimeout(() => {
+            if (data.dm_url) router.push(data.dm_url);
+          }, 1500);
+        } else {
+          toast.error(data.error?.message || data.error || 'Failed to RSVP');
+        }
       }
     } catch (error) {
       console.error('RSVP failed:', error);
