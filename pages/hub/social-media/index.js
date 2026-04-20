@@ -3674,6 +3674,8 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
         try {
             const _token = getAccessToken();
             if (!_token) return; // Anonymous users: localStorage-only follow (no server persistence)
+            // Only venue/tour/series supported by /api/poker/follow — home_game/charity/club skip server persist
+            if (!['venue', 'tour', 'series'].includes(pageType)) return;
             await fetch('/api/poker/follow', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _token },
