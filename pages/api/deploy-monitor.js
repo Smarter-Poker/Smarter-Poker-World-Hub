@@ -849,7 +849,7 @@ Manual intervention needed. Check the Vercel build: https://vercel.com/smarter-p
     await createAlertIssue(
       `deploy-monitor threw an exception — ${new Date().toISOString().slice(0, 10)}`,
       `The monitor handler threw during webhook processing. Check Vercel runtime logs.\n\nError: \`${err.message || 'unknown'}\`\nStack:\n\`\`\`\n${(err.stack || '').substring(0, 2000)}\n\`\`\``,
-      { alertKey: `monitor_exception_${commitSha.substring(0, 8)}`, ghPat: process.env.GH_PAT }
+      { alertKey: `monitor_exception_fallback`, ghPat: process.env.GH_PAT }
     );
     return res.status(500).json({
       error: err.message || 'Internal server error',

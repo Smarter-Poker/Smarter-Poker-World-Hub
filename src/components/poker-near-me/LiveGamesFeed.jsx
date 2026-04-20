@@ -293,6 +293,7 @@ function LiveGamesFeed({
     const [expandedBreakdowns, setExpandedBreakdowns] = useState({});
     
     const debounceTimerRef = useRef(null);
+    const busEmitDebounceRef = useRef(null);
     const countdownRef = useRef(null);
     // FIX: locationAppliedRef was used in handleResetFilters (line 699) but never declared.
     // Without this, handleResetFilters() throws a ReferenceError in strict mode / React 18.
@@ -475,13 +476,17 @@ function LiveGamesFeed({
                 });
 
                 // Notify rest of platform (Game Trends & Heatmaps) of instantaneous change via EventBus
-                // (Without this, external peers wait up to 2 mins for standard polling refresh loop)
-                busEmit.dataMutated('live_tables');
+                // DEBOUNCED: Prevents DDOSing companion API routes during rapid batch mutations
+                if (busEmitDebounceRef.current) clearTimeout(busEmitDebounceRef.current);
+                busEmitDebounceRef.current = setTimeout(() => {
+                    busEmit.dataMutated('live_tables');
+                }, 1500);
             })
             .subscribe();
 
         return () => { 
             if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+            if (busEmitDebounceRef.current) clearTimeout(busEmitDebounceRef.current);
             if (liveChannel) supabase.removeChannel(liveChannel);
         };
     }, [fetchGlobalLiveData]);
