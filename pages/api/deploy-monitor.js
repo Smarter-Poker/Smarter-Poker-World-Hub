@@ -722,6 +722,7 @@ https://vercel.com/smarter-poker/hub-vanguard/deployments`,
         deploymentId,
         buildErrors,
         attempt: attempts + 1,
+        branch: branchName,
       }),
     }, 55000);
 
