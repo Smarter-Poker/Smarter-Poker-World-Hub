@@ -80,7 +80,8 @@ export default async function handler(req, res) {
             if (!applyRateLimit(req, res, LIMITS.read)) return;
             res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
 
-            const { venue_id } = req.query;
+            const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+            const venue_id = safeQ(req.query.venue_id);
             if (!venue_id) {
                 return res.status(400).json({ success: false, error: 'Missing venue_id' });
             }
@@ -217,7 +218,9 @@ export default async function handler(req, res) {
             const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
             if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-            const { id: deleteId, venue_id } = req.query;
+            const safeQD = (v) => Array.isArray(v) ? v[0] : v;
+            const deleteId = safeQD(req.query.id);
+            const venue_id = safeQD(req.query.venue_id);
             if (!deleteId) {
                 return res.status(400).json({ success: false, error: 'Missing id parameter' });
             }
