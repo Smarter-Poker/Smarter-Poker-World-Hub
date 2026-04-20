@@ -184,9 +184,19 @@ function MemberRow({ member, isHost, onApprove, onRemove }) {
       </div>
 
       {isHost && (
-        <span className="px-2 py-1 bg-[#22D3EE]/10 text-[#22D3EE] text-xs font-medium rounded">
+        <span className="px-2 py-1 bg-[#22D3EE]/10 text-[#22D3EE] text-xs font-medium rounded mr-2">
           Host
         </span>
+      )}
+
+      {onMessage && (
+        <button
+          onClick={() => onMessage(member.user_id)}
+          className="p-2 mr-2 bg-[#132240] rounded-lg text-[#22D3EE] hover:bg-[#1E3A5F] transition-colors"
+          title="Message Player"
+        >
+          <MessageSquare className="w-4 h-4" />
+        </button>
       )}
 
       {isPending && (
@@ -240,6 +250,31 @@ export default function ManageHomeGamePage() {
   const [rsvpLoading, setRsvpLoading] = useState(false);
   const [pageSlug, setPageSlug] = useState(null);
   const [pageUrlCopied, setPageUrlCopied] = useState(false);
+
+  // Start a direct message with a user
+  async function handleStartDm(targetUserId) {
+    if (!targetUserId) return;
+    try {
+      const token = await getAccessToken();
+      const res = await fetch(`/api/commander/home-games/groups/${id}/dm-player`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ target_user_id: targetUserId })
+      });
+      const data = await res.json();
+      if (data.success && data.dm_url) {
+        router.push(data.dm_url);
+      } else {
+        toast.error(data.error?.message || data.error || 'Failed to start message');
+      }
+    } catch (err) {
+      console.error('DM start failed:', err);
+      toast.error('Failed to start message');
+    }
+  }
 
   const fetchData = useCallback(async (signal) => {
 
@@ -694,6 +729,7 @@ export default function ManageHomeGamePage() {
                             onDecline={(rsvpId) => handleRsvpAction(rsvpId, 'no')}
                             onWaitlist={(rsvpId) => handleRsvpAction(rsvpId, 'waitlist')}
                             onRemove={(rsvpId) => handleRsvpAction(rsvpId, 'removed')}
+                            onSendMessage={(userId) => handleStartDm(userId)}
                           />
                         </div>
                       )}
@@ -721,6 +757,7 @@ export default function ManageHomeGamePage() {
                       isHost={false}
                       onApprove={handleApproveMember}
                       onRemove={handleRemoveMember}
+                      onMessage={handleStartDm}
                     />
                   ))}
                 </div>
@@ -738,6 +775,7 @@ export default function ManageHomeGamePage() {
                     member={member}
                     isHost={member.user_id === group?.host_id}
                     onRemove={handleRemoveMember}
+                    onMessage={member.user_id !== group?.host_id ? handleStartDm : undefined}
                   />
                 ))}
               </div>

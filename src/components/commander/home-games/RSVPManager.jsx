@@ -176,6 +176,15 @@ export default function RSVPManager({
 
                     {/* Host Actions */}
                     <div className="flex items-center gap-2">
+                      {isHost && onSendMessage && rsvp.user_id && (
+                        <button
+                          onClick={() => onSendMessage(rsvp.user_id)}
+                          className="p-2 rounded-lg border border-[#4A5E78] text-[#22D3EE] hover:border-[#22D3EE] transition-colors"
+                          title="Message Player"
+                        >
+                          <MessageSquare size={16} />
+                        </button>
+                      )}
                       {isHost && rsvp.status === 'pending' && (
                         <>
                           <button
