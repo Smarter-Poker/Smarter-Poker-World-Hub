@@ -73,7 +73,7 @@ OVERFLOW_CRONS = [
     ('/api/cron/venue-review-prompts',      dict(hour='*/6', minute=0)),
     ('/api/cron/tour-schedule-scraper',     dict(day='*/3', hour=4, minute=0)),
     ('/api/cron/scrape-charity-schedules',  dict(day='*/3', hour=3, minute=0)),
-    ('/api/cron/deploy-error-poll',         dict(minute='*/5')),       # every 5 min — autopilot build error detector
+    ('/api/cron/deploy-error-poll',         dict(minute='*/2')),       # every 2 min — autopilot build error detector
 ]
 
 
