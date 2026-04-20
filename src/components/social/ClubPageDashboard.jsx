@@ -695,7 +695,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
 
                 {/* Action Bar */}
                 <div style={{ padding: '10px 16px', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <button onClick={() => { if (window.history.length > 1) router.back(); else onBack(); }} style={{
+                    <button onClick={() => router.back()} style={{
                         padding: '8px 16px', borderRadius: 8, border: 'none', background: '#3A3B3C',
                         color: C.text, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
                     }}>Back</button>

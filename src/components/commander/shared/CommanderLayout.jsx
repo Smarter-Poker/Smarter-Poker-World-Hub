@@ -737,15 +737,7 @@ export default function CommanderLayout({ children, title, backHref = '/commande
               /* All other pages: show metallic BACK image */
               <button
                 className="cmd-back-img-btn"
-                onClick={() => {
-                  // True browser-history back — preserves query params (?card=tables etc.)
-                  // so the user always returns to the EXACT previous page they came from.
-                  if (window.history.length > 1) {
-                    router.back();
-                  } else {
-                    router.push(backHref);
-                  }
-                }}
+                onClick={() => router.back()}
                 title="Go Back"
               >
                 <img src="/images/commander/btn-back.png" alt="Back" />

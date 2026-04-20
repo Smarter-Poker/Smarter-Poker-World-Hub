@@ -86,10 +86,16 @@ try {
       }
 
       if (req.method === 'GET') {
-        const { page_type, page_id, user_id, feed, limit = '20', offset = '0' } = req.query;
+        const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+        const page_type = safeQ(req.query.page_type);
+        const page_id = safeQ(req.query.page_id);
+        const user_id = safeQ(req.query.user_id);
+        const feed = safeQ(req.query.feed);
+        const rawLimit = safeQ(req.query.limit) || '20';
+        const rawOffset = safeQ(req.query.offset) || '0';
         // BUG FIX: cap limit+offset to safe bounds to prevent runaway range queries
-        const limitNum = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
-        const offsetNum = Math.min(Math.max(parseInt(offset, 10) || 0, 0), 10000);
+        const limitNum = Math.min(Math.max(parseInt(rawLimit, 10) || 20, 1), 100);
+        const offsetNum = Math.min(Math.max(parseInt(rawOffset, 10) || 0, 0), 10000);
 
         // User feed mode: get activities from pages the user follows
         if (user_id && feed === 'true') {

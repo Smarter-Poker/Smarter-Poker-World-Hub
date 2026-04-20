@@ -394,12 +394,9 @@ export default function ThreePillHeader({
 
         // CRITICAL: Use router.back() — NOT window.history.back().
         // window.history.back() updates the URL bar but does NOT trigger
-        // Next.js re-renders, so the user sees the old page content.
-        if (window.history.length > 1) {
-            router.back();
-        } else {
-            window.location.href = '/hub';
-        }
+        // Next.js re-renders. Do NOT gate on window.history.length — it
+        // is unreliable in Mobile Chrome (can be 1 even after navigation).
+        router.back();
 
         setTimeout(() => {
             backInProgressRef.current = false;

@@ -193,7 +193,13 @@ try {
       // GET — Fetch reviews with category averages + sorting
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       if (req.method === 'GET') {
-        const { venue_id, venue_ids, stats_only, limit = '20', offset = '0', sort = 'newest' } = req.query;
+        const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+        const venue_id = safeQ(req.query.venue_id);
+        const venue_ids = safeQ(req.query.venue_ids);
+        const stats_only = safeQ(req.query.stats_only);
+        const limit = safeQ(req.query.limit) || '20';
+        const offset = safeQ(req.query.offset) || '0';
+        const sort = safeQ(req.query.sort) || 'newest';
 
         // --- Bulk stats endpoint for venue cards ---
         if (stats_only === 'true' && venue_ids) {
@@ -340,7 +346,9 @@ try {
         const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
         if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-        const { review_id, venue_id: delVenueId } = req.query;
+        const safeQ2 = (v) => Array.isArray(v) ? v[0] : v;
+        const review_id = safeQ2(req.query.review_id);
+        const delVenueId = safeQ2(req.query.venue_id);
         const user_id = authUser.id;
 
         if (!review_id) {

@@ -739,34 +739,40 @@ export default async function handler(req, res) {
                       } else {
                           q = q.eq('venue_type', effectiveType);
                       }
-                  } else if (!search && !id) {
-                      // Always exclude tour/series parent entries — they are metadata containers,
-                      // not playable venues. Tour stops are served by the tour-schedule API.
-                      q = q.not('venue_type', 'in', '("tour","series")');
-                  }
-                  if (tournaments === 'true') q = q.eq('has_tournaments', true);
-                  if (featured === 'true') q = q.eq('is_featured', true);
-                  if (search) {
-                      // [BUG FIX] Sanitize search: strip PostgREST special chars that could
-                      // break out of ilike syntax and inject unintended filter clauses.
-                      // Caps at 200 chars to prevent DoS via oversized inputs.
-                      const sanitizedSearch = search.trim().slice(0, 200).replace(/[()'",.;]/g, '');
-                      const searchStateAbbrev = resolveStateAbbrev(sanitizedSearch);
-                      const cityStateMatch = sanitizedSearch.match(/^([^,]+),\s*(.+)$/);
+                  }                  if (search) {
+                      // [GEOFENCE FIX] Check for "City, State" format BEFORE sanitizing —
+                      // the sanitizer strips commas which breaks the comma-based split.
+                      // "Chicago, IL".replace(/,/g,'') → "Chicago  IL" → no cityStateMatch.
+                      const rawTrimmed = search.trim().slice(0, 200);
+                      const cityStateMatch = rawTrimmed.match(/^([^,]+),\s*(.+)$/);
+
                       if (cityStateMatch) {
-                          const cityPart = cityStateMatch[1].trim();
-                          const statePart = cityStateMatch[2].trim();
+                          // Each part is sanitized individually (safe for PostgREST with individual filters)
+                          const cityPart = cityStateMatch[1].trim().replace(/[()'\";\s]/g, '');
+                          const statePart = cityStateMatch[2].trim().replace(/[()'\";\s]/g, '');
                           const stateAbbrev = resolveStateAbbrev(statePart);
                           // [GEOFENCE FIX] When we have effective coordinates (from real GPS OR auto-geocoded
                           // from city name), skip the state filter entirely — let the bounding box + distance
                           // filter handle inclusion. This allows cross-state venues within the radius to appear.
                           if (effectiveLat && effectiveLng) {
                               // GPS or auto-geocoded: bounding box already applied above. No state restriction.
-                              // Only apply if the city name doesn't include specific venue names.
                               // If it's truly a city search, don't restrict by city name either (bounding box handles it)
                           } else {
                               q = q.ilike('city', `%${cityPart}%`);
                               if (stateAbbrev) q = q.ilike('state', stateAbbrev);
+                              else q = q.ilike('state', `%${statePart}%`);
+                          }
+                      } else {
+                          // Not a "City, State" pattern — sanitize fully and do generic text search
+                          const sanitizedSearch = rawTrimmed.replace(/[()'\",.;]/g, '');
+                          const searchStateAbbrev = resolveStateAbbrev(sanitizedSearch);
+                          if (searchStateAbbrev) {
+                              q = q.ilike('state', searchStateAbbrev);
+                          } else {
+                              q = q.or(`name.ilike.%${sanitizedSearch}%,city.ilike.%${sanitizedSearch}%,address.ilike.%${sanitizedSearch}%,state.ilike.%${sanitizedSearch}%`);
+                          }
+                      }
+                  }ev);
                               else q = q.ilike('state', `%${statePart}%`);
                           }
                       } else if (searchStateAbbrev) {
