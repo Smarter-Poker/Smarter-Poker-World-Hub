@@ -28,7 +28,7 @@ const GITHUB_BRANCH = 'main';
 
 // Configurable via env var so model deprecation doesn't silently break autofix.
 // Default to claude-sonnet-4-20250514 which balances speed and quality for build fixes.
-const CLAUDE_MODEL = process.env.AUTOFIX_CLAUDE_MODEL || 'claude-sonnet-4-20250514';
+const CLAUDE_MODEL = process.env.AUTOFIX_CLAUDE_MODEL || 'claude-3-7-sonnet-20250219';
 
 // Files that autofix is NEVER allowed to touch
 const PROTECTED_FILES = [
