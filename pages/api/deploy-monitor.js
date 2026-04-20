@@ -729,7 +729,7 @@ https://vercel.com/smarter-poker/hub-vanguard/deployments`,
 
     console.log(`[deploy-monitor] Fetching build logs for ${deploymentId}...`);
     const logsRes = await fetchWithTimeout(
-      `https://api.vercel.com/v2/deployments/${deploymentId}/events?teamId=${TEAM_ID}&direction=backward&limit=100`,
+      `https://api.vercel.com/v2/deployments/${deploymentId}/events?teamId=${TEAM_ID}&direction=backward&limit=1000`,
       { headers: { Authorization: `Bearer ${vercelToken}` } },
       12000
     );
@@ -738,18 +738,18 @@ https://vercel.com/smarter-poker/hub-vanguard/deployments`,
     if (logsRes.ok) {
       const events = await logsRes.json();
       const errorLines = (Array.isArray(events) ? events : [])
-        .filter((e) => e.type === 'stderr' || e.type === 'error' ||
-          (e.payload?.text && (
-            e.payload.text.includes('Error:') ||
-            e.payload.text.includes('error') ||
-            e.payload.text.includes('failed') ||
-            e.payload.text.includes('Module not found') ||
-            e.payload.text.includes('Cannot find') ||
-            e.payload.text.includes('Unexpected') ||
-            e.payload.text.includes('SyntaxError')
-          )))
-        .map((e) => e.payload?.text || e.text || JSON.stringify(e.payload))
-        .slice(-50);
+        .filter((e) => {
+          if (e.type === 'stderr' || e.type === 'error') return true;
+          const text = (e.payload?.text || e.text || '').toLowerCase();
+          return text.includes('error') || 
+            text.includes('failed') || 
+            text.includes('module not found') || 
+            text.includes('cannot find') || 
+            text.includes('unexpected') ||
+            text.includes('syntax');
+        })
+        .map((e) => e.payload?.text || e.text || JSON.stringify(e.payload || e))
+        .slice(-200);
       buildErrors = errorLines.join('\n');
     }
 

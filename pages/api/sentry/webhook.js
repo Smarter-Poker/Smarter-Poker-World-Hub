@@ -150,7 +150,7 @@ Be surgical. Fix the error. Commit it.`;
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
+        model: 'claude-3-7-sonnet-20250219',
         max_tokens: 8000,
         messages: [{ role: 'user', content: prompt }],
       }),

@@ -670,7 +670,7 @@ function extractErrorFile(buildErrors) {
   if (fileLineMatch) return fileLineMatch[1];
 
   // Pattern 5: SWC error format "x ${file}"
-  const swcMatch = buildErrors.match(/x\s+((?:pages|src)\/[\w./\-\[\]]+\.(?:jsx|tsx|mjs|cjs|js|ts))/);
+  const swcMatch = buildErrors.match(/x\s+((?:pages|src|lib|components|services|data)\/[\w./\-\[\]]+\.(?:jsx|tsx|mjs|cjs|js|ts))/);
   if (swcMatch) return swcMatch[1];
 
   return null;
