@@ -529,3 +529,51 @@
 - **Phase 24: Club Arena E2E Expansion** — Game flow, poker hands, V8 Bible compliance E2E tests
 - **Phase 25: Shared TypeScript Package** — Cross-repo type safety (requires careful migration plan)
 - **Phase 26: Database Migration Safety** — Supabase migration tooling and rollback procedures
+
+---
+
+## SUPERSEDED / SHELVED PROJECTS
+
+### `club-engine` (Vercel prj_iMqVCML4mpVnuBLIuEvvflAoKKBm) — shelved 2026-04-20
+**Status:** `live: false`, superseded by sibling `club-arena` project which is green on production.
+
+**Backing repo:** `Smarter-Poker/Club-Arena-Design` (private, repo id 1144973574) — note the repo name does NOT match the Vercel project name, which caused a brief "repo not found" red herring during the 2026-04-20 Vercel fleet audit.
+
+**Deployment history:**
+- Last READY: `dpl_CQskrWMJgr3YZ9wgsYN7QF4D1Ac9` on 2026-02-04 (sha `942e811`)
+- 25 consecutive ERROR deploys between 2026-02-04 and 2026-02-07, all authored by Dan, all attempting TS/vite build fixes (TS2448 temporal dead zones, `.single()` → `.maybeSingle()` remediation, XP removal, `vercelignore` to fix the 15K file limit, framework/buildCommand tweaks)
+- Silent since 2026-02-07 (73+ days quiet at time of audit)
+- Build logs purged by Vercel (>14 days old) — root cause no longer retrievable
+
+**Why shelved rather than deleted:** Permanent deletion of Vercel projects is an irreversible action the agent won't take without explicit user direction, and the project is already effectively inert (`live: false`, no custom domain, only `.vercel.app` subdomains). The sibling `club-arena` project already serves the Club Arena frontend in production, so no functionality is lost.
+
+**If reviving:** fresh GITHUB_TOKEN required (the one in `.env` is currently 401). Pull `Smarter-Poker/Club-Arena-Design` locally, reproduce the vite build, diagnose the TS errors in `PlayerStatsDashboard`, `ClubDashboard`, `MessagingService`, `ReferralService`, `SocialEnhancementsService`, then push. Or redirect the backing repo's content into `club-arena` if the work is no longer distinct.
+
+---
+
+## VERCEL FLEET AUDIT — 2026-04-20
+
+Triggered by: WH deploy cascade (15-min hung builds, heap OOMs). Fix landed on commit `a7342221` (sha `a73422219e`, production deploy `dpl_6w1TeEuUV5je76gGzEUdg8ZuCDoi`). Full-fleet audit followed per "nothing gets orphaned" directive.
+
+**Result:** 15 of 16 projects READY, 1 shelved (see `club-engine` above).
+
+| Project | State | Notes |
+|---|---|---|
+| hub-vanguard | READY | apex domain `smarter.poker`, Next.js 14 Pages Router, health endpoint OK (db 135ms, heap 30/58MB) |
+| club-arena | READY | Vite, serves the Club Arena SPA (takes over from club-engine) |
+| club-engine | SHELVED | See "Superseded Projects" above |
+| identity-dna-engine | READY | |
+| trivia-orb | READY | |
+| social-hub-v2 | READY | |
+| poker-near-me | READY | |
+| bankroll-manager | READY | |
+| marketplace-settings | READY | |
+| smarter-assistant | READY | |
+| diamond-arcade | READY | |
+| master-bus | READY | |
+| smarterpoker | READY | |
+| social | READY | |
+| gto-training-engine | READY | |
+| training-project | READY | |
+
+**Known side-finding:** GITHUB_TOKEN in `/Users/smarter.poker/Documents/.env` returns `401 Bad credentials` on both raw REST and the github MCP. Rotation required before any future github-api automation (Git Data API pushes, PR creation, repo inspection).

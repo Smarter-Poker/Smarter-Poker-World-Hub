@@ -42,6 +42,7 @@ export const config = {
   api: {
     bodyParser: false,
   },
+  maxDuration: 60,
 };
 
 const MAX_FIX_ATTEMPTS = 3;
@@ -837,7 +838,7 @@ https://vercel.com/smarter-poker/hub-vanguard/deployments`,
 **Fix commit:** \`${newShortSha}\`
 **Attempt:** ${attempts + 1}/${MAX_FIX_ATTEMPTS}
 **Duration:** ${duration}ms
-**Model:** ${process.env.AUTOFIX_CLAUDE_MODEL || 'claude-sonnet-4-20250514'}
+**Model:** ${process.env.AUTOFIX_CLAUDE_MODEL || 'claude-3-7-sonnet-20250219'}
 
 Vercel is now rebuilding with the fix. You should see a green deployment within ~2 minutes.
 

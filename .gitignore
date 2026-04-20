@@ -112,3 +112,4 @@ _legacy_club_arena_standalone_pages.dead/
 # Source maps inside public/ — uploaded to Sentry at build, not shipped to browsers via git
 public/hub/club-arena/assets/*.js.map
 public/hub/club-arena/assets/*.css.map
+.env

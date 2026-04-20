@@ -27,7 +27,7 @@ const GITHUB_REPO = 'Smarter-Poker-World-Hub';
 const GITHUB_BRANCH = 'main';
 
 // Configurable via env var so model deprecation doesn't silently break autofix.
-// Default to claude-sonnet-4-20250514 which balances speed and quality for build fixes.
+// Default to claude-3-7-sonnet-20250219 which balances speed and quality for build fixes.
 const CLAUDE_MODEL = process.env.AUTOFIX_CLAUDE_MODEL || 'claude-3-7-sonnet-20250219';
 
 // Files that autofix is NEVER allowed to touch
@@ -165,6 +165,10 @@ async function ensureBranch(branchName, fromSha, ghPat) {
   }
 }
 
+// Extend function timeout so the Claude API call (up to 45s) + GitHub push
+// can complete before Vercel kills the function. Default 10s is too short.
+export const config = { maxDuration: 60 };
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -207,8 +211,11 @@ export default async function handler(req, res) {
   }
 
   try {
-    // ── Step 1: Parse error to find the broken file ──
-    const errorFile = extractErrorFile(buildErrors);
+    // ── Step 1: Parse error to find ALL broken files ──
+    // Use extractAllErrorFiles to get every broken file in the build.
+    // This prevents wasting circuit-breaker attempts fixing one file at a time.
+    const allErrorFiles = extractAllErrorFiles(buildErrors);
+    const errorFile = allErrorFiles.length > 0 ? allErrorFiles[0] : extractErrorFile(buildErrors);
 
     if (!errorFile) {
       console.log('[deploy-autofix] Could not identify broken file from build errors');
@@ -219,16 +226,87 @@ export default async function handler(req, res) {
       });
     }
 
+    // If multiple files are broken, fix them all in one pass
+    const filesToFix = allErrorFiles.length > 1 ? allErrorFiles : [errorFile];
+    console.log(`[deploy-autofix] Found ${filesToFix.length} broken file(s): ${filesToFix.join(', ')}`);
+
+    const results = [];
+    for (const currentFile of filesToFix) {
+      const fileResult = await fixSingleFile({
+        errorFile: currentFile,
+        buildErrors,
+        commitSha,
+        attempt,
+        anthropicKey,
+        ghPat,
+      });
+      results.push(fileResult);
+      // Stop on first real error (not skips)
+      if (fileResult.action === 'error' || fileResult.action === 'timeout') break;
+    }
+
+    // Determine overall action from results
+    const fixedResults = results.filter(r => r.action === 'fixed');
+    const prResults = results.filter(r => r.action === 'pr_opened');
+    const skippedResults = results.filter(r => r.action === 'skipped');
+
+    if (fixedResults.length > 0) {
+      const lastFixed = fixedResults[fixedResults.length - 1];
+      return res.status(200).json({
+        action: 'fixed',
+        filePath: fixedResults.map(r => r.filePath).join(', '),
+        newSha: lastFixed.newSha,
+        file: lastFixed.filePath,
+        newCommitSha: lastFixed.newCommitSha,
+        attempt,
+        filesFixed: fixedResults.length,
+        totalFiles: filesToFix.length,
+        message: `Fixed ${fixedResults.length} file(s) and pushed. Vercel will auto-rebuild.`,
+      });
+    } else if (prResults.length > 0) {
+      return res.status(200).json({
+        action: 'pr_opened',
+        ...prResults[0],
+        attempt,
+        message: `Fix staged in PR for review (${prResults.length} file(s)).`,
+      });
+    } else {
+      // All skipped or failed
+      const primary = results[0] || { action: 'skipped', reason: 'No files to fix' };
+      return res.status(200).json(primary);
+    }
+
+  } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) {}
+    // Handle AbortController timeout specifically
+    if (err.name === 'AbortError') {
+      console.error('[deploy-autofix] Anthropic API call timed out (45s limit)');
+      return res.status(200).json({
+        action: 'timeout',
+        reason: 'Claude API call exceeded 45s timeout — Vercel function would have timed out',
+      });
+    }
+    console.error('[deploy-autofix] Error:', err);
+    return res.status(500).json({
+      action: 'error',
+      error: 'Internal server error',
+    });
+  }
+}
+
+/**
+ * Fix a single broken file. Extracted so the handler can loop over multiple files.
+ */
+async function fixSingleFile({ errorFile, buildErrors, commitSha, attempt, anthropicKey, ghPat }) {
+  try {
+
     // Validate that the extracted path is a file (has extension), not a directory.
-    // Pattern 2 in extractErrorFile can return directory paths from "Module not found"
-    // errors, which would cause GitHub Contents API to return a directory listing
-    // instead of file content, breaking Buffer.from(data.content, 'base64').
     if (!/\.(jsx|tsx|mjs|cjs|js|ts)$/.test(errorFile)) {
       console.log(`[deploy-autofix] Extracted path has no file extension (likely a directory): ${errorFile}`);
-      return res.status(200).json({
+      return {
         action: 'skipped',
         reason: `Extracted path "${errorFile}" has no recognized file extension — cannot autofix a directory`,
-      });
+      };
     }
 
     // Safety check: normalize path and reject traversal attempts.
@@ -243,10 +321,10 @@ export default async function handler(req, res) {
       /(^|\/)\.\.(\/|$)/.test(normalizedPath);
     if (hasTraversal) {
       console.log(`[deploy-autofix] Path traversal attempt blocked: ${errorFile}`);
-      return res.status(200).json({
+      return {
         action: 'skipped',
         reason: `Suspicious file path rejected: ${errorFile}`,
-      });
+      };
     }
 
     // Safety check: is this file in an allowed directory?
@@ -255,10 +333,10 @@ export default async function handler(req, res) {
 
     if (!isAllowed || isProtected) {
       console.log(`[deploy-autofix] File ${errorFile} is outside allowed directories or is protected`);
-      return res.status(200).json({
+      return {
         action: 'skipped',
         reason: `File ${errorFile} is not in an allowed directory or is protected`,
-      });
+      };
     }
 
     // ── Step 2: Fetch the broken file from GitHub ──
@@ -274,27 +352,24 @@ export default async function handler(req, res) {
     );
 
     if (!fileRes.ok) {
-      return res.status(200).json({
+      return {
         action: 'skipped',
         reason: `Could not fetch ${normalizedPath} from GitHub (${fileRes.status})`,
-      });
+      };
     }
 
     const fileData = await fileRes.json();
-    // Defensive: Contents API returns an ARRAY when the path is a directory
-    // (fileData.content is then undefined). It also returns empty content
-    // for files >1MB. Either would crash Buffer.from(undefined, 'base64').
     if (Array.isArray(fileData)) {
-      return res.status(200).json({
+      return {
         action: 'skipped',
         reason: `Path ${normalizedPath} is a directory, not a file — autofix cannot target directories`,
-      });
+      };
     }
     if (fileData.type !== 'file' || typeof fileData.content !== 'string' || !fileData.content) {
-      return res.status(200).json({
+      return {
         action: 'skipped',
         reason: `File ${normalizedPath} is not retrievable via Contents API (type=${fileData.type}, size=${fileData.size || '?'}). File may be >1MB or a symlink/submodule.`,
-      });
+      };
     }
     const originalContent = Buffer.from(fileData.content, 'base64').toString('utf-8');
     const fileSha = fileData.sha;
@@ -364,10 +439,10 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
     if (!claudeRes.ok) {
       const errBody = await claudeRes.text();
       console.error(`[deploy-autofix] Anthropic API error: ${claudeRes.status} ${errBody}`);
-      return res.status(200).json({
+      return {
         action: 'api_error',
         reason: `Anthropic API returned ${claudeRes.status}`,
-      });
+      };
     }
 
     const claudeData = await claudeRes.json();
@@ -390,18 +465,18 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
     fixedContent = fixedContent.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '').trim();
 
     if (!fixedContent || fixedContent.length < 10) {
-      return res.status(200).json({
+      return {
         action: 'skipped',
         reason: 'Claude returned empty or too-short fix',
-      });
+      };
     }
 
     // Sanity check: did Claude actually change something?
     if (fixedContent.trim() === originalContent.trim()) {
-      return res.status(200).json({
+      return {
         action: 'skipped',
         reason: 'Claude returned identical content — no fix identified',
-      });
+      };
     }
 
     // Size ratio guard: prevent Claude from gutting a file or returning truncated content.
@@ -414,37 +489,37 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
     // not triple its size. Tiny files (<100 chars) are exempt because adding a normal
     // import statement to a 20-char stub legitimately multiplies size.
     if (originalContent.length === 0) {
-      return res.status(200).json({
+      return {
         action: 'skipped',
         reason: 'Original file is empty — nothing to fix; refusing to seed arbitrary content',
-      });
+      };
     }
     const sizeRatio = fixedContent.length / originalContent.length;
     if (sizeRatio < 0.7) {
       console.log(`[deploy-autofix] Size ratio guard (shrink): fix is ${Math.round(sizeRatio * 100)}% of original (${fixedContent.length} vs ${originalContent.length} chars)`);
-      return res.status(200).json({
+      return {
         action: 'skipped',
         reason: `Fix is only ${Math.round(sizeRatio * 100)}% of original file size — too destructive, skipping`,
         originalSize: originalContent.length,
         fixSize: fixedContent.length,
-      });
+      };
     }
     if (originalContent.length >= 100 && sizeRatio > 3.0) {
       console.log(`[deploy-autofix] Size ratio guard (expand): fix is ${Math.round(sizeRatio * 100)}% of original (${fixedContent.length} vs ${originalContent.length} chars)`);
-      return res.status(200).json({
+      return {
         action: 'skipped',
         reason: `Fix is ${Math.round(sizeRatio * 100)}% of original file size — suspicious mass expansion (likely hallucination), skipping`,
         originalSize: originalContent.length,
         fixSize: fixedContent.length,
-      });
+      };
     }
 
     // Content guard: reject fixes that contain merge conflict markers
     if (fixedContent.includes('<<<<<<<') || fixedContent.includes('>>>>>>>')) {
-      return res.status(200).json({
+      return {
         action: 'skipped',
         reason: 'Fix contains merge conflict markers — rejecting',
-      });
+      };
     }
 
     // ── Step 4: Push the fix — either directly to main, or via PR for sensitive files ──
@@ -464,10 +539,10 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
         { headers: { Authorization: `token ${ghPat}`, Accept: 'application/vnd.github+json' } }
       );
       if (!mainRefRes.ok) {
-        return res.status(200).json({
+        return {
           action: 'push_failed',
           reason: `Could not read main ref (HTTP ${mainRefRes.status})`,
-        });
+        };
       }
       const mainRef = await mainRefRes.json();
       const mainSha = mainRef.object?.sha;
@@ -475,10 +550,10 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
       const branchName = `autofix/${commitSha.substring(0, 8)}-${Date.now()}`;
       const branchRes = await ensureBranch(branchName, mainSha, ghPat);
       if (!branchRes.ok) {
-        return res.status(200).json({
+        return {
           action: 'push_failed',
           reason: `Branch create failed: ${branchRes.reason}`,
-        });
+        };
       }
 
       // Re-fetch file SHA from the branch we just created. If main advanced
@@ -523,11 +598,11 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
       );
       if (!branchPushRes.ok) {
         const pushErr = await branchPushRes.text();
-        return res.status(200).json({
+        return {
           action: 'push_failed',
           reason: `Branch push failed (HTTP ${branchPushRes.status})`,
           error: pushErr.substring(0, 500),
-        });
+        };
       }
 
       const prRes = await openAutofixPR({
@@ -539,15 +614,15 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
       });
 
       if (!prRes.ok) {
-        return res.status(200).json({
+        return {
           action: 'pr_failed',
           reason: prRes.reason,
           branch: branchName,
-        });
+        };
       }
 
       console.log(`[deploy-autofix] PR opened: ${prRes.url}`);
-      return res.status(200).json({
+      return {
         action: 'pr_opened',
         filePath: normalizedPath,
         file: normalizedPath,
@@ -558,7 +633,7 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
         hot,
         attempt,
         message: `Fix staged in PR #${prRes.number} for review (file is ${sensitive ? 'sensitive' : 'recently-changed'}). Vercel will NOT rebuild until the PR is merged.`,
-      });
+      };
     }
 
     // ── DIRECT-TO-MAIN MODE (existing behavior) ──
@@ -585,11 +660,11 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
     if (!pushRes.ok) {
       const pushErr = await pushRes.text();
       console.error(`[deploy-autofix] GitHub push failed: ${pushRes.status} ${pushErr}`);
-      return res.status(200).json({
+      return {
         action: 'push_failed',
         reason: `GitHub Contents API returned ${pushRes.status}`,
         error: pushErr.substring(0, 500),
-      });
+      };
     }
 
     const pushData = await pushRes.json();
@@ -598,34 +673,29 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
 
     console.log(`[deploy-autofix] Fix pushed successfully. New commit: ${newSha}`);
 
-    return res.status(200).json({
+    return {
       action: 'fixed',
-      // Monitor reads autofixResult.filePath and autofixResult.newSha for
-      // telemetry + success email. Use those exact names (with legacy aliases
-      // for any external consumer that reads `file`/`newCommitSha`).
       filePath: normalizedPath,
       newSha: fullNewSha,
       file: normalizedPath,
       newCommitSha: newSha,
       attempt,
       message: `Fixed ${normalizedPath} and pushed commit ${newSha}. Vercel will auto-rebuild.`,
-    });
+    };
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) {}
-    // Handle AbortController timeout specifically
     if (err.name === 'AbortError') {
       console.error('[deploy-autofix] Anthropic API call timed out (45s limit)');
-      return res.status(200).json({
+      return {
         action: 'timeout',
-        reason: 'Claude API call exceeded 45s timeout — Vercel function would have timed out',
-      });
+        reason: 'Claude API call exceeded 45s timeout',
+      };
     }
-    console.error('[deploy-autofix] Error:', err);
-    return res.status(500).json({
+    console.error(`[deploy-autofix] Error fixing ${errorFile}:`, err);
+    return {
       action: 'error',
-      error: 'Internal server error',
-    });
+      reason: err.message || 'Unknown error',
+    };
   }
 }
 
