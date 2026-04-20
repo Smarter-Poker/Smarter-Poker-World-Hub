@@ -5,7 +5,7 @@ OpenClaw Cron Dispatcher v1.0
 Fires the 11 Vercel cron jobs that overflow the Pro plan's 40-job limit.
 Runs as a persistent LaunchAgent daemon on the same Mac as the Bravo/PA scrapers.
 
-Jobs handled (positions 41-51 in vercel.json):
+Jobs handled (positions 41-52 in vercel.json):
   /api/cron/auto-settlement         0 10 * * 1   (Mon 10am)
   /api/cron/auto-settlement-distribute  10 10 * * 1 (Mon 10:10am)
   /api/cron/license-reminders       0 9 * * *    (Daily 9am)
@@ -17,6 +17,7 @@ Jobs handled (positions 41-51 in vercel.json):
   /api/cron/venue-review-prompts    0 */6 * * *  (Every 6h)
   /api/cron/tour-schedule-scraper   0 4 */3 * *  (Every 3 days 4am)
   /api/cron/scrape-charity-schedules 0 3 */3 * * (Every 3 days 3am)
+  /api/cron/deploy-error-poll       */5 * * * *  (Every 5 min — autopilot autofix)
 
 Auth: Authorization: Bearer <CRON_SECRET>
 """
@@ -72,6 +73,7 @@ OVERFLOW_CRONS = [
     ('/api/cron/venue-review-prompts',      dict(hour='*/6', minute=0)),
     ('/api/cron/tour-schedule-scraper',     dict(day='*/3', hour=4, minute=0)),
     ('/api/cron/scrape-charity-schedules',  dict(day='*/3', hour=3, minute=0)),
+    ('/api/cron/deploy-error-poll',         dict(minute='*/5')),       # every 5 min — autopilot build error detector
 ]
 
 
