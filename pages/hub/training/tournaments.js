@@ -34,6 +34,20 @@ export default function TournamentsPage() {
     } catch (_) {}
     return () => _c.abort();
   }, []);
+
+  // SWR key includes tab + user so switching tabs is instant on revisit
+  const swrKey = `/api/training/tournaments?status=${activeTab}${user ? `&userId=${user.id}` : ''}`;
+  const {
+    data: swrData,
+    isLoading: loading,
+    mutate: refreshTournaments,
+  } = useSWR(swrKey, (url) =>
+    authedFetch(url)
+      .then((r) => r.json())
+      .then((d) => (d.success ? d.tournaments || [] : []))
+  );
+  const tournaments = swrData || [];
+
   // Realtime subscription — live updates
   useEffect(() => {
     if (!user?.id) return;
@@ -56,19 +70,6 @@ export default function TournamentsPage() {
       supabase.removeChannel(_ch);
     };
   }, [user?.id, refreshTournaments]);
-
-  // SWR key includes tab + user so switching tabs is instant on revisit
-  const swrKey = `/api/training/tournaments?status=${activeTab}${user ? `&userId=${user.id}` : ''}`;
-  const {
-    data: swrData,
-    isLoading: loading,
-    mutate: refreshTournaments,
-  } = useSWR(swrKey, (url) =>
-    authedFetch(url)
-      .then((r) => r.json())
-      .then((d) => (d.success ? d.tournaments || [] : []))
-  );
-  const tournaments = swrData || [];
 
   const registerForTournament = async (tournamentId) => {
     if (!user) {
@@ -401,15 +402,12 @@ const styles = {
   },
   prizes: {
     display: 'flex',
-    justifyContent: 'space-around',
-    padding: '12px 0',
+    justifyContent: 'center',
+    gap: '24px',
     marginBottom: '16px',
-    borderTop: '1px solid rgba(255,255,255,0.1)',
-    borderBottom: '1px solid rgba(255,255,255,0.1)',
   },
   prizeItem: {
     display: 'flex',
-    flexDirection: 'column',
     alignItems: 'center',
     gap: '4px',
   },
@@ -420,7 +418,7 @@ const styles = {
   entryFee: {
     textAlign: 'center',
     fontSize: '13px',
-    color: '#9ca3af',
+    color: '#FF6B35',
     marginBottom: '12px',
   },
   registerBtn: {
@@ -428,7 +426,7 @@ const styles = {
     padding: '14px',
     background: 'linear-gradient(135deg, #FF6B35, #FF4444)',
     border: 'none',
-    borderRadius: '10px',
+    borderRadius: '12px',
     color: '#fff',
     fontSize: '16px',
     fontWeight: 600,
@@ -438,9 +436,9 @@ const styles = {
     display: 'block',
     width: '100%',
     padding: '14px',
-    background: 'linear-gradient(135deg, #31A24C, #228B22)',
+    background: 'linear-gradient(135deg, #31A24C, #2D9CDB)',
     border: 'none',
-    borderRadius: '10px',
+    borderRadius: '12px',
     color: '#fff',
     fontSize: '16px',
     fontWeight: 600,
@@ -451,22 +449,13 @@ const styles = {
     display: 'block',
     width: '100%',
     padding: '14px',
-    background: '#2a2a2a',
-    border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: '10px',
-    color: '#9ca3af',
+    background: 'rgba(255,255,255,0.1)',
+    border: 'none',
+    borderRadius: '12px',
+    color: '#fff',
     fontSize: '16px',
-    fontWeight: 500,
+    fontWeight: 600,
     textAlign: 'center',
     textDecoration: 'none',
-  },
-  actions: {
-    textAlign: 'center',
-    marginTop: '40px',
-  },
-  backButton: {
-    color: '#00E0FF',
-    textDecoration: 'none',
-    fontSize: '16px',
   },
 };
