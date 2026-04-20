@@ -6346,16 +6346,8 @@ function SocialMediaPage() {
                                                     onDelete={handleDelete}
                                                     onBlock={handleBlockUser}
                                                     onOpenArticle={(url) => {
-                                                        // Known Cloudflare-protected sites block server-side proxy access to individual articles.
-                                                        // For these domains, open directly in a new tab instead of attempting the proxy.
-                                                        const DIRECT_OPEN_DOMAINS = ['cardplayer.com', 'www.cardplayer.com'];
-                                                        try {
-                                                            const domain = new URL(url).hostname;
-                                                            if (DIRECT_OPEN_DOMAINS.some(d => domain === d || domain.endsWith('.' + d))) {
-                                                                window.open(url, '_blank', 'noopener,noreferrer');
-                                                                return;
-                                                            }
-                                                        } catch {}
+                                                        // All articles open in-app via the proxy reader.
+                                                        // Cardplayer.com is handled via RSS fallback in /api/proxy — no redirect needed.
                                                         setArticleReader({ open: true, url, title: p.link_title || null });
                                                     }}
                                                     horseProfileIds={horseProfileIds}
