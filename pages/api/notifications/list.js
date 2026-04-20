@@ -2,7 +2,7 @@
  * GET /api/notifications/list — Fetch user's social notifications (service role, bypasses RLS)
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { getServerUser } from '../../../src/lib/serverAuth';
+import { getServerUser, getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 let _supabase = null;
@@ -21,15 +21,14 @@ export default async function handler(req, res) {
           return res.status(405).json({ error: 'Method not allowed' });
       }
 
-      // Auth
-      // Auth (phase40 hardened): verified HMAC JWT only — no fallback to
-      // supabase.auth.getUser(token) which accepts tokens without full
-      // signature verification in this library version.
-      const localUser = getServerUser(req);
-      if (!localUser) {
+      // Auth: try local HMAC first (fast, no network), fall back to GoTrue
+      // if SUPABASE_JWT_SECRET is not configured in the environment.
+      const supabase = getSupabase();
+      const { user: serverUser } = await getServerUserWithFallback(req, supabase);
+      if (!serverUser) {
           return res.status(401).json({ success: false, error: 'Auth required' });
       }
-      const userId = localUser.id;
+      const userId = serverUser.id;
 
       try {
           const limit = parseInt(req.query.limit || '50');

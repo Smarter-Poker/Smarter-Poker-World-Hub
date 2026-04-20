@@ -1,5 +1,5 @@
 const { createClient } = require('../../../src/lib/supabaseServerClient');
-const { getServerUser } = require('../../../src/lib/serverAuth');
+const { getServerUser, getServerUserWithFallback } = require('../../../src/lib/serverAuth');
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
@@ -27,10 +27,8 @@ export default async function handler(req, res) {
       }
 
 
-      // HARDENED: Local JWT decode (no GoTrue network call) + fallback
-      // Auth (phase40 hardened): verified HMAC JWT only — supabase.auth.getUser(token)
-      // accepts JWTs without verifying the HMAC signature in this library version.
-      const localUser = getServerUser(req);
+      // Auth: try local HMAC first, fall back to GoTrue if JWT secret not configured
+      const { user: localUser } = await getServerUserWithFallback(req, getSupabase());
       if (!localUser) return res.status(401).json({ error: 'Auth required' });
       const userId = localUser.id;
 
