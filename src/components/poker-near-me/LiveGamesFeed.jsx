@@ -134,9 +134,8 @@ const STAKES_FILTERS = [
 function venueHasStakes(games, minStake) {
     if (minStake === 'any' || !minStake) return true;
     const threshold = parseInt(minStake);
-    return (games || []).some(g => g.game && parseMinStake(g.game) >= threshold);
+    return (games || []).some(g => g && g.game && parseMinStake(g.game) >= threshold);
 }
-
 
 function LiveGamesFeed({
     venues = [], 
@@ -452,7 +451,7 @@ function LiveGamesFeed({
                     const nextV = { ...match, games: [...(match.games || [])] };
                     // Map DB row → API game format (game_name → game, etc.)
                     const mappedGame = {
-                        game: newRec.game_name.trim(),
+                        game: String(newRec.game_name).trim(),
                         tables_running: newRec.tables_running || 0,
                         players_waiting: newRec.players_waiting || 0,
                         source: newRec.source || 'bravo',
@@ -462,18 +461,22 @@ function LiveGamesFeed({
                         _rowId: newRec.id, // track DB row for dedup
                     };
                     // Replace if same game name already loaded, otherwise append
-                    const gameIdx = nextV.games.findIndex(g => g.game === mappedGame.game);
+                    const gameIdx = nextV.games.findIndex(g => g && g.game === mappedGame.game);
                     if (gameIdx !== -1) {
                         nextV.games[gameIdx] = mappedGame;
                     } else {
                         nextV.games.push(mappedGame);
                     }
                     
-                    nextV.totalTables = (nextV.games || []).reduce((acc, g) => acc + (g.tables_running || 0), 0);
-                    nextV.totalWait = (nextV.games || []).reduce((acc, g) => acc + (g.players_waiting || 0), 0);
+                    nextV.totalTables = (nextV.games || []).reduce((acc, g) => acc + ((g && g.tables_running) || 0), 0);
+                    nextV.totalWait = (nextV.games || []).reduce((acc, g) => acc + ((g && g.players_waiting) || 0), 0);
                     
                     return { ...prev, [newRec.bravo_slug]: nextV };
                 });
+
+                // Notify rest of platform (Game Trends & Heatmaps) of instantaneous change via EventBus
+                // (Without this, external peers wait up to 2 mins for standard polling refresh loop)
+                busEmit.dataMutated('live_tables');
             })
             .subscribe();
 
@@ -669,7 +672,7 @@ function LiveGamesFeed({
 
         // 3. Filter by Game Type
         if (filterGameType !== 'all') {
-            list = list.filter(v => (v.games || []).some(g => matchesGameType(g.game, filterGameType)));
+            list = list.filter(v => (v.games || []).some(g => g && matchesGameType(g.game, filterGameType)));
         }
 
         // 4. Filter by Stakes
@@ -754,7 +757,7 @@ function LiveGamesFeed({
         const isExpanded = expandedBreakdowns[venueSlug];
         const needsCollapse = venueGames.length > COLLAPSE_THRESHOLD;
         const displayGames = needsCollapse && !isExpanded 
-            ? [...venueGames].sort((a, b) => (b.tables_running || 0) - (a.tables_running || 0)).slice(0, COLLAPSE_THRESHOLD) 
+            ? [...venueGames].sort((a, b) => ((b && b.tables_running) || 0) - ((a && a.tables_running) || 0)).slice(0, COLLAPSE_THRESHOLD) 
             : venueGames;
         const hiddenCount = venueGames.length - COLLAPSE_THRESHOLD;
 
