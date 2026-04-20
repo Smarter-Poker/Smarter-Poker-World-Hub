@@ -58,7 +58,11 @@ async function listGroups(req, res) {
       userId = user?.id;
     }
 
-    const { my_groups, city, state, game_type } = req.query;
+    const safeP = (v) => Array.isArray(v) ? v[0] : (v || '');
+    const my_groups = safeP(req.query.my_groups);
+    const city = safeP(req.query.city);
+    const state = safeP(req.query.state);
+    const game_type = safeP(req.query.game_type);
 
     let query = getSupabase()
       .from('commander_home_groups')

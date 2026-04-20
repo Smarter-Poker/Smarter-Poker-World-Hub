@@ -59,7 +59,10 @@ async function listEvents(req, res) {
       return res.status(401).json({ error: 'Invalid token' });
     }
 
-    const { group_id, upcoming, host_id } = req.query;
+    const safeP = (v) => Array.isArray(v) ? v[0] : v;
+    const group_id = safeP(req.query.group_id);
+    const upcoming = safeP(req.query.upcoming);
+    const host_id = safeP(req.query.host_id);
 
     // Get user's group memberships
     const { data: memberships } = await getSupabase()
