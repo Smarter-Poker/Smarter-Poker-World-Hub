@@ -41,7 +41,7 @@ const RADIUS_OPTIONS = [
     { value: 200, label: '200 Miles' },
     { value: 250, label: '250 Miles' },
     { value: 500, label: '500 Miles' },
-    { value: 'Any', label: 'Any Distance' }
+    { value: 'any', label: 'Any Distance' }
 ];
 
 export default function FilterPanel({

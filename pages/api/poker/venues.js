@@ -646,10 +646,27 @@ export default async function handler(req, res) {
                       .eq('is_suppressed', false) // Bug #1 Fix: never serve suppressed venues
 
                   if (state) q = q.ilike('state', state.length === 2 ? state.toUpperCase() : `%${state}%`);
-                  // When GPS is active with a known user_state, filter Supabase to same state.
-                  // Without this, the global top-500 by trust_score may exclude many local venues,
-                  // making the GPS radius filter return near-zero results.
-                  else if (lat && lng && user_state) {
+                  // [GEOFENCE FIX] When GPS is active with a radius, use a lat/lng bounding box
+                  // instead of a hard state filter. A single-state filter incorrectly drops
+                  // cross-border venues (e.g. Horseshoe Hammond IN is only 22mi from Chicago IL).
+                  // The bounding box over-fetches from neighboring states; the distance filter at
+                  // line ~1117 then trims results to the exact requested radius.
+                  else if (lat && lng && radius) {
+                      const userLat = parseFloat(lat);
+                      const userLng = parseFloat(lng);
+                      const radiusMi = Math.max(0, parseFloat(radius) || 50);
+                      if (!isNaN(userLat) && !isNaN(userLng)) {
+                          // 1 degree latitude ≈ 69 miles; 1 degree longitude ≈ 69*cos(lat) miles.
+                          // Pad by 20% so bounding box is always larger than the radius circle.
+                          const latDelta = (radiusMi / 69) * 1.2;
+                          const lngDelta = (radiusMi / (69 * Math.cos(userLat * Math.PI / 180))) * 1.2;
+                          q = q.gte('latitude', userLat - latDelta)
+                               .lte('latitude', userLat + latDelta)
+                               .gte('longitude', userLng - lngDelta)
+                               .lte('longitude', userLng + lngDelta);
+                      }
+                  } else if (lat && lng && user_state) {
+                      // GPS active without radius — fallback: same-state filter to avoid global top-500
                       q = q.ilike('state', user_state.toUpperCase());
                   }
                   if (city) q = q.ilike('city', `%${city}%`);
@@ -678,9 +695,18 @@ export default async function handler(req, res) {
                           const cityPart = cityStateMatch[1].trim();
                           const statePart = cityStateMatch[2].trim();
                           const stateAbbrev = resolveStateAbbrev(statePart);
-                          q = q.ilike('city', `%${cityPart}%`);
-                          if (stateAbbrev) q = q.ilike('state', stateAbbrev);
-                          else q = q.ilike('state', `%${statePart}%`);
+                          // [GEOFENCE FIX] When GPS+radius is active alongside a city,state search,
+                          // only filter by city name — NOT state. This prevents cross-state venues
+                          // (e.g. "Chicago, IL" search excluding Hammond IN) from being dropped.
+                          // The distance filter handles the actual radius cutoff.
+                          if (lat && lng && radius) {
+                              // GPS active: name or city match — don't restrict to a single state
+                              q = q.or(`name.ilike.%${cityPart}%,city.ilike.%${cityPart}%`);
+                          } else {
+                              q = q.ilike('city', `%${cityPart}%`);
+                              if (stateAbbrev) q = q.ilike('state', stateAbbrev);
+                              else q = q.ilike('state', `%${statePart}%`);
+                          }
                       } else if (searchStateAbbrev) {
                           q = q.ilike('state', searchStateAbbrev);
                       } else {

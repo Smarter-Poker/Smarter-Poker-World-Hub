@@ -806,8 +806,8 @@ function checkHandForLeak(hand, leakType) {
       };
     }
   } catch (e) {
-      try { reportApiError(e, req); } catch (_sentryErr) {}
-    // Pattern check failed
+    console.warn('[checkHandForLeak] Pattern check failed for', leakType, e.message);
+    // Pattern check failed — non-fatal, continue
   }
 
   return null;

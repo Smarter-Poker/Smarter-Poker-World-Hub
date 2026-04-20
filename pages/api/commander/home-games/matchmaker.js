@@ -406,7 +406,6 @@ Find the best matches for this player.`;
       }));
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) {}
     console.error('Grok matchmaker error:', err);
     // Fallback: basic scoring without AI
     return fallbackMatching(playerCtx, groups, games, maxResults);
