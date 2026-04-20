@@ -108,11 +108,11 @@ export default async function handler(req, res) {
       if (n < min || n > max) return null;
       return n;
     }
-    const userLat = rawLat != null ? parseNum(rawLat, -90, 90)   : null;
-    const userLng = rawLng != null ? parseNum(rawLng, -180, 180) : null;
-    const hasGps  = userLat != null && userLng != null;
-    const radiusMiles = hasGps
-      ? Math.min(Math.max(parseFloat(rawRadius) || 50, 1), 500)
+    const parsedLat = userLat != null ? parseNum(userLat, -90, 90)   : null;
+    const parsedLng = userLng != null ? parseNum(userLng, -180, 180) : null;
+    const hasGps    = parsedLat != null && parsedLng != null;
+    const parsedRadius = hasGps
+      ? Math.min(Math.max(parseFloat(radiusMiles) || 50, 1), 500)
       : null;
 
     // Haversine on real (unjittered) coordinates.
@@ -265,7 +265,7 @@ export default async function handler(req, res) {
       let distance_miles = null;
       if (hasGps && g.latitude != null && g.longitude != null) {
         distance_miles = haversineMiles(
-          userLat, userLng,
+          parsedLat, parsedLng,
           parseFloat(g.latitude), parseFloat(g.longitude)
         );
         distance_miles = Math.round(distance_miles * 10) / 10;
@@ -319,7 +319,7 @@ export default async function handler(req, res) {
       // Filter out groups outside the radius (those without coords are kept;
       // they have distance_miles=null and surface at the end of the list).
       out = out.filter((g) =>
-        g.distance_miles == null || g.distance_miles <= radiusMiles
+        g.distance_miles == null || g.distance_miles <= parsedRadius
       );
       // Sort: groups with distance first (ascending), groups without
       // coords after, tie-breaking on member_count.

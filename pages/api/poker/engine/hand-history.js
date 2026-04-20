@@ -49,7 +49,10 @@ export default async function handler(req, res) {
 
     // ═══ GET: Fetch hands ═══
 
-    const { tableId, page = '0', limit = '20' } = req.query;
+    const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+    const tableId = safeQ(req.query.tableId);
+    const page = safeQ(req.query.page) || '0';
+    const limit = safeQ(req.query.limit) || '20';
     if (!tableId) return res.status(400).json({ error: 'tableId required' });
 
     const offset = parseInt(page) * parseInt(limit);

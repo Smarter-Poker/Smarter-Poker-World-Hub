@@ -20,7 +20,9 @@ export default async function handler(req, res) {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
-    const { user_id, venue_id } = req.query;
+    const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+    const user_id = safeQ(req.query.user_id);
+    const venue_id = safeQ(req.query.venue_id);
     if (!user_id && !venue_id) {
         return res.status(400).json({ success: false, error: 'user_id or venue_id is required' });
     }

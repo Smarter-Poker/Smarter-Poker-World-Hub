@@ -21,7 +21,13 @@ export default async function handler(req, res) {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
-    const { venue_ids } = req.query;
+    const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+    let venue_ids = req.query.venue_ids;
+    if (typeof venue_ids === 'string') {
+        try { venue_ids = JSON.parse(venue_ids); } catch (e) { venue_ids = venue_ids.split(','); }
+    } else if (!Array.isArray(venue_ids)) {
+        venue_ids = [];
+    }
     if (!venue_ids) {
         return res.status(400).json({ success: false, error: 'venue_ids is required (comma-separated)' });
     }

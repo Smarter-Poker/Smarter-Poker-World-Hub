@@ -24,7 +24,8 @@ try {
 
       // ── LIST TABLES ──
       if (req.method === 'GET') {
-        const { id } = req.query;
+        const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+        const id = safeQ(req.query.id);
 
         if (id) {
           // Cold-start guard: if this specific table isn't in memory, recover it first
@@ -59,7 +60,8 @@ try {
         const auth = await authenticatePlayer(req, res, { requirePlayerId: false });
         if (!auth) return;
 
-        const { id } = req.query;
+        const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+        const id = safeQ(req.query.id);
         if (!id) return res.status(400).json({ error: 'Table id required' });
 
         // Cold-start guard: ensure table is loaded so config (clubId) is available for auth check

@@ -50,11 +50,12 @@ export default async function handler(req, res) {
               return res.status(401).json({ success: false, error: 'Invalid or expired token' });
           }
 
-          const { claim_id, verification_code } = req.body;
+          const claim_id = Array.isArray(req.body.claim_id) ? req.body.claim_id[0] : req.body.claim_id;
+          const verification_code = Array.isArray(req.body.verification_code) ? req.body.verification_code[0] : req.body.verification_code;
 
-          if (!claim_id || !verification_code) {
+          if (!claim_id || typeof verification_code !== 'string') {
               return res.status(400).json({
-                  success: false, error: 'Missing required fields',
+                  success: false, error: 'Missing req fields',
                   required: ['claim_id', 'verification_code']
               });
           }

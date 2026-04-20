@@ -20,7 +20,8 @@ export default async function handler(req, res) {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
-    const { period = 'month' } = req.query;
+    const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+    const period = safeQ(req.query.period) || 'month';
 
     try {
         let since = null;

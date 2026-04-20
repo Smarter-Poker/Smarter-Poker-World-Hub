@@ -22,7 +22,8 @@ export default async function handler(req, res) {
     }
 
     try {
-        const limit = Math.min(parseInt(req.query.limit, 10) || 5, 20);
+        const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+        const limit = Math.min(parseInt(safeQ(req.query.limit), 10) || 5, 20);
         const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
         // Get all check-ins in the last 24 hours
