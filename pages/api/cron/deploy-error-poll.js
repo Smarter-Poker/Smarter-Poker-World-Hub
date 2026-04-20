@@ -123,16 +123,30 @@ export default async function handler(req, res) {
         if (logsRes.ok) {
           const events = await logsRes.json();
           if (Array.isArray(events)) {
-            const errorLines = events
+            const allLines = events
               .map((e) => e.payload?.text || e.text || '')
-              .filter((t) =>
-                t &&
-                ['Module not found', 'Cannot find', 'SyntaxError', 'Type error', 'TypeError',
-                 'Failed to compile', 'Build failed', 'error TS', 'Unexpected token',
-                 'ReferenceError', 'is not a module', 'does not provide an export',
-                 'Cannot read properties', 'exited with'].some((kw) => t.includes(kw))
-              );
-            buildErrors = errorLines.join('\n');
+              .filter(Boolean);
+
+            // Find error lines AND their surrounding context (±2 lines)
+            // so the autofix handler can see both the error AND the file path
+            const errorKeywords = [
+              'Module not found', 'Cannot find', 'SyntaxError', 'Type error', 'TypeError',
+              'Failed to compile', 'Build failed', 'error TS', 'Unexpected token',
+              'ReferenceError', 'is not a module', 'does not provide an export',
+              'Cannot read properties', 'exited with', 'Error:'
+            ];
+            const includedIndices = new Set();
+            allLines.forEach((line, idx) => {
+              if (errorKeywords.some((kw) => line.includes(kw)) ||
+                  /\.\/(pages|src|lib|components)\//.test(line)) {
+                // Include this line and ±2 lines of context
+                for (let j = Math.max(0, idx - 2); j <= Math.min(allLines.length - 1, idx + 2); j++) {
+                  includedIndices.add(j);
+                }
+              }
+            });
+            const contextLines = [...includedIndices].sort((a, b) => a - b).map((i) => allLines[i]);
+            buildErrors = contextLines.join('\n');
           }
         }
       } catch (e) {
