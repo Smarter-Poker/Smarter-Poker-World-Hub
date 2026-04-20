@@ -75,7 +75,7 @@ async function handleGet(req, res) {
             .from('page_followers')
             .select('*')
             .eq('user_id', user_id)
-                .limit(100);
+            .limit(100);
 
         if (error) {
             console.error('Error fetching follows:', error);
@@ -89,29 +89,8 @@ async function handleGet(req, res) {
         });
     }
 
-    // Get follower count for a specific page
-    if (page_type && page_id) {
-        const { count, error } = await getSupabase()
-            .from('page_followers')
-            .select('*', { count: 'exact', head: true })
-            .eq('page_type', page_type)
-            .eq('page_id', String(page_id))
-                .limit(100);
-
-        if (error) {
-            console.error('Error fetching follower count:', error);
-            return res.status(500).json({ success: false, error: error.message });
-        }
-
-        return res.status(200).json({
-            success: true,
-            page_type,
-            page_id,
-            follower_count: count || 0,
-        });
-    }
-
-    // Check if specific user follows a specific page
+    // Check if specific user follows a specific page — must come BEFORE the
+    // follower-count branch because both require page_type + page_id.
     if (checkUserId && page_type && page_id) {
         if (!UUID_RE.test(checkUserId)) {
             return res.status(200).json({ success: true, is_following: false });
@@ -134,8 +113,31 @@ async function handleGet(req, res) {
         });
     }
 
+    // Get follower count for a specific page
+    if (page_type && page_id) {
+        const { count, error } = await getSupabase()
+            .from('page_followers')
+            .select('*', { count: 'exact', head: true })
+            .eq('page_type', page_type)
+            .eq('page_id', String(page_id))
+            .limit(100);
+
+        if (error) {
+            console.error('Error fetching follower count:', error);
+            return res.status(500).json({ success: false, error: error.message });
+        }
+
+        return res.status(200).json({
+            success: true,
+            page_type,
+            page_id,
+            follower_count: count || 0,
+        });
+    }
+
     return res.status(400).json({ success: false, error: 'Provide user_id or page_type+page_id' });
 }
+
 
 /**
  * Cross-sync follow/unfollow to social_page_followers when a linked social page exists.
