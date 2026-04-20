@@ -36,6 +36,7 @@ try {
     }
 
     try {
+      const safeQ = (v) => Array.isArray(v) ? v[0] : v;
       if (req.method === 'POST') {
         // Require JWT for writes
         const token = req.headers.authorization?.replace('Bearer ', '');
@@ -89,7 +90,9 @@ try {
       }
 
       if (req.method === 'GET') {
-        const { venue_id, active, game_type } = req.query;
+        const venue_id = safeQ(req.query.venue_id);
+        const active = safeQ(req.query.active);
+        const game_type = safeQ(req.query.game_type);
         const now = new Date().toISOString();
 
         // Active games for a specific venue
@@ -166,7 +169,7 @@ try {
         const { data: { user: delUser }, error: delAuthErr } = await getSupabase().auth.getUser(token);
         if (delAuthErr || !delUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-        const { game_id } = req.query;
+        const game_id = safeQ(req.query.game_id);
 
         if (!game_id) {
           return res.status(400).json({ success: false, error: 'game_id is required' });
