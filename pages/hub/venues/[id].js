@@ -371,10 +371,14 @@ export default function VenueDetailPage() {
     } catch (_) { }
   }, [id]);
 
-  // Load follow state from Supabase API
+  // Load follow state from Supabase API — requires a real user UUID
   useEffect(function () {
     if (!id) return;
-    fetch('/api/poker/follow?page_type=venue&page_id=' + id + '&check_user=1')
+    var authUser = getAuthUser();
+    var checkUid = authUser && authUser.id ? authUser.id : null;
+    // Skip API call for unauthenticated users — localStorage already handles their state above
+    if (!checkUid) return;
+    fetch('/api/poker/follow?page_type=venue&page_id=' + id + '&check_user=' + encodeURIComponent(checkUid))
       .then(function (r) { return r.json(); })
       .then(function (d) { if (d.is_following !== undefined) setIsFollowed(d.is_following); })
       .catch(function () { });

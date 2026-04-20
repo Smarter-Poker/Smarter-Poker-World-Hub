@@ -2533,10 +2533,22 @@ export default function PokerNearMePage({ initialTab }) {
                     const name = (g.game_type || g.name || g || '').toString().toLowerCase();
                     return name.includes('mix') || name.includes('horse') || name.includes('hors') || name.includes('dealer');
                 });
-                if (filters.gameType === 'nlh') return hasNLH; // STRICT: must offer NLH
-                if (filters.gameType === 'plo') return hasPLO; // STRICT: must offer PLO/Omaha
-                if (filters.gameType === 'mixed') return hasMixed || (hasNLH && hasPLO); // Mixed games OR diverse offering
-                return true;
+                const hasPLO8 = games.some(g => {
+                    const name = (g.game_type || g.name || g || '').toString().toLowerCase();
+                    return name.includes('plo8') || name.includes('omaha hi') || name.includes('o8') || name.includes('big o');
+                });
+                const hasStud = games.some(g => {
+                    const name = (g.game_type || g.name || g || '').toString().toLowerCase();
+                    return name.includes('stud');
+                });
+                if (filters.gameType === 'nlh') return hasNLH;
+                if (filters.gameType === 'plo') return hasPLO;
+                if (filters.gameType === 'plo8') return hasPLO8;
+                if (filters.gameType === 'mixed') return hasMixed || (hasNLH && hasPLO);
+                if (filters.gameType === 'stud') return hasStud;
+                if (filters.gameType === 'other') return !hasNLH && !hasPLO && !hasPLO8 && !hasStud;
+                return true; // unknown/future filter keys — show all
+
             });
         }
 

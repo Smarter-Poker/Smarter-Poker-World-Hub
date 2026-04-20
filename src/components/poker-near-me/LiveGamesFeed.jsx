@@ -114,8 +114,10 @@ function matchesGameType(gameName, filterKey) {
     const g = ((gameName || '')).toLowerCase();
     if (filterKey === 'nlh') return g.includes('hold') || g.includes('nlh') || g.includes('no limit holdem') || g.includes('no-limit hold');
     if (filterKey === 'plo') return g.includes('omaha') || g.includes('plo') || g.includes('big o');
+    if (filterKey === 'plo8') return g.includes('plo8') || g.includes('omaha hi') || g.includes('omaha 8') || g.includes('o8') || g.includes('big o');
     if (filterKey === 'mixed') return g.includes('mix') || g.includes('horse') || g.includes('triple draw') || g.includes('2-7') || g.includes('badugi');
     if (filterKey === 'stud') return g.includes('stud');
+    if (filterKey === 'other') return !g.includes('hold') && !g.includes('nlh') && !g.includes('omaha') && !g.includes('plo') && !g.includes('stud'); // anything not NLH/PLO/Stud
     return false;
 }
 
