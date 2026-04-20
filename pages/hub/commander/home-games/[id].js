@@ -98,7 +98,7 @@ function EventCard({ event, onRsvp, userRsvp }) {
   );
 }
 
-function MemberCard({ member, isHost }) {
+function MemberCard({ member, isHost, onMessage }) {
   return (
     <div className="flex items-center gap-3 p-3">
       <div className="w-10 h-10 rounded-full bg-[#22D3EE]/10 flex items-center justify-center overflow-hidden">
@@ -113,9 +113,18 @@ function MemberCard({ member, isHost }) {
         <p className="text-sm text-[#64748B]">{member.role || 'player'}</p>
       </div>
       {isHost && (
-        <span className="px-2 py-1 bg-[#22D3EE]/10 text-[#22D3EE] text-xs font-medium rounded">
+        <span className="px-2 py-1 bg-[#22D3EE]/10 text-[#22D3EE] text-xs font-medium rounded mr-2">
           Host
         </span>
+      )}
+      {onMessage && (
+        <button
+          onClick={() => onMessage(member.user_id)}
+          className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
+          title="Message Player"
+        >
+          <MessageSquare className="w-4 h-4 text-[#22D3EE]" />
+        </button>
       )}
     </div>
   );
@@ -347,6 +356,31 @@ export default function HomeGameDetailPage() {
     }
   }
 
+  // Start a direct message with a user
+  async function handleStartDm(targetUserId) {
+    if (targetUserId === currentUserId) return;
+    try {
+      const token = await getAccessToken();
+      const res = await fetch(`/api/commander/home-games/groups/${id}/dm-player`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ target_user_id: targetUserId })
+      });
+      const data = await res.json();
+      if (data.success && data.dm_url) {
+        router.push(data.dm_url);
+      } else {
+        toast.error(data.error?.message || data.error || 'Failed to start message');
+      }
+    } catch (err) {
+      console.error('DM start failed:', err);
+      toast.error('Failed to start message');
+    }
+  }
+
   // Copy invite code
   function copyInviteCode() {
     if (group?.invite_code) {
@@ -422,6 +456,15 @@ export default function HomeGameDetailPage() {
                   className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
                 >
                   <Settings className="w-5 h-5 text-[#64748B]" />
+                </button>
+              )}
+              {!isHost && isMember && (
+                <button
+                  onClick={() => handleStartDm(group.host_id)}
+                  className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
+                  title="Message Host"
+                >
+                  <MessageSquare className="w-5 h-5 text-[#22D3EE]" />
                 </button>
               )}
             </div>
@@ -533,6 +576,7 @@ export default function HomeGameDetailPage() {
                   key={member.id}
                   member={member}
                   isHost={member.user_id === group.host_id}
+                  onMessage={member.user_id !== currentUserId ? () => handleStartDm(member.user_id) : undefined}
                 />
               ))}
             </div>
