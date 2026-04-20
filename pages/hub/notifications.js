@@ -479,35 +479,38 @@ function NotificationsPage() {
                     ) : (
                         notifications.map(n => {
                             const isPoker = n._source === 'poker';
-                            // Notification type icon map — Lucide SVGs, no empty circles
+                            // Notification type icon map — Lucide SVGs, Smarter.Poker brand colors
                             const getNotifIcon = () => {
                                 const s = 14; const clr = '#fff';
                                 if (isPoker) {
-                                    // Poker sub-types from message content
+                                    // Poker sub-types — specific matches FIRST, generic fallback last
                                     const msg = (n.message || '').toLowerCase();
-                                    if (msg.includes('settlement') || msg.includes('chips')) return { icon: <Banknote size={s} color={clr} />, bg: '#2D8B4E' };
-                                    if (msg.includes('roster') || msg.includes('seat')) return { icon: <Users size={s} color={clr} />, bg: '#6366F1' };
-                                    if (msg.includes('tournament') || msg.includes('trophy')) return { icon: <Trophy size={s} color={clr} />, bg: '#F59E0B' };
-                                    if (msg.includes('security') || msg.includes('phase')) return { icon: <ShieldCheck size={s} color={clr} />, bg: '#8B5CF6' };
+                                    if (msg.includes('settlement') || msg.includes('chips') || msg.includes('rake')) return { icon: <Banknote size={s} color={clr} />, bg: '#22C55E' };
+                                    if (msg.includes('seat')) return { icon: <UserCheck size={s} color={clr} />, bg: '#1877F2' };
+                                    if (msg.includes('roster')) return { icon: <Users size={s} color={clr} />, bg: '#00d4ff' };
+                                    if (msg.includes('rsvp') || msg.includes('late')) return { icon: <Bell size={s} color={clr} />, bg: '#ffd60a' };
+                                    if (msg.includes('dm_order') || msg.includes('dm_run') || msg.includes('dm_readback')) return { icon: <MessageCircle size={s} color={clr} />, bg: '#1877F2' };
+                                    if (msg.includes('tournament') || msg.includes('trophy')) return { icon: <Trophy size={s} color={clr} />, bg: '#ffd60a' };
+                                    if (msg.includes('security')) return { icon: <ShieldCheck size={s} color={clr} />, bg: '#FA383E' };
                                     return { icon: <Spade size={s} color={clr} />, bg: '#2D8B4E' };
                                 }
                                 switch (n.type) {
                                     case 'like': return { icon: <ThumbsUp size={s} color={clr} />, bg: '#1877F2' };
-                                    case 'love': return { icon: <Heart size={s} color={clr} />, bg: '#F33E58' };
-                                    case 'comment': return { icon: <MessageCircle size={s} color={clr} />, bg: '#44BD32' };
-                                    case 'mention': return { icon: <AtSign size={s} color={clr} />, bg: '#8B5CF6' };
-                                    case 'tag': return { icon: <AtSign size={s} color={clr} />, bg: '#8B5CF6' };
+                                    case 'love': return { icon: <Heart size={s} color={clr} />, bg: '#FA383E' };
+                                    case 'comment': return { icon: <MessageCircle size={s} color={clr} />, bg: '#22C55E' };
+                                    case 'mention': return { icon: <AtSign size={s} color={clr} />, bg: '#00d4ff' };
+                                    case 'tag': return { icon: <AtSign size={s} color={clr} />, bg: '#00d4ff' };
                                     case 'friend_request': return { icon: <UserPlus size={s} color={clr} />, bg: '#42B72A' };
                                     case 'friend_accepted': return { icon: <UserCheck size={s} color={clr} />, bg: '#42B72A' };
-                                    case 'new_follow': return { icon: <Eye size={s} color={clr} />, bg: '#0EA5E9' };
+                                    case 'new_follow': return { icon: <Eye size={s} color={clr} />, bg: '#0096ff' };
                                     case 'live': return { icon: <Radio size={s} color={clr} />, bg: '#FA383E' };
-                                    case 'share': return { icon: <Share2 size={s} color={clr} />, bg: '#6366F1' };
-                                    case 'achievement': return { icon: <Star size={s} color={clr} />, bg: '#F59E0B' };
-                                    case 'reward': case 'gift': return { icon: <Gift size={s} color={clr} />, bg: '#EC4899' };
-                                    case 'announcement': return { icon: <Megaphone size={s} color={clr} />, bg: '#6366F1' };
-                                    case 'level_up': return { icon: <TrendingUp size={s} color={clr} />, bg: '#10B981' };
-                                    case 'system': return { icon: <Zap size={s} color={clr} />, bg: '#8B5CF6' };
-                                    default: return { icon: <Bell size={s} color={clr} />, bg: '#6366F1' };
+                                    case 'share': return { icon: <Share2 size={s} color={clr} />, bg: '#1877F2' };
+                                    case 'achievement': return { icon: <Star size={s} color={clr} />, bg: '#ffd60a' };
+                                    case 'reward': case 'gift': return { icon: <Gift size={s} color={clr} />, bg: '#ffd60a' };
+                                    case 'announcement': return { icon: <Megaphone size={s} color={clr} />, bg: '#00d4ff' };
+                                    case 'level_up': return { icon: <TrendingUp size={s} color={clr} />, bg: '#00f593' };
+                                    case 'system': return { icon: <Zap size={s} color={clr} />, bg: '#00d4ff' };
+                                    default: return { icon: <Bell size={s} color={clr} />, bg: '#1877F2' };
                                 }
                             };
                             const { icon: ActionIcon, bg: iconBg } = getNotifIcon();
