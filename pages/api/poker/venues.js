@@ -654,7 +654,7 @@ export default async function handler(req, res) {
                   else if (lat && lng && radius) {
                       const userLat = parseFloat(lat);
                       const userLng = parseFloat(lng);
-                      const radiusMi = Math.max(0, parseFloat(radius) || 50);
+                      const radiusMi = Math.min(Math.max(0, parseFloat(radius) || 50), 300); // server cap: 300mi max
                       if (!isNaN(userLat) && !isNaN(userLng)) {
                           // 1 degree latitude ≈ 69 miles; 1 degree longitude ≈ 69*cos(lat) miles.
                           // Pad by 20% so bounding box is always larger than the radius circle.

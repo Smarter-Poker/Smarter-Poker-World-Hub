@@ -383,11 +383,15 @@ export default function PokerNearMeLobby() {
       const sort = params.get('sort');
       const radius = params.get('radius');
       if (state || game || sort || radius) {
+        // Cap URL-supplied radius to 150mi to prevent deep-link abuse
+        const safeUrlRadius = radius && radius !== 'any'
+          ? String(Math.min(parseInt(radius, 10) || 50, 150))
+          : radius;
         setFilters(prev => ({
           ...prev,
           ...(state ? { selectedState: state, nmState: state } : {}),
           ...(game ? { gameType: game, nmGameType: game } : {}),
-          ...(radius ? { radius, nmRadius: radius } : {}),
+          ...(safeUrlRadius ? { radius: safeUrlRadius, nmRadius: safeUrlRadius } : {}),
         }));
         if (sort) setSortBy(sort);
       }
