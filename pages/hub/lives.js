@@ -41,50 +41,51 @@ export default function LivesPage() {
     // Get auth user for FeatureGate
     useEffect(() => {    const _c = new AbortController();
 
-        const user = getAuthUser();
-        if (user) setUserId(user.id);
+        const authUser = getAuthUser();
+        if (authUser) setUserId(authUser.id);
     return () => _c.abort();
   }, []);
 
     // ═══ ACTION GATE: Users can explore/watch, but interactions are gated ═══
     const { guardAction, UpgradePopup } = useFeatureGate('lives');
 
+    // Shared stream-loading function
+    const loadStreams = useCallback(async () => {
+        setLoading(true);
+
+        // Get active live streams
+        const { data: liveStreams } = await supabase
+            .from('live_streams')
+            .select('*, profiles!broadcaster_id(username, avatar_url, full_name)')
+            .eq('status', 'live')
+            .order('started_at', { ascending: false })
+            .limit(50);
+
+        // Get recorded streams with video URLs (posted ones)
+        const { data: recordedStreams } = await supabase
+            .from('live_streams')
+            .select('*, profiles!broadcaster_id(username, avatar_url, full_name)')
+            .eq('status', 'ended')
+            .not('video_url', 'is', null)
+            .order('created_at', { ascending: false })
+            .limit(50);
+
+        // Combine: active lives first, then recorded
+        const allStreams = [
+            ...(liveStreams || []).map(s => ({ ...s, isLive: true })),
+            ...(recordedStreams || []).map(s => ({ ...s, isLive: false }))
+        ];
+
+        setStreams(allStreams);
+        setLoading(false);
+    }, []);
+
     // Fetch all streams (active lives + recorded)
     useEffect(() => {    const _c = new AbortController();
 
-        const fetchStreams = async(signal) => {
-            setLoading(true);
-
-            // Get active live streams
-            const { data: liveStreams } = await supabase
-                .from('live_streams')
-                .select('*, profiles!broadcaster_id(username, avatar_url, full_name)')
-                .eq('status', 'live')
-                .order('started_at', { ascending: false })
-                .limit(50) // live streams
-
-            // Get recorded streams with video URLs (posted ones)
-            const { data: recordedStreams } = await supabase
-                .from('live_streams')
-                .select('*, profiles!broadcaster_id(username, avatar_url, full_name)')
-                .eq('status', 'ended')
-                .not('video_url', 'is', null)
-                .order('created_at', { ascending: false })
-                .limit(50);
-
-            // Combine: active lives first, then recorded
-            const allStreams = [
-                ...(liveStreams || []).map(s => ({ ...s, isLive: true })),
-                ...(recordedStreams || []).map(s => ({ ...s, isLive: false }))
-            ];
-
-            setStreams(allStreams);
-            setLoading(false);
-        };
-
-        fetchStreams();
+        loadStreams();
     return () => _c.abort();
-  }, []);
+  }, [loadStreams]);
 
     // Handle swipe navigation
     const handleTouchStart = (e) => {
@@ -142,12 +143,12 @@ export default function LivesPage() {
         setLikeBusy(true);
         const wasLiked = likedStreams[currentStream.id];
         setLikedStreams(prev => ({ ...prev, [currentStream.id]: !wasLiked }));
-        const userId = typeof window !== 'undefined' ? localStorage.getItem('sp-anon-uid') : null;
-        if (userId) {
+        const anonUid = typeof window !== 'undefined' ? localStorage.getItem('sp-anon-uid') : null;
+        if (anonUid) {
             authedFetch('/api/social/interactions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ post_id: currentStream.id, user_id: userId, interaction_type: 'like' })
+                body: JSON.stringify({ post_id: currentStream.id, user_id: anonUid, interaction_type: 'like' })
             }).catch(() => {
                 setLikedStreams(prev => ({ ...prev, [currentStream.id]: wasLiked }));
             }).finally(() => setLikeBusy(false));
@@ -173,14 +174,14 @@ export default function LivesPage() {
 
     const submitChatMsg = async () => {
         if (!chatText.trim()) return;
-        const userId = typeof window !== 'undefined' ? localStorage.getItem('sp-anon-uid') : null;
-        if (!userId) return;
+        const anonUid = typeof window !== 'undefined' ? localStorage.getItem('sp-anon-uid') : null;
+        if (!anonUid) return;
         setSubmittingChat(true);
         try {
             const res = await authedFetch('/api/social/interactions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ post_id: currentStream.id, user_id: userId, interaction_type: 'comment', content: chatText.trim() })
+                body: JSON.stringify({ post_id: currentStream.id, user_id: anonUid, interaction_type: 'comment', content: chatText.trim() })
             });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
@@ -202,12 +203,12 @@ export default function LivesPage() {
             await navigator.clipboard.writeText(url);
             setShareMsg('Copied!');
             setTimeout(() => setShareMsg(''), 2000);
-            const userId = typeof window !== 'undefined' ? localStorage.getItem('sp-anon-uid') : null;
-            if (userId) {
+            const anonUid = typeof window !== 'undefined' ? localStorage.getItem('sp-anon-uid') : null;
+            if (anonUid) {
                 authedFetch('/api/social/interactions', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ post_id: currentStream.id, user_id: userId, interaction_type: 'share' })
+                    body: JSON.stringify({ post_id: currentStream.id, user_id: anonUid, interaction_type: 'share' })
                 }).catch(() => { }).finally(() => setShareBusy(false));
             } else {
                 setShareBusy(false);
@@ -229,15 +230,15 @@ export default function LivesPage() {
   }, [currentIndex]);
   // Realtime subscription — live updates
   useEffect(() => {
-    if (!user?.id) return;
+    if (!userId) return;
     const _ch = supabase
-      .channel(`lives:${user?.id}`)
+      .channel(`lives:${userId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'live_streams' }, () => {
         loadStreams();
       })
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
-  }, [user?.id]);
+  }, [userId, loadStreams]);
 
     return (
         <>
@@ -399,109 +400,111 @@ export default function LivesPage() {
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    color: C.textSec,
-                                    fontSize: 60,
-                                }}>
-                                    📺
-                                </div>
-                            )}
-
-                            {/* Live Badge */}
-                            {stream.isLive && (
-                                <div style={{
-                                    position: 'absolute',
-                                    top: 70,
-                                    left: 20,
-                                    background: C.red,
+                                    background: '#111',
                                     color: 'white',
-                                    padding: '6px 12px',
-                                    borderRadius: 6,
-                                    fontSize: 14,
-                                    fontWeight: 700,
-                                    animation: 'pulse 1.5s infinite',
+                                    fontSize: 64,
                                 }}>
-                                    🔴 LIVE
+                                    🎬
                                 </div>
                             )}
 
-                            {/* Bottom Info Overlay */}
+                            {/* Bottom gradient overlay */}
                             <div style={{
                                 position: 'absolute',
                                 bottom: 0,
                                 left: 0,
-                                right: 80, // Leave room for action buttons
-                                padding: '40px 20px',
-                                background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)',
+                                right: 0,
+                                height: '40%',
+                                background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
+                                pointerEvents: 'none',
+                            }} />
+
+                            {/* Stream Info */}
+                            <div style={{
+                                position: 'absolute',
+                                bottom: 80,
+                                left: 16,
+                                right: 80,
+                                zIndex: 10,
                             }}>
-                                {/* Broadcaster Info */}
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                                    <img
-                                        src={stream.profiles?.avatar_url || '/avatars/default.png'}
-                                        alt={stream.profiles?.username}
-                                        style={{
-                                            width: 44,
-                                            height: 44,
-                                            borderRadius: '50%',
-                                            border: '2px solid white',
-                                            objectFit: 'cover',
-                                        }}
-                                     loading="lazy" />
-                                    <div>
-                                        <div style={{ fontWeight: 700, color: 'white', fontSize: 16 }}>
-                                            @{stream.profiles?.username || 'Unknown'}
-                                        </div>
-                                        <div style={{ color: C.textSec, fontSize: 13 }}>
-                                            {stream.profiles?.full_name || ''}
-                                        </div>
+                                {/* Live badge */}
+                                {stream.isLive && (
+                                    <span style={{
+                                        display: 'inline-block',
+                                        padding: '4px 10px',
+                                        background: C.red,
+                                        color: 'white',
+                                        borderRadius: 4,
+                                        fontSize: 12,
+                                        fontWeight: 700,
+                                        marginBottom: 8,
+                                    }}>
+                                        🔴 LIVE
+                                    </span>
+                                )}
+
+                                {/* Broadcaster info */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                                    <div style={{
+                                        width: 36,
+                                        height: 36,
+                                        borderRadius: '50%',
+                                        background: '#333',
+                                        overflow: 'hidden',
+                                    }}>
+                                        {stream.profiles?.avatar_url && (
+                                            <img src={stream.profiles.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+                                        )}
                                     </div>
+                                    <span style={{ color: 'white', fontWeight: 600, fontSize: 15 }}>
+                                        @{stream.profiles?.username || 'unknown'}
+                                    </span>
                                 </div>
 
-                                {/* Stream Title */}
-                                <div style={{ color: 'white', fontSize: 15, marginBottom: 8 }}>
-                                    {stream.title || 'Live Stream'}
-                                </div>
+                                {/* Title */}
+                                <h3 style={{ margin: '0 0 6px', color: 'white', fontSize: 16, fontWeight: 600 }}>
+                                    {stream.title || 'Untitled Stream'}
+                                </h3>
 
-                                {/* Stats */}
+                                {/* Viewer count */}
                                 <div style={{ color: C.textSec, fontSize: 13 }}>
-                                    {stream.isLive ? (
-                                        <span>👁️ {stream.viewer_count || 0} watching</span>
-                                    ) : (
-                                        <span>▶️ Replay • {new Date(stream.created_at).toLocaleDateString()}</span>
-                                    )}
+                                    👁 {stream.viewer_count || 0} viewers
                                 </div>
                             </div>
 
-                            {/* Right Side Action Buttons */}
+                            {/* Right side action buttons */}
                             <div style={{
                                 position: 'absolute',
-                                bottom: 100,
                                 right: 12,
+                                bottom: 120,
                                 display: 'flex',
                                 flexDirection: 'column',
                                 gap: 20,
                                 alignItems: 'center',
+                                zIndex: 10,
                             }}>
-                                {/* Like Button */}
-                                <button onClick={handleLivelike} style={{
+                                {/* Like */}
+                                <button onClick={handleLivelike} disabled={likeBusy} style={{
                                     background: 'none',
                                     border: 'none',
-                                    color: 'white',
+                                    color: likedStreams[stream.id] ? C.red : 'white',
                                     fontSize: 28,
                                     cursor: 'pointer',
                                     display: 'flex',
                                     flexDirection: 'column',
                                     alignItems: 'center',
                                     gap: 4,
+                                    opacity: likeBusy ? 0.5 : 1,
                                 }}>
-                                    {likedStreams[stream.id] ? '' : ''}
-                                    <span style={{ fontSize: 12 }}>{likedStreams[stream.id] ? 'Liked' : 'Like'}</span>
+                                    {likedStreams[stream.id] ? '❤️' : '🤍'}
+                                    <span style={{ fontSize: 11, color: C.textSec }}>{stream.like_count || 0}</span>
                                 </button>
 
-                                {/* Comment Button */}
+                                {/* Chat */}
                                 <button onClick={handleLiveChat} style={{
                                     background: 'none',
                                     border: 'none',
-                                    color: showChat ? C.blue : 'white',
+                                    color: 'white',
                                     fontSize: 28,
                                     cursor: 'pointer',
                                     display: 'flex',
@@ -509,12 +512,12 @@ export default function LivesPage() {
                                     alignItems: 'center',
                                     gap: 4,
                                 }}>
-
-                                    <span style={{ fontSize: 12 }}>Chat</span>
+                                    💬
+                                    <span style={{ fontSize: 11, color: C.textSec }}>{stream.comment_count || 0}</span>
                                 </button>
 
-                                {/* Share Button */}
-                                <button onClick={handleLiveShare} style={{
+                                {/* Share */}
+                                <button onClick={handleLiveShare} disabled={shareBusy} style={{
                                     background: 'none',
                                     border: 'none',
                                     color: 'white',
@@ -524,15 +527,83 @@ export default function LivesPage() {
                                     flexDirection: 'column',
                                     alignItems: 'center',
                                     gap: 4,
+                                    opacity: shareBusy ? 0.5 : 1,
                                 }}>
-
-                                    <span style={{ fontSize: 12 }}>{shareMsg || 'Share'}</span>
+                                    🔗
+                                    <span style={{ fontSize: 11, color: C.textSec }}>{shareMsg || 'Share'}</span>
                                 </button>
                             </div>
                         </div>
                     ))}
 
-                    {/* Navigation Dots */}
+                    {/* Chat overlay */}
+                    {showChat && currentStream && (
+                        <div style={{
+                            position: 'absolute',
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            height: '50%',
+                            background: 'rgba(0,0,0,0.9)',
+                            zIndex: 200,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            borderTopLeftRadius: 16,
+                            borderTopRightRadius: 16,
+                        }}>
+                            <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ color: 'white', fontWeight: 600 }}>Chat</span>
+                                <button onClick={() => setShowChat(false)} style={{ background: 'none', border: 'none', color: 'white', fontSize: 20, cursor: 'pointer' }}>✕</button>
+                            </div>
+                            <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+                                {chatMessages.length === 0 && (
+                                    <div style={{ color: C.textSec, textAlign: 'center', marginTop: 20 }}>No messages yet</div>
+                                )}
+                                {chatMessages.map((msg, i) => (
+                                    <div key={i} style={{ marginBottom: 12 }}>
+                                        <span style={{ color: C.blue, fontWeight: 600, fontSize: 13 }}>{msg.author?.username || 'Anon'}: </span>
+                                        <span style={{ color: 'white', fontSize: 13 }}>{msg.content}</span>
+                                    </div>
+                                ))}
+                            </div>
+                            <div style={{ padding: 12, borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', gap: 8 }}>
+                                <input
+                                    value={chatText}
+                                    onChange={e => setChatText(e.target.value)}
+                                    onKeyDown={e => e.key === 'Enter' && submitChatMsg()}
+                                    placeholder="Say something..."
+                                    style={{
+                                        flex: 1,
+                                        padding: '10px 14px',
+                                        borderRadius: 20,
+                                        border: '1px solid rgba(255,255,255,0.2)',
+                                        background: 'rgba(255,255,255,0.1)',
+                                        color: 'white',
+                                        fontSize: 14,
+                                        outline: 'none',
+                                    }}
+                                />
+                                <button
+                                    onClick={submitChatMsg}
+                                    disabled={submittingChat || !chatText.trim()}
+                                    style={{
+                                        padding: '10px 16px',
+                                        borderRadius: 20,
+                                        background: C.blue,
+                                        color: 'white',
+                                        border: 'none',
+                                        fontWeight: 600,
+                                        cursor: 'pointer',
+                                        opacity: submittingChat || !chatText.trim() ? 0.5 : 1,
+                                    }}
+                                >
+                                    Send
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Navigation dots */}
                     {streams.length > 1 && (
                         <div style={{
                             position: 'absolute',
@@ -542,106 +613,26 @@ export default function LivesPage() {
                             display: 'flex',
                             flexDirection: 'column',
                             gap: 6,
-                            zIndex: 100,
+                            zIndex: 50,
                         }}>
-                            {streams.slice(0, 10).map((_, idx) => (
+                            {streams.slice(0, 10).map((_, i) => (
                                 <div
-                                    key={idx}
-                                    onClick={() => setCurrentIndex(idx)}
+                                    key={i}
+                                    onClick={() => setCurrentIndex(i)}
                                     style={{
                                         width: 6,
-                                        height: idx === currentIndex ? 20 : 6,
-                                        borderRadius: 3,
-                                        background: idx === currentIndex ? 'white' : 'rgba(255,255,255,0.4)',
+                                        height: 6,
+                                        borderRadius: '50%',
+                                        background: i === currentIndex ? 'white' : 'rgba(255,255,255,0.3)',
                                         cursor: 'pointer',
-                                        transition: 'all 0.2s ease',
                                     }}
                                 />
                             ))}
                         </div>
                     )}
-
-                    {/* Chat Panel */}
-                    {showChat && (
-                        <div style={{
-                            position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 200,
-                            background: 'rgba(0,0,0,0.95)', borderRadius: '16px 16px 0 0',
-                            maxHeight: '50vh', display: 'flex', flexDirection: 'column',
-                        }}>
-                            <div style={{
-                                padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)',
-                                display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-                            }}>
-                                <span style={{ color: 'white', fontWeight: 700, fontSize: 16 }}>Live Chat</span>
-                                <button onClick={() => setShowChat(false)} style={{
-                                    background: 'none', border: 'none', color: 'white', fontSize: 20, cursor: 'pointer'
-                                }}>x</button>
-                            </div>
-                            <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', maxHeight: 250 }}>
-                                {chatMessages.length === 0 && (
-                                    <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.5)', padding: 20, fontSize: 14 }}>
-                                        No messages yet. Start the conversation!
-                                    </div>
-                                )}
-                                {chatMessages.map((m, i) => (
-                                    <div key={m.id || i} style={{ marginBottom: 10 }}>
-                                        <span style={{ color: C.blue, fontWeight: 600, fontSize: 13 }}>{m.author?.username || 'User'}: </span>
-                                        <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: 14 }}>{m.content}</span>
-                                    </div>
-                                ))}
-                            </div>
-                            <div style={{
-                                padding: '10px 16px', borderTop: '1px solid rgba(255,255,255,0.1)',
-                                display: 'flex', gap: 8
-                            }}>
-                                <input
-                                    value={chatText}
-                                    onChange={e => setChatText(e.target.value)}
-                                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitChatMsg(); } }}
-                                    placeholder="Say Something..."
-                                    style={{
-                                        flex: 1, padding: '10px 14px', background: 'rgba(255,255,255,0.1)',
-                                        border: 'none', borderRadius: 20, fontSize: 14, color: 'white', outline: 'none'
-                                    }}
-                                />
-                                <button
-                                    onClick={submitChatMsg}
-                                    disabled={!chatText.trim() || submittingChat}
-                                    style={{
-                                        padding: '8px 16px', background: C.red, color: 'white',
-                                        border: 'none', borderRadius: 20, fontWeight: 600, fontSize: 13,
-                                        cursor: chatText.trim() ? 'pointer' : 'not-allowed',
-                                        opacity: chatText.trim() ? 1 : 0.5
-                                    }}
-                                >{submittingChat ? '...' : 'Send'}</button>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Counter */}
-                    {streams.length > 0 && !showChat && (
-                        <div style={{
-                            position: 'absolute',
-                            bottom: 20,
-                            left: '50%',
-                            transform: 'translateX(-50%)',
-                            color: 'rgba(255,255,255,0.5)',
-                            fontSize: 12,
-                        }}>
-                            {currentIndex + 1} / {streams.length}
-                        </div>
-                    )}
                 </div>
 
-                {/* Pulse animation */}
-                <style jsx global>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.7; }
-        }
-      `}</style>
-
-            {UpgradePopup}
+                {UpgradePopup}
         </>
     );
 }
