@@ -636,11 +636,19 @@ function LiveGamesFeed({
             };
         });
 
-        // FALLBACK: Add last-known venue data for venues not in live data
-        const liveIds = new Set(liveMapped.map(v => v.id));
+        // DEDUP FIX: Build the exclusion set from BOTH id AND bravo_slug.
+        // When parentVenue is null, v.id falls back to liveEntry.bravo_slug (a string).
+        // The catalog filter uses v.id (DB UUID) — so without bravo_slug in the set,
+        // unmatched live venues would appear TWICE (once from liveData, once from catalogMapped).
+        const liveIds = new Set();
+        const liveSlugs = new Set();
+        liveMapped.forEach(v => {
+            if (v.id) liveIds.add(v.id);
+            if (v.bravo_slug) liveSlugs.add(v.bravo_slug);
+        });
         const catalogMapped = venues
             .filter(v => v.games_offered && v.games_offered.length > 0 && v.poker_tables > 0)
-            .filter(v => !liveIds.has(v.id)) // Exclude those already in live data
+            .filter(v => !liveIds.has(v.id) && !liveSlugs.has(v.bravo_slug) && !liveSlugs.has(v.slug)) // Exclude those already in live data
             .map(v => {
                 const logoUrl = getVenueLogoUrl(v);
                 return {
@@ -918,7 +926,15 @@ function LiveGamesFeed({
                     display: 'flex',
                     flexDirection: 'column',
                 }}
-                onClick={() => { if (openVenueModal) openVenueModal(`/hub/venues/${v.id}`); else if (router) router.push(`/hub/venues/${v.id}`); }}
+                onClick={() => {
+                    // NAVIGATION GUARD: v.id is a DB UUID for matched parents.
+                    // For unmatched parents, v.id falls back to bravo_slug (e.g. 'horseshoe-hammond').
+                    // Navigating to /hub/venues/horseshoe-hammond returns 404 — only navigate for real UUIDs.
+                    const isUUID = v.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(v.id));
+                    if (!isUUID) return; // Unmatched venue — no detail page available yet
+                    if (openVenueModal) openVenueModal(`/hub/venues/${v.id}`);
+                    else if (router) router.push(`/hub/venues/${v.id}`);
+                }}
                 >
                     {/* Top accent gradient line */}
                     <div style={{
@@ -1036,7 +1052,13 @@ function LiveGamesFeed({
                         </div>
                         <div style={{ display: 'flex', gap: 6 }}>
                             {(openVenueModal || router) && (
-                                <button onClick={(e) => { e.stopPropagation(); if (openVenueModal) openVenueModal(`/hub/venues/${v.id}`); else if (router) router.push(`/hub/venues/${v.id}`); }}
+                                <button onClick={(e) => {
+                                    e.stopPropagation();
+                                    const isUUID = v.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(v.id));
+                                    if (!isUUID) return;
+                                    if (openVenueModal) openVenueModal(`/hub/venues/${v.id}`);
+                                    else if (router) router.push(`/hub/venues/${v.id}`);
+                                }}
                                     style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '7px 12px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(110,231,239,0.12)', color: '#6ee7ef', border: '1px solid rgba(110,231,239,0.25)', fontFamily: 'inherit', transition: 'all 0.2s' }}>
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6" /></svg>
                                     Details
