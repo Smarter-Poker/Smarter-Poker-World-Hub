@@ -91,10 +91,17 @@ export default function ClubPagesView({ C, pages, setPages, loading, setLoading,
             localStorage.setItem(storageKey, JSON.stringify(stored));
         } catch { }
         try {
+            // Extract JWT from Supabase localStorage key — required by the follow API
+            let _token = null;
+            try {
+                const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+                if (sbKeys.length > 0) { const td = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}'); _token = td.access_token || null; }
+            } catch { }
+            if (!_token) return; // Skip — anonymous users only get localStorage state synced above
             await fetch('/api/poker/follow', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ page_type: pageType, page_id: pageId, action: isNowFollowing ? 'follow' : 'unfollow', user_id: getAnonUserId() }),
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _token },
+                body: JSON.stringify({ page_type: pageType, page_id: pageId, action: isNowFollowing ? 'follow' : 'unfollow' }),
             });
         } catch { }
     };

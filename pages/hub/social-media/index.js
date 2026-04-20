@@ -3672,10 +3672,12 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
             localStorage.setItem(storageKey, JSON.stringify(stored));
         } catch { }
         try {
+            const _token = getAccessToken();
+            if (!_token) return; // Anonymous users: localStorage-only follow (no server persistence)
             await fetch('/api/poker/follow', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ page_type: pageType, page_id: pageId, action: isNowFollowing ? 'follow' : 'unfollow', user_id: getAnonUserId() }),
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _token },
+                body: JSON.stringify({ page_type: pageType, page_id: pageId, action: isNowFollowing ? 'follow' : 'unfollow' }),
             });
         } catch { }
     };
