@@ -246,6 +246,8 @@ export default function TourDetailPage() {
 
   function handleFollow() {
     const newState = !isFollowed;
+    const prevState = isFollowed;
+    const prevCount = localFollowerCount !== null ? localFollowerCount : (swrData?.followerCount || 0);
     setIsFollowed(newState);
     setFollowerCount(prev => {
       const base = prev !== null ? prev : (swrData?.followerCount || 0);
@@ -279,7 +281,29 @@ export default function TourDetailPage() {
         page_id: code,
         action: newState ? 'follow' : 'unfollow',
       }),
-    }).catch(() => { });
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success && data.error !== undefined) {
+        // API rejected — rollback UI to previous state
+        setIsFollowed(prevState);
+        setFollowerCount(prevCount);
+        // Rollback localStorage
+        try {
+          const tourCode = String(code);
+          const followed = JSON.parse(localStorage.getItem('followed-tours') || '[]');
+          const rolled = prevState
+            ? (followed.includes(tourCode) ? followed : [...followed, tourCode])
+            : followed.filter(t => t !== tourCode);
+          localStorage.setItem('followed-tours', JSON.stringify(rolled));
+        } catch (_) { }
+      }
+    })
+    .catch(() => {
+      // Network error — rollback UI
+      setIsFollowed(prevState);
+      setFollowerCount(prevCount);
+    });
     // Emit EventBus event for cross-page reactivity
     try { busEmit.socialFollowChanged(code, 'tour-detail', { added: newState }); } catch (_) { }
   }
