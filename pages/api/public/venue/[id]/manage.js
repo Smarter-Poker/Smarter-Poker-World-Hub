@@ -32,7 +32,8 @@ export default async function handler(req, res) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
 
-      const { id } = req.query;
+      const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+      const id = safeQ(req.query.id);
 
       if (!id) {
           return res.status(400).json({ success: false, error: 'Venue ID required' });

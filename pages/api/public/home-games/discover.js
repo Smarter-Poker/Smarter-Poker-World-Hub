@@ -79,17 +79,16 @@ export default async function handler(req, res) {
 
     res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
 
-    const {
-      state,
-      city,
-      game_type,
-      frequency,
-      search,
-      lat: rawLat,
-      lng: rawLng,
-      radius_miles: rawRadius,
-      limit: rawLimit = '50',
-    } = req.query;
+    const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+    const state = safeQ(req.query.state);
+    const city = safeQ(req.query.city);
+    const game_type = safeQ(req.query.game_type);
+    const frequency = safeQ(req.query.frequency);
+    const search = safeQ(req.query.search);
+    const userLat = safeQ(req.query.lat);
+    const userLng = safeQ(req.query.lng);
+    const radiusMiles = safeQ(req.query.radius_miles);
+    const rawLimit = safeQ(req.query.limit) || '50';
 
     const limit = Math.min(Math.max(parseInt(rawLimit, 10) || 50, 1), 100);
     const supabase = getSupabase();

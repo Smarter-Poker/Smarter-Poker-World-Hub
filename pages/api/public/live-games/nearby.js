@@ -28,14 +28,13 @@ export default async function handler(req, res) {
       }
 
       try {
-          const {
-              lat,
-              lng,
-              radius = 50,
-              game_type,
-              stakes,
-              limit = 50
-          } = req.query;
+          const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+          const lat = safeQ(req.query.lat);
+          const lng = safeQ(req.query.lng);
+          const radius = safeQ(req.query.radius) || 50;
+          const game_type = safeQ(req.query.game_type);
+          const stakes = safeQ(req.query.stakes);
+          const limit = safeQ(req.query.limit) || 50;
 
           if (!lat || !lng) {
               return res.status(400).json({

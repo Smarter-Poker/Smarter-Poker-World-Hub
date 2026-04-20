@@ -53,7 +53,8 @@ export default async function handler(req, res) {
 
 async function handleGet(req, res) {
     try {
-        const { venue_id } = req.query;
+        const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+        const venue_id = safeQ(req.query.venue_id);
 
         if (!venue_id) {
             return res.status(400).json({ success: false, error: 'venue_id required' });

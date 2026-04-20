@@ -31,7 +31,8 @@ export default async function handler(req, res) {
     }
 
     try {
-      const { code } = req.query;
+      const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+      const code = safeQ(req.query.code);
 
       if (!code) {
         return res.status(400).json({

@@ -79,7 +79,9 @@ export default async function handler(req, res) {
     const user = authData.user;
 
     // 2. Validate URL params
-    const { slug, eventId } = req.query;
+    const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+    const slug = safeQ(req.query.slug);
+    const eventId = safeQ(req.query.eventId);
     if (!slug || typeof slug !== 'string') {
       return res.status(400).json({ success: false, error: 'slug required' });
     }

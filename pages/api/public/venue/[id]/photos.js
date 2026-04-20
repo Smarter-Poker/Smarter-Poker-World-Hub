@@ -30,7 +30,11 @@ export default async function handler(req, res) {
     }
 
     try {
-      const { id, category, limit = 30, offset = 0 } = req.query;
+      const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+      const id = safeQ(req.query.id);
+      const category = safeQ(req.query.category);
+      const limit = safeQ(req.query.limit) || 30;
+      const offset = safeQ(req.query.offset) || 0;
 
       if (!id) {
         return res.status(400).json({

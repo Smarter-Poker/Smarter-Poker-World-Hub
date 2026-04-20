@@ -64,16 +64,15 @@ export default async function handler(req, res) {
 
 async function handleGet(req, res) {
     try {
-        const {
-            lat,
-            lng,
-            radius = 50,
-            game_type,
-            stakes,
-            venue_id,
-            limit = 50,
-            offset = 0
-        } = req.query;
+        const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+        const lat = safeQ(req.query.lat);
+        const lng = safeQ(req.query.lng);
+        const radius = safeQ(req.query.radius) || 50;
+        const game_type = safeQ(req.query.game_type);
+        const stakes = safeQ(req.query.stakes);
+        const venue_id = safeQ(req.query.venue_id);
+        const limit = safeQ(req.query.limit) || 50;
+        const offset = safeQ(req.query.offset) || 0;
 
         // If location provided, use PostGIS function
         if (lat && lng) {
