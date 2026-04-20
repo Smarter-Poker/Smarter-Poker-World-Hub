@@ -20,7 +20,10 @@ export default function ToursTabPanel({
     router,
     openVenueModal,
 }) {
-    const tourStateVal = filters.hubTourState || 'all';
+    let tourStateVal = filters.hubTourState || 'all';
+    // Guard against literal string 'undefined' persisting from a buggy state
+    if (tourStateVal === 'undefined') tourStateVal = 'all';
+
     let filteredTours = tours;
     if (tourStateVal !== 'all') {
         filteredTours = filteredTours.filter(t => t.state === tourStateVal);

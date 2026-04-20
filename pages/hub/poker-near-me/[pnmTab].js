@@ -371,6 +371,23 @@ export default function PokerNearMePage() {
     const setSeriesViewMode = (val) => setUiFilter('seriesViewMode', val);
     const setVenueViewMode = (val) => setUiFilter('venueViewMode', val);
 
+    // ─── HARDENING: Sync Next.js route parameter to LocalStorage active tabs ───
+    // When returning via BACK button to /hub/poker-near-me/tours, initialTab is 'tours'.
+    // If localStorage was stale or out-of-sync, it overrides the URL parameter. This forces sync.
+    useEffect(() => {
+        if (!initialTab) return;
+        if (['tours', 'series', 'daily'].includes(initialTab)) {
+            if (rawActiveTab !== 'events' || activeEventTab !== initialTab) {
+                setUiFilter('activeTab', 'events');
+                setUiFilter('activeEventTab', initialTab);
+            }
+        } else if (['lobby', 'venues', 'live', 'map', 'saved', 'more'].includes(initialTab)) {
+            if (rawActiveTab !== initialTab) {
+                setUiFilter('activeTab', initialTab);
+            }
+        }
+    }, [initialTab, rawActiveTab, activeEventTab]);
+
 
     // Data states
     const [venues, setVenues] = useState([]);
@@ -1886,15 +1903,16 @@ export default function PokerNearMePage() {
         try {
             const loc = overrideLocation || userLocation;
             const params = new URLSearchParams({ include_series: 'true', limit: '999' });
-            if (filters.tourType !== 'all') {
+            // Guard against stale 'undefined' string values stored in localStorage breaking the API
+            if (filters.tourType && filters.tourType !== 'all' && filters.tourType !== 'undefined') {
                 params.set('type', filters.tourType);
             }
-            if (searchQuery) {
+            if (searchQuery && searchQuery !== 'undefined') {
                 params.set('search', searchQuery);
             }
             
-            // Add location for distance-based sorting on the backend
-            if (loc) {
+            // Add location for distance-based sorting on the backend. Hardened against malformed loc objects.
+            if (loc && typeof loc.lat !== 'undefined' && typeof loc.lng !== 'undefined') {
                 params.set('lat', loc.lat.toString());
                 params.set('lng', loc.lng.toString());
             } else if (selectedCity && selectedCity.latitude && selectedCity.longitude) {
