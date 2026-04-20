@@ -478,56 +478,103 @@ function NotificationsPage() {
                         </div>
                     ) : (
                         notifications.map(n => {
-                            // Notification icon map — matches REAL DB types + message parsing
+                            // Comprehensive notification icon map — category-based + message parsing
                             const getNotifIcon = () => {
                                 const s = 14; const clr = '#fff';
+                                const t = n.type || '';
                                 const msg = (n.message || '').toLowerCase();
-                                // Match on actual notification type from database
-                                switch (n.type) {
-                                    // ── Settlement ───────────────────────────────
-                                    case 'settlement':
-                                        return { icon: <Banknote size={s} color={clr} />, bg: '#22C55E' };
-                                    // ── Home Games ───────────────────────────────
-                                    case 'home_game_new':
-                                        return { icon: <Spade size={s} color={clr} />, bg: '#00d4ff' };
-                                    case 'home_game_rsvp':
-                                        return { icon: <UserCheck size={s} color={clr} />, bg: '#0096ff' };
-                                    case 'home_game_rsvp_confirmed':
-                                        return { icon: <UserCheck size={s} color={clr} />, bg: '#22C55E' };
-                                    // ── Group/Club Announcements ─────────────────
-                                    case 'home_group_announcement':
-                                    case 'home_group_announcement_followed':
-                                        // Sub-differentiate by message content
-                                        if (msg.includes('seat')) return { icon: <UserCheck size={s} color={clr} />, bg: '#1877F2' };
-                                        if (msg.includes('roster')) return { icon: <Users size={s} color={clr} />, bg: '#00d4ff' };
-                                        return { icon: <Megaphone size={s} color={clr} />, bg: '#ffd60a' };
-                                    // ── Friend Joined ────────────────────────────
-                                    case 'home_group_friend_joined':
-                                        // Sub-differentiate by PHASE type in message
-                                        if (msg.includes('seat')) return { icon: <UserCheck size={s} color={clr} />, bg: '#1877F2' };
-                                        if (msg.includes('roster')) return { icon: <Users size={s} color={clr} />, bg: '#00d4ff' };
-                                        if (msg.includes('rsvp') || msg.includes('late')) return { icon: <Bell size={s} color={clr} />, bg: '#ffd60a' };
-                                        if (msg.includes('dm_order') || msg.includes('dm_run') || msg.includes('dm_readback')) return { icon: <MessageCircle size={s} color={clr} />, bg: '#1877F2' };
-                                        return { icon: <UserPlus size={s} color={clr} />, bg: '#42B72A' };
-                                    // ── Banned / Removed ─────────────────────────
-                                    case 'home_group_banned':
-                                        return { icon: <ShieldCheck size={s} color={clr} />, bg: '#FA383E' };
-                                    // ── Social types (future) ────────────────────
-                                    case 'like': return { icon: <ThumbsUp size={s} color={clr} />, bg: '#1877F2' };
-                                    case 'love': return { icon: <Heart size={s} color={clr} />, bg: '#FA383E' };
-                                    case 'comment': return { icon: <MessageCircle size={s} color={clr} />, bg: '#22C55E' };
-                                    case 'friend_request': return { icon: <UserPlus size={s} color={clr} />, bg: '#42B72A' };
-                                    case 'friend_accepted': return { icon: <UserCheck size={s} color={clr} />, bg: '#42B72A' };
-                                    case 'live': return { icon: <Radio size={s} color={clr} />, bg: '#FA383E' };
-                                    // ── Default ──────────────────────────────────
-                                    default: return { icon: <Bell size={s} color={clr} />, bg: '#1877F2' };
+
+                                // ── Settlement / Financial ──────────────────
+                                if (t === 'settlement' || t === 'weekly_settlement' || t === 'settlement_hold')
+                                    return { icon: <Banknote size={s} color={clr} />, bg: '#22C55E' };
+                                if (t === 'payout' || t === 'rakeback' || t === 'refund' || t === 'bonus' || t === 'rakeback_sent' || t === 'rakeback_available')
+                                    return { icon: <Banknote size={s} color={clr} />, bg: '#22C55E' };
+
+                                // ── Home Games ──────────────────────────────
+                                if (t === 'home_game_new' || t === 'home_game' || t === 'home_game_invite')
+                                    return { icon: <Spade size={s} color={clr} />, bg: '#00d4ff' };
+                                if (t === 'home_game_rsvp' || t === 'home_game_seat_request')
+                                    return { icon: <UserCheck size={s} color={clr} />, bg: '#0096ff' };
+                                if (t === 'home_game_rsvp_confirmed' || t === 'home_game_rsvp_approved')
+                                    return { icon: <UserCheck size={s} color={clr} />, bg: '#22C55E' };
+                                if (t === 'home_game_cancelled')
+                                    return { icon: <Bell size={s} color={clr} />, bg: '#FA383E' };
+                                if (t === 'home_game_host_broadcast' || t === 'home_game_reminder')
+                                    return { icon: <Megaphone size={s} color={clr} />, bg: '#ffd60a' };
+
+                                // ── Group / Club ────────────────────────────
+                                if (t === 'home_group_announcement' || t === 'home_group_announcement_followed' || t === 'club_announcement' || t === 'venue_announcement') {
+                                    if (msg.includes('seat')) return { icon: <UserCheck size={s} color={clr} />, bg: '#1877F2' };
+                                    if (msg.includes('roster')) return { icon: <Users size={s} color={clr} />, bg: '#00d4ff' };
+                                    return { icon: <Megaphone size={s} color={clr} />, bg: '#ffd60a' };
                                 }
+                                if (t === 'home_group_friend_joined' || t === 'member_joined') {
+                                    if (msg.includes('seat')) return { icon: <UserCheck size={s} color={clr} />, bg: '#1877F2' };
+                                    if (msg.includes('roster')) return { icon: <Users size={s} color={clr} />, bg: '#00d4ff' };
+                                    if (msg.includes('rsvp') || msg.includes('late')) return { icon: <Bell size={s} color={clr} />, bg: '#ffd60a' };
+                                    if (msg.includes('dm_')) return { icon: <MessageCircle size={s} color={clr} />, bg: '#1877F2' };
+                                    return { icon: <UserPlus size={s} color={clr} />, bg: '#42B72A' };
+                                }
+                                if (t === 'home_group_approved' || t === 'home_group_pending_request')
+                                    return { icon: <UserCheck size={s} color={clr} />, bg: '#42B72A' };
+                                if (t === 'home_group_banned' || t === 'home_group_hidden')
+                                    return { icon: <ShieldCheck size={s} color={clr} />, bg: '#FA383E' };
+
+                                // ── Friends & Follows ───────────────────────
+                                if (t === 'friend_request')
+                                    return { icon: <UserPlus size={s} color={clr} />, bg: '#1877F2' };
+                                if (t === 'friend_accepted' || t === 'friend_accept')
+                                    return { icon: <UserCheck size={s} color={clr} />, bg: '#42B72A' };
+                                if (t === 'new_follow' || t === 'follow' || t === 'follow_request' || t === 'page_new_follower')
+                                    return { icon: <Eye size={s} color={clr} />, bg: '#0096ff' };
+
+                                // ── Likes & Reactions ────────────────────────
+                                if (t === 'like' || t === 'home_post_like' || t === 'page_like' || t === 'post_liked')
+                                    return { icon: <ThumbsUp size={s} color={clr} />, bg: '#1877F2' };
+                                if (t === 'love')
+                                    return { icon: <Heart size={s} color={clr} />, bg: '#FA383E' };
+
+                                // ── Comments & Messages ──────────────────────
+                                if (t === 'comment' || t === 'home_post_comment' || t === 'page_comment' || t === 'post_commented' || t === 'strategy_comment')
+                                    return { icon: <MessageCircle size={s} color={clr} />, bg: '#22C55E' };
+                                if (t === 'mention' || t === 'page_mention')
+                                    return { icon: <AtSign size={s} color={clr} />, bg: '#00d4ff' };
+                                if (t === 'message' || t === 'messenger_message' || t === 'missed_call')
+                                    return { icon: <MessageCircle size={s} color={clr} />, bg: '#1877F2' };
+                                if (t === 'share')
+                                    return { icon: <Share2 size={s} color={clr} />, bg: '#1877F2' };
+
+                                // ── Tournaments ─────────────────────────────
+                                if (t.startsWith('tournament'))
+                                    return { icon: <Trophy size={s} color={clr} />, bg: '#ffd60a' };
+
+                                // ── Achievements & Badges ───────────────────
+                                if (t === 'achievement' || t === 'home_badges_earned' || t === 'level_up' || t === 'streak' || t === 'streak_reward')
+                                    return { icon: <Star size={s} color={clr} />, bg: '#ffd60a' };
+
+                                // ── Live / Venue ────────────────────────────
+                                if (t === 'live' || t === 'live_game' || t === 'called_for_seat' || t === 'seat_ready' || t === 'waitlist_update')
+                                    return { icon: <Radio size={s} color={clr} />, bg: '#FA383E' };
+                                if (t === 'venue' || t === 'venue_claim_approved' || t === 'venue_review')
+                                    return { icon: <Spade size={s} color={clr} />, bg: '#00d4ff' };
+
+                                // ── System / Admin ──────────────────────────
+                                if (t === 'system' || t === 'moderation_alert' || t === 'geofence_alert' || t === 'fraud_alert')
+                                    return { icon: <Zap size={s} color={clr} />, bg: '#00d4ff' };
+
+                                // ── Smart message-content fallback ──────────
+                                if (msg.includes('settlement') || msg.includes('rake')) return { icon: <Banknote size={s} color={clr} />, bg: '#22C55E' };
+                                if (msg.includes('friend')) return { icon: <UserPlus size={s} color={clr} />, bg: '#42B72A' };
+                                if (msg.includes('tournament') || msg.includes('trophy')) return { icon: <Trophy size={s} color={clr} />, bg: '#ffd60a' };
+
+                                // ── Default ─────────────────────────────────
+                                return { icon: <Bell size={s} color={clr} />, bg: '#1877F2' };
                             };
                             const { icon: ActionIcon, bg: iconBg } = getNotifIcon();
 
-                            // Navigate to page detail for poker, user profile for social
+                            // Navigate to page detail or user profile
                             const handleClick = () => {
-                                if (isPoker && n.data?.page_type && n.data?.page_id) {
+                                if (n.data?.page_type && n.data?.page_id) {
                                     const pt = n.data.page_type;
                                     const pid = n.data.page_id;
                                     if (pt === 'venue') router.push(`/hub/venues/${pid}`);
@@ -538,7 +585,7 @@ function NotificationsPage() {
                                     router.push(`/hub/user/${n.actor_username}`);
                                 }
                             };
-                            const isClickable = isPoker ? !!(n.data?.page_type && n.data?.page_id) : !!n.actor_username;
+                            const isClickable = !!(n.data?.page_type && n.data?.page_id) || !!n.actor_username;
 
                             return (
                                 <div
