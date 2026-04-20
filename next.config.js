@@ -244,12 +244,13 @@ const nextConfig = {
       "media-src 'self' blob: https://*.supabase.co",
       // Workers: self + blob (service worker, workbox)
       "worker-src 'self' blob:",
-      // Frames: none (no iframes used)
-      "frame-src 'none'",
-      // [Phase 6.1.14] frame-ancestors 'none' — CSP equivalent of X-Frame-Options: DENY.
-      // Blocks every origin (including our own) from embedding smarter.poker in an
-      // iframe. Prevents clickjacking of the login + check-in + diamond-transfer UIs.
-      "frame-ancestors 'none'",
+      // Frames: self (needed for our own iframe modals)
+      "frame-src 'self'",
+      // [Phase 6.1.14] frame-ancestors 'self' — CSP equivalent of X-Frame-Options: SAMEORIGIN.
+      // Blocks external origins from embedding smarter.poker in an
+      // iframe, while allowing our own site to use iframes for internal modals.
+      // Prevents clickjacking of the login + check-in + diamond-transfer UIs.
+      "frame-ancestors 'self'",
       // Object (Flash etc): none
       "object-src 'none'",
       // Base URI: self only (prevent base tag injection)
@@ -276,11 +277,11 @@ const nextConfig = {
             value: 'max-age=63072000; includeSubDomains; preload',
           },
           // [Phase 6.1.14] X-Frame-Options: belt-and-braces clickjacking defense.
-          // CSP `frame-ancestors 'none'` is the modern equivalent (see csp below)
+          // CSP `frame-ancestors 'self'` is the modern equivalent (see csp below)
           // but XFO is still honored by legacy browsers and some embedded webviews.
           {
             key: 'X-Frame-Options',
-            value: 'DENY',
+            value: 'SAMEORIGIN',
           },
           // [Phase 6.1.14] Block MIME sniffing — stops browsers from interpreting
           // a user-uploaded text file as HTML/JS. Critical because we accept avatars,
@@ -433,8 +434,8 @@ const sentryWebpackPluginOptions = {
 
   // For all available options, see:
   // https://github.com/getsentry/sentry-webpack-plugin#options
-  org: process.env.SENTRY_ORG || 'smarter-poker',
-  project: process.env.SENTRY_PROJECT || 'world-hub',
+  org: process.env.SENTRY_ORG || 'smarter-software-inc',
+  project: process.env.SENTRY_PROJECT || 'javascript-nextjsmarter-poker-world-hubs',
 
   // Auth token for source map uploads (optional)
   authToken: process.env.SENTRY_AUTH_TOKEN,

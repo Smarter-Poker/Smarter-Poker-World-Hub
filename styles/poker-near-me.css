@@ -108,6 +108,8 @@
 /* Location pill/GPS area */
 .pnm-location-area {
     flex-shrink: 0;
+    position: relative;
+    z-index: 105;
 }
 .pnm-location-pill {
     display: flex;

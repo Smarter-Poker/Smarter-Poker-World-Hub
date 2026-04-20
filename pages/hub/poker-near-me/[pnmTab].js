@@ -2830,8 +2830,15 @@ export default function PokerNearMePage({ initialTab }) {
 
                 <UniversalHeader 
                     pageDepth={2} 
+                    showSearch={true}
+                    onSearchClick={() => setShowGlobalSearch(true)}
                     onBackClick={() => {
-                        router.back();
+                        // Bug 4: Implement a robust fallback for the "BACK" button
+                        if (typeof window !== 'undefined' && window.history.length > 2) {
+                            router.back();
+                        } else {
+                            router.push('/hub');
+                        }
                     }}
                     onMenuClick={() => setMenuOpen(true)} 
                 />
