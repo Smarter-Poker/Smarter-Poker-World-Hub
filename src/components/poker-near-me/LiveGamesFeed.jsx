@@ -703,13 +703,7 @@ function LiveGamesFeed({
         // Strategy: split into located vs unlocated, distance-filter only located ones,
         // then append unlocated at the end so the feed always has content.
         if (effectiveLocation && filterRadius !== 'any') {
-            const located = list.filter(v => v.latitude && v.longitude);
-            if (located.length > 0) {
-                // Distance-filter the venues we have coordinates for
-                // We intentionally drop unlocated proxy venues if a local geofence is active,
-                // instead of dumping 150+ nationwide orphaned cardrooms into a 25mi city view.
-                list = located.filter(v => calcDist(v) <= Number(filterRadius));
-            }
+            list = list.filter(v => v.latitude && v.longitude && calcDist(v) <= Number(filterRadius));
         }
 
         // 3. Filter by Game Type
