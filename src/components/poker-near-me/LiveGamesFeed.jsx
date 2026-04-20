@@ -246,7 +246,7 @@ function LiveGamesFeed({
     const [internalFilterStakes, setInternalFilterStakes] = useState(savedFilters.filterStakes || 'any');
 
     const filterState = globalFilters ? (globalFilters.selectedState || 'all') : internalFilterState;
-    const filterRadius = globalFilters ? (globalFilters.radius === 'Any' ? 'any' : String(globalFilters.radius)) : internalFilterRadius;
+    const filterRadius = globalFilters ? (globalFilters.radius === 'any' || globalFilters.radius === 'Any' ? 'any' : String(globalFilters.radius)) : internalFilterRadius;
     
     // Map main UI gameType to LiveGamesFeed format if needed
     let computedGameType = internalFilterGameType;
@@ -1085,6 +1085,9 @@ function LiveGamesFeed({
         for (const pv of venues) {
             if (pv.bravo_slug) bySlug[pv.bravo_slug] = pv;
             if (pv.slug) bySlug[pv.slug] = pv;
+            // AUDIT FIX: was missing pokeratlas_slug — PA-sourced venues couldn't resolve state,
+            // causing the state-filter dropdown to silently exclude PA venues from its options.
+            if (pv.pokeratlas_slug && !bySlug[pv.pokeratlas_slug]) bySlug[pv.pokeratlas_slug] = pv;
             if (pv.name) {
                 byName[pv.name.toLowerCase()] = pv;
                 const norm = normalizeVenueName(pv.name);
@@ -1296,7 +1299,7 @@ function LiveGamesFeed({
                         ) : (
                             (
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14, paddingBottom: 24, alignItems: 'stretch' }}>
-                                    {mergedVenues.slice(0, 50).map((v, i) => renderLiveVenueCard(v, i))}
+                                    {mergedVenues.slice(0, 200).map((v, i) => renderLiveVenueCard(v, i))}
                                 </div>
                             )
                         )}
