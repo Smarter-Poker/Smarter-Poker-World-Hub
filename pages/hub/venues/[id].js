@@ -913,16 +913,48 @@ export default function VenueDetailPage() {
       localStorage.setItem('followed-venues', JSON.stringify(followed));
     } catch (_) { }
 
+    // Require auth for server-side follow — anonymous users only get localStorage follows
+    var fetchHeaders = { 'Content-Type': 'application/json' };
+    var hasToken = false;
+    try {
+      var sbKeys = Object.keys(localStorage).filter(function (k) { return k.startsWith('sb-') && k.endsWith('-auth-token'); });
+      if (sbKeys.length > 0) {
+        var tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+        if (tokenData.access_token) { fetchHeaders['Authorization'] = 'Bearer ' + tokenData.access_token; hasToken = true; }
+      }
+    } catch (_) { }
+
+    if (!hasToken) return; // Anonymous follow state saved to localStorage only (above)
+
+    var prevFollowed = isFollowed;
+    var prevCount = followerCount;
     fetch('/api/poker/follow', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: fetchHeaders,
       body: JSON.stringify({
         page_type: 'venue',
         page_id: venueId,
         action: newState ? 'follow' : 'unfollow',
-        user_id: getAnonymousUserId(),
       }),
-    }).catch(function () { /* follow is best-effort */ });
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (!data.success && data.error !== undefined) {
+        // API rejected — rollback UI and localStorage
+        setIsFollowed(prevFollowed);
+        setFollowerCount(prevCount);
+        try {
+          var rl = JSON.parse(localStorage.getItem('followed-venues') || '[]');
+          var rolled = prevFollowed ? (rl.includes(venueId) ? rl : [...rl, venueId]) : rl.filter(function (v) { return v !== venueId; });
+          localStorage.setItem('followed-venues', JSON.stringify(rolled));
+        } catch (_) { }
+      }
+    })
+    .catch(function () {
+      // Network error — rollback
+      setIsFollowed(prevFollowed);
+      setFollowerCount(prevCount);
+    });
   };
 
   var handleShare = async function () {
