@@ -21,8 +21,6 @@ const supabase = createClient(
 
 const Brain = require('../brain');
 
-const Brain = require('../brain');
-
 let passed = 0;
 let failed = 0;
 const failures = [];
