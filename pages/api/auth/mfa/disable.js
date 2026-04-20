@@ -70,20 +70,25 @@ export default async function handler(req, res) {
               });
           }
 
-          // Try backup code (8 hex chars)
+          // Try backup code (8 hex chars) — [Phase 6.1.25] consume atomically via RPC.
+          // This closes the same TOCTOU race that Phase 6.1.22 closed on the
+          // challenge endpoint: two concurrent `disable` calls with the same
+          // backup code would both have succeeded under the old select→splice→
+          // update pattern. The RPC holds a SELECT...FOR UPDATE lock across
+          // the check+update window so exactly one caller sees `consumed=true`.
           if (!verified && code.length === 8 && mfaData.backup_codes?.length > 0) {
               const codeHash = crypto.createHash('sha256').update(code.toUpperCase()).digest('hex');
-              const backupIndex = mfaData.backup_codes.indexOf(codeHash);
-              if (backupIndex !== -1) {
-                  verified = true;
-                  // Consume the backup code
-                  const updatedCodes = [...mfaData.backup_codes];
-                  updatedCodes.splice(backupIndex, 1);
-                  await getSupabase()
-                      .from('user_mfa_factors')
-                      .update({ backup_codes: updatedCodes })
-                      .eq('user_id', user.id);
+              const { data: rpcResult, error: rpcError } = await getSupabase()
+                  .rpc('fn_consume_mfa_backup_code', {
+                      p_user_id: user.id,
+                      p_hashed_code: codeHash,
+                  });
+              if (rpcError) {
+                  console.error('[mfa/disable] consume RPC error:', rpcError);
+                  return res.status(500).json({ error: 'Failed to verify backup code' });
               }
+              const row = Array.isArray(rpcResult) ? rpcResult[0] : rpcResult;
+              verified = !!row?.consumed;
           }
 
           if (!verified) {
