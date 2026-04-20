@@ -104,9 +104,10 @@ function isPrivateOrReservedHost(hostname) {
 
 // User agent rotation for better success rate
 const USER_AGENTS = [
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_4_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Safari/605.1.15',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0',
 ];
 
 // Simple in-memory rate limiter for proxy
@@ -214,13 +215,25 @@ export default async function handler(req, res) {
 
               response = await fetch(targetUrl, {
                   signal: controller.signal,
+                  redirect: 'follow',
                   headers: {
                       'User-Agent': USER_AGENTS[attempt % USER_AGENTS.length],
-                      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
                       'Accept-Language': 'en-US,en;q=0.9',
                       'Accept-Encoding': 'identity',
                       'Cache-Control': 'no-cache',
-                      'Referer': targetOrigin,
+                      'Pragma': 'no-cache',
+                      'Connection': 'keep-alive',
+                      'Upgrade-Insecure-Requests': '1',
+                      'Referer': 'https://www.google.com/',
+                      'Sec-Fetch-Dest': 'document',
+                      'Sec-Fetch-Mode': 'navigate',
+                      'Sec-Fetch-Site': 'cross-site',
+                      'Sec-Fetch-User': '?1',
+                      'Sec-Ch-Ua': '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
+                      'Sec-Ch-Ua-Mobile': '?0',
+                      'Sec-Ch-Ua-Platform': '"macOS"',
+                      'DNT': '1',
                   },
               });
 
@@ -228,13 +241,9 @@ export default async function handler(req, res) {
 
               if (response.ok) break;
 
-              // Non-retryable status codes
+              // Non-retryable status codes — return a friendly HTML fallback instead of raw JSON
               if ([403, 404, 451].includes(response.status)) {
-                  return res.status(response.status).json({
-                      error: 'UPSTREAM_ERROR',
-                      message: `External site returned ${response.status}`,
-                      status: response.status
-                  });
+                  return res.status(response.status).send(buildBlockedFallback(targetUrl, response.status));
               }
 
               lastError = new Error(`HTTP ${response.status}`);
@@ -453,6 +462,73 @@ function rewriteHtml(html, pageUrl, originUrl) {
     html = html.replace(/<\/body>/i, proxyIndicator + '</body>');
 
     return html;
+}
+
+/**
+ * Returns a styled HTML fallback page when the external site blocks our proxy (403/404/451).
+ * Shows a friendly prompt to open the article directly instead of a raw JSON error blob.
+ */
+function buildBlockedFallback(url, status) {
+    const domain = (() => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } })();
+    const statusMessages = {
+        403: 'This publisher requires you to open the article directly.',
+        404: 'This article could not be found.',
+        451: 'This content is unavailable in your region.',
+    };
+    const msg = statusMessages[status] || `The external site returned an error (${status}).`;
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Article Unavailable</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh;
+      background: #0d0d0d;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #e0e0e0;
+    }
+    .card {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 16px;
+      padding: 40px 32px;
+      max-width: 420px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+    }
+    .icon { font-size: 48px; margin-bottom: 16px; }
+    h2 { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 10px; }
+    p { font-size: 14px; color: #888; line-height: 1.6; margin-bottom: 28px; }
+    .domain { font-size: 12px; color: #555; margin-bottom: 8px; }
+    .btn {
+      display: inline-block;
+      background: linear-gradient(135deg, #c8a43c, #e6c96a);
+      color: #000;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 12px 28px;
+      border-radius: 50px;
+      text-decoration: none;
+      transition: opacity .2s;
+    }
+    .btn:hover { opacity: 0.85; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">🔒</div>
+    <h2>Article Blocked by Publisher</h2>
+    <p>${msg}</p>
+    <div class="domain">${domain}</div>
+    <a class="btn" href="${url}" target="_blank" rel="noopener noreferrer">Open Full Article ↗</a>
+  </div>
+</body>
+</html>`;
 }
 
 // Increase body size limit
