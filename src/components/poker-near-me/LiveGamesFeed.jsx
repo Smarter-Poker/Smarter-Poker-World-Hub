@@ -435,19 +435,12 @@ function LiveGamesFeed({
                 if (!payload) return;
                 const { eventType } = payload;
 
-                // FIX: Handle DELETE events — simulator cycles DELETE all sim-% rows then INSERT
-                // fresh ones. Without DELETE handling, deleted games persist in liveData state
-                // for up to 2 minutes (until the polling cycle fires), causing stale game rows.
-                // When a DELETE arrives for a sim- batch, trigger a debounced full re-fetch
-                // so the new batch's INSERT events populate the feed without delay.
                 if (eventType === 'DELETE') {
-                    const oldRec = payload.old;
-                    // Only react if the deleted row was a simulator row (batch_id starts 'sim-')
-                    // Real rows should not trigger a re-fetch (they're replaced individually by UPDATE)
-                    if (oldRec?.scrape_batch_id?.startsWith('sim-')) {
-                        if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-                        debounceTimerRef.current = setTimeout(() => fetchGlobalLiveData(true), 3000);
-                    }
+                    // Trigger a debounced full re-fetch when ANY game is deleted (table broken/closed)
+                    // We must fetchGlobalLiveData because Supabase default replica identity only provides the row id
+                    // on DELETEs, making it impossible to confidently map the deletion to a specific venue/game locally.
+                    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+                    debounceTimerRef.current = setTimeout(() => fetchGlobalLiveData(true), 2000);
                     return;
                 }
 
@@ -700,10 +693,17 @@ function LiveGamesFeed({
         // POLICY: Live venues whose parent record couldn't be matched (no lat/lng) must
         // NOT be silently dropped when a radius filter is active — they have real game data
         // and may be near the user; we just haven't linked them to coordinates yet.
-        // Strategy: split into located vs unlocated, distance-filter only located ones,
-        // then append unlocated at the end so the feed always has content.
+        // Strategy: split into located vs unlocated, distance-filter only located ones, // then append ONLY unlocated LIVE venues at the end so active feed always has content.
         if (effectiveLocation && filterRadius !== 'any') {
-            list = list.filter(v => v.latitude && v.longitude && calcDist(v) <= Number(filterRadius));
+            const located = list.filter(v => v.latitude && v.longitude);
+            // Append unlocated venues ONLY if they have active live data (_isLive === true).
+            // Unlocated catalog venues should be dropped to avoid spamming the local feed with unverified locations.
+            const unlocatedActive = list.filter(v => (!v.latitude || !v.longitude) && v._isLive);
+            
+            if (located.length > 0 || unlocatedActive.length > 0) {
+                const inRadius = located.filter(v => calcDist(v) <= Number(filterRadius));
+                list = [...inRadius, ...unlocatedActive];
+            }
         }
 
         // 3. Filter by Game Type
