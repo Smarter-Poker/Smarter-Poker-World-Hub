@@ -38,7 +38,8 @@ export default async function handler(req, res) {
 
     // ─── GET: Fetch note for a specific player ──────────────────────────────
     if (req.method === 'GET') {
-        const { targetPlayerId } = req.query;
+        const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+        const targetPlayerId = safeQ(req.query.targetPlayerId);
         if (!targetPlayerId) return res.status(400).json({ error: 'targetPlayerId is required' });
 
         try {

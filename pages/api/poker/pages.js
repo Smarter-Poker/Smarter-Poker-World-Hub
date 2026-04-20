@@ -150,15 +150,14 @@ export default async function handler(req, res) {
       }
 
       try {
-          const {
-              category = 'all',
-              search,
-              user_id,
-              followed_only,
-              state,
-              sort = 'popular',
-              limit = 60,
-          } = req.query;
+          const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+          const category = safeQ(req.query.category) || 'all';
+          const search = safeQ(req.query.search);
+          const user_id = safeQ(req.query.user_id);
+          const followed_only = safeQ(req.query.followed_only);
+          const state = safeQ(req.query.state);
+          const sort = safeQ(req.query.sort) || 'popular';
+          const limit = safeQ(req.query.limit) || 60;
 
           // Build pages from each source
           let pages = [];
