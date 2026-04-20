@@ -268,7 +268,6 @@ async function sendRecoveryAlert(supabase, source, minutesAgo, results) {
       await sendSMS(ADMIN_PHONE, message);
       results.resolved.push({ source, type: 'sms', sent: true });
     } catch (err) {
-        try { reportApiError(err, req); } catch (_sentryErr) {}
       results.resolved.push({ source, type: 'sms', error: err.message });
     }
   }
