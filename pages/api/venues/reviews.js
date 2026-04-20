@@ -20,7 +20,11 @@ export default async function handler(req, res) {
         }
         const userId = localUser.id;
 
-        const { venueId: venue_id, rating, title, body } = req.body;
+        const safeBody = (v) => Array.isArray(v) ? v[0] : (typeof v === 'string' || typeof v === 'number' ? v : (v !== undefined ? String(v) : null));
+        const venue_id = safeBody(req.body.venueId);
+        const rating = safeBody(req.body.rating);
+        const title = safeBody(req.body.title);
+        const body = safeBody(req.body.body);
         if (!venue_id || !rating) {
             return res.status(400).json({ success: false, error: 'venueId and rating required' });
         }
