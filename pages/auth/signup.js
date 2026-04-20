@@ -9,6 +9,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { supabase } from '../../src/lib/supabase';
+import { capture, identify, FunnelEvents } from '../../src/lib/analytics';
 // [Phase 6.1.20] Password strength + HIBP breach-list check
 import {
     validatePassword,
@@ -497,6 +498,27 @@ export default function SignUpPage() {
             if (signUpError) throw signUpError;
 
             console.log('Auth user created:', authData);
+
+            // ── [Phase 5.1.2] PostHog activation-funnel: signup event ───────
+            // Fire client-side so the SDK can auto-populate the UTM / referrer
+            // properties it has already captured from window.location. The
+            // signup API route also fires a server-side capture as a
+            // double-write in case ad-blockers drop the client event — the
+            // two dedupe on the same distinctId + event name in PostHog.
+            try {
+                if (authData?.user?.id) {
+                    identify(authData.user.id, {
+                        email: formData.email,
+                        signup_source: isReferralCode ? 'referral' : (formData.promoCode ? 'promo' : 'organic'),
+                        state: formData.state,
+                    });
+                    capture(FunnelEvents.SIGNUP, {
+                        has_referral: !!isReferralCode,
+                        has_promo: !!formData.promoCode && !isReferralCode,
+                        phone_verified: !!phoneVerified,
+                    });
+                }
+            } catch (_analyticsErr) { /* swallow */ }
 
             // Step 2: Create profile directly
             if (authData.user) {

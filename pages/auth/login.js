@@ -11,6 +11,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
+import { capture, identify, FunnelEvents } from '../../src/lib/analytics';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -87,6 +88,30 @@ export default function LoginPage() {
             if (authError) throw authError;
 
             console.log('✅ Login successful:', data.user?.email);
+
+            // ── [Phase 5.1.2] PostHog activation-funnel instrumentation ─────
+            // identify() on every login keeps person-properties fresh even if
+            // the user has cleared cookies. We also fire the canonical
+            // `first_login` funnel event when this login happens within 5
+            // minutes of account creation — the signup API fires `signup`
+            // server-side, so the pair signup → first_login wires up the
+            // first two funnel steps without an extra DB round-trip.
+            try {
+                if (data?.user?.id) {
+                    identify(data.user.id, {
+                        email: data.user.email,
+                        created_at: data.user.created_at,
+                    });
+                    const createdMs = data.user.created_at
+                        ? new Date(data.user.created_at).getTime()
+                        : 0;
+                    if (createdMs && Date.now() - createdMs < 5 * 60 * 1000) {
+                        capture(FunnelEvents.FIRST_LOGIN, { source: 'password' });
+                    } else {
+                        capture('login', { source: 'password' });
+                    }
+                }
+            } catch (_analyticsErr) { /* swallow — analytics must never block auth */ }
 
             // Remember device if checkbox is checked
             if (rememberMe) {
