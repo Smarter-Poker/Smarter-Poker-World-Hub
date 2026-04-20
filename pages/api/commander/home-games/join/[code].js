@@ -53,7 +53,8 @@ export default async function handler(req, res) {
 
 async function getClubByCode(req, res, code) {
   try {
-    const upperCode = code.toUpperCase();
+    const upperCode = String(code).toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (!upperCode) return res.status(400).json({ error: 'Invalid club code format' });
 
     // Try club_code first (6 chars), then invite_code (8 chars)
     let { data: group, error } = await getSupabase()
@@ -125,7 +126,8 @@ async function joinClubByCode(req, res, code) {
       return res.status(401).json({ error: 'Invalid token' });
     }
 
-    const upperCode = code.toUpperCase();
+    const upperCode = String(code).toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (!upperCode) return res.status(400).json({ error: 'Invalid club code format' });
 
     // Find group
     const { data: group, error: groupError } = await getSupabase()

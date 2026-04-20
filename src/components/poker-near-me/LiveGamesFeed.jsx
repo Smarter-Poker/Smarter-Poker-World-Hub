@@ -341,7 +341,7 @@ function LiveGamesFeed({
                         // for up to 4 hours to prevent flickering to 0 tables (static catalog fallback).
                         for (const key of Object.keys(prev)) {
                             if (!next[key]) {
-                                const lastAge = prev[key].last_updated ? (Date.now() - new Date(prev[key].last_updated).getTime()) : 0;
+                                const lastAge = prev[key].last_updated ? (Date.now() - new Date(prev[key].last_updated).getTime()) : Infinity;
                                 if (lastAge < 14400000) { // 4 hours
                                     next[key] = prev[key];
                                     console.warn(`[LGF] Venue ${key} missing from live payload. Preserving cache (Age: ${Math.round(lastAge/60000)}m).`);
@@ -731,10 +731,10 @@ function LiveGamesFeed({
         setSearchQuery(value);
         if (value.trim().length >= 2) {
             const q = value.trim().toLowerCase();
-            const matches = Object.values(liveData)
-                .filter(v => decodeHtmlEntities(v.venue_name || '').toLowerCase().includes(q))
+            const matches = mergedVenues
+                .filter(v => decodeHtmlEntities(v.name || '').toLowerCase().includes(q))
                 .slice(0, 8)
-                .map(v => ({ id: v.bravo_slug, bravo_slug: v.bravo_slug, name: decodeHtmlEntities(v.venue_name), totalTables: v.totalTables || 0 }));
+                .map(v => ({ id: v.id || v.bravo_slug, bravo_slug: v.bravo_slug || v.id, name: decodeHtmlEntities(v.name), totalTables: v.totalTables || 0 }));
             setSearchSuggestions(matches);
             setShowSuggestions(matches.length > 0);
         } else {
