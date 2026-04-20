@@ -32,13 +32,10 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 export default async function handler(req, res) {
     if (!applyCors(req, res, { methods: 'GET, POST, OPTIONS', headers: 'Content-Type, x-user-id, Authorization' })) return;
-try {
+  try {
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
-
-      // CORS headers
-}
 
       try {
           if (req.method === 'GET') {

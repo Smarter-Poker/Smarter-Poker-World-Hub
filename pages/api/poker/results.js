@@ -21,13 +21,12 @@ function setCorsHeaders(res) {
 
 export default async function handler(req, res) {
     if (!applyCors(req, res, { methods: 'GET, POST, OPTIONS', headers: 'Content-Type, x-user-id' })) return;
-try {
+  try {
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
 
       setCorsHeaders(res);
-}
 
       try {
           if (req.method === 'GET') {
