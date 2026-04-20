@@ -167,11 +167,15 @@ export default async function handler(req, res) {
 
                   if (creditErr) {
                     // ROLLBACK: re-credit agent since player didn't receive chips
-                    await getSupabaseAdmin().rpc('fn_credit_chips', {
-                      p_club_id: clubId,
-                      p_user_id: agentUserId,
-                      p_amount: dist.rakeback_amount,
-                    }).catch(rbErr => console.error('[rakeback] Rollback failed:', rbErr.message));
+                    try {
+                      await getSupabaseAdmin().rpc('fn_credit_chips', {
+                        p_club_id: clubId,
+                        p_user_id: agentUserId,
+                        p_amount: dist.rakeback_amount,
+                      });
+                    } catch (rbErr) {
+                      console.error('[rakeback] Rollback failed:', rbErr.message);
+                    }
                     await markDistributionFailed(dist.id, 'Player credit failed: ' + creditErr.message);
                     results.distributions_failed++;
                     continue;
@@ -321,21 +325,25 @@ export default async function handler(req, res) {
         .eq('auto_settlement_enabled', true);
 
       for (const club of (lockedClubs || [])) {
-        await getSupabaseAdmin().from('club_announcements').insert({
-          club_id: club.id,
-          title: '✅ Settlement Complete — Operations Resumed',
-          content: [
-            'Weekly settlement is complete. All operations have been restored.',
-            '',
-            results.distributions_processed > 0
-              ? `💰 ${results.total_rakeback_distributed.toLocaleString()} chips in rakeback distributed to ${results.players_paid} players.`
-              : 'No rakeback distributions this period.',
-            '',
-            'Send, receive, buy-in, and cashout operations are now fully available.',
-          ].join('\n'),
-          author_id: club.owner_id,
-          pinned: false,
-        }).catch(e => console.error('[unfreeze-msg] Error:', e.message));
+        try {
+          await getSupabaseAdmin().from('club_announcements').insert({
+            club_id: club.id,
+            title: '✅ Settlement Complete — Operations Resumed',
+            content: [
+              'Weekly settlement is complete. All operations have been restored.',
+              '',
+              results.distributions_processed > 0
+                ? `💰 ${results.total_rakeback_distributed.toLocaleString()} chips in rakeback distributed to ${results.players_paid} players.`
+                : 'No rakeback distributions this period.',
+              '',
+              'Send, receive, buy-in, and cashout operations are now fully available.',
+            ].join('\n'),
+            author_id: club.owner_id,
+            pinned: false,
+          });
+        } catch (unfreezeErr) {
+          console.error('[unfreeze-msg] Error:', unfreezeErr.message);
+        }
       }
 
       results.phase = 'complete';

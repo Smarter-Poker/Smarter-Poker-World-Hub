@@ -410,10 +410,14 @@ export default async function handler(req, res) {
                 if (creditErr) {
                   // BUG #238 FIX: Roll back treasury debit if credit fails
                   console.error(`[auto-settlement] Credit failed for agent ${agent.user_id}, rolling back treasury:`, creditErr.message);
-                  await supabaseAdmin.rpc('fn_credit_treasury', {
-                    p_club_id: club.id,
-                    p_amount: netCommission,
-                  }).catch(rbErr => console.error('[auto-settlement] Treasury rollback failed:', rbErr.message));
+                  try {
+                    await supabaseAdmin.rpc('fn_credit_treasury', {
+                      p_club_id: club.id,
+                      p_amount: netCommission,
+                    });
+                  } catch (rbErr) {
+                    console.error('[auto-settlement] Treasury rollback failed:', rbErr.message);
+                  }
                   results.errors.push({ club: club.name, agent: agent.user_id, phase: 'commission_credit', error: creditErr.message });
                 } else {
 
@@ -681,23 +685,27 @@ async function sendSettlementMessages(club, period, agents, totalRake, unionHold
   const clubRetained = totalRake - unionHold - totalCommissions;
 
   // 1. Club-wide announcement
-  await supabaseAdmin.from('club_announcements').insert({
-    club_id: club.id,
-    title: `📊 Weekly Settlement Complete — Period #${periodNum}`,
-    content: [
-      `Settlement Period #${periodNum} has been automatically processed.`,
-      ``,
-      `💰 Total Rake Collected: ${totalRake.toLocaleString()} chips`,
-      unionHold > 0 ? `🏢 Union Hold: ${unionHold.toLocaleString()} chips` : null,
-      `👥 Agent Commissions: ${totalCommissions.toLocaleString()} chips (${(agents || []).filter(a => (a.weekly_rake_generated || 0) > 0).length} agents)`,
-      `🏠 Club Retained: ${clubRetained.toLocaleString()} chips`,
-      ``,
-      `A new settlement period has been opened automatically.`,
-      `Rakeback distributions to players will complete by 4:10 AM CST.`,
-    ].filter(Boolean).join('\n'),
-    author_id: club.owner_id,
-    pinned: false,
-  }).catch(e => console.error('[settlement-msg] Announcement error:', e.message));
+  try {
+    await supabaseAdmin.from('club_announcements').insert({
+      club_id: club.id,
+      title: `📊 Weekly Settlement Complete — Period #${periodNum}`,
+      content: [
+        `Settlement Period #${periodNum} has been automatically processed.`,
+        ``,
+        `💰 Total Rake Collected: ${totalRake.toLocaleString()} chips`,
+        unionHold > 0 ? `🏢 Union Hold: ${unionHold.toLocaleString()} chips` : null,
+        `👥 Agent Commissions: ${totalCommissions.toLocaleString()} chips (${(agents || []).filter(a => (a.weekly_rake_generated || 0) > 0).length} agents)`,
+        `🏠 Club Retained: ${clubRetained.toLocaleString()} chips`,
+        ``,
+        `A new settlement period has been opened automatically.`,
+        `Rakeback distributions to players will complete by 4:10 AM CST.`,
+      ].filter(Boolean).join('\n'),
+      author_id: club.owner_id,
+      pinned: false,
+    });
+  } catch (announceErr) {
+    console.error('[settlement-msg] Announcement error:', announceErr.message);
+  }
 
   // 2. Individual agent notifications via notifications table
   for (const agent of (agents || [])) {
@@ -706,36 +714,44 @@ async function sendSettlementMessages(club, period, agents, totalRake, unionHold
 
     const commission = Math.round(grossRake * agent.commission_rate * 100) / 100;
 
-    await supabaseAdmin.from('notifications').insert({
-      user_id: agent.user_id,
-      type: 'settlement',
-      title: `💰 Commission Received — Period #${periodNum}`,
-      message: `You earned ${commission.toLocaleString()} chips commission (${(agent.commission_rate * 100).toFixed(1)}% of ${grossRake.toLocaleString()} rake generated). Chips have been added to your balance.`,
-      data: {
-        club_id: club.id,
-        period_id: period.id,
-        period_number: periodNum,
-        commission: commission,
-        gross_rake: grossRake,
-      },
-      read: false,
-    }).catch(e => console.error(`[settlement-msg] Agent ${agent.user_id} notification error:`, e.message));
+    try {
+      await supabaseAdmin.from('notifications').insert({
+        user_id: agent.user_id,
+        type: 'settlement',
+        title: `💰 Commission Received — Period #${periodNum}`,
+        message: `You earned ${commission.toLocaleString()} chips commission (${(agent.commission_rate * 100).toFixed(1)}% of ${grossRake.toLocaleString()} rake generated). Chips have been added to your balance.`,
+        data: {
+          club_id: club.id,
+          period_id: period.id,
+          period_number: periodNum,
+          commission: commission,
+          gross_rake: grossRake,
+        },
+        read: false,
+      });
+    } catch (agentNotifErr) {
+      console.error(`[settlement-msg] Agent ${agent.user_id} notification error:`, agentNotifErr.message);
+    }
   }
 
   // 3. Notify club owner
-  await supabaseAdmin.from('notifications').insert({
-    user_id: club.owner_id,
-    type: 'settlement',
-    title: `📊 Settlement Complete — ${club.name} Period #${periodNum}`,
-    message: `Period #${periodNum} auto-settled. Rake: ${totalRake.toLocaleString()}, Commissions: ${totalCommissions.toLocaleString()}, Club retained: ${clubRetained.toLocaleString()} chips.`,
-    data: {
-      club_id: club.id,
-      period_id: period.id,
-      total_rake: totalRake,
-      union_hold: unionHold,
-      total_commissions: totalCommissions,
-      club_retained: clubRetained,
-    },
-    read: false,
-  }).catch(e => console.error('[settlement-msg] Owner notification error:', e.message));
+  try {
+    await supabaseAdmin.from('notifications').insert({
+      user_id: club.owner_id,
+      type: 'settlement',
+      title: `📊 Settlement Complete — ${club.name} Period #${periodNum}`,
+      message: `Period #${periodNum} auto-settled. Rake: ${totalRake.toLocaleString()}, Commissions: ${totalCommissions.toLocaleString()}, Club retained: ${clubRetained.toLocaleString()} chips.`,
+      data: {
+        club_id: club.id,
+        period_id: period.id,
+        total_rake: totalRake,
+        union_hold: unionHold,
+        total_commissions: totalCommissions,
+        club_retained: clubRetained,
+      },
+      read: false,
+    });
+  } catch (ownerNotifErr) {
+    console.error('[settlement-msg] Owner notification error:', ownerNotifErr.message);
+  }
 }
