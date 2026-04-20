@@ -122,9 +122,13 @@ const nextConfig = {
   // condition where vendor chunks get deleted mid-request, triggering
   // "Cannot find module './chunks/vendor-chunks/next.js'" 500 errors.
   experimental: {
-    // Disabled workerThreads and cpus: In Next.js 14, these can cause workers to 
+    // Disabled workerThreads and cpus: In Next.js 14, these can cause workers to
     // crash silently (OOM), resulting in random `PageNotFoundError` during build.
     // workerThreads: false,
+    // [Phase 6.1.18] Enable instrumentation hook (src/instrumentation.js) so
+    // production env guardrails run once at server boot and fail fast if any
+    // critical webhook/DB secret is missing.
+    instrumentationHook: true,
   },
   // ─── Dev Server Memory Management ──────────────────────────────────────────
   // With 952 pages, the dev server compiles pages on-demand and keeps them in memory.
