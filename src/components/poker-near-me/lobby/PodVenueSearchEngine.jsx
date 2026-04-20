@@ -185,7 +185,7 @@ const PodVenueSearchEngine = ({
           {results.length > 0 ? (
             <>
               <div style={{ display: 'grid', gap: 12, marginBottom: 24 }}>
-                {results.slice(0, 50).map(v => {
+                {results.map(v => {
                   const d = userLocation ? pDist(v) : null;
                   return (
                     <div key={v.id} style={{ position: 'relative' }}>
@@ -267,7 +267,7 @@ const PodVenueSearchEngine = ({
           </p>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 20, flexWrap: 'wrap' }}>
             <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#d4a853' }}>{venues?.length || '700+'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>Venues</div></div>
-            <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#3fb950' }}>41</div><div style={{ fontSize: 11, color: '#8b949e' }}>States</div></div>
+            <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#3fb950' }}>47+</div><div style={{ fontSize: 11, color: '#8b949e' }}>States</div></div>
           </div>
         </div>
       )}
