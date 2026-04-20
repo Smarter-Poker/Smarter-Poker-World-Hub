@@ -23,7 +23,7 @@ export default async function handler(req, res) {
 
       if (req.method === 'GET') {
           try {
-              const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+              const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
               const category = safeQ(req.query.category);
               const search = safeQ(req.query.search);
               const limit = safeQ(req.query.limit) || 20;

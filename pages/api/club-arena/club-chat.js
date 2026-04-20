@@ -33,7 +33,7 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       if (!applyRateLimit(req, res, 'club-arena/club-chat-read')) return;
 
-      const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+      const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
       const clubId = safeQ(req.query.clubId);
       if (!clubId) return res.status(400).json({ error: 'clubId required' });
 

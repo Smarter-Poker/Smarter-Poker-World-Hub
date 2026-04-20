@@ -84,7 +84,7 @@ export default async function handler(req, res) {
     res.setHeader('Cache-Control', 'public, s-maxage=5, stale-while-revalidate=10');
 
     try {
-        const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+        const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
         const rawSlug = safeQ(req.query.slug);
         const page_id = safeQ(req.query.page_id);
 

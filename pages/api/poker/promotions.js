@@ -90,7 +90,7 @@ try {
     }
 
     try {
-      const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+      const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
       const page_type = safeQ(req.query.page_type);
       const page_id = safeQ(req.query.page_id);
       const rawLimit = safeQ(req.query.limit) || '30';

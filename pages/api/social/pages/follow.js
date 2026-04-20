@@ -201,7 +201,7 @@ export default async function handler(req, res) {
           return res.status(201).json({ success: true, following: true, status: followStatus, pending: requiresApproval, data });
 
       } else if (req.method === 'GET') {
-          const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+          const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
           const page_id = safeQ(req.query.page_id);
           const user_id = safeQ(req.query.user_id);
           const role = safeQ(req.query.role);

@@ -64,7 +64,7 @@ export default async function handler(req, res) {
 
 async function handleGet(req, res) {
     try {
-        const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+        const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
         const lat = safeQ(req.query.lat);
         const lng = safeQ(req.query.lng);
         const radius = safeQ(req.query.radius) || 50;

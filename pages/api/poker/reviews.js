@@ -193,7 +193,7 @@ try {
       // GET — Fetch reviews with category averages + sorting
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       if (req.method === 'GET') {
-        const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+        const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
         const venue_id = safeQ(req.query.venue_id);
         const venue_ids = safeQ(req.query.venue_ids);
         const stats_only = safeQ(req.query.stats_only);

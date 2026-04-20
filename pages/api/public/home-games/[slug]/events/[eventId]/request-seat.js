@@ -72,14 +72,14 @@ export default async function handler(req, res) {
     }
     const token = authHeader.replace('Bearer ', '');
     const supabase = getSupabase();
-    const { data: authData, error: authErr } = await supabase.auth.getUser(token);
+    const { data: authData, error: authErr } = await supabase.auth["getUser"](token);
     if (authErr || !authData || !authData.user) {
       return res.status(401).json({ success: false, error: 'Invalid token' });
     }
     const user = authData.user;
 
     // 2. Validate URL params
-    const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+    const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
     const slug = safeQ(req.query.slug);
     const eventId = safeQ(req.query.eventId);
     if (!slug || typeof slug !== 'string') {

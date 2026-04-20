@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
@@ -49,7 +49,7 @@ export default async function handler(req, res) {
 
     // ═══ GET: Fetch hands ═══
 
-    const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+    const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
     const tableId = safeQ(req.query.tableId);
     const page = safeQ(req.query.page) || '0';
     const limit = safeQ(req.query.limit) || '20';

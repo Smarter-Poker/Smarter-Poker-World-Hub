@@ -24,7 +24,7 @@ try {
 
       // ── LIST TABLES ──
       if (req.method === 'GET') {
-        const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+        const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
         const id = safeQ(req.query.id);
 
         if (id) {
@@ -60,7 +60,7 @@ try {
         const auth = await authenticatePlayer(req, res, { requirePlayerId: false });
         if (!auth) return;
 
-        const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+        const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
         const id = safeQ(req.query.id);
         if (!id) return res.status(400).json({ error: 'Table id required' });
 

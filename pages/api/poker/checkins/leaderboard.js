@@ -20,7 +20,7 @@ export default async function handler(req, res) {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
-    const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+    const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
     const venue_id = safeQ(req.query.venue_id);
     const period = safeQ(req.query.period) || 'month';
     if (!venue_id) {
@@ -49,8 +49,8 @@ export default async function handler(req, res) {
         const { data: checkins, error } = await query.limit(2000);
 
         if (error) {
-            console.error('Leaderboard query error:', error);
-            return res.status(500).json({ success: false, error: error.message });
+            console.error('[Leaderboard API] Query error:', error);
+            return res.status(500).json({ success: false, error: 'Database query failed' });
         }
 
         if (!checkins || checkins.length === 0) {

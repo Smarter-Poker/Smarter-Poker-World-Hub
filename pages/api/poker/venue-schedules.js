@@ -80,7 +80,7 @@ export default async function handler(req, res) {
             if (!applyRateLimit(req, res, LIMITS.read)) return;
             res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
 
-            const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+            const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
             const venue_id = safeQ(req.query.venue_id);
             if (!venue_id) {
                 return res.status(400).json({ success: false, error: 'Missing venue_id' });

@@ -35,7 +35,7 @@ export default async function handler(req, res) {
           return res.status(500).json({ error: 'Server configuration error' });
       }
 
-      const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+      const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
       const type = safeQ(req.query.type) || 'overall';
       const period = safeQ(req.query.period) || 'all';
       const limitRaw = safeQ(req.query.limit) || '25';

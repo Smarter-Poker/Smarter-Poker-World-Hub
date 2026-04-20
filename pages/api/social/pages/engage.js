@@ -228,7 +228,7 @@ export default async function handler(req, res) {
           return res.status(400).json({ success: false, error: 'Invalid action. Use "like", "comment", "like_comment", or "bookmark"' });
 
       } else if (req.method === 'GET') {
-          const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+          const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
           const post_id = safeQ(req.query.post_id);
           const limit = safeQ(req.query.limit) || '50';
 
@@ -327,7 +327,7 @@ export default async function handler(req, res) {
           const authUser = await requireAuth(req, res);
           if (!authUser) return;
 
-          const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+          const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
           const id = safeQ(req.query.id);
           const type = safeQ(req.query.type);
           const user_id = authUser.id;

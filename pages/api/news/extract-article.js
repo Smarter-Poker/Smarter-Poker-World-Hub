@@ -7,7 +7,7 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
  */
 
 export default async function handler(req, res) {
-    const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+    const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
     const url = safeQ(req.query.url);
 
     if (!url) {

@@ -36,7 +36,7 @@ export default async function handler(req, res) {
 
     res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=180');
 
-    const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+    const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
     const slug = safeQ(req.query.slug);
     if (!slug || typeof slug !== 'string') {
       return res.status(400).json({ success: false, error: 'slug required' });

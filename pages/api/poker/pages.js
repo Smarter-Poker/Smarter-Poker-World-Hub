@@ -150,7 +150,7 @@ export default async function handler(req, res) {
       }
 
       try {
-          const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+          const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
           const category = safeQ(req.query.category) || 'all';
           const search = safeQ(req.query.search);
           const user_id = safeQ(req.query.user_id);

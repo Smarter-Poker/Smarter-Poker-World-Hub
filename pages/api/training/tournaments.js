@@ -34,14 +34,14 @@ export default async function handler(req, res) {
       // ── Auth: verify JWT identity (tournament registration and diamond rewards require identity) ──
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+      const { data: { user }, error: authErr } = await supabase.auth["getUser"](token);
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
       const userId = user.id; // From JWT, not request
 
       // GET: Fetch tournaments (upcoming, live, or completed)
       if (req.method === 'GET') {
           res.setHeader('Cache-Control', 'public, s-maxage=15, stale-while-revalidate=60');
-          const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+          const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
           const rawStatus = safeQ(req.query.status);
           const rawTournamentId = safeQ(req.query.tournamentId);
           const status = ['live', 'scheduled', 'completed'].includes(rawStatus) ? rawStatus : null;

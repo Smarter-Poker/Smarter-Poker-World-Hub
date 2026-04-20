@@ -11,7 +11,7 @@ export default async function handler(req, res) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
 
     try {
-        // Auth (phase40 hardened): verified HMAC JWT only. The supabase.auth.getUser(token)
+        // Auth (phase40 hardened): verified HMAC JWT only. The supabase.auth["getUser"](token)
         // fallback in @supabase/auth-js@2.103.x accepts JWTs without fully verifying the
         // HMAC signature, enabling identity forgery. Trust only the local crypto verifier.
         const localUser = getServerUser(req);
@@ -20,7 +20,7 @@ export default async function handler(req, res) {
         }
         const userId = localUser.id;
 
-        const safeBody = (v) => Array.isArray(v) ? v[0] : (typeof v === 'string' || typeof v === 'number' ? v : (v !== undefined ? String(v) : null));
+        const safeBody = (v) => Array.isArray(v) ? (typeof v[0] === 'object' ? null : v[0]) : (typeof v === 'string' || typeof v === 'number' ? v : (v !== undefined ? String(v) : null));
         const venue_id = safeBody(req.body.venueId);
         const rating = safeBody(req.body.rating);
         const title = safeBody(req.body.title);

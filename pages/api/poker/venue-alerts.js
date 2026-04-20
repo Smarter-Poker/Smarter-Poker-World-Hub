@@ -27,7 +27,7 @@ export default async function handler(req, res) {
     if (!applyRateLimit(req, res, limitType)) return;
 
     if (req.method === 'GET') {
-      const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+      const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
       const user_id = safeQ(req.query.user_id);
       if (!user_id) return res.status(400).json({ error: 'user_id required' });
       

@@ -259,7 +259,7 @@ export default async function handler(req, res) {
           const authUser = await requireAuth(req, res);
           if (!authUser) return;
 
-          const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+          const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
           const id = safeQ(req.query.id);
           const author_id = authUser.id; // Use authenticated user, not query param
 

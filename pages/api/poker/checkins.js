@@ -119,7 +119,7 @@ try {
       }
 
       if (req.method === 'GET') {
-        const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+        const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
         const venue_id = safeQ(req.query.venue_id);
         const user_id = safeQ(req.query.user_id);
         const count_only = safeQ(req.query.count_only);

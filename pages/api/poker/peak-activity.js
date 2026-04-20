@@ -20,7 +20,7 @@ function getSupabase() {
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export default async function handler(req, res) {
-  const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+  const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
   const venue = safeQ(req.query.venue);
   const venue_id = safeQ(req.query.venue_id);
   const game_type = safeQ(req.query.game_type);

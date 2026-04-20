@@ -36,7 +36,7 @@ export default async function handler(req, res) {
 
 
       if (req.method === 'GET') {
-          const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+          const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
           const post_id = safeQ(req.query.post_id);
           const type = safeQ(req.query.type);
 
@@ -294,7 +294,7 @@ export default async function handler(req, res) {
           const authUser = await requireAuth(req, res);
           if (!authUser) return;
 
-          const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+          const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
           const post_id = safeQ(req.query.post_id);
           const interaction_type = safeQ(req.query.interaction_type);
           const user_id = authUser.id;

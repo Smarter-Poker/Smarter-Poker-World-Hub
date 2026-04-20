@@ -72,7 +72,10 @@ export default async function handler(req, res) {
                     status: 'active',
                 }).select().maybeSingle();
 
-                if (insertErr) return res.status(500).json({ error: insertErr.message });
+                if (insertErr) {
+                    console.error('[Live Session API] Start session error:', insertErr);
+                    return res.status(500).json({ error: 'Failed to start session' });
+                }
                 return res.status(200).json({ session });
             }
 
@@ -92,7 +95,10 @@ export default async function handler(req, res) {
                     .select()
                     .maybeSingle();
 
-                if (updErr) return res.status(500).json({ error: updErr.message });
+                if (updErr) {
+                    console.error('[Live Session API] Update error:', updErr);
+                    return res.status(500).json({ error: 'Failed to update session' });
+                }
                 return res.status(200).json({ session: data });
             }
 
@@ -107,7 +113,10 @@ export default async function handler(req, res) {
                     .select()
                     .maybeSingle();
 
-                if (endErr) return res.status(500).json({ error: endErr.message });
+                if (endErr) {
+                    console.error('[Live Session API] End session error:', endErr);
+                    return res.status(500).json({ error: 'Failed to end session' });
+                }
                 return res.status(200).json({ session: data });
             }
 
@@ -121,7 +130,10 @@ export default async function handler(req, res) {
                     session_id, user_id: user.id, message: message.trim(),
                 }).select('*, profiles:user_id(username, avatar_url)').maybeSingle();
 
-                if (chatErr) return res.status(500).json({ error: chatErr.message });
+                if (chatErr) {
+                    console.error('[Live Session API] Chat error:', chatErr);
+                    return res.status(500).json({ error: 'Failed to send chat message' });
+                }
                 return res.status(200).json({ message: msg });
             }
 
@@ -129,7 +141,9 @@ export default async function handler(req, res) {
         }
 
         if (req.method === 'GET') {
-            const { type, session_id } = req.query;
+            const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+            const type = safeQ(req.query.type);
+            const session_id = safeQ(req.query.session_id);
 
             // Get specific session
             if (session_id) {
@@ -190,6 +204,6 @@ export default async function handler(req, res) {
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) {}
         console.error('[Live Session API] Error:', err);
-        return res.status(500).json({ error: err.message || 'Internal server error' });
+        return res.status(500).json({ error: 'Internal server error' });
     }
 }

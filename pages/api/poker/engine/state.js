@@ -27,7 +27,7 @@ if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' });
   if (!auth) return;
 
   try {
-    const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+    const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
     const tableId = safeQ(req.query.tableId);
     const playerId = auth.playerId; // Guaranteed to match JWT
 

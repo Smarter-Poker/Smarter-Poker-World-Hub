@@ -34,7 +34,7 @@ export default async function handler(req, res) {
     const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
     if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-    const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+    const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
     const tournamentId = safeQ(req.query.tournamentId);
     const clubId = safeQ(req.query.clubId);
     if (!tournamentId || !clubId) {

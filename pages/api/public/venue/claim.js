@@ -53,7 +53,7 @@ export default async function handler(req, res) {
 
 async function handleGet(req, res) {
     try {
-        const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+        const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
         const venue_id = safeQ(req.query.venue_id);
 
         if (!venue_id) {

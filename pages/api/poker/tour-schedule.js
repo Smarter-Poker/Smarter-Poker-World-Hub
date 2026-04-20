@@ -11,7 +11,7 @@
  * GET /api/poker/tour-schedule?tour_code=WSOP&all_stops=true
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 function getSupabase() {
@@ -183,7 +183,7 @@ export default async function handler(req, res) {
   }
 
   // Array injection guards — Next.js passes ?key[]=val as an array; PostgREST crashes on array input
-  const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+  const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
   const tour_code = safeQ(req.query.tour_code);
   const stop_name = safeQ(req.query.stop_name);
   const stop = safeQ(req.query.stop);        // 'current', 'next', or undefined = all

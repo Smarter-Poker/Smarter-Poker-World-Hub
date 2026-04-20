@@ -23,7 +23,7 @@ export default async function handler(req, res) {
   }
 
     const supabase = supabaseServerClient(req);
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabase.auth["getUser"]();
     
     if (authError || !user) {
         return res.status(401).json({ error: 'Not authenticated' });
@@ -38,7 +38,7 @@ export default async function handler(req, res) {
 
     // ─── GET: Fetch note for a specific player ──────────────────────────────
     if (req.method === 'GET') {
-        const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+        const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
         const targetPlayerId = safeQ(req.query.targetPlayerId);
         if (!targetPlayerId) return res.status(400).json({ error: 'targetPlayerId is required' });
 

@@ -244,7 +244,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
 
-  const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+  const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
   const venue_ids = safeQ(req.query.venue_ids);
   if (!venue_ids) {
     return res.status(400).json({ success: false, error: 'venue_ids required (comma-separated)' });

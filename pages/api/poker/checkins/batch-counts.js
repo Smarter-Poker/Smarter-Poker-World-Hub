@@ -21,7 +21,7 @@ export default async function handler(req, res) {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
-    const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+    const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
     let venue_ids = req.query.venue_ids;
     if (typeof venue_ids === 'string') {
         try { venue_ids = JSON.parse(venue_ids); } catch (e) { venue_ids = venue_ids.split(','); }

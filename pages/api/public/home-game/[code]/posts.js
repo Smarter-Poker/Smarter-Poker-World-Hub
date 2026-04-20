@@ -49,7 +49,7 @@ export default async function handler(req, res) {
         // cache a 429 as a 200.
         res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
 
-        const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+        const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
         const code = safeQ(req.query.code);
         const limit = clampInt(req.query.limit, 20, 1, 50);
         const offset = clampInt(req.query.offset, 0, 0, 10000);
