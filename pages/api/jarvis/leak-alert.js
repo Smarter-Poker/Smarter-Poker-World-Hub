@@ -71,7 +71,7 @@ async function getUnreadAlerts(userId, res) {
 
         if (error) {
             console.error('[Jarvis Leak Alert] Error fetching alerts:', error);
-            return res.status(500).json({ success: false, error: error.message });
+            return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
         return res.status(200).json({
@@ -107,12 +107,11 @@ async function markAlertRead(userId, body, res) {
 
         if (error) {
             console.error('[Jarvis Leak Alert] Error marking alert read:', error);
-            return res.status(500).json({ success: false, error: error.message });
+            return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
         return res.status(200).json({ success: true });
     } catch (err) {
-        try { reportApiError(err, req); } catch (_sentryErr) {}
         console.error('[Jarvis Leak Alert] Server error:', err);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }

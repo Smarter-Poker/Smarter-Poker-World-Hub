@@ -69,7 +69,7 @@ export default async function handler(req, res) {
           return res.json({ success: true, call: data });
       } catch (e) {
           console.error('[calls/create] Exception:', e);
-          return res.status(500).json({ success: false, error: e.message });
+          return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {

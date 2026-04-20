@@ -94,7 +94,7 @@ export default async function handler(req, res) {
           return res.json({ success: true, sent, total: conversations.length, errors: errors.length > 0 ? errors : undefined });
       } catch (e) {
           console.error('[BROADCAST] Exception:', e);
-          return res.status(500).json({ success: false, error: e.message });
+          return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {

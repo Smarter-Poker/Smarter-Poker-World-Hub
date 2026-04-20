@@ -86,7 +86,7 @@ export default async function handler(req, res) {
           return res.json({ success: true, content });
       } catch (e) {
           console.error('[ANTIGRAVITY] Edit Message Exception:', e);
-          return res.status(500).json({ success: false, error: e.message });
+          return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {

@@ -247,7 +247,7 @@ export default async function handler(req, res) {
 
               if (queryError) {
                   console.error('Error querying solved_spots_gold:', queryError);
-                  return res.status(500).json({ error: 'Database query failed', details: queryError.message });
+                  return res.status(500).json({ error: 'Database query failed' });
               }
 
               if (!scenarios || scenarios.length === 0) {
@@ -444,7 +444,7 @@ export default async function handler(req, res) {
 
       } catch (error) {
           console.error('Fetch hand error:', error);
-          return res.status(500).json({ error: 'Internal server error', details: error.message });
+          return res.status(500).json({ error: 'Internal server error' });
       }
 
   } catch (err) {

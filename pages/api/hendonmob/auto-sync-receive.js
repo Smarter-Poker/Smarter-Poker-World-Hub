@@ -76,7 +76,7 @@ export default async function handler(req, res) {
 
         if (error) {
             console.error('DB update error:', error);
-            return res.status(500).json({ success: false, error: error.message });
+            return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
         console.log(`[Auto-Sync] Updated user ${userId}:`, updateData);

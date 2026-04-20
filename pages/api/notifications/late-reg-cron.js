@@ -121,7 +121,7 @@ async function handler(req, res) {
     } catch (e) {
         try { reportApiError(e, req); } catch (_sentryErr) {}
         console.error('[late-reg-cron] FAILED', e);
-        return res.status(500).json({ success: false, error: e.message });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }
 

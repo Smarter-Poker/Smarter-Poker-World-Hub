@@ -60,7 +60,7 @@ export default async function handler(req, res) {
           return res.json({ success: true });
       } catch (e) {
           console.error('[calls/cancel] Exception:', e);
-          return res.status(500).json({ success: false, error: e.message });
+          return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {

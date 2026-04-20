@@ -100,7 +100,7 @@ export default async function handler(req, res) {
         if (!isMissingRpc(rpcError)) {
             // eslint-disable-next-line no-console
             console.error('[get-conversations] RPC error (not falling back):', rpcError);
-            return res.status(500).json({ success: false, error: rpcError.message });
+            return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
         // eslint-disable-next-line no-console
@@ -116,7 +116,7 @@ export default async function handler(req, res) {
         if (partError) {
             // eslint-disable-next-line no-console
             console.error('[get-conversations] participations query error:', partError);
-            return res.status(500).json({ success: false, error: partError.message });
+            return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
         if (!participations || participations.length === 0) {
@@ -158,17 +158,17 @@ export default async function handler(req, res) {
         if (convsResult.error) {
             // eslint-disable-next-line no-console
             console.error('[get-conversations] conversations query error:', convsResult.error);
-            return res.status(500).json({ success: false, error: convsResult.error.message });
+            return res.status(500).json({ success: false, error: 'Internal server error' });
         }
         if (otherParticipantsResult.error) {
             // eslint-disable-next-line no-console
             console.error('[get-conversations] other-participants query error:', otherParticipantsResult.error);
-            return res.status(500).json({ success: false, error: otherParticipantsResult.error.message });
+            return res.status(500).json({ success: false, error: 'Internal server error' });
         }
         if (candidateMsgsResult.error) {
             // eslint-disable-next-line no-console
             console.error('[get-conversations] unread-count query error:', candidateMsgsResult.error);
-            return res.status(500).json({ success: false, error: candidateMsgsResult.error.message });
+            return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
         const conversations = convsResult.data || [];
@@ -193,7 +193,7 @@ export default async function handler(req, res) {
             if (profErr) {
                 // eslint-disable-next-line no-console
                 console.error('[get-conversations] profiles query error:', profErr);
-                return res.status(500).json({ success: false, error: profErr.message });
+                return res.status(500).json({ success: false, error: 'Internal server error' });
             }
             (profiles || []).forEach((p) => { profilesMap[p.id] = p; });
         }

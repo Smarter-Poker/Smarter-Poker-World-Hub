@@ -175,7 +175,7 @@ export default async function handler(req, res) {
 
       } catch (error) {
         console.error('Get friends error:', error);
-        return res.status(500).json({ success: false, error: error.message || 'Failed to fetch friends' });
+        return res.status(500).json({ success: false, error: 'Failed to fetch friends' });
       }
     }
 
