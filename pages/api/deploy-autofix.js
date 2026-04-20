@@ -458,11 +458,15 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
 
     // ── Fallback: Grok (xAI) — OpenAI-compatible API ──
     if (!fixedContent && process.env.XAI_API_KEY) {
+      // Reset the timeout for Grok — Claude may have consumed most of the 45s budget
+      clearTimeout(apiTimeout);
+      const grokAbort = new AbortController();
+      const grokTimeout = setTimeout(() => grokAbort.abort(), 45000);
       console.log(`[deploy-autofix] Anthropic unavailable — falling back to Grok...`);
       try {
         const grokRes = await fetch('https://api.x.ai/v1/chat/completions', {
           method: 'POST',
-          signal: abortController.signal,
+          signal: grokAbort.signal,
           headers: {
             'Authorization': `Bearer ${process.env.XAI_API_KEY}`,
             'Content-Type': 'application/json',
@@ -485,6 +489,7 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
         apiError += ` | Grok request failed: ${e.message}`;
         console.error(`[deploy-autofix] Grok request failed: ${e.message}`);
       }
+      clearTimeout(grokTimeout);
     }
 
     clearTimeout(apiTimeout);
@@ -746,10 +751,6 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
   }
 }
 
-/**
- * Extract the file path that caused the build error from Vercel build output.
- * Handles common Next.js/SWC error patterns.
- */
 /**
  * Extract the file path that caused the build error from Vercel build output.
  * Handles common Next.js/SWC error patterns.

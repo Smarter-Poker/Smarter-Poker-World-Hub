@@ -79,11 +79,11 @@ function extractBrokenFiles(buildErrors) {
 
   // Module not found: Can't resolve './path/to/file'
   // Then next line: ./pages/some-page.js
-  const moduleNotFound = buildErrors.match(/\.\/(pages|src|lib|components|utils|hooks|styles)\/[^\s'",)]+/g);
+  const moduleNotFound = buildErrors.match(/\.\/(pages|src|lib|components|utils|hooks|styles|services|data)\/[^\s'",)]+/g);
   if (moduleNotFound) moduleNotFound.forEach(f => files.add(f.replace('./', '')));
 
   // TypeScript: src/components/Foo.tsx(12,5): error TS2304
-  const tsErrors = buildErrors.match(/(pages|src|lib|components)\/[^\s(:]+\.(tsx?|jsx?)/g);
+  const tsErrors = buildErrors.match(/(pages|src|lib|components|services|data)\/[^\s(:]+\.(tsx?|jsx?)/g);
   if (tsErrors) tsErrors.forEach(f => files.add(f));
 
   return [...files];
@@ -261,7 +261,7 @@ export default async function handler(req, res) {
           const includedIndices = new Set();
           allLines.forEach((line, idx) => {
             if (errorKeywords.some((kw) => line.includes(kw)) ||
-                /\.\/(pages|src|lib|components)\//.test(line)) {
+                /\.\/(pages|src|lib|components|services|data)\//.test(line)) {
               // ±3 lines of context (increased from ±2)
               for (let j = Math.max(0, idx - 3); j <= Math.min(allLines.length - 1, idx + 3); j++) {
                 includedIndices.add(j);
