@@ -73,13 +73,15 @@ try {
           const chatResult = await controller.sendChat(tableId, playerId, message);
           // Fire-and-forget: persist to table_chat for history on reconnect
           if (chatResult.success) {
-            _supaAdmin.from('table_chat').insert({
-              table_id: tableId,
-              user_id: playerId,
-              message: message.slice(0, 200),
-              message_type: 'player',
-              display_name: chatResult.displayName || null,
-            }).then(() => {}).catch(() => {});
+            try {
+              await _supaAdmin.from('table_chat').insert({
+                table_id: tableId,
+                user_id: playerId,
+                message: message.slice(0, 200),
+                message_type: 'player',
+                display_name: chatResult.displayName || null,
+              });
+            } catch (e) { /* ignore */ }
           }
           return res.json(chatResult);
 

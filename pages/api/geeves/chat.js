@@ -215,13 +215,12 @@ export default async function handler(req, res) {
                           p_hash: questionHash,
                           p_grok_answer: answer.slice(0, 2000),
                           p_page: currentPage || null,
-                      }).catch(() => {
+                      }).catch(async () => {
                           // Final fallback: direct update (no increment, still more correct than resetting to 1)
-                          getSupabase()
+                          await getSupabase()
                               .from('geeves_missed_questions')
                               .update({ last_asked: new Date().toISOString(), grok_answer: answer.slice(0, 2000) })
-                              .eq('question_hash', questionHash)
-                              .then(() => { }).catch(() => { });
+                              .eq('question_hash', questionHash);
                       });
                   }
               } catch { /* truly silent — never break the user experience */ }
