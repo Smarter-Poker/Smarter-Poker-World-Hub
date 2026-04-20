@@ -8,8 +8,11 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../../src/components/seo/SEOHead';
 import { ArrowLeft, Users, Calendar, Plus, Settings, UserMinus, Clock, DollarSign, Trash2, Loader2, X, Check, Wallet, ArrowUpRight, ArrowDownLeft, RefreshCw, AlertCircle, Heart, List, Megaphone, MessageSquare } from 'lucide-react';
 import RSVPManager from '../../../../../src/components/commander/home-games/RSVPManager';
+import HomeGamesSeatReservation from '../../../../../src/components/home-games/HomeGamesSeatReservation';
+import HostRosterPickerModal from '../../../../../src/components/home-games/HostRosterPickerModal';
+import HostCreateTableModal from '../../../../../src/components/home-games/HostCreateTableModal';
 import { supabase } from '../../../../../src/lib/supabase';
-import { useRequireAuth, getAccessToken } from '../../../../../src/lib/authUtils';
+import { useRequireAuth, getAccessToken, getSafeUser } from '../../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../../../src/engine/EventBus';
 import { toast } from 'react-hot-toast';
@@ -250,6 +253,26 @@ export default function ManageHomeGamePage() {
   const [rsvpLoading, setRsvpLoading] = useState(false);
   const [pageSlug, setPageSlug] = useState(null);
   const [pageUrlCopied, setPageUrlCopied] = useState(false);
+
+  // Phase 41 — seat reservation + host modals
+  const [currentUserId, setCurrentUserId]   = useState(null);
+  const [rosterPickerState, setRosterPickerState] = useState(null);
+  // shape: { gameId, tableId, seatNumber, maxSeats, occupiedSeats }
+  const [createTableState, setCreateTableState]   = useState(null);
+  // shape: { gameId, defaults }
+  const [seatRefreshKey, setSeatRefreshKey] = useState(0);
+
+  // Resolve the signed-in user once — used to highlight own-seats in the grid.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const u = await getSafeUser(supabase);
+        if (!cancelled) setCurrentUserId(u?.id || null);
+      } catch { /* ignore — seat grid still renders, own-seat actions just won't light up */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   // Start a direct message with a user
   async function handleStartDm(targetUserId) {
@@ -719,7 +742,37 @@ export default function ManageHomeGamePage() {
                         </div>
                       </div>
                       {expandedEventId === event.id && (
-                        <div className="mt-4 pt-4 border-t border-[#4A5E78]">
+                        <div className="mt-4 pt-4 border-t border-[#4A5E78] space-y-6">
+                          <HomeGamesSeatReservation
+                            key={`seat-res-${event.id}-${seatRefreshKey}`}
+                            gameId={event.id}
+                            currentUserId={currentUserId}
+                            isHost={true}
+                            onOpenRosterPicker={({ tableId, seatNumber }) => {
+                              // Find the table so we can pass occupied seats + max seats
+                              // to the modal even before it fetches (smoother UX)
+                              setRosterPickerState({
+                                gameId: event.id,
+                                tableId,
+                                seatNumber: seatNumber || null,
+                                maxSeats: 9,       // resolved inside the grid; safe default
+                                occupiedSeats: new Set()
+                              });
+                            }}
+                            onCreateTable={() => {
+                              setCreateTableState({
+                                gameId: event.id,
+                                defaults: {
+                                  gameType: event.game_type || 'NLH',
+                                  stakes:   event.stakes || '',
+                                  format:   event.format || 'cash',
+                                  maxSeats: event.max_players || 9,
+                                  buyinMin: event.buyin_min,
+                                  buyinMax: event.buyin_max
+                                }
+                              });
+                            }}
+                          />
                           <RSVPManager
                             rsvps={eventRsvps}
                             event={event}
@@ -1228,6 +1281,27 @@ export default function ManageHomeGamePage() {
         onSubmit={() => fetchData()}
         group={group}
       />
+
+      {/* Phase 41 — host-side seat-reservation modals */}
+      {rosterPickerState && (
+        <HostRosterPickerModal
+          groupId={id}
+          tableId={rosterPickerState.tableId}
+          seatNumber={rosterPickerState.seatNumber}
+          maxSeats={rosterPickerState.maxSeats}
+          occupiedSeats={rosterPickerState.occupiedSeats}
+          onClose={() => setRosterPickerState(null)}
+          onSeated={() => setSeatRefreshKey((k) => k + 1)}
+        />
+      )}
+      {createTableState && (
+        <HostCreateTableModal
+          gameId={createTableState.gameId}
+          defaults={createTableState.defaults}
+          onClose={() => setCreateTableState(null)}
+          onCreated={() => setSeatRefreshKey((k) => k + 1)}
+        />
+      )}
     </>
   );
 }
