@@ -778,9 +778,7 @@ Vercel will NOT rebuild main until you merge. Production continues serving the l
 
     // Failure notification — any outcome that did NOT produce a fix on main or a PR
     else if (autofixResult.action && autofixResult.action !== 'refused' && autofixResult.action !== 'ignored') {
-      await sendEmailAlert({
-        subject: `[Smarter.Poker Autofix] ⚠ Did not fix ${commitSha.substring(0, 8)} (${autofixResult.action})`,
-        markdown: `## Autofix could not repair this build
+      const markdownBody = `## Autofix could not repair this build
 
 **Commit:** \`${commitSha}\`
 **Message:** ${commitMsg.substring(0, 200)}
@@ -794,9 +792,19 @@ ${autofixResult.action === 'pr_failed' && autofixResult.branch ? `A branch was a
 ${(buildErrors || '').substring(0, 500)}
 \`\`\`
 
-Manual intervention needed. Check the Vercel build: https://vercel.com/smarter-poker/hub-vanguard/deployments`,
+Manual intervention needed. Check the Vercel build: https://vercel.com/smarter-poker/hub-vanguard/deployments`;
+
+      await sendEmailAlert({
+        subject: `[Smarter.Poker Autofix] ⚠ Did not fix ${commitSha.substring(0, 8)} (${autofixResult.action})`,
+        markdown: markdownBody,
         tag: `autofix_${autofixResult.action}`,
       });
+
+      await createAlertIssue(
+        `Deploy autofix failed — ${commitSha.substring(0, 8)}`,
+        markdownBody,
+        { alertKey: `autofix_failure_${commitSha.substring(0, 8)}`, ghPat: process.env.GH_PAT }
+      );
     }
 
     return res.status(200).json({
