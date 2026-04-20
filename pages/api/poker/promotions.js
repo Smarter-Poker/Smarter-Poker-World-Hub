@@ -90,9 +90,13 @@ try {
     }
 
     try {
-      const { page_type, page_id, limit = '50', offset = '0' } = req.query;
-      const limitNum = parseInt(limit, 10);
-      const offsetNum = parseInt(offset, 10);
+      const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+      const page_type = safeQ(req.query.page_type);
+      const page_id = safeQ(req.query.page_id);
+      const rawLimit = safeQ(req.query.limit) || '30';
+      const rawOffset = safeQ(req.query.offset) || '0';
+      const limitNum = Math.min(parseInt(rawLimit, 10) || 30, 100);
+      const offsetNum = Math.min(parseInt(rawOffset, 10) || 0, 5000);
 
       let query = getSupabase()
         .from('page_activity')
