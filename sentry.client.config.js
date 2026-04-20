@@ -99,10 +99,13 @@ if (SENTRY_DSN) {
       return event;
     },
 
-    // Tag all Club Commander errors
+    // Tag all WH client errors.
+    // Club Commander gets its own sub-tag via withSentry per-page where
+    // finer-grained scoping is needed.
     initialScope: {
       tags: {
-        app: 'club-commander',
+        app: 'world-hub',
+        runtime: 'client',
       },
     },
   });

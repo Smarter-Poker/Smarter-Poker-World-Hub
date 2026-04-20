@@ -29,10 +29,13 @@ if (SENTRY_DSN) {
       return event;
     },
 
-    // Tag all Club Commander errors
+    // Tag all WH server errors — the repo covers hub pages, landing,
+    // blog, training, social, poker-near-me, Club Commander, and the
+    // 57 cron jobs. Commander gets its own sub-tag via withSentry per-page
+    // where finer granularity is needed.
     initialScope: {
       tags: {
-        app: 'club-commander',
+        app: 'world-hub',
         runtime: 'server',
       },
     },
