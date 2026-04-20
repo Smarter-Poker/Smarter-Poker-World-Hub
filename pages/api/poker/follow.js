@@ -171,7 +171,7 @@ async function syncToSocialPageFollowers(userId, pageType, pageIdStr, action) {
                 .eq('user_id', userId);
         }
     } catch (e) {
-        try { reportApiError(e, req); } catch (_sentryErr) {}
+        try { reportApiError(e, null); } catch (_sentryErr) {}
         // Silent - cross-sync is best-effort
         console.warn('[Follow API] Social page cross-sync error:', e.message);
     }

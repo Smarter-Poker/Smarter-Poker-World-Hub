@@ -168,17 +168,29 @@ export default function TourDetailPage() {
   }, [code]);
 
   // Load follow state from Supabase API (with JWT for authenticated users)
+  // CRITICAL: Only call check_user with a real UUID - fake IDs always return false and override localStorage
   useEffect(() => {
     if (!code) return;
-    const headers = {};
+    let accessToken = null;
+    let userId = null;
     try {
       const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
       if (sbKeys.length > 0) {
         const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
-        if (tokenData.access_token) headers['Authorization'] = 'Bearer ' + tokenData.access_token;
+        accessToken = tokenData.access_token || null;
+        // Extract user UUID from JWT payload (user.id is in the 'sub' claim)
+        if (accessToken) {
+          try {
+            const sub = JSON.parse(atob(accessToken.split('.')[1]));
+            userId = sub?.sub || null;
+          } catch (_) {}
+        }
       }
     } catch (_) { }
-    fetch('/api/poker/follow?page_type=tour&page_id=' + encodeURIComponent(code) + '&check_user=1', { headers })
+    // Only query follow state if we have a real authenticated UUID
+    if (!userId) return;
+    const headers = { 'Authorization': 'Bearer ' + accessToken };
+    fetch('/api/poker/follow?page_type=tour&page_id=' + encodeURIComponent(code) + '&check_user=' + encodeURIComponent(userId), { headers })
       .then(r => r.json())
       .then(d => { if (d.is_following !== undefined) setIsFollowed(d.is_following); })
       .catch(() => {});
@@ -612,7 +624,8 @@ export default function TourDetailPage() {
               <h2 className="section-title">
                 {new Date().getFullYear()} Tour Stops
                 {(() => {
-                  const count = allStops.length || (tour.stops_2026||[]).length;
+                  const hasGranular = allStops.some(s => s.stop_city || s.stop_venue);
+                  const count = hasGranular ? allStops.length : ((tour.stops_2026||[]).length || allStops.length);
                   return count > 0 ? <span className="series-count">{count}</span> : null;
                 })()}
               </h2>
@@ -635,7 +648,12 @@ export default function TourDetailPage() {
                 <div className="empty-state"><p>No stops announced yet.</p></div>
               )}
               <div className="series-grid">
-                {(allStops.length > 0 ? allStops : []).map((s, idx) => (
+                {/* Prefer registry venue stops over generic consolidated DB stops (e.g. "RGPS 2026") */}
+                {(() => {
+                  // If all DB stops are generic consolidated (no venue/city data), prefer registry
+                  const hasGranularDbStops = allStops.some(s => s.stop_city || s.stop_venue);
+                  return hasGranularDbStops ? allStops : [];
+                })().map((s, idx) => (
                   <div
                     key={'db-' + idx}
                     className="series-card series-card-clickable"
@@ -665,7 +683,8 @@ export default function TourDetailPage() {
                     </div>
                   </div>
                 ))}
-                {allStops.length === 0 && (tour.stops_2026 || []).map((s, idx) => {
+                {/* Also render registry stops when DB only has generic consolidated stops (no granular venue/city data) */}
+                {!allStops.some(s => s.stop_city || s.stop_venue) && (tour.stops_2026 || []).map((s, idx) => {
                   // Convert registry stop to stop shape for modal
                   const stopShape = {
                     stop_name: s.name,
