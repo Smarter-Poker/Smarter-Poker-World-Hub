@@ -8,8 +8,8 @@
  * Those entries persist to the group's roster ("save to the list once added once")
  * and can subsequently be seated via /seat-member.
  */
-import { bridgeRequest, mapRpcError, LIMITS } from '../../../../src/lib/home-games/rpcBridge';
-import { reportApiError } from '../../../../src/lib/sentryWrap';
+import { bridgeRequest, mapRpcError, LIMITS } from '../../../src/lib/home-games/rpcBridge';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 export default async function handler(req, res) {
   try {
