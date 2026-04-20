@@ -35,8 +35,11 @@ export default async function handler(req, res) {
           return res.status(500).json({ error: 'Server configuration error' });
       }
 
-      const { type = 'overall', period = 'all', limit = '25' } = req.query;
-      const maxLimit = Math.min(parseInt(limit) || 25, 100);
+      const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+      const type = safeQ(req.query.type) || 'overall';
+      const period = safeQ(req.query.period) || 'all';
+      const limitRaw = safeQ(req.query.limit) || '25';
+      const maxLimit = Math.min(parseInt(limitRaw) || 25, 100);
 
       // Calculate date filter
       let dateFilter = null;
@@ -65,7 +68,7 @@ export default async function handler(req, res) {
               if (type === 'checkins') {
                   const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, maxLimit);
                   const userIds = sorted.map(([id]) => id);
-                  const { data: profiles } = await supabase
+                  const { data: profiles } = await getSupabase()
                       .from('profiles')
                       .select('id, username, full_name, avatar_url')
                       .in('id', userIds)
@@ -108,7 +111,7 @@ export default async function handler(req, res) {
               if (type === 'reviews') {
                   const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, maxLimit);
                   const userIds = sorted.map(([id]) => id);
-                  const { data: profiles } = await supabase
+                  const { data: profiles } = await getSupabase()
                       .from('profiles')
                       .select('id, username, full_name, avatar_url')
                       .in('id', userIds)
@@ -150,7 +153,7 @@ export default async function handler(req, res) {
               if (type === 'activity') {
                   const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, maxLimit);
                   const userIds = sorted.map(([id]) => id);
-                  const { data: profiles } = await supabase
+                  const { data: profiles } = await getSupabase()
                       .from('profiles')
                       .select('id, username, full_name, avatar_url')
                       .in('id', userIds)
@@ -181,7 +184,7 @@ export default async function handler(req, res) {
           leaders.sort((a, b) => b.score - a.score);
           const topLeaders = leaders.slice(0, maxLimit);
           const userIds = topLeaders.map(l => l.user_id);
-          const { data: profiles } = await supabase
+          const { data: profiles } = await getSupabase()
               .from('profiles')
               .select('id, username, full_name, avatar_url')
               .in('id', userIds)
@@ -213,3 +216,4 @@ export default async function handler(req, res) {
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }
+

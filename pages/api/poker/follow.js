@@ -112,7 +112,6 @@ async function handleGet(req, res) {
     }
 
     // Check if specific user follows a specific page
-    const checkUserId = req.query.check_user;
     if (checkUserId && page_type && page_id) {
         if (!UUID_RE.test(checkUserId)) {
             return res.status(200).json({ success: true, is_following: false });
