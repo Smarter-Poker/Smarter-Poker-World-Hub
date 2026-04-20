@@ -259,7 +259,7 @@ class TabErrorBoundary extends React.Component {
 }
 
 // ---- Geofence Alert Banner (bottom of screen) ----------------------------
-export default function PokerNearMePage() {
+export default function PokerNearMePage({ initialTab }) {
     const router = useRouter();
     const { user } = useAvatar();
     const bus = eventBus;
