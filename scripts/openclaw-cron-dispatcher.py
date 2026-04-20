@@ -17,7 +17,7 @@ Jobs handled (positions 41-52 in vercel.json):
   /api/cron/venue-review-prompts    0 */6 * * *  (Every 6h)
   /api/cron/tour-schedule-scraper   0 4 */3 * *  (Every 3 days 4am)
   /api/cron/scrape-charity-schedules 0 3 */3 * * (Every 3 days 3am)
-  /api/cron/deploy-error-poll       */5 * * * *  (Every 5 min — autopilot autofix)
+  /api/cron/deploy-error-poll       */2 * * * *  (Every 2 min — autopilot autofix)
 
 Auth: Authorization: Bearer <CRON_SECRET>
 """
@@ -40,7 +40,19 @@ except ImportError:
 
 # ─── Config ───────────────────────────────────────────────────────────────────
 BASE_URL     = 'https://smarter.poker'
-CRON_SECRET  = os.environ.get('CRON_SECRET', 'f92eb260b2b937a81930b402237e603a1c2dce41f4f4f9edfbb45fb8fe5a7507')
+def _load_cron_secret():
+    """Load CRON_SECRET from env or .env.local — never hardcode secrets."""
+    secret = os.environ.get('CRON_SECRET')
+    if secret:
+        return secret
+    env_file = Path.home() / 'Documents' / 'Smarter-Poker-World-Hub' / '.env.local'
+    if env_file.exists():
+        for line in env_file.read_text().splitlines():
+            if line.startswith('CRON_SECRET='):
+                return line.split('=', 1)[1].strip().strip('"').strip("'")
+    return ''
+
+CRON_SECRET  = _load_cron_secret()
 LOG_DIR      = Path.home() / '.smarter-poker' / 'logs'
 LOG_FILE     = LOG_DIR / 'openclaw-cron.log'
 REQUEST_TIMEOUT = 120  # seconds — cron jobs can be slow

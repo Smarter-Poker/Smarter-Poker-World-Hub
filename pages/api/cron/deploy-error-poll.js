@@ -165,8 +165,8 @@ export default async function handler(req, res) {
     if (commitMsg.includes('[autofix]')) {
       fixedDeployments.add(deployId);
 
-      // Notify that autofix itself failed — needs manual attention
-      await sendNotification({
+      // Fire-and-forget — don't block response for webhook delivery
+      sendNotification({
         title: '⚠️ Autofix Rebuild Failed',
         message: `The autofix commit \`${commitSha.substring(0, 9)}\` itself failed to build. Manual intervention may be needed.`,
         color: 'danger',
@@ -174,7 +174,7 @@ export default async function handler(req, res) {
           { title: 'Deploy', value: deployId.substring(0, 12), short: true },
           { title: 'SHA', value: commitSha.substring(0, 9), short: true },
         ],
-      });
+      }).catch(() => {});
 
       return res.status(200).json({ action: 'skipped', deployId, reason: 'is an [autofix] commit — skipping to prevent loops' });
     }
@@ -194,12 +194,12 @@ export default async function handler(req, res) {
           if (autofixCount >= MAX_FIX_ATTEMPTS) {
             fixedDeployments.add(deployId);
 
-            await sendNotification({
+            sendNotification({
               title: '🛑 Autofix Circuit Breaker',
               message: `Reached ${MAX_FIX_ATTEMPTS} fix attempts for \`${commitSha.substring(0, 9)}\`. Stopping. Manual fix required.`,
               color: 'danger',
               fields: [{ title: 'Attempts', value: String(autofixCount), short: true }],
-            });
+            }).catch(() => {});
 
             return res.status(200).json({ action: 'circuit_breaker', deployId, commitSha: commitSha.substring(0, 8), attempts: autofixCount });
           }
@@ -231,13 +231,15 @@ export default async function handler(req, res) {
           const isSigkill = allLines.some((l) => l.includes('SIGKILL') || l.includes('out of memory') || l.includes('OOM'));
           if (isSigkill) {
             console.log(`[deploy-error-poll] SIGKILL/OOM detected for ${deployId}`);
+            fixedDeployments.add(deployId); // Prevent re-fetching logs every 2 min
 
-            await sendNotification({
+            // Fire-and-forget — don't block response for webhook delivery
+            sendNotification({
               title: '💥 Build OOM/SIGKILL',
               message: `Deploy \`${commitSha.substring(0, 9)}\` killed by SIGKILL (out of memory). Not fixable by autofix.`,
               color: 'danger',
               fields: [{ title: 'SHA', value: commitSha.substring(0, 9), short: true }],
-            });
+            }).catch(() => {});
 
             return res.status(200).json({
               action: 'skipped', deployId, commitSha: commitSha.substring(0, 8),
@@ -297,9 +299,7 @@ export default async function handler(req, res) {
         // Escalation: on attempt 2+, request more aggressive fixes
         escalation: attempt >= 2 ? {
           level: attempt,
-          hint: attempt >= 2
-            ? 'Previous fix attempt failed. Try a different approach: check if the import target was renamed/moved, or if the file should be deleted entirely.'
-            : undefined,
+          hint: 'Previous fix attempt failed. Try a different approach: check if the import target was renamed/moved, or if the file should be deleted entirely.',
         } : undefined,
       };
 
@@ -319,8 +319,8 @@ export default async function handler(req, res) {
         fixedDeployments.add(deployId);
         console.log(`[deploy-error-poll] ✅ Fix pushed for ${deployId}`);
 
-        // Notify about the fix
-        await sendNotification({
+        // Notify about the fix (fire-and-forget)
+        sendNotification({
           title: '🔧 Autofix Deployed',
           message: `Claude fixed \`${autofixResult.filePath || autofixResult.file || 'unknown'}\` and pushed to main. Rebuild starting.`,
           color: 'warning',
@@ -329,7 +329,7 @@ export default async function handler(req, res) {
             { title: 'Attempt', value: `${attempt}/${MAX_FIX_ATTEMPTS}`, short: true },
             { title: 'SHA', value: autofixResult.newCommitSha?.substring(0, 9) || commitSha.substring(0, 9), short: true },
           ],
-        });
+        }).catch(() => {});
       } else {
         console.log(`[deploy-error-poll] Autofix returned: ${autofixResult.action} — will retry`);
       }
