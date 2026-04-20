@@ -79,7 +79,7 @@ async function handleGet(req, res) {
 
         if (error) {
             console.error('Error fetching follows:', error);
-            return res.status(500).json({ success: false, error: error.message });
+            return res.status(500).json({ success: false, error: 'Failed to fetch follows' });
         }
 
         return res.status(200).json({
@@ -104,7 +104,7 @@ async function handleGet(req, res) {
             .maybeSingle();
 
         if (error) {
-            return res.status(500).json({ success: false, error: error.message });
+            return res.status(500).json({ success: false, error: 'Failed to check follow status' });
         }
 
         return res.status(200).json({
@@ -124,7 +124,7 @@ async function handleGet(req, res) {
 
         if (error) {
             console.error('Error fetching follower count:', error);
-            return res.status(500).json({ success: false, error: error.message });
+            return res.status(500).json({ success: false, error: 'Failed to fetch follower count' });
         }
 
         return res.status(200).json({
@@ -248,7 +248,7 @@ async function handlePost(req, res) {
                 });
             }
             console.error('Error following page:', error);
-            return res.status(500).json({ success: false, error: error.message });
+            return res.status(500).json({ success: false, error: 'Failed to follow' });
         }
 
         // Cross-sync to social page followers (best-effort)
@@ -272,7 +272,7 @@ async function handlePost(req, res) {
 
         if (error) {
             console.error('Error unfollowing page:', error);
-            return res.status(500).json({ success: false, error: error.message });
+            return res.status(500).json({ success: false, error: 'Failed to unfollow' });
         }
 
         // Cross-sync to social page followers (best-effort)
