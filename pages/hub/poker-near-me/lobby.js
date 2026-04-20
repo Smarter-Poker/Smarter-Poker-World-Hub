@@ -329,6 +329,7 @@ export default function PokerNearMeLobby() {
   const [locationToast, setLocationToast] = useState(null); // { city, state } for success toast
   const [showManualLocation, setShowManualLocation] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
+  const [manualGeocoding, setManualGeocoding] = useState(false);
   // ─── Smart Permission State ───
   const [permissionState, setPermissionState] = useState('prompt'); // 'prompt' | 'denied' | 'granted'
   const [showEnablePopup, setShowEnablePopup] = useState(false);
@@ -1428,7 +1429,8 @@ export default function PokerNearMeLobby() {
   // ─── Manual Location Set ───
   const handleManualLocationSet = useCallback(async () => {
     if (!manualCity.trim()) return;
-    // Cancel any pending GPS request to prevent overwriting this manual location
+    if (manualGeocoding || gpsLoading) return; // Prevent concurrent rapid clicks
+    setManualGeocoding(true);
     setGpsLoading(false);
     gpsRequestIdRef.current++; // Invalidate any in-flight GPS callbacks
     // Geocode the manual city/state input using Nominatim
@@ -1483,8 +1485,10 @@ export default function PokerNearMeLobby() {
       setGpsError('Geocoding failed — check your connection');
       if (gpsErrorTimeoutRef.current) clearTimeout(gpsErrorTimeoutRef.current);
       gpsErrorTimeoutRef.current = setTimeout(() => setGpsError(null), 3500);
+    } finally {
+      setManualGeocoding(false);
     }
-  }, [manualCity, manualState, userId, showLocationSuccessToast]);
+  }, [manualCity, manualState, userId, showLocationSuccessToast, manualGeocoding, gpsLoading]);
 
   // ─── Pods that require GPS to show meaningful results ───
   const GPS_REQUIRED_PODS = new Set(['nearme', 'mapview', 'livegames']);
@@ -2781,7 +2785,7 @@ export default function PokerNearMeLobby() {
                 <div style={{ marginBottom: 12 }}>
                   <label style={{ fontSize: 11, color: '#8b949e', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: 4 }}>City</label>
                   <input
-                    type="text" placeholder="e.g. Chicago" value={manualCity}
+                    type="text" placeholder="e.g. Chicago" value={manualCity} maxLength={100}
                     onChange={(e) => setManualCity(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') handleManualLocationSet(); }}
                     autoFocus

@@ -318,9 +318,9 @@ function LiveGamesFeed({
                 const json = await res.json();
                 const mapping = {};
                 (json.venues || []).forEach(v => {
-                    const totalTables = (v.games || []).reduce((acc, g) => acc + (g.tables_running || 0), 0);
-                    const totalWait = (v.games || []).reduce((acc, g) => acc + (g.players_waiting || 0), 0);
-                    const sources = (v.games || []).map(g => g.source).filter(Boolean);
+                    const totalTables = (v.games || []).reduce((acc, g) => acc + ((g && g.tables_running) || 0), 0);
+                    const totalWait = (v.games || []).reduce((acc, g) => acc + ((g && g.players_waiting) || 0), 0);
+                    const sources = (v.games || []).map(g => g ? g.source : null).filter(Boolean);
                     const primarySource = sources.includes('bravo') ? 'bravo' : (sources[0] || 'bravo');
                     mapping[v.bravo_slug] = { ...v, totalTables, totalWait, primarySource };
                 });

@@ -45,7 +45,29 @@ export default async function handler(req, res) {
 
 
       try {
-          // Step 1: Get all conversation IDs where user is a participant
+          // PRIMARY: fn_get_user_conversations (phase40 standardization)
+          const { data: rpcData, error: rpcError } = await getSupabase().rpc(
+              'fn_get_user_conversations',
+              { p_user_id: userId }
+          );
+
+          if (!rpcError && Array.isArray(rpcData)) {
+              // Normalize to the shape the frontend expects
+              const conversations = rpcData.map(c => ({
+                  id: c.conversation_id || c.id,
+                  last_message_at: c.last_message_at,
+                  last_message_preview: c.last_message_preview,
+                  is_group: c.is_group || false,
+                  otherUser: c.other_user || c.otherUser || null,
+                  unreadCount: c.unread_count ?? c.unreadCount ?? 0,
+                  last_read_at: c.last_read_at,
+              }));
+              return res.json({ success: true, conversations });
+          }
+
+          // FALLBACK: manual waterfall if RPC not yet deployed
+          console.warn('[GET-CONVERSATIONS] fn_get_user_conversations unavailable, using fallback:', rpcError?.message);
+
           const { data: participations, error: partError } = await getSupabase()
               .from('social_conversation_participants')
               .select('conversation_id, last_read_at')
