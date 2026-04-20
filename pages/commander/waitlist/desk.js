@@ -1574,6 +1574,7 @@ function DeskSettingsModal({ custom, onSave, onClose, onUpdate }) {
           }}>×</button>
         </div>
       )}
+      {/* eslint-disable-next-line react/jsx-no-undef */}
       <ConfirmDialog />
     </div>
   );

@@ -11,6 +11,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import PageTransition from '../../src/components/transitions/PageTransition';
@@ -81,9 +82,9 @@ function SavedPostCard({ post, author, onUnsave, currentUserId }) {
                     style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }}
                 />
                 <div style={{ flex: 1 }}>
-                    <a href={`/hub/user/${author?.username}`} style={{ fontWeight: 600, fontSize: 14, color: C.text, textDecoration: 'none' }}>
+                    <Link href={`/hub/user/${author?.username}`} style={{ fontWeight: 600, fontSize: 14, color: C.text, textDecoration: 'none' }}>
                         {author?.full_name || author?.username || 'User'}
-                    </a>
+                    </Link>
                     <div style={{ fontSize: 12, color: C.textSec }}>
                         {timeAgo(post.created_at)}
                         {post.updated_at && post.updated_at !== post.created_at ? ' · Edited' : ''}
@@ -136,14 +137,14 @@ function SavedPostCard({ post, author, onUnsave, currentUserId }) {
 
             {/* Actions */}
             <div style={{ borderTop: `1px solid ${C.border}`, display: 'flex' }}>
-                <a
+                <Link
                     href={`/hub/user/${author?.username}?post=${post.id}`}
                     style={{
                         flex: 1, padding: 10, textAlign: 'center', color: C.textSec,
                         fontWeight: 500, fontSize: 13, textDecoration: 'none',
                         borderRight: `1px solid ${C.border}`
                     }}
-                >View Post</a>
+                >View Post</Link>
                 <button onClick={handleShare} style={{
                     flex: 1, padding: 10, border: 'none', background: 'transparent',
                     cursor: 'pointer', color: C.textSec, fontWeight: 500, fontSize: 13
@@ -293,14 +294,14 @@ export default function SavedPostsPage() {
                                 <p style={{ margin: '0 0 20px', color: C.textSec, fontSize: 15 }}>
                                     When you save posts from the feed, they will appear here
                                 </p>
-                                <a
+                                <Link
                                     href="/hub/social-media"
                                     style={{
                                         display: 'inline-block', padding: '10px 24px',
                                         background: C.blue, color: 'white', borderRadius: 8,
                                         textDecoration: 'none', fontWeight: 600, fontSize: 15
                                     }}
-                                >Browse Feed</a>
+                                >Browse Feed</Link>
                             </div>
                         ) : (
                             savedPosts.map(post => (
