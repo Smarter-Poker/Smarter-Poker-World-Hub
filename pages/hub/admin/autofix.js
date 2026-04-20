@@ -31,8 +31,12 @@ function StatCard({ label, value, color }) {
 
 function DeployRow({ deploy }) {
   const stateColor = STATUS_COLORS[deploy.state] || '#90a4ae';
-  const age = Math.round((Date.now() - deploy.createdAt) / 60000);
-  const ageStr = age < 60 ? `${age}m ago` : `${Math.round(age / 60)}h ago`;
+  // Use createdAt relative display — computed client-side only to avoid hydration mismatch
+  const [ageStr, setAgeStr] = React.useState('');
+  React.useEffect(() => {
+    const age = Math.round((Date.now() - deploy.createdAt) / 60000);
+    setAgeStr(age < 60 ? `${age}m ago` : `${Math.round(age / 60)}h ago`);
+  }, [deploy.createdAt]);
 
   return (
     <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>

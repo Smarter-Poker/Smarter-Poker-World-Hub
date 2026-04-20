@@ -25,9 +25,10 @@ const GITHUB_OWNER = 'Smarter-Poker';
 const GITHUB_REPO = 'Smarter-Poker-World-Hub';
 const MAX_FIX_ATTEMPTS = 3;
 
-// Only dedup deployments that were SUCCESSFULLY fixed
+// Best-effort dedup — resets on serverless cold start.
+// The circuit breaker (git history check at Step 3) is the authoritative guard.
 const fixedDeployments = new Set();
-// Track attempt counts per commit SHA (for escalation)
+// Track attempt counts per commit SHA (for escalation) — also best-effort.
 const attemptTracker = {};
 
 // ── Notification helper ──────────────────────────────────────────────────────
@@ -125,7 +126,8 @@ export default async function handler(req, res) {
       // ── Post-fix verification: check if a previous autofix deploy went READY ──
       const latestMsg = latestDeploy.meta?.githubCommitMessage || '';
       if (latestDeploy.state === 'READY' && latestMsg.includes('[autofix]')) {
-        await sendNotification({
+        // Fire-and-forget — don't block poll response for webhook delivery
+        sendNotification({
           title: '✅ Autofix Rebuild Succeeded',
           message: `\`${latestDeploy.meta?.githubCommitSha?.substring(0, 9)}\` is READY — autofix resolved the build error.`,
           color: 'good',
@@ -133,7 +135,7 @@ export default async function handler(req, res) {
             { title: 'File', value: latestMsg.match(/in (.+?) \(/)?.[1] || 'unknown', short: true },
             { title: 'SHA', value: latestDeploy.meta?.githubCommitSha?.substring(0, 9) || '', short: true },
           ],
-        });
+        }).catch(() => {});
       }
 
       return res.status(200).json({

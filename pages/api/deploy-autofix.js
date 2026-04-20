@@ -197,7 +197,7 @@ export default async function handler(req, res) {
     }
   }
 
-  const { commitSha, commitMessage, deploymentId, buildErrors, attempt } = req.body;
+  const { commitSha, commitMessage, deploymentId, buildErrors, attempt, escalation } = req.body;
 
   if (!buildErrors) {
     return res.status(400).json({ error: 'Missing buildErrors in request body' });
@@ -240,6 +240,7 @@ export default async function handler(req, res) {
         buildErrors,
         commitSha,
         attempt,
+        escalation,
         anthropicKey,
         ghPat,
       });
@@ -300,7 +301,7 @@ export default async function handler(req, res) {
 /**
  * Fix a single broken file. Extracted so the handler can loop over multiple files.
  */
-async function fixSingleFile({ errorFile, buildErrors, commitSha, attempt, anthropicKey, ghPat }) {
+async function fixSingleFile({ errorFile, buildErrors, commitSha, attempt, escalation, anthropicKey, ghPat }) {
   try {
 
     // Validate that the extracted path is a file (has extension), not a directory.
@@ -409,7 +410,8 @@ RULES:
 - If the error is a syntax error, fix the syntax
 - If the error is an unused variable/import, remove it
 - If the error is a merge conflict marker, resolve it keeping the newer code
-
+${attempt >= 2 && escalation?.hint ? `
+ESCALATION (attempt ${attempt}): ${escalation.hint}` : ''}
 Return ONLY the complete fixed file content. No explanation, no markdown fences, no commentary. Just the raw file content that should replace the current file.`;
 
     console.log(`[deploy-autofix] Calling AI to fix ${normalizedPath} (${originalContent.length} chars)...`);

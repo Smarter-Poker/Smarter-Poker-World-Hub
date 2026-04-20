@@ -26,6 +26,9 @@ export default async function handler(req, res) {
       `https://api.vercel.com/v6/deployments?projectId=${PROJECT_ID}&teamId=${TEAM_ID}&limit=20`,
       { headers: { Authorization: `Bearer ${vercelToken}` } }
     );
+    if (!deploymentsRes.ok) {
+      return res.status(502).json({ error: `Vercel API error: ${deploymentsRes.status}` });
+    }
     const deploymentsData = await deploymentsRes.json();
     const deployments = (deploymentsData.deployments || []).map(d => ({
       id: d.uid,
