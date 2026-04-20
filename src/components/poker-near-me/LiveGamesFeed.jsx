@@ -700,10 +700,8 @@ function LiveGamesFeed({
             // Unlocated catalog venues should be dropped to avoid spamming the local feed with unverified locations.
             const unlocatedActive = list.filter(v => (!v.latitude || !v.longitude) && v._isLive);
             
-            if (located.length > 0 || unlocatedActive.length > 0) {
-                const inRadius = located.filter(v => calcDist(v) <= Number(filterRadius));
-                list = [...inRadius, ...unlocatedActive];
-            }
+            const inRadius = located.filter(v => calcDist(v) <= Number(filterRadius));
+            list = [...inRadius, ...unlocatedActive];
         }
 
         // 3. Filter by Game Type

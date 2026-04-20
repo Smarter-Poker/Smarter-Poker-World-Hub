@@ -2149,10 +2149,13 @@ export default function PokerNearMeLobby() {
               pageDepth={2}
               hideLeftIcon={false}
               onBackClick={() => {
-                if (typeof window !== 'undefined' && window.history.length > 1) {
-                  router.back();
-                } else {
-                  router.push('/hub');
+                if (typeof window !== 'undefined') {
+                  const referrer = document.referrer || '';
+                  if (referrer.includes(window.location.hostname)) {
+                    router.back();
+                  } else {
+                    router.push('/hub');
+                  }
                 }
               }}
               onMenuClick={() => setMenuOpen(true)}
