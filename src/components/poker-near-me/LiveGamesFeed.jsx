@@ -265,10 +265,12 @@ function LiveGamesFeed({
     // Map main UI stakes ($1/2, $2/5) to LGF stakes (1, 2)
     let computedStakes = internalFilterStakes;
     if (globalFilters) {
-        if (globalFilters.stakes === '$1/2') computedStakes = '1';
-        else if (globalFilters.stakes === '$2/5') computedStakes = '2';
-        else if (globalFilters.stakes === '$5/10+') computedStakes = '5';
-        else computedStakes = 'any';
+        // FilterPanel stores stakes without $ prefix: '1/2', '2/5', '5/10', '10/20'
+        if (globalFilters.stakes === '1/2' || globalFilters.stakes === '$1/2') computedStakes = '1';
+        else if (globalFilters.stakes === '2/5' || globalFilters.stakes === '$2/5') computedStakes = '2';
+        else if (globalFilters.stakes === '5/10' || globalFilters.stakes === '$5/10' || globalFilters.stakes === '$5/10+') computedStakes = '5';
+        else if (globalFilters.stakes === '10/20' || globalFilters.stakes === '$10/20' || globalFilters.stakes === '$10/20+') computedStakes = '10';
+        else computedStakes = 'any'; // 'all', undefined, unknown → show everything
     }
     const filterStakes = computedStakes;
 

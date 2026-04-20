@@ -557,7 +557,12 @@ export default async function handler(req, res) {
           let effectiveLng = lng;
           let effectiveRadius = radius;
           if (!lat && !lng && search) {
-              const rawSearch = search.trim().toLowerCase().replace(/[()'",;]/g, '');
+              // Normalize to "city, state" format for lookup key matching
+              // "Chicago, IL" → "chicago, il" | "Chicago,IL" → "chicago, il"
+              const rawSearch = search.trim().toLowerCase()
+                  .replace(/\s*,\s*/g, ', ')   // normalize comma+space
+                  .replace(/[()'"\s;]+$/, '')  // strip trailing junk
+                  .replace(/^[()'"\s;]+/, ''); // strip leading junk
               const cityCoords = BUILTIN_CITY_COORDS[rawSearch];
               if (cityCoords) {
                   effectiveLat = String(cityCoords.lat);
