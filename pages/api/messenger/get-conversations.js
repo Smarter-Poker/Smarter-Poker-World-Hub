@@ -61,21 +61,13 @@ export default async function handler(req, res) {
         if (!applyRateLimit(req, res, LIMITS.read)) return;
 
         // ── Identity: verified local JWT first, then GoTrue network fallback. ──
+        // Auth (phase40 hardened): verified HMAC JWT only — supabase.auth.getUser(token)
+        // accepts JWTs without verifying the HMAC signature in this library version.
         const localUser = getServerUser(req);
-        let userId;
-        if (localUser) {
-            userId = localUser.id;
-        } else {
-            const token = req.headers.authorization?.replace('Bearer ', '');
-            if (!token) {
-                return res.status(401).json({ success: false, error: 'Auth required' });
-            }
-            const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
-            if (authErr || !user) {
-                return res.status(401).json({ success: false, error: 'Invalid token' });
-            }
-            userId = user.id;
+        if (!localUser) {
+            return res.status(401).json({ success: false, error: 'Auth required' });
         }
+        const userId = localUser.id;
 
         // ── PRIMARY: fn_get_user_conversations ──
         const { data: rpcData, error: rpcError } = await getSupabase().rpc(

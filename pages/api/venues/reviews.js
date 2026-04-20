@@ -11,22 +11,14 @@ export default async function handler(req, res) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
 
     try {
+        // Auth (phase40 hardened): verified HMAC JWT only. The supabase.auth.getUser(token)
+        // fallback in @supabase/auth-js@2.103.x accepts JWTs without fully verifying the
+        // HMAC signature, enabling identity forgery. Trust only the local crypto verifier.
         const localUser = getServerUser(req);
-        let userId = localUser?.id;
-
-        if (!userId) {
-            const authHeader = req.headers.authorization;
-            if (!authHeader?.startsWith('Bearer ')) {
-                return res.status(401).json({ success: false, error: 'Authorization required' });
-            }
-            const token = authHeader.replace('Bearer ', '');
-            const supabaseAuth = createClient();
-            const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token);
-            if (authError || !user) {
-                return res.status(401).json({ success: false, error: 'Invalid session' });
-            }
-            userId = user.id;
+        if (!localUser) {
+            return res.status(401).json({ success: false, error: 'Authorization required' });
         }
+        const userId = localUser.id;
 
         const { venueId: venue_id, rating, title, body } = req.body;
         if (!venue_id || !rating) {

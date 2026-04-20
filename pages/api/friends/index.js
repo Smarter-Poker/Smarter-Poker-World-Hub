@@ -26,17 +26,14 @@ export default async function handler(req, res) {
     }
 
     // Auth — local JWT decode first
+    // Auth (phase40 hardened): verified HMAC JWT only — no fallback to
+    // supabase.auth.getUser(token) which accepts tokens without full
+    // signature verification in this library version.
     const localUser = getServerUser(req);
-    let userId;
-    if (localUser) {
-      userId = localUser.id;
-    } else {
-      const token = req.headers.authorization?.replace('Bearer ', '');
-      if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
-      if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
-      userId = user.id;
+    if (!localUser) {
+        return res.status(401).json({ success: false, error: 'Auth required' });
     }
+    const userId = localUser.id;
 
     if (req.method === 'GET') {
       const { action = 'list' } = req.query;

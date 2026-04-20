@@ -24,11 +24,10 @@ export default async function handler(req, res) {
       if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' });
     if (!applyRateLimit(req, res, LIMITS.read)) return;
 
-      const token = req.headers.authorization?.replace('Bearer ', '');
-      if (!token) return res.status(401).json({ error: 'No auth token' });
-
-      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
-      if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+      // Auth (phase40 hardened): verified HMAC JWT only — supabase.auth.getUser(token)
+      // fallback accepted JWTs without verifying the HMAC signature.
+      const user = getServerUser(req);
+      if (!user) return res.status(401).json({ error: 'Auth required' });
 
       try {
           const { data: stickers, error } = await getSupabase()

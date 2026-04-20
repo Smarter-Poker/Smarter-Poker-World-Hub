@@ -60,22 +60,13 @@ export default async function handler(req, res) {
         if (!applyRateLimit(req, res, LIMITS.financial || LIMITS.write)) return;
 
         // ── Auth ──
+        // Auth (phase40 hardened): verified HMAC JWT only — supabase.auth.getUser(token)
+        // accepts JWTs without verifying the HMAC signature in this library version.
         const localUser = getServerUser(req);
-        let userId;
-        if (localUser) {
-            userId = localUser.id;
-        } else {
-            const authHeader = req.headers.authorization;
-            if (!authHeader?.startsWith('Bearer ')) {
-                return res.status(401).json({ success: false, error: 'Authorization required' });
-            }
-            const token = authHeader.replace('Bearer ', '');
-            const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
-            if (authError || !user) {
-                return res.status(401).json({ success: false, error: 'Invalid session' });
-            }
-            userId = user.id;
+        if (!localUser) {
+            return res.status(401).json({ success: false, error: 'Authorization required' });
         }
+        const userId = localUser.id;
 
         // [Phase 6.1.12] Email must be verified before diamond transfers
         const emailGate = await requireEmailVerifiedByUserId(getSupabase(), userId);

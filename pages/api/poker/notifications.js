@@ -24,17 +24,11 @@ try {
     }
 
     // ── HARDENED Auth: local JWT decode (no GoTrue network call) + fallback ──
+    // Auth (phase40 hardened): verified HMAC JWT only — supabase.auth.getUser(token)
+    // accepts JWTs without verifying the HMAC signature in this library version.
     const localUser = getServerUser(req);
-    let authenticatedUserId;
-    if (localUser) {
-      authenticatedUserId = localUser.id;
-    } else {
-      const token = req.headers.authorization?.replace('Bearer ', '');
-      if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
-      if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
-      authenticatedUserId = user.id;
-    }
+    if (!localUser) return res.status(401).json({ success: false, error: 'Auth required' });
+    const authenticatedUserId = localUser.id;
 
     try {
       if (req.method === 'POST') {
