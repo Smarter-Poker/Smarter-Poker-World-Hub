@@ -2305,7 +2305,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
 
                 {/* Action Bar */}
                 <div style={{ padding: '10px 16px', display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <button onClick={() => router.back()} style={{
+                    <button onClick={() => onBack ? onBack() : router.push('/hub/social-media')} style={{
                         padding: '8px 16px', borderRadius: 8, border: 'none', background: '#E4E6EB',
                         color: C.text, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
                     }}>Back</button>
