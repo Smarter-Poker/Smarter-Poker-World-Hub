@@ -2824,7 +2824,7 @@ export default function PokerNearMePage({ initialTab }) {
                 <UniversalHeader 
                     pageDepth={2} 
                     onBackClick={() => {
-                        if (typeof window !== 'undefined' && window.history.length > 2) {
+                        if (typeof window !== 'undefined' && window.history.length > 1) {
                             router.back();
                         } else {
                             router.push('/hub');

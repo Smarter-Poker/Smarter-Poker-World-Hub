@@ -2149,7 +2149,7 @@ export default function PokerNearMeLobby() {
               pageDepth={2}
               hideLeftIcon={false}
               onBackClick={() => {
-                if (typeof window !== 'undefined' && window.history.length > 2) {
+                if (typeof window !== 'undefined' && window.history.length > 1) {
                   router.back();
                 } else {
                   router.push('/hub');

@@ -362,7 +362,7 @@ export default function DailyTournaments() {
                 <div className="space-overlay"></div>
 
                 <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} onBackClick={() => {
-                    if (typeof window !== 'undefined' && window.history.length > 2) {
+                    if (typeof window !== 'undefined' && window.history.length > 1) {
                         router.back();
                     } else {
                         router.push('/hub/poker-near-me/lobby');

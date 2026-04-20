@@ -611,7 +611,7 @@ export default function HomeGamesPage() {
 
             <div className="hg-page">
                 <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} onBackClick={() => {
-                    if (typeof window !== 'undefined' && window.history.length > 2) {
+                    if (typeof window !== 'undefined' && window.history.length > 1) {
                         router.back();
                     } else {
                         router.push('/hub/poker-near-me/lobby');
