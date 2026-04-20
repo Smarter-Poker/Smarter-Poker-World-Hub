@@ -533,7 +533,9 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
       };
     }
     const sizeRatio = fixedContent.length / originalContent.length;
-    if (sizeRatio < 0.7) {
+    // Shrink guard: fixes that remove bad imports from small files legitimately shrink a lot.
+    // Only enforce the 70% floor on files > 500 chars. Tiny stubs can shrink freely.
+    if (originalContent.length >= 500 && sizeRatio < 0.7) {
       console.log(`[deploy-autofix] Size ratio guard (shrink): fix is ${Math.round(sizeRatio * 100)}% of original (${fixedContent.length} vs ${originalContent.length} chars)`);
       return {
         action: 'skipped',
