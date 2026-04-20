@@ -1812,7 +1812,7 @@ export default function PokerNearMePage({ initialTab }) {
                     params.set('lat', userLocation.lat.toString());
                     params.set('lng', userLocation.lng.toString());
                     const effectiveRadius = radiusOverride || filters.radius;
-                    const miRadius = effectiveRadius === 'Any' ? 5000 : Number(effectiveRadius);
+                    const miRadius = (String(effectiveRadius).toLowerCase() === 'any') ? 5000 : (isNaN(Number(effectiveRadius)) ? 50 : Number(effectiveRadius));
                     params.set('radius', String(miRadius));
                     // Determine user_state for API (ensures IL venues don't get cut off by global top-500 limit).
                     // Priority: gpsStateRef (in-memory, never cleared) → gpsLocationLabel extraction → pnm_last_state localStorage

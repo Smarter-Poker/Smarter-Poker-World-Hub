@@ -182,14 +182,15 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const {
-    tour_code,
-    stop_name,
-    stop,        // 'current', 'next', or undefined = all
-    all_stops,   // 'true' = return all stops grouped
-    pdf_detail,  // 'true' = also fetch from tour_event_details (PDF-extracted)
-    limit = 500,
-  } = req.query;
+  // Array injection guards — Next.js passes ?key[]=val as an array; PostgREST crashes on array input
+  const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+  const tour_code = safeQ(req.query.tour_code);
+  const stop_name = safeQ(req.query.stop_name);
+  const stop = safeQ(req.query.stop);        // 'current', 'next', or undefined = all
+  const all_stops = safeQ(req.query.all_stops);   // 'true' = return all stops grouped
+  const pdf_detail = safeQ(req.query.pdf_detail);  // 'true' = also fetch from tour_event_details (PDF-extracted)
+  const rawLimit = safeQ(req.query.limit);
+  const limit = Math.min(parseInt(rawLimit) || 500, 2000);
 
   if (!tour_code) {
     return res.status(400).json({ error: 'tour_code is required' });
@@ -205,10 +206,11 @@ export default async function handler(req, res) {
       .eq('tour_code', tour_code.toUpperCase())
       .order('start_date', { ascending: true })
       .order('event_number', { ascending: true })
-      .limit(parseInt(limit));
+      .limit(limit);
 
     // Guard: treat empty string stop_name as no filter to prevent leaking all events
-    const stopNameFilter = stop_name && stop_name.trim();
+    // Escape LIKE wildcards to prevent pattern injection attacks
+    const stopNameFilter = stop_name && String(stop_name).replace(/[%_]/g, '\\$&').slice(0, 200).trim();
     if (stopNameFilter) {
       query = query.ilike('stop_name', `%${stopNameFilter}%`);
     }
@@ -494,7 +496,7 @@ async function returnRegistryFallback(tour_code, stop, res) {
       events,
     });
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) {}
+      try { reportApiError(err, {}); } catch (_sentryErr) {}
     return res.status(500).json({ success: false, error: err.message, tour_code });
   }
 }
