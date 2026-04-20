@@ -1083,13 +1083,15 @@ export default function PokerNearMeLobby() {
   // ─── Reverse Geocode: lat/lng → city, state ───
   const reverseGeocode = useCallback(async (lat, lng) => {
     try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=10&addressdetails=1`, {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=14&addressdetails=1`, {
         headers: { 'Accept-Language': 'en' }
       });
       if (!res.ok) return null;
       const data = await res.json();
       const addr = data?.address || {};
-      const city = addr.city || addr.town || addr.village || addr.suburb || addr.county || '';
+      // zoom=14 returns neighborhood/suburb-level data so Oak Lawn beats Chicago.
+      // Priority: suburb (Oak Lawn) → town → village → city (Chicago) → county
+      const city = addr.suburb || addr.town || addr.village || addr.city || addr.county || '';
       const state = addr.state || '';
       return { city, state };
     } catch {
