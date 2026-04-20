@@ -183,6 +183,13 @@ async function createAlertIssue(title, body, { alertKey, ghPat } = {}) {
     console.error('[deploy-monitor] Failed to create alert issue:', err.message);
   }
 
+  // Best-effort SMS alert.
+  try {
+    await sendSmsAlert(`🚨 Vercel Deploy Crash\n${title}`);
+  } catch (err) {
+    console.error('[deploy-monitor] SMS alert failed (non-fatal):', err.message);
+  }
+
   // Best-effort parallel email. Never throws — monitor must keep running.
   try {
     await sendEmailAlert({
@@ -192,6 +199,51 @@ async function createAlertIssue(title, body, { alertKey, ghPat } = {}) {
     });
   } catch (err) {
     console.error('[deploy-monitor] Email alert failed (non-fatal):', err.message);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SMS alerting via Twilio — non-blocking, never throws
+// ─────────────────────────────────────────────────────────────────────────────
+async function sendSmsAlert(message) {
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const fromPhone = process.env.TWILIO_PHONE_NUMBER;
+  const ownerPhone = '+17086775221';
+
+  if (!accountSid || !authToken || !fromPhone) {
+    console.log('[deploy-monitor] Twilio credentials missing — skipping SMS');
+    return;
+  }
+
+  try {
+    const credentials = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
+    const body = new URLSearchParams({
+      From: fromPhone,
+      To: ownerPhone,
+      Body: message.substring(0, 160) // Keep short for SMS
+    });
+
+    const res = await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${credentials}`,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: body.toString()
+      }
+    );
+
+    if (res.ok) {
+      console.log(`[deploy-monitor] SMS alert sent to ${ownerPhone}`);
+    } else {
+      const errData = await res.json().catch(() => ({}));
+      console.error('[deploy-monitor] SMS API error:', res.status, errData);
+    }
+  } catch (err) {
+    console.error('[deploy-monitor] Failed to dispatch SMS:', err.message);
   }
 }
 
