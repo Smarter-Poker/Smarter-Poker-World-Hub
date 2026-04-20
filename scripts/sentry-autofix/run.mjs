@@ -62,9 +62,13 @@ function resolveFiles(root, filenames) {
       .split('?')[0];
     const candidates = [
       path.join(root, clean),
+      path.join(root, 'pages', clean),
+      path.join(root, 'lib', clean),
+      path.join(root, 'components', clean),
       path.join(root, 'src', clean),
-      path.join(root, 'CA/src', clean),
-      path.join(root, 'server/src', clean),
+      path.join(root, 'src/pages', clean),
+      path.join(root, 'src/components', clean),
+      path.join(root, 'src/lib', clean),
     ];
     for (const p of candidates) {
       try {
@@ -85,7 +89,7 @@ async function main() {
   const mode = process.env.AUTOFIX_MODE || 'dry-run';
   const model = process.env.ANTHROPIC_MODEL || 'claude-opus-4-6';
   const root = repoRoot();
-  const repoEnv = process.env.GITHUB_REPOSITORY || 'Smarter-Poker/Smarter-Poker-Club-Arena';
+  const repoEnv = process.env.GITHUB_REPOSITORY || 'Smarter-Poker/Smarter-Poker-World-Hub';
   const [owner, repo] = repoEnv.split('/');
   const baseBranch = process.env.GITHUB_REF_NAME || 'main';
 

@@ -35,9 +35,12 @@ export default async function handler(req, res) {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
 
-  const { venue_id, venue } = req.query;
-  const safeVenueId = venue_id ? venue_id.replace(/[()'",.;]/g, '').trim() : null;
-  const safeVenue = venue ? venue.replace(/[()'",.;]/g, '').trim() : null;
+  const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+  const venue_id = safeQ(req.query.venue_id);
+  const venue = safeQ(req.query.venue);
+  // Strip LIKE wildcards + injection chars from both params before filter construction
+  const safeVenueId = venue_id ? venue_id.replace(/[()'\",.;%_\\]/g, '').trim().slice(0, 100) : null;
+  const safeVenue = venue ? venue.replace(/[()'\",.;%_\\]/g, '').trim().slice(0, 100) : null;
 
   if (!safeVenueId && !safeVenue) {
     return res.status(400).json({ success: false, error: 'venue_id or venue name required' });
@@ -61,7 +64,7 @@ export default async function handler(req, res) {
       query = query.ilike('venue_name', `%${safeVenue}%`);
     }
 
-    const { data, error } = await query.limit(10000);
+    const { data, error } = await query.limit(5000);
     if (error) {
       if (error.code === '42P01' || error.code === '42703') {
         // Table or column doesn't exist yet — graceful empty state
@@ -177,8 +180,8 @@ export default async function handler(req, res) {
     res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
     return res.status(200).json({
       success: true,
-      venue_id: venue_id || null,
-      venue_filter: venue || null,
+      venue_id: safeVenueId || null,
+      venue_filter: safeVenue || null,
       period: '28 days',
       data_points: totalDataPoints,
       predictions,

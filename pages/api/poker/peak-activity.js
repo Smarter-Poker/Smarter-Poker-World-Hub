@@ -20,10 +20,13 @@ function getSupabase() {
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export default async function handler(req, res) {
-  const { venue, venue_id, game_type } = req.query;
-  const safeVenue = venue ? venue.replace(/[()'",.;]/g, '').trim() : null;
-  const safeVenueId = venue_id ? venue_id.replace(/[()'",.;]/g, '').trim() : null;
-  const safeGameType = game_type ? game_type.replace(/[()'",.;]/g, '').trim() : null;
+  const safeQ = (v) => Array.isArray(v) ? v[0] : v;
+  const venue = safeQ(req.query.venue);
+  const venue_id = safeQ(req.query.venue_id);
+  const game_type = safeQ(req.query.game_type);
+  const safeVenue = venue ? venue.replace(/[()'",.;%_\\]/g, '').trim().slice(0, 100) : null;
+  const safeVenueId = venue_id ? venue_id.replace(/[()'",.;%_\\]/g, '').trim().slice(0, 100) : null;
+  const safeGameType = game_type ? game_type.replace(/[()'",.;%_\\]/g, '').trim().slice(0, 50) : null;
   
   // CDN cache: fresh for 5min, serve stale up to 10min
   res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
@@ -50,7 +53,7 @@ export default async function handler(req, res) {
         query = query.ilike('venue_name', `%${safeVenue}%`);
       }
       
-      const result = await query.limit(10000);
+      const result = await query.limit(5000);
       data = result.data;
       error = result.error;
       
@@ -78,7 +81,7 @@ export default async function handler(req, res) {
         query = query.ilike('venue_name', `%${safeVenue}%`);
       }
       
-      const result = await query.limit(10000);
+      const result = await query.limit(5000);
       data = result.data;
       error = result.error;
     }
@@ -187,7 +190,7 @@ export default async function handler(req, res) {
     const bestDay = peakDays[0];
     
     res.status(200).json({
-      venue_filter: venue || 'all',
+      venue_filter: safeVenue || safeVenueId || 'all',
       data_points: data.length,
       period: '14 days',
       peak_hours: peakHours.slice(0, 6),

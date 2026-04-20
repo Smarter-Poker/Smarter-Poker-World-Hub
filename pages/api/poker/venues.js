@@ -739,7 +739,14 @@ export default async function handler(req, res) {
                       } else {
                           q = q.eq('venue_type', effectiveType);
                       }
-                  }                  if (search) {
+                  } else if (!search && !id) {
+                      // Always exclude tour/series parent entries — they are metadata containers,
+                      // not playable venues. Tour stops are served by the tour-schedule API.
+                      q = q.not('venue_type', 'in', '("tour","series")');
+                  }
+                  if (tournaments === 'true') q = q.eq('has_tournaments', true);
+                  if (featured === 'true') q = q.eq('is_featured', true);
+                  if (search) {
                       // [GEOFENCE FIX] Check for "City, State" format BEFORE sanitizing —
                       // the sanitizer strips commas which breaks the comma-based split.
                       // "Chicago, IL".replace(/,/g,'') → "Chicago  IL" → no cityStateMatch.
@@ -771,14 +778,6 @@ export default async function handler(req, res) {
                           } else {
                               q = q.or(`name.ilike.%${sanitizedSearch}%,city.ilike.%${sanitizedSearch}%,address.ilike.%${sanitizedSearch}%,state.ilike.%${sanitizedSearch}%`);
                           }
-                      }
-                  }ev);
-                              else q = q.ilike('state', `%${statePart}%`);
-                          }
-                      } else if (searchStateAbbrev) {
-                          q = q.ilike('state', searchStateAbbrev);
-                      } else {
-                          q = q.or(`name.ilike.%${sanitizedSearch}%,city.ilike.%${sanitizedSearch}%,address.ilike.%${sanitizedSearch}%,state.ilike.%${sanitizedSearch}%`);
                       }
                   }
 
