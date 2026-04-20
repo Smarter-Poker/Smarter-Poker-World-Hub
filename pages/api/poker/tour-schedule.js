@@ -207,8 +207,10 @@ export default async function handler(req, res) {
       .order('event_number', { ascending: true })
       .limit(parseInt(limit));
 
-    if (stop_name) {
-      query = query.ilike('stop_name', `%${stop_name}%`);
+    // Guard: treat empty string stop_name as no filter to prevent leaking all events
+    const stopNameFilter = stop_name && stop_name.trim();
+    if (stopNameFilter) {
+      query = query.ilike('stop_name', `%${stopNameFilter}%`);
     }
 
     const { data: rawEvents, error } = await query;
@@ -226,8 +228,8 @@ export default async function handler(req, res) {
         .order('event_number', { ascending: true })
         .limit(1000);
 
-      if (stop_name) {
-        pdfQuery = pdfQuery.ilike('series_name', `%${stop_name.substring(0, 30)}%`);
+      if (stopNameFilter) {
+        pdfQuery = pdfQuery.ilike('series_name', `%${stopNameFilter.substring(0, 30)}%`);
       }
 
       const { data: pdfRaw } = await pdfQuery;

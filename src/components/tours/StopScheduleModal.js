@@ -197,8 +197,10 @@ export default function StopScheduleModal({ stop, tourCode, tourName, tourColor,
   }, []);
 
   // Merge events: stop.events (from tour_stop_events) + PDF events from tour_event_details
-  const swrKey = stop && tourCode
-    ? `/api/poker/tour-schedule?tour_code=${encodeURIComponent(tourCode)}&stop_name=${encodeURIComponent(stop.stop_name || stop.name || '')}&pdf_detail=true`
+  // Guard: if stop_name is empty/falsy, skip SWR fetch to prevent unfiltered all-events response
+  const resolvedStopName = stop?.stop_name || stop?.name || '';
+  const swrKey = stop && tourCode && resolvedStopName
+    ? `/api/poker/tour-schedule?tour_code=${encodeURIComponent(tourCode)}&stop_name=${encodeURIComponent(resolvedStopName)}&pdf_detail=true`
     : null;
 
   const { data: apiData } = useSWR(swrKey, url => fetch(url).then(r => r.json()).catch(() => null));
