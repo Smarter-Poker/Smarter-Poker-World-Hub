@@ -1692,7 +1692,8 @@ export default function PokerNearMeLobby() {
           }));
           const svState = filters.svState || 'all';
           const svVenueType = filters.svVenueType || 'all';
-          const svRadius = filters.svRadius || '100';
+          const rawSvRadius = filters.svRadius || '100';
+          const svRadius = rawSvRadius === 'any' ? 'any' : String(Math.min(parseInt(rawSvRadius) || 100, 150));
           const svSort = filters.svSort || (userLocation ? 'distance' : 'trust');
           
           const apiState = svState !== 'all' ? `&state=${svState}` : '';
@@ -1760,7 +1761,8 @@ export default function PokerNearMeLobby() {
           }));
           const nmState = filters.nmState || 'all';
           const nmVenueType = filters.nmVenueType || 'all';
-          const nmRadius = filters.nmRadius || '50';
+          const rawNmRadius = filters.nmRadius || '50';
+          const nmRadius = rawNmRadius === 'any' ? 'any' : String(Math.min(parseInt(rawNmRadius) || 50, 150));
           const nmSort = filters.nmSort || (userLocation ? 'distance' : 'trust');
 
           const apiState = nmState !== 'all' ? `&state=${nmState}` : '';
