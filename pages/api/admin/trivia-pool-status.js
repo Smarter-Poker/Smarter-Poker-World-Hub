@@ -9,6 +9,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -36,6 +37,11 @@ const CATEGORIES = [
 const TARGET_PER_CATEGORY = 3000;
 
 export default async function handler(req, res) {
+  // [Phase 6.1.15] Rate limit writes — prevents enumeration + drain attacks.
+  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  }
+
     try {
         // Get comprehensive pool statistics
         const stats = {};

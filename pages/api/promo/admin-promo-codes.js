@@ -1,5 +1,6 @@
 // Admin CRUD for promo codes — GET (list), POST (create), DELETE (deactivate)
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 const { logAdminAction, extractClientIP } = require('../../../src/lib/antiAbuse');
 
 let _supabase = null;
@@ -22,6 +23,11 @@ function generateCode(length = 8) {
 }
 
 export default async function handler(req, res) {
+  // [Phase 6.1.15] Rate limit writes — prevents enumeration + drain attacks.
+  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  }
+
   try {
       // Verify user is authenticated
       const authHeader = req.headers.authorization;

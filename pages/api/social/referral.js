@@ -8,6 +8,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 // Lazy-init Supabase client (RAT-AUTH-NUCLEAR compliant)
 let _supabase = null;
 function getSupabase() {
@@ -30,6 +31,11 @@ function generateCode(username) {
 }
 
 export default async function handler(req, res) {
+  // [Phase 6.1.15] Rate limit writes — prevents enumeration + drain attacks.
+  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  }
+
     // Auth
     const token = (req.headers.authorization || '').replace('Bearer ', '');
     const supabase = getSupabase();

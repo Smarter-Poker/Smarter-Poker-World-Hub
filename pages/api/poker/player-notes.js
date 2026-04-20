@@ -5,13 +5,21 @@
  */
 
 import { createClient as supabaseServerClient } from '../../../src/lib/supabaseServerClient';
-import { rateLimit as apiRateLimit } from '../../../src/lib/apiRateLimit';
+import { LIMITS, applyRateLimit, rateLimit } from '../../../src/lib/apiRateLimit';
 import { checkFeatureAccess } from '../../../src/lib/gates/premiumFeatureGate';
 
 export default async function handler(req, res) {
-    // Rate limit
-    const rateLimitResult = await apiRateLimit(req, { maxRequests: 50, windowMs: 60000 });
-    if (rateLimitResult) return res.status(429).json({ error: 'Too many requests' });
+  // [Phase 6.1.15] Rate limit — prevents enumeration + drain attacks.
+  // NOTE: the prior version called a variable `apiRateLimit` that was no
+  // longer imported after a rename, and also checked truthiness of the
+  // result object (always truthy) — so it returned HTTP 429 on every call,
+  // then 500'd after the rename because the symbol became undefined. The
+  // canonical applyRateLimit + LIMITS gate replaces it.
+  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  } else {
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
+  }
 
     const supabase = supabaseServerClient(req);
     const { data: { user }, error: authError } = await supabase.auth.getUser();

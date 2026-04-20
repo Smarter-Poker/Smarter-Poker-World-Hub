@@ -9,7 +9,13 @@
  */
 import { runLoadTest, getDefaultTestSuite } from '../../../src/lib/loadTest';
 
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 export default async function handler(req, res) {
+  // [Phase 6.1.15] Rate limit writes — prevents enumeration + drain attacks.
+  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  }
+
     // Basic auth check - only allow in development or with admin token
     if (process.env.NODE_ENV === 'production') {
         const authHeader = req.headers.authorization;

@@ -23,8 +23,7 @@
  * Auth: Bearer <access_token>
  */
 import { createClient } from "../../../src/lib/supabaseServerClient";
-import { rateLimit } from "../../../src/lib/apiRateLimit";
-
+import { LIMITS, applyRateLimit, rateLimit } from '../../../src/lib/apiRateLimit';
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -59,6 +58,11 @@ async function authenticate(req, res) {
 }
 
 export default async function handler(req, res) {
+  // [Phase 6.1.15] Rate limit writes — prevents enumeration + drain attacks.
+  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  }
+
     try {
         const rl = rateLimit(req, { max: 30, windowMs: 60_000 });
         if (!rl.ok) {

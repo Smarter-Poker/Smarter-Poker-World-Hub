@@ -22,6 +22,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 // ── Lazy Supabase (SSG-safe) ──────────────────────────────────────────────
 let _supabase = null;
 function getSupabase() {
@@ -274,6 +275,11 @@ function buildDecision(action, amount, confidence, personality, reasoning) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default async function handler(req, res) {
+  // [Phase 6.1.15] Rate limit writes — prevents enumeration + drain attacks.
+  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  }
+
     // ── GET: Select a random horse opponent ──────────────────────────────
     if (req.method === 'GET') {
         try {
