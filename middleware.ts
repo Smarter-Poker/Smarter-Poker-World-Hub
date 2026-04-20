@@ -110,12 +110,63 @@ export function middleware(request: NextRequest) {
     if (isAdminRoute) {
         const adminSecret = request.headers.get('x-admin-secret');
         const envSecret = process.env.ADMIN_ROUTE_SECRET;
+        const hasAdminSecret = envSecret && adminSecret && adminSecret === envSecret;
 
-        if (!envSecret || !adminSecret || adminSecret !== envSecret) {
-            return NextResponse.json(
-                { error: 'Admin routes are disabled in production.' },
-                { status: 403 }
-            );
+        if (!hasAdminSecret) {
+            // No admin secret = must be a human session. Require both
+            // Bearer auth and (for write methods) a valid MFA cookie.
+            // [Phase 6.1.22] MFA gate at the edge.
+            const authHeader = request.headers.get('authorization');
+            const hasBearer = authHeader?.startsWith('Bearer ') && (authHeader?.length ?? 0) > 20;
+
+            if (!hasBearer) {
+                return NextResponse.json(
+                    { error: 'Admin routes require authentication.' },
+                    { status: 401 }
+                );
+            }
+
+            // Require MFA cookie on any non-GET method. GET handlers are
+            // read-only introspection (health, check-*, list-*) and are
+            // already covered by the Bearer check + handler-level auth.
+            const method = request.method.toUpperCase();
+            if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
+                const mfaCookie = request.cookies.get('mfa_session')?.value;
+                if (!mfaCookie) {
+                    return NextResponse.json(
+                        {
+                            error: 'MFA challenge required for admin write actions.',
+                            requiresMfa: true,
+                        },
+                        { status: 403 }
+                    );
+                }
+
+                // Lightweight edge-safe shape check. Full HMAC verification
+                // happens in the handler via requireMfaEnrolled() from
+                // src/lib/mfaGate.js — we can't use Node crypto in edge
+                // runtime without bundling subtle-crypto wrappers, and
+                // doing it twice (edge + handler) is belt-and-braces.
+                const parts = mfaCookie.split('.');
+                if (parts.length !== 3 || !parts[0] || !parts[1] || !parts[2]) {
+                    return NextResponse.json(
+                        { error: 'Malformed MFA token.', requiresMfa: true },
+                        { status: 403 }
+                    );
+                }
+
+                const issuedAt = parseInt(parts[1], 10);
+                const MFA_TTL_MS = 12 * 60 * 60 * 1000;
+                if (!Number.isFinite(issuedAt) || Date.now() - issuedAt > MFA_TTL_MS) {
+                    return NextResponse.json(
+                        {
+                            error: 'MFA session expired — please re-verify.',
+                            requiresMfa: true,
+                        },
+                        { status: 403 }
+                    );
+                }
+            }
         }
     }
 

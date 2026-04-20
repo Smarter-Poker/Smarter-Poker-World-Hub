@@ -82,17 +82,21 @@ export default async function handler(req, res) {
         let verified = false;
 
         if (isBackupCode) {
-            // Hash the supplied code and compare against stored hashes.
+            // Hash the supplied code and atomically consume it via RPC.
+            // The RPC holds a SELECT ... FOR UPDATE lock so two concurrent
+            // requests with the same code can't both succeed (Phase 6.1.22).
             const hashed = crypto.createHash('sha256').update(String(code).toUpperCase()).digest('hex');
-            if (Array.isArray(factor.backup_codes) && factor.backup_codes.includes(hashed)) {
-                verified = true;
-                // Consume the code — single-use.
-                const remaining = factor.backup_codes.filter((h) => h !== hashed);
-                await getSupabase()
-                    .from('user_mfa_factors')
-                    .update({ backup_codes: remaining })
-                    .eq('user_id', user.id);
+            const { data: rpcResult, error: rpcError } = await getSupabase()
+                .rpc('fn_consume_mfa_backup_code', {
+                    p_user_id: user.id,
+                    p_hashed_code: hashed
+                });
+            if (rpcError) {
+                console.error('[mfa/challenge] consume RPC error:', rpcError);
+                return res.status(500).json({ error: 'Failed to verify backup code' });
             }
+            const row = Array.isArray(rpcResult) ? rpcResult[0] : rpcResult;
+            verified = !!row?.consumed;
         } else {
             verified = speakeasy.totp.verify({
                 secret: factor.secret,
