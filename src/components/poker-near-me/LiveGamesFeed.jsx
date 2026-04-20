@@ -334,14 +334,28 @@ function LiveGamesFeed({
                 // 'Using Cached Data' banner so the page always has content.
                 // ────────────────────────────────────────────────────────────────
                 if (Object.keys(mapping).length > 0) {
-                    setLiveData(mapping);
-                    lastGoodLiveDataRef.current = mapping;
+                    setLiveData(prev => {
+                        const next = { ...mapping };
+                        // Per-venue fallback: if a venue was successfully scraped previously but is MISSING
+                        // from the current payload (due to Cloudflare 403 or scraper crash), preserve it
+                        // for up to 4 hours to prevent flickering to 0 tables (static catalog fallback).
+                        for (const key of Object.keys(prev)) {
+                            if (!next[key]) {
+                                const lastAge = prev[key].last_updated ? (Date.now() - new Date(prev[key].last_updated).getTime()) : 0;
+                                if (lastAge < 14400000) { // 4 hours
+                                    next[key] = prev[key];
+                                    console.warn(`[LGF] Venue ${key} missing from live payload. Preserving cache (Age: ${Math.round(lastAge/60000)}m).`);
+                                }
+                            }
+                        }
+                        lastGoodLiveDataRef.current = next;
+                        return next;
+                    });
                     setIsScraperDead(false);
                 } else if (lastGoodLiveDataRef.current && Object.keys(lastGoodLiveDataRef.current).length > 0) {
-                    // Scrapers returned nothing — preserve last-known data silently
+                    // Scrapers returned nothing (0 venues total) — preserve last-known data silently
                     console.warn('[LGF] Scraper returned 0 venues — preserving last-known data, feed intact.');
                     setIsScraperDead(true);
-                    // DO NOT call setLiveData({}) — that would wipe the feed
                 } else {
                     // Very first load with 0 venues — nothing to preserve
                     setLiveData(mapping);

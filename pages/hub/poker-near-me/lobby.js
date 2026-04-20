@@ -1140,7 +1140,7 @@ export default function PokerNearMeLobby() {
       }).catch(() => {});
     }
     // Fetch ALL venues with GPS coordinates for distance sorting
-    const gpsUrl = `/api/poker/venues?limit=200&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=250&sort=distance`;
+    const gpsUrl = `/api/poker/venues?limit=200&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=50&sort=distance`;
     cachedFetch(gpsUrl).then(data => {
       const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
       setVenues(newVenues);
@@ -1319,7 +1319,7 @@ export default function PokerNearMeLobby() {
         state: restoreState,
       });
       // Fetch venues with saved location immediately
-      const gpsUrl = `/api/poker/venues?limit=200&offset=0&lat=${restoreLoc.lat}&lng=${restoreLoc.lng}&radius=250&sort=distance`;
+      const gpsUrl = `/api/poker/venues?limit=200&offset=0&lat=${restoreLoc.lat}&lng=${restoreLoc.lng}&radius=50&sort=distance`;
       cachedFetch(gpsUrl).then(data => {
         const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
         setVenues(newVenues);
@@ -1334,7 +1334,7 @@ export default function PokerNearMeLobby() {
             setUserLocation(loc);
             const movedSignificantly = Math.abs(loc.lat - restoreLoc.lat) > 0.01 || Math.abs(loc.lng - restoreLoc.lng) > 0.01;
             if (movedSignificantly) {
-              const freshUrl = `/api/poker/venues?limit=200&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=250&sort=distance`;
+              const freshUrl = `/api/poker/venues?limit=200&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=50&sort=distance`;
               cachedFetch(freshUrl).then(data => {
                 const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
                 setVenues(newVenues);
@@ -1364,7 +1364,7 @@ export default function PokerNearMeLobby() {
                 setUserLocation(loc);
                 const movedSignificantly = Math.abs(loc.lat - restoreLoc.lat) > 0.01 || Math.abs(loc.lng - restoreLoc.lng) > 0.01;
                 if (movedSignificantly) {
-                  const freshUrl = `/api/poker/venues?limit=200&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=250&sort=distance`;
+                  const freshUrl = `/api/poker/venues?limit=200&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=50&sort=distance`;
                   cachedFetch(freshUrl).then(data => {
                     const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
                     setVenues(newVenues);
@@ -1467,7 +1467,7 @@ export default function PokerNearMeLobby() {
           }).catch(() => {});
         }
         // Fetch venues near this location
-        const gpsUrl = `/api/poker/venues?limit=200&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=250&sort=distance`;
+        const gpsUrl = `/api/poker/venues?limit=200&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=50&sort=distance`;
         cachedFetch(gpsUrl).then(result => {
           const newVenues = result?.data || result?.venues || (Array.isArray(result) ? result : []);
           setVenues(newVenues);
