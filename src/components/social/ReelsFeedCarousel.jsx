@@ -1954,6 +1954,26 @@ export function ReelsFeedCarousel() {
         );
     }
 
+    // Error state with retry
+    if (loadError) {
+        return (
+            <div style={{
+                background: C.card, borderRadius: 8, padding: 16,
+                marginBottom: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                textAlign: 'center',
+            }}>
+                <div style={{ color: C.textSec, fontSize: 13, marginBottom: 8 }}>Could not load reels</div>
+                <button
+                    onClick={() => loadReels()}
+                    style={{
+                        background: C.blue, color: 'white', border: 'none', borderRadius: 20,
+                        padding: '6px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                    }}
+                >Retry</button>
+            </div>
+        );
+    }
+
     return (
         <>
             <div style={{
