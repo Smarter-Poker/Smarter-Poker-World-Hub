@@ -535,7 +535,7 @@ const res = await commanderFetch('/api/commander/staff/generate-claim', {
           }}
         />
       )}
-      <style jsx>{`
+      <style>{`
 `}</style>
     
       {/* TOAST */}

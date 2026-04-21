@@ -589,7 +589,7 @@ export default function DailyTournaments() {
                     
                 </div>
 
-                <style jsx>{`
+                <style>{`
                     /* Metal UI Variables */
                     :root {
                         --metal-dark: #0a0a15;
@@ -1171,7 +1171,7 @@ function TournamentCard({ tournament }) {
                 )}
             </div>
 
-            <style jsx>{`
+            <style>{`
                 .tournament-card {
                     display: flex;
                     flex-direction: column;

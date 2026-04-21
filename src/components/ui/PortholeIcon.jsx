@@ -38,7 +38,7 @@ export default function PortholeIcon({
                 {Icon && <Icon size={computedIconSize} strokeWidth={1.5} />}
             </div>
 
-            <style jsx>{`
+            <style>{`
                 .porthole-icon {
                     position: relative;
                     border-radius: 50%;

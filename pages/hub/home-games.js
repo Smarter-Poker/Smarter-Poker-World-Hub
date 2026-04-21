@@ -138,7 +138,7 @@ function HomeGameCard({ venue, onNavigate, onFavorite, isFavorited }) {
                 </div>
             </div>
 
-            <style jsx>{`
+            <style>{`
                 .hgc-card {
                     display: flex;
                     flex-direction: column;

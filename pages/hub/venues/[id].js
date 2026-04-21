@@ -127,7 +127,7 @@ function PlayerRatingDisplay({ avgRating, totalReviews, trustScore }) {
           ({totalReviews} {totalReviews === 1 ? 'Review' : 'Reviews'})
         </a>
       )}
-      <style jsx>{`
+      <style>{`
         .player-rating-display {
           display: flex;
           align-items: center;
@@ -171,7 +171,7 @@ function VenueTypeBadge({ type }) {
   return (
     <span className="venue-type-badge">
       {label}
-      <style jsx>{`
+      <style>{`
         .venue-type-badge {
           display: inline-block;
           padding: 4px 14px;
@@ -2870,7 +2870,7 @@ export default function VenueDetailPage() {
         )}
       </div>
 
-      <style jsx>{`
+      <style>{`
         /* Metal UI Variables */
         :root {
           --metal-dark: #0a0a15;

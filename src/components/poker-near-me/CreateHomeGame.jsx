@@ -77,7 +77,7 @@ export default function CreateHomeGame({ onCancel }) {
         </p>
       </div>
 
-      <style jsx>{`
+      <style>{`
         .pnm-create-home-game-cta {
           display: flex;
           align-items: stretch;

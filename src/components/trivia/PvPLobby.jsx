@@ -182,7 +182,7 @@ export default function PvPLobby({
                 )}
             </MetalFrame>
 
-            <style jsx>{`
+            <style>{`
                 .pvp-lobby {
                     max-width: 480px;
                     margin: 0 auto;

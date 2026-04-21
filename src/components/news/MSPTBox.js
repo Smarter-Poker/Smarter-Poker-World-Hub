@@ -45,7 +45,7 @@ export default function MSPTBox({ msptNews, onOpenMSPT }) {
                 </div>
             </div>
 
-            <style jsx>{`
+            <style>{`
                 .news-box {
                     position: relative;
                     background: #1a1c1e;

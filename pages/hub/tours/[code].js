@@ -901,7 +901,7 @@ export default function TourDetailPage() {
         )}
       </div>
 
-      <style jsx>{styles}</style>
+      <style>{styles}</style>
     </>
   );
 }

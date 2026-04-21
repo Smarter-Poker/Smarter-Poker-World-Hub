@@ -182,7 +182,7 @@ export default function GlobalErrorCatcher() {
                 ×
             </button>
 
-            <style jsx>{`
+            <style>{`
         @keyframes globalErrorSlideUp {
           from { opacity: 0; transform: translateX(-50%) translateY(20px); }
           to { opacity: 1; transform: translateX(-50%) translateY(0); }

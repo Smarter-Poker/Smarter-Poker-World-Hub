@@ -389,7 +389,7 @@ export default function TriviaResult({
                 </div>
             </motion.div>
 
-            <style jsx>{`
+            <style>{`
                 .trivia-result {
                     display: flex;
                     flex-direction: column;

@@ -269,7 +269,7 @@ export default function TournamentAlerts({ dailyTournaments = [], userId, authTo
                 </div>
             )}
 
-            <style jsx>{`
+            <style>{`
         .tournament-alerts { padding: 0 0 20px; }
         .ta-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
         .ta-header h2 { font-size: 22px; font-weight: 700; color: #e2e8f0; margin: 0; flex: 1; letter-spacing: -0.3px; }

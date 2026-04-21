@@ -342,7 +342,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
             <Link href="/hub/home-games" className="hgs-primary-btn">Browse Home Games</Link>
           </div>
           <HamburgerMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} worldKey="hub" />
-          <style jsx>{pageStyles}</style>
+          <style>{pageStyles}</style>
         </div>
       </>
     );
@@ -595,7 +595,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
           </div>
         )}
 
-        <style jsx>{pageStyles}</style>
+        <style>{pageStyles}</style>
       </div>
     </>
   );

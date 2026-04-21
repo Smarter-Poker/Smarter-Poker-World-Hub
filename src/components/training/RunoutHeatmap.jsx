@@ -77,7 +77,7 @@ export default function RunoutHeatmap({ runoutData = {}, deadCards = [], loading
                     margin: '0 auto',
                 }} />
                 <p style={{ color: '#64748b', fontSize: 12, marginTop: 8 }}>Analyzing runouts...</p>
-                <style jsx>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
             </div>
         );
     }

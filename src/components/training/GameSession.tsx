@@ -1290,7 +1290,7 @@ const GameSession: React.FC<GameSessionProps> = ({
             )}
 
             {/* Styles */}
-            <style jsx>{`
+            <style>{`
         .game-session {
           display: flex;
           flex-direction: column;

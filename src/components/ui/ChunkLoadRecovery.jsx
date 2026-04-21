@@ -165,7 +165,7 @@ export default function ChunkLoadRecovery() {
                 New version detected — updating automatically...
             </span>
 
-            <style jsx>{`
+            <style>{`
         @keyframes chunkBannerSlideDown {
           from { opacity: 0; transform: translateY(-100%); }
           to { opacity: 1; transform: translateY(0); }

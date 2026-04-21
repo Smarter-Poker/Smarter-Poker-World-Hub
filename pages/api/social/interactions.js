@@ -73,7 +73,7 @@ export default async function handler(req, res) {
                       .select('id, post_id, author_id, content, created_at, parent_id')
                       .eq('post_id', post_id)
                       .order('created_at', { ascending: true })
-                          .limit(100);
+                          .limit(200);
 
                   if (commentError && commentError.code === '42P01') {
                       // Table doesn't exist - use comment interactions instead
@@ -86,8 +86,7 @@ export default async function handler(req, res) {
                           const { data: profiles } = await getSupabase()
                               .from('profiles')
                               .select('id, username, full_name, avatar_url')
-                              .in('id', userIds)
-                                  .limit(100);
+                              .in('id', userIds);
 
                           const profileMap = {};
                           (profiles || []).forEach(p => { profileMap[p.id] = p; });

@@ -192,7 +192,7 @@ export default function ArticlePage() {
             <div className="article-page not-found">
                 <h1>Article Not Found</h1>
                 <Link href="/hub/news">← Back To News</Link>
-                <style jsx>{`
+                <style>{`
                     .article-page { min-height: 100vh; background: #0a0a12; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
                     h1 { font-size: 24px; }
                     a { color: #00d4ff; }
@@ -275,7 +275,7 @@ export default function ArticlePage() {
                     </section>
                 )}
 
-                <style jsx>{`
+                <style>{`
                     .article-page {
                         min-height: 100vh;
                         background: #0a0a12;

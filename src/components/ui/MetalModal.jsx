@@ -73,7 +73,7 @@ export default function MetalModal({
                 </div>
             </div>
 
-            <style jsx>{`
+            <style>{`
                 .metal-modal-overlay {
                     position: fixed;
                     inset: 0;

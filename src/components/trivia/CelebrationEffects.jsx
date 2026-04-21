@@ -59,7 +59,7 @@ export function ConfettiExplosion({ duration = 3000, onComplete }) {
                     }}
                 />
             ))}
-            <style jsx>{`
+            <style>{`
                 .confetti-container {
                     position: fixed;
                     top: 0;
@@ -144,7 +144,7 @@ export function AchievementToast({
             </div>
             <button className="toast-close" onClick={onClose}>×</button>
 
-            <style jsx>{`
+            <style>{`
                 .achievement-toast {
                     position: fixed;
                     top: 100px;
@@ -294,7 +294,7 @@ export function CorrectAnswerFlash() {
             <div className="flash-icon">
                 <Target size={64} />
             </div>
-            <style jsx>{`
+            <style>{`
                 .correct-flash {
                     position: fixed;
                     inset: 0;
@@ -379,7 +379,7 @@ export function PerfectScoreCelebration({ onComplete }) {
                 <p className="perfect-subtitle">Flawless Victory</p>
             </div>
 
-            <style jsx>{`
+            <style>{`
                 .perfect-celebration {
                     position: fixed;
                     inset: 0;

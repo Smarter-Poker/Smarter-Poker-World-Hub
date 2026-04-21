@@ -157,7 +157,7 @@ const res = await commanderFetch(`/api/commander/membership-plans?venue_id=${ven
               description="Club Commander Poker Room Management Tool."
               noindex={true}
             />
-      <style jsx>{`
+      <style>{`
         .mp-page {
           min-height: 100vh;
           background: #0f0f0f;

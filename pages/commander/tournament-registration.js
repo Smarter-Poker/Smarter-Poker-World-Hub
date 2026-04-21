@@ -459,7 +459,7 @@ const headers = { 'Content-Type': 'application/json' };
                 </button>
             </div>
 
-            <style jsx>{`
+            <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         input::placeholder { color: #666; }
         input:focus { border-color: #1877F2 !important; }

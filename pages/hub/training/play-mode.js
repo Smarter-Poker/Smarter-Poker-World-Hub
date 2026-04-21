@@ -141,7 +141,7 @@ function SVGCircularTimer({ timeLeft, totalTime = 24, size = 50 }) {
       >
         {timeLeft}
       </div>
-      <style jsx>{`
+      <style>{`
         @keyframes pulse {
           0% {
             transform: scale(1);

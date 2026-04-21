@@ -30,7 +30,7 @@ export default function IframeModal({ isOpen, url, title, onClose }) {
                 </div>
             </div>
 
-            <style jsx>{`
+            <style>{`
                 .discovery-iframe-modal-overlay {
                     position: fixed;
                     top: 0; left: 0; right: 0; bottom: 0;

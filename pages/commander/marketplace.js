@@ -641,7 +641,7 @@ const data = await commanderFetchJSON('/api/commander/marketplace/equipment?limi
           venueId={venueId}
           onSuccess={() => broadcastChange('marketplace')}
         />
-        <style jsx>{`
+        <style>{`
 `}</style>
       </>
     </CommanderLayout>

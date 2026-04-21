@@ -270,7 +270,7 @@ const res = await commanderFetch(`/api/commander/dealer/sessions/${sessionId}/en
           <span className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full border border-dashed border-[#3A3B3C]" /> Empty</span>
         </div>
       </div>
-      <style jsx>{`
+      <style>{`
 `}</style>
     
       {/* TOAST */}

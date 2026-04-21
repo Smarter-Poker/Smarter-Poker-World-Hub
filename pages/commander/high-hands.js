@@ -296,7 +296,7 @@ const res = await commanderFetch(`/api/commander/high-hands/${id}`, {
             </div>
           )}
         </div>
-        <style jsx>{`
+        <style>{`
 `}</style>
       </>
     

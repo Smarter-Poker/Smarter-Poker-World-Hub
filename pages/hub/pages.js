@@ -434,7 +434,7 @@ export default function PokerPagesPage() {
               <BottomNavBar />
             </div>
 
-            <style jsx>{`
+            <style>{`
                 .pages-wrapper {
                     min-height: 100vh; padding-bottom: 70px;
                     background: #F0F2F5;

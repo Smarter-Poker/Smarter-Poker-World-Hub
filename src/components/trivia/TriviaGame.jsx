@@ -616,7 +616,7 @@ export default function TriviaGame({
                 ))}
             </AnimatePresence>
 
-            <style jsx>{`
+            <style>{`
                 .trivia-game {
                     max-width: 700px;
                     margin: 0 auto;

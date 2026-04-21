@@ -84,7 +84,7 @@ const CommunityCards = ({
         );
       })}
 
-      <style jsx>{`
+      <style>{`
         @keyframes dealFlip {
           0% {
             opacity: 0;

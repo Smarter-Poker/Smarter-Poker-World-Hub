@@ -188,7 +188,7 @@ export default function VenueQRCodePage() {
             </div>
           </main>
         </div>
-        <style jsx>{`
+        <style>{`
 `}</style>
       </>
     </CommanderLayout>

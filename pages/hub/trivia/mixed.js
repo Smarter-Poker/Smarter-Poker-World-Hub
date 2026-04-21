@@ -728,7 +728,7 @@ export default function MixedModePage() {
               <BottomNavBar />
             </div>
 
-            <style jsx>{`
+            <style>{`
                 .mixed-page {
                     min-height: 100vh; padding-bottom: 70px;
                     background: #0a0e1a;

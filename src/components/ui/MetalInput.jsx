@@ -56,7 +56,7 @@ export default function MetalInput({
 
             {error && <span className="metal-input-error">{error}</span>}
 
-            <style jsx>{`
+            <style>{`
                 .metal-input-wrapper {
                     display: flex;
                     flex-direction: column;

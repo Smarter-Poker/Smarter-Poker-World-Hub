@@ -226,7 +226,7 @@ export default function PrizeWheel({
                 </div>
             </MetalFrame>
 
-            <style jsx>{`
+            <style>{`
                 .prize-wheel-overlay {
                     position: fixed;
                     top: 0;

@@ -142,7 +142,7 @@ const params = new URLSearchParams();
             )}
           </div>
         </div>
-        <style jsx>{`
+        <style>{`
 `}</style>
       </>
     </CommanderLayout>

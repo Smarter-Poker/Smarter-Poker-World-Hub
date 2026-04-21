@@ -1036,7 +1036,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
             </div>
 
             {/* Old Calendar display successfully abstracted */}
-            <style jsx>{`
+            <style>{`
                 .vc3-header-left { display: flex; align-items: flex-start; gap: 10px; flex: 1; min-width: 0; }
                 .vc3-identity { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
                 .vc3-identity .vc3-name { font-size: 16px; font-weight: 700; color: #fff; margin: 0; padding: 0; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-transform: capitalize; }

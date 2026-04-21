@@ -223,7 +223,7 @@ export default function DownloadsPage() {
           </div>
 
         </div>
-        <style jsx>{`
+        <style>{`
 `}</style>
       </div>
     </CommanderLayout>

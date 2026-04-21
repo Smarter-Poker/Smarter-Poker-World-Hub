@@ -1616,7 +1616,7 @@ const res = await commanderFetch(`/api/commander/promotions/${id}`, { method: 'D
             </div>
           </div>
         )}
-        <style jsx>{`
+        <style>{`
 `}</style>
       </>
     

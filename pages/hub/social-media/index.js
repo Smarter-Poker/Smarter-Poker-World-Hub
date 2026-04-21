@@ -3049,7 +3049,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                 );
             })()}
 
-            <style jsx>{`@keyframes spin { to { transform: rotate(360deg); } } @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }`}</style>
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } } @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }`}</style>
         </div >
     );
 }
@@ -3571,7 +3571,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                 </div>
             )
             }
-            <style jsx>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
     );
 }
@@ -3912,7 +3912,7 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
                 </div>
             )}
 
-            <style jsx>{`
+            <style>{`
                 @keyframes spin {
                     to { transform: rotate(360deg); }
                 }

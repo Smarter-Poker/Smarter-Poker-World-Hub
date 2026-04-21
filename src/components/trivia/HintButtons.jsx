@@ -92,7 +92,7 @@ function HintButtons({
                 );
             })}
 
-            <style jsx>{`
+            <style>{`
                 .hint-buttons {
                     display: flex;
                     gap: 8px;

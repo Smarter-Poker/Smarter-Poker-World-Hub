@@ -213,7 +213,7 @@ export default function TournamentLobby({
                 </div>
             </MetalFrame>
 
-            <style jsx>{`
+            <style>{`
                 .tournament-lobby {
                     max-width: 540px;
                     margin: 0 auto;

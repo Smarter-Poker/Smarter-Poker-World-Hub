@@ -222,7 +222,7 @@ const json = await commanderFetchJSON('/api/commander/system-info');
           )}
         </main>
       </div>
-    <style jsx>{`
+    <style>{`
 `}</style>
     </>
     </CommanderLayout>

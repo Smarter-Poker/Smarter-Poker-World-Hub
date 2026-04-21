@@ -198,7 +198,7 @@ export default function AllInMode({
                     </div>
                 </MetalFrame>
 
-                <style jsx>{`
+                <style>{`
                     .all-in-mode {
                         max-width: 500px;
                         margin: 0 auto;
@@ -415,7 +415,7 @@ export default function AllInMode({
                     </div>
                 )}
 
-                <style jsx>{`
+                <style>{`
                     .all-in-game {
                         max-width: 600px;
                         margin: 0 auto;
@@ -576,7 +576,7 @@ export default function AllInMode({
                     />
                 </MetalFrame>
 
-                <style jsx>{`
+                <style>{`
                     .all-in-result {
                         max-width: 480px;
                         margin: 0 auto;

@@ -358,7 +358,7 @@ export default function PromotionsPage() {
               <BottomNavBar />
             </div>
 
-            <style jsx>{`
+            <style>{`
                 .promos-wrapper {
                     min-height: 100vh; padding-bottom: 70px;
                     background: ${C.bg};

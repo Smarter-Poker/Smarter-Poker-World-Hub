@@ -222,7 +222,7 @@ export default function ResponsibleGaming() {
             </div>
           </div>
         </div>
-        <style jsx>{`
+        <style>{`
 `}</style>
       </>
     </CommanderLayout>

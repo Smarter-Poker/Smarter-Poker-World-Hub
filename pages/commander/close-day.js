@@ -317,7 +317,7 @@ const venueId = getVenueId();
           )}
         </div>
       </div>
-      <style jsx>{`
+      <style>{`
 `}</style>
     
       {/* TOAST */}

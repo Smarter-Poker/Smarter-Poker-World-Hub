@@ -67,7 +67,7 @@ export default function TriviaSkeleton() {
                 </div>
             </MetalFrame>
 
-            <style jsx>{`
+            <style>{`
                 .trivia-skeleton-container {
                     max-width: 600px;
                     margin: 0 auto;

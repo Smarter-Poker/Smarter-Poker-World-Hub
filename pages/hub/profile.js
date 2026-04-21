@@ -123,7 +123,7 @@ export default function ProfileRedirect() {
                     }}
                 />
                 <div style={{ opacity: 0.7, fontSize: 14 }}>Loading Your Profile...</div>
-                <style jsx>{`
+                <style>{`
                     @keyframes profilePulse {
                         0%, 100% { opacity: 1; transform: scale(1); }
                         50% { opacity: 0.6; transform: scale(0.95); }

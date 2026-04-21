@@ -361,7 +361,7 @@ export default function GTOReports() {
               <p style={{ color: '#64748b', fontSize: 13, marginTop: 12 }}>
                 Loading your GTO report...
               </p>
-              <style jsx>{`
+              <style>{`
                 @keyframes spin {
                   to {
                     transform: rotate(360deg);

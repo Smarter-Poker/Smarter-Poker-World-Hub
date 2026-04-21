@@ -209,7 +209,7 @@ export default function DealerRotation() {
     <CommanderLayout title="Dealer Rotation" backHref="/commander/dashboard?card=floor">
       <SEOHead title="Commander — Dealer Rotation" description="Club Commander Dealer Rotation Manager" noindex={true} />
 
-      <style jsx>{`
+      <style>{`
         .dr-page { min-height: 100vh; background: #0a0a0a; color: #E4E6EB; font-family: 'Inter', sans-serif; }
         .dr-stats { background: linear-gradient(180deg, #111 0%, #0a0a0a 100%); border-bottom: 1px solid #222; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
         .dr-stats-left { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }

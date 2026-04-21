@@ -539,7 +539,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                 </div>
             )}
 
-            <style jsx>{`
+            <style>{`
         .road-trip-planner { padding: 0 0 20px; }
         .rtp-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
         .rtp-header h2 { font-size: 22px; font-weight: 700; color: #e2e8f0; margin: 0; letter-spacing: -0.3px; }

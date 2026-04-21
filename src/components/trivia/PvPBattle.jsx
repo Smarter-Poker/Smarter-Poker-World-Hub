@@ -310,7 +310,7 @@ export default function PvPBattle({
                 </motion.div>
             )}
 
-            <style jsx>{`
+            <style>{`
                 .pvp-battle {
                     padding: 20px;
                     max-width: 600px;

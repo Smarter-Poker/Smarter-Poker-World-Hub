@@ -19,7 +19,7 @@ export default function BackToLobbyBar({ label = 'Poker Near Me' }) {
         <span>Back To {label}</span>
       </button>
 
-      <style jsx>{`
+      <style>{`
         .back-to-lobby-bar {
           padding: 8px 20px 0;
           max-width: 1600px;

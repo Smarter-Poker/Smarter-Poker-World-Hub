@@ -99,7 +99,7 @@ export default function BestTimeToGoWidget({ venueId, venueName }) {
           <div className="bttg-spinner" />
           <span>Analyzing Activity Patterns...</span>
         </div>
-        <style jsx>{STYLES}</style>
+        <style>{STYLES}</style>
       </div>
     );
   }
@@ -293,7 +293,7 @@ export default function BestTimeToGoWidget({ venueId, venueName }) {
         </>
       )}
 
-      <style jsx>{STYLES}</style>
+      <style>{STYLES}</style>
     </div>
   );
 }

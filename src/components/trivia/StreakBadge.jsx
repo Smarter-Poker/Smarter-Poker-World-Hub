@@ -76,7 +76,7 @@ export default function StreakBadge({
                 </div>
             )}
 
-            <style jsx>{`
+            <style>{`
                 .streak-badge {
                     font-family: 'Inter', sans-serif;
                     ${sizeConfig.container};

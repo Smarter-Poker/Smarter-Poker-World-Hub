@@ -219,7 +219,7 @@ export default function ActivityFeed() {
           </div>
         )}
       </div>
-      <style jsx>{`
+      <style>{`
 `}</style>
     </CommanderLayout>
   );

@@ -1110,7 +1110,7 @@ export default function TriviaModePage() {
               <BottomNavBar />
             </div>
 
-            <style jsx>{`
+            <style>{`
                 .trivia-mode-page {
                     min-height: 100vh; padding-bottom: 70px;
                     background: #0a0e1a;

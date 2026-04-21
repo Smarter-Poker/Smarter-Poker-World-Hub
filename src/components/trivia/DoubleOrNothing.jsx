@@ -173,7 +173,7 @@ export default function DoubleOrNothing({
                 )}
             </AnimatePresence>
 
-            <style jsx>{`
+            <style>{`
                 .double-or-nothing-overlay {
                     position: fixed;
                     inset: 0;

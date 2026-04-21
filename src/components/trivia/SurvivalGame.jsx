@@ -238,7 +238,7 @@ export default function SurvivalGame({
                 </motion.div>
             )}
 
-            <style jsx>{`
+            <style>{`
                 .survival-game {
                     padding: 20px;
                     max-width: 600px;

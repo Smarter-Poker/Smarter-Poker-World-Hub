@@ -308,7 +308,7 @@ const res = await commanderFetch('/api/commander/members', {
             )}
           </div>
         </div>
-        <style jsx>{`
+        <style>{`
 `}</style>
       </>
     </CommanderLayout>

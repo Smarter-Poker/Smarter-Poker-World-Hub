@@ -208,7 +208,7 @@ export default function CommandBar() {
                 </div>
             </div>
 
-            <style jsx>{`
+            <style>{`
         .command-bar {
           position: fixed;
           top: 20px;

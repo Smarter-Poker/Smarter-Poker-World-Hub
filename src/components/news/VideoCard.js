@@ -29,7 +29,7 @@ export default function VideoCard({ video, onClick }) {
                 </div>
             </div>
 
-            <style jsx>{`
+            <style>{`
                 .video-card {
                     position: relative;
                     background: #1a1c1e;

@@ -563,7 +563,7 @@ export default function PreflopCharts() {
                     }}
                   />
                   <p style={{ color: '#64748b', fontSize: 12, marginTop: 8 }}>Loading range...</p>
-                  <style jsx>{`
+                  <style>{`
                     @keyframes spin {
                       to {
                         transform: rotate(360deg);

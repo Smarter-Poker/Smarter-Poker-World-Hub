@@ -1253,7 +1253,7 @@ const res = await commanderFetch('/api/commander/games/must-move-status', {
         )}
       </div>
 
-      <style jsx>{`
+      <style>{`
         @keyframes tickerScroll {
           0% { transform: translateX(0); }
           100% { transform: translateX(-50%); }

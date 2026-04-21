@@ -611,7 +611,7 @@ const res = await commanderFetch(`/api/commander/membership-plans?venue_id=${ven
         </div>
 
       </div>
-      <style jsx>{`
+      <style>{`
 `}</style>
     
       {/* TOAST */}

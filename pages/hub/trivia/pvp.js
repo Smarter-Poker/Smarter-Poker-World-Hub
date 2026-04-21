@@ -1057,7 +1057,7 @@ export default function PvPPage() {
               <BottomNavBar />
             </div>
 
-            <style jsx>{`
+            <style>{`
                 .pvp-page {
                     min-height: 100vh; padding-bottom: 70px;
                     background: #0a0e1a;

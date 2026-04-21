@@ -487,7 +487,7 @@ export default function TimeAttackPage() {
               <BottomNavBar />
             </div>
 
-            <style jsx>{`
+            <style>{`
                 .time-attack-page {
                     min-height: 100vh; padding-bottom: 70px;
                     background: #0a0e1a;

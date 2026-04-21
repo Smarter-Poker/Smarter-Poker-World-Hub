@@ -377,7 +377,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
   return (
     <>
       <div className="custom-avatar-builder">
-        <style jsx>{`
+        <style>{`
         .custom-avatar-builder {
           width: 100%;
           max-width: 800px;

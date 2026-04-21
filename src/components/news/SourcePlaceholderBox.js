@@ -34,7 +34,7 @@ export default function SourcePlaceholderBox({ sourceName, sourceUrl, index, ope
                 </div>
             </div>
 
-            <style jsx>{`
+            <style>{`
                 .news-box {
                     position: relative;
                     background: #1a1c1e;

@@ -570,7 +570,7 @@ function NotificationsPage() {
                             </div>
                         ))}
                     </div>
-                    <style jsx>{`
+                    <style>{`
                         @keyframes shimmer { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
                     `}</style>
                 </div>

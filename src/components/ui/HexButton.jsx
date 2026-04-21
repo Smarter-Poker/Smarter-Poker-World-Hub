@@ -32,7 +32,7 @@ export default function HexButton({
             {icon && <span className="hex-button__icon">{icon}</span>}
             <span className="hex-button__text">{children}</span>
 
-            <style jsx>{`
+            <style>{`
                 .hex-button {
                     position: relative;
                     display: inline-flex;

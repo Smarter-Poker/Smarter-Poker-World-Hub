@@ -195,7 +195,7 @@ export function PipelineTab() {
                 )}
             </div>
 
-            <style jsx>{`
+            <style>{`
                 .pipeline-tab {
                     padding: 24px 0;
                 }

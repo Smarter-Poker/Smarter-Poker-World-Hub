@@ -385,7 +385,7 @@ export default function SurvivalModePage() {
                 </div>
             </div>
 
-            <style jsx>{`
+            <style>{`
                 .survival-page {
                     min-height: 100vh; padding-bottom: 70px;
                     background: #0a0e1a;

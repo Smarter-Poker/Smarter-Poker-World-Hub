@@ -39,7 +39,7 @@ export default function MetalFrame({
                 {children}
             </div>
 
-            <style jsx>{`
+            <style>{`
                 .metal-frame {
                     position: relative;
                     background: linear-gradient(180deg, #3d4f5f 0%, #1a2332 50%, #0d1117 100%);

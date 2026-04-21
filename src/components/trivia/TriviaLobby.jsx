@@ -454,7 +454,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                 </div>
             </div>
 
-            <style jsx>{`
+            <style>{`
                 .trivia-lobby {
                     padding: 0 20px 20px;
                     max-width: 1000px;

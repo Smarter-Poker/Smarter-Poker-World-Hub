@@ -1206,7 +1206,7 @@ function SolutionsBrowserInner({ setError }) {
                   }}
                 />
                 <p style={{ color: '#94a3b8', fontSize: 13 }}>Loading strategy matrix...</p>
-                <style jsx>{`
+                <style>{`
                   @keyframes spin {
                     to {
                       transform: rotate(360deg);

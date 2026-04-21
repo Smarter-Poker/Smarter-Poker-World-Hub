@@ -1416,7 +1416,7 @@ const res = await commanderFetch('/api/commander/dealer/player-scan-in', {
                 </div>
             </div>
 
-            <style jsx>{`
+            <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         button:hover { border-color: rgba(24,119,242,0.4) !important; }
         @keyframes fullscreenIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }

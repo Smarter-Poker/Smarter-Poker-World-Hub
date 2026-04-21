@@ -384,7 +384,7 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
 
             </div>
 
-            <style jsx>{`
+            <style>{`
         .vr-overlay { position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,0.75); display: flex; justify-content: flex-end; }
         .vr-panel { width: 100%; max-width: 500px; background: #0f172a; border-left: 1px solid rgba(255,255,255,0.1); overflow-y: auto; padding: 24px; animation: slideInRight 0.3s ease-out; }
         @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }

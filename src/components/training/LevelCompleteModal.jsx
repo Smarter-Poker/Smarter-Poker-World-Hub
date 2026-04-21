@@ -100,7 +100,7 @@ export default function LevelCompleteModal({
                 </div>
             </div>
 
-            <style jsx>{`
+            <style>{`
                 .level-modal-overlay {
                     position: fixed;
                     inset: 0;

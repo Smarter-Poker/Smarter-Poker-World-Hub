@@ -516,7 +516,7 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
         /* ───── Event Card CSS (Identical to Events Calendar) ───── */
         .ev-card {
           display: flex; align-items: stretch; gap: 0;

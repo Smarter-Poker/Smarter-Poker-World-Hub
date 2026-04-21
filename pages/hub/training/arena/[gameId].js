@@ -39,7 +39,7 @@ const GodModeArena = dynamic(() => import('../../../../src/components/training/G
                 }} />
                 <div style={{ fontSize: 14, fontWeight: 600 }}>Loading Arena...</div>
             </div>
-            <style jsx>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
     ),
 });

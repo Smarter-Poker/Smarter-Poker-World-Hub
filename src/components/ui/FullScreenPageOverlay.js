@@ -39,7 +39,7 @@ export default function FullScreenPageOverlay({ isOpen, onClose, url, title }) {
 
     return (
         <>
-            <style jsx>{`
+            <style>{`
                 .fsp-overlay {
                     position: fixed;
                     inset: 0;

@@ -230,7 +230,7 @@ export default function DealerTicker({
                     }}>{message}</span>
                 </div>
             </div>
-            <style jsx>{`
+            <style>{`
         @keyframes dealerTickerScroll {
           0% { transform: translateY(-50%); }
           100% { transform: translateY(0); }

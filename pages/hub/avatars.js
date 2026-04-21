@@ -41,7 +41,7 @@ export default function AvatarsPage() {
 
             <div className="avatars-page-wrapper">
                 <div className="avatars-page">
-                    <style jsx>{`
+                    <style>{`
                     .avatars-page {
                         min-height: 100vh; padding-bottom: 70px;
                         background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0d0d2e 100%);

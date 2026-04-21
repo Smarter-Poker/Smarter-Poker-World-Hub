@@ -285,7 +285,7 @@ export default function TabletDisplay() {
                 <div style={{ width: 48, height: 48, border: '4px solid #1877F2', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
                 <div style={{ color: '#8A8D91', fontSize: 16.5, fontWeight: 600 }}>Loading Table {tableNumber}...</div>
             </div>
-            <style jsx>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+            <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
         </div>
     );
 

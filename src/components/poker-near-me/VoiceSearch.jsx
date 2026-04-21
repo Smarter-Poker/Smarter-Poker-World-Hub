@@ -297,7 +297,7 @@ export default function VoiceSearch({ onResult, isListening: externalListening }
                 </div>
             )}
 
-            <style jsx>{`
+            <style>{`
         .voice-fab { position: fixed; bottom: 24px; left: 24px; z-index: 9999; width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, #64748b, #334155); border: 1px solid rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.5); transition: all 0.3s; }
         .voice-fab:hover { transform: scale(1.1); box-shadow: 0 6px 20px rgba(0,0,0,0.6); }
         .voice-fab.listening { background: linear-gradient(135deg, #ef4444, #dc2626); animation: fabPulse 1.5s ease-in-out infinite; }

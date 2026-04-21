@@ -155,7 +155,7 @@ const json = await commanderFetchJSON(`/api/commander/reports/table-utilization?
           </div>
         )}
       </div>
-      <style jsx>{`
+      <style>{`
 `}</style>
     </>
   );

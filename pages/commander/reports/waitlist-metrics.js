@@ -157,7 +157,7 @@ const json = await commanderFetchJSON(`/api/commander/reports/waitlist-metrics?v
           </div>
         )}
       </div>
-      <style jsx>{`
+      <style>{`
 `}</style>
     </>
   );

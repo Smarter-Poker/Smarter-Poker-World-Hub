@@ -156,7 +156,7 @@ export default function AvatarGallery({ onSelect }) {
 
   return (
     <div className="avatar-gallery">
-      <style jsx>{`
+      <style>{`
         .avatar-gallery {
           width: 100%;
           max-width: 1200px;

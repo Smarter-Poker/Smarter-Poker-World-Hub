@@ -373,7 +373,7 @@ export default function VenueReviews({ venueId, venueName }) {
                         <div key={i} style={{ height: 60, background: 'rgba(255,255,255,0.03)', borderRadius: 10, animation: 'pulse 1.5s ease infinite' }} />
                     ))}
                 </div>
-                <style jsx>{`@keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.15; } }`}</style>
+                <style>{`@keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.15; } }`}</style>
             </div>
         );
     }
@@ -647,7 +647,7 @@ export default function VenueReviews({ venueId, venueName }) {
             {/* ═══════════════════════════════════════ */}
             {/* STYLES                                  */}
             {/* ═══════════════════════════════════════ */}
-            <style jsx>{`
+            <style>{`
                 .vr-root { margin-top: 0; }
 
                 /* Section Header */

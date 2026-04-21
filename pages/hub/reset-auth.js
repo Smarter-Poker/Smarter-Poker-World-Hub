@@ -190,7 +190,7 @@ export default function ResetAuthPage() {
                 )}
             </div>
 
-            <style jsx>{`
+            <style>{`
                 @keyframes spin {
                     to { transform: rotate(360deg); }
                 }

@@ -145,7 +145,7 @@ export default function GhostOpponent({
                 </AnimatePresence>
             </div>
 
-            <style jsx>{`
+            <style>{`
                 .ghost-opponent {
                     margin-bottom: 16px;
                 }

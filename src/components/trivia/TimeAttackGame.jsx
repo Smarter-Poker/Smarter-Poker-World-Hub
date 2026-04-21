@@ -237,7 +237,7 @@ export default function TimeAttackGame({
                 </motion.div>
             )}
 
-            <style jsx>{`
+            <style>{`
                 .time-attack-game {
                     padding: 20px;
                     max-width: 600px;

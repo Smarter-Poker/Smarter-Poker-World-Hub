@@ -545,10 +545,10 @@ function FriendsPage() {
                     }));
                 } catch { /* quota exceeded */ }
             } else {
-                console.error('[Friends] API returned', resp.status);
+                console.warn('[Friends] API returned', resp.status);
             }
         } catch (err) {
-            console.error('[Friends] fetchData error:', err);
+            console.warn('[Friends] fetchData error:', err);
         }
 
         if (mounted.current) setLoading(false);
@@ -603,7 +603,7 @@ function FriendsPage() {
                     setSearchResults(data);
                 }
             } catch (e) {
-                console.error('Search error:', e);
+                console.warn('[Friends] Search error:', e?.message || e);
             }
             if (mounted.current) setIsSearching(false);
         }, 300);
@@ -860,7 +860,7 @@ function FriendsPage() {
             setFriendIds(prevFriendIds);
             setSuggestions(prevSuggestions);
             toast.error('Could not remove friend. Please try again.');
-            console.error('Error removing friend:', e);
+            console.warn('[Friends] Error removing friend:', e?.message || e);
         } finally { actionInProgress.current = false; }
     };
 

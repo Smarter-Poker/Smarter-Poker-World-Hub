@@ -614,7 +614,7 @@ export default function FloorCalls() {
         )}
       </div>
 
-      <style jsx>{`
+      <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes urgent-pulse {
           0%, 100% { border-color: rgba(239,68,68,0.5); box-shadow: 0 0 0 0 rgba(239,68,68,0); }

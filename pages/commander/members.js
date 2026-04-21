@@ -407,7 +407,7 @@ export default function MembersPage() {
                 <AddMemberModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} onSubmit={handleMemberCreated} venueId={venueId} />
                 <ScanMemberModal isOpen={showScanModal} onClose={() => setShowScanModal(false)} venueId={venueId} onMemberFound={(m) => { setShowScanModal(false); setSelectedMember(m); }} />
                 {selectedMember && <MemberDetailPanel member={selectedMember} venueName={venueName} onClose={() => setSelectedMember(null)} onUpdate={handleMemberUpdated} />}
-                <style jsx>{`
+                <style>{`
 `}</style>
             </>
         </CommanderLayout>

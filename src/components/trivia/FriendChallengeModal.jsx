@@ -174,7 +174,7 @@ export default function FriendChallengeModal({
                 </MetalFrame>
             </motion.div>
 
-            <style jsx>{`
+            <style>{`
                 .challenge-overlay {
                     position: fixed;
                     inset: 0;

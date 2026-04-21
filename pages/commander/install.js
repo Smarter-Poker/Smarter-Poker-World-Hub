@@ -234,7 +234,7 @@ export default function CommanderInstall() {
                     </div>
                 </div>
             </div>
-            <style jsx>{``}</style>
+            <style>{``}</style>
         </CommanderLayout>
     );
 }

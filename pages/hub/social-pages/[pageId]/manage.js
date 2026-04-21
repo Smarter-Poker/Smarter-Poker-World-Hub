@@ -111,7 +111,7 @@ export default function ManageSocialPage() {
                 });
             }
         } catch (e) {
-            console.error('Failed to fetch page:', e);
+            console.warn('[manage.js] Failed to fetch page:', e?.message || e);
         }
         setLoading(false);
     }, [pageId, user, router]);
@@ -179,7 +179,7 @@ export default function ManageSocialPage() {
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) setPosts(json.data || []);
-        } catch (e) { console.error("[manage.js]", e); }
+        } catch (e) { console.warn('[manage.js] fetchPosts error:', e?.message || e); }
     };
 
     const handleSave = async () => {
@@ -241,7 +241,7 @@ export default function ManageSocialPage() {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
         }).catch(e => {
-            console.error("[manage.js]", e);
+            console.warn('[manage.js] Error:', e?.message || e);
             setPosts(prevPosts);
         });
     };
@@ -259,7 +259,7 @@ export default function ManageSocialPage() {
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ id: postId, author_id: user.id, is_pinned: !pinned }),
         }).catch(e => {
-            console.error("[manage.js]", e);
+            console.warn('[manage.js] Error:', e?.message || e);
             setPosts(prevPosts);
         });
     };

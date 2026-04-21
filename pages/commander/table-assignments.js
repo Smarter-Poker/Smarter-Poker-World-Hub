@@ -436,7 +436,7 @@ return {
           </div>
         )}
       </div>
-      <style jsx>{``}</style>
+      <style>{``}</style>
     
       <ConfirmDialog />
     </CommanderLayout>

@@ -66,7 +66,7 @@ export default function ReelCard({ reel, onClick }) {
                 </div>
             </div>
 
-            <style jsx>{`
+            <style>{`
                 .reel-card {
                     position: relative;
                     background: 

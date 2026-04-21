@@ -1297,7 +1297,7 @@ export default function ReelsPage() {
                             <div style={{ width: 60, height: 10, borderRadius: 5, background: '#1a1a1a' }} />
                         </div>
                     </div>
-                    <style jsx>{`@keyframes shimmer { to { background-position-x: -200%; } }`}</style>
+                    <style>{`@keyframes shimmer { to { background-position-x: -200%; } }`}</style>
                 </div>
             </>
         );
@@ -2090,7 +2090,7 @@ export default function ReelsPage() {
 
 
                 {/* Heart burst + slide animation CSS */}
-                <style jsx>{`
+                <style>{`
                     @keyframes heartBurstMain {
                         0% { opacity: 0; transform: translate(-50%, -50%) scale(0); }
                         30% { opacity: 1; transform: translate(-50%, -50%) scale(1.4); }
@@ -2427,7 +2427,7 @@ export default function ReelsPage() {
                 )}
 
                 {/* Spin animation for loader */}
-                <style jsx>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
 
             </div >

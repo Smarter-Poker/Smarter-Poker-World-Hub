@@ -132,7 +132,7 @@ export default function MapPreferenceChooser({ position = 'bottom-right' }) {
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
         .map-pref-wrapper {
           position: absolute;
           z-index: 1000;

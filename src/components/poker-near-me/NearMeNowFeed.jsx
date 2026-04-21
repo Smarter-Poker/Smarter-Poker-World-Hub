@@ -327,7 +327,7 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
                 </div>
             )}
 
-            <style jsx>{`
+            <style>{`
         .near-me-feed { padding: 0 0 20px; }
         .nmf-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
         .nmf-header h2 { font-size: 22px; font-weight: 700; color: #fff; margin: 0; flex: 1; }

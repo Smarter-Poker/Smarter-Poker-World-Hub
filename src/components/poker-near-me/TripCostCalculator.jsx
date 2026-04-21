@@ -247,7 +247,7 @@ export default function TripCostCalculator({ venues = [], userLocation }) {
                 </div>
             )}
 
-            <style jsx>{`
+            <style>{`
         .trip-calc { padding: 0 0 20px; }
         .tc-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
         .tc-header h2 { font-size: 22px; font-weight: 700; color: #fff; margin: 0; }

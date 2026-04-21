@@ -123,7 +123,7 @@ export default function FloorCallAlert({ venueId }) {
                 Auto-dismisses in 30 seconds · Tap anywhere to dismiss
             </div>
 
-            <style jsx>{`
+            <style>{`
                 @keyframes floorCallIn {
                     from { opacity: 0; transform: scale(1.05); }
                     to { opacity: 1; transform: scale(1); }

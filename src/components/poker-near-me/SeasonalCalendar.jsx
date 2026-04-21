@@ -251,7 +251,7 @@ export default function SeasonalCalendar({ series = [], tours = [], dailyTournam
                 </div>
             )}
 
-            <style jsx>{`
+            <style>{`
         .seasonal-cal { padding: 0 0 20px; }
         .sc-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
         .sc-header h2 { font-size: 22px; font-weight: 700; color: #e2e8f0; margin: 0; flex: 1; letter-spacing: -0.3px; }

@@ -125,7 +125,7 @@ export default function NewsBox({ article, index, onOpen, isBookmarked, onBookma
                 </div>
             </div>
 
-            <style jsx>{`
+            <style>{`
                 .news-box {
                     position: relative;
                     background: #1a1c1e;

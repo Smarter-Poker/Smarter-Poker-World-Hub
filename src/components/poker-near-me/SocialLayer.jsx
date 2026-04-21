@@ -311,7 +311,7 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
                 </div>
             )}
 
-            <style jsx>{`
+            <style>{`
         .social-layer { padding: 0 0 20px; }
         .sl-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
         .sl-header h2 { font-size: 22px; font-weight: 700; color: #e2e8f0; margin: 0; flex: 1; letter-spacing: -0.3px; }

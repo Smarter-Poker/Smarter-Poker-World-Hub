@@ -58,7 +58,7 @@ export default function PokerTourCard({ tourPin }) {
                 </div>
             </div>
             
-            <style jsx>{`
+            <style>{`
                 .tour-card-premium {
                     background: linear-gradient(180deg, #0f1524 0%, #080b13 100%);
                     border: 1px solid rgba(255,255,255,0.06);

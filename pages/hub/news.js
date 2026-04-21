@@ -1184,7 +1184,7 @@ export default function NewsHub() {
                         )}
                     </AnimatePresence>
 
-                    <style jsx>{`
+                    <style>{`
                     .news-hub {
                         min-height: 100vh; padding-bottom: 70px;
                         background: #18191A;
@@ -3143,7 +3143,7 @@ export default function NewsHub() {
                     {/* ================================================================
                     GLOBAL MOBILE OVERRIDE — Bypasses styled-jsx component scoping
                     This is required because NewsBox, VideoCard etc. are separate 
-                    components with their own <style jsx> blocks.
+                    components with their own <style> blocks.
                     ================================================================ */}
                     <style>{`
                     @media (max-width: 768px) {

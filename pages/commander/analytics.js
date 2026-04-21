@@ -511,7 +511,7 @@ const headers = { };
             )}
           </main>
         </div>
-        <style jsx>{`
+        <style>{`
 `}</style>
       </>
     </CommanderLayout>

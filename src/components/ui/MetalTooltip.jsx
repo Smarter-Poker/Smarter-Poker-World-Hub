@@ -93,7 +93,7 @@ export default function MetalTooltip({
                 </div>
             )}
 
-            <style jsx>{`
+            <style>{`
                 .metal-tooltip-trigger {
                     display: inline-flex;
                     cursor: help;

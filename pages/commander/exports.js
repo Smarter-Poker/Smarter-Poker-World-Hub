@@ -271,7 +271,7 @@ const res = await commanderFetch('/api/commander/exports', {
           </div>
         )}
       </div>
-      <style jsx>{`
+      <style>{`
 `}</style>
     </CommanderLayout>
   );

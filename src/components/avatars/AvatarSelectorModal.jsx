@@ -23,7 +23,7 @@ export default function AvatarSelectorModal({ isOpen, onClose, isVip = false }) 
   return (
     <div className="avatar-modal-overlay" onClick={onClose}>
       <div className="avatar-modal" onClick={(e) => e.stopPropagation()}>
-        <style jsx>{`
+        <style>{`
           .avatar-modal-overlay {
             position: fixed;
             top: 0;

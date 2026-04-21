@@ -248,7 +248,7 @@ const res = await commanderFetch('/api/commander/notifications/send', {
             )}
           </main>
         </div>
-        <style jsx>{`
+        <style>{`
 `}</style>
       </>
     </CommanderLayout>

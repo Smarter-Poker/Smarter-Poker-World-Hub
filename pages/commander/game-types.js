@@ -399,7 +399,7 @@ const res = await commanderFetch(`/api/commander/game-types/${gt.id}?venue_id=${
             )}
           </main>
         </div>
-        <style jsx>{`
+        <style>{`
 `}</style>
       </>
     

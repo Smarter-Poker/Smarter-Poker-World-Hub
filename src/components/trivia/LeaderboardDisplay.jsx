@@ -86,7 +86,7 @@ export default function LeaderboardDisplay({ entries = [], currentUserId, filter
                 )}
             </div>
 
-            <style jsx>{`
+            <style>{`
                 .leaderboard {
                     background: #18191a;
                     border: 1px solid #4e4f50;

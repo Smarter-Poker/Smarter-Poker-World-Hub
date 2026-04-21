@@ -1088,7 +1088,7 @@ export default function StrategyTrivia({ mode }) {
                 </div>
             </div>
 
-            <style jsx>{`
+            <style>{`
                 .strategy-trivia {
                     height: 100vh;
                     height: 100dvh;
