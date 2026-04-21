@@ -39,6 +39,39 @@ async function updateAttempt(attemptId, fields) {
   if (error) log({ level: 'warn', msg: 'updateAttempt failed', err: error.message });
 }
 
+// ---------------------------------------------------------------------------
+// Supabase gates (kill-switch, per-loop budget). Shared contract with the
+// Vercel autofix pipeline: we exit 0 (not failure) when the pipeline is
+// administratively paused or when the daily budget is spent — both are
+// "expected" non-errors and shouldn't noise up the GH Actions history.
+// ---------------------------------------------------------------------------
+async function isPaused() {
+  const s = sb(); if (!s) return false;
+  const { data, error } = await s.rpc('autofix_is_paused');
+  if (error) {
+    log({ level: 'warn', msg: 'pause check failed — proceeding', err: error.message });
+    return false;
+  }
+  return !!data;
+}
+
+async function budgetExhausted(source = 'sentry') {
+  const s = sb(); if (!s) return false;
+  // Check the global cap first, then per-loop. Either one flipping stops us.
+  for (const src of ['_global', source]) {
+    const { data, error } = await s.rpc('autofix_budget_exhausted', { p_source: src });
+    if (error) {
+      log({ level: 'warn', msg: 'budget check failed — proceeding', src, err: error.message });
+      continue;
+    }
+    if (data === true) {
+      log({ level: 'info', msg: 'budget exhausted', bucket: src });
+      return true;
+    }
+  }
+  return false;
+}
+
 function repoRoot() {
   // The checkout action lands us at GITHUB_WORKSPACE; the runner script
   // itself lives at scripts/sentry-autofix/ — cwd might be either.
@@ -107,6 +140,19 @@ async function main() {
   if (!issueId) { log({ level: 'error', msg: 'SENTRY_ISSUE_ID not set' }); process.exit(2); }
 
   log({ level: 'info', msg: 'autofix start', issueId, attemptId, mode, model, root, repo: repoEnv });
+
+  // Kill-switch + budget gates. Skip the expensive Claude call entirely
+  // if the pipeline is paused or out of money.
+  if (await isPaused()) {
+    log({ level: 'info', msg: 'autofix paused — skipping' });
+    await updateAttempt(attemptId, { status: 'skipped_paused', error_message: 'autofix_is_paused=true' });
+    process.exit(0);
+  }
+  if (await budgetExhausted('sentry')) {
+    log({ level: 'info', msg: 'sentry budget exhausted — skipping' });
+    await updateAttempt(attemptId, { status: 'skipped_budget', error_message: 'autofix_budget_exhausted' });
+    process.exit(0);
+  }
 
   await updateAttempt(attemptId, { status: 'running', run_id: process.env.GITHUB_RUN_ID || null });
 

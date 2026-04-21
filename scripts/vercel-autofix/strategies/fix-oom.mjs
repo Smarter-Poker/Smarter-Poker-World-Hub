@@ -2,102 +2,87 @@
 // ═════════════════════════════════════════════════════════════════════════
 // Deterministic OOM fix: bump NODE_OPTIONS max-old-space-size in
 // package.json's build script. Cap at 7168MB (leave 1GB for OS on 8GB
-// Vercel build machine). If already at cap, exit non-zero with a
-// "cannot_autofix" signal — humans must enable Enhanced Builds.
+// Vercel build machine). If already at cap, exit "already_at_cap" —
+// human needs to enable Vercel Enhanced Builds.
 //
-// Outputs (expected by open-pr.mjs):
-//   - git working tree has modified package.json
-//   - /tmp/vercel-autofix-commit-message.txt contains the commit body
+// Uses JSON.parse/stringify rather than regex-mutate so scripts with
+// escaped quotes don't corrupt.
 // ═════════════════════════════════════════════════════════════════════════
 
 import fs from 'node:fs';
-import { execSync } from 'node:child_process';
 import path from 'node:path';
 
 const CAP_MB = 7168;
 const STEP_MB = 1536;
 const PKG_PATH = path.resolve('package.json');
 
-function log(obj) {
-  console.log(JSON.stringify({ ts: new Date().toISOString(), ...obj }));
-}
-
-function fail(reason, extra = {}) {
-  log({ level: 'error', reason, ...extra });
-  process.exit(2);
-}
+function log(obj) { console.log(JSON.stringify({ ts: new Date().toISOString(), ...obj })); }
+function fail(reason, extra = {}) { log({ level: 'error', reason, ...extra }); process.exit(2); }
 
 const raw = fs.readFileSync(PKG_PATH, 'utf8');
-const buildScriptMatch = raw.match(/"build"\s*:\s*"([^"]+)"/);
-if (!buildScriptMatch) fail('no_build_script');
 
-const oldScript = buildScriptMatch[1];
+let pkg;
+try { pkg = JSON.parse(raw); }
+catch (e) { fail('package_json_unparseable', { err: String(e) }); }
+
+const oldScript = pkg?.scripts?.build;
+if (typeof oldScript !== 'string') fail('no_build_script');
+
 const heapMatch = oldScript.match(/max-old-space-size=(\d+)/);
-if (!heapMatch) {
-  // Prepend NODE_OPTIONS if the script has none
-  const newScript = `NODE_OPTIONS='--max-old-space-size=${CAP_MB}' ${oldScript}`;
-  const newRaw = raw.replace(
-    `"build": "${oldScript}"`,
-    `"build": "${newScript}"`
-  );
-  fs.writeFileSync(PKG_PATH, newRaw);
-  log({ level: 'info', action: 'added_node_options', newValue: CAP_MB });
-  writeCommitMsg({
-    title: `fix(build): add NODE_OPTIONS=max-old-space-size=${CAP_MB} to prevent Vercel OOM`,
-    body: oomBody({ old: 'none', next: CAP_MB }),
-  });
-  process.exit(0);
-}
+const current = heapMatch ? parseInt(heapMatch[1], 10) : null;
+let next, newScript;
 
-const current = parseInt(heapMatch[1], 10);
-if (current >= CAP_MB) {
+if (current === null) {
+  next = CAP_MB;
+  newScript = `NODE_OPTIONS='--max-old-space-size=${CAP_MB}' ${oldScript}`;
+} else if (current >= CAP_MB) {
   fail('already_at_cap', { current, cap: CAP_MB });
+} else {
+  next = Math.min(CAP_MB, current + STEP_MB);
+  newScript = oldScript.replace(/max-old-space-size=\d+/, `max-old-space-size=${next}`);
 }
 
-const next = Math.min(CAP_MB, current + STEP_MB);
-const newScript = oldScript.replace(
-  /max-old-space-size=\d+/,
-  `max-old-space-size=${next}`
-);
-const newRaw = raw.replace(
-  `"build": "${oldScript}"`,
-  `"build": "${newScript}"`
-);
-fs.writeFileSync(PKG_PATH, newRaw);
+pkg.scripts.build = newScript;
 
-execSync(`git diff --stat ${PKG_PATH}`, { stdio: 'inherit' });
+const indent = detectIndent(raw);
+const trailingNl = raw.endsWith('\n');
+fs.writeFileSync(PKG_PATH, JSON.stringify(pkg, null, indent) + (trailingNl ? '\n' : ''));
 
 log({
   level: 'info',
-  action: 'bumped_heap',
-  from: current,
-  to: next,
-  cap: CAP_MB,
+  action: current === null ? 'added_node_options' : 'bumped_heap',
+  from: current, to: next, cap: CAP_MB,
 });
 
-writeCommitMsg({
-  title: `fix(build): bump Node heap ${current}MB→${next}MB to prevent Vercel OOM`,
-  body: oomBody({ old: current, next }),
-});
+const title = current === null
+  ? `fix(build): add NODE_OPTIONS=max-old-space-size=${CAP_MB} to prevent Vercel OOM`
+  : `fix(build): bump Node heap ${current}MB→${next}MB to prevent Vercel OOM`;
 
-function oomBody({ old: oldMb, next }) {
-  return [
-    `Vercel deployment ${process.env.DEPLOYMENT_ID} OOMed on commit ${process.env.COMMIT_SHA}.`,
-    '',
-    'Build-log excerpt:',
-    '```',
-    (process.env.SNIPPET || '').slice(0, 1500),
-    '```',
-    '',
-    `Raised \`NODE_OPTIONS=--max-old-space-size\` from ${oldMb} → ${next} MB.`,
-    `Build machine has 8GB RAM; cap is ${CAP_MB} MB to leave ~1GB for OS + binaries.`,
-    '',
-    '---',
-    `Autofix attempt: ${process.env.ATTEMPT_ID || 'n/a'}`,
-  ].join('\n');
-}
+const body = [
+  `Vercel deployment ${process.env.DEPLOYMENT_ID} OOMed on commit ${process.env.COMMIT_SHA}.`,
+  '',
+  'Build-log excerpt:',
+  '```',
+  (process.env.SNIPPET || '').slice(0, 1500),
+  '```',
+  '',
+  current === null
+    ? `Added \`NODE_OPTIONS=--max-old-space-size=${CAP_MB}\` (was: none).`
+    : `Raised \`NODE_OPTIONS=--max-old-space-size\` from ${current} → ${next} MB.`,
+  `Build machine has 8GB RAM; cap is ${CAP_MB} MB to leave ~1GB for OS + binaries.`,
+  '',
+  '---',
+  `Autofix attempt: ${process.env.ATTEMPT_ID || 'n/a'}`,
+].join('\n');
 
-function writeCommitMsg({ title, body }) {
-  fs.writeFileSync('/tmp/vercel-autofix-commit-title.txt', title);
-  fs.writeFileSync('/tmp/vercel-autofix-commit-body.txt', body);
+fs.writeFileSync('/tmp/vercel-autofix-commit-title.txt', title);
+fs.writeFileSync('/tmp/vercel-autofix-commit-body.txt', body);
+// Per-strategy path allowlist consumed by open-pr.mjs
+fs.writeFileSync('/tmp/vercel-autofix-paths.txt', 'package.json\n');
+
+function detectIndent(text) {
+  const m = text.match(/\n([\t ]+)"/);
+  if (!m) return 2;
+  if (m[1].includes('\t')) return '\t';
+  return m[1].length || 2;
 }

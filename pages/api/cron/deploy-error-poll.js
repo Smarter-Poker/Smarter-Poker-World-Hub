@@ -129,22 +129,36 @@ export default async function handler(req, res) {
     const data = await deploymentsRes.json();
     const allDeployments = data.deployments || [];
 
-    // ── Step 1b: Auto-cancel stale preview-branch QUEUED builds (>5 min) ──
-    // Preview branch builds (sentry-autofix/, fix/, feature/) can clog the
-    // Vercel build concurrency slot, starving main from ever starting.
-    // We cancel any QUEUED preview build older than 5 minutes.
-    const stalePreviewQueueds = allDeployments.filter(d => {
+    // ── Step 1b: Auto-cancel stale, hung, and redundant builds ──
+    const nowMs = Date.now();
+
+    // 1. Stale Preview Queue: Cancel QUEUED preview branches >5m old (they clog concurrency)
+    const stalePreviewQueued = allDeployments.filter(d => {
       const branch = d.meta?.githubCommitRef || '';
-      const ageMs = Date.now() - d.createdAt;
-      return d.state === 'QUEUED' && branch !== 'main' && ageMs > 5 * 60 * 1000;
+      return d.state === 'QUEUED' && branch !== 'main' && (nowMs - d.createdAt) > 5 * 60 * 1000;
     });
-    for (const stale of stalePreviewQueueds) {
+
+    // 2. Hung Builds: Cancel ANY build (main or preview) stuck BUILDING for >15m
+    const hungBuilds = allDeployments.filter(d =>
+      d.state === 'BUILDING' && (nowMs - d.createdAt) > 15 * 60 * 1000
+    );
+
+    // 3. Redundant Main Queue: Keep only the NEWEST queued main build, cancel the rest
+    const mainQueued = allDeployments.filter(d => d.state === 'QUEUED' && (d.meta?.githubCommitRef || '') === 'main');
+    mainQueued.sort((a, b) => b.createdAt - a.createdAt); // newest first
+    const redundantMainQueued = mainQueued.slice(1);
+
+    const buildsToCancel = [...stalePreviewQueued, ...hungBuilds, ...redundantMainQueued];
+    const uniqueToCancel = [...new Map(buildsToCancel.map(item => [item.uid, item])).values()];
+
+    for (const stale of uniqueToCancel) {
       try {
         await fetch(`https://api.vercel.com/v12/deployments/${stale.uid}/cancel?teamId=${TEAM_ID}`, {
           method: 'PATCH',
           headers: { Authorization: `Bearer ${vercelToken}` },
         });
-        console.log(`[deploy-error-poll] Cancelled stale preview QUEUED build ${stale.uid} (branch: ${stale.meta?.githubCommitRef}, age: ${Math.round((Date.now()-stale.createdAt)/60000)}m)`);
+        const reason = stale.state === 'BUILDING' ? 'Hung >15m' : (stale.meta?.githubCommitRef === 'main' ? 'Redundant Queue' : 'Preview >5m');
+        console.log(`[deploy-error-poll] Cancelled ${stale.state} build ${stale.uid} (${reason}, branch: ${stale.meta?.githubCommitRef})`);
       } catch (e) {
         console.error(`[deploy-error-poll] Failed to cancel ${stale.uid}: ${e.message}`);
       }
