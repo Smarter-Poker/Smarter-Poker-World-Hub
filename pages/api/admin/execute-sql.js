@@ -243,8 +243,8 @@ export default async function handler(req, res) {
                   rows: finalRows,
                   ms
               });
-          } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-
+          } catch (e) {
+              console.warn('[execute-sql] Query error:', e?.message || e);
               return res.status(500).json({
                   success: false,
                   error: e.message
