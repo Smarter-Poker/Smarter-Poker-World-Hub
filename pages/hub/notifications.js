@@ -364,14 +364,35 @@ function NotificationsPage() {
         };
     }, [user?.id]);
 
-    const markAsRead = async (id) => {
-        // [Audit#12] Guard poker-prefixed IDs — they don't exist in DB
+    const markAsRead = (id) => {
+        // [Audit#18] EAGER STATE SYNCHRONIZATION: Update BFCache and React before DB
+        let isReadOptimistic = false;
+        if (mounted.current) {
+            setNotifications(prev => {
+                const target = prev.find(n => n.id === id);
+                if (target?.read) {
+                    isReadOptimistic = true;
+                    return prev;
+                }
+                const next = prev.map(n => n.id === id ? { ...n, read: true } : n);
+                try { localStorage.setItem('sp-notif-cache', JSON.stringify(next.slice(0, 30))); } catch (_) {}
+                return next;
+            });
+        }
+        
+        if (isReadOptimistic) return; // already read
+
+        // Sync badge localStorage and broadcast to header eagerly
+        try { localStorage.setItem('sp-notif-count', String(Math.max(0, parseInt(localStorage.getItem('sp-notif-count') || '0', 10) - 1))); } catch (_) {}
+        broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID });
+        eventBus.emit(EventType.NOTIFICATIONS_READ, { count: 1 }, 'NotificationsPage');
+        busEmit.dataMutated('notifications');
+
+        // Fire-and-forget DB update (do not block execution)
         const isPoker = typeof id === 'string' && id.startsWith('poker-');
         if (!isPoker && user?.id) {
-            // [Pass3-Fix] Include user_id for defense-in-depth (RLS also enforces this)
-            await supabase.from('notifications').update({ read: true }).eq('id', id).eq('user_id', user.id);
+            supabase.from('notifications').update({ read: true }).eq('id', id).eq('user_id', user.id).then();
         } else if (isPoker && user?.id) {
-            // [Audit#16] Properly hit poker API to mark read
             const realId = id.replace('poker-', '');
             getAccessToken().then(token => 
                 fetch('/api/poker/notifications', {
@@ -381,59 +402,41 @@ function NotificationsPage() {
                 }).catch(console.error)
             );
         }
+    };
+
+    const markAllAsRead = () => {
+        if (!user) return;
+        const unreadCount = notifications.filter(n => !n.read).length;
+        if (unreadCount === 0) return; // Nothing to do
+
+        // EAGER STATE SYNCHRONIZATION
         if (mounted.current) {
             setNotifications(prev => {
-                const next = prev.map(n => n.id === id ? { ...n, read: true } : n);
+                const next = prev.map(n => ({ ...n, read: true }));
                 try { localStorage.setItem('sp-notif-cache', JSON.stringify(next.slice(0, 30))); } catch (_) {}
                 return next;
             });
         }
-        // Sync badge localStorage and broadcast to header
-        try { localStorage.setItem('sp-notif-count', String(Math.max(0, parseInt(localStorage.getItem('sp-notif-count') || '0', 10) - 1))); } catch (_) {}
-        broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID });
-        eventBus.emit(EventType.NOTIFICATIONS_READ, { count: 1 }, 'NotificationsPage');
-        busEmit.dataMutated('notifications');
-    };
-
-    const markAllAsRead = async () => {
-        if (!user) return;
-        const unreadCount = notifications.filter(n => !n.read).length;
-        if (unreadCount === 0) return; // Nothing to do
-        
-        const hasSocial = notifications.some(n => !n.read && n._source === 'social');
-        const hasPoker = notifications.some(n => !n.read && n._source === 'poker');
-
-        const promises = [];
-        if (hasSocial) {
-            promises.push(supabase.from('notifications').update({ read: true }).eq('user_id', user.id).eq('read', false));
-        }
-        if (hasPoker) {
-            // [Audit#15] Also mark poker notifications as read
-            promises.push(
-                getAccessToken().then(token => 
-                    fetch('/api/poker/notifications', {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-                        body: JSON.stringify({ mark_all: true })
-                    }).catch(console.error)
-                )
-            );
-        }
-        await Promise.all(promises);
-
-        if (mounted.current) {
-            setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-            // Update cache so badge stays clear on next load
-            try {
-                const updated = notifications.map(n => ({ ...n, read: true }));
-                localStorage.setItem('sp-notif-cache', JSON.stringify(updated.slice(0, 30)));
-            } catch (_) {}
-        }
-        // [Pass1-Fix] Emit exact unread count (not hardcoded 1) so badge decrements fully
         try { localStorage.setItem('sp-notif-count', '0'); } catch (_) {}
         broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID });
         eventBus.emit(EventType.NOTIFICATIONS_READ, { count: unreadCount }, 'NotificationsPage');
         busEmit.dataMutated('notifications');
+        
+        const hasSocial = notifications.some(n => !n.read && n._source === 'social');
+        const hasPoker = notifications.some(n => !n.read && n._source === 'poker');
+
+        if (hasSocial) {
+            supabase.from('notifications').update({ read: true }).eq('user_id', user.id).eq('read', false).then();
+        }
+        if (hasPoker) {
+            getAccessToken().then(token => 
+                fetch('/api/poker/notifications', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                    body: JSON.stringify({ mark_all: true })
+                }).catch(console.error)
+            );
+        }
     };
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -469,23 +472,7 @@ function NotificationsPage() {
             }
 
             if (requestId) {
-                // Update request to accepted
-                await supabase.from('friendships').update({ status: 'accepted' }).eq('id', requestId);
-
-                // Create reverse friendship
-                await supabase.from('friendships').upsert({
-                    user_id: user.id,
-                    friend_id: requesterId,
-                    status: 'accepted'
-                }, { onConflict: 'user_id,friend_id' });
-
-                // Update notification to show accepted
-                await supabase.from('notifications').update({
-                    message: 'Is Now Your Friend!',
-                    type: 'friend_accepted'
-                }).eq('id', notification.id);
-
-                // Update local state
+                // EAGER STATE SYNCHRONIZATION
                 if (mounted.current) {
                     setNotifications(prev => {
                         const next = prev.map(n =>
@@ -498,6 +485,11 @@ function NotificationsPage() {
                     });
                     toast.success('Friend request accepted!');
                 }
+
+                // Fire-and-forget DB updates (do not block execution)
+                supabase.from('friendships').update({ status: 'accepted' }).eq('id', requestId).then();
+                supabase.from('friendships').upsert({ user_id: user.id, friend_id: requesterId, status: 'accepted' }, { onConflict: 'user_id,friend_id' }).then();
+                supabase.from('notifications').update({ message: 'Is Now Your Friend!', type: 'friend_accepted' }).eq('id', notification.id).then();
 
                 // Sync friends page cross-tab + EventBus
                 busEmit.dataMutated('friends');
@@ -526,33 +518,7 @@ function NotificationsPage() {
         }
 
         try {
-            // Delete the friend request using friendship_id if available
-            if (friendshipId) {
-                await supabase.from('friendships').delete().eq('id', friendshipId);
-            } else {
-                await supabase
-                    .from('friendships')
-                    .delete()
-                    .eq('user_id', requesterId)
-                    .eq('friend_id', user.id)
-                    .eq('status', 'pending');
-            }
-
-            //  smarter-poker-style: Auto-convert to follower
-            // The requester now FOLLOWS the person who declined
-            await supabase.from('follows').upsert({
-                follower_id: requesterId,     // Person who sent request
-                following_id: user.id,        // Person who declined (me)
-                source: 'declined_friend_request'
-            }, { onConflict: 'follower_id,following_id' });
-
-            // Update notification
-            await supabase.from('notifications').update({
-                message: 'Is Now Following You',
-                type: 'new_follow'
-            }).eq('id', notification.id);
-
-            // Update local state
+            // EAGER STATE SYNCHRONIZATION
             if (mounted.current) {
                 setNotifications(prev => {
                     const next = prev.map(n =>
@@ -563,8 +529,18 @@ function NotificationsPage() {
                     try { localStorage.setItem('sp-notif-cache', JSON.stringify(next.slice(0, 30))); } catch (_) {}
                     return next;
                 });
-                toast.success('Request declined \u2014 they now follow you.');
+                toast.success('Request declined — they now follow you.');
             }
+
+            // Fire-and-forget DB updates (do not block execution)
+            if (friendshipId) {
+                supabase.from('friendships').delete().eq('id', friendshipId).then();
+            } else {
+                supabase.from('friendships').delete().eq('user_id', requesterId).eq('friend_id', user.id).eq('status', 'pending').then();
+            }
+
+            supabase.from('follows').upsert({ follower_id: requesterId, following_id: user.id, source: 'declined_friend_request' }, { onConflict: 'follower_id,following_id' }).then();
+            supabase.from('notifications').update({ message: 'Is Now Following You', type: 'new_follow' }).eq('id', notification.id).then();
 
             // Sync friends page cross-tab + EventBus
             busEmit.dataMutated('friends');

@@ -73,7 +73,7 @@ export function prefetchProfile(userId, username) {
                     _cachedAt: Date.now(),
                     profile: profileRes.data,
                     stats: {
-                        friends: friendsCount.count ? Math.floor(friendsCount.count / 2) : 0,
+                        friends: friendsCount.count || 0,
                         following: followingCount.count || 0,
                         followers: followersCount.count || 0,
                         posts: 0, // Will be fetched on actual page visit

@@ -81,7 +81,7 @@ export function warmCache(user) {
                         _cachedAt: Date.now(),
                         profile: profileRes.data,
                         stats: {
-                            friends: friendsCount.count ? Math.floor(friendsCount.count / 2) : 0,
+                            friends: friendsCount.count || 0,
                             following: followingCount.count || 0,
                             followers: followersCount.count || 0,
                             posts: postsCount.count || 0,
