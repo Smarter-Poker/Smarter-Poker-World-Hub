@@ -456,35 +456,42 @@ export function ReelsViewer({ onClose }) {
     };
 
     const handleLike = async () => {
-        if (!currentReel || !currentUserId) return;
+        if (!currentReel) return;
         if (likeDebounceRef.current) return;
         likeDebounceRef.current = true;
         setTimeout(() => { likeDebounceRef.current = false; }, 300);
 
+        // Optimistic UI update — always fire so heart turns red immediately
         const wasLiked = liked[currentReel.id];
         setLiked(prev => ({ ...prev, [currentReel.id]: !prev[currentReel.id] }));
         setLikeCounts(prev => ({ ...prev, [currentReel.id]: Math.max(0, (prev[currentReel.id] || 0) + (wasLiked ? -1 : 1)) }));
         // #7 Animated Like Counter — trigger bounce
         setLikeBounceId(currentReel.id);
         setTimeout(() => setLikeBounceId(null), 400);
+
+        // Resolve userId fresh to avoid stale closure
+        const userId = currentUserId || getAuthUser()?.id;
+        if (!userId) return; // No auth — keep optimistic UI but skip DB write
+
         // Mutual exclusion: remove dislike when liking
         if (!wasLiked && disliked[currentReel.id]) {
             setDisliked(prev => ({ ...prev, [currentReel.id]: false }));
-            try { await supabase.from('social_likes').delete().eq('post_id', currentReel.id).eq('user_id', currentUserId).eq('reaction_type', 'dislike'); } catch (e) { console.warn('Handled exception:', e); }
+            try { await supabase.from('social_likes').delete().eq('post_id', currentReel.id).eq('user_id', userId).eq('reaction_type', 'dislike'); } catch (e) { console.warn('Handled exception:', e); }
         }
 
         try {
             if (wasLiked) {
-                await supabase.from('social_likes').delete().eq('post_id', currentReel.id).eq('user_id', currentUserId).eq('reaction_type', 'like');
-                busEmit.socialPostLiked(currentReel.id, currentUserId, { added: false, reactionType: 'like' });
+                await supabase.from('social_likes').delete().eq('post_id', currentReel.id).eq('user_id', userId).eq('reaction_type', 'like');
+                busEmit.socialPostLiked(currentReel.id, userId, { added: false, reactionType: 'like' });
                 try { await supabase.rpc('decrement_post_count', { p_post_id: currentReel.id, p_field: 'like_count' }); } catch (e) { console.warn('Handled exception:', e); }
             } else {
-                await supabase.from('social_likes').insert({ post_id: currentReel.id, user_id: currentUserId, reaction_type: 'like' });
-                busEmit.socialPostLiked(currentReel.id, currentUserId, { added: true, reactionType: 'like' });
+                await supabase.from('social_likes').insert({ post_id: currentReel.id, user_id: userId, reaction_type: 'like' });
+                busEmit.socialPostLiked(currentReel.id, userId, { added: true, reactionType: 'like' });
                 try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'like_count' }); } catch (e) { console.warn('Handled exception:', e); }
             }
         } catch (err) {
             console.warn('Reel like persistence failed:', err.message);
+            // Roll back optimistic update on failure
             setLiked(prev => ({ ...prev, [currentReel.id]: wasLiked }));
             setLikeCounts(prev => ({ ...prev, [currentReel.id]: Math.max(0, (prev[currentReel.id] || 0) + (wasLiked ? 1 : -1)) }));
             showErrorToast('Like failed \u2014 try again');
@@ -492,7 +499,7 @@ export function ReelsViewer({ onClose }) {
     };
 
     const handleDislike = async () => {
-        if (!currentReel || !currentUserId) return;
+        if (!currentReel) return;
         if (likeDebounceRef.current) return;
         likeDebounceRef.current = true;
         setTimeout(() => { likeDebounceRef.current = false; }, 300);
@@ -503,19 +510,26 @@ export function ReelsViewer({ onClose }) {
         if (!wasDisliked && liked[currentReel.id]) {
             setLiked(prev => ({ ...prev, [currentReel.id]: false }));
             setLikeCounts(prev => ({ ...prev, [currentReel.id]: Math.max(0, (prev[currentReel.id] || 0) - 1) }));
+        }
+
+        const userId = currentUserId || getAuthUser()?.id;
+        if (!userId) return; // No auth — keep optimistic UI but skip DB write
+
+        // Clean up like from DB if needed
+        if (!wasDisliked && liked[currentReel.id]) {
             try {
-                await supabase.from('social_likes').delete().eq('post_id', currentReel.id).eq('user_id', currentUserId).eq('reaction_type', 'like');
+                await supabase.from('social_likes').delete().eq('post_id', currentReel.id).eq('user_id', userId).eq('reaction_type', 'like');
                 try { await supabase.rpc('decrement_post_count', { p_post_id: currentReel.id, p_field: 'like_count' }); } catch (e) { console.warn('Handled exception:', e); }
             } catch (e) { console.warn('Handled exception:', e); }
         }
 
         try {
             if (wasDisliked) {
-                await supabase.from('social_likes').delete().eq('post_id', currentReel.id).eq('user_id', currentUserId).eq('reaction_type', 'dislike');
+                await supabase.from('social_likes').delete().eq('post_id', currentReel.id).eq('user_id', userId).eq('reaction_type', 'dislike');
                 // #4 Not Interested — remove from filter
                 setNotInterestedIds(prev => { const n = new Set(prev); n.delete(currentReel.id); if (typeof window !== 'undefined') localStorage.setItem('reels-not-interested', JSON.stringify([...n])); return n; });
             } else {
-                await supabase.from('social_likes').insert({ post_id: currentReel.id, user_id: currentUserId, reaction_type: 'dislike' });
+                await supabase.from('social_likes').insert({ post_id: currentReel.id, user_id: userId, reaction_type: 'dislike' });
                 // #4 Not Interested — add to filter
                 setNotInterestedIds(prev => { const n = new Set(prev); n.add(currentReel.id); if (typeof window !== 'undefined') localStorage.setItem('reels-not-interested', JSON.stringify([...n])); return n; });
             }

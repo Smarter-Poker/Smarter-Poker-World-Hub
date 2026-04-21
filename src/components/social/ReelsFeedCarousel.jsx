@@ -482,19 +482,24 @@ function ReelViewer({ reels, startIndex, onClose }) {
     }, [currentIndex, reels.length]);
 
     const handleLike = async () => {
-        if (!currentReel || !authUser?.id) return;
+        if (!currentReel) return;
         if (likeDebounceRef.current) return;
         likeDebounceRef.current = true;
         setTimeout(() => { likeDebounceRef.current = false; }, 300);
 
         const currentId = currentReel.id;
-        const userId = authUser.id;
+        // Optimistic UI update — always fire so heart turns red immediately
         const wasLiked = liked[currentId];
         setLiked(prev => ({ ...prev, [currentId]: !prev[currentId] }));
         setLikeCounts(prev => ({ ...prev, [currentId]: Math.max(0, (prev[currentId] || 0) + (wasLiked ? -1 : 1)) }));
         // #7 Animated Like Counter — trigger bounce
         setLikeBounceId(currentId);
         setTimeout(() => setLikeBounceId(null), 400);
+
+        // Resolve userId fresh to avoid stale closure if authUser not yet hydrated
+        const userId = authUser?.id || getAuthUser()?.id;
+        if (!userId) return; // No auth — keep optimistic UI but skip DB write
+
         // Mutual exclusion: remove dislike when liking
         if (!wasLiked && disliked[currentId]) {
             setDisliked(prev => ({ ...prev, [currentId]: false }));
@@ -513,9 +518,10 @@ function ReelViewer({ reels, startIndex, onClose }) {
             }
         } catch (err) {
             console.warn('Reel like persistence failed:', err.message);
+            // Roll back optimistic update on failure
             setLiked(prev => ({ ...prev, [currentId]: wasLiked }));
             setLikeCounts(prev => ({ ...prev, [currentId]: Math.max(0, (prev[currentId] || 0) + (wasLiked ? 1 : -1)) }));
-            showErrorToast('Like failed \u2014 try again');
+            showErrorToast('Like failed — try again');
         }
     };
 
