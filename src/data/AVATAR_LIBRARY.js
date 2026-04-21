@@ -795,7 +795,7 @@ export const AVATAR_STATS = {
     total: AVATAR_LIBRARY.length,
     free: getFreeAvatars().length,
     vip: getVIPAvatars().length,
-    categories: Object.keys(AVATAR_CATEGORIES).length,
+    categories: Object.keys(AVATAR_CATEGORIES || {}).length,
 };
 
 export default AVATAR_LIBRARY;

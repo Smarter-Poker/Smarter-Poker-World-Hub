@@ -565,7 +565,7 @@ export function RangeEquityMini({ board, heroRange, vilRange }) {
 
     const avgEquity = useMemo(() => {
         let total = 0, count = 0;
-        Object.entries(hero).forEach(([hand, weight]) => {
+        Object.entries(hero || {}).forEach(([hand, weight]) => {
             if (weight <= 0 || boardCards.length < 3) return;
             const cards = handNotationToCards(hand);
             if (boardConflicts(cards, boardCards)) return;

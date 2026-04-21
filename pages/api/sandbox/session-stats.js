@@ -66,7 +66,7 @@ export default async function handler(req, res) {
               if (r.is_correct) buckets[day].correct++;
           });
 
-          const accuracyTrend = Object.entries(buckets)
+          const accuracyTrend = Object.entries(buckets || {})
               .sort(([a], [b]) => a.localeCompare(b))
               .slice(-20)
               .map(([date, { total, correct }]) => ({
@@ -91,7 +91,7 @@ export default async function handler(req, res) {
               if (r.is_correct) positions[p].correct++;
           });
 
-          const positionStats = Object.entries(positions)
+          const positionStats = Object.entries(positions || {})
               .filter(([, v]) => v.total >= 2)
               .map(([pos, { total, correct }]) => ({
                   position: pos,
@@ -118,7 +118,7 @@ export default async function handler(req, res) {
               if (r.is_correct) streets[s].correct++;
           });
 
-          const streetStats = Object.entries(streets)
+          const streetStats = Object.entries(streets || {})
               .map(([street, { total, correct }]) => ({
                   street,
                   total,

@@ -453,7 +453,7 @@ export default async function handler(req, res) {
           agentUpdates.credit_limit = creditLimit;
         }
 
-        if (Object.keys(updates).length > 0) {
+        if (Object.keys(updates || {}).length > 0) {
           await getSupabase()
             .from('club_members')
             .update(updates)
@@ -461,7 +461,7 @@ export default async function handler(req, res) {
             .eq('user_id', targetUserId);
         }
 
-        if (Object.keys(agentUpdates).length > 0) {
+        if (Object.keys(agentUpdates || {}).length > 0) {
           await getSupabase()
             .from('agents')
             .update(agentUpdates)

@@ -73,7 +73,7 @@ const STORY_ARCS = {
     }
 };
 
-const ARC_TYPES = Object.keys(STORY_ARCS);
+const ARC_TYPES = Object.keys(STORY_ARCS || {});
 
 // In-memory arc cache (per function instance)
 const activeArcs = new Map();

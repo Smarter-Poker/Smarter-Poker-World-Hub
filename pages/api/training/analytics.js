@@ -63,7 +63,7 @@ function aggregateByField(answers, field) {
     });
 
     // Compute accuracy for each bucket
-    Object.values(buckets).forEach(b => {
+    Object.values(buckets || {}).forEach(b => {
         b.accuracy = b.total > 0 ? Math.round((b.correct / b.total) * 100) : 0;
         b.avgEvLoss = b.total > 0 ? parseFloat((b.evLoss / b.total).toFixed(3)) : 0;
     });
@@ -127,7 +127,7 @@ function extractMistakePatterns(answers) {
         patterns[key].classifications[cls] = (patterns[key].classifications[cls] || 0) + 1;
     });
 
-    return Object.values(patterns)
+    return Object.values(patterns || {})
         .map(p => ({
             ...p,
             avgEvLoss: p.count > 0 ? parseFloat((p.totalEvLoss / p.count).toFixed(3)) : 0,
@@ -212,7 +212,7 @@ function buildActionAccuracy(answers) {
         actions[action].classifications[cls] = (actions[action].classifications[cls] || 0) + 1;
     });
 
-    Object.values(actions).forEach(b => {
+    Object.values(actions || {}).forEach(b => {
         b.accuracy = b.total > 0 ? Math.round((b.correct / b.total) * 100) : 0;
         b.avgEvLoss = b.total > 0 ? parseFloat((b.evLoss / b.total).toFixed(3)) : 0;
     });

@@ -182,7 +182,7 @@ function analyzeWeakSpots(sessions) {
 }
 
 function getTopN(obj, n) {
-    return Object.entries(obj)
+    return Object.entries(obj || {})
         .sort((a, b) => b[1] - a[1])
         .slice(0, n);
 }

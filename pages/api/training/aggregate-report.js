@@ -157,8 +157,8 @@ export default async function handler(req, res) {
               actions.forEach(action => {
                   const freqMap = frequencies[action] || {};
                   const actionLower = action.toLowerCase();
-                  const totalFreq = Object.values(freqMap).reduce((sum, f) => sum + (f || 0), 0);
-                  const count = Object.keys(freqMap).length || 1;
+                  const totalFreq = Object.values(freqMap || {}).reduce((sum, f) => sum + (f || 0), 0);
+                  const count = Object.keys(freqMap || {}).length || 1;
                   const avgFreq = totalFreq / count;
 
                   if (actionLower.includes('bet') || actionLower.includes('raise') || actionLower.includes('cbet')) {
@@ -198,7 +198,7 @@ export default async function handler(req, res) {
           });
 
           // Build texture breakdown
-          const textures = Object.entries(textureAgg)
+          const textures = Object.entries(textureAgg || {})
               .map(([key, data]) => ({
                   texture: key,
                   ...(TEXTURE_META[key] || TEXTURE_META.unknown),
@@ -209,7 +209,7 @@ export default async function handler(req, res) {
               .sort((a, b) => b.spotCount - a.spotCount);
 
           // Build position breakdown
-          const positions = Object.entries(positionAgg)
+          const positions = Object.entries(positionAgg || {})
               .map(([pos, data]) => ({
                   position: pos,
                   spotCount: data.spotCount,

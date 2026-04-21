@@ -247,11 +247,11 @@ export default function HandReplayViewer({ handHistory, onClose }) {
                             </div>
 
                             {/* GTO Frequencies */}
-                            {Object.keys(gtoFreqs).length > 0 && (
+                            {Object.keys(gtoFreqs || {}).length > 0 && (
                                 <div style={{ marginTop: 12 }}>
                                     <div style={styles.sectionLabel}>GTO FREQUENCIES</div>
                                     <div style={styles.freqBars}>
-                                        {Object.entries(gtoFreqs)
+                                        {Object.entries(gtoFreqs || {})
                                             .sort(([, a], [, b]) => b - a)
                                             .map(([action, freq]) => (
                                                 <div key={action} style={styles.freqRow}>
@@ -319,10 +319,10 @@ export default function HandReplayViewer({ handHistory, onClose }) {
                             )}
 
                             {/* Phase 27: Per-Action EV comparison */}
-                            {handData.evData?.actionEVs && Object.keys(handData.evData.actionEVs).length > 0 && (
+                            {handData.evData?.actionEVs && Object.keys(handData.evData.actionEVs || {}).length > 0 && (
                                 <div style={{ marginTop: 10 }}>
                                     <div style={styles.sectionLabel}>EV BY ACTION</div>
-                                    {Object.entries(handData.evData.actionEVs)
+                                    {Object.entries(handData.evData.actionEVs || {})
                                         .sort(([, a], [, b]) => b - a)
                                         .map(([action, ev]) => {
                                             const isOptimal = action === handData.correctAction ||
@@ -356,11 +356,11 @@ export default function HandReplayViewer({ handHistory, onClose }) {
                     </AnimatePresence>
 
                     {/* ═══ PHASE 20: Range Grid — Full solver range for this spot ═══ */}
-                    {handData.rawFrequencies && Object.keys(handData.rawFrequencies).length > 0 && (
+                    {handData.rawFrequencies && Object.keys(handData.rawFrequencies || {}).length > 0 && (
                         <RangeGridSection
                             rawFrequencies={handData.rawFrequencies}
                             heroHand={handData.heroHand || (Array.isArray(handData.heroCards) ? handData.heroCards.map(c => c[0]).join('') : null)}
-                            actions={Object.keys(handData.rawFrequencies)}
+                            actions={Object.keys(handData.rawFrequencies || {})}
                             board={handData.board}
                             heroPosition={handData.heroPosition}
                             heroCards={handData.heroCards}
@@ -471,10 +471,10 @@ function RangeGridSection({ rawFrequencies, heroHand, actions, board, heroPositi
     const gridData = useMemo(() => {
         if (!rawFrequencies) return {};
         const data = {};
-        for (const [action, handFreqs] of Object.entries(rawFrequencies)) {
+        for (const [action, handFreqs] of Object.entries(rawFrequencies || {})) {
             if (typeof handFreqs !== 'object') continue;
             data[action] = {};
-            for (const [hand, freq] of Object.entries(handFreqs)) {
+            for (const [hand, freq] of Object.entries(handFreqs || {})) {
                 // Engine stores 0.0-1.0, RangeGrid expects 0-100
                 data[action][hand] = typeof freq === 'number' ? Math.round(freq * 100) : 0;
             }
@@ -511,15 +511,15 @@ function RangeGridSection({ rawFrequencies, heroHand, actions, board, heroPositi
 
     // ═══ PHASE 21: Compute approximate equity from solver frequencies ═══
     const equityData = useMemo(() => {
-        if (!gridData || Object.keys(gridData).length === 0) return null;
+        if (!gridData || Object.keys(gridData || {}).length === 0) return null;
         // Hero equity approximation: higher betting/raising frequency = more equity
         // Fold-heavy range = less equity for hero
         let totalFreq = 0;
         let aggressiveFreq = 0;
         let passiveFreq = 0;
         let foldFreq = 0;
-        for (const [action, handFreqs] of Object.entries(gridData)) {
-            const sum = Object.values(handFreqs).reduce((s, v) => s + (v || 0), 0);
+        for (const [action, handFreqs] of Object.entries(gridData || {})) {
+            const sum = Object.values(handFreqs || {}).reduce((s, v) => s + (v || 0), 0);
             const actionLower = action.toLowerCase();
             if (actionLower.includes('fold') || actionLower === 'f') {
                 foldFreq += sum;
@@ -550,7 +550,7 @@ function RangeGridSection({ rawFrequencies, heroHand, actions, board, heroPositi
                     : i < j ? `${RANKS[i]}${RANKS[j]}s`
                     : `${RANKS[j]}${RANKS[i]}o`;
                 const cellActions = {};
-                for (const [action, handFreqs] of Object.entries(gridData)) {
+                for (const [action, handFreqs] of Object.entries(gridData || {})) {
                     cellActions[action] = handFreqs[handKey] || 0;
                 }
                 grid[i][j] = { actions: cellActions };
@@ -559,7 +559,7 @@ function RangeGridSection({ rawFrequencies, heroHand, actions, board, heroPositi
         return grid;
     }, [gridData]);
 
-    if (!gridData || Object.keys(gridData).length === 0) return null;
+    if (!gridData || Object.keys(gridData || {}).length === 0) return null;
 
     return (
         <motion.div
@@ -646,7 +646,7 @@ function RangeGridSection({ rawFrequencies, heroHand, actions, board, heroPositi
                         )}
 
                         {/* ═══ PHASE 21+: Solver Tree Viewer — Decision tree ═══ */}
-                        {gridData && Object.keys(gridData).length > 0 && (
+                        {gridData && Object.keys(gridData || {}).length > 0 && (
                             <SolverTreeSection
                                 gridData={gridData}
                                 actions={actions}
@@ -696,8 +696,8 @@ function RunoutHeatmapSection({ boardCards, heldCards, gridData, actions }) {
         // Count flush draw potential
         const suitCounts = {};
         [...boardSuits, ...heroSuits].forEach(s => { suitCounts[s] = (suitCounts[s] || 0) + 1; });
-        const flushDrawSuit = Object.entries(suitCounts).find(([, c]) => c >= 4)?.[0] || null;
-        const hasFlushDraw = Object.values(suitCounts).some(c => c === 4);
+        const flushDrawSuit = Object.entries(suitCounts || {}).find(([, c]) => c >= 4)?.[0] || null;
+        const hasFlushDraw = Object.values(suitCounts || {}).some(c => c === 4);
 
         // Detect straight draw potential (simplified)
         const rankValues = { 'A': 14, 'K': 13, 'Q': 12, 'J': 11, 'T': 10, '9': 9, '8': 8, '7': 7, '6': 6, '5': 5, '4': 4, '3': 3, '2': 2 };
@@ -707,9 +707,9 @@ function RunoutHeatmapSection({ boardCards, heldCards, gridData, actions }) {
         let heroAggrPct = 0;
         let totalPct = 0;
         if (gridData) {
-            for (const [action, handFreqs] of Object.entries(gridData)) {
+            for (const [action, handFreqs] of Object.entries(gridData || {})) {
                 const al = action.toLowerCase();
-                const sum = Object.values(handFreqs).reduce((s, v) => s + (v || 0), 0);
+                const sum = Object.values(handFreqs || {}).reduce((s, v) => s + (v || 0), 0);
                 if (al.includes('bet') || al.includes('raise') || al === 'r' || al.startsWith('b')) {
                     heroAggrPct += sum;
                 }
@@ -767,7 +767,7 @@ function RunoutHeatmapSection({ boardCards, heldCards, gridData, actions }) {
         return { runoutData: data, deadCards: dead };
     }, [boardCards, heldCards, gridData, actions]);
 
-    if (!runoutData || Object.keys(runoutData).length === 0) return null;
+    if (!runoutData || Object.keys(runoutData || {}).length === 0) return null;
 
     return (
         <div style={{ marginTop: 10 }}>
@@ -815,9 +815,9 @@ function SolverTreeSection({ gridData, actions, street }) {
         if (!gridData) return null;
         // Aggregate action frequencies across all hands
         const actionTotals = {};
-        for (const [action, handFreqs] of Object.entries(gridData)) {
-            const sum = Object.values(handFreqs).reduce((s, v) => s + (v || 0), 0);
-            const count = Object.values(handFreqs).filter(v => v > 0).length;
+        for (const [action, handFreqs] of Object.entries(gridData || {})) {
+            const sum = Object.values(handFreqs || {}).reduce((s, v) => s + (v || 0), 0);
+            const count = Object.values(handFreqs || {}).filter(v => v > 0).length;
             actionTotals[action] = count > 0 ? sum / count : 0; // average frequency
         }
         return { actions: actionTotals, street };

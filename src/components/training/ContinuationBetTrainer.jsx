@@ -75,7 +75,7 @@ function ContinuationBetTrainer() {
     setUserDecision(decision);
     setShowAnswer(true);
     const optimal = scenario.cbetBreakdown;
-    const best = Object.entries(optimal).sort((a, b) => b[1] - a[1])[0][0];
+    const best = Object.entries(optimal || {}).sort((a, b) => b[1] - a[1])[0][0];
     const isCorrect = decision === best;
     setScore(prev => ({ correct: prev.correct + (isCorrect ? 1 : 0), total: prev.total + 1 }));
   };
@@ -90,7 +90,7 @@ function ContinuationBetTrainer() {
 
   const bestAction = useMemo(() => {
     const bd = scenario.cbetBreakdown;
-    return Object.entries(bd).sort((a, b) => b[1] - a[1])[0][0];
+    return Object.entries(bd || {}).sort((a, b) => b[1] - a[1])[0][0];
   }, [scenario]);
 
   try {

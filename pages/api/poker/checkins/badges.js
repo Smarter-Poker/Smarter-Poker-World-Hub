@@ -55,7 +55,7 @@ export default async function handler(req, res) {
         for (const c of checkins) {
             venueCountMap[c.venue_id] = (venueCountMap[c.venue_id] || 0) + 1;
         }
-        const maxAtOneVenue = Math.max(...Object.values(venueCountMap));
+        const maxAtOneVenue = Math.max(...Object.values(venueCountMap || {}));
 
         // Resolve states for venue IDs
         const venueIds = [...venueSet].map(v => parseInt(v, 10)).filter(n => !isNaN(n) && n > 0);

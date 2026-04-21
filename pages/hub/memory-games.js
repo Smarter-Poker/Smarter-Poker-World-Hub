@@ -75,7 +75,7 @@ function gradeUserGrid(userGrid, solution) {
     const extraHands = [];
     const wrongActionHands = [];
 
-    for (const [hand, correctAction] of Object.entries(solution)) {
+    for (const [hand, correctAction] of Object.entries(solution || {})) {
         const userAction = userGrid[hand];
         if (!userAction || userAction === 'fold') {
             missedHands.push(hand);
@@ -86,13 +86,13 @@ function gradeUserGrid(userGrid, solution) {
         }
     }
 
-    for (const [hand, userAction] of Object.entries(userGrid)) {
+    for (const [hand, userAction] of Object.entries(userGrid || {})) {
         if (!solution[hand] && userAction && userAction !== 'fold') {
             extraHands.push(hand);
         }
     }
 
-    const totalSolutionHands = Object.keys(solution).length;
+    const totalSolutionHands = Object.keys(solution || {}).length;
     const mistakes = missedHands.length + extraHands.length + wrongActionHands.length;
     const score = totalSolutionHands > 0
         ? Math.round(((totalSolutionHands - missedHands.length - wrongActionHands.length) / totalSolutionHands) * 100)
@@ -364,7 +364,7 @@ export default function MemoryGamesPage() {
         const handleKeyDown = (e) => {
             if (mode !== 'game' || gradeResult) return;
             const key = e.key;
-            const actions = Object.entries(ACTION_COLORS);
+            const actions = Object.entries(ACTION_COLORS || {});
             const found = actions.find(([_, v]) => v.key === key);
             if (found) {
                 setSelectedAction(found[0]);
@@ -478,7 +478,7 @@ export default function MemoryGamesPage() {
             let levelScenarios = getScenariosByLevel(level);
 
             // Apply filters if any are active
-            if (Object.keys(scenarioFilters).filter(k => scenarioFilters[k]).length > 0) {
+            if (Object.keys(scenarioFilters || {}).filter(k => scenarioFilters[k]).length > 0) {
                 levelScenarios = filterScenarios(levelScenarios, scenarioFilters);
             }
 
@@ -2149,7 +2149,7 @@ export default function MemoryGamesPage() {
                                                 }}
                                             >
                                                 🔍 {showFilters ? 'Hide Filters' : 'Filter Scenarios'}
-                                                {Object.keys(scenarioFilters).filter(k => scenarioFilters[k]).length > 0 && (
+                                                {Object.keys(scenarioFilters || {}).filter(k => scenarioFilters[k]).length > 0 && (
                                                     <span style={{
                                                         background: '#00D4FF',
                                                         color: '#000',
@@ -2158,7 +2158,7 @@ export default function MemoryGamesPage() {
                                                         fontSize: 11,
                                                         fontWeight: 700,
                                                     }}>
-                                                        {Object.keys(scenarioFilters).filter(k => scenarioFilters[k]).length}
+                                                        {Object.keys(scenarioFilters || {}).filter(k => scenarioFilters[k]).length}
                                                     </span>
                                                 )}
                                             </button>
@@ -2564,7 +2564,7 @@ export default function MemoryGamesPage() {
 
                             {/* Action Bar */}
                             <div style={styles.actionBar}>
-                                {Object.entries(ACTION_COLORS).map(([action, { bg, border, label, key }]) => (
+                                {Object.entries(ACTION_COLORS || {}).map(([action, { bg, border, label, key }]) => (
                                     <button
                                         key={action}
                                         onClick={() => setSelectedAction(action)}

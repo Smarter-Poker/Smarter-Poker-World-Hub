@@ -115,7 +115,7 @@ export default function StudyPlanCurriculum() {
 
   const overallProgress = useMemo(() => {
     const total = CURRICULUM.reduce((sum, c) => sum + c.modules.length, 0);
-    const completed = Object.values(progress).filter(p => p === 'completed').length;
+    const completed = Object.values(progress || {}).filter(p => p === 'completed').length;
     return { completed, total, pct: total > 0 ? Math.round(completed / total * 100) : 0 };
   }, [progress]);
 

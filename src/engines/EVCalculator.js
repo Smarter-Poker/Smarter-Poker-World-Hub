@@ -108,7 +108,7 @@ export function calculateActionEVs(params) {
     // Find best action
     let bestAction = null;
     let bestEV = -Infinity;
-    for (const [action, data] of Object.entries(actions)) {
+    for (const [action, data] of Object.entries(actions || {})) {
         if (data.ev > bestEV) {
             bestEV = data.ev;
             bestAction = action;
@@ -129,7 +129,7 @@ export function calculateActionEVs(params) {
         const gtoFreq = gtoStrategy.frequency || 0.5;
 
         // Map GTO action to our action keys
-        for (const key of Object.keys(actions)) {
+        for (const key of Object.keys(actions || {})) {
             if (key === gtoAction || key.startsWith(gtoAction)) {
                 actions[key].frequency = gtoFreq;
             } else if (key === 'check' && gtoAction === 'check') {
@@ -210,7 +210,7 @@ export function calculateMixedStrategyEV(actionEVs) {
     let totalEV = 0;
     let totalFreq = 0;
 
-    for (const [action, data] of Object.entries(actionEVs.actions)) {
+    for (const [action, data] of Object.entries(actionEVs.actions || {})) {
         if (data.frequency > 0) {
             totalEV += data.ev * data.frequency;
             totalFreq += data.frequency;

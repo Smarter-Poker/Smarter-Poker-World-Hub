@@ -163,7 +163,7 @@ export default function GtoPreloaderPage() {
     if (!idbReady) return '0.00';
     const sizes = { '100bb-6max': 1200, '20bb-mtt': 450, 'hu-40bb': 800, 'live-200bb': 2400 };
     let total = 0;
-    Object.entries(downloads).forEach(([id, data]) => {
+    Object.entries(downloads || {}).forEach(([id, data]) => {
       if (data.status === 'done') total += sizes[id];
       else if (data.status === 'downloading') total += sizes[id] * (data.progress / 100);
     });

@@ -192,7 +192,7 @@ async function syncFreeroll(freeroll) {
     let upserted = 0;
     let qualified = 0;
 
-    for (const pid of Object.keys(playerData)) {
+    for (const pid of Object.keys(playerData || {})) {
         // Skip players who were manually qualified — don't overwrite their status
         if (manualPlayerIds.has(pid)) continue;
 
@@ -239,7 +239,7 @@ async function syncFreeroll(freeroll) {
         status: 'synced',
         players_processed: upserted,
         players_qualified: qualified,
-        total_players_found: Object.keys(playerData).length,
+        total_players_found: Object.keys(playerData || {}).length,
         date_range: dateRange,
     };
 }

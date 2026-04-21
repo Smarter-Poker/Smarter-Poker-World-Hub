@@ -91,7 +91,7 @@ export default async function handler(req, res) {
               });
           });
 
-          const venues = Object.values(gamesByVenue)
+          const venues = Object.values(gamesByVenue || {})
               .sort((a, b) => a.distance_miles - b.distance_miles)
               .slice(0, parseInt(limit));
 

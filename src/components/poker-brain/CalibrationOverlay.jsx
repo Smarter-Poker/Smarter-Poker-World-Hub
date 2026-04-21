@@ -459,7 +459,7 @@ export function mergeLayoutWithOverrides(base, overrides) {
     // so overrides must be applied there too — otherwise calibration edits
     // to hole card positions have no effect on actual detection.
     if (out.holeCardsByVariant) {
-      for (const [vKey, vArr] of Object.entries(out.holeCardsByVariant)) {
+      for (const [vKey, vArr] of Object.entries(out.holeCardsByVariant || {})) {
         if (!Array.isArray(vArr)) continue;
         overrides.holeCards.forEach((o, i) => {
           if (o && vArr[i]) vArr[i] = { ...vArr[i], ...o };
@@ -471,7 +471,7 @@ export function mergeLayoutWithOverrides(base, overrides) {
   // Full holeCardsByVariant override — replaces entire variant arrays
   if (overrides.holeCardsByVariant) {
     out.holeCardsByVariant = out.holeCardsByVariant || {};
-    for (const [vKey, vArr] of Object.entries(overrides.holeCardsByVariant)) {
+    for (const [vKey, vArr] of Object.entries(overrides.holeCardsByVariant || {})) {
       if (Array.isArray(vArr)) {
         out.holeCardsByVariant[vKey] = vArr;
       }
@@ -485,13 +485,13 @@ export function mergeLayoutWithOverrides(base, overrides) {
   }
   if (overrides.ocrRegions) {
     out.ocrRegions = { ...(out.ocrRegions || {}) };
-    Object.entries(overrides.ocrRegions).forEach(([k, v]) => {
+    Object.entries(overrides.ocrRegions || {}).forEach(([k, v]) => {
       out.ocrRegions[k] = { ...(out.ocrRegions[k] || {}), ...v };
     });
   }
   if (overrides.actionButtons) {
     out.actionButtons = { ...(out.actionButtons || {}) };
-    Object.entries(overrides.actionButtons).forEach(([k, v]) => {
+    Object.entries(overrides.actionButtons || {}).forEach(([k, v]) => {
       out.actionButtons[k] = { ...(out.actionButtons[k] || {}), ...v };
     });
   }

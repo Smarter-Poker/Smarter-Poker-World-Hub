@@ -313,7 +313,7 @@ export const EnhancedSpatialFeed = ({
         <div className="enhanced-spatial-feed">
             {/* Filter Sub-Rail */}
             <nav className="feed-filters glass-panel">
-                {Object.entries(EXTENDED_FILTERS).map(([key, config]) => (
+                {Object.entries(EXTENDED_FILTERS || {}).map(([key, config]) => (
                     <button
                         key={key}
                         className={`filter-tab interactive ${activeFilter === key ? 'active' : ''}`}

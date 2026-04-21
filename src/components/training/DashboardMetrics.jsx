@@ -120,7 +120,7 @@ export function ClassificationDonut({ handHistory = [], gtowScore = 0, previousS
     };
 
     let currentOffset = 0;
-    const segments = Object.entries(counts).map(([key, count]) => {
+    const segments = Object.entries(counts || {}).map(([key, count]) => {
         if (count === 0) return null;
         const percentage = (count / total) * 100;
         const dashArray = `${percentage} ${100 - percentage}`;
@@ -172,7 +172,7 @@ export function ClassificationDonut({ handHistory = [], gtowScore = 0, previousS
                     <span>Accuracy Breakdown</span>
                     {historicalScores.length > 0 && <Sparkline data={historicalScores} color="#3b82f6" />}
                 </div>
-                {Object.entries(counts).filter(([_, c]) => c > 0).map(([key, count]) => (
+                {Object.entries(counts || {}).filter(([_, c]) => c > 0).map(([key, count]) => (
                     <div
                         key={key}
                         style={{

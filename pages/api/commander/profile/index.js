@@ -149,7 +149,7 @@ async function updateProfile(req, res, user) {
     const { preferences, ...profileUpdates } = req.body;
 
     // Update profile if there are updates
-    if (Object.keys(profileUpdates).length > 0) {
+    if (Object.keys(profileUpdates || {}).length > 0) {
       const { error: profileError } = await getSupabase()
         .from('profiles')
         .update(profileUpdates)

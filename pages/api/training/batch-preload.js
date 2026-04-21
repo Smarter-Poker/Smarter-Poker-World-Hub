@@ -271,18 +271,18 @@ export default async function handler(req, res) {
               }
 
               // 3. Ensure gtoFrequencies
-              if (!qData.gtoFrequencies || Object.keys(qData.gtoFrequencies).length === 0) {
+              if (!qData.gtoFrequencies || Object.keys(qData.gtoFrequencies || {}).length === 0) {
                   // Try PIO raw frequencies first
                   if (qData.frequencies) {
                       qData.gtoFrequencies = {};
-                      Object.entries(qData.frequencies).forEach(([action, freq]) => {
+                      Object.entries(qData.frequencies || {}).forEach(([action, freq]) => {
                           if (typeof freq === 'number' && freq >= 0 && freq <= 1) {
                               qData.gtoFrequencies[action] = Math.round(freq * 100);
                           }
                       });
                   }
                   // If still empty, generate deterministic defaults based on action type
-                  if (!qData.gtoFrequencies || Object.keys(qData.gtoFrequencies).length === 0) {
+                  if (!qData.gtoFrequencies || Object.keys(qData.gtoFrequencies || {}).length === 0) {
                       qData.gtoFrequencies = {};
                       let remaining = 100;
 
@@ -315,7 +315,7 @@ export default async function handler(req, res) {
                       });
 
                       // 3. Absolute Checksum enforcement over the real target string
-                      const sum = Object.values(qData.gtoFrequencies).reduce((s, v) => s + v, 0);
+                      const sum = Object.values(qData.gtoFrequencies || {}).reduce((s, v) => s + v, 0);
                       if (sum !== 100 && correctAnswer) {
                           qData.gtoFrequencies[correctAnswer] = (qData.gtoFrequencies[correctAnswer] || 0) + (100 - sum);
                       }

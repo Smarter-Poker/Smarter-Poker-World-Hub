@@ -58,7 +58,7 @@ class ContentScheduler {
         const usedPersonaSlots = {}; // Track posts per persona
 
         // Generate slots for each content type based on daily mix
-        for (const [contentType, count] of Object.entries(SCHEDULE_CONFIG.DAILY_MIX)) {
+        for (const [contentType, count] of Object.entries(SCHEDULE_CONFIG.DAILY_MIX || {})) {
             for (let i = 0; i < count; i++) {
                 // Pick a random persona that hasn't hit their limit
                 const availablePersonas = personas.personas.filter(p => {

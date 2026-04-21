@@ -102,7 +102,7 @@ function getCardImagePath(card, options = {}) {
  * @returns {string} Full path like "/images/card-backs/blue.jpg"
  */
 function getCardBackPath(color = DEFAULT_CARD_BACK, basePath = '') {
-  if (!Object.values(CARD_BACKS).includes(color)) {
+  if (!Object.values(CARD_BACKS || {}).includes(color)) {
     color = DEFAULT_CARD_BACK;
   }
   return `${basePath}${ASSET_CONFIG.cardBackPath}/${color}.jpg`;
@@ -133,7 +133,7 @@ function buildFullAssetMap(options = {}) {
   }
   // Add card backs
   map.backs = {};
-  for (const color of Object.values(CARD_BACKS)) {
+  for (const color of Object.values(CARD_BACKS || {})) {
     map.backs[color] = getCardBackPath(color, options.basePath || '');
   }
   return map;
@@ -223,7 +223,7 @@ function validateAssets(publicDir) {
   }
   
   // Check card backs
-  for (const color of Object.values(CARD_BACKS)) {
+  for (const color of Object.values(CARD_BACKS || {})) {
     const filePath = path.join(publicDir, getCardBackPath(color));
     if (!fs.existsSync(filePath)) {
       missing.push(filePath);

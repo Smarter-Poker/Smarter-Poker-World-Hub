@@ -563,7 +563,7 @@ const res = await commanderFetch(`/api/commander/tournaments/${id}/clock`, {
                   {(blinds.ante || 0) > 0 && <div style={{ ...S.blindsAnte, color: '#FFFFFF' }}>BB Ante: {(blinds.ante || 0).toLocaleString()}</div>}
                 </div>
 
-                {nextBlinds && Object.keys(nextBlinds).length > 0 && (
+                {nextBlinds && Object.keys(nextBlinds || {}).length > 0 && (
                   <div style={S.nextRound}>
                     {nextBlinds.is_break ? (
                       <>

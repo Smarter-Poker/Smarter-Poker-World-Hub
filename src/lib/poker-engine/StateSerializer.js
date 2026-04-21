@@ -220,17 +220,17 @@ class StateSerializer {
         if (h.potCalculator && game.potCalculator) {
           const pc = game.potCalculator;
           if (h.potCalculator.investments) {
-            for (const [pid, amt] of Object.entries(h.potCalculator.investments)) {
+            for (const [pid, amt] of Object.entries(h.potCalculator.investments || {})) {
               pc._investments.set(pid, amt);
             }
           }
           if (h.potCalculator.folded) {
-            for (const [pid, val] of Object.entries(h.potCalculator.folded)) {
+            for (const [pid, val] of Object.entries(h.potCalculator.folded || {})) {
               pc._folded.set(pid, val);
             }
           }
           if (h.potCalculator.allIn) {
-            for (const [pid, val] of Object.entries(h.potCalculator.allIn)) {
+            for (const [pid, val] of Object.entries(h.potCalculator.allIn || {})) {
               pc._allIn.set(pid, val);
             }
           }

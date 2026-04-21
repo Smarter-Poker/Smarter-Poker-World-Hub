@@ -44,7 +44,7 @@ const FREQUENCY_DATA = {
   },
 };
 
-const SCENARIOS = Object.keys(FREQUENCY_DATA);
+const SCENARIOS = Object.keys(FREQUENCY_DATA || {});
 
 function getHeatColor(value, maxVal) {
   if (value === 0) return 'rgba(255,255,255,0.03)';
@@ -103,8 +103,8 @@ function PositionFrequencyHeatmap() {
     const { pos } = selectedCell;
     const posData = data[pos];
     if (!posData) return null;
-    const total = Object.values(posData).reduce((s, v) => s + v, 0);
-    const topAction = Object.entries(posData).sort((a, b) => b[1] - a[1])[0];
+    const total = Object.values(posData || {}).reduce((s, v) => s + v, 0);
+    const topAction = Object.entries(posData || {}).sort((a, b) => b[1] - a[1])[0];
     return { pos, total, topAction: topAction[0], topFreq: topAction[1] };
   }, [selectedCell, data]);
 

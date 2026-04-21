@@ -121,7 +121,7 @@ What hands should I shove from each position? Give me a quick chart.`;
                     Tournament Phase:
                 </p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                    {(Object.keys(PHASE_INFO) as Array<keyof typeof PHASE_INFO>).map(phase => (
+                    {(Object.keys(PHASE_INFO || {}) as Array<keyof typeof PHASE_INFO>).map(phase => (
                         <button
                             key={phase}
                             onClick={() => setState(s => ({ ...s, phase }))}

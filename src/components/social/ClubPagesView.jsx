@@ -94,7 +94,7 @@ export default function ClubPagesView({ C, pages, setPages, loading, setLoading,
             // Extract JWT from Supabase localStorage key — required by the follow API
             let _token = null;
             try {
-                const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+                const sbKeys = Object.keys(localStorage || {}).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
                 if (sbKeys.length > 0) { const td = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}'); _token = td.access_token || null; }
             } catch (e) { console.warn('[App] Handled exception:', e); }
             if (!_token) return; // Skip — anonymous users only get localStorage state synced above

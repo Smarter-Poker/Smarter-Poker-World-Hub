@@ -318,7 +318,7 @@ export function getQuestionById(gameId, questionId) {
  */
 export function getTotalQuestionCount() {
     let count = 0;
-    Object.values(QUESTIONS_DATABASE).forEach(questions => {
+    Object.values(QUESTIONS_DATABASE || {}).forEach(questions => {
         count += questions.length;
     });
     return count;

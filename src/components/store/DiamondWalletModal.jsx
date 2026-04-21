@@ -1161,7 +1161,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         });
 
         // Top 5 sources
-        const topSources = Object.entries(sourceMap)
+        const topSources = Object.entries(sourceMap || {})
             .sort((a, b) => b[1] - a[1])
             .slice(0, 5);
 
@@ -1181,7 +1181,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 giftsReceived += Math.abs(tx.amount ?? 0);
             }
         });
-        const topRecipients = Object.entries(recipientMap).sort((a, b) => b[1] - a[1]).slice(0, 3);
+        const topRecipients = Object.entries(recipientMap || {}).sort((a, b) => b[1] - a[1]).slice(0, 3);
 
         // R8-I5: Monthly summary with month-over-month comparison
         const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);

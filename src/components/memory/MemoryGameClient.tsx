@@ -346,7 +346,7 @@ export default function MemoryGameClient({
 
     const dealNextHand = () => {
         const chartGrid = gameState.chartData.hand_matrix || {};
-        const allHands = Object.keys(chartGrid);
+        const allHands = Object.keys(chartGrid || {});
 
         // Filter out seen hands
         const unseenHands = allHands.filter(h => !gameState.seenHands.has(h));

@@ -438,7 +438,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                 </div>
 
                 {/* Display reactions */}
-                {Object.keys(groupedReactions).length > 0 && (
+                {Object.keys(groupedReactions || {}).length > 0 && (
                     <div style={{
                         position: 'absolute',
                         bottom: -8,
@@ -451,7 +451,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                         boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
                         fontSize: 12,
                     }}>
-                        {Object.entries(groupedReactions).map(([emoji, count]) => (
+                        {Object.entries(groupedReactions || {}).map(([emoji, count]) => (
                             <span key={emoji} style={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 {emoji}{count > 1 && <span style={{ fontSize: 10, color: C.textSec }}>{count}</span>}
                             </span>

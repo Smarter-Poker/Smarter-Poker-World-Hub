@@ -23,7 +23,7 @@ export default class TableManager {
       if (raw) {
         const parsed = JSON.parse(raw);
         if (parsed && parsed.tables) {
-          for (const [id, config] of Object.entries(parsed.tables)) {
+          for (const [id, config] of Object.entries(parsed.tables || {})) {
             this._tables.set(id, {
               tableId: id,
               layoutConfig: config.layoutConfig || null,

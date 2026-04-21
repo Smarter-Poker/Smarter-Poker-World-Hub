@@ -60,7 +60,7 @@ export default function RSVPManager({
     <div className="space-y-4">
       {/* Summary Cards */}
       <div className="grid grid-cols-5 gap-3">
-        {Object.entries(RSVP_STATUS).map(([key, config]) => {
+        {Object.entries(RSVP_STATUS || {}).map(([key, config]) => {
           const Icon = config.icon;
           const count = grouped[key]?.length || 0;
           return (

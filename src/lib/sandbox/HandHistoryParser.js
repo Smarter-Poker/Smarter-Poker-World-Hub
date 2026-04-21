@@ -80,8 +80,8 @@ function parsePokerStars(text) {
     const btnSeat = btnMatch ? parseInt(btnMatch[1]) : null;
 
     // Assign positions based on seat ordering relative to button
-    if (btnSeat && Object.keys(positions).length > 0) {
-        const seatNums = Object.entries(positions).sort((a, b) => a[1].seat - b[1].seat);
+    if (btnSeat && Object.keys(positions || {}).length > 0) {
+        const seatNums = Object.entries(positions || {}).sort((a, b) => a[1].seat - b[1].seat);
         const btnIdx = seatNums.findIndex(([, v]) => v.seat === btnSeat);
         const posLabels = ['BTN', 'SB', 'BB', 'UTG', 'MP', 'CO'];
         const n = seatNums.length;

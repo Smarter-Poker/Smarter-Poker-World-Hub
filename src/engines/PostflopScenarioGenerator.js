@@ -223,7 +223,7 @@ function buildFlopOptions(matchup, strategy, madeHand, draws, board, heroCards) 
         // Check if we have multi-size distribution from solver data
         const sizeDist = strategy.sizeDistribution;
 
-        if (sizeDist && Object.keys(sizeDist).length > 1) {
+        if (sizeDist && Object.keys(sizeDist || {}).length > 1) {
             // ═══ MULTI-SIZING MODE (GTO Wizard-style) ═══
             // Split the total bet frequency across multiple sizing options
             const sizeLabels = {
@@ -248,7 +248,7 @@ function buildFlopOptions(matchup, strategy, madeHand, draws, board, heroCards) 
             ];
 
             // Add each sizing option with its share of the total bet frequency
-            const sortedSizes = Object.entries(sizeDist)
+            const sortedSizes = Object.entries(sizeDist || {})
                 .filter(([key, wt]) => wt > 0.05 && sizeLabels[key]) // Only show sizes with >5% weight
                 .sort((a, b) => {
                     const fracA = sizeLabels[a[0]]?.fraction || 0;
@@ -555,8 +555,8 @@ function buildMultiSizeOptions(strategy, street) {
         },
     ];
 
-    if (sizeDist && Object.keys(sizeDist).length > 1) {
-        const sortedSizes = Object.entries(sizeDist)
+    if (sizeDist && Object.keys(sizeDist || {}).length > 1) {
+        const sortedSizes = Object.entries(sizeDist || {})
             .filter(([key, wt]) => wt > 0.05 && sizeLabels[key])
             .sort((a, b) => (sizeLabels[a[0]]?.fraction || 0) - (sizeLabels[b[0]]?.fraction || 0));
 

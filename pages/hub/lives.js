@@ -122,7 +122,7 @@ export default function LivesPage() {
     // Auto-play current video, pause others
     useEffect(() => {    const _c = new AbortController();
 
-        Object.entries(videoRefs.current).forEach(([idx, video]) => {
+        Object.entries(videoRefs.current || {}).forEach(([idx, video]) => {
             if (video) {
                 if (parseInt(idx) === currentIndex) {
                     video.play().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));

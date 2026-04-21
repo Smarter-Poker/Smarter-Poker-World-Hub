@@ -134,7 +134,7 @@ export default function BankrollDashboard({ userId }) {
       }
 
       // Group completed trip/series entries into summary rows
-      var tripIds = Object.keys(completedTripMap);
+      var tripIds = Object.keys(completedTripMap || {});
       for (var k = 0; k < tripIds.length; k++) {
         var tid = tripIds[k];
         var items = completedTripMap[tid];

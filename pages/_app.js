@@ -194,7 +194,7 @@ if (typeof window !== 'undefined') {
       } else if (Array.isArray(existingHeaders)) {
         hasAuthHeader = existingHeaders.some(([key]) => key.toLowerCase() === 'authorization');
       } else if (typeof existingHeaders === 'object') {
-        hasAuthHeader = Object.keys(existingHeaders).some(k => k.toLowerCase() === 'authorization');
+        hasAuthHeader = Object.keys(existingHeaders || {}).some(k => k.toLowerCase() === 'authorization');
       }
 
       // If no Authorization header, inject one from localStorage

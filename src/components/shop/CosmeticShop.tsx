@@ -388,7 +388,7 @@ export function CosmeticShop({
                         padding: '16px 28px',
                         borderBottom: '1px solid rgba(255,255,255,0.1)'
                     }}>
-                        {Object.entries(CATEGORY_LABELS).map(([key, { label, emoji }]) => (
+                        {Object.entries(CATEGORY_LABELS || {}).map(([key, { label, emoji }]) => (
                             <button
                                 key={key}
                                 onClick={() => setActiveCategory(key as CosmeticCategory)}

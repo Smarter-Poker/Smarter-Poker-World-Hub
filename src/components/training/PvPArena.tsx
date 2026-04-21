@@ -288,7 +288,7 @@ function LobbyView({
 
             {/* Format Selection */}
             <div style={styles.formatGrid}>
-                {Object.entries(MATCH_FORMATS).map(([key, format]: [string, any]) => {
+                {Object.entries(MATCH_FORMATS || {}).map(([key, format]: [string, any]) => {
                     const isSelected = selectedFormat === key;
                     const canAfford = userDiamonds >= format.entryDiamonds;
                     return (

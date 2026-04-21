@@ -75,7 +75,7 @@ function CompTransactionList({
 
   return (
     <div className="space-y-4">
-      {Object.entries(groupedTransactions).map(([date, txs]) => (
+      {Object.entries(groupedTransactions || {}).map(([date, txs]) => (
         <div key={date}>
           <div className="text-xs text-[#4A5E78] mb-2 px-1">{date}</div>
           <div className="cmd-panel overflow-hidden divide-y divide-[#4A5E78]">

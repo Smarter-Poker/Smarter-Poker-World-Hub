@@ -96,7 +96,7 @@ function evaluate5(cards) {
   // Count ranks
   const counts = {};
   for (const r of ranks) counts[r] = (counts[r] || 0) + 1;
-  const groups = Object.entries(counts)
+  const groups = Object.entries(counts || {})
     .map(([r, c]) => ({ rank: parseInt(r), count: c }))
     .sort((a, b) => b.count - a.count || b.rank - a.rank);
 
@@ -300,7 +300,7 @@ function findPairRank(holeCards, board) {
   }
   // Find the pair rank that involves at least one hole card
   const holeRanks = holeCards.map(getRank);
-  for (const [r, c] of Object.entries(counts)) {
+  for (const [r, c] of Object.entries(counts || {})) {
     if (c === 2 && holeRanks.includes(parseInt(r))) return parseInt(r);
   }
   return -1;
@@ -313,7 +313,7 @@ function findTripsRank(holeCards, board) {
     const r = getRank(c);
     counts[r] = (counts[r] || 0) + 1;
   }
-  for (const [r, c] of Object.entries(counts)) {
+  for (const [r, c] of Object.entries(counts || {})) {
     if (c === 3) return parseInt(r);
   }
   return -1;

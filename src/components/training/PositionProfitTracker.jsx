@@ -29,7 +29,7 @@ function PositionProfitTracker() {
   );
 
   const totalWR = useMemo(() => {
-    const sum = Object.values(userRates).reduce((s, v) => s + v, 0);
+    const sum = Object.values(userRates || {}).reduce((s, v) => s + v, 0);
     return Math.round(sum / 6 * 10) / 10;
   }, [userRates]);
 
@@ -37,7 +37,7 @@ function PositionProfitTracker() {
     setUserRates(prev => ({ ...prev, [pos]: parseFloat(value) }));
   };
 
-  const maxAbsRate = Math.max(...Object.values(userRates).map(Math.abs), 15);
+  const maxAbsRate = Math.max(...Object.values(userRates || {}).map(Math.abs), 15);
 
   try {
     return (

@@ -88,7 +88,7 @@ function scorePLO5Hand(holeCards) {
     // Step 3: Evaluate suitedness
     const suitCounts = {};
     suits.forEach(s => { suitCounts[s] = (suitCounts[s] || 0) + 1; });
-    const suitValues = Object.values(suitCounts).sort((a, b) => b - a);
+    const suitValues = Object.values(suitCounts || {}).sort((a, b) => b - a);
 
     let suitedness = 'rainbow';
     if (suitValues[0] >= 3) suitedness = 'triple-suited';
@@ -130,7 +130,7 @@ function scorePLO5Hand(holeCards) {
     // Check if 5th card pairs a high card (full house potential)
     const rankCounts = {};
     ranks.forEach(r => { rankCounts[r] = (rankCounts[r] || 0) + 1; });
-    const hasPair = Object.entries(rankCounts).some(([r, c]) => c >= 2 && parseInt(r) >= 8);
+    const hasPair = Object.entries(rankCounts || {}).some(([r, c]) => c >= 2 && parseInt(r) >= 8);
     if (hasPair && fifthCardValue === 'neutral') {
         fifthCardBonus += 8;
         fifthCardValue = 'pairs-high';
@@ -456,7 +456,7 @@ function evaluatePLO5FlushHierarchy(holeCards, boardCards) {
         boardSuits[s] = (boardSuits[s] || 0) + 1;
     });
 
-    const flushSuit = Object.entries(boardSuits).find(([, count]) => count >= 3);
+    const flushSuit = Object.entries(boardSuits || {}).find(([, count]) => count >= 3);
     if (!flushSuit) {
         return { flushRank: 'none', flushStrength: 0, commitLevel: 'none' };
     }
@@ -550,7 +550,7 @@ function evaluatePLO5NutDistance(holeCards, boardCards) {
                 const s = typeof c === 'string' ? c[c.length - 1] : c.suit;
                 boardSuits[s] = (boardSuits[s] || 0) + 1;
             });
-            commitWorthy = !Object.values(boardSuits).some(v => v >= 3);
+            commitWorthy = !Object.values(boardSuits || {}).some(v => v >= 3);
         } else { nutDistance = 2; commitWorthy = false; }
     } else if (category === 'set' || category === 'trips') {
         if (strength >= 78) { nutDistance = 2; commitWorthy = false; }
@@ -913,7 +913,7 @@ function handlePLO5MissedDraw(holeCards, boardCards, madeStrength, isIP, potSize
             const s = typeof c === 'string' ? c[c.length - 1] : c.suit;
             boardSuits[s] = (boardSuits[s] || 0) + 1;
         });
-        const flushSuit = Object.entries(boardSuits).find(([, cnt]) => cnt >= 3);
+        const flushSuit = Object.entries(boardSuits || {}).find(([, cnt]) => cnt >= 3);
         if (flushSuit) {
             const hasAceBlocker = holeCards.some(c => {
                 const s = typeof c === 'string' ? c[c.length - 1] : c.suit;

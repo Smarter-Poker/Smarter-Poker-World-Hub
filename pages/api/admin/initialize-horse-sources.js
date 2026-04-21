@@ -55,10 +55,10 @@ export default async function handler(req, res) {
 
 
           // Poker sources
-          const pokerSourceKeys = Object.keys(CLIP_SOURCES);
+          const pokerSourceKeys = Object.keys(CLIP_SOURCES || {});
 
           // Sports sources
-          const sportsSourceKeys = Object.keys(SPORTS_CLIP_SOURCES);
+          const sportsSourceKeys = Object.keys(SPORTS_CLIP_SOURCES || {});
 
           const SOURCES_PER_HORSE = 3; // Each horse gets 3 sources
           const assignments = [];

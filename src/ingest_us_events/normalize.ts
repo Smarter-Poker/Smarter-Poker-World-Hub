@@ -91,7 +91,7 @@ const VENUE_STATE_MAP: Record<string, string> = {
 
 export function inferStateFromVenue(venueName: string): string {
     const lower = venueName.toLowerCase();
-    for (const [venueKey, state] of Object.entries(VENUE_STATE_MAP)) {
+    for (const [venueKey, state] of Object.entries(VENUE_STATE_MAP || {})) {
         if (lower.includes(venueKey)) {
             return state;
         }

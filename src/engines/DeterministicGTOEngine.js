@@ -152,7 +152,7 @@ function parseBoardFromHash(scenarioHash) {
 function getMaxFrequency(strategyMatrix) {
     if (!strategyMatrix) return 50;
     const frequencies = strategyMatrix.frequencies || {};
-    const actions = strategyMatrix.actions || Object.keys(frequencies);
+    const actions = strategyMatrix.actions || Object.keys(frequencies || {});
 
     if (actions.length === 0) return 50;
 
@@ -163,7 +163,7 @@ function getMaxFrequency(strategyMatrix) {
         const handFreqs = frequencies[action];
         if (!handFreqs || typeof handFreqs !== 'object') continue;
 
-        for (const [hand, freq] of Object.entries(handFreqs)) {
+        for (const [hand, freq] of Object.entries(handFreqs || {})) {
             if (typeof freq !== 'number') continue;
             // freq is 0.0-1.0, convert to percentage for comparison
             const pct = freq * 100;
@@ -173,11 +173,11 @@ function getMaxFrequency(strategyMatrix) {
         }
     }
 
-    const maxFreqs = Object.values(handMaxFreqs);
+    const maxFreqs = Object.values(handMaxFreqs || {});
     if (maxFreqs.length === 0) {
         // Flat frequencies fallback (action → freq, no per-hand data)
         let maxFreq = 0;
-        for (const val of Object.values(frequencies)) {
+        for (const val of Object.values(frequencies || {})) {
             if (typeof val === 'number' && val * 100 > maxFreq) maxFreq = val * 100;
         }
         return maxFreq || 50;
@@ -533,7 +533,7 @@ export class DeterministicGTOEngine {
                 filter.spotType = streetSpotMap[targetStreet] || undefined;
             }
 
-            const scenario = Object.keys(filter).length > 0
+            const scenario = Object.keys(filter || {}).length > 0
                 ? getFilteredPostflopScenario(level, filter)
                 : getRandomPostflopScenario(level);
 
@@ -712,7 +712,7 @@ export class DeterministicGTOEngine {
         // All levels now get all spot types (no level gating)
 
         // ─── 3-Bet (all levels) ──────────────────────────────────────
-        for (const [key, data] of Object.entries(SOLVER_3BET)) {
+        for (const [key, data] of Object.entries(SOLVER_3BET || {})) {
             const parts = key.split('_vs_');
             const pos = parts[0];
             const villain = parts[1] || 'opener';
@@ -733,7 +733,7 @@ export class DeterministicGTOEngine {
         }
 
         // ─── BB Defense (all levels) ─────────────────────────────────
-        for (const [key, data] of Object.entries(SOLVER_BB_DEF)) {
+        for (const [key, data] of Object.entries(SOLVER_BB_DEF || {})) {
             const villain = key.replace('vs_', '');
             pool.push({
                 spotData: data,
@@ -752,7 +752,7 @@ export class DeterministicGTOEngine {
         }
 
         // ─── 4-Bet (all levels) ──────────────────────────────────────
-        for (const [key, data] of Object.entries(SOLVER_4BET)) {
+        for (const [key, data] of Object.entries(SOLVER_4BET || {})) {
             const parts = key.split('_vs_');
             const pos = parts[0];
             pool.push({
@@ -772,7 +772,7 @@ export class DeterministicGTOEngine {
         }
 
         // ─── Cold Call (level 5+) ────────────────────────────────────
-        for (const [key, data] of Object.entries(SOLVER_CC)) {
+        for (const [key, data] of Object.entries(SOLVER_CC || {})) {
             const parts = key.split('_vs_');
             const pos = parts[0];
             const villain = parts[1] || 'opener';
@@ -792,7 +792,7 @@ export class DeterministicGTOEngine {
         }
 
         // ─── Squeeze (level 5+) ──────────────────────────────────────
-        for (const [key, data] of Object.entries(SOLVER_SQZ)) {
+        for (const [key, data] of Object.entries(SOLVER_SQZ || {})) {
             const readable = key.replace(/_/g, ' ').replace('vs', 'vs').replace('open', 'open,');
             const parts = key.split('_vs_');
             const pos = parts[0];
@@ -1260,7 +1260,7 @@ export class DeterministicGTOEngine {
         // Pick from the frequency data — these are the hands the solver analyzed
         const sampleAction = actions.find(a => frequencies[a]) || actions[0];
         const handFreqs = frequencies[sampleAction] || {};
-        let allHands = Object.keys(handFreqs).filter(h => h && h.length >= 2);
+        let allHands = Object.keys(handFreqs || {}).filter(h => h && h.length >= 2);
 
         // ═══ APPLY HAND CLASS FILTER ═══
         if (gameConfig.handClass && gameConfig.handClass !== 'all') {
@@ -1409,7 +1409,7 @@ export class DeterministicGTOEngine {
         });
 
         // IMP-4: Frequency normalization — ensure frequencies sum to ~100%
-        const freqSum = Object.values(gtoFrequencies).reduce((s, v) => s + v, 0);
+        const freqSum = Object.values(gtoFrequencies || {}).reduce((s, v) => s + v, 0);
         if (freqSum > 0 && Math.abs(freqSum - 100) > 1) {
             const factor = 100 / freqSum;
             validActions.forEach(action => {
@@ -1419,7 +1419,7 @@ export class DeterministicGTOEngine {
 
         // ═══ COMPUTE EV DATA (Real solver values + per-action approximation) ═══
         const heroHandEV = handEVs[heroHand] || 0;
-        const allEVs = Object.values(handEVs).filter(v => typeof v === 'number');
+        const allEVs = Object.values(handEVs || {}).filter(v => typeof v === 'number');
         const maxHandEV = allEVs.length > 0 ? Math.max(...allEVs) : heroHandEV;
 
         // ═══ PER-ACTION EV APPROXIMATION ═══
@@ -1567,7 +1567,7 @@ export class DeterministicGTOEngine {
 
     buildChartQuestion(chart, level) {
         const handMatrix = chart.hand_matrix || {};
-        const hands = Object.keys(handMatrix);
+        const hands = Object.keys(handMatrix || {});
         if (hands.length === 0) return null;
 
         const heroHand = hands[Math.floor(Math.random() * hands.length)];
@@ -1962,19 +1962,19 @@ export class DeterministicGTOEngine {
         // ═══ SUIT ANALYSIS ═══
         const suitCounts = {};
         suits.forEach(s => { if (s) suitCounts[s] = (suitCounts[s] || 0) + 1; });
-        const maxSuitCount = Math.max(...Object.values(suitCounts));
+        const maxSuitCount = Math.max(...Object.values(suitCounts || {}));
         const isMonotone = maxSuitCount === validBoard.length && validBoard.length >= 3;
         const hasFlushDraw = maxSuitCount >= 2 && !isMonotone;
         const hasFlushComplete = maxSuitCount >= 3 && validBoard.length >= 4;
-        const isRainbow = Object.values(suitCounts).every(c => c === 1);
+        const isRainbow = Object.values(suitCounts || {}).every(c => c === 1);
 
         // ═══ PAIRING ═══
         const rankCounts = {};
         ranks.forEach(r => { rankCounts[r] = (rankCounts[r] || 0) + 1; });
-        const maxRankCount = Math.max(...Object.values(rankCounts));
+        const maxRankCount = Math.max(...Object.values(rankCounts || {}));
         const isPaired = maxRankCount === 2;
         const isTrips = maxRankCount >= 3;
-        const pairedRank = isPaired ? Object.entries(rankCounts).find(([r, c]) => c >= 2)?.[0] : null;
+        const pairedRank = isPaired ? Object.entries(rankCounts || {}).find(([r, c]) => c >= 2)?.[0] : null;
 
         // ═══ CONNECTIVITY ═══
         const sorted = [...new Set(rankVals)].sort((a, b) => a - b);
@@ -2520,12 +2520,12 @@ export class DeterministicGTOEngine {
 
         const suitCounts = {};
         suits.forEach(s => { if (s) suitCounts[s] = (suitCounts[s] || 0) + 1; });
-        const suitVals = Object.values(suitCounts);
+        const suitVals = Object.values(suitCounts || {});
         const maxSuitCount = suitVals.length > 0 ? Math.max(...suitVals) : 0;
 
         const rankCounts = {};
         ranks.forEach(r => { rankCounts[r] = (rankCounts[r] || 0) + 1; });
-        const rankValsArr = Object.values(rankCounts);
+        const rankValsArr = Object.values(rankCounts || {});
         const maxRankCount = rankValsArr.length > 0 ? Math.max(...rankValsArr) : 0;
 
         const sorted = [...new Set(rankVals)].sort((a, b) => a - b);
@@ -3120,7 +3120,7 @@ export class DeterministicGTOEngine {
             const boardSuits = board.slice(0, 4).filter(c => c && c.length >= 2).map(c => c[1]?.toLowerCase());
             const suitCounts = {};
             boardSuits.forEach(s => { if (s) suitCounts[s] = (suitCounts[s] || 0) + 1; });
-            const threeFlush = Object.values(suitCounts).some(c => c >= 3);
+            const threeFlush = Object.values(suitCounts || {}).some(c => c >= 3);
 
             if (threeFlush) {
                 turnImpact = 'Turn puts three to a flush on board — flush draws now have one card to hit.';
@@ -3216,7 +3216,7 @@ export class DeterministicGTOEngine {
             const boardSuits = board.filter(c => c && c.length >= 2).map(c => c[1]?.toLowerCase());
             const suitCounts = {};
             boardSuits.forEach(s => { if (s) suitCounts[s] = (suitCounts[s] || 0) + 1; });
-            const flushComplete = Object.values(suitCounts).some(c => c >= 3);
+            const flushComplete = Object.values(suitCounts || {}).some(c => c >= 3);
 
             // Check if river pairs the board
             const boardRanks = board.filter(c => c && c.length >= 2).map(c => c[0].toUpperCase());
@@ -3795,7 +3795,7 @@ export class DeterministicGTOEngine {
         // Detect board flush potential
         const suitCounts = {};
         boardSuits.forEach(s => { suitCounts[s] = (suitCounts[s] || 0) + 1; });
-        const flushSuit = Object.entries(suitCounts).find(([s, c]) => c >= 3)?.[0] || null;
+        const flushSuit = Object.entries(suitCounts || {}).find(([s, c]) => c >= 3)?.[0] || null;
         const threeFlush = flushSuit && suitCounts[flushSuit] === 3;
         const fourFlush = flushSuit && suitCounts[flushSuit] >= 4;
 
@@ -4384,7 +4384,7 @@ export class DeterministicGTOEngine {
         if (isSuited) {
             const suitCounts = {};
             boardSuits.forEach(s => { if (s) suitCounts[s] = (suitCounts[s] || 0) + 1; });
-            const maxBoardSuit = Object.entries(suitCounts).sort((a, b) => b[1] - a[1])[0];
+            const maxBoardSuit = Object.entries(suitCounts || {}).sort((a, b) => b[1] - a[1])[0];
             if (maxBoardSuit) {
                 if (maxBoardSuit[1] >= 3) hasFlush = true;
                 else if (maxBoardSuit[1] >= 2) hasFlushDraw = true;
@@ -4470,7 +4470,7 @@ export class DeterministicGTOEngine {
         boardRanks.forEach(r => { boardRankCounts[r] = (boardRankCounts[r] || 0) + 1; });
 
         // Phase 74: Board-paired flush vulnerability
-        const boardPaired = Object.values(boardRankCounts).some(c => c >= 2);
+        const boardPaired = Object.values(boardRankCounts || {}).some(c => c >= 2);
 
         // Flush first (beats straight in display priority for made hands)
         if (hasFlush) {
@@ -4500,12 +4500,12 @@ export class DeterministicGTOEngine {
             if (boardRanks.includes(r1)) {
                 if (r1BoardCount >= 2) madeHand = 'quads';
                 else {
-                    const boardHasOtherPair = Object.entries(boardRankCounts)
+                    const boardHasOtherPair = Object.entries(boardRankCounts || {})
                         .some(([r, c]) => r !== r1 && c >= 2);
                     madeHand = boardHasOtherPair ? 'a full house' : 'a set';
                 }
             } else {
-                const boardHasTrips = Object.values(boardRankCounts).some(c => c >= 3);
+                const boardHasTrips = Object.values(boardRankCounts || {}).some(c => c >= 3);
                 if (boardHasTrips) {
                     madeHand = 'a full house';
                 } else if (v1 > highestBoardVal) {
@@ -4951,7 +4951,7 @@ export class DeterministicGTOEngine {
     getMistakeTrackerData() {
         if (!this._mistakeTracker) return {};
         const result = {};
-        for (const [key, val] of Object.entries(this._mistakeTracker)) {
+        for (const [key, val] of Object.entries(this._mistakeTracker || {})) {
             if (val.total >= 2) {
                 result[key] = {
                     ...val,
@@ -5003,8 +5003,8 @@ export class DeterministicGTOEngine {
         // ─── FLUSH COMPLETING CARDS ───
         const suitCounts = {};
         boardSuits.forEach(s => { if (s) suitCounts[s] = (suitCounts[s] || 0) + 1; });
-        const flushDrawSuit = Object.entries(suitCounts).find(([_, c]) => c === 2)?.[0];
-        const threeFlushSuit = Object.entries(suitCounts).find(([_, c]) => c >= 3)?.[0];
+        const flushDrawSuit = Object.entries(suitCounts || {}).find(([_, c]) => c === 2)?.[0];
+        const threeFlushSuit = Object.entries(suitCounts || {}).find(([_, c]) => c >= 3)?.[0];
 
         if (flushDrawSuit && !threeFlushSuit) {
             // Two-flush on board — a third of that suit completes flush draws
@@ -5913,8 +5913,8 @@ export class DeterministicGTOEngine {
             const heroSuit = isSuited ? 's' : ''; // We don't know the actual suit but can infer
             // Simpler check: if suited hand and board has 1 card of any single suit matching, it's a backdoor
             // Since we generated hero's cards to match suit in parseHandToCards, check if any suit appears exactly once
-            const hasPotentialBackdoor = Object.values(suitCounts).some(c => c === 1);
-            if (hasPotentialBackdoor && !Object.values(suitCounts).some(c => c >= 2)) {
+            const hasPotentialBackdoor = Object.values(suitCounts || {}).some(c => c === 1);
+            if (hasPotentialBackdoor && !Object.values(suitCounts || {}).some(c => c >= 2)) {
                 const highCard = Math.max(heroV1, heroV2);
                 if (highCard >= 12) {
                     backdoors.push('nut backdoor flush draw (suited with A)');
@@ -6119,7 +6119,7 @@ export class DeterministicGTOEngine {
     generateSessionSummary(minSamples = 3) {
         if (!this._mistakeTracker) return { summary: 'Not enough data yet.', weaknesses: [], strengths: [], totalQuestions: 0 };
 
-        const entries = Object.entries(this._mistakeTracker)
+        const entries = Object.entries(this._mistakeTracker || {})
             .filter(([_, v]) => v.total >= minSamples)
             .map(([key, v]) => ({
                 key,
@@ -6282,7 +6282,7 @@ export class DeterministicGTOEngine {
         if (optEV === undefined || optEV === null) return '';
 
         // Find the second-best action for comparison
-        const sorted = Object.entries(actionEVs)
+        const sorted = Object.entries(actionEVs || {})
             .filter(([a, _]) => a !== optimalAction)
             .sort(([_, ev1], [__, ev2]) => ev2 - ev1);
 
@@ -6421,7 +6421,7 @@ export class DeterministicGTOEngine {
         // Every 25 questions — deeper analysis
         if (questionNumber % 25 === 0 && questionNumber > 0) {
             const tracker = this._mistakeTracker || {};
-            const weakest = Object.entries(tracker)
+            const weakest = Object.entries(tracker || {})
                 .filter(([_, v]) => v.total >= 3 && v.mistakes / v.total >= 0.4)
                 .sort(([_, a], [__, b]) => (b.mistakes / b.total) - (a.mistakes / a.total))
                 .slice(0, 1);
@@ -6649,7 +6649,7 @@ export class DeterministicGTOEngine {
     _getGTOFramingNote(optimalAction, freq, handActions, handStrength) {
         if (!handActions) return '';
 
-        const mixedActions = Object.entries(handActions).filter(([_, f]) => f > 0.05).length;
+        const mixedActions = Object.entries(handActions || {}).filter(([_, f]) => f > 0.05).length;
 
         // Pure strategy — GTO has one clear answer
         if (freq >= 0.95) {
@@ -6748,7 +6748,7 @@ export class DeterministicGTOEngine {
             trackers: {
                 sessionStats: !!this._sessionStats,
                 mistakeTracker: !!this._mistakeTracker,
-                mistakeTrackerDimensions: this._mistakeTracker ? Object.keys(this._mistakeTracker).length : 0,
+                mistakeTrackerDimensions: this._mistakeTracker ? Object.keys(this._mistakeTracker || {}).length : 0,
             },
             features: [
                 'Deterministic solver-driven question generation',
@@ -7256,7 +7256,7 @@ export class DeterministicGTOEngine {
             const boardSuits = board.map(c => c[1]?.toLowerCase());
             const suitCounts = {};
             boardSuits.forEach(s => { if (s) suitCounts[s] = (suitCounts[s] || 0) + 1; });
-            const flushSuit = Object.entries(suitCounts).find(([_, c]) => c >= 3)?.[0];
+            const flushSuit = Object.entries(suitCounts || {}).find(([_, c]) => c >= 3)?.[0];
             if (flushSuit && !hc.includes('flush')) {
                 // Hero's cards that block the flush suit
                 const heroSuits = [];
@@ -7845,7 +7845,7 @@ export class DeterministicGTOEngine {
         // Flush completing
         const suitCounts = {};
         flopSuits.forEach(s => { suitCounts[s] = (suitCounts[s] || 0) + 1; });
-        const flushDrawSuit = Object.entries(suitCounts).find(([_, ct]) => ct >= 2);
+        const flushDrawSuit = Object.entries(suitCounts || {}).find(([_, ct]) => ct >= 2);
         if (flushDrawSuit && turnSuit === flushDrawSuit[0]) {
             return `⚠️ Turn ${turnCard} completes the flush draw (three ${flushDrawSuit[0]} on the flop). This dramatically changes the board dynamic — flush draws got there, and hands without a flush need to proceed cautiously.`;
         }
@@ -8246,7 +8246,7 @@ export class DeterministicGTOEngine {
     getConceptMastery() {
         if (!this._conceptMastery) return {};
         const result = {};
-        for (const [concept, data] of Object.entries(this._conceptMastery)) {
+        for (const [concept, data] of Object.entries(this._conceptMastery || {})) {
             if (data.total < 2) continue;
             const rate = data.correct / data.total;
             result[concept] = {
@@ -8290,7 +8290,7 @@ export class DeterministicGTOEngine {
     getWeaknessTargets() {
         if (!this._mistakeTracker) return null;
         const weakSpots = [];
-        for (const [dim, data] of Object.entries(this._mistakeTracker)) {
+        for (const [dim, data] of Object.entries(this._mistakeTracker || {})) {
             if (data.total < 3) continue;
             const rate = data.mistakes / data.total;
             if (rate >= 0.4) {
@@ -8560,7 +8560,7 @@ export class DeterministicGTOEngine {
                 else hand = ranks[j] + ranks[i] + 'o'; // Offsuit (below diagonal)
 
                 const actions = handActions?.[hand] || {};
-                const raiseFreq = Object.entries(actions).filter(([k]) => k.startsWith('r') || k === 'allin').reduce((s, [, v]) => s + v, 0);
+                const raiseFreq = Object.entries(actions || {}).filter(([k]) => k.startsWith('r') || k === 'allin').reduce((s, [, v]) => s + v, 0);
                 const callFreq = actions['call'] || 0;
                 const foldFreq = actions['f'] || 0;
                 const checkFreq = actions['x'] || actions['check'] || 0;
@@ -8687,7 +8687,7 @@ export class DeterministicGTOEngine {
         // Flush blocker
         const suitCounts = {};
         boardSuits.forEach(s => { suitCounts[s] = (suitCounts[s] || 0) + 1; });
-        const flushSuit = Object.entries(suitCounts).find(([_, ct]) => ct >= 3);
+        const flushSuit = Object.entries(suitCounts || {}).find(([_, ct]) => ct >= 3);
         if (flushSuit) {
             const hasNutFlushBlocker = heroRanks[0] === 'A' || heroRanks[1] === 'A';
             if (hasNutFlushBlocker) {
@@ -8780,7 +8780,7 @@ export class DeterministicGTOEngine {
     getAggressionFactors() {
         if (!this._aggressionTracker) return {};
         const result = {};
-        for (const [street, data] of Object.entries(this._aggressionTracker)) {
+        for (const [street, data] of Object.entries(this._aggressionTracker || {})) {
             const af = data.calls > 0 ? (data.betsRaises / data.calls).toFixed(1) : data.betsRaises > 0 ? 'Inf' : '0';
             result[street] = {
                 af,
@@ -8844,7 +8844,7 @@ export class DeterministicGTOEngine {
         if (!this._positionalAwareness) return null;
         const result = {};
         let totalScore = 0, totalWeight = 0;
-        for (const [pos, data] of Object.entries(this._positionalAwareness)) {
+        for (const [pos, data] of Object.entries(this._positionalAwareness || {})) {
             if (data.total < 2) continue;
             const accuracy = data.correct / data.total;
             result[pos] = { accuracy: (accuracy * 100).toFixed(0) + '%', total: data.total };
@@ -9302,7 +9302,7 @@ export class DeterministicGTOEngine {
 
     getUnderrepresentedTypes() {
         if (!this._questionTypeTracker) return [];
-        const types = Object.entries(this._questionTypeTracker);
+        const types = Object.entries(this._questionTypeTracker || {});
         if (types.length < 3) return [];
         const avg = types.reduce((s, [, ct]) => s + ct, 0) / types.length;
         return types.filter(([, ct]) => ct < avg * 0.5).map(([type]) => type);
@@ -9389,7 +9389,7 @@ export class DeterministicGTOEngine {
      */
     _getMixedStrategyNote(handActions, optimalAction, freq) {
         if (!handActions || freq >= 0.9) return ''; // Pure strategy — no mixing
-        const actions = Object.entries(handActions).filter(([, f]) => f > 0.05);
+        const actions = Object.entries(handActions || {}).filter(([, f]) => f > 0.05);
         if (actions.length < 2) return '';
 
         const sorted = actions.sort((a, b) => b[1] - a[1]);
@@ -9451,13 +9451,13 @@ export class DeterministicGTOEngine {
     getFrequencyComparison() {
         if (!this._freqComparison) return null;
         const result = {};
-        for (const [key, data] of Object.entries(this._freqComparison)) {
-            const userTotal = Object.values(data.userActions).reduce((s, v) => s + v, 0);
-            const solverTotal = Object.values(data.solverActions).reduce((s, v) => s + v, 0);
+        for (const [key, data] of Object.entries(this._freqComparison || {})) {
+            const userTotal = Object.values(data.userActions || {}).reduce((s, v) => s + v, 0);
+            const solverTotal = Object.values(data.solverActions || {}).reduce((s, v) => s + v, 0);
             if (userTotal < 3) continue;
             result[key] = {
-                user: Object.fromEntries(Object.entries(data.userActions).map(([a, ct]) => [a, ((ct / userTotal) * 100).toFixed(0) + '%'])),
-                solver: Object.fromEntries(Object.entries(data.solverActions).map(([a, ct]) => [a, ((ct / solverTotal) * 100).toFixed(0) + '%'])),
+                user: Object.fromEntries(Object.entries(data.userActions || {}).map(([a, ct]) => [a, ((ct / userTotal) * 100).toFixed(0) + '%'])),
+                solver: Object.fromEntries(Object.entries(data.solverActions || {}).map(([a, ct]) => [a, ((ct / solverTotal) * 100).toFixed(0) + '%'])),
             };
         }
         return result;
@@ -9501,7 +9501,7 @@ export class DeterministicGTOEngine {
         }
 
         // Check aggression
-        for (const [street, data] of Object.entries(aggression)) {
+        for (const [street, data] of Object.entries(aggression || {})) {
             if (data.assessment === 'too passive') leaks.push({ leak: `Too passive on ${street}`, severity: 'MEDIUM', fix: `Increase your betting and raising frequency on the ${street}. Passive play lets opponents realize equity for free.` });
             if (data.assessment === 'too aggressive') leaks.push({ leak: `Over-aggressive on ${street}`, severity: 'MEDIUM', fix: `Dial back aggression on the ${street}. Not every hand should be bet — some are better as checks/calls.` });
         }
@@ -9513,7 +9513,7 @@ export class DeterministicGTOEngine {
         }
 
         // Check concept mastery
-        for (const [concept, data] of Object.entries(concepts)) {
+        for (const [concept, data] of Object.entries(concepts || {})) {
             if (data.mastery === 'needs_work') leaks.push({ leak: `Weak at: ${concept.replace(/_/g, ' ')}`, severity: 'MEDIUM', fix: `Focus study on ${concept.replace(/_/g, ' ')} spots. Review solver solutions for this category.` });
         }
 
@@ -9577,7 +9577,7 @@ export class DeterministicGTOEngine {
         }
 
         const result = {};
-        for (const [bucket, data] of Object.entries(byConfidence)) {
+        for (const [bucket, data] of Object.entries(byConfidence || {})) {
             const accuracy = (data.correct / data.total * 100).toFixed(0);
             result[bucket] = {
                 accuracy: accuracy + '%',
@@ -9743,7 +9743,7 @@ export class DeterministicGTOEngine {
      */
     _getSolverApproximationNote(freq, handActions) {
         if (!handActions) return '';
-        const actions = Object.entries(handActions).filter(([, f]) => f > 0.01);
+        const actions = Object.entries(handActions || {}).filter(([, f]) => f > 0.01);
         if (actions.length <= 1) return ''; // Pure strategy — high confidence
 
         const maxFreq = Math.max(...actions.map(([, f]) => f));
@@ -9900,8 +9900,8 @@ export class DeterministicGTOEngine {
 
     getEngineHealth() {
         const statsCount = this._sessionStats?.total || 0;
-        const trackerDims = this._mistakeTracker ? Object.keys(this._mistakeTracker).length : 0;
-        const concepts = this._conceptMastery ? Object.keys(this._conceptMastery).length : 0;
+        const trackerDims = this._mistakeTracker ? Object.keys(this._mistakeTracker || {}).length : 0;
+        const concepts = this._conceptMastery ? Object.keys(this._conceptMastery || {}).length : 0;
         const historySize = (this._handHistory || []).length;
 
         return {
@@ -9926,7 +9926,7 @@ export class DeterministicGTOEngine {
      */
     _getEquityBucketNote(handStrength, optimalAction, handActions) {
         if (!handActions) return '';
-        const actions = Object.entries(handActions).filter(([, f]) => f > 0.05);
+        const actions = Object.entries(handActions || {}).filter(([, f]) => f > 0.05);
         if (actions.length < 2) return '';
 
         const strengthOrder = {
@@ -10025,7 +10025,7 @@ export class DeterministicGTOEngine {
         // Flush draws (if 2+ of same suit)
         const suitCounts = {};
         boardSuits.forEach(s => { suitCounts[s] = (suitCounts[s] || 0) + 1; });
-        for (const [suit, ct] of Object.entries(suitCounts)) {
+        for (const [suit, ct] of Object.entries(suitCounts || {})) {
             if (ct >= 2 && ct < board.length) {
                 const remainingOfSuit = 13 - ct;
                 combos[`flush_draw_${suit}`] = Math.floor(remainingOfSuit * (remainingOfSuit - 1) / 2);
@@ -10217,7 +10217,7 @@ export class DeterministicGTOEngine {
      */
     _getRiverPolarizationIndex(handActions, street) {
         if (street !== 'river' || !handActions) return '';
-        const raiseFreq = Object.entries(handActions).filter(([k]) => k.startsWith('r') || k === 'allin').reduce((s, [, v]) => s + v, 0);
+        const raiseFreq = Object.entries(handActions || {}).filter(([k]) => k.startsWith('r') || k === 'allin').reduce((s, [, v]) => s + v, 0);
         const foldFreq = handActions['f'] || 0;
         const callFreq = handActions['call'] || 0;
         const checkFreq = handActions['x'] || handActions['check'] || 0;
@@ -10278,7 +10278,7 @@ export class DeterministicGTOEngine {
         }
 
         // Return clusters sorted by most common
-        return Object.entries(clusters)
+        return Object.entries(clusters || {})
             .filter(([, d]) => d.total >= 3)
             .sort((a, b) => b[1].total - a[1].total)
             .map(([key, data]) => ({
@@ -10307,7 +10307,7 @@ export class DeterministicGTOEngine {
     getTaggedScenarios(tag) {
         if (!this._scenarioTags) return [];
         if (tag) {
-            return Object.entries(this._scenarioTags)
+            return Object.entries(this._scenarioTags || {})
                 .filter(([, tags]) => tags.includes(tag))
                 .map(([id]) => parseInt(id));
         }
@@ -10317,7 +10317,7 @@ export class DeterministicGTOEngine {
     getAllTags() {
         if (!this._scenarioTags) return [];
         const allTags = new Set();
-        for (const tags of Object.values(this._scenarioTags)) {
+        for (const tags of Object.values(this._scenarioTags || {})) {
             tags.forEach(t => allTags.add(t));
         }
         return [...allTags];
@@ -10391,7 +10391,7 @@ export class DeterministicGTOEngine {
      */
     _getMultiSizingNote(optimalAction, handActions, handStrength, street, texture) {
         if (!handActions) return '';
-        const raises = Object.entries(handActions).filter(([k, f]) => k.startsWith('r') && f > 0.05);
+        const raises = Object.entries(handActions || {}).filter(([k, f]) => k.startsWith('r') && f > 0.05);
         if (raises.length < 2) return '';
 
         const sizes = raises.map(([k, f]) => ({ size: parseInt(k.slice(1)) || 0, freq: f })).sort((a, b) => b.freq - a.freq);
@@ -10417,8 +10417,8 @@ export class DeterministicGTOEngine {
     calculateFrequencyWeightedScore(chosenAction, handActions) {
         if (!handActions) return { score: 0, maxScore: 1, details: 'No data' };
         const chosenFreq = handActions[chosenAction] || 0;
-        const maxFreq = Math.max(...Object.values(handActions));
-        const optimalAction = Object.entries(handActions).sort((a, b) => b[1] - a[1])[0]?.[0];
+        const maxFreq = Math.max(...Object.values(handActions || {}));
+        const optimalAction = Object.entries(handActions || {}).sort((a, b) => b[1] - a[1])[0]?.[0];
 
         if (chosenAction === optimalAction) return { score: 1.0, maxScore: 1.0, details: 'Perfect — you chose the most frequent action.' };
         if (chosenFreq >= 0.4) return { score: 0.8, maxScore: 1.0, details: `Good — your action is played ${(chosenFreq * 100).toFixed(0)}% of the time. Very close to optimal.` };
@@ -10508,7 +10508,7 @@ export class DeterministicGTOEngine {
 
         // Concept badges
         const concepts = this.getConceptMastery();
-        const mastered = Object.values(concepts).filter(c => c.mastery === 'mastered').length;
+        const mastered = Object.values(concepts || {}).filter(c => c.mastery === 'mastered').length;
         if (mastered >= 3 && !this._achievements.has('well_rounded')) { this._achievements.add('well_rounded'); newBadges.push({ id: 'well_rounded', name: '🌟 Well-Rounded', desc: 'Mastered 3+ GTO concepts' }); }
         if (mastered >= 8 && !this._achievements.has('gto_scholar')) { this._achievements.add('gto_scholar'); newBadges.push({ id: 'gto_scholar', name: '📚 GTO Scholar', desc: 'Mastered 8+ GTO concepts' }); }
 
@@ -10551,7 +10551,7 @@ export class DeterministicGTOEngine {
         const mastery = this.getConceptMastery();
 
         // Find concepts where all prereqs are mastered but this isn't
-        for (const [concept, info] of Object.entries(tree)) {
+        for (const [concept, info] of Object.entries(tree || {})) {
             const isMastered = mastery[concept]?.mastery === 'mastered';
             if (isMastered) continue;
             const prereqsMet = info.prereqs.every(p => mastery[p]?.mastery === 'mastered' || !mastery[p]);
@@ -10598,7 +10598,7 @@ export class DeterministicGTOEngine {
         }
 
         // Concept-based drills
-        for (const [concept, data] of Object.entries(concepts)) {
+        for (const [concept, data] of Object.entries(concepts || {})) {
             if (data.mastery === 'needs_work') {
                 recommendations.push({
                     name: `Master: ${concept.replace(/_/g, ' ')}`,
@@ -10663,8 +10663,8 @@ export class DeterministicGTOEngine {
         if (!this._freqComparison) return null;
 
         const userTotals = { fold: 0, call: 0, raise: 0, check: 0, total: 0 };
-        for (const data of Object.values(this._freqComparison)) {
-            for (const [action, ct] of Object.entries(data.userActions)) {
+        for (const data of Object.values(this._freqComparison || {})) {
+            for (const [action, ct] of Object.entries(data.userActions || {})) {
                 userTotals[action] = (userTotals[action] || 0) + ct;
                 userTotals.total += ct;
             }
@@ -10708,7 +10708,7 @@ export class DeterministicGTOEngine {
 
         // Key concepts practiced
         const concepts = this.getConceptMastery();
-        const recentConcepts = Object.entries(concepts).filter(([, d]) => d.total >= 2).sort((a, b) => b[1].total - a[1].total).slice(0, 5);
+        const recentConcepts = Object.entries(concepts || {}).filter(([, d]) => d.total >= 2).sort((a, b) => b[1].total - a[1].total).slice(0, 5);
         if (recentConcepts.length > 0) {
             recap.sections.push({
                 title: 'Concepts Practiced',
@@ -10861,7 +10861,7 @@ export class DeterministicGTOEngine {
         const scenarios = [];
 
         // Flush-completing card
-        const flushSuit = Object.entries(suitCounts).find(([, ct]) => ct >= 2);
+        const flushSuit = Object.entries(suitCounts || {}).find(([, ct]) => ct >= 2);
         if (flushSuit && flushSuit[1] < 3) {
             scenarios.push({ type: 'flush_completing', desc: `A ${flushSuit[0]} card completes the flush draw`, impact: 'bad_for_non_flush', strategy: 'Check or slow down without a flush — villain\'s draw got there.' });
         }
@@ -11033,7 +11033,7 @@ export class DeterministicGTOEngine {
             'river:check': 'Villain checked river: giving up on bluffs or has medium showdown value. Consider a thin value bet.',
         };
 
-        for (const [key, note] of Object.entries(rangeNotes)) {
+        for (const [key, note] of Object.entries(rangeNotes || {})) {
             const [s, action] = key.split(':');
             if (s === street && node.includes(action)) return note;
         }
@@ -11212,7 +11212,7 @@ export class DeterministicGTOEngine {
 
     getTrainingStreak() {
         const calendar = this._trainingCalendar || {};
-        const dates = Object.keys(calendar).sort().reverse();
+        const dates = Object.keys(calendar || {}).sort().reverse();
         if (dates.length === 0) return 0;
 
         let streak = 0;
@@ -11338,7 +11338,7 @@ export class DeterministicGTOEngine {
 
         if (category && allCards[category]) return allCards[category];
         // Return random category
-        const categories = Object.keys(allCards);
+        const categories = Object.keys(allCards || {});
         const randomCat = categories[Math.floor(Math.random() * categories.length)];
         return { category: randomCat, cards: allCards[randomCat] };
     }
@@ -11483,14 +11483,14 @@ export class DeterministicGTOEngine {
         if (!handActions) return null;
         const tree = { hand: heroHand, children: [] };
 
-        for (const [action, freq] of Object.entries(handActions)) {
+        for (const [action, freq] of Object.entries(handActions || {})) {
             if (freq < 0.01) continue;
             tree.children.push({
                 action: this._actionLabel(action),
                 rawAction: action,
                 frequency: (freq * 100).toFixed(1) + '%',
                 freqValue: freq,
-                isOptimal: freq === Math.max(...Object.values(handActions)),
+                isOptimal: freq === Math.max(...Object.values(handActions || {})),
                 color: action.startsWith('r') || action === 'allin' ? '#ef4444' : action === 'call' ? '#22c55e' : action === 'f' ? '#6b7280' : '#3b82f6',
             });
         }
@@ -11833,7 +11833,7 @@ export class DeterministicGTOEngine {
 
         // Leak 1: Positional weaknesses
         if (this._positionalAwareness) {
-            const posEntries = Object.entries(this._positionalAwareness);
+            const posEntries = Object.entries(this._positionalAwareness || {});
             for (const [pos, data] of posEntries) {
                 if (data.total >= 2) {
                     const posAcc = (data.correct / data.total) * 100;
@@ -11854,19 +11854,19 @@ export class DeterministicGTOEngine {
         // Leak 2: Street-specific weaknesses from question type tracker
         if (this._questionTypeTracker) {
             const streetStats = {};
-            for (const [key, count] of Object.entries(this._questionTypeTracker)) {
+            for (const [key, count] of Object.entries(this._questionTypeTracker || {})) {
                 const street = key.split(':')[0];
                 if (!streetStats[street]) streetStats[street] = { total: 0, wrong: 0 };
                 streetStats[street].total += count;
             }
             // Cross-reference with mistakes
             if (this._mistakeTracker) {
-                for (const [key, count] of Object.entries(this._mistakeTracker)) {
+                for (const [key, count] of Object.entries(this._mistakeTracker || {})) {
                     const street = key.split(':')[0];
                     if (streetStats[street]) streetStats[street].wrong += count;
                 }
             }
-            for (const [street, data] of Object.entries(streetStats)) {
+            for (const [street, data] of Object.entries(streetStats || {})) {
                 if (data.total >= 3 && data.wrong > 0) {
                     const streetAcc = ((data.total - data.wrong) / data.total) * 100;
                     if (streetAcc < 50) {
@@ -11890,8 +11890,8 @@ export class DeterministicGTOEngine {
         if (this._aggressionTracker) {
             let totalBets = 0;
             let totalChecks = 0;
-            for (const [street, actions] of Object.entries(this._aggressionTracker)) {
-                for (const [action, count] of Object.entries(actions)) {
+            for (const [street, actions] of Object.entries(this._aggressionTracker || {})) {
+                for (const [action, count] of Object.entries(actions || {})) {
                     const a = action.toLowerCase();
                     if (a.match(/^(b|bet|r|raise|allin)/)) totalBets += count;
                     else if (a === 'x' || a === 'check' || a === 'c' || a === 'call' || a === 'f' || a === 'fold') totalChecks += count;
@@ -11924,7 +11924,7 @@ export class DeterministicGTOEngine {
 
         // Leak 4: Concept mastery gaps
         if (this._conceptMastery) {
-            for (const [concept, data] of Object.entries(this._conceptMastery)) {
+            for (const [concept, data] of Object.entries(this._conceptMastery || {})) {
                 if (data.total >= 3) {
                     const conceptAcc = (data.correct / data.total) * 100;
                     if (conceptAcc < 40) {
@@ -12015,7 +12015,7 @@ export class DeterministicGTOEngine {
 
         // Mixed strategy spots are harder
         if (frequencies) {
-            const freqs = Object.values(frequencies).filter(f => f > 0.01);
+            const freqs = Object.values(frequencies || {}).filter(f => f > 0.01);
             const entropy = freqs.reduce((sum, f) => sum - (f > 0 ? f * Math.log2(f) : 0), 0);
             difficulty += Math.min(3, entropy * 2); // Max +3 from mixing
         }
@@ -12157,9 +12157,9 @@ export class DeterministicGTOEngine {
         let totalDataPoints = 0;
         const details = [];
 
-        for (const [street, nodes] of Object.entries(this._freqComparison)) {
-            for (const [nodeType, actions] of Object.entries(nodes)) {
-                for (const [action, data] of Object.entries(actions)) {
+        for (const [street, nodes] of Object.entries(this._freqComparison || {})) {
+            for (const [nodeType, actions] of Object.entries(nodes || {})) {
+                for (const [action, data] of Object.entries(actions || {})) {
                     if (data.count >= 2) {
                         const userFreq = data.count > 0 ? data.userCount / data.count : 0;
                         const solverFreq = data.solverAvg || 0;
@@ -12334,12 +12334,12 @@ export class DeterministicGTOEngine {
     // ═══════════════════════════════════════════════════════════════════════════
 
     getActionEVComparison(frequencies, correctAction, selectedAction) {
-        if (!frequencies || Object.keys(frequencies).length === 0) return null;
+        if (!frequencies || Object.keys(frequencies || {}).length === 0) return null;
         const actions = [];
         let maxFreq = 0, bestKey = '';
-        Object.entries(frequencies).forEach(([key, freq]) => { if (freq > maxFreq) { maxFreq = freq; bestKey = key; } });
-        const totalFreq = Object.values(frequencies).reduce((s, v) => s + v, 0) || 1;
-        Object.entries(frequencies).forEach(([key, freq]) => {
+        Object.entries(frequencies || {}).forEach(([key, freq]) => { if (freq > maxFreq) { maxFreq = freq; bestKey = key; } });
+        const totalFreq = Object.values(frequencies || {}).reduce((s, v) => s + v, 0) || 1;
+        Object.entries(frequencies || {}).forEach(([key, freq]) => {
             const evFromOptimal = maxFreq > 0 ? ((freq - maxFreq) / totalFreq) * 2 : 0;
             actions.push({ action: key, frequency: freq, ev: Math.round(evFromOptimal * 100) / 100, evDiff: Math.round((freq - maxFreq) * 2) / 100, isOptimal: key === bestKey, isSelected: key === selectedAction });
         });
@@ -12392,7 +12392,7 @@ export class DeterministicGTOEngine {
                 if (h.correct) conceptTracker[concept].correct++;
             });
         });
-        const concepts = Object.entries(conceptTracker).map(([name, data]) => ({
+        const concepts = Object.entries(conceptTracker || {}).map(([name, data]) => ({
             name, accuracy: data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0, total: data.total, correct: data.correct,
             mastered: data.total >= 3 && (data.correct / data.total) >= 0.75, struggling: data.total >= 3 && (data.correct / data.total) < 0.5,
         }));
@@ -12439,7 +12439,7 @@ export class DeterministicGTOEngine {
         else if (cat.includes('air') || cat.includes('no pair')) hints.push('You have no made hand. Do you have any fold equity or blockers?');
         else hints.push('Evaluate your hand\'s strength relative to the board texture.');
         if (frequencies) {
-            const entries = Object.entries(frequencies).sort((a, b) => b[1] - a[1]);
+            const entries = Object.entries(frequencies || {}).sort((a, b) => b[1] - a[1]);
             if (entries.length > 0) {
                 const topFreq = entries[0][1];
                 if (topFreq > 80) hints.push('The solver has a very strong preference here (>80% for one action).');
@@ -12485,7 +12485,7 @@ export class DeterministicGTOEngine {
         const freqTracker = {};
         (this._sessionStats.history || []).forEach(h => {
             if (!h.frequencies) return;
-            const entries = Object.entries(h.frequencies);
+            const entries = Object.entries(h.frequencies || {});
             const maxFreq = Math.max(...entries.map(([_, f]) => f));
             if (maxFreq < 80 && maxFreq > 20) {
                 const key = `${h.street || 'flop'}_${h.nodeType || 'general'}`;
@@ -12499,9 +12499,9 @@ export class DeterministicGTOEngine {
             }
         });
         const mixedSpots = [];
-        Object.entries(freqTracker).forEach(([key, data]) => {
+        Object.entries(freqTracker || {}).forEach(([key, data]) => {
             if (data.total < 2) return;
-            Object.entries(data.targetFreqs).forEach(([action, freqs]) => {
+            Object.entries(data.targetFreqs || {}).forEach(([action, freqs]) => {
                 const avgTarget = freqs.reduce((s, v) => s + v, 0) / freqs.length;
                 const userCount = data.userActions.filter(a => a.includes(action.toLowerCase())).length;
                 const userFreq = (userCount / data.total) * 100;
@@ -12510,7 +12510,7 @@ export class DeterministicGTOEngine {
             });
         });
         mixedSpots.sort((a, b) => b.deviation - a.deviation);
-        return { mixedSpots: mixedSpots.slice(0, 10), needsPractice: mixedSpots.length > 3, totalMixedSpots: Object.keys(freqTracker).length };
+        return { mixedSpots: mixedSpots.slice(0, 10), needsPractice: mixedSpots.length > 3, totalMixedSpots: Object.keys(freqTracker || {}).length };
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -12534,7 +12534,7 @@ export class DeterministicGTOEngine {
             if (h.correct) categoryMap[normCat].correct++;
             categoryMap[normCat].evLoss += (h.evLoss || 0);
         });
-        const categories = Object.entries(categoryMap).map(([name, data]) => ({
+        const categories = Object.entries(categoryMap || {}).map(([name, data]) => ({
             name, total: data.total, correct: data.correct, accuracy: data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0, evLoss: Math.round(data.evLoss * 100) / 100,
         }));
         categories.sort((a, b) => a.accuracy - b.accuracy);
@@ -12571,7 +12571,7 @@ export class DeterministicGTOEngine {
         const equity = this.estimateEquityVsRange(handCategory, street, nodeType, heroPosition, '');
         let spotType = 'standard';
         if (frequencies) {
-            const vals = Object.values(frequencies);
+            const vals = Object.values(frequencies || {});
             const maxF = Math.max(...vals);
             if (maxF > 80) spotType = 'clear';
             else if (maxF < 40) spotType = 'complex_mix';
@@ -12598,7 +12598,7 @@ export class DeterministicGTOEngine {
             if (solverAct) solverCounts[solverAct] = (solverCounts[solverAct] || 0) + 1;
         });
         if (total < 2) return null;
-        const allActions = [...new Set([...Object.keys(actionCounts), ...Object.keys(solverCounts)])];
+        const allActions = [...new Set([...Object.keys(actionCounts || {}), ...Object.keys(solverCounts || {})])];
         const frequencies = allActions.map(action => ({
             action, userFreq: Math.round(((actionCounts[action] || 0) / total) * 100), solverFreq: Math.round(((solverCounts[action] || 0) / total) * 100),
             deviation: Math.round(((actionCounts[action] || 0) / total - (solverCounts[action] || 0) / total) * 100),
@@ -12638,7 +12638,7 @@ export class DeterministicGTOEngine {
             clusterMap[key].evLoss += (m.evLoss || 0);
             if (!clusterMap[key].nodeTypes.includes(node)) clusterMap[key].nodeTypes.push(node);
         });
-        const clusters = Object.values(clusterMap).map(c => ({
+        const clusters = Object.values(clusterMap || {}).map(c => ({
             ...c, evLoss: Math.round(c.evLoss * 100) / 100,
             description: `${c.street}: You ${c.userAction.toLowerCase()} instead of ${c.solverAction.toLowerCase()} (${c.count}x, -${c.evLoss.toFixed(2)} BB)`,
             severity: c.count >= 3 ? 'critical' : c.count >= 2 ? 'high' : 'medium',
@@ -12663,7 +12663,7 @@ export class DeterministicGTOEngine {
             if (tex.includes('connected') || tex.includes('straight')) { textureMap.connected.total++; if (h.correct) textureMap.connected.correct++; }
             if (tex.includes('disconnected') || tex.includes('rainbow')) { textureMap.disconnected.total++; if (h.correct) textureMap.disconnected.correct++; }
         });
-        const textures = Object.entries(textureMap).filter(([_, d]) => d.total > 0).map(([name, data]) => ({
+        const textures = Object.entries(textureMap || {}).filter(([_, d]) => d.total > 0).map(([name, data]) => ({
             name: name.charAt(0).toUpperCase() + name.slice(1), total: data.total, correct: data.correct,
             accuracy: data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0,
         }));
@@ -12754,10 +12754,10 @@ export class DeterministicGTOEngine {
 
     generateFrequencyQuizQuestion() {
         if (!this._sessionStats?.history || this._sessionStats.history.length < 5) return null;
-        const handsWithFreqs = this._sessionStats.history.filter(h => h.frequencies && Object.keys(h.frequencies).length >= 2);
+        const handsWithFreqs = this._sessionStats.history.filter(h => h.frequencies && Object.keys(h.frequencies || {}).length >= 2);
         if (handsWithFreqs.length === 0) return null;
         const hand = handsWithFreqs[Math.floor(Math.random() * handsWithFreqs.length)];
-        const entries = Object.entries(hand.frequencies).sort((a, b) => b[1] - a[1]);
+        const entries = Object.entries(hand.frequencies || {}).sort((a, b) => b[1] - a[1]);
         const topAction = entries[0][0];
         const topFreq = entries[0][1];
         return {
@@ -12784,7 +12784,7 @@ export class DeterministicGTOEngine {
             if (h.correct) posMap[pos].correct++;
             posMap[pos].evLoss += (h.evLoss || 0);
         });
-        const leaderboard = Object.entries(posMap).map(([pos, data]) => ({
+        const leaderboard = Object.entries(posMap || {}).map(([pos, data]) => ({
             position: pos, total: data.total, correct: data.correct,
             accuracy: data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0,
             evLoss: Math.round(data.evLoss * 100) / 100,
@@ -13006,7 +13006,7 @@ export class DeterministicGTOEngine {
 
         const rangeSet = nodeType === 'open' ? OPEN_RANGES : _3BET_RANGES;
         const key = nodeType === 'open' ? heroPosition.toUpperCase() : `vs_${heroPosition.toUpperCase()}`;
-        const range = rangeSet[key] || rangeSet[Object.keys(rangeSet)[0]];
+        const range = rangeSet[key] || rangeSet[Object.keys(rangeSet || {})[0]];
 
         // Generate a quiz-style question
         const allHands = ['AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88', '77', '66', 'AKs', 'AQs', 'AJs', 'ATs', 'A9s', 'A5s', 'A4s', 'KQs', 'KJs', 'KTs', 'QJs', 'QTs', 'JTs', 'T9s', 'AKo', 'AQo', 'AJo', 'ATo', 'A9o', 'KQo', 'KJo', 'QJo', '98s', '87s', '76s', '65s'];
@@ -13203,7 +13203,7 @@ export class DeterministicGTOEngine {
             gameTypes[category].evLoss += (h.evLoss || 0);
         });
 
-        const stats = Object.entries(gameTypes).map(([type, data]) => ({
+        const stats = Object.entries(gameTypes || {}).map(([type, data]) => ({
             type,
             total: data.total,
             correct: data.correct,
@@ -13249,7 +13249,7 @@ export class DeterministicGTOEngine {
             }
         });
 
-        const analysis = Object.entries(sizingData).map(([size, data]) => ({
+        const analysis = Object.entries(sizingData || {}).map(([size, data]) => ({
             size: size.charAt(0).toUpperCase() + size.slice(1),
             total: data.total,
             correct: data.correct,
@@ -13444,7 +13444,7 @@ export class DeterministicGTOEngine {
     // ═══════════════════════════════════════════════════════════════════════════
 
     getOptimalLineNarration(correctAction, frequencies, street, nodeType, heroPosition, handCategory) {
-        const freqEntries = frequencies ? Object.entries(frequencies).sort((a, b) => b[1] - a[1]) : [];
+        const freqEntries = frequencies ? Object.entries(frequencies || {}).sort((a, b) => b[1] - a[1]) : [];
         const topAction = freqEntries[0] || [correctAction, 100];
         const secondAction = freqEntries[1] || null;
         const isMixed = secondAction && secondAction[1] >= 15;
@@ -13507,7 +13507,7 @@ export class DeterministicGTOEngine {
             prevCorrect = h.correct;
         });
 
-        const analysis = Object.entries(transitions)
+        const analysis = Object.entries(transitions || {})
             .filter(([_, data]) => data.total >= 2)
             .map(([transition, data]) => ({
                 transition: transition.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
@@ -13525,7 +13525,7 @@ export class DeterministicGTOEngine {
             if (h.correct) streetAcc[st].correct++;
         });
 
-        const streetResults = Object.entries(streetAcc).map(([st, data]) => ({
+        const streetResults = Object.entries(streetAcc || {}).map(([st, data]) => ({
             street: st.charAt(0).toUpperCase() + st.slice(1),
             accuracy: data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0,
             total: data.total,
@@ -13812,7 +13812,7 @@ export class DeterministicGTOEngine {
             streetAcc[st].t++;
             if (h.correct) streetAcc[st].c++;
         });
-        const weakStreet = Object.entries(streetAcc).filter(([_, d]) => d.t >= 3).sort((a, b) => (a[1].c / a[1].t) - (b[1].c / b[1].t))[0];
+        const weakStreet = Object.entries(streetAcc || {}).filter(([_, d]) => d.t >= 3).sort((a, b) => (a[1].c / a[1].t) - (b[1].c / b[1].t))[0];
         if (weakStreet && (weakStreet[1].c / weakStreet[1].t) < 0.5) {
             recommendations.push({
                 drill: `${weakStreet[0].charAt(0).toUpperCase() + weakStreet[0].slice(1)} Mastery`,
@@ -13830,7 +13830,7 @@ export class DeterministicGTOEngine {
             posAcc[pos].t++;
             if (h.correct) posAcc[pos].c++;
         });
-        const weakPos = Object.entries(posAcc).filter(([_, d]) => d.t >= 3).sort((a, b) => (a[1].c / a[1].t) - (b[1].c / b[1].t))[0];
+        const weakPos = Object.entries(posAcc || {}).filter(([_, d]) => d.t >= 3).sort((a, b) => (a[1].c / a[1].t) - (b[1].c / b[1].t))[0];
         if (weakPos && (weakPos[1].c / weakPos[1].t) < 0.5) {
             recommendations.push({
                 drill: `${weakPos[0]} Position Drill`,
@@ -14017,7 +14017,7 @@ export class DeterministicGTOEngine {
             nodeMap[node].evLoss += (h.evLoss || 0);
         });
 
-        const breakdown = Object.entries(nodeMap).map(([node, data]) => ({
+        const breakdown = Object.entries(nodeMap || {}).map(([node, data]) => ({
             nodeType: node,
             total: data.total,
             correct: data.correct,
@@ -14071,7 +14071,7 @@ export class DeterministicGTOEngine {
             leaks[key].totalEVLoss += (h.evLoss || 0);
         });
 
-        const sorted = Object.values(leaks)
+        const sorted = Object.values(leaks || {})
             .sort((a, b) => b.totalEVLoss - a.totalEVLoss)
             .slice(0, 10)
             .map(l => ({
@@ -14216,7 +14216,7 @@ export class DeterministicGTOEngine {
             pairs[key].evLoss += (h.evLoss || 0);
         });
 
-        const analysis = Object.entries(pairs).map(([pair, data]) => ({
+        const analysis = Object.entries(pairs || {}).map(([pair, data]) => ({
             matchup: pair,
             total: data.total,
             accuracy: data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0,
@@ -14408,7 +14408,7 @@ export class DeterministicGTOEngine {
 
         const total = history.length;
         return {
-            distribution: Object.entries(buckets).map(([strength, count]) => ({
+            distribution: Object.entries(buckets || {}).map(([strength, count]) => ({
                 strength: strength.charAt(0).toUpperCase() + strength.slice(1),
                 count,
                 percentage: Math.round((count / total) * 100),
@@ -14476,7 +14476,7 @@ export class DeterministicGTOEngine {
             if (h.correct) categories[cat].correct++;
         });
 
-        const results = Object.entries(categories).map(([cat, data]) => ({
+        const results = Object.entries(categories || {}).map(([cat, data]) => ({
             category: cat,
             total: data.total,
             correct: data.correct,
@@ -14655,7 +14655,7 @@ export class DeterministicGTOEngine {
             if (p.correct) diffCorrect[key]++;
         });
 
-        const summary = Object.entries(diffCounts).filter(([_, c]) => c > 0).map(([diff, count]) => ({
+        const summary = Object.entries(diffCounts || {}).filter(([_, c]) => c > 0).map(([diff, count]) => ({
             difficulty: diff.charAt(0).toUpperCase() + diff.slice(1),
             count,
             accuracy: count > 0 ? Math.round((diffCorrect[diff] / count) * 100) : 0,
@@ -14796,7 +14796,7 @@ export class DeterministicGTOEngine {
         });
 
         const total = history.length;
-        const allActions = [...new Set([...Object.keys(userActions), ...Object.keys(solverActions)])];
+        const allActions = [...new Set([...Object.keys(userActions || {}), ...Object.keys(solverActions || {})])];
 
         let totalDeviation = 0;
         const actionComparison = allActions.map(action => {
@@ -15597,7 +15597,7 @@ export class DeterministicGTOEngine {
                 importFormat: parsedHand.format || 'unknown',
             },
             gtoFrequencies: gtoFreqs,
-            actions: Object.entries(gtoFreqs).map(([action, freq]) => ({
+            actions: Object.entries(gtoFreqs || {}).map(([action, freq]) => ({
                 action,
                 frequency: freq,
                 label: this._actionLabel(action),
@@ -15662,8 +15662,8 @@ export class DeterministicGTOEngine {
         }
 
         // Normalize
-        const total = Object.values(freqs).reduce((s, v) => s + Math.max(v, 0), 0) || 1;
-        for (const k of Object.keys(freqs)) {
+        const total = Object.values(freqs || {}).reduce((s, v) => s + Math.max(v, 0), 0) || 1;
+        for (const k of Object.keys(freqs || {})) {
             freqs[k] = Math.max(0, freqs[k]) / total;
         }
 
@@ -15683,7 +15683,7 @@ export class DeterministicGTOEngine {
         if (!spotData && !heroHand) return null;
 
         const actions = spotData?.actions || spotData?.gtoFrequencies || {};
-        const total = Object.values(actions).reduce((s, v) => s + (v || 0), 0) || 1;
+        const total = Object.values(actions || {}).reduce((s, v) => s + (v || 0), 0) || 1;
         const boardCards = spotData?.scenario?.boardCards || spotData?.boardCards || [];
 
         const ACTION_META = {
@@ -15702,7 +15702,7 @@ export class DeterministicGTOEngine {
 
         const rootChildren = [];
 
-        Object.entries(actions).forEach(([key, freq]) => {
+        Object.entries(actions || {}).forEach(([key, freq]) => {
             if (freq <= 0.005) return;
             const meta = ACTION_META[key] || ACTION_META[key[0]] || { type: 'check', label: key, color: '#3b82f6', abbr: key.slice(0, 2).toUpperCase() };
             const pct = Math.round((freq / total) * 100);

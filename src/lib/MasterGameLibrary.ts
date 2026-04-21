@@ -1097,28 +1097,28 @@ export function getGameDefinition(gameId: string): GameDefinition | null {
  * Get all game IDs
  */
 export function getAllGameDefinitionIds(): string[] {
-    return Object.keys(GAMES_LIST);
+    return Object.keys(GAMES_LIST || {});
 }
 
 /**
  * Get games by category
  */
 export function getGamesByCategory(category: GameDefinition['category']): GameDefinition[] {
-    return Object.values(GAMES_LIST).filter(game => game.category === category);
+    return Object.values(GAMES_LIST || {}).filter(game => game.category === category);
 }
 
 /**
  * Get games by tag
  */
 export function getGamesByTag(tag: string): GameDefinition[] {
-    return Object.values(GAMES_LIST).filter(game => game.tags?.includes(tag));
+    return Object.values(GAMES_LIST || {}).filter(game => game.tags?.includes(tag));
 }
 
 /**
  * Get unlocked games for a player
  */
 export function getUnlockedGameDefinitions(playerLevel: number, isVIP: boolean = false): GameDefinition[] {
-    return Object.values(GAMES_LIST).filter(game => {
+    return Object.values(GAMES_LIST || {}).filter(game => {
         const levelOk = !game.unlock?.minLevel || playerLevel >= game.unlock.minLevel;
         const vipOk = !game.unlock?.isVIPOnly || isVIP;
         return levelOk && vipOk;
@@ -1129,5 +1129,5 @@ export function getUnlockedGameDefinitions(playerLevel: number, isVIP: boolean =
  * Get total game count
  */
 export function getGameDefinitionCount(): number {
-    return Object.keys(GAMES_LIST).length;
+    return Object.keys(GAMES_LIST || {}).length;
 }

@@ -181,7 +181,7 @@ const useMessengerPrefs = () => {
                 
                 // Labels
                 const lbls = state.labels || {};
-                for (const [msgId, msgLabels] of Object.entries(lbls)) {
+                for (const [msgId, msgLabels] of Object.entries(lbls || {})) {
                     for (const lbl of msgLabels) {
                         await sb.from('messenger_labels').upsert({ message_id: msgId, user_id: uid, label: lbl }, { onConflict: 'message_id,user_id,label' });
                     }
@@ -189,7 +189,7 @@ const useMessengerPrefs = () => {
                 
                 // Themes
                 const thms = state.themes || {};
-                for (const [convId, themeStr] of Object.entries(thms)) {
+                for (const [convId, themeStr] of Object.entries(thms || {})) {
                     await sb.from('messenger_themes').upsert({ conversation_id: convId, user_id: uid, theme_value: themeStr }, { onConflict: 'conversation_id,user_id' });
                 }
                 
@@ -823,7 +823,7 @@ export const ChatWindow = ({
             channel.on('presence', { event: 'sync' }, () => {
                 const state = channel.presenceState();
                 let someoneTyping = false;
-                Object.values(state).forEach(presences => {
+                Object.values(state || {}).forEach(presences => {
                     presences.forEach(p => {
                         if (p.user_id !== currentUser.id && p.is_typing) {
                             someoneTyping = true;
@@ -1686,7 +1686,7 @@ export const ChatWindow = ({
                                 <div style={{ marginTop: 8 }}>
                                     <div style={{ fontSize: 10, color: '#aaa', marginBottom: 4 }}>Message Types</div>
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                                        {Object.entries(analytics.messageTypes).map(([type, count]) => (
+                                        {Object.entries(analytics.messageTypes || {}).map(([type, count]) => (
                                             <span key={type} style={{ padding: '2px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.08)', fontSize: 10, color: '#ccc' }}>{type}: {count}</span>
                                         ))}
                                     </div>

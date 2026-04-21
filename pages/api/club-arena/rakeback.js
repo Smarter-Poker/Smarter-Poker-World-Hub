@@ -246,14 +246,14 @@ export default async function handler(req, res) {
           const playerRake = {};
           for (const record of (rakeRecords || [])) {
             const contributions = record.player_contributions || {};
-            for (const [playerId, amount] of Object.entries(contributions)) {
+            for (const [playerId, amount] of Object.entries(contributions || {})) {
               playerRake[playerId] = (playerRake[playerId] || 0) + amount;
             }
           }
 
           // Create rakeback records for each player
           const inserts = [];
-          for (const [playerId, totalRake] of Object.entries(playerRake)) {
+          for (const [playerId, totalRake] of Object.entries(playerRake || {})) {
             if (totalRake <= 0) continue;
             const rakebackAmount = Math.floor(totalRake * rakebackRate);
             if (rakebackAmount <= 0) continue;

@@ -1147,8 +1147,8 @@ function evaluateHandStrength(holeCards, board) {
     const allRanks = [r1, r2, ...boardRanks];
     const rankCounts = {};
     allRanks.forEach(r => { rankCounts[r] = (rankCounts[r] || 0) + 1; });
-    const maxCount = Math.max(...Object.values(rankCounts));
-    const pairCount = Object.values(rankCounts).filter(c => c === 2).length;
+    const maxCount = Math.max(...Object.values(rankCounts || {}));
+    const pairCount = Object.values(rankCounts || {}).filter(c => c === 2).length;
 
     // Made hand bonuses
     if (maxCount >= 4) strength = Math.max(strength, 92); // Quads

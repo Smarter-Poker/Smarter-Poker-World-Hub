@@ -717,7 +717,7 @@ function LeakReport({ hands }) {
     100,
     Math.max(0, Math.round(((counts.BEST + counts.CORRECT) / denominator) * 100))
   );
-  const sortedStreets = Object.entries(streetLeaks).sort((a, b) => b[1].evLoss - a[1].evLoss);
+  const sortedStreets = Object.entries(streetLeaks || {}).sort((a, b) => b[1].evLoss - a[1].evLoss);
   const worstStreet = sortedStreets[0] || ['preflop', { count: 0, evLoss: 0 }];
 
   // Grade distribution bar
@@ -894,7 +894,7 @@ function LeakReport({ hands }) {
           Leak Hotspots by Street
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
-          {Object.entries(streetLeaks).map(([street, data]) => (
+          {Object.entries(streetLeaks || {}).map(([street, data]) => (
             <div
               key={street}
               style={{

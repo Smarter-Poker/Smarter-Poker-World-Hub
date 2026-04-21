@@ -336,7 +336,7 @@ export function getRandomCaption(category) {
 export function markClipUsed(clipId) { usedClipIds.add(clipId); }
 
 // 50 sources mapped to 100 horses (2 per source)
-const SOURCE_KEYS = Object.keys(CLIP_SOURCES);
+const SOURCE_KEYS = Object.keys(CLIP_SOURCES || {});
 
 export function getHorsePreferredSources(horseProfileId) {
     if (!horseProfileId) return null;

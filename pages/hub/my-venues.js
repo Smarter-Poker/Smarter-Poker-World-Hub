@@ -207,7 +207,7 @@ function ScheduleTab({ staffId, venueId, token }) {
                 </div>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {Object.entries(shiftsByDay).sort(([a], [b]) => a.localeCompare(b)).map(([day, dayShifts]) => {
+                    {Object.entries(shiftsByDay || {}).sort(([a], [b]) => a.localeCompare(b)).map(([day, dayShifts]) => {
                         const d = new Date(day + 'T12:00:00');
                         return (
                             <div key={day} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: '12px 16px' }}>

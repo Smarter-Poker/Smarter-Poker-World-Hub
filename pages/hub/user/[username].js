@@ -540,19 +540,19 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
             </div>
             
             {/* Display Animated Typing Indicators (Phase 11) */}
-            {Object.values(typists).length > 0 && (
+            {Object.values(typists || {}).length > 0 && (
                 <div style={{ display: 'flex', gap: 8, marginTop: 12, padding: '0 12px', alignItems: 'center' }}>
                     <div style={{ display: 'flex', position: 'relative', width: 24, height: 24 }}>
-                        {Object.values(typists).slice(0, 3).map((t, i) => (
+                        {Object.values(typists || {}).slice(0, 3).map((t, i) => (
                             <img key={i} src={t.avatar || '/default-avatar.png'} alt="typing" 
                                 style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover', border: '2px solid white', position: 'absolute', left: i * 12, zIndex: 3 - i }} />
                         ))}
                     </div>
                     <div style={{ 
                         background: C.bg, borderRadius: 16, padding: '8px 12px', fontSize: 12,
-                        color: C.textSec, display: 'flex', alignItems: 'center', gap: 6, marginLeft: Object.values(typists).length > 2 ? 30 : (Object.values(typists).length - 1) * 12
+                        color: C.textSec, display: 'flex', alignItems: 'center', gap: 6, marginLeft: Object.values(typists || {}).length > 2 ? 30 : (Object.values(typists || {}).length - 1) * 12
                     }}>
-                        <span>{Object.values(typists)[0].name.split(' ')[0]} is typing</span>
+                        <span>{Object.values(typists || {})[0].name.split(' ')[0]} is typing</span>
                         <div style={{ display: 'flex' }}>
                             <TypingDot delay="-0.32s" />
                             <TypingDot delay="-0.16s" />
@@ -1385,8 +1385,14 @@ export default function UserProfilePage() {
             }
             invalidateProfileCache();
             busEmit.dataMutated('follows');
-        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }));
-            console.warn('Error toggling follow:', e);
+        } catch (e) {
+            // Rollback on failure
+            setIsFollowing(wasFollowing);
+            setStats(prev => ({
+                ...prev,
+                followers: wasFollowing ? prev.followers + 1 : Math.max(0, prev.followers - 1)
+            }));
+            console.warn('[App] Handled exception:', e?.message || e);
             toast.error(wasFollowing ? 'Could not unfollow' : 'Could not follow');
         }
         setFollowLoading(false);

@@ -308,7 +308,7 @@ export default function OpponentProfiler() {
                 borderBottom: '1px solid rgba(100,116,139,0.08)',
                 display: 'flex', gap: 4, flexWrap: 'wrap',
             }}>
-                {Object.entries(ARCHETYPES).map(([key, a]) => (
+                {Object.entries(ARCHETYPES || {}).map(([key, a]) => (
                     <button
                         key={key}
                         onClick={() => compareMode ? toggleCompareType(key) : setSelectedType(key)}

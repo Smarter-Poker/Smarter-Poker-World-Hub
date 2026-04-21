@@ -130,7 +130,7 @@ export default async function handler(req, res) {
               if (action === 'activity') sortKey = 'txCount';
               if (action === 'big_winners') sortKey = 'netFlow';
 
-              const sorted = Object.entries(stats)
+              const sorted = Object.entries(stats || {})
                   .sort((a, b) => (b[1][sortKey] || 0) - (a[1][sortKey] || 0))
                   .slice(0, maxLimit);
 

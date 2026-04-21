@@ -1182,25 +1182,25 @@ export function getRangePercentage(spotData) {
  */
 export function getAvailableSpots() {
     return {
-        rfi: Object.keys(RFI).map(pos => ({ key: `RFI.${pos}`, label: `${pos} Open`, data: RFI[pos] })),
-        threeBet: Object.keys(THREE_BET).map(key => {
+        rfi: Object.keys(RFI || {}).map(pos => ({ key: `RFI.${pos}`, label: `${pos} Open`, data: RFI[pos] })),
+        threeBet: Object.keys(THREE_BET || {}).map(key => {
             const [pos, , villain] = key.split('_');
             return { key: `3BET.${key}`, label: `${pos} 3-Bet vs ${villain}`, data: THREE_BET[key] };
         }),
-        bbDefense: Object.keys(BB_DEFENSE).map(key => {
+        bbDefense: Object.keys(BB_DEFENSE || {}).map(key => {
             const villain = key.replace('vs_', '');
             return { key: `BB_DEF.${key}`, label: `BB Defense vs ${villain}`, data: BB_DEFENSE[key] };
         }),
-        fourBet: Object.keys(FOUR_BET).map(key => {
+        fourBet: Object.keys(FOUR_BET || {}).map(key => {
             const [pos] = key.split('_');
             return { key: `4BET.${key}`, label: `${pos} 4-Bet`, data: FOUR_BET[key] };
         }),
-        squeeze: Object.keys(SQUEEZE).map(key => ({
+        squeeze: Object.keys(SQUEEZE || {}).map(key => ({
             key: `SQZ.${key}`,
             label: key.replace(/_/g, ' ').replace('vs', 'vs').replace('open', 'open,'),
             data: SQUEEZE[key],
         })),
-        coldCall: Object.keys(COLD_CALL).map(key => {
+        coldCall: Object.keys(COLD_CALL || {}).map(key => {
             const parts = key.split('_vs_');
             const pos = parts[0];
             const villain = parts[1] || key;

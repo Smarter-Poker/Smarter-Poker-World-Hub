@@ -29,7 +29,7 @@ export function cachedFetch(url, ttl = API_CACHE_TTL) {
   // [GAP 1.5] Return existing in-flight promise if one exists
   if (inflight[url]) return inflight[url];
   // Evict stale entries to prevent unbounded growth
-  const keys = Object.keys(apiCache);
+  const keys = Object.keys(apiCache || {});
   if (keys.length > API_CACHE_MAX_ENTRIES) {
     keys.sort((a, b) => apiCache[a].time - apiCache[b].time);
     keys.slice(0, keys.length - API_CACHE_MAX_ENTRIES + 10).forEach(k => delete apiCache[k]);
@@ -79,5 +79,5 @@ export function invalidateCache(url) {
  * Clear all cached entries
  */
 export function clearCache() {
-  Object.keys(apiCache).forEach(k => delete apiCache[k]);
+  Object.keys(apiCache || {}).forEach(k => delete apiCache[k]);
 }

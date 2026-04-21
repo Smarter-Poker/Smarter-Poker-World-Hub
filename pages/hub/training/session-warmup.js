@@ -497,7 +497,7 @@ export default function SessionWarmupPage() {
                 >
                   Session Plan
                 </div>
-                {Object.entries(answers).map(([key, val]) => {
+                {Object.entries(answers || {}).map(([key, val]) => {
                   const label = PROTOCOL_STEPS.find((s) => s.id === key)?.title || key;
                   return (
                     <div

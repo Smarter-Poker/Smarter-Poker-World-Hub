@@ -239,7 +239,7 @@ export const SpatialFeed = ({
     <div className="spatial-feed">
       {/* Filter Sub-Rail */}
       <nav className="feed-filters glass-panel">
-        {Object.entries(FEED_FILTERS).map(([key, config]) => (
+        {Object.entries(FEED_FILTERS || {}).map(([key, config]) => (
           <button
             key={key}
             className={`filter-tab interactive ${activeFilter === key ? 'active' : ''}`}

@@ -526,19 +526,24 @@ function ReelViewer({ reels, startIndex, onClose }) {
     };
 
     const handleDislike = async () => {
-        if (!currentReel || !authUser?.id) return;
+        if (!currentReel) return;
         if (likeDebounceRef.current) return;
         likeDebounceRef.current = true;
         setTimeout(() => { likeDebounceRef.current = false; }, 300);
 
         const currentId = currentReel.id;
-        const userId = authUser.id;
         const wasDisliked = disliked[currentId];
         setDisliked(prev => ({ ...prev, [currentId]: !prev[currentId] }));
         // Mutual exclusion: remove like when disliking
         if (!wasDisliked && liked[currentId]) {
             setLiked(prev => ({ ...prev, [currentId]: false }));
             setLikeCounts(prev => ({ ...prev, [currentId]: Math.max(0, (prev[currentId] || 0) - 1) }));
+        }
+
+        const userId = authUser?.id || getAuthUser()?.id;
+        if (!userId) return; // No auth — keep optimistic UI but skip DB write
+
+        if (!wasDisliked && liked[currentId]) {
             try {
                 await supabase.from('social_likes').delete().eq('post_id', currentId).eq('user_id', userId).eq('reaction_type', 'like');
                 try { await supabase.rpc('decrement_post_count', { p_post_id: currentId, p_field: 'like_count' }); } catch (e) { console.warn('[ReelsFeedCarousel] Handled exception:', e); }

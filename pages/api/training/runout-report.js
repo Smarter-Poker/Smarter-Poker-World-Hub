@@ -53,7 +53,7 @@ function calculateAggressionIndex(strategyMatrix) {
         const isBetRaise = a === 'r' || a === 'b' || a === 'raise' || a === 'bet' || a === 'allin';
         const isFold = a === 'f' || a === 'fold';
 
-        for (const [hand, freq] of Object.entries(freqs)) {
+        for (const [hand, freq] of Object.entries(freqs || {})) {
             if (freq > 0) {
                 if (isBetRaise) totalBetRaise += freq;
                 else if (isFold) totalFold += freq;
@@ -171,7 +171,7 @@ export default async function handler(req, res) {
               success: true,
               runouts,
               currentBoard,
-              childrenFound: Object.keys(childMap).length,
+              childrenFound: Object.keys(childMap || {}).length,
               baselineAggression: Math.round(baselineAggression * 100) / 100,
           });
 

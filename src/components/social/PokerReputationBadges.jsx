@@ -154,12 +154,12 @@ export const PokerReactionBar = ({
     onReact = () => { },
     compact = false
 }) => {
-    const totalReactions = Object.values(reactions).reduce((a, b) => a + b, 0);
+    const totalReactions = Object.values(reactions || {}).reduce((a, b) => a + b, 0);
 
     return (
         <div className={`poker-reaction-bar ${compact ? 'compact' : ''}`}>
             <div className="reaction-buttons">
-                {Object.entries(POKER_REACTIONS).map(([key, reaction]) => (
+                {Object.entries(POKER_REACTIONS || {}).map(([key, reaction]) => (
                     <button
                         key={key}
                         className={`reaction-btn ${userReaction === key ? 'active' : ''}`}

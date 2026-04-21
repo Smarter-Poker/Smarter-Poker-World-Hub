@@ -846,7 +846,7 @@ export function useMessengerService({ conversationId, currentUser, messengerType
             .on('presence', { event: 'sync' }, () => {
                 const state = channel.presenceState();
                 const online = {};
-                Object.keys(state).forEach(uid => { online[uid] = true; });
+                Object.keys(state || {}).forEach(uid => { online[uid] = true; });
                 setOnlineUsers(online);
             })
             .on('presence', { event: 'join' }, ({ key }) => {
@@ -1784,8 +1784,8 @@ ${messages.map(m =>
                 emojiCounts[r.emoji] = (emojiCounts[r.emoji] || 0) + 1;
                 messageCounts[r.message_id] = (messageCounts[r.message_id] || 0) + 1;
             });
-            const topEmojis = Object.entries(emojiCounts).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([emoji, count]) => ({ emoji, count }));
-            const mostReactedMessages = Object.entries(messageCounts).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([messageId, count]) => ({ messageId, count }));
+            const topEmojis = Object.entries(emojiCounts || {}).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([emoji, count]) => ({ emoji, count }));
+            const mostReactedMessages = Object.entries(messageCounts || {}).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([messageId, count]) => ({ messageId, count }));
             return { totalReactions: data.length, topEmojis, mostReactedMessages };
         } catch (_) { return null; }
     }, [conversationId, messages]);
@@ -1955,7 +1955,7 @@ ${messages.map(m =>
             const day = new Date(m.created_at).toLocaleDateString();
             dayGroups[day] = (dayGroups[day] || 0) + 1;
         });
-        const messagesPerDay = Object.entries(dayGroups).map(([date, count]) => ({ date, count }));
+        const messagesPerDay = Object.entries(dayGroups || {}).map(([date, count]) => ({ date, count }));
 
         // Active hours heatmap (0-23)
         const hourCounts = Array(24).fill(0);
@@ -2089,7 +2089,7 @@ ${messages.map(m =>
         if (!partialText || partialText.length < 3) return [];
         const lower = partialText.toLowerCase().trim();
         // Build phrase cache from user's sent messages
-        if (Object.keys(userPhraseCache.current).length === 0 && messages.length > 0) {
+        if (Object.keys(userPhraseCache.current || {}).length === 0 && messages.length > 0) {
             const myMsgs = messages.filter(m => m.sender_id === currentUser?.id && m.text);
             myMsgs.forEach(m => {
                 const words = m.text.split(/\s+/);
@@ -2118,14 +2118,14 @@ ${messages.map(m =>
         };
         // Match user phrase cache first, then poker phrases
         const suggestions = [];
-        Object.entries(userPhraseCache.current).forEach(([prefix, completions]) => {
+        Object.entries(userPhraseCache.current || {}).forEach(([prefix, completions]) => {
             if (lower.endsWith(prefix) || prefix.startsWith(lower.slice(-prefix.length))) {
                 completions.slice(0, 3).forEach(c => {
                     if (!suggestions.includes(c)) suggestions.push(c);
                 });
             }
         });
-        Object.entries(pokerPhrases).forEach(([prefix, completions]) => {
+        Object.entries(pokerPhrases || {}).forEach(([prefix, completions]) => {
             if (lower.endsWith(prefix)) {
                 completions.forEach(c => {
                     if (!suggestions.includes(c)) suggestions.push(c);

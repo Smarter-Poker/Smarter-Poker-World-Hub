@@ -62,8 +62,8 @@ function evalFiveCards(cards) {
 
   const rankCounts = {};
   for (const r of ranks) rankCounts[r] = (rankCounts[r] || 0) + 1;
-  const counts = Object.values(rankCounts).sort((a, b) => b - a);
-  const uniqueRanks = Object.keys(rankCounts)
+  const counts = Object.values(rankCounts || {}).sort((a, b) => b - a);
+  const uniqueRanks = Object.keys(rankCounts || {})
     .map(Number)
     .sort((a, b) => b - a);
 
@@ -89,7 +89,7 @@ function evalFiveCards(cards) {
   else category = 0;
 
   // Score: sort by count desc, then rank desc to handle kickers properly
-  const sortedByCountThenRank = Object.entries(rankCounts)
+  const sortedByCountThenRank = Object.entries(rankCounts || {})
     .map(([rank, count]) => ({ rank: Number(rank), count }))
     .sort((a, b) => b.count - a.count || b.rank - a.rank)
     .map((e) => e.rank);

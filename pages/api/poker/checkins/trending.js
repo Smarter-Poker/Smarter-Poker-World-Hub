@@ -52,7 +52,7 @@ export default async function handler(req, res) {
         }
 
         // Sort by count descending, take top N
-        const sorted = Object.values(countMap)
+        const sorted = Object.values(countMap || {})
             .sort((a, b) => b.count - a.count)
             .slice(0, limit);
 

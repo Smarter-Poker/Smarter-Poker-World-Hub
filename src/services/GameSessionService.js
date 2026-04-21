@@ -120,7 +120,7 @@ class GameSessionService {
                 totalTime,
                 levelStats,
                 modeStats,
-                modesPlayed: Object.keys(modeStats).filter(m => modeStats[m].games > 0),
+                modesPlayed: Object.keys(modeStats || {}).filter(m => modeStats[m].games > 0),
                 recentSessions: sessions.slice(0, 10)
             };
         } catch (error) {

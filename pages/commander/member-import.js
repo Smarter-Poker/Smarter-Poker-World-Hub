@@ -92,13 +92,13 @@ export default function MemberImport() {
     reader.readAsText(file);
   };
 
-  const mappedFields = Object.values(mapping).filter(Boolean);
+  const mappedFields = Object.values(mapping || {}).filter(Boolean);
   const hasRequired = REQUIRED_FIELDS.every(f => mappedFields.includes(f));
 
   const getMappedRows = () => {
     return csvData.rows.map(row => {
       const obj = {};
-      Object.entries(mapping).forEach(([colIdx, field]) => {
+      Object.entries(mapping || {}).forEach(([colIdx, field]) => {
         if (field && row[parseInt(colIdx)]) {
           obj[field] = row[parseInt(colIdx)];
         }

@@ -130,8 +130,8 @@ export default async function handler(req, res) {
           },
       };
 
-      const configuredCount = Object.values(services).filter(s => s.configured || s.status === 'configured').length;
-      const totalServices = Object.keys(services).length;
+      const configuredCount = Object.values(services || {}).filter(s => s.configured || s.status === 'configured').length;
+      const totalServices = Object.keys(services || {}).length;
 
       // ── Phase 5.1.4: overall status aggregates probe results ────────────
       // Any `error` on db or engine drops us to 'degraded' and 503. A

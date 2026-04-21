@@ -152,14 +152,14 @@ try {
         // Also store in metadata for backward compat
         const metadata = {};
         if (category_ratings && typeof category_ratings === 'object') {
-          for (const [key, val] of Object.entries(category_ratings)) {
+          for (const [key, val] of Object.entries(category_ratings || {})) {
             if (Number.isInteger(val) && val >= 1 && val <= 5) {
               metadata[key + '_rating'] = val;
             }
           }
         }
         if (is_verified_player) metadata.verified_player = true;
-        if (Object.keys(metadata).length > 0) insertPayload.metadata = metadata;
+        if (Object.keys(metadata || {}).length > 0) insertPayload.metadata = metadata;
 
         const { data, error } = await getSupabase()
           .from('venue_reviews')
@@ -217,7 +217,7 @@ try {
               if (!buckets[r.venue_id]) buckets[r.venue_id] = [];
               buckets[r.venue_id].push(r.rating);
             }
-            for (const [vid, ratings] of Object.entries(buckets)) {
+            for (const [vid, ratings] of Object.entries(buckets || {})) {
               stats[vid] = {
                 avg_rating: parseFloat((ratings.reduce((s, r) => s + r, 0) / ratings.length).toFixed(2)),
                 total_reviews: ratings.length,

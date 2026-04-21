@@ -40,7 +40,7 @@ export default function ProfileRedirect() {
 
                 // Fallback: legacy Supabase keys
                 if (!authUser) {
-                    const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+                    const sbKeys = Object.keys(localStorage || {}).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
                     if (sbKeys.length > 0) {
                         try {
                             const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');

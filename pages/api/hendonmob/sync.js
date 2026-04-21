@@ -110,7 +110,7 @@ export default async function handler(req, res) {
     if (te != null && !isNaN(te)) updateData.hendon_total_earnings = te;
     if (bc != null && !isNaN(bc) && bc >= 0) updateData.hendon_biggest_cash = bc;
 
-    if (Object.keys(updateData).length === 0) {
+    if (Object.keys(updateData || {}).length === 0) {
         return res.status(400).json({
             success: false,
             error: 'No valid stats to save.',

@@ -180,7 +180,7 @@ export default function UniversalHeader({
                         }
                         // Fallback to legacy sb-* keys
                         if (!authUser) {
-                            const sbKeys = Object.keys(localStorage).filter(
+                            const sbKeys = Object.keys(localStorage || {}).filter(
                                 k => k.startsWith('sb-') && k.endsWith('-auth-token')
                             );
                             if (sbKeys.length > 0) {

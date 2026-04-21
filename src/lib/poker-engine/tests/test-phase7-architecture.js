@@ -205,7 +205,7 @@ async function runTests() {
   for (const seat of entry.table.seats) {
     if (seat.player) initialStacks[seat.player.id] = seat.stack;
   }
-  const totalChipsBefore = Object.values(initialStacks).reduce((s, v) => s + v, 0);
+  const totalChipsBefore = Object.values(initialStacks || {}).reduce((s, v) => s + v, 0);
 
   let handsPlayed = 0;
   for (let h = 0; h < 10; h++) {

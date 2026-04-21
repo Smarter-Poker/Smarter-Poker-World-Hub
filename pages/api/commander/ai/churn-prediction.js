@@ -76,7 +76,7 @@ export default async function handler(req, res) {
       });
 
       // Get player names
-      const playerIds = Object.keys(playerMap);
+      const playerIds = Object.keys(playerMap || {});
       let nameMap = {};
       if (playerIds.length > 0) {
         const { data: profiles } = await getSupabase()
@@ -90,7 +90,7 @@ export default async function handler(req, res) {
       // Calculate churn risk for each player
       const predictions = [];
 
-      for (const [playerId, data] of Object.entries(playerMap)) {
+      for (const [playerId, data] of Object.entries(playerMap || {})) {
         const { sessions: playerSessions, last30, prev30, prev60 } = data;
         const totalSessions = playerSessions.length;
         if (totalSessions < 2) continue; // Need baseline

@@ -296,7 +296,7 @@ export async function saveHandResult(payload: SavePayload): Promise<{ success: b
                     token = tokenData?.access_token || null;
                 }
                 if (!token) {
-                    const sbKeys = Object.keys(localStorage).filter(
+                    const sbKeys = Object.keys(localStorage || {}).filter(
                         k => k.startsWith('sb-') && k.endsWith('-auth-token')
                     );
                     if (sbKeys.length > 0) {

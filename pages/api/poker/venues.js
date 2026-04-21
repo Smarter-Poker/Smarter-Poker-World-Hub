@@ -43,7 +43,7 @@ const STATE_ABBREV_TO_NAME = {
     WV: 'West Virginia', WI: 'Wisconsin', WY: 'Wyoming', DC: 'District of Columbia'
 };
 const STATE_NAME_TO_ABBREV = Object.fromEntries(
-    Object.entries(STATE_ABBREV_TO_NAME).map(([k, v]) => [v.toLowerCase(), k])
+    Object.entries(STATE_ABBREV_TO_NAME || {}).map(([k, v]) => [v.toLowerCase(), k])
 );
 
 /** Resolve a search term to a state abbreviation (if it matches a state name) */
@@ -915,7 +915,7 @@ export default async function handler(req, res) {
                           // Helper: extract game types from run_schedule metadata
                           const extractGames = (schedule) => {
                               const games = new Set();
-                              for (const dayData of Object.values(schedule)) {
+                              for (const dayData of Object.values(schedule || {})) {
                                   if (dayData && dayData.games && Array.isArray(dayData.games)) {
                                       dayData.games.forEach(g => games.add(g));
                                   }
@@ -971,7 +971,7 @@ export default async function handler(req, res) {
                                       const todayKey = DAYS_ORDER[todayIdx];
 
                                       // Compute fallback buy-in from all schedule days
-                                      const schedBuyIns = Object.values(schedule).map(d => d?.buy_in).filter(b => b != null && b > 0 && b < 10000);
+                                      const schedBuyIns = Object.values(schedule || {}).map(d => d?.buy_in).filter(b => b != null && b > 0 && b < 10000);
                                       const schedFallbackBuyIn = schedBuyIns.length > 0 ? schedBuyIns.sort((a,b) => { const f = {}; schedBuyIns.forEach(v => f[v]=(f[v]||0)+1); return (f[b]||0)-(f[a]||0); })[0] : null;
                                       
                                       if (schedule[todayKey] && schedule[todayKey].open && schedule[todayKey].location) {
@@ -1055,7 +1055,7 @@ export default async function handler(req, res) {
                                   const todayIdx = new Date(localCurrentTime).getDay();
                                   const todayKey = DAYS_ORDER[todayIdx];
                                   // Compute fallback buy-in from all schedule days
-                                  const unlinkedSchedBuyIns = Object.values(schedule).map(d => d?.buy_in).filter(b => b != null && b > 0 && b < 10000);
+                                  const unlinkedSchedBuyIns = Object.values(schedule || {}).map(d => d?.buy_in).filter(b => b != null && b > 0 && b < 10000);
                                   const unlinkedFallbackBuyIn = unlinkedSchedBuyIns.length > 0 ? unlinkedSchedBuyIns[0] : null;
 
                                   if (schedule[todayKey] && schedule[todayKey].open && schedule[todayKey].location) {
@@ -1193,7 +1193,7 @@ export default async function handler(req, res) {
                           addBreadcrumb({
                               category: 'poker-venues',
                               message: `Merge complete: ${mappedPages.length} social entries added, ${missedLinkedPages.length} enriched from poker_venues`,
-                              data: { mapped: mappedPages.length, missed: missedLinkedPages.length, enriched: Object.keys(supabaseVenuesByIdMap).length },
+                              data: { mapped: mappedPages.length, missed: missedLinkedPages.length, enriched: Object.keys(supabaseVenuesByIdMap || {}).length },
                           });
                       }
                   }
@@ -1572,7 +1572,7 @@ export default async function handler(req, res) {
                               // Use most common value as the fallback
                               const freq = {};
                               knownBuyIns.forEach(b => { freq[b] = (freq[b] || 0) + 1; });
-                              fallbackBuyIn = Number(Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0]);
+                              fallbackBuyIn = Number(Object.entries(freq || {}).sort((a, b) => b[1] - a[1])[0][0]);
                           }
                           // Helper: resolve buy-in for a tournament row, using fallback when missing
                           const resolveBuyIn = (t) => {

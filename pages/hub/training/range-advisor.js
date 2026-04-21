@@ -821,7 +821,7 @@ export default function RangeAdvisor() {
               />
               {/* Legend */}
               <div style={{ display: 'flex', gap: 10, marginTop: 10, flexWrap: 'wrap' }}>
-                {Object.entries(ACTION_COLORS).map(([act, c]) => (
+                {Object.entries(ACTION_COLORS || {}).map(([act, c]) => (
                   <div key={act} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <div
                       style={{

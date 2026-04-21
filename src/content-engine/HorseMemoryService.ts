@@ -102,7 +102,7 @@ class HorseMemoryService {
             p_author_id: authorId
         });
 
-        if (error || !data || Object.keys(data).length === 0) {
+        if (error || !data || Object.keys(data || {}).length === 0) {
             return null;
         }
 

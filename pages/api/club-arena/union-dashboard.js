@@ -339,12 +339,12 @@ export default async function handler(req, res) {
               joinedAt: m.created_at,
             });
           }
-          const migrations = Object.entries(userClubMap)
+          const migrations = Object.entries(userClubMap || {})
             .filter(([_, clubs]) => clubs.length > 1)
             .map(([userId, joinedClubs]) => ({ userId, clubs: joinedClubs }));
 
           crossClubAnalytics = {
-            rakeTrendByClub: Object.values(rakeTrendByClub),
+            rakeTrendByClub: Object.values(rakeTrendByClub || {}),
             topAgents: sortedAgents,
             newMembersCount: (newMembers || []).length,
             migrations,

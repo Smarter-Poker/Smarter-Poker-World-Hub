@@ -77,7 +77,7 @@ export default function NewSeriesVenueCard({ series: s, index, isFavorited, onFa
     else if (rawTourString.includes('PGT')) matchedTourCode = 'PGT';
     else if (rawTourString.includes('NAPT')) matchedTourCode = 'NAPT';
     else {
-        matchedTourCode = Object.keys(TOUR_LOGO_MAP).find(k => rawTourString.includes(k));
+        matchedTourCode = Object.keys(TOUR_LOGO_MAP || {}).find(k => rawTourString.includes(k));
     }
 
     // Logo cascade: series own logo → tour brand logo → nothing

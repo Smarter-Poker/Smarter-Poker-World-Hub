@@ -334,9 +334,9 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
                     )}
 
                     {/* Category Breakdown */}
-                    {!editMode && activeSeries.categoryBreakdown && Object.keys(activeSeries.categoryBreakdown).length > 0 && (
+                    {!editMode && activeSeries.categoryBreakdown && Object.keys(activeSeries.categoryBreakdown || {}).length > 0 && (
                         <div style={styles.breakdownRow}>
-                            {Object.entries(activeSeries.categoryBreakdown).map(([cat, data]) => (
+                            {Object.entries(activeSeries.categoryBreakdown || {}).map(([cat, data]) => (
                                 <span key={cat} style={styles.breakdownTag}>
                                     {CATEGORY_LABELS[cat] || cat}: {formatCurrency(data.net)}
                                 </span>

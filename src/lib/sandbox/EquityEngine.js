@@ -38,9 +38,9 @@ function evaluateHand(cards) {
         suitCounts[c.suit] = (suitCounts[c.suit] || 0) + 1;
     });
 
-    const counts = Object.values(rankCounts).sort((a, b) => b - a);
-    const uniqueRanks = Object.keys(rankCounts).map(Number).sort((a, b) => b - a);
-    const isFlush = Object.values(suitCounts).some(c => c >= 5);
+    const counts = Object.values(rankCounts || {}).sort((a, b) => b - a);
+    const uniqueRanks = Object.keys(rankCounts || {}).map(Number).sort((a, b) => b - a);
+    const isFlush = Object.values(suitCounts || {}).some(c => c >= 5);
 
     // Check for straights (including ace-low)
     let isStraight = false;

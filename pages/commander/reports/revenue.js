@@ -159,7 +159,7 @@ const json = await commanderFetchJSON(`/api/commander/reports/revenue?venue_id=$
                   {/* By Category */}
                   {Object.keys(data.comps.by_category || {}).length > 0 && (
                     <div className="space-y-1.5">
-                      {Object.entries(data.comps.by_category).sort((a, b) => b[1] - a[1]).map(([cat, amt]) => {
+                      {Object.entries(data.comps.by_category || {}).sort((a, b) => b[1] - a[1]).map(([cat, amt]) => {
                         const catLabels = { free_food: 'Food & Beverage', free_time: 'Free Time', free_membership: 'Free Membership', free_chips: 'Free Chips', cash_bonus: 'Cash Bonus', promo_credit: 'Promo Credit', tournament_entry: 'Tournament Entry', other: 'Other' };
                         return (
                           <div key={cat} className="flex items-center justify-between px-3 py-2 bg-[#3A3B3C]/30 rounded-lg">

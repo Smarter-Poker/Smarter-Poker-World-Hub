@@ -60,7 +60,7 @@ const US_STATES = {
   'west virginia':'WV', wisconsin:'WI', wyoming:'WY',
 };
 // Also accept abbreviations directly
-const STATE_ABBREVS = Object.values(US_STATES);
+const STATE_ABBREVS = Object.values(US_STATES || {});
 
 function parseNaturalLanguageQuery(raw) {
   const q = (raw || '').toLowerCase().trim();
@@ -84,7 +84,7 @@ function parseNaturalLanguageQuery(raw) {
   else if (/\btomorrow\b/.test(q)) { result.timeWindow = 'tomorrow'; result.isNaturalLanguage = true; }
 
   // Detect location — full state name first
-  for (const [name, code] of Object.entries(US_STATES)) {
+  for (const [name, code] of Object.entries(US_STATES || {})) {
     if (q.includes(name)) { result.stateCode = code; result.location = name; result.isNaturalLanguage = true; break; }
   }
   // Then 2-letter abbreviation (e.g. "in IL", " IL ")

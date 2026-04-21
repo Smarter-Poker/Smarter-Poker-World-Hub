@@ -137,10 +137,10 @@ function LogEntry({ log }) {
       {expanded && (
         <div className="mt-3 ml-11 space-y-2">
           {/* Changes */}
-          {log.changes && Object.keys(log.changes).length > 0 && (
+          {log.changes && Object.keys(log.changes || {}).length > 0 && (
             <div className="p-2 rounded-lg text-xs bg-[#0D192E]">
               <div className="text-[#64748B] mb-1">Changes:</div>
-              {Object.entries(log.changes).map(([field, change]) => (
+              {Object.entries(log.changes || {}).map(([field, change]) => (
                 <div key={field} className="flex gap-2">
                   <span className="text-[#4A5E78]">{field}:</span>
                   <span className="text-red-400 line-through">{JSON.stringify(change.old)}</span>
@@ -152,7 +152,7 @@ function LogEntry({ log }) {
           )}
 
           {/* Metadata */}
-          {log.metadata && Object.keys(log.metadata).length > 0 && (
+          {log.metadata && Object.keys(log.metadata || {}).length > 0 && (
             <div className="p-2 rounded-lg text-xs bg-[#0D192E]">
               <div className="text-[#64748B] mb-1">Details:</div>
               <pre className="text-gray-300 whitespace-pre-wrap">

@@ -61,12 +61,12 @@ export function reportApiError(error, req, extra = {}) {
             scope.setTag('method', req?.method || 'unknown');
             if (extra.userId) scope.setUser({ id: extra.userId });
             if (extra.tags) {
-                for (const [k, v] of Object.entries(extra.tags)) {
+                for (const [k, v] of Object.entries(extra.tags || {})) {
                     scope.setTag(k, String(v));
                 }
             }
             if (extra.context) {
-                for (const [k, v] of Object.entries(extra.context)) {
+                for (const [k, v] of Object.entries(extra.context || {})) {
                     scope.setExtra(k, v);
                 }
             }

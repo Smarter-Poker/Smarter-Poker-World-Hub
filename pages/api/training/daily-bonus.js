@@ -86,7 +86,7 @@ export default async function handler(req, res) {
 
               // Calculate streak bonus
               let streakBonus = 0;
-              for (const [threshold, bonus] of Object.entries(STREAK_BONUSES)) {
+              for (const [threshold, bonus] of Object.entries(STREAK_BONUSES || {})) {
                   if (currentStreak >= parseInt(threshold, 10)) {
                       streakBonus = bonus;
                   }
@@ -144,7 +144,7 @@ export default async function handler(req, res) {
 
               // Calculate streak bonus
               let streakBonus = 0;
-              for (const [threshold, bonus] of Object.entries(STREAK_BONUSES)) {
+              for (const [threshold, bonus] of Object.entries(STREAK_BONUSES || {})) {
                   if (currentStreak >= parseInt(threshold, 10)) {
                       streakBonus = bonus;
                   }
@@ -224,7 +224,7 @@ export default async function handler(req, res) {
 
 // Helper to get next streak bonus milestone
 function getNextStreakBonus(currentStreak) {
-    for (const [threshold, bonus] of Object.entries(STREAK_BONUSES)) {
+    for (const [threshold, bonus] of Object.entries(STREAK_BONUSES || {})) {
         if (currentStreak < parseInt(threshold, 10)) {
             return {
                 daysUntil: parseInt(threshold, 10) - currentStreak,

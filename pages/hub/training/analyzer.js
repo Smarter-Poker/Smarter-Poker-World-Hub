@@ -292,7 +292,7 @@ function HandCard({ hand, index, isExpanded, onToggle }) {
                           river: { check: 32, bet: 42, call: 16, fold: 10 },
                         };
                         const streetFreqs = solverFreqs[streetEntry.street] || solverFreqs.flop;
-                        const sortedActions = Object.entries(streetFreqs).sort(([,a],[,b]) => b - a);
+                        const sortedActions = Object.entries(streetFreqs || {}).sort(([,a],[,b]) => b - a);
                         const bestAction = sortedActions[0];
                         const heroFreq = streetFreqs[action.action] || 0;
                         const isBest = action.action === bestAction[0];
@@ -491,7 +491,7 @@ function AggregateStats({ hands }) {
           Position Distribution
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          {Object.entries(stats.positionCounts)
+          {Object.entries(stats.positionCounts || {})
             .sort((a, b) => b[1] - a[1])
             .map(([pos, count]) => (
               <div
@@ -525,10 +525,10 @@ function AggregateStats({ hands }) {
         >
           Action Frequencies by Street
         </div>
-        {Object.entries(stats.streetActionCounts)
-          .filter(([_, actions]) => Object.keys(actions).length > 0)
+        {Object.entries(stats.streetActionCounts || {})
+          .filter(([_, actions]) => Object.keys(actions || {}).length > 0)
           .map(([street, actions]) => {
-            const total = Object.values(actions).reduce((sum, c) => sum + c, 0);
+            const total = Object.values(actions || {}).reduce((sum, c) => sum + c, 0);
             return (
               <div key={street} style={{ marginBottom: 6 }}>
                 <div
@@ -543,7 +543,7 @@ function AggregateStats({ hands }) {
                   {street}
                 </div>
                 <div style={{ display: 'flex', gap: 6 }}>
-                  {Object.entries(actions)
+                  {Object.entries(actions || {})
                     .sort((a, b) => b[1] - a[1])
                     .map(([action, count]) => (
                       <div

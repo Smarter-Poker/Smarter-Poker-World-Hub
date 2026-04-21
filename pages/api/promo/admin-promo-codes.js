@@ -183,7 +183,7 @@ export default async function handler(req, res) {
               if (reward_value !== undefined) updates.reward_value = parseInt(reward_value) || 0;
               if (expires_at !== undefined) updates.expires_at = expires_at || null;
 
-              if (Object.keys(updates).length === 0) {
+              if (Object.keys(updates || {}).length === 0) {
                   return res.status(400).json({ success: false, error: 'No updates provided' });
               }
 

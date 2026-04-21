@@ -227,7 +227,7 @@ export function getICMPushRange(stackBB, icmPressure = 0) {
 
     const range = {};
     let count = 0;
-    Object.entries(PUSH_FOLD_VALUES).forEach(([hand, value]) => {
+    Object.entries(PUSH_FOLD_VALUES || {}).forEach(([hand, value]) => {
         if (value >= threshold) {
             range[hand] = true;
             count++;
@@ -237,7 +237,7 @@ export function getICMPushRange(stackBB, icmPressure = 0) {
     return {
         range,
         handCount: count,
-        percentage: (count / Object.keys(PUSH_FOLD_VALUES).length * 100),
+        percentage: (count / Object.keys(PUSH_FOLD_VALUES || {}).length * 100),
         threshold,
     };
 }
@@ -267,7 +267,7 @@ export function getICMCallRange(stackBB, villainStackBB, icmPressure = 0) {
 
     const range = {};
     let count = 0;
-    Object.entries(PUSH_FOLD_VALUES).forEach(([hand, value]) => {
+    Object.entries(PUSH_FOLD_VALUES || {}).forEach(([hand, value]) => {
         if (value >= threshold) {
             range[hand] = true;
             count++;
@@ -277,7 +277,7 @@ export function getICMCallRange(stackBB, villainStackBB, icmPressure = 0) {
     return {
         range,
         handCount: count,
-        percentage: (count / Object.keys(PUSH_FOLD_VALUES).length * 100),
+        percentage: (count / Object.keys(PUSH_FOLD_VALUES || {}).length * 100),
         threshold,
     };
 }

@@ -301,7 +301,7 @@ function usePlayMode() {
               };
 
               // Normalize back out to 1.0 totals to avoid under/over fetching odds
-              const total = Object.values(freqs).reduce((a, b) => a + b, 0);
+              const total = Object.values(freqs || {}).reduce((a, b) => a + b, 0);
               if (total > 0) {
                 for (let key in freqs) freqs[key] /= total;
               } else {
@@ -334,7 +334,7 @@ function usePlayMode() {
       let selectedAction = 'check';
       let selectedAmount = 0;
 
-      for (const [action, freq] of Object.entries(freqs)) {
+      for (const [action, freq] of Object.entries(freqs || {})) {
         cumulative += freq;
         if (rand <= cumulative) {
           selectedAction = action;
@@ -387,7 +387,7 @@ function usePlayMode() {
           const cachedFreqs = GTO_AI_CACHE.current[cacheKey];
 
           const optimalMock = cachedFreqs
-            ? Object.keys(cachedFreqs).reduce((a, b) => (cachedFreqs[a] > cachedFreqs[b] ? a : b))
+            ? Object.keys(cachedFreqs || {}).reduce((a, b) => (cachedFreqs[a] > cachedFreqs[b] ? a : b))
             : d.action; // Target the max frequency action
 
           const isOptimal = d.action === optimalMock;

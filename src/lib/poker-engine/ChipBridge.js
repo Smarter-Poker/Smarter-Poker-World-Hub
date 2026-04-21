@@ -201,7 +201,7 @@ async function recordRake({ clubId, tableId, handId, potSize, rakeAmount, numPla
       rake_amount: rakeAmount,
       num_players: numPlayers || 0,
       bbj_contribution: 0,
-      player_contributions: Object.keys(contribMap).length > 0 ? contribMap : null,
+      player_contributions: Object.keys(contribMap || {}).length > 0 ? contribMap : null,
     }), { critical: true });
 
     // 2. Update club total rake with optimistic lock (Phase 48f: resilient)
@@ -263,7 +263,7 @@ async function recordRake({ clubId, tableId, handId, potSize, rakeAmount, numPla
           }
         }
 
-        for (const [agentUserId, rakeGenerated] of Object.entries(agentRake)) {
+        for (const [agentUserId, rakeGenerated] of Object.entries(agentRake || {})) {
           // Phase 48f: resilient query + mutation for agent rake tracking
           const { data: agent } = await resilientQuery(sb, () => sb
             .from('agents')

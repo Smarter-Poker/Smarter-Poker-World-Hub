@@ -614,7 +614,7 @@ export default function NotificationCenter() {
                         width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #3A3B3C',
                         background: '#18191A', color: '#E4E6EB', fontSize: 14, outline: 'none',
                         cursor: 'pointer' }}>
-                      {Object.entries(PRIORITY_CONFIG).map(([val, cfg]) => (
+                      {Object.entries(PRIORITY_CONFIG || {}).map(([val, cfg]) => (
                         <option key={val} value={val}>{cfg.label}</option>
                       ))}
                     </select>

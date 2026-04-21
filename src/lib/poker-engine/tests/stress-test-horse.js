@@ -355,7 +355,7 @@ function isValidAction(action) {
 
     let nanCount = 0, undefinedCount = 0;
     for (let i = 0; i < 50; i++) {
-        const boardKeys = Object.keys(BOARDS);
+        const boardKeys = Object.keys(BOARDS || {});
         const randomBoard = BOARDS[boardKeys[i % boardKeys.length]];
         const randomHand = [NUT_HAND, DRAW_HAND, WEAK_HAND, TRASH_HAND][i % 4];
         const randomPot = Math.max(2, (i * 7) % 200);

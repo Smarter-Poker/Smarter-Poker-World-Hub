@@ -105,7 +105,7 @@ export default function DownloadsPage() {
           <div className="max-w-2xl mx-auto bg-[#242526] rounded-xl p-8 border border-[#3A3B3C] mb-8">
             {/* Platform Tabs */}
             <div className="flex justify-center gap-2 mb-8">
-              {Object.entries(platforms).map(([key, p]) => (
+              {Object.entries(platforms || {}).map(([key, p]) => (
                 <button
                   key={key}
                   onClick={() => setPlatform(key)}

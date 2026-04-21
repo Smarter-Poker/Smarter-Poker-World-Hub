@@ -493,7 +493,7 @@ export default function PokerNearMePage({ initialTab }) {
     // Now always re-merges when liveDataMap updates, using last_updated timestamp to skip
     // venues where the data hasn't actually changed (avoids unnecessary re-renders).
     useEffect(() => {
-        if (Object.keys(liveDataMap).length === 0) return;
+        if (Object.keys(liveDataMap || {}).length === 0) return;
         setVenues(prev => {
             let changed = false;
             const next = prev.map(venue => {
@@ -1284,7 +1284,7 @@ export default function PokerNearMePage({ initialTab }) {
         if (typeof window !== 'undefined') {
             const spFavs = {};
             const seriesFavs = [];
-            Object.keys(favorites).forEach(k => {
+            Object.keys(favorites || {}).forEach(k => {
                 if (k.startsWith('venue-') && favorites[k]) spFavs[k] = favorites[k];
                 if (k.startsWith('series-') && favorites[k]) seriesFavs.push(k.split('-')[1]);
             });
@@ -1308,8 +1308,8 @@ export default function PokerNearMePage({ initialTab }) {
                     setFavorites(prev => {
                         const next = { ...prev };
                         let changed = false;
-                        const newFavIds = Object.keys(newFavs);
-                        Object.keys(next).forEach(k => {
+                        const newFavIds = Object.keys(newFavs || {});
+                        Object.keys(next || {}).forEach(k => {
                             if (k.startsWith('venue-') && !newFavIds.includes(k)) { delete next[k]; changed = true; }
                         });
                         newFavIds.forEach(k => {
@@ -1325,7 +1325,7 @@ export default function PokerNearMePage({ initialTab }) {
                     setFavorites(prev => {
                         const next = { ...prev };
                         let changed = false;
-                        Object.keys(next).forEach(k => {
+                        Object.keys(next || {}).forEach(k => {
                             if (k.startsWith('series-') && !rawSeriesIds.includes(k.split('-')[1])) { delete next[k]; changed = true; }
                         });
                         rawSeriesIds.forEach(id => {
@@ -2899,7 +2899,7 @@ export default function PokerNearMePage({ initialTab }) {
 
                 {/* ═══ FAVORITE VENUE LIVE TOAST (5s delay, 2s visible) ═══ */}
                 {(() => {
-                    const favKeys = Object.keys(favorites).filter(k => k.startsWith('venue-'));
+                    const favKeys = Object.keys(favorites || {}).filter(k => k.startsWith('venue-'));
                     if (favKeys.length === 0) return null;
                     const favIds = new Set(favKeys.map(k => k.replace('venue-', '')));
                     const liveFavs = allVenuesWithTours.filter(v => 

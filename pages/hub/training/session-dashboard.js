@@ -150,7 +150,7 @@ function PerformanceTable({ sessions }) {
       stats[game].totalHands += Number(s.hands_played || s.handsPlayed) || 0;
       stats[game].totalEV += Number(s.total_ev_loss || s.totalEVLoss) || 0;
     });
-    return Object.entries(stats)
+    return Object.entries(stats || {})
       .map(([game, s]) => ({
         game: game.replace(/_/g, ' '),
         sessions: s.sessions,
@@ -804,7 +804,7 @@ export default function SessionDashboard() {
                   const c = Number(s.correct_count || s.correct_answers || 0);
                   if (q > 0) { gameMap[label].hands += q; gameMap[label].correct += c; }
                 });
-                const entries = Object.entries(gameMap)
+                const entries = Object.entries(gameMap || {})
                   .filter(([, v]) => v.hands >= 3)
                   .map(([name, v]) => ({ name, acc: Math.round((v.correct / v.hands) * 100), hands: v.hands }))
                   .sort((a, b) => b.acc - a.acc);

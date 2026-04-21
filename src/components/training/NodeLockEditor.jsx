@@ -173,7 +173,7 @@ export default function NodeLockEditor() {
     }));
   }, []);
 
-  const lockCount = Object.keys(locks).length;
+  const lockCount = Object.keys(locks || {}).length;
 
   return (
     <div style={{ background: 'rgba(15,23,42,0.6)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.06)' }}>

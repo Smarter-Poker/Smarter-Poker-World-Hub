@@ -540,7 +540,7 @@ export default function PokerNearMeLobby() {
           let coords = CITY_COORDS[cityKey];
           if (!coords && cityParts[0]) {
               const justCity = cityParts[0].trim();
-              coords = Object.entries(CITY_COORDS).find(([k]) => k.startsWith(justCity + ','))?.[1];
+              coords = Object.entries(CITY_COORDS || {}).find(([k]) => k.startsWith(justCity + ','))?.[1];
           }
           
           if (coords) {
@@ -838,7 +838,7 @@ export default function PokerNearMeLobby() {
   // FIXED: was guarded by _liveMerged one-shot flag — venues only merged once and never updated.
   // Now always re-merges on liveDataMap change, using last_updated timestamp to skip unchanged venues.
   useEffect(() => {
-    if (venues.length === 0 || Object.keys(liveDataMap).length === 0) return;
+    if (venues.length === 0 || Object.keys(liveDataMap || {}).length === 0) return;
     setVenues(prev => {
       let changed = false;
       const next = prev.map(venue => {
@@ -957,12 +957,12 @@ export default function PokerNearMeLobby() {
             const next = { ...prev };
             let changed = false;
             // Map venue-* back to lobby namespace
-            const newFavIds = Object.keys(rawFavs)
+            const newFavIds = Object.keys(rawFavs || {})
               .filter(k => k.startsWith('venue-'))
               .map(k => k.split('-')[1]);
             
             // Clean old venues
-            Object.keys(next).forEach(k => {
+            Object.keys(next || {}).forEach(k => {
                if (k.startsWith('venue-')) {
                  const id = k.split('-')[1];
                  if (!newFavIds.includes(id)) { delete next[k]; changed = true; }
@@ -987,7 +987,7 @@ export default function PokerNearMeLobby() {
             let changed = false;
             
             // Clean old series
-            Object.keys(next).forEach(k => {
+            Object.keys(next || {}).forEach(k => {
                if (k.startsWith('series-')) {
                  const id = k.split('-')[1];
                  if (!rawSeriesIds.includes(id)) { delete next[k]; changed = true; }
@@ -1965,7 +1965,7 @@ export default function PokerNearMeLobby() {
 
       case 'favorites': {
         // Merge: show full venue data if in current search, fallback to favorites data
-        const favVenues = Object.keys(favorites).filter(k => favorites[k]).map(venueId => {
+        const favVenues = Object.keys(favorites || {}).filter(k => favorites[k]).map(venueId => {
           const fromSearch = venues.find(v => String(v.id) === String(venueId));
           if (fromSearch) return fromSearch;
           return favoritedVenues.find(f => String(f.id) === String(venueId));
@@ -2134,7 +2134,7 @@ export default function PokerNearMeLobby() {
       // Calendar: total upcoming events across all days (distinct from dailyCount)
       calendarCount: dailyTournaments.length,
       alertCount: upcomingTours.length, // alerts = upcoming tour events only
-      savedCount: Object.keys(favorites).filter(k => favorites[k]).length,
+      savedCount: Object.keys(favorites || {}).filter(k => favorites[k]).length,
       // Home games live in commander_home_groups, NOT poker_venues. The
       // podHomeGames state is populated from /api/public/home-games/discover
       // when the tab is visited. Until then we report 0 rather than filtering

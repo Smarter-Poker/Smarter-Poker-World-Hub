@@ -85,7 +85,7 @@ export function rateLimit(req, { max = 60, windowMs = 60_000, scope = '' } = {})
  */
 export function applyRateLimit(req, res, opts = {}) {
   const result = rateLimit(req, opts);
-  Object.entries(result.headers).forEach(([k, v]) => res.setHeader(k, v));
+  Object.entries(result.headers || {}).forEach(([k, v]) => res.setHeader(k, v));
   if (!result.ok) {
     if (result.retryAfter) res.setHeader('Retry-After', String(result.retryAfter));
     res.status(429).json({

@@ -293,9 +293,9 @@ export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEn
                     )}
 
                     {/* Category Breakdown */}
-                    {!editMode && activeTrip.categoryBreakdown && Object.keys(activeTrip.categoryBreakdown).length > 0 && (
+                    {!editMode && activeTrip.categoryBreakdown && Object.keys(activeTrip.categoryBreakdown || {}).length > 0 && (
                         <div style={styles.breakdownRow}>
-                            {Object.entries(activeTrip.categoryBreakdown).map(([cat, data]) => (
+                            {Object.entries(activeTrip.categoryBreakdown || {}).map(([cat, data]) => (
                                 <span key={cat} style={styles.breakdownTag}>
                                     {CATEGORY_LABELS[cat] || cat}: {formatCurrency(data.net)}
                                 </span>

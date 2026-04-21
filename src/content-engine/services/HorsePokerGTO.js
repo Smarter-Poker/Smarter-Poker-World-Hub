@@ -297,7 +297,7 @@ export function analyzeBoardTexture(board) {
     for (const card of cards) {
         suitCounts[card.suit] = (suitCounts[card.suit] || 0) + 1;
     }
-    const maxSuitCount = Math.max(...Object.values(suitCounts));
+    const maxSuitCount = Math.max(...Object.values(suitCounts || {}));
 
     // Rank analysis
     const ranks = cards.map(c => c.value).sort((a, b) => b - a);

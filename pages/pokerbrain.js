@@ -72,11 +72,11 @@ function OverviewTab({ stats, loading }) {
       </div>
 
       {/* Position breakdown */}
-      {stats.byPosition && Object.keys(stats.byPosition).length > 0 && (
+      {stats.byPosition && Object.keys(stats.byPosition || {}).length > 0 && (
         <div className="bg-slate-800 rounded-xl p-4">
           <h3 className="text-sm font-bold text-white mb-3">By Position</h3>
           <div className="space-y-2">
-            {Object.entries(stats.byPosition).map(([pos, data]) => (
+            {Object.entries(stats.byPosition || {}).map(([pos, data]) => (
               <div key={pos} className="flex items-center gap-3">
                 <span className="text-xs text-slate-400 w-16 uppercase">{pos}</span>
                 <div className="flex-1"><EquityBar value={data.avgEquity} /></div>
@@ -89,11 +89,11 @@ function OverviewTab({ stats, loading }) {
       )}
 
       {/* Street breakdown */}
-      {stats.byStreet && Object.keys(stats.byStreet).length > 0 && (
+      {stats.byStreet && Object.keys(stats.byStreet || {}).length > 0 && (
         <div className="bg-slate-800 rounded-xl p-4">
           <h3 className="text-sm font-bold text-white mb-3">By Street</h3>
           <div className="space-y-2">
-            {Object.entries(stats.byStreet).map(([street, data]) => (
+            {Object.entries(stats.byStreet || {}).map(([street, data]) => (
               <div key={street} className="flex items-center gap-3">
                 <span className="text-xs text-slate-400 w-16 capitalize">{street}</span>
                 <div className="flex-1"><EquityBar value={data.avgEquity} /></div>
@@ -132,11 +132,11 @@ function OverviewTab({ stats, loading }) {
       )}
 
       {/* Variant breakdown */}
-      {stats.byVariant && Object.keys(stats.byVariant).length > 0 && (
+      {stats.byVariant && Object.keys(stats.byVariant || {}).length > 0 && (
         <div className="bg-slate-800 rounded-xl p-4">
           <h3 className="text-sm font-bold text-white mb-3">Variants Played</h3>
           <div className="flex flex-wrap gap-2">
-            {Object.entries(stats.byVariant).map(([v, count]) => (
+            {Object.entries(stats.byVariant || {}).map(([v, count]) => (
               <span key={v} className="bg-slate-700 text-slate-300 text-xs px-3 py-1 rounded-full">
                 {v.toUpperCase()} ({count} sessions)
               </span>
@@ -232,7 +232,7 @@ function SessionAuditPanel({ hands }) {
       )}
 
       {/* Street Breakdown */}
-      {Object.keys(audit.streetBreakdown).length > 0 && (
+      {Object.keys(audit.streetBreakdown || {}).length > 0 && (
         <div className="bg-slate-900 rounded-lg p-3">
           <h4 className="text-xs font-bold text-slate-300 mb-2">Street Scores</h4>
           <div className="grid grid-cols-4 gap-2">
@@ -253,11 +253,11 @@ function SessionAuditPanel({ hands }) {
       )}
 
       {/* Position Breakdown */}
-      {Object.keys(audit.positionBreakdown).length > 0 && (
+      {Object.keys(audit.positionBreakdown || {}).length > 0 && (
         <div className="bg-slate-900 rounded-lg p-3">
           <h4 className="text-xs font-bold text-slate-300 mb-2">Position Scores</h4>
           <div className="flex flex-wrap gap-2">
-            {Object.entries(audit.positionBreakdown).map(([pos, data]) => {
+            {Object.entries(audit.positionBreakdown || {}).map(([pos, data]) => {
               const c = data.avgScore >= 70 ? '#10b981' : data.avgScore >= 50 ? '#f59e0b' : '#ef4444';
               return (
                 <div key={pos} className="bg-slate-800 rounded-lg px-3 py-2 text-center">
@@ -424,9 +424,9 @@ function SessionsTab({ userId }) {
                         }>{h.action_taken}</span>
                       )}
                       {/* Per-street decision audit inline */}
-                      {h.street_decisions && Object.keys(h.street_decisions).length > 0 && (
+                      {h.street_decisions && Object.keys(h.street_decisions || {}).length > 0 && (
                         <div className="flex gap-1 ml-1">
-                          {Object.entries(h.street_decisions).map(([st, dec]) => {
+                          {Object.entries(h.street_decisions || {}).map(([st, dec]) => {
                             if (!dec) return null;
                             const scoreColor = dec.confidence >= 80 ? '#10b981' : dec.confidence >= 50 ? '#f59e0b' : '#ef4444';
                             return (
@@ -689,7 +689,7 @@ function AuditTab({ userId }) {
         sessionAudits,
         overallScore,
         totalHands: allHands.length,
-        aggregateLeaks: Object.values(leakMap).sort((a, b) => (b.sessions - a.sessions)),
+        aggregateLeaks: Object.values(leakMap || {}).sort((a, b) => (b.sessions - a.sessions)),
       });
     } catch (e) {
       console.warn('[PokerBrain] audit error:', e);

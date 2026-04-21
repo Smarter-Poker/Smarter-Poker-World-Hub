@@ -206,7 +206,7 @@ function analyzeWeaknesses(sessions) {
   });
 
   // Compute accuracy per category and rank by weakness
-  const ranked = Object.entries(categoryStats)
+  const ranked = Object.entries(categoryStats || {})
     .map(([cat, stats]) => ({
       category: cat,
       accuracy: stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0,

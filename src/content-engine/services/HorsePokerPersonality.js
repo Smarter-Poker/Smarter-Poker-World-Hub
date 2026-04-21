@@ -63,7 +63,7 @@ const PLAY_STYLES = {
     }
 };
 
-const PLAY_STYLE_KEYS = Object.keys(PLAY_STYLES);
+const PLAY_STYLE_KEYS = Object.keys(PLAY_STYLES || {});
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SKILL TIERS
@@ -116,7 +116,7 @@ const SKILL_TIERS = {
     }
 };
 
-const SKILL_TIER_KEYS = Object.keys(SKILL_TIERS);
+const SKILL_TIER_KEYS = Object.keys(SKILL_TIERS || {});
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TABLE CHAT STYLES
@@ -154,7 +154,7 @@ const CHAT_STYLES = {
     }
 };
 
-const CHAT_STYLE_KEYS = Object.keys(CHAT_STYLES);
+const CHAT_STYLE_KEYS = Object.keys(CHAT_STYLES || {});
 
 // ═══════════════════════════════════════════════════════════════════════════
 // STAKES PREFERENCES
@@ -167,7 +167,7 @@ const STAKES_LEVELS = {
     nosebleed: { min: 1000, max: 10000, name: 'Nosebleeds' } // $10/$25+
 };
 
-const STAKES_KEYS = Object.keys(STAKES_LEVELS);
+const STAKES_KEYS = Object.keys(STAKES_LEVELS || {});
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HELPER FUNCTIONS

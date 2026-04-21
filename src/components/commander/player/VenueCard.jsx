@@ -7,7 +7,7 @@ import Link from 'next/link';
 
 export default function VenueCard({ venue, games = [], waitlistCounts = {} }) {
   const runningGames = games.filter(g => g.status === 'running');
-  const totalWaiting = Object.values(waitlistCounts).reduce((a, b) => a + b, 0);
+  const totalWaiting = Object.values(waitlistCounts || {}).reduce((a, b) => a + b, 0);
 
   return (
     <Link

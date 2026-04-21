@@ -516,7 +516,7 @@ export default function ReplayTheaterPage() {
               leakMap[key].count++;
               leakMap[key].evLoss += m.evLoss;
             });
-            const worstLeak = Object.entries(leakMap).sort((a, b) => b[1].count - a[1].count)[0];
+            const worstLeak = Object.entries(leakMap || {}).sort((a, b) => b[1].count - a[1].count)[0];
             if (!worstLeak) return null;
             return (
               <div style={{

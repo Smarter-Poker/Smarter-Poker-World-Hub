@@ -80,7 +80,7 @@ export function recordCardVisit(cardId: string): void {
     prefs.visitCounts[cardId] = (prefs.visitCounts[cardId] || 0) + 1;
 
     // Recalculate most visited order
-    prefs.mostVisitedCardIds = Object.entries(prefs.visitCounts)
+    prefs.mostVisitedCardIds = Object.entries(prefs.visitCounts || {})
         .sort(([, a], [, b]) => b - a)
         .map(([id]) => id);
 

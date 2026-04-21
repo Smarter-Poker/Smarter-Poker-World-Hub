@@ -81,7 +81,7 @@ export default function TriviaLeaderboard() {
                 });
 
                 // Convert to sorted array
-                const ranked = Object.values(userScores)
+                const ranked = Object.values(userScores || {})
                     .sort((a, b) => b.score - a.score)
                     .slice(0, 20)
                     .map((entry, index) => ({

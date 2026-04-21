@@ -153,8 +153,8 @@ function assert(condition, label) {
     console.debug(`    All-in:    ${decisions.all_in || 0}`);
 
     // Action variety check — should NOT be all the same action
-    const totalDecisions = Object.values(decisions).reduce((a, b) => a + b, 0);
-    const uniqueActions = Object.values(decisions).filter(v => v > 0).length;
+    const totalDecisions = Object.values(decisions || {}).reduce((a, b) => a + b, 0);
+    const uniqueActions = Object.values(decisions || {}).filter(v => v > 0).length;
     assert(uniqueActions >= 3, `Action variety: ${uniqueActions} different actions used (need 3+)`);
 
     // Not all folds — that would be a broken AI

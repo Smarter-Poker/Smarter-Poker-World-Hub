@@ -53,7 +53,7 @@ function analyzeData(sessions) {
   const leaks = [];
   let idCounter = 1;
 
-  for (const [gId, stats] of Object.entries(gameAccMap)) {
+  for (const [gId, stats] of Object.entries(gameAccMap || {})) {
     if (stats.q < 3) continue; // Need minimum sample size to flag a leak
 
     const acc = (stats.c / stats.q) * 100;

@@ -191,7 +191,7 @@ export default function FocusTimerPage() {
               border: '1px solid rgba(255,255,255,0.05)',
             }}
           >
-            {Object.values(PHASES).map((p) => (
+            {Object.values(PHASES || {}).map((p) => (
               <motion.button
                 key={p.id}
                 whileTap={{ scale: 0.95 }}

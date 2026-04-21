@@ -251,7 +251,7 @@ export function explainStrategy(params) {
             const isHigh = avgRank >= 9;
             const rankCounts = {};
             boardRanks.forEach(r => { rankCounts[r] = (rankCounts[r] || 0) + 1; });
-            const hasPair = Object.values(rankCounts).some(c => c >= 2);
+            const hasPair = Object.values(rankCounts || {}).some(c => c >= 2);
             const sorted = [...rankValues].sort((a, b) => b - a);
             const isConnected = sorted[0] - sorted[sorted.length - 1] <= 4;
 
@@ -394,7 +394,7 @@ export function explainStrategy(params) {
 
         // ─── MIXED STRATEGY NOTE ─────────────────────────────────
         if (betFrequency && betFrequency > 5 && betFrequency < 95 && frequencies) {
-            const actions = Object.entries(frequencies)
+            const actions = Object.entries(frequencies || {})
                 .filter(([_, f]) => f > 3)
                 .sort((a, b) => b[1] - a[1]);
             if (actions.length >= 2) {

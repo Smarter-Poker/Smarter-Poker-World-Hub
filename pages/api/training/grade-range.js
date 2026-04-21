@@ -68,8 +68,8 @@ function resolveSpotForGrading(scenario, pos, vsPosition, stackDepth) {
         case 'vs3bet':
         case '4bet': {
             const key = `${pos}_vs_3bet`;
-            spotData = FOUR_BET[key] || Object.values(FOUR_BET).find((_, i) =>
-                Object.keys(FOUR_BET)[i].startsWith(pos)) || FOUR_BET['BTN_vs_3bet'];
+            spotData = FOUR_BET[key] || Object.values(FOUR_BET || {}).find((_, i) =>
+                Object.keys(FOUR_BET || {})[i].startsWith(pos)) || FOUR_BET['BTN_vs_3bet'];
             break;
         }
         case 'bb_defense': {
@@ -79,12 +79,12 @@ function resolveSpotForGrading(scenario, pos, vsPosition, stackDepth) {
         }
         case 'cold_call': {
             const ccKey = vsPos ? `${pos}_vs_${vsPos}` :
-                Object.keys(COLD_CALL).find(k => k.startsWith(pos)) || 'BTN_vs_CO';
+                Object.keys(COLD_CALL || {}).find(k => k.startsWith(pos)) || 'BTN_vs_CO';
             spotData = COLD_CALL[ccKey];
             break;
         }
         case 'squeeze': {
-            const sqzKey = Object.keys(SQUEEZE).find(k => k.startsWith(pos)) || Object.keys(SQUEEZE)[0];
+            const sqzKey = Object.keys(SQUEEZE || {}).find(k => k.startsWith(pos)) || Object.keys(SQUEEZE || {})[0];
             spotData = SQUEEZE[sqzKey];
             break;
         }
@@ -289,7 +289,7 @@ export default async function handler(req, res) {
                   correctCount: correct.length,
                   missedCount: missed.length,
                   wrongCount: wrong.length,
-                  mixedCount: Object.keys(mixed).length,
+                  mixedCount: Object.keys(mixed || {}).length,
               },
               ...engineData,
           });

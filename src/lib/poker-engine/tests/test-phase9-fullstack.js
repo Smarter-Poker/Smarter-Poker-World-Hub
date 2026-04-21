@@ -113,7 +113,7 @@ async function runTests() {
     'pages/api/poker/create-live-table.js': 'getController',
   };
 
-  for (const [route, keyword] of Object.entries(apiRoutes)) {
+  for (const [route, keyword] of Object.entries(apiRoutes || {})) {
     const exists = fs.existsSync(`/home/claude/poker-engine/${route}`);
     assert(exists, `${route.split('/').pop()} exists`);
     if (exists) {
@@ -136,7 +136,7 @@ async function runTests() {
     'pages/hub/club-arena/table/[tableId].js': ['LivePokerTable', 'club-connect', 'supabase'],
   };
 
-  for (const [page, keywords] of Object.entries(pages)) {
+  for (const [page, keywords] of Object.entries(pages || {})) {
     const exists = fs.existsSync(`/home/claude/poker-engine/${page}`);
     assert(exists, `${page} exists`);
     if (exists) {
@@ -162,8 +162,8 @@ async function runTests() {
 
   // PokerLobby FILTER_VARIANTS exists (curated, no duplicates)
   assert(lobbyCode.includes('FILTER_VARIANTS'), 'FILTER_VARIANTS defined');
-  assert(lobbyCode.includes("Object.keys(FILTER_VARIANTS)"), 'Filter chips use FILTER_VARIANTS');
-  assert(lobbyCode.includes("Object.entries(FILTER_VARIANTS)"), 'Create table uses FILTER_VARIANTS');
+  assert(lobbyCode.includes("Object.keys(FILTER_VARIANTS || {})"), 'Filter chips use FILTER_VARIANTS');
+  assert(lobbyCode.includes("Object.entries(FILTER_VARIANTS || {})"), 'Create table uses FILTER_VARIANTS');
 
   // LivePokerTable TableInfoBar shows variant
   assert(tableCode.includes("omaha4: 'PLO4'"), 'TableInfoBar has PLO4 label');

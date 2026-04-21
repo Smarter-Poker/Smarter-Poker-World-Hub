@@ -123,13 +123,13 @@ export default function CoachFeedback({ results, heroHand, heroPosition, coachUs
                         </div>
                     )}
 
-                    {feedback.breakdown && Object.keys(feedback.breakdown).length > 0 && (
+                    {feedback.breakdown && Object.keys(feedback.breakdown || {}).length > 0 && (
                         <div>
                             <span style={{ fontSize: 8, color: M.dim, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                                 Action Frequencies
                             </span>
                             <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
-                                {Object.entries(feedback.breakdown)
+                                {Object.entries(feedback.breakdown || {})
                                     .sort(([, a], [, b]) => b - a)
                                     .map(([action, freq]) => (
                                         <div key={action} style={{

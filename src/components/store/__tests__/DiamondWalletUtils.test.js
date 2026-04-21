@@ -344,7 +344,7 @@ describe('Monthly trend computation', () => {
 
 describe('TX_TYPES icon config', () => {
     it('all types have label and color properties', () => {
-        Object.entries(TX_TYPES).forEach(([key, config]) => {
+        Object.entries(TX_TYPES || {}).forEach(([key, config]) => {
             expect(config.label).toBeDefined();
             expect(config.color).toBeDefined();
             expect(typeof config.label).toBe('string');

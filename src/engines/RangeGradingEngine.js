@@ -132,7 +132,7 @@ export function gradeRange(playerRange, solverSolution, enrichedSolution, option
 
     // Category scores
     const categoryScores = {};
-    for (const [cat, stats] of Object.entries(categoryStats)) {
+    for (const [cat, stats] of Object.entries(categoryStats || {})) {
         categoryScores[cat] = {
             score: stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 100,
             comboScore: stats.combos > 0 ? Math.round((stats.correctCombos / stats.combos) * 100) : 100,
@@ -316,7 +316,7 @@ export function generateGradingSummary(result) {
     summary += `${breakdown.correctHands}/${breakdown.totalHands} hands correct\n\n`;
 
     summary += `Category Breakdown:\n`;
-    for (const [cat, data] of Object.entries(categoryScores)) {
+    for (const [cat, data] of Object.entries(categoryScores || {})) {
         const label = cat.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
         summary += `  ${label}: ${data.score}% (${data.correct}/${data.total})\n`;
     }

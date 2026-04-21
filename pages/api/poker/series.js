@@ -47,7 +47,7 @@ function findVenueId(venueName) {
   if (!venueName) return null;
   const lower = venueName.toLowerCase();
   if (venueNameLookup[lower]) return venueNameLookup[lower];
-  for (const [name, id] of Object.entries(venueNameLookup)) {
+  for (const [name, id] of Object.entries(venueNameLookup || {})) {
     if (lower.indexOf(name) !== -1 || name.indexOf(lower) !== -1) return id;
   }
   return null;

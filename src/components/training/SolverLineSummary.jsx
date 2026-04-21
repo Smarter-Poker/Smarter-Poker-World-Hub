@@ -32,7 +32,7 @@ function getBoardTexture(board) {
     const suits = board.map(c => c[1].toLowerCase());
     const suitCounts = {};
     suits.forEach(s => { suitCounts[s] = (suitCounts[s] || 0) + 1; });
-    const maxSuit = Math.max(...Object.values(suitCounts));
+    const maxSuit = Math.max(...Object.values(suitCounts || {}));
 
     const ranks = board.map(c => {
         const r = c[0].toUpperCase();
@@ -75,16 +75,16 @@ function getStreetName(boardLen) {
  */
 export default function SolverLineSummary({ gridData = {}, classificationGroups = [], board = [], actions = [], heroPosition = 'Hero' }) {
     const summary = useMemo(() => {
-        if (!gridData || Object.keys(gridData).length === 0) return null;
+        if (!gridData || Object.keys(gridData || {}).length === 0) return null;
 
-        const handsInRange = Object.entries(gridData).filter(([_, v]) => v !== null && v !== undefined);
+        const handsInRange = Object.entries(gridData || {}).filter(([_, v]) => v !== null && v !== undefined);
         if (handsInRange.length === 0) return null;
 
         // Aggregate actions across the entire range
         const actionTotals = {};
         let totalWeight = 0;
         handsInRange.forEach(([hand, freqs]) => {
-            Object.entries(freqs).forEach(([action, freq]) => {
+            Object.entries(freqs || {}).forEach(([action, freq]) => {
                 if (freq > 0) {
                     actionTotals[action] = (actionTotals[action] || 0) + freq;
                     totalWeight += freq;
@@ -94,12 +94,12 @@ export default function SolverLineSummary({ gridData = {}, classificationGroups 
 
         // Normalize to percentages
         const actionPcts = {};
-        Object.entries(actionTotals).forEach(([action, total]) => {
+        Object.entries(actionTotals || {}).forEach(([action, total]) => {
             actionPcts[action] = totalWeight > 0 ? Math.round((total / totalWeight) * 1000) / 10 : 0;
         });
 
         // Sort by percentage
-        const sortedActions = Object.entries(actionPcts).sort((a, b) => b[1] - a[1]);
+        const sortedActions = Object.entries(actionPcts || {}).sort((a, b) => b[1] - a[1]);
 
         // Board analysis
         const highCard = getHighCard(board);

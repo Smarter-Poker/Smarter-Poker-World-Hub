@@ -147,7 +147,7 @@ export default async function handler(req, res) {
     });
     
     // Calculate averages
-    const peakHours = Object.entries(hourBuckets)
+    const peakHours = Object.entries(hourBuckets || {})
       .map(([hour, b]) => ({
         hour: parseInt(hour),
         label: formatHour(parseInt(hour)),
@@ -156,7 +156,7 @@ export default async function handler(req, res) {
       }))
       .sort((a, b) => b.avg_tables - a.avg_tables);
     
-    const peakDays = Object.entries(dayBuckets)
+    const peakDays = Object.entries(dayBuckets || {})
       .map(([day, b]) => ({
         day: parseInt(day),
         label: DAY_NAMES[parseInt(day)],

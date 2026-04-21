@@ -81,7 +81,7 @@ async function handler(req, res) {
         const sleep = ms => new Promise(res => setTimeout(res, ms));
 
         // Use sequential execution over `Promise.allSettled` network stampeding to prevent 429 Too Many Requests
-        for (const { venue, liveTablesCount, targets } of Object.values(alertsByVenue)) {
+        for (const { venue, liveTablesCount, targets } of Object.values(alertsByVenue || {})) {
             const chunkSize = 2000;
             for (let i = 0; i < targets.length; i += chunkSize) {
                 const chunkTargets = targets.slice(i, i + chunkSize);

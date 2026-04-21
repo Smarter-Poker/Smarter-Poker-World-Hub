@@ -114,7 +114,7 @@ export function detectAvailableActions(source, layout, opts = {}) {
     any: false,
   };
 
-  for (const [name, btn] of Object.entries(layout.actionButtons)) {
+  for (const [name, btn] of Object.entries(layout.actionButtons || {})) {
     const target = hexToRgb(btn.color);
     if (!target) continue;
     const scaled = {

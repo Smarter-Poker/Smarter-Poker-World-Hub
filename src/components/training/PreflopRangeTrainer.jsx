@@ -75,7 +75,7 @@ function buildSpotList() {
     const spots = [];
 
     // RFI spots
-    Object.keys(RFI).forEach(pos => {
+    Object.keys(RFI || {}).forEach(pos => {
         spots.push({
             key: `RFI.${pos}`,
             category: 'rfi',
@@ -86,7 +86,7 @@ function buildSpotList() {
     });
 
     // 3-Bet spots
-    Object.keys(THREE_BET).forEach(key => {
+    Object.keys(THREE_BET || {}).forEach(key => {
         const parts = key.split('_vs_');
         const pos = parts[0];
         const villain = parts[1] || key;
@@ -100,7 +100,7 @@ function buildSpotList() {
     });
 
     // BB Defense spots
-    Object.keys(BB_DEFENSE).forEach(key => {
+    Object.keys(BB_DEFENSE || {}).forEach(key => {
         const villain = key.replace('vs_', '');
         spots.push({
             key: `BB_DEF.${key}`,
@@ -112,7 +112,7 @@ function buildSpotList() {
     });
 
     // 4-Bet spots
-    Object.keys(FOUR_BET).forEach(key => {
+    Object.keys(FOUR_BET || {}).forEach(key => {
         const parts = key.split('_vs_');
         const pos = parts[0];
         spots.push({
@@ -125,7 +125,7 @@ function buildSpotList() {
     });
 
     // Cold-call spots
-    Object.keys(COLD_CALL).forEach(key => {
+    Object.keys(COLD_CALL || {}).forEach(key => {
         const parts = key.split('_vs_');
         const pos = parts[0];
         const villain = parts[1] || key;
@@ -139,7 +139,7 @@ function buildSpotList() {
     });
 
     // Squeeze spots
-    Object.keys(SQUEEZE).forEach(key => {
+    Object.keys(SQUEEZE || {}).forEach(key => {
         spots.push({
             key: `SQZ.${key}`,
             category: 'squeeze',
@@ -181,7 +181,7 @@ function getFullFreqs(spotData, hand) {
 
 // Build legacy GTO_RANGES from RFI data for backward-compatible position selector
 const GTO_RANGES = {};
-Object.keys(RFI).forEach(pos => {
+Object.keys(RFI || {}).forEach(pos => {
     GTO_RANGES[pos] = solverToFlatRange(RFI[pos]);
 });
 
@@ -460,7 +460,7 @@ export default function PreflopRangeTrainer({ onExit }) {
 
     // Phase 8: Check user range vs solver
     const checkRange = useCallback(() => {
-        const solverHands = new Set(Object.keys(range).filter(h => range[h] >= 0.5));
+        const solverHands = new Set(Object.keys(range || {}).filter(h => range[h] >= 0.5));
         let correct = 0, missed = 0, extra = 0;
         solverHands.forEach(h => {
             if (userRange.has(h)) correct++;

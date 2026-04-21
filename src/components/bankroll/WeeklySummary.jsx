@@ -174,11 +174,11 @@ export default function WeeklySummary({
                         </div>
 
                         {/* Category Breakdown */}
-                        {Object.keys(weeklyData.categoryBreakdown).length > 0 && (
+                        {Object.keys(weeklyData.categoryBreakdown || {}).length > 0 && (
                             <div style={styles.categorySection}>
                                 <span style={styles.sectionTitle}>By Category</span>
                                 <div style={styles.categoryList}>
-                                    {Object.entries(weeklyData.categoryBreakdown)
+                                    {Object.entries(weeklyData.categoryBreakdown || {})
                                         .sort((a, b) => b[1].netPL - a[1].netPL)
                                         .map(([cat, data]) => (
                                             <div key={cat} style={styles.categoryRow}>

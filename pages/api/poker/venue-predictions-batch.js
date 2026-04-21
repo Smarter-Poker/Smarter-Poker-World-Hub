@@ -74,10 +74,10 @@ function analyzeVenueData(rows) {
   });
 
   // === Peak time (global) ===
-  const peakHourEntries = Object.entries(hourCounts)
+  const peakHourEntries = Object.entries(hourCounts || {})
     .map(([h, v]) => ({ hour: parseInt(h), freq: v.count }))
     .sort((a, b) => b.freq - a.freq);
-  const peakDayEntries = Object.entries(dayCounts)
+  const peakDayEntries = Object.entries(dayCounts || {})
     .map(([d, v]) => ({ day: parseInt(d), freq: v.count }))
     .sort((a, b) => b.freq - a.freq);
 
@@ -91,7 +91,7 @@ function analyzeVenueData(rows) {
   const peak_days = peakDayEntries.slice(0, 3).map(d => DAY_SHORT[d.day]);
 
   // === Day activity scores for mini bar chart (7 values, 0-100) ===
-  const maxDayFreq = Math.max(...Object.values(dayCounts).map(d => d.count), 1);
+  const maxDayFreq = Math.max(...Object.values(dayCounts || {}).map(d => d.count), 1);
   const day_scores = [];
   for (let d = 0; d < 7; d++) {
     const dc = dayCounts[d];
@@ -133,12 +133,12 @@ function analyzeVenueData(rows) {
 
   // === Game-specific ETA (non-NLH predictions) ===
   const game_eta = [];
-  Object.entries(gameTypeBuckets).forEach(([gameType, bucket]) => {
+  Object.entries(gameTypeBuckets || {}).forEach(([gameType, bucket]) => {
     if (bucket.totalSnapshots < 5) return; // Need minimum data
-    const gamePeakDays = Object.entries(bucket.dayCounts)
+    const gamePeakDays = Object.entries(bucket.dayCounts || {})
       .map(([d, v]) => ({ day: parseInt(d), freq: v.count }))
       .sort((a, b) => b.freq - a.freq);
-    const gamePeakHours = Object.entries(bucket.hourCounts)
+    const gamePeakHours = Object.entries(bucket.hourCounts || {})
       .map(([h, v]) => ({ hour: parseInt(h), freq: v.count }))
       .sort((a, b) => b.freq - a.freq);
 
@@ -146,7 +146,7 @@ function analyzeVenueData(rows) {
       const confidence = Math.min(Math.round((bucket.totalSnapshots / 50) * 100), 100);
       // Only include non-NLH game ETAs on cards (NLH is always running)
       // But always include if it's the only game type
-      const isOnlyGame = Object.keys(gameTypeBuckets).length === 1;
+      const isOnlyGame = Object.keys(gameTypeBuckets || {}).length === 1;
       if (gameType !== 'NLH' || isOnlyGame) {
         game_eta.push({
           game: gameType,

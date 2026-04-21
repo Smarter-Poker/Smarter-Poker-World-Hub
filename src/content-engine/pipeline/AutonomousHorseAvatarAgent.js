@@ -78,7 +78,7 @@ const ETHNICITY_HINTS = {
 function inferEthnicity(name) {
     const lastName = name.split(' ').pop();
 
-    for (const [ethnicity, lastNames] of Object.entries(ETHNICITY_HINTS)) {
+    for (const [ethnicity, lastNames] of Object.entries(ETHNICITY_HINTS || {})) {
         if (lastNames.some(ln => lastName.toLowerCase().includes(ln.toLowerCase()))) {
             return ethnicity;
         }

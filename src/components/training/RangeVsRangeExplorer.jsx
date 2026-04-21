@@ -279,7 +279,7 @@ export default function RangeVsRangeExplorer() {
               width: '100%', padding: '6px 8px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.1)',
               background: 'rgba(0,0,0,0.3)', color: '#f1f5f9', fontSize: 11,
             }}>
-              {Object.entries(RANGE_PRESETS).map(([k, v]) => (
+              {Object.entries(RANGE_PRESETS || {}).map(([k, v]) => (
                 <option key={k} value={k}>{v.label}</option>
               ))}
             </select>
@@ -291,7 +291,7 @@ export default function RangeVsRangeExplorer() {
               width: '100%', padding: '6px 8px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.1)',
               background: 'rgba(0,0,0,0.3)', color: '#f1f5f9', fontSize: 11,
             }}>
-              {Object.entries(RANGE_PRESETS).map(([k, v]) => (
+              {Object.entries(RANGE_PRESETS || {}).map(([k, v]) => (
                 <option key={k} value={k}>{v.label}</option>
               ))}
             </select>

@@ -757,7 +757,7 @@ export function calculateBetAmount(potSize, sizingKey) {
  * @returns {Array<{ key: string, amount: number, label: string }>}
  */
 export function getValidBetSizes(potSize, effectiveStack) {
-    return Object.entries(BET_SIZES)
+    return Object.entries(BET_SIZES || {})
         .map(([key, size]) => ({
             key,
             amount: Math.round(potSize * size.fraction * 10) / 10,
@@ -950,7 +950,7 @@ export function getEnhancedCbetStrategy(board, posContext, holeCards, opts = {})
 
         // Select preferred sizing from size distribution
         const sizes = strategy.sizes || { s50: 1.0 };
-        const sizeEntries = Object.entries(sizes).sort((a, b) => b[1] - a[1]);
+        const sizeEntries = Object.entries(sizes || {}).sort((a, b) => b[1] - a[1]);
         const preferredSizeKey = sizeEntries[0]?.[0] || 's50';
         const sizeMap = { s33: 'SMALL', s50: 'MEDIUM', s75: 'LARGE', s100: 'POT', s150: 'OVERBET' };
         const sizingKey = sizeMap[preferredSizeKey] || 'MEDIUM';
@@ -993,7 +993,7 @@ export function getEnhancedTurnStrategy(holeCards, board, flopAction, posContext
         if (flopAction !== 'bet') betFreq *= 0.65; // Lower if we didn't c-bet
 
         const sizes = strategy.sizes || { s50: 1.0 };
-        const sizeEntries = Object.entries(sizes).sort((a, b) => b[1] - a[1]);
+        const sizeEntries = Object.entries(sizes || {}).sort((a, b) => b[1] - a[1]);
         const preferredSizeKey = sizeEntries[0]?.[0] || 's50';
         const sizeMap = { s50: 'MEDIUM', s75: 'LARGE', s100: 'POT', s150: 'OVERBET' };
         const sizingKey = sizeMap[preferredSizeKey] || 'MEDIUM';
@@ -1035,7 +1035,7 @@ export function getEnhancedRiverStrategy(holeCards, board, posContext, prevActio
         if (prevAction !== 'bet') betFreq *= 0.70; // Lower if we weren't the aggressor
 
         const sizes = strategy.sizes || { s75: 1.0 };
-        const sizeEntries = Object.entries(sizes).sort((a, b) => b[1] - a[1]);
+        const sizeEntries = Object.entries(sizes || {}).sort((a, b) => b[1] - a[1]);
         const preferredSizeKey = sizeEntries[0]?.[0] || 's75';
         const sizeMap = { s50: 'MEDIUM', s75: 'LARGE', s100: 'POT', s150: 'OVERBET' };
         const sizingKey = sizeMap[preferredSizeKey] || 'LARGE';

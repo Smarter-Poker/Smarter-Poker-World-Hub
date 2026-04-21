@@ -112,15 +112,15 @@ export default async function handler(req, res) {
           // ═══ PHASE 14: Build frequency context string for solver-aware coaching ═══
           let frequencyContext = '';
           const freqs = gtoFrequencies || question.gtoFrequencies;
-          if (freqs && Object.keys(freqs).length > 0) {
-              const freqLines = Object.entries(freqs)
+          if (freqs && Object.keys(freqs || {}).length > 0) {
+              const freqLines = Object.entries(freqs || {})
                   .sort(([, a], [, b]) => b - a)
                   .map(([action, pct]) => `  ${action}: ${pct}%`)
                   .join('\n');
               frequencyContext = `\n  SOLVER FREQUENCIES (GTO mixed strategy):\n${freqLines}`;
 
               // Detect if this is a mixed strategy spot
-              const sortedFreqs = Object.values(freqs).sort((a, b) => b - a);
+              const sortedFreqs = Object.values(freqs || {}).sort((a, b) => b - a);
               if (sortedFreqs.length >= 2 && sortedFreqs[1] >= 20) {
                   frequencyContext += '\n  NOTE: This is a MIXED STRATEGY spot — multiple actions are solver-approved at significant frequencies.';
               }
@@ -218,7 +218,7 @@ export default async function handler(req, res) {
                       hit_count: 1,
                       created_at: new Date().toISOString()
                   }, { onConflict: 'cache_key,was_correct' })
-                  .then(() => console.log(`[GrokExplain] 💾 Cached response for ${cacheKey.slice(0, 8)}...`))
+                  .then(() => console.debug(`[GrokExplain] 💾 Cached response for ${cacheKey.slice(0, 8)}...`))
                   .catch(e => console.warn('[GrokExplain] Cache save failed:', e.message));
 
               return res.status(200).json({

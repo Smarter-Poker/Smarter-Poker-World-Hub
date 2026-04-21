@@ -285,7 +285,7 @@ export default function LiveStatsDashboard({ isOpen, onClose, stats }) {
                 }}>D</div>
               </div>
 
-              {Object.entries(POS_COLORS).map(([pos, color]) => (
+              {Object.entries(POS_COLORS || {}).map(([pos, color]) => (
                 <PositionBar
                   key={pos}
                   label={pos}

@@ -178,7 +178,7 @@ function _identifyStrengths(stats: any, positionStats?: any): string[] {
     if (stats.bestStreak >= 8) strengths.push(`Excellent streak of ${stats.bestStreak} correct`);
     else if (stats.bestStreak >= 5) strengths.push('Good streak management');
     if (positionStats) {
-        const strongPositions = Object.entries(positionStats)
+        const strongPositions = Object.entries(positionStats || {})
             .filter(([_, v]: [string, any]) => v.total >= 3 && (v.correct / v.total) >= 0.8)
             .map(([pos]) => pos);
         if (strongPositions.length > 0) strengths.push(`Strong from ${strongPositions.join(', ')}`);

@@ -264,11 +264,11 @@ export default function HandHistoryImporter() {
   }, []);
 
   const totalEVLoss = useMemo(() => {
-    return Object.values(analyses).reduce((sum, a) => sum + parseFloat(a.totalEVLoss || 0), 0).toFixed(2);
+    return Object.values(analyses || {}).reduce((sum, a) => sum + parseFloat(a.totalEVLoss || 0), 0).toFixed(2);
   }, [analyses]);
 
   const totalMistakes = useMemo(() => {
-    return Object.values(analyses).reduce((sum, a) => sum + (a.mistakes || 0), 0);
+    return Object.values(analyses || {}).reduce((sum, a) => sum + (a.mistakes || 0), 0);
   }, [analyses]);
 
   const sectionStyle = {

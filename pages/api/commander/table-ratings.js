@@ -128,7 +128,7 @@ async function getVibes(req, res) {
     });
 
     // Calculate vibes
-    const vibes = Object.values(tableMap).map(t => {
+    const vibes = Object.values(tableMap || {}).map(t => {
       const avgAction = t.count > 0 ? t.totalAction / t.count : 3;
       const avgFriendly = t.count > 0 ? t.totalFriendly / t.count : 3;
       const avgPace = t.count > 0 ? t.totalPace / t.count : 3;

@@ -132,7 +132,7 @@ async function handlePatch(req, res, id) {
     }
     if (resolution !== undefined) updates.resolution = resolution;
 
-    if (Object.keys(updates).length === 0) {
+    if (Object.keys(updates || {}).length === 0) {
       return res.status(400).json({
         success: false,
         error: { code: 'VALIDATION_ERROR', message: 'No valid fields to update' }

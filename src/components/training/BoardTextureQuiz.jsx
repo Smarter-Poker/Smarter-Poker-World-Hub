@@ -76,7 +76,7 @@ function BoardTextureQuiz() {
   }, [selectedTexture, board]);
 
   const checkProperties = useCallback(() => {
-    const propKeys = Object.keys(board.properties);
+    const propKeys = Object.keys(board.properties || {});
     const correctCount = propKeys.filter(k => (selectedProps[k] || false) === board.properties[k]).length;
     setStats(prev => ({ correct: prev.correct + (correctCount === propKeys.length ? 1 : 0), total: prev.total + 1 }));
     setPhase('strategy');
@@ -153,7 +153,7 @@ function BoardTextureQuiz() {
               Select all properties that apply:
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 12 }}>
-              {Object.keys(board.properties).map(prop => (
+              {Object.keys(board.properties || {}).map(prop => (
                 <button key={prop} onClick={() => setSelectedProps(prev => ({ ...prev, [prop]: !prev[prop] }))} style={{
                   padding: '8px 16px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
                   background: selectedProps[prop] ? 'rgba(244,63,94,0.15)' : 'rgba(255,255,255,0.04)',
@@ -168,7 +168,7 @@ function BoardTextureQuiz() {
                 padding: '10px 28px', borderRadius: 8, border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer', background: '#f43f5e', color: '#fff',
               }}>Check →</button>
               <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 8, flexWrap: 'wrap' }}>
-                {Object.entries(board.properties).map(([k, v]) => (
+                {Object.entries(board.properties || {}).map(([k, v]) => (
                   <span key={k} style={{
                     fontSize: 11, padding: '2px 8px', borderRadius: 4,
                     background: (selectedProps[k] || false) === v ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)',

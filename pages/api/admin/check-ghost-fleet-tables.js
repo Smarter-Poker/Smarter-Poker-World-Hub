@@ -69,7 +69,7 @@ export default async function handler(req, res) {
               success: true,
               tables,
               summary: {
-                  all_tables_exist: Object.values(tables).every(t => t.exists),
+                  all_tables_exist: Object.values(tables || {}).every(t => t.exists),
                   total_poker_clips: pokerClips || 0,
                   total_sports_clips: sportsClipsCount || 0,
                   total_stories: storiesCount || 0,

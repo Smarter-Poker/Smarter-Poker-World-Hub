@@ -653,7 +653,7 @@ export default function TriviaModePage() {
                     });
 
                     // Batch-read existing mastery for all categories
-                    const categoryKeys = Object.keys(categoryStats);
+                    const categoryKeys = Object.keys(categoryStats || {});
                     const { data: existingMastery } = await supabase
                         .from('trivia_category_mastery')
                         .select('category, total_answered, correct_count')

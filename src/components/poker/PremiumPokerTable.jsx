@@ -746,7 +746,7 @@ export default function PremiumPokerTable({
                     <PlayerSeat
                         key={player.id || i}
                         player={player}
-                        position={Object.values(SEAT_LAYOUT)[i]}
+                        position={Object.values(SEAT_LAYOUT || {})[i]}
                         isActive={activePlayer === player.id}
                         isFolded={player.isFolded}
                         isHero={i === 0}

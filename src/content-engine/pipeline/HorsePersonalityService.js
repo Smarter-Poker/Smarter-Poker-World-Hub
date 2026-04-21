@@ -115,8 +115,8 @@ class HorsePersonalityService {
      * Generate a random personality for a new horse
      */
     generatePersonality() {
-        const types = Object.values(PERSONALITY_TYPES);
-        const levels = Object.values(ACTIVITY_LEVELS);
+        const types = Object.values(PERSONALITY_TYPES || {});
+        const levels = Object.values(ACTIVITY_LEVELS || {});
 
         const type = types[Math.floor(Math.random() * types.length)];
         const activityLevel = levels[Math.floor(Math.random() * levels.length)];

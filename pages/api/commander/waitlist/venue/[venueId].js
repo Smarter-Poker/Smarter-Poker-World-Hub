@@ -94,7 +94,7 @@ export default async function handler(req, res) {
       });
 
       // Calculate estimated wait for each waitlist
-      const waitlists = Object.values(waitlistMap).map(wl => {
+      const waitlists = Object.values(waitlistMap || {}).map(wl => {
         // Estimate: last position * 15 minutes
         const lastPosition = wl.players.length > 0
           ? Math.max(...wl.players.map(p => p.position))

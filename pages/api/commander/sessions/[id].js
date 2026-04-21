@@ -156,7 +156,7 @@ async function handlePatch(req, res, sessionId) {
     if (comps_earned !== undefined) updates.comps_earned = comps_earned;
     if (notes !== undefined) updates.notes = notes;
 
-    if (Object.keys(updates).length === 0) {
+    if (Object.keys(updates || {}).length === 0) {
       return res.status(400).json({
         success: false,
         error: { code: 'VALIDATION_ERROR', message: 'No valid fields to update' }

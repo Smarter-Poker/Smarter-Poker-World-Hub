@@ -171,7 +171,7 @@ function getDominantAction(handFreqs) {
 
     let maxFreq = 0;
     let maxAction = null;
-    const entries = Object.entries(handFreqs);
+    const entries = Object.entries(handFreqs || {});
 
     entries.forEach(([action, freq]) => {
         if (freq > maxFreq) {
@@ -308,7 +308,7 @@ const GridCell = memo(({ hand, handType, freqs, isSelected, isHero, onClick, siz
                     )}
                     {freqs && !useBlocker && (
                         <div style={{ marginTop: 3, borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 3 }}>
-                            {Object.entries(freqs).filter(([_, f]) => f > 0).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([act, freq]) => {
+                            {Object.entries(freqs || {}).filter(([_, f]) => f > 0).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([act, freq]) => {
                                 const d = ACTION_DISPLAY[act] || { label: act, short: act, color: '#888' };
                                 return (
                                     <div key={act} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 8, gap: 6 }}>
@@ -372,7 +372,7 @@ function HandDetail({ hand, freqs, onClose, classificationInfo, handEV }) {
     if (!hand || !freqs) return null;
 
     // Sort frequencies by value descending
-    const sorted = Object.entries(freqs)
+    const sorted = Object.entries(freqs || {})
         .filter(([_, f]) => f > 0)
         .sort((a, b) => b[1] - a[1]);
 
@@ -539,7 +539,7 @@ export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHan
                 const freqs = gridData[hand];
                 totalCombos += weight;
                 if (freqs) {
-                    Object.entries(freqs).forEach(([action, freq]) => {
+                    Object.entries(freqs || {}).forEach(([action, freq]) => {
                         if (freq > 0) {
                             const combos = (freq / 100) * weight;
                             actionTotals[action] = (actionTotals[action] || 0) + combos;

@@ -219,7 +219,7 @@ function buildEngineState(body, userId) {
   });
 
   // Synthetic opponents from villain stacks (OCR-detected)
-  const villainEntries = Object.entries(villainStacks);
+  const villainEntries = Object.entries(villainStacks || {});
   if (villainEntries.length > 0) {
     villainEntries.forEach(([seatKey, stack], i) => {
       players.push({

@@ -41,7 +41,7 @@ const POSITION_DATA = {
   },
 };
 
-const PERIODS = Object.keys(POSITION_DATA);
+const PERIODS = Object.keys(POSITION_DATA || {});
 const POSITIONS = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
 const POS_COLORS = { UTG: '#ef4444', MP: '#f59e0b', CO: '#10b981', BTN: '#3b82f6', SB: '#8b5cf6', BB: '#ec4899' };
 

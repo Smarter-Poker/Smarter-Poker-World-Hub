@@ -110,7 +110,7 @@ export default function TDPayouts() {
         router.push(`/commander/td/${tournamentId}${path}`);
     };
 
-    const totalOverridden = Object.values(overrides).reduce((sum, v) => sum + (v || 0), 0);
+    const totalOverridden = Object.values(overrides || {}).reduce((sum, v) => sum + (v || 0), 0);
     const totalCalc = calcData?.calculated_payouts?.reduce((sum, p) => sum + p.amount, 0) || 0;
     const prizePool = calcData?.prize_pool || 0;
     const diff = totalOverridden - prizePool;
@@ -329,7 +329,7 @@ function ICMCalculator({ payouts, prizePool, onApply }) {
   }, [toast]);
 
     const calculate = () => {
-        const players = Object.entries(chipInputs)
+        const players = Object.entries(chipInputs || {})
             .filter(([, chips]) => chips > 0)
             .map(([pos, chips]) => ({ position: parseInt(pos), chips }));
 

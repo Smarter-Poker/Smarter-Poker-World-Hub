@@ -2088,7 +2088,7 @@ export default function HorsesAdmin() {
                     <div className={styles.breakdownGrid}>
                       {analyticsData &&
                         Object.keys(analyticsData.sourceDistribution || {}).length > 0 ? (
-                        Object.entries(analyticsData.sourceDistribution).map(
+                        Object.entries(analyticsData.sourceDistribution || {}).map(
                           ([source, count], i) => (
                             <div key={i} className={styles.breakdownItem}>
                               <div
@@ -2987,14 +2987,14 @@ export default function HorsesAdmin() {
                         </div>
                       </div>
                       <div className={styles.breakdownGrid} style={{ marginTop: '12px' }}>
-                        {Object.entries(abuseData.economy.sourceBreakdown)
+                        {Object.entries(abuseData.economy.sourceBreakdown || {})
                           .sort((a, b) => b[1] - a[1])
                           .map(([source, amount], i) => (
                             <div key={i} className={styles.breakdownItem}>
                               <div
                                 className={styles.breakdownBar}
                                 style={{
-                                  width: `${Math.min((amount / Math.max(...Object.values(abuseData.economy.sourceBreakdown))) * 100, 100)}%`,
+                                  width: `${Math.min((amount / Math.max(...Object.values(abuseData.economy.sourceBreakdown || {}))) * 100, 100)}%`,
                                   backgroundColor: [
                                     '#8b5cf6',
                                     '#3b82f6',

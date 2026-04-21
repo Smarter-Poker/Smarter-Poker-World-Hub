@@ -113,7 +113,7 @@ export default async function handler(req, res) {
           });
 
           // Calculate category accuracy
-          const categoryAccuracy = Object.entries(categoryStats).map(([category, data]) => ({
+          const categoryAccuracy = Object.entries(categoryStats || {}).map(([category, data]) => ({
               category,
               accuracy: Math.round((data.correct / data.total) * 100),
               sessions: data.total
@@ -170,7 +170,7 @@ export default async function handler(req, res) {
 
           // Priority 3: Games they've played but could improve
           if (recommendations.length < 4) {
-              Object.entries(gameAccuracy).forEach(([gameId, accuracies]) => {
+              Object.entries(gameAccuracy || {}).forEach(([gameId, accuracies]) => {
                   if (recommendations.length >= 4) return;
                   const avgAcc = accuracies.reduce((a, b) => a + b, 0) / accuracies.length;
                   if (avgAcc < 85 && avgAcc >= 50) {

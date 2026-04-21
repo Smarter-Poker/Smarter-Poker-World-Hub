@@ -33,7 +33,7 @@ export function createLogger(namespace) {
         };
 
         // Strip undefined values for cleaner output
-        Object.keys(entry).forEach(k => entry[k] === undefined && delete entry[k]);
+        Object.keys(entry || {}).forEach(k => entry[k] === undefined && delete entry[k]);
 
         const output = JSON.stringify(entry);
 

@@ -120,7 +120,7 @@ export default function QREExplorerPage() {
 
   const qreResults = useMemo(() => {
     const result = {};
-    Object.entries(GTO_ACTIONS).forEach(([spot, actions]) => {
+    Object.entries(GTO_ACTIONS || {}).forEach(([spot, actions]) => {
       result[spot] = computeQRE(actions, lambda);
     });
     return result;
@@ -338,7 +338,7 @@ export default function QREExplorerPage() {
               marginBottom: 20,
             }}
           >
-            {Object.entries(SPOT_LABELS).map(([key, info]) => (
+            {Object.entries(SPOT_LABELS || {}).map(([key, info]) => (
               <button
                 key={key}
                 onClick={() => setSelectedSpot(key)}

@@ -234,7 +234,7 @@ function validateScenario(scenario, level, position, stackDepth) {
 
     // Validate solution entries
     const validatedSolution = {};
-    for (const [hand, action] of Object.entries(scenario.solution)) {
+    for (const [hand, action] of Object.entries(scenario.solution || {})) {
         // Normalize hand notation
         const normalizedHand = normalizeHandNotation(hand);
         if (normalizedHand && isValidAction(action)) {

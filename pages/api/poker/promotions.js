@@ -29,7 +29,7 @@ function buildNameLookups() {
   const toursRaw = tourSeriesData.tours;
   if (toursRaw && typeof toursRaw === 'object' && !Array.isArray(toursRaw)) {
     // Dictionary format: keys are tour codes
-    Object.entries(toursRaw).forEach(([code, t]) => {
+    Object.entries(toursRaw || {}).forEach(([code, t]) => {
       tourNames[code] = t.name || t.tour_name || code;
       // Handle nested series inside tours
       if (t.series && Array.isArray(t.series)) {

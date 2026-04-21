@@ -170,7 +170,7 @@ export function EquityCalculator({ onClose }: EquityCalculatorProps) {
                         gap: '6px',
                         marginBottom: '12px'
                     }}>
-                        {Object.keys(COMMON_MATCHUPS).map(hand => (
+                        {Object.keys(COMMON_MATCHUPS || {}).map(hand => (
                             <button
                                 key={hand}
                                 onClick={() => setSelectedHand(hand)}

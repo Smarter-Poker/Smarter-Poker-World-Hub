@@ -67,7 +67,7 @@ export default function VenueIntelligence({ gigs = [] }) {
             map[venue].totalHours += totalHours;
             map[venue].events += 1;
         }
-        const arr = Object.values(map);
+        const arr = Object.values(map || {});
         for (const v of arr) v.tokePerHr = v.totalHours > 0 ? v.totalTokes / v.totalHours : 0;
         const sorted = {
             toke_hr: [...arr].sort((a, b) => b.tokePerHr - a.tokePerHr),
@@ -90,7 +90,7 @@ export default function VenueIntelligence({ gigs = [] }) {
                 map[gt].totalDowns += 1;
             }
         }
-        return Object.values(map)
+        return Object.values(map || {})
             .map(gt => ({ ...gt, avgTokePerDown: gt.totalDowns > 0 ? gt.totalTokes / gt.totalDowns : 0 }))
             .sort((a, b) => b.avgTokePerDown - a.avgTokePerDown);
     }, [gigs]);

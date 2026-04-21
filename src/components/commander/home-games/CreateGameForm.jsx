@@ -75,7 +75,7 @@ export default function CreateGameForm({
       newErrors.max_players = 'Must be between 2 and 20';
     }
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return Object.keys(newErrors || {}).length === 0;
   };
 
   const handleSubmit = () => {

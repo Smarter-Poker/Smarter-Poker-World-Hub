@@ -76,7 +76,7 @@ export default async function handler(req, res) {
           let reportsGenerated = 0;
 
           // Generate report for each user
-          for (const [userId, userSessionList] of Object.entries(userSessions)) {
+          for (const [userId, userSessionList] of Object.entries(userSessions || {})) {
               try {
                   const report = await generateWeeklyReport(grok, userSessionList, userId);
 

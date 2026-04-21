@@ -79,7 +79,7 @@ function calculateLeakImpact(sessions, bbSize) {
   const accuracy = totalHands > 0 ? Math.round((totalCorrect / totalHands) * 100) : 0;
 
   // Rank leaks by impact
-  const leaks = Object.entries(gameLeaks)
+  const leaks = Object.entries(gameLeaks || {})
     .map(([id, data]) => ({
       id,
       name: data.name,

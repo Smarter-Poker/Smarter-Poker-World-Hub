@@ -713,7 +713,7 @@ export default function PvPLobbyPage() {
                   GAME FORMAT
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-                  {Object.entries(FORMATS).map(([key, f]) => (
+                  {Object.entries(FORMATS || {}).map(([key, f]) => (
                     <motion.button
                       key={key}
                       onClick={() => setFormat(key)}

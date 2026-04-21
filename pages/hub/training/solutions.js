@@ -705,7 +705,7 @@ function SolutionsBrowserInner({ setError }) {
 
   // Auto-fetch runout when switching to runout tab
   useEffect(() => {
-    if (activeTab === 'runout' && Object.keys(runoutData).length === 0 && spotDetail) {
+    if (activeTab === 'runout' && Object.keys(runoutData || {}).length === 0 && spotDetail) {
       fetchRunoutData();
     }
   }, [activeTab, runoutData, spotDetail, fetchRunoutData]);

@@ -39,13 +39,13 @@ export async function captureError(error, context = {}) {
 
     sentry.withScope((scope) => {
         if (context.tags) {
-            Object.entries(context.tags).forEach(([key, value]) => {
+            Object.entries(context.tags || {}).forEach(([key, value]) => {
                 scope.setTag(key, value);
             });
         }
 
         if (context.extra) {
-            Object.entries(context.extra).forEach(([key, value]) => {
+            Object.entries(context.extra || {}).forEach(([key, value]) => {
                 scope.setExtra(key, value);
             });
         }
@@ -81,12 +81,12 @@ export async function captureMessage(message, level = 'info', context = {}) {
 
     sentry.withScope((scope) => {
         if (context.tags) {
-            Object.entries(context.tags).forEach(([key, value]) => {
+            Object.entries(context.tags || {}).forEach(([key, value]) => {
                 scope.setTag(key, value);
             });
         }
         if (context.extra) {
-            Object.entries(context.extra).forEach(([key, value]) => {
+            Object.entries(context.extra || {}).forEach(([key, value]) => {
                 scope.setExtra(key, value);
             });
         }

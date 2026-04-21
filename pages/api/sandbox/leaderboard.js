@@ -62,7 +62,7 @@ export default async function handler(req, res) {
           });
 
           // Filter: min 20 hands, calculate accuracy
-          const qualified = Object.entries(userStats)
+          const qualified = Object.entries(userStats || {})
               .filter(([, v]) => v.total >= 20)
               .map(([uid, v]) => ({
                   user_id: uid,
@@ -92,7 +92,7 @@ export default async function handler(req, res) {
           }));
 
           // Find current user's rank
-          const allRanked = Object.entries(userStats)
+          const allRanked = Object.entries(userStats || {})
               .filter(([, v]) => v.total >= 20)
               .map(([uid, v]) => ({
                   user_id: uid,

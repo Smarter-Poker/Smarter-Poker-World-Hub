@@ -79,7 +79,7 @@ export default async function handler(req, res) {
               acc[leak] = (acc[leak] || 0) + 1;
               return acc;
           }, {});
-          const topLeaks = Object.entries(leakCounts)
+          const topLeaks = Object.entries(leakCounts || {})
               .sort((a, b) => b[1] - a[1])
               .slice(0, 5)
               .map(([leak, count]) => ({ leak, count }));
@@ -102,7 +102,7 @@ export default async function handler(req, res) {
               return acc;
           }, {});
 
-          const gamePerformance = Object.entries(gameStats).map(([id, stats]) => ({
+          const gamePerformance = Object.entries(gameStats || {}).map(([id, stats]) => ({
               gameId: id,
               gameName: stats.gameName,
               sessions: stats.sessions,
@@ -218,7 +218,7 @@ export default async function handler(req, res) {
                       if (!locMap[lid]) locMap[lid] = { name: e.bankroll_locations?.name || 'Unknown', net: 0 };
                       locMap[lid].net += e.net_result || 0;
                   });
-                  const locArr = Object.values(locMap).sort((a, b) => b.net - a.net);
+                  const locArr = Object.values(locMap || {}).sort((a, b) => b.net - a.net);
 
                   bankrollSummary = {
                       totalSessions: gamblingEntries.length,

@@ -324,7 +324,7 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
                         {mistakesRef.current.length > 0 && (() => {
                             const posCounts = {};
                             mistakesRef.current.forEach(m => { posCounts[m.position] = (posCounts[m.position] || 0) + 1; });
-                            const sorted = Object.entries(posCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
+                            const sorted = Object.entries(posCounts || {}).sort((a, b) => b[1] - a[1]).slice(0, 3);
                             return (
                                 <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
                                     <div style={{ fontSize: 11, fontWeight: 700, color: '#EF4444', letterSpacing: 1.5, marginBottom: 10 }}>{'\u26A0\uFE0F'} WEAKNESS DETECTED</div>
@@ -453,7 +453,7 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
                         {mistakesRef.current.length > 0 && (() => {
                             const posCounts = {};
                             mistakesRef.current.forEach(m => { posCounts[m.position] = (posCounts[m.position] || 0) + 1; });
-                            const sorted = Object.entries(posCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
+                            const sorted = Object.entries(posCounts || {}).sort((a, b) => b[1] - a[1]).slice(0, 3);
                             return (
                                 <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
                                     <div style={{ fontSize: 11, fontWeight: 700, color: '#EF4444', letterSpacing: 1.5, marginBottom: 10 }}>{'\u26A0\uFE0F'} WEAKNESS DETECTED</div>

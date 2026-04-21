@@ -67,8 +67,8 @@ export default function SeatingDisplay() {
     byTable[t].push(e);
   });
   // Sort each table by seat
-  Object.values(byTable).forEach(arr => arr.sort((a, b) => (a.seat_number || 0) - (b.seat_number || 0)));
-  const tableNumbers = Object.keys(byTable).sort((a, b) => {
+  Object.values(byTable || {}).forEach(arr => arr.sort((a, b) => (a.seat_number || 0) - (b.seat_number || 0)));
+  const tableNumbers = Object.keys(byTable || {}).sort((a, b) => {
     if (a === 'Unassigned') return 1;
     if (b === 'Unassigned') return -1;
     return parseInt(a) - parseInt(b);

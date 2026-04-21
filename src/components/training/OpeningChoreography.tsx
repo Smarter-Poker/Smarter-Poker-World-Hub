@@ -187,7 +187,7 @@ export function useOpeningChoreography({
             };
 
             // Preload all sounds
-            Object.values(soundsRef.current).forEach(audio => {
+            Object.values(soundsRef.current || {}).forEach(audio => {
                 if (audio) {
                     audio.volume = 0.5;
                     audio.load();

@@ -105,8 +105,8 @@ export default async function handler(req, res) {
       // Generate predictions for each game type/stakes combination
       const predictions = [];
       const gameTypes = new Set([
-        ...Object.keys(waitlistByGame),
-        ...Object.keys(historicalAverages)
+        ...Object.keys(waitlistByGame || {}),
+        ...Object.keys(historicalAverages || {})
       ]);
 
       // Also add common game types for this venue

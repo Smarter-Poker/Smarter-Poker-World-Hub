@@ -110,7 +110,7 @@ function FrequencyBars({ freqs }) {
         margin: '16px auto',
       }}
     >
-      {Object.entries(freqs).map(([action, pct]) => (
+      {Object.entries(freqs || {}).map(([action, pct]) => (
         <div key={action} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ width: 60, fontSize: 10, color: '#94a3b8', textAlign: 'right' }}>
             {action}
@@ -423,7 +423,7 @@ export default function ScenarioDemoPage() {
                       margin: '0 auto 16px',
                     }}
                   >
-                    {Object.entries(step.example.scores).map(([label, score]) => {
+                    {Object.entries(step.example.scores || {}).map(([label, score]) => {
                       const colors = {
                         Elite: '#fbbf24',
                         Strong: '#22c55e',

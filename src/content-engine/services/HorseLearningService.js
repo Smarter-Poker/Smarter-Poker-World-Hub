@@ -82,7 +82,7 @@ export function getBestPerformingStyle(horseProfileId) {
     let bestStyle = null;
     let bestScore = 0;
 
-    for (const [style, data] of Object.entries(stats)) {
+    for (const [style, data] of Object.entries(stats || {})) {
         // Require minimum 3 posts to consider
         if (data.postCount < 3) continue;
 

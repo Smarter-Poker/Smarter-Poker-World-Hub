@@ -189,7 +189,7 @@ export default function SessionNotesPage() {
   notes.forEach((n) => (n.tags || []).forEach((t) => {
     tagFrequency[t] = (tagFrequency[t] || 0) + 1;
   }));
-  const topTags = Object.entries(tagFrequency)
+  const topTags = Object.entries(tagFrequency || {})
     .sort((a, b) => b[1] - a[1])
     .slice(0, 6)
     .map(([tag]) => tag);
@@ -620,7 +620,7 @@ export default function SessionNotesPage() {
                   >
                     <div style={{ fontSize: 20 }}>
                       {moodObj(
-                        Object.entries(noteStats.moodCounts).sort((a, b) => b[1] - a[1])?.[0]?.[0] || 'neutral'
+                        Object.entries(noteStats.moodCounts || {}).sort((a, b) => b[1] - a[1])?.[0]?.[0] || 'neutral'
                       ).emoji}
                     </div>
                     <div style={{ fontSize: 8, color: '#64748b', textTransform: 'uppercase' }}>

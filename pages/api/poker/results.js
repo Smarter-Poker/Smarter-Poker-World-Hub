@@ -285,7 +285,7 @@ function computeLeaderboard(rows) {
         }
     }
 
-    return Object.values(playerMap)
+    return Object.values(playerMap || {})
         .sort((a, b) => b.totalEarnings - a.totalEarnings);
 }
 

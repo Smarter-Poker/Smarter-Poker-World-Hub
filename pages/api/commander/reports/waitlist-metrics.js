@@ -103,7 +103,7 @@ export default async function handler(req, res) {
           byGame[key].avg_wait.push(wt);
         }
       });
-      const gameBreakdown = Object.entries(byGame).map(([game, data]) => ({
+      const gameBreakdown = Object.entries(byGame || {}).map(([game, data]) => ({
         game,
         total: data.total,
         seated: data.seated,

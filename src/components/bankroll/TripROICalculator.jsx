@@ -58,7 +58,7 @@ export default function TripROICalculator({ trip, userId, displayEUR = false }) 
 
     // Calculations
     const calculations = useMemo(() => {
-        const totalExpenses = Object.values(expenses).reduce((a, b) => a + (Number(b) || 0), 0);
+        const totalExpenses = Object.values(expenses || {}).reduce((a, b) => a + (Number(b) || 0), 0);
         const grossWinnings = sessions.reduce((sum, s) => sum + ((s.gross_out || 0) - (s.gross_in || 0)), 0);
         const netProfit = grossWinnings - totalExpenses;
 
@@ -109,7 +109,7 @@ export default function TripROICalculator({ trip, userId, displayEUR = false }) 
             <div style={styles.section}>
                 <h4 style={styles.sectionTitle}>Expenses Breakdown</h4>
                 <div style={styles.expenseGrid}>
-                    {Object.entries(expenses).map(([key, value]) => (
+                    {Object.entries(expenses || {}).map(([key, value]) => (
                         <div key={key} style={styles.expenseItem}>
                             <span style={styles.expenseLabel}>
                                 {key === 'hotel' ? 'Hotel' : key === 'flights' ? 'Flights' : key === 'food' ? 'Food' : key === 'transport' ? 'Transport' : key === 'tips' ? '' : 'Other'}

@@ -195,7 +195,7 @@ async function cashierReport(req, res, tournamentId) {
             data: {
                 tournament_name: tournament?.name,
                 tournament_date: tournament?.scheduled_start,
-                cashiers: Object.values(cashierBreakdown),
+                cashiers: Object.values(cashierBreakdown || {}),
                 total_entries: (entries || []).length,
                 total_collected: (entries || []).length * entryTotal
             }

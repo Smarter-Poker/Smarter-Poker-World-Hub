@@ -121,7 +121,7 @@ export default async function handler(req, res) {
                           actions,
                           gridData,
                           handEVs: childSpot.hand_evs || {},
-                          handCount: Object.keys(gridData).filter(h => gridData[h] !== null).length,
+                          handCount: Object.keys(gridData || {}).filter(h => gridData[h] !== null).length,
                       },
                   });
               }

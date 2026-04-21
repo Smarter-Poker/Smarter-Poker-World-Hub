@@ -175,8 +175,8 @@ export default async function handler(req, res) {
 
       // Build daily revenue chart data
       const allDays = new Set();
-      Object.keys(timeByDay).forEach(d => allDays.add(d));
-      Object.keys(compByDay).forEach(d => allDays.add(d));
+      Object.keys(timeByDay || {}).forEach(d => allDays.add(d));
+      Object.keys(compByDay || {}).forEach(d => allDays.add(d));
       (tournaments || []).forEach(t => {
         const d = t.created_at?.split('T')[0];
         if (d) allDays.add(d);

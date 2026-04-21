@@ -41,7 +41,7 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'venues array required' });
         }
 
-        console.log(`[Venue Receive] Batch ${batch_id || '?'}, Tier: ${source_tier || '?'}, Venues: ${venues.length}`);
+        console.debug(`[Venue Receive] Batch ${batch_id || '?'}, Tier: ${source_tier || '?'}, Venues: ${venues.length}`);
 
         const results = {
             tournaments_upserted: 0,
@@ -62,7 +62,7 @@ export default async function handler(req, res) {
                 }
 
                 if (status === 'failed') {
-                    console.log(`[Venue Receive] Venue ${vid} scrape failed — skipping`);
+                    console.debug(`[Venue Receive] Venue ${vid} scrape failed — skipping`);
                     continue;
                 }
 

@@ -179,8 +179,8 @@ export const BUILD_CONFIG = {
 };
 
 console.log('📋 Vanguard Silver Master Registry Loaded');
-console.log(`   ${Object.keys(GATEWAY_NODES).length} Gateway Nodes`);
-console.log(`   ${Object.keys(MASTER_REGISTRY).length} Core Systems`);
-console.log(`   ${Object.keys(WORLD_COMPONENTS).length} World Components`);
-console.log(`   ${Object.keys(UI_COMPONENTS).length} UI Components`);
+console.log(`   ${Object.keys(GATEWAY_NODES || {}).length} Gateway Nodes`);
+console.log(`   ${Object.keys(MASTER_REGISTRY || {}).length} Core Systems`);
+console.log(`   ${Object.keys(WORLD_COMPONENTS || {}).length} World Components`);
+console.log(`   ${Object.keys(UI_COMPONENTS || {}).length} UI Components`);
 console.log(`   ${CARD_ASSETS.length} Card Assets`);

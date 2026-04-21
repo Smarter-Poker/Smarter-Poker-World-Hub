@@ -188,7 +188,7 @@ export default class GeofenceService {
   _pruneTriggered() {
     const now = Date.now();
     let changed = false;
-    for (const key of Object.keys(this._triggered)) {
+    for (const key of Object.keys(this._triggered || {})) {
       if (now - this._triggered[key] >= COOLDOWN_MS) {
         delete this._triggered[key];
         changed = true;

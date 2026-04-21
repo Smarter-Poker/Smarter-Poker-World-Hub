@@ -223,13 +223,13 @@ function WaitlistPanel({ entries }) {
   return (
     <div className="bg-black p-4 overflow-hidden">
       <h2 className="text-sm text-white/40 uppercase tracking-[0.2em] mb-3">Waitlist</h2>
-      {Object.keys(byGame).length === 0 ? (
+      {Object.keys(byGame || {}).length === 0 ? (
         <div className="flex items-center justify-center h-full">
           <p className="text-xl text-white/15">No Wait</p>
         </div>
       ) : (
         <div className="space-y-3">
-          {Object.entries(byGame).map(([game, players]) => (
+          {Object.entries(byGame || {}).map(([game, players]) => (
             <div key={game}>
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-xs font-bold text-white/60">{game}</span>

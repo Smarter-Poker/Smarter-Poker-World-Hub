@@ -152,7 +152,7 @@ export function getLaw(lawId) {
 
 // Get all laws for a category
 export function getLawsByCategory(category) {
-    return Object.values(POKER_LAWS).filter(law => law.category === category);
+    return Object.values(POKER_LAWS || {}).filter(law => law.category === category);
 }
 
 // Get violation explanation for a specific law

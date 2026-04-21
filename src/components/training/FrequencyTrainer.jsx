@@ -36,7 +36,7 @@ function analyzeFrequencyAdherence(hands) {
     // For now, aggregate all mixed-strategy hands together
     const mixedHands = hands.filter(h =>
         h.gtoFrequencies &&
-        Object.values(h.gtoFrequencies).filter(f => f > 1 && f < 99).length >= 2 &&
+        Object.values(h.gtoFrequencies || {}).filter(f => f > 1 && f < 99).length >= 2 &&
         h.userAction
     );
 
@@ -53,7 +53,7 @@ function analyzeFrequencyAdherence(hands) {
         actionCounts[action] = (actionCounts[action] || 0) + 1;
 
         // Average solver frequencies across hands for each action
-        Object.entries(h.gtoFrequencies).forEach(([actId, freq]) => {
+        Object.entries(h.gtoFrequencies || {}).forEach(([actId, freq]) => {
             if (!actionTargets[actId]) actionTargets[actId] = { total: 0, count: 0 };
             actionTargets[actId].total += freq;
             actionTargets[actId].count++;
@@ -62,7 +62,7 @@ function analyzeFrequencyAdherence(hands) {
 
     // Build per-action comparison
     const comparisons = [];
-    const allActions = new Set([...Object.keys(actionCounts), ...Object.keys(actionTargets)]);
+    const allActions = new Set([...Object.keys(actionCounts || {}), ...Object.keys(actionTargets || {})]);
 
     allActions.forEach(action => {
         const actualCount = actionCounts[action] || 0;

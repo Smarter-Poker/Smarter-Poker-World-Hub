@@ -425,7 +425,7 @@ export const PokerStoriesRow = ({
         return acc;
     }, {});
 
-    const storyList = Object.values(userStories);
+    const storyList = Object.values(userStories || {});
 
     return (
         <div className="stories-container">

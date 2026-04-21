@@ -61,7 +61,7 @@ export default async function handler(req, res) {
                       ipCounts[entry.ip_address] = (ipCounts[entry.ip_address] || 0) + 1;
                   }
               });
-              const topIPs = Object.entries(ipCounts)
+              const topIPs = Object.entries(ipCounts || {})
                   .sort((a, b) => b[1] - a[1])
                   .slice(0, 10)
                   .map(([ip, count]) => ({ ip, count }));

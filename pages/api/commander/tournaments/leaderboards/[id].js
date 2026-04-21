@@ -89,7 +89,7 @@ async function getLeaderboard(req, res, id) {
             });
         });
 
-        const standings = Object.values(playerMap)
+        const standings = Object.values(playerMap || {})
             .sort((a, b) => b.total_points - a.total_points)
             .map((player, index) => ({ ...player, rank: index + 1 }));
 

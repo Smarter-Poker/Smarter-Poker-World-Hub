@@ -66,9 +66,9 @@ export default function PositionWeaknessHeatmap({ mistakes, totalAnswers, showCu
             }
         });
 
-        if (Object.keys(counts).length === 0) return null;
+        if (Object.keys(counts || {}).length === 0) return null;
 
-        const maxCount = Math.max(...Object.values(counts), 1);
+        const maxCount = Math.max(...Object.values(counts || {}), 1);
         return SEAT_POSITIONS.map(seat => ({
             ...seat,
             count: counts[seat.key] || 0,
@@ -82,13 +82,13 @@ export default function PositionWeaknessHeatmap({ mistakes, totalAnswers, showCu
             const cumulative = getCumulativeWeakness();
             if (!cumulative || !cumulative.positions) return null;
             const counts = {};
-            Object.entries(cumulative.positions).forEach(([pos, data]) => {
+            Object.entries(cumulative.positions || {}).forEach(([pos, data]) => {
                 if (data.mistakes > 0) {
                     counts[pos] = data.mistakes;
                 }
             });
-            if (Object.keys(counts).length === 0) return null;
-            const maxCount = Math.max(...Object.values(counts), 1);
+            if (Object.keys(counts || {}).length === 0) return null;
+            const maxCount = Math.max(...Object.values(counts || {}), 1);
             return SEAT_POSITIONS.map(seat => ({
                 ...seat,
                 count: counts[seat.key] || 0,

@@ -104,7 +104,7 @@ export default async function handler(req, res) {
       // Generate balance suggestions
       const suggestions = [];
 
-      Object.entries(gameGroups).forEach(([key, tables]) => {
+      Object.entries(gameGroups || {}).forEach(([key, tables]) => {
         if (tables.length < 2) return; // Need at least 2 tables to balance
 
         // Sort by player count
@@ -162,7 +162,7 @@ export default async function handler(req, res) {
         success: true,
         data: {
           suggestions,
-          table_summary: Object.entries(gameGroups).map(([key, tables]) => ({
+          table_summary: Object.entries(gameGroups || {}).map(([key, tables]) => ({
             game: key,
             tables: tables.map(t => ({
               table_number: t.table_number,

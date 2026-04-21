@@ -33,7 +33,7 @@ export function getAuthUser() {
         }
 
         // Fallback to legacy sb-* keys (for backwards compatibility)
-        const sbKeys = Object.keys(localStorage).filter(
+        const sbKeys = Object.keys(localStorage || {}).filter(
             k => k.startsWith('sb-') && k.endsWith('-auth-token')
         );
         if (sbKeys.length > 0) {
@@ -72,7 +72,7 @@ export function getAccessToken() {
         }
 
         // Fallback to legacy sb-* keys
-        const sbKeys = Object.keys(localStorage).filter(
+        const sbKeys = Object.keys(localStorage || {}).filter(
             k => k.startsWith('sb-') && k.endsWith('-auth-token')
         );
         if (sbKeys.length > 0) {
@@ -197,7 +197,7 @@ export function clearAuth(force = false) {
 
         localStorage.removeItem(AUTH_STORAGE_KEY);
         // Also clear legacy sb-* keys
-        const sbKeys = Object.keys(localStorage).filter(
+        const sbKeys = Object.keys(localStorage || {}).filter(
             k => k.startsWith('sb-') && k.endsWith('-auth-token')
         );
         sbKeys.forEach(k => localStorage.removeItem(k));

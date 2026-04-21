@@ -92,7 +92,7 @@ export default async function handler(req, res) {
       if (error) {
         // If table doesn't exist, just log and return success
         if (error.code === '42P01') {
-          console.log('Table not yet created, lead captured:', {
+          console.debug('Table not yet created, lead captured:', {
             venueName, contactName, email, city, state
           });
           return res.status(200).json({

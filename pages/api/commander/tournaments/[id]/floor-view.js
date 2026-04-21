@@ -102,7 +102,7 @@ export default async function handler(req, res) {
         if (e.table_number) tableCounts[e.table_number] = (tableCounts[e.table_number] || 0) + 1;
       });
 
-      const countValues = Object.values(tableCounts);
+      const countValues = Object.values(tableCounts || {});
       const maxCount = countValues.length > 0 ? Math.max(...countValues) : 0;
       const minCount = countValues.length > 0 ? Math.min(...countValues) : 0;
 

@@ -153,8 +153,8 @@ function getHandFrequencies(hand, config) {
                 const checkPct = 100 - betPct;
                 const result = { check: checkPct };
                 if (strategy.sizes) {
-                    const sizeTotal = Object.values(strategy.sizes).reduce((s, v) => s + v, 0) || 1;
-                    Object.entries(strategy.sizes).forEach(([sizeKey, weight]) => {
+                    const sizeTotal = Object.values(strategy.sizes || {}).reduce((s, v) => s + v, 0) || 1;
+                    Object.entries(strategy.sizes || {}).forEach(([sizeKey, weight]) => {
                         result[sizeKey] = Math.round((weight / sizeTotal) * betPct);
                     });
                 } else {
@@ -180,8 +180,8 @@ function getHandFrequencies(hand, config) {
                 const checkPct = 100 - betPct;
                 const result = { check: checkPct };
                 if (strategy.sizes) {
-                    const sizeTotal = Object.values(strategy.sizes).reduce((s, v) => s + v, 0) || 1;
-                    Object.entries(strategy.sizes).forEach(([sizeKey, weight]) => {
+                    const sizeTotal = Object.values(strategy.sizes || {}).reduce((s, v) => s + v, 0) || 1;
+                    Object.entries(strategy.sizes || {}).forEach(([sizeKey, weight]) => {
                         result[sizeKey] = Math.round((weight / sizeTotal) * betPct);
                     });
                 } else {
@@ -198,8 +198,8 @@ function getHandFrequencies(hand, config) {
                 const checkPct = 100 - betPct;
                 const result = { check: checkPct };
                 if (strategy.sizes) {
-                    const sizeTotal = Object.values(strategy.sizes).reduce((s, v) => s + v, 0) || 1;
-                    Object.entries(strategy.sizes).forEach(([sizeKey, weight]) => {
+                    const sizeTotal = Object.values(strategy.sizes || {}).reduce((s, v) => s + v, 0) || 1;
+                    Object.entries(strategy.sizes || {}).forEach(([sizeKey, weight]) => {
                         result[sizeKey] = Math.round((weight / sizeTotal) * betPct);
                     });
                 } else {
@@ -240,13 +240,13 @@ const PostflopCell = memo(({ hand, freqs, isSelected, onClick, actionFilter, han
         if (!freqs) return { color: '#1a1a2e', opacity: 0.15, action: null };
         let maxFreq = 0;
         let maxAction = null;
-        Object.entries(freqs).forEach(([action, freq]) => {
+        Object.entries(freqs || {}).forEach(([action, freq]) => {
             if (freq > maxFreq) { maxFreq = freq; maxAction = action; }
         });
         if (!maxAction) return { color: '#1a1a2e', opacity: 0.15, action: null };
         const color = SIZE_COLORS[maxAction] || '#64748b';
         const opacity = Math.max(0.2, maxFreq / 100);
-        const isMixed = maxFreq < 80 && Object.keys(freqs).filter(k => freqs[k] > 0).length > 1;
+        const isMixed = maxFreq < 80 && Object.keys(freqs || {}).filter(k => freqs[k] > 0).length > 1;
         return { color, opacity, action: maxAction, maxFreq, isMixed };
     }, [freqs]);
 
@@ -315,7 +315,7 @@ const PostflopCell = memo(({ hand, freqs, isSelected, onClick, actionFilter, han
                         </div>
                     )}
                     <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 3 }}>
-                        {Object.entries(freqs)
+                        {Object.entries(freqs || {})
                             .filter(([_, f]) => f > 0)
                             .sort((a, b) => b[1] - a[1])
                             .slice(0, 4)
@@ -342,7 +342,7 @@ PostflopCell.displayName = 'PostflopCell';
 function PostflopHandDetail({ hand, freqs, handClass, onClose }) {
     if (!hand || !freqs) return null;
 
-    const sorted = Object.entries(freqs)
+    const sorted = Object.entries(freqs || {})
         .filter(([_, f]) => f > 0)
         .sort((a, b) => b[1] - a[1]);
 
@@ -588,7 +588,7 @@ export default function PostflopRangeViewer({
             // Check for pairs
             const rankCounts = {};
             ranks.forEach(r => { rankCounts[r] = (rankCounts[r] || 0) + 1; });
-            const hasPair = Object.values(rankCounts).some(c => c >= 2);
+            const hasPair = Object.values(rankCounts || {}).some(c => c >= 2);
 
             // Check connectivity
             const sorted = [...rankValues].sort((a, b) => b - a);
@@ -629,7 +629,7 @@ export default function PostflopRangeViewer({
                 const freqs = getHandFrequencies(hand, config);
                 if (freqs) {
                     freqMap[hand] = freqs;
-                    Object.entries(freqs).forEach(([action, freq]) => {
+                    Object.entries(freqs || {}).forEach(([action, freq]) => {
                         if (freq > 0) actionSet.add(action);
                     });
                 }
@@ -661,7 +661,7 @@ export default function PostflopRangeViewer({
                 totalCombos += weight;
 
                 if (freqs) {
-                    Object.entries(freqs).forEach(([action, freq]) => {
+                    Object.entries(freqs || {}).forEach(([action, freq]) => {
                         if (freq > 0) {
                             const combos = (freq / 100) * weight;
                             actionTotals[action] = (actionTotals[action] || 0) + combos;

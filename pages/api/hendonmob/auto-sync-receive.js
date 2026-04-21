@@ -60,7 +60,7 @@ export default async function handler(req, res) {
         updateData.hendon_biggest_cash = parseFloat(stats.biggestCash);
     }
 
-    if (Object.keys(updateData).length === 0) {
+    if (Object.keys(updateData || {}).length === 0) {
         return res.status(200).json({
             success: true,
             message: 'No valid stats to update',
@@ -79,7 +79,7 @@ export default async function handler(req, res) {
             return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
-        console.log(`[Auto-Sync] Updated user ${userId}:`, updateData);
+        console.debug(`[Auto-Sync] Updated user ${userId}:`, updateData);
 
         return res.status(200).json({
             success: true,

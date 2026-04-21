@@ -143,7 +143,7 @@ function getProfileBorderColor(profile: VillainProfile): string {
 function getIconFromName(name: string): string {
     const lowerName = name.toLowerCase();
 
-    for (const [key, icon] of Object.entries(AVATAR_ICONS)) {
+    for (const [key, icon] of Object.entries(AVATAR_ICONS || {})) {
         if (lowerName.includes(key)) {
             return icon;
         }

@@ -716,7 +716,7 @@ export default async function handler(req, res) {
             'scheduled_start', 'late_reg_levels', 'guaranteed_prize',
           ];
           const safeUpdates = {};
-          for (const [key, val] of Object.entries(updates)) {
+          for (const [key, val] of Object.entries(updates || {})) {
             if (allowedFields.includes(key)) safeUpdates[key] = val;
           }
 
@@ -726,7 +726,7 @@ export default async function handler(req, res) {
             safeUpdates.settings = { ...existingSettings, ...updates.settings };
           }
 
-          if (Object.keys(safeUpdates).length === 0) {
+          if (Object.keys(safeUpdates || {}).length === 0) {
             return res.status(400).json({ success: false, error: 'No valid fields to update' });
           }
 
@@ -740,7 +740,7 @@ export default async function handler(req, res) {
             return res.status(500).json({ success: false, error: 'Update failed' });
           }
 
-          return res.json({ success: true, updated: Object.keys(safeUpdates) });
+          return res.json({ success: true, updated: Object.keys(safeUpdates || {}) });
         }
 
         // ═══════════════════════════════════════════════════════

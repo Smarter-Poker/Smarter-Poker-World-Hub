@@ -1785,11 +1785,11 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               </div>
             )}
             {/* Street Scores */}
-            {sessionAuditResult.streetBreakdown && Object.keys(sessionAuditResult.streetBreakdown).length > 0 && (
+            {sessionAuditResult.streetBreakdown && Object.keys(sessionAuditResult.streetBreakdown || {}).length > 0 && (
               <div className="mb-4">
                 <h3 className="text-sm font-semibold text-slate-300 mb-2">By Street</h3>
                 <div className="grid grid-cols-4 gap-2">
-                  {Object.entries(sessionAuditResult.streetBreakdown).map(([street, data]) => (
+                  {Object.entries(sessionAuditResult.streetBreakdown || {}).map(([street, data]) => (
                     <div key={street} className="bg-slate-700/50 rounded p-2 text-center">
                       <div className="text-xs text-slate-400 capitalize">{street}</div>
                       <div className="text-lg font-bold">{data?.avgScore ?? '--'}</div>
@@ -2709,11 +2709,11 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
         )}
 
         {/* OPPONENT STATS -- debug only */}
-        {debugMode && opponentStatsDisplay && Object.keys(opponentStatsDisplay).length > 0 && (
+        {debugMode && opponentStatsDisplay && Object.keys(opponentStatsDisplay || {}).length > 0 && (
           <div className="mt-4 bg-slate-800/80 rounded-xl border border-slate-700 p-3">
             <h3 className="text-sm font-semibold text-slate-300 mb-2">Opponent Stats</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {Object.entries(opponentStatsDisplay).map(([seat, stats]) => (
+              {Object.entries(opponentStatsDisplay || {}).map(([seat, stats]) => (
                 <div key={seat} className="bg-slate-900/60 rounded-lg p-2 text-xs">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-slate-400 font-mono">{seat}</span>

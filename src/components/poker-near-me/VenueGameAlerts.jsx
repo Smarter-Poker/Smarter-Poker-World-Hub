@@ -65,7 +65,7 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
       const key = g.game || 'Unknown';
       counts[key] = (counts[key] || 0) + g.tables;
     });
-    return Object.entries(counts)
+    return Object.entries(counts || {})
       .sort((a, b) => b[1] - a[1])
       .slice(0, 8);
   }, [liveGames]);

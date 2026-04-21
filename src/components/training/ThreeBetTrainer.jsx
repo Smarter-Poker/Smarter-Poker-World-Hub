@@ -155,7 +155,7 @@ export default function ThreeBetTrainer() {
 
     const combos = useMemo(() => {
         let total = 0;
-        Object.entries(currentData.range).forEach(([hand, weight]) => {
+        Object.entries(currentData.range || {}).forEach(([hand, weight]) => {
             if (weight <= 0) return;
             if (hand.length === 2) total += 6 * weight;
             else if (hand.endsWith('s')) total += 4 * weight;
@@ -221,10 +221,10 @@ export default function ThreeBetTrainer() {
 
                 {/* Spot selector */}
                 <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-                    {mode === '3bet' && Object.entries(THREE_BET_RANGES).map(([key, spot]) => (
+                    {mode === '3bet' && Object.entries(THREE_BET_RANGES || {}).map(([key, spot]) => (
                         <button
                             key={key}
-                            onClick={() => { setSelectedSpot(key); setSelectedPosition(Object.keys(spot.positions)[0]); }}
+                            onClick={() => { setSelectedSpot(key); setSelectedPosition(Object.keys(spot.positions || {})[0]); }}
                             style={{
                                 padding: '3px 8px', fontSize: 9, fontWeight: 600,
                                 borderRadius: 3, border: '1px solid',
@@ -237,7 +237,7 @@ export default function ThreeBetTrainer() {
                             {spot.label}
                         </button>
                     ))}
-                    {mode === '4bet' && Object.entries(FOUR_BET_RANGES).map(([key, spot]) => (
+                    {mode === '4bet' && Object.entries(FOUR_BET_RANGES || {}).map(([key, spot]) => (
                         <button
                             key={key}
                             onClick={() => setSelectedSpot(key)}
@@ -252,7 +252,7 @@ export default function ThreeBetTrainer() {
                             {spot.label}
                         </button>
                     ))}
-                    {mode === 'squeeze' && Object.entries(SQUEEZE_RANGES).map(([key, spot]) => (
+                    {mode === 'squeeze' && Object.entries(SQUEEZE_RANGES || {}).map(([key, spot]) => (
                         <button
                             key={key}
                             onClick={() => setSelectedSpot(key)}
@@ -342,7 +342,7 @@ export default function ThreeBetTrainer() {
                             3-Bet Frequency by Position
                         </div>
                         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 50 }}>
-                            {Object.entries(currentData.positions).map(([pos, data]) => {
+                            {Object.entries(currentData.positions || {}).map(([pos, data]) => {
                                 const maxPct = 16;
                                 return (
                                     <div key={pos} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>

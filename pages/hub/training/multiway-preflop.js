@@ -339,13 +339,13 @@ export default function MultiwayPreflopPage() {
 
   // Generate a random quiz hand
   function generateQuizHand() {
-    const scenarioKeys = Object.keys(MULTIWAY_SCENARIOS);
+    const scenarioKeys = Object.keys(MULTIWAY_SCENARIOS || {});
     const randomKey = scenarioKeys[Math.floor(Math.random() * scenarioKeys.length)];
     const sc = MULTIWAY_SCENARIOS[randomKey];
     const pos = sc.positions[Math.floor(Math.random() * sc.positions.length)];
     const rangeData = sc.ranges[pos];
-    const action = Object.keys(rangeData)[0];
-    const rangeStr = Object.values(rangeData)[0];
+    const action = Object.keys(rangeData || {})[0];
+    const rangeStr = Object.values(rangeData || {})[0];
 
     // Generate random hand — MUST be canonical (higher rank first)
     const i1 = Math.floor(Math.random() * 13);
@@ -446,7 +446,7 @@ export default function MultiwayPreflopPage() {
               marginBottom: 20,
             }}
           >
-            {Object.entries(MULTIWAY_SCENARIOS).map(([key, s]) => (
+            {Object.entries(MULTIWAY_SCENARIOS || {}).map(([key, s]) => (
               <motion.button
                 key={key}
                 onClick={() => setSelectedScenario(key)}
@@ -504,8 +504,8 @@ export default function MultiwayPreflopPage() {
           >
             {scenario.positions.map((pos) => {
               const rangeData = scenario.ranges[pos] || {};
-              const action = Object.keys(rangeData)[0] || 'range';
-              const rangeStr = Object.values(rangeData)[0] || '';
+              const action = Object.keys(rangeData || {})[0] || 'range';
+              const rangeStr = Object.values(rangeData || {})[0] || '';
               return (
                 <RangeGrid
                   key={pos}
@@ -533,7 +533,7 @@ export default function MultiwayPreflopPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
               {scenario.positions.map((pos, i) => {
                 const rangeData = scenario.ranges[pos] || {};
-                const action = Object.keys(rangeData)[0] || '';
+                const action = Object.keys(rangeData || {})[0] || '';
                 return (
                   <React.Fragment key={pos}>
                     <div

@@ -66,7 +66,7 @@ const M = {
 
 export default function RangeExplorer({ onSelectRange, onClose }) {
     const [cells, setCells] = useState({});
-    const count = useMemo(() => Object.keys(cells).filter(k => cells[k]).length, [cells]);
+    const count = useMemo(() => Object.keys(cells || {}).filter(k => cells[k]).length, [cells]);
     const pct = ((count / 169) * 100).toFixed(1);
 
     const toggle = useCallback((i, j) => {
@@ -98,7 +98,7 @@ export default function RangeExplorer({ onSelectRange, onClose }) {
 
                 {/* Preset Buttons */}
                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', padding: '0 8px 8px', justifyContent: 'center' }}>
-                    {Object.keys(PRESETS).map(name => (
+                    {Object.keys(PRESETS || {}).map(name => (
                         <button key={name} onClick={() => loadPreset(name)} style={{
                             padding: '4px 8px', borderRadius: 6, fontSize: 9, fontWeight: 700,
                             background: name === 'Clear All' ? 'rgba(239,68,68,0.12)' : 'rgba(35,116,225,0.12)',

@@ -189,7 +189,7 @@ export default function AutofixDashboard() {
           }}>
             <h3 style={{ margin: '0 0 12px', fontSize: 14, color: '#78909c', textTransform: 'uppercase', letterSpacing: 1 }}>Pipeline Configuration</h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
-              {Object.entries(data.pipeline).map(([key, val]) => (
+              {Object.entries(data.pipeline || {}).map(([key, val]) => (
                 <div key={key} style={{ fontSize: 13 }}>
                   <span style={{ color: '#78909c' }}>{key}: </span>
                   <span style={{ color: '#e0e0e0', fontWeight: 500 }}>{val}</span>

@@ -316,7 +316,7 @@ export default function LeagueDetailPage() {
               <h3 className="font-semibold text-white mb-3">Points System</h3>
               {league.scoring_system ? (
                 <div className="space-y-2">
-                  {Object.entries(league.scoring_system).map(([place, points]) => (
+                  {Object.entries(league.scoring_system || {}).map(([place, points]) => (
                     <div key={place} className="flex items-center justify-between py-2 border-b border-[#4A5E78] last:border-0">
                       <span className="text-[#64748B]">{place}</span>
                       <span className="font-medium text-white">{points} pts</span>

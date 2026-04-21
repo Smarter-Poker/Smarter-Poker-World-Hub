@@ -37,7 +37,7 @@ export default async function handler(req, res) {
               .limit(20);
 
           // Find posts that might have link metadata
-          const postsWithMetadata = allPosts?.filter(p => p.metadata && Object.keys(p.metadata).length > 0) || [];
+          const postsWithMetadata = allPosts?.filter(p => p.metadata && Object.keys(p.metadata || {}).length > 0) || [];
 
           res.status(200).json({
               articlePostsCount: articlePosts?.length || 0,

@@ -185,7 +185,7 @@ const res = await commanderFetch('/api/commander/reputation', {
                       <div style={{ padding: '0 14px 14px', borderTop: '2px solid #F0F2F5' }}>
                         {/* Breakdown */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6, marginTop: 10, marginBottom: 10 }}>
-                          {Object.entries(RATING_LABELS).map(([key, cfg]) => (
+                          {Object.entries(RATING_LABELS || {}).map(([key, cfg]) => (
                             <div key={key} style={{ padding: 8, background: '#F9FAFB', borderRadius: 8, textAlign: 'center' }}>
                               <div style={{ fontSize: 16, fontWeight: 800, color: scoreColor(s[`${key}_avg`]) }}>{s[`${key}_avg`]}</div>
                               <div style={{ fontSize: 10, color: '#65676B' }}>{cfg.label}</div>

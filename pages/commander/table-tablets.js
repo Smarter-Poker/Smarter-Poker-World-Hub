@@ -112,7 +112,7 @@ function computeSeatPositions(maxSeats) {
     // Per-seat vertical nudges (seats are 1-indexed, array is 0-indexed)
     // Seats 3 & 7 down toward middle, Seats 2 & 8 up toward middle — fills the side gap
     const nudge = { 2: -3, 3: 3, 7: 3, 8: -3 };
-    Object.entries(nudge).forEach(([seat, offset]) => {
+    Object.entries(nudge || {}).forEach(([seat, offset]) => {
         const idx = parseInt(seat) - 1;
         if (seatPositions[idx]) {
             seatPositions[idx].top = `${parseFloat(seatPositions[idx].top) + offset}%`;
@@ -390,7 +390,7 @@ const headers = { };
                             if (!batchRes.ok) throw new Error(`Request failed (${batchRes.status})`);
                             const batchJson = await batchRes.json();
                             if (batchJson.success && batchJson.data) {
-                                Object.entries(batchJson.data).forEach(([tNum, sessions]) => {
+                                Object.entries(batchJson.data || {}).forEach(([tNum, sessions]) => {
                                     if (sessions.length > 0) sessionsByTable[parseInt(tNum)] = sessions;
                                 });
                             }

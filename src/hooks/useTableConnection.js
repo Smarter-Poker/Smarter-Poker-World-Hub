@@ -96,7 +96,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
     // Also try Supabase session as fallback
     if (!tokenRef.current) {
       try {
-        const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+        const sbKeys = Object.keys(localStorage || {}).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
         for (const key of sbKeys) {
           const parsed = JSON.parse(localStorage.getItem(key) || '{}');
           if (parsed?.access_token) { tokenRef.current = parsed.access_token; break; }

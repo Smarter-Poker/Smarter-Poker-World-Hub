@@ -89,7 +89,7 @@ export default async function handler(req, res) {
             const total = (accuracyData || []).length;
 
             // Find most/least studied positions
-            const posEntries = Object.entries(posCounts).sort((a, b) => b[1] - a[1]);
+            const posEntries = Object.entries(posCounts || {}).sort((a, b) => b[1] - a[1]);
             const mostStudied = posEntries[0]?.[0] || null;
             const leastStudied = posEntries[posEntries.length - 1]?.[0] || null;
 

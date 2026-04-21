@@ -188,7 +188,7 @@ export function getPageSpecificKnowledge(page: string): string {
         '/hub/settings': 'User is on Settings - emphasize profile, privacy, notifications, security',
     };
 
-    for (const [path, knowledge] of Object.entries(pageKnowledge)) {
+    for (const [path, knowledge] of Object.entries(pageKnowledge || {})) {
         if (page.startsWith(path)) {
             return `\n**CURRENT PAGE CONTEXT**: ${knowledge}\n`;
         }

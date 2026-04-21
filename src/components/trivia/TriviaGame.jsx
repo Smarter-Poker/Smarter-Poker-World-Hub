@@ -549,7 +549,7 @@ export default function TriviaGame({
                         <div className="hints-section">
                             <HintButtons
                                 userDiamonds={diamonds}
-                                disabledHints={Object.entries(hintsUsed).filter(([, used]) => used).map(([id]) => id)}
+                                disabledHints={Object.entries(hintsUsed || {}).filter(([, used]) => used).map(([id]) => id)}
                                 hasTimeLimit={!!timeLimit}
                                 onUseHint={(hint) => {
                                     const result = applyHint(hint.id, currentQuestion, { eliminatedOptions, timeRemaining });

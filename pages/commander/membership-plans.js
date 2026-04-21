@@ -100,7 +100,7 @@ const data = await commanderFetchJSON(`/api/commander/membership-plans?venue_id=
     const yPercent = (clickY / rect.height) * 100;
 
     // Find which card zone was clicked
-    for (const [tier, [top, bottom]] of Object.entries(CARD_ZONES)) {
+    for (const [tier, [top, bottom]] of Object.entries(CARD_ZONES || {})) {
       if (yPercent >= top && yPercent <= bottom) {
         const plan = planByTier[tier];
         if (plan) {

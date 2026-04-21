@@ -42,7 +42,7 @@ const RANGE_DATA = {
 };
 
 const RANGES = {};
-for (const [pos, csv] of Object.entries(RANGE_DATA)) {
+for (const [pos, csv] of Object.entries(RANGE_DATA || {})) {
   RANGES[pos] = new Set(csv.split(','));
 }
 
@@ -74,7 +74,7 @@ export default function RangeGrid({
   const weightMap = useMemo(() => {
     if (!weights) return null;
     if (weights instanceof Map) return weights;
-    return new Map(Object.entries(weights));
+    return new Map(Object.entries(weights || {}));
   }, [weights]);
 
   const rangeSet = useMemo(() => {

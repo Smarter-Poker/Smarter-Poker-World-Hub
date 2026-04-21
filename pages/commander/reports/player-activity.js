@@ -60,8 +60,8 @@ const headers = { };
   // Game preference distribution
   const gamePrefs = {};
   sessions.forEach(s => { const g = s.game_type || 'Unknown'; gamePrefs[g] = (gamePrefs[g] || 0) + 1; });
-  const sortedGames = Object.entries(gamePrefs).sort((a, b) => b[1] - a[1]);
-  const totalGameSessions = Object.values(gamePrefs).reduce((a, b) => a + b, 0);
+  const sortedGames = Object.entries(gamePrefs || {}).sort((a, b) => b[1] - a[1]);
+  const totalGameSessions = Object.values(gamePrefs || {}).reduce((a, b) => a + b, 0);
 
   // Visit frequency distribution
   const freqBuckets = { '1 visit': 0, '2-5': 0, '6-10': 0, '11-20': 0, '20+': 0 };
@@ -163,7 +163,7 @@ const headers = { };
                     <Repeat className="w-4 h-4 text-[#F59E0B]" /> Visit Frequency
                   </h3>
                   <div className="space-y-2">
-                    {Object.entries(freqBuckets).map(([label, count]) => {
+                    {Object.entries(freqBuckets || {}).map(([label, count]) => {
                       const pct = players.length > 0 ? Math.round((count / players.length) * 100) : 0;
                       return (
                         <div key={label}>

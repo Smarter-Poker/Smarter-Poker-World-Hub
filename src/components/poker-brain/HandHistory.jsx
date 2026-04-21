@@ -82,7 +82,7 @@ function HandCard({ hand, index }) {
     ? Math.round((hand.endedAt - hand.startedAt) / 1000)
     : null;
   const decisions = hand.streetDecisions || {};
-  const streetsWithDecisions = Object.keys(decisions);
+  const streetsWithDecisions = Object.keys(decisions || {});
 
   // Board fallback: if the state machine skipped straight from flop to river
   // (fast detection stream, missed turn transition), the per-street fields may

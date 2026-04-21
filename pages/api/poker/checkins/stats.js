@@ -58,7 +58,7 @@ export default async function handler(req, res) {
         for (const c of checkins) {
             venueCountMap[c.venue_id] = (venueCountMap[c.venue_id] || 0) + 1;
         }
-        const favoriteVenueId = Object.entries(venueCountMap)
+        const favoriteVenueId = Object.entries(venueCountMap || {})
             .sort(([, a], [, b]) => b - a)[0]?.[0];
 
         // Average per week

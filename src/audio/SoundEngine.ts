@@ -257,7 +257,7 @@ class SoundEngineClass {
         // Preload all sounds marked for preloading
         const preloadPromises: Promise<void>[] = [];
 
-        for (const [key, slot] of Object.entries(AUDIO_SLOTS)) {
+        for (const [key, slot] of Object.entries(AUDIO_SLOTS || {})) {
             if (slot.file && slot.preload) {
                 preloadPromises.push(this.preload(key));
             }

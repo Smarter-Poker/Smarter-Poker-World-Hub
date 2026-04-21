@@ -379,7 +379,7 @@ export default function GTOReportsPage() {
 
       // Approximate stats from session data
       const posStats = s.position_stats || s.positionStats || {};
-      Object.entries(posStats).forEach(([pos, pData]) => {
+      Object.entries(posStats || {}).forEach(([pos, pData]) => {
         voluntaryPuts += pData.total || 0;
         preflopRaises += (pData.correct || 0) * 0.8;
         threeBetOpps += (pData.total || 0) * 0.3;
@@ -407,7 +407,7 @@ export default function GTOReportsPage() {
     const positions = {};
     sessions.forEach((s) => {
       const posStats = s.position_stats || s.positionStats || {};
-      Object.entries(posStats).forEach(([pos, data]) => {
+      Object.entries(posStats || {}).forEach(([pos, data]) => {
         if (!positions[pos]) positions[pos] = { hands: 0, correct: 0, evLoss: 0 };
         positions[pos].hands += data.total || 0;
         positions[pos].correct += data.correct || 0;
@@ -416,7 +416,7 @@ export default function GTOReportsPage() {
     });
 
     const result = {};
-    Object.entries(positions).forEach(([pos, data]) => {
+    Object.entries(positions || {}).forEach(([pos, data]) => {
       const accuracy = data.hands > 0 ? data.correct / data.hands : 0;
       const gto = GTO_BASELINES.byPosition[pos] || {};
       result[pos] = {
@@ -594,7 +594,7 @@ export default function GTOReportsPage() {
                   marginBottom: 10,
                 }}
               >
-                {Object.entries(GTO_BASELINES.overall).map(([key, gtoVal], i) => (
+                {Object.entries(GTO_BASELINES.overall || {}).map(([key, gtoVal], i) => (
                   <StatCard
                     key={key}
                     statKey={key}
@@ -725,7 +725,7 @@ export default function GTOReportsPage() {
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0', marginBottom: 10 }}>
                   Coaching Recommendations
                 </div>
-                {Object.entries(GTO_BASELINES.overall)
+                {Object.entries(GTO_BASELINES.overall || {})
                   .map(([key, gtoVal]) => {
                     const uVal = userStats[key] || 0;
                     const diff = Math.abs(uVal - gtoVal);
@@ -806,7 +806,7 @@ export default function GTOReportsPage() {
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 8 }}>
                   {(() => {
-                    const weakStats = Object.entries(GTO_BASELINES.overall)
+                    const weakStats = Object.entries(GTO_BASELINES.overall || {})
                       .map(([key, gtoVal]) => ({ key, diff: Math.abs((userStats[key] || 0) - gtoVal), label: (STAT_LABELS[key] || {}).label || key }))
                       .filter((s) => s.diff > 5)
                       .sort((a, b) => b.diff - a.diff)

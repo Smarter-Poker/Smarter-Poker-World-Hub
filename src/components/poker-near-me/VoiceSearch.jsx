@@ -52,7 +52,7 @@ function parseVoiceQuery(transcript) {
     if (/\btournament|tourney|mtt\b/.test(lower)) result.filters.tab = 'daily';
 
     // If no specific filters extracted, use the whole transcript as search
-    if (Object.keys(result.filters).length === 0 && !result.searchQuery) {
+    if (Object.keys(result.filters || {}).length === 0 && !result.searchQuery) {
         result.searchQuery = transcript.trim();
     }
 

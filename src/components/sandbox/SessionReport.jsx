@@ -180,11 +180,11 @@ export default function SessionReport({ sessionLog, resultsRaw, onClose }) {
                             </div>
 
                             {/* Position Distribution */}
-                            {Object.keys(posCounts).length > 0 && (
+                            {Object.keys(posCounts || {}).length > 0 && (
                                 <div style={{ marginBottom: 10 }}>
                                     <span style={{ fontSize: 8, color: M.dim, textTransform: 'uppercase', letterSpacing: 0.5 }}>Positions Played</span>
                                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
-                                        {Object.entries(posCounts).sort(([, a], [, b]) => b - a).map(([pos, count]) => (
+                                        {Object.entries(posCounts || {}).sort(([, a], [, b]) => b - a).map(([pos, count]) => (
                                             <span key={pos} style={{
                                                 fontSize: 9, fontWeight: 700, color: M.sub,
                                                 background: 'rgba(255,255,255,0.05)',
@@ -197,11 +197,11 @@ export default function SessionReport({ sessionLog, resultsRaw, onClose }) {
                             )}
 
                             {/* Street Distribution */}
-                            {Object.keys(streetCounts).length > 0 && (
+                            {Object.keys(streetCounts || {}).length > 0 && (
                                 <div style={{ marginBottom: 10 }}>
                                     <span style={{ fontSize: 8, color: M.dim, textTransform: 'uppercase', letterSpacing: 0.5 }}>Streets Analyzed</span>
                                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
-                                        {Object.entries(streetCounts).sort(([, a], [, b]) => b - a).map(([street, count]) => (
+                                        {Object.entries(streetCounts || {}).sort(([, a], [, b]) => b - a).map(([street, count]) => (
                                             <span key={street} style={{
                                                 fontSize: 9, fontWeight: 700, color: M.sub,
                                                 background: 'rgba(255,255,255,0.05)',

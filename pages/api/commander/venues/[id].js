@@ -106,7 +106,7 @@ async function handleGet(req, res, venueId) {
       data: {
         venue,
         currentGames: currentGames || [],
-        waitlists: Object.values(waitlistSummary),
+        waitlists: Object.values(waitlistSummary || {}),
         todaysTournaments: [], // Phase 3 feature
         activePromotions: []  // Phase 5 feature
       }
@@ -184,7 +184,7 @@ async function handlePatch(req, res, venueId) {
       }
     }
 
-    if (Object.keys(updates).length === 0) {
+    if (Object.keys(updates || {}).length === 0) {
       return res.status(400).json({
         success: false,
         error: { code: 'VALIDATION_ERROR', message: 'No valid fields to update' }

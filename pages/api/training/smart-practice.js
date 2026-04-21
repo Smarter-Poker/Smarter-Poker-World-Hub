@@ -70,7 +70,7 @@ function buildRecommendations(sessions, answers, spacedRepDue) {
     });
 
     // Find weakest position with enough data (>= 5 hands)
-    const posEntries = Object.entries(posStats)
+    const posEntries = Object.entries(posStats || {})
         .filter(([_, s]) => s.total >= 5)
         .map(([pos, s]) => ({
             pos,
@@ -111,7 +111,7 @@ function buildRecommendations(sessions, answers, spacedRepDue) {
         streetStats[st].evLoss += (a.ev_loss || 0);
     });
 
-    const streetEntries = Object.entries(streetStats)
+    const streetEntries = Object.entries(streetStats || {})
         .filter(([_, s]) => s.total >= 5)
         .map(([street, s]) => ({
             street,
@@ -151,7 +151,7 @@ function buildRecommendations(sessions, answers, spacedRepDue) {
         spotPatterns[key].evLoss += (a.ev_loss || 0);
     });
 
-    const topPattern = Object.values(spotPatterns).sort((a, b) => b.evLoss - a.evLoss)[0];
+    const topPattern = Object.values(spotPatterns || {}).sort((a, b) => b.evLoss - a.evLoss)[0];
     if (topPattern && topPattern.count >= 3) {
         const spotLabels = {
             facing_cbet: 'Facing C-bet', open_raise: 'Open Raise', '3bet_defense': '3-Bet Defense',

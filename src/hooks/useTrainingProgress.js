@@ -121,7 +121,7 @@ export default function useTrainingProgress() {
 
     // Save to localStorage on change
     useEffect(() => {
-        if (isLoaded && Object.keys(progress).length > 0) {
+        if (isLoaded && Object.keys(progress || {}).length > 0) {
             try {
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
             } catch (e) {
@@ -183,7 +183,7 @@ export default function useTrainingProgress() {
 
     // Get overall stats
     const getOverallStats = useCallback(() => {
-        const games = Object.values(progress);
+        const games = Object.values(progress || {});
         if (games.length === 0) {
             return {
                 gamesPlayed: 0,

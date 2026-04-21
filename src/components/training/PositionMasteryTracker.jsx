@@ -202,7 +202,7 @@ export default function PositionMasteryTracker() {
           <div style={{ marginBottom: 10 }}>
             <div style={{ color: '#475569', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Street Accuracy</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
-              {Object.entries(data.streets).map(([street, acc]) => (
+              {Object.entries(data.streets || {}).map(([street, acc]) => (
                 <div key={street} style={{ textAlign: 'center' }}>
                   <div style={{ color: '#64748b', fontSize: 8, textTransform: 'capitalize' }}>{street}</div>
                   <div style={{ color: getMasteryColor(acc), fontSize: 16, fontWeight: 800 }}>{acc}%</div>
@@ -214,7 +214,7 @@ export default function PositionMasteryTracker() {
           {/* Action accuracy */}
           <div style={{ marginBottom: 10 }}>
             <div style={{ color: '#475569', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Action Accuracy</div>
-            {Object.entries(data.actions).filter(([, v]) => v > 0).map(([action, acc]) => (
+            {Object.entries(data.actions || {}).filter(([, v]) => v > 0).map(([action, acc]) => (
               <div key={action} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
                 <span style={{ color: '#94a3b8', fontSize: 9, width: 60, textTransform: 'capitalize' }}>{action}</span>
                 <div style={{ flex: 1, height: 6, background: 'rgba(0,0,0,0.3)', borderRadius: 3, overflow: 'hidden' }}>

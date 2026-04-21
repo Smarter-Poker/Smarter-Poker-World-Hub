@@ -218,7 +218,7 @@ function _checkPositionLeaks(positionStats, leaks) {
     let worstPos = null;
     let worstAcc = 100;
 
-    for (const [pos, stats] of Object.entries(positionStats)) {
+    for (const [pos, stats] of Object.entries(positionStats || {})) {
         if (stats.decisions >= 3 && stats.accuracy < worstAcc) {
             worstAcc = stats.accuracy;
             worstPos = pos;
@@ -285,7 +285,7 @@ export function analyzeFrequencies(decisions) {
 
     // Calculate frequencies
     const frequencies = {};
-    for (const [key, count] of Object.entries(counts)) {
+    for (const [key, count] of Object.entries(counts || {})) {
         const [street] = key.split('_');
         frequencies[key] = {
             count,
@@ -348,7 +348,7 @@ export function analyzeFrequencies(decisions) {
     }
 
     // Fold frequency
-    const totalFolds = Object.entries(counts)
+    const totalFolds = Object.entries(counts || {})
         .filter(([k]) => k.endsWith('_fold'))
         .reduce((a, [, v]) => a + v, 0);
     const totalDecisions = decisions.length;

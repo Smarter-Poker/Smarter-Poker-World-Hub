@@ -281,7 +281,7 @@ class OpponentStats {
       const raw = localStorage.getItem(this.persistKey);
       if (!raw) return;
       const data = JSON.parse(raw);
-      for (const [seat, s] of Object.entries(data)) {
+      for (const [seat, s] of Object.entries(data || {})) {
         this.opponents.set(seat, {
           handsObserved: s.handsObserved || 0,
           vpipCount: s.vpipCount || 0,

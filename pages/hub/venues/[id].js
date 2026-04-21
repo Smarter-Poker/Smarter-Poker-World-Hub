@@ -502,7 +502,7 @@ export default function VenueDetailPage() {
     var headers = {};
     if (authUser) {
       try {
-        var sbKeys = Object.keys(localStorage).filter(function(k) { return k.startsWith('sb-') && k.endsWith('-auth-token'); });
+        var sbKeys = Object.keys(localStorage || {}).filter(function(k) { return k.startsWith('sb-') && k.endsWith('-auth-token'); });
         if (sbKeys.length > 0) {
           var tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
           if (tokenData.access_token) headers['Authorization'] = 'Bearer ' + tokenData.access_token;
@@ -917,7 +917,7 @@ export default function VenueDetailPage() {
     var fetchHeaders = { 'Content-Type': 'application/json' };
     var hasToken = false;
     try {
-      var sbKeys = Object.keys(localStorage).filter(function (k) { return k.startsWith('sb-') && k.endsWith('-auth-token'); });
+      var sbKeys = Object.keys(localStorage || {}).filter(function (k) { return k.startsWith('sb-') && k.endsWith('-auth-token'); });
       if (sbKeys.length > 0) {
         var tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
         if (tokenData.access_token) { fetchHeaders['Authorization'] = 'Bearer ' + tokenData.access_token; hasToken = true; }
@@ -1020,7 +1020,7 @@ export default function VenueDetailPage() {
       // Build headers with JWT auth
       var fetchHeaders = { 'Content-Type': 'application/json' };
       try {
-        var sbKeys = Object.keys(localStorage).filter(function(k) { return k.startsWith('sb-') && k.endsWith('-auth-token'); });
+        var sbKeys = Object.keys(localStorage || {}).filter(function(k) { return k.startsWith('sb-') && k.endsWith('-auth-token'); });
         if (sbKeys.length > 0) {
           var tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
           if (tokenData.access_token) fetchHeaders['Authorization'] = 'Bearer ' + tokenData.access_token;
@@ -1223,7 +1223,7 @@ export default function VenueDetailPage() {
     DAYS_ORDER.forEach(function (day) {
       if (grouped[day]) sorted[day] = grouped[day];
     });
-    Object.keys(grouped).forEach(function (day) {
+    Object.keys(grouped || {}).forEach(function (day) {
       if (!sorted[day]) sorted[day] = grouped[day];
     });
     return sorted;
@@ -1928,11 +1928,11 @@ export default function VenueDetailPage() {
             <BestTimeToGoWidget venueId={id} venueName={venue.name} />
 
             {/* Daily Tournaments Section */}
-            {groupedSchedules && Object.keys(groupedSchedules).length > 0 && (
+            {groupedSchedules && Object.keys(groupedSchedules || {}).length > 0 && (
               <section id="tournaments-section" className="tournaments-section">
                 <h2 className="section-title">Daily Tournament Schedule</h2>
                 <div className="schedule-container">
-                  {Object.entries(groupedSchedules).map(function ([day, schedules]) {
+                  {Object.entries(groupedSchedules || {}).map(function ([day, schedules]) {
                     var isToday = day === todayName;
                     return (
                       <div key={day} className={'day-group' + (isToday ? ' today' : '')}>
@@ -1986,7 +1986,7 @@ export default function VenueDetailPage() {
             )}
 
             {/* No tournaments fallback */}
-            {(!groupedSchedules || Object.keys(groupedSchedules).length === 0) && venue.has_tournaments && (
+            {(!groupedSchedules || Object.keys(groupedSchedules || {}).length === 0) && venue.has_tournaments && (
               <section id="tournaments-section" className="tournaments-section">
                 <h2 className="section-title">Daily Tournament Schedule</h2>
                 <div className="empty-tournaments">

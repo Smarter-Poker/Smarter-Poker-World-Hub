@@ -465,14 +465,14 @@ export function getGameMode(gameId: string): GameMode | null {
  * Get all game modes in a category
  */
 export function getGamesByCategory(category: GameMode['category']): GameMode[] {
-    return Object.values(GAME_MODES).filter(game => game.category === category);
+    return Object.values(GAME_MODES || {}).filter(game => game.category === category);
 }
 
 /**
  * Get all unlocked games for a player level
  */
 export function getUnlockedGames(playerLevel: number, isVIP: boolean = false): GameMode[] {
-    return Object.values(GAME_MODES).filter(game => {
+    return Object.values(GAME_MODES || {}).filter(game => {
         const levelOk = !game.unlockLevel || playerLevel >= game.unlockLevel;
         const vipOk = !game.isVIPOnly || isVIP;
         return levelOk && vipOk;
@@ -578,12 +578,12 @@ export function getStackBB(depth: GameMode['stackDepth']): number {
  * Get all game mode IDs
  */
 export function getAllGameIds(): string[] {
-    return Object.keys(GAME_MODES);
+    return Object.keys(GAME_MODES || {});
 }
 
 /**
  * Get game count
  */
 export function getGameCount(): number {
-    return Object.keys(GAME_MODES).length;
+    return Object.keys(GAME_MODES || {}).length;
 }

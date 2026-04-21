@@ -56,7 +56,7 @@ export default async function handler(req, res) {
             if (c.user_name) userMap[c.user_id].user_name = c.user_name;
         }
 
-        const sorted = Object.values(userMap)
+        const sorted = Object.values(userMap || {})
             .sort((a, b) => b.count - a.count)
             .slice(0, 10);
 

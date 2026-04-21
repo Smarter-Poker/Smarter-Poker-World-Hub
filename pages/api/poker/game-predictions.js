@@ -118,14 +118,14 @@ export default async function handler(req, res) {
     });
 
     // Build predictions for each game type
-    const predictions = Object.entries(gameTypeBuckets).map(([gameType, bucket]) => {
+    const predictions = Object.entries(gameTypeBuckets || {}).map(([gameType, bucket]) => {
       // Find peak hour
-      const hourEntries = Object.entries(bucket.hourCounts)
+      const hourEntries = Object.entries(bucket.hourCounts || {})
         .map(([h, v]) => ({ hour: parseInt(h), avgTables: v.tables / v.count, frequency: v.count }))
         .sort((a, b) => b.frequency - a.frequency);
 
       // Find peak day
-      const dayEntries = Object.entries(bucket.dayCounts)
+      const dayEntries = Object.entries(bucket.dayCounts || {})
         .map(([d, v]) => ({ day: parseInt(d), avgTables: v.tables / v.count, frequency: v.count }))
         .sort((a, b) => b.frequency - a.frequency);
 

@@ -217,7 +217,7 @@ export const SocialCard = ({
               onMouseEnter={() => setShowReactions(true)}
               onMouseLeave={() => setShowReactions(false)}
             >
-              {Object.entries(INTERACTION_TYPES).map(([type, config]) => (
+              {Object.entries(INTERACTION_TYPES || {}).map(([type, config]) => (
                 <button
                   key={type}
                   className="reaction-btn scale-spring"

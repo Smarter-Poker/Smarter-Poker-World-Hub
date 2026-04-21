@@ -100,7 +100,7 @@ export default function AdvancedTaxReport({ entries = [], userId }) {
 
     const totalIncome = quarterlyData.reduce((s, q) => s + q.income, 0);
     const totalLosses = quarterlyData.reduce((s, q) => s + q.losses, 0);
-    const totalDeductions = Object.values(deductions).reduce((s, v) => s + (parseFloat(v) || 0), 0);
+    const totalDeductions = Object.values(deductions || {}).reduce((s, v) => s + (parseFloat(v) || 0), 0);
     const netTaxableIncome = Math.max(0, totalIncome - totalLosses - totalDeductions);
     const federalTax = calcFederalTax(netTaxableIncome);
     const stateTax = netTaxableIncome * (stateInfo.rate / 100);

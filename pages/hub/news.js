@@ -258,7 +258,7 @@ export default function NewsHub() {
         setSourceFilters(prev => {
             const next = { ...prev, [src]: !prev[src] };
             // Update URL with active source filters for deep linking
-            const active = Object.keys(next).filter(k => next[k]);
+            const active = Object.keys(next || {}).filter(k => next[k]);
             if (active.length === 1) {
                 router.replace({ pathname: router.pathname, query: { source: active[0] } }, undefined, { shallow: true });
             } else {
@@ -267,7 +267,7 @@ export default function NewsHub() {
             return next;
         });
     };
-    const activeSourceFilters = Object.keys(sourceFilters).filter(k => sourceFilters[k]);
+    const activeSourceFilters = Object.keys(sourceFilters || {}).filter(k => sourceFilters[k]);
 
 
     // Article reader state - uses server-side proxy to display articles in-app

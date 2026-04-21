@@ -149,7 +149,7 @@ export function getAllHands() {
 export function chartGridToArray(chartGrid) {
     if (!chartGrid) return [];
     
-    return Object.entries(chartGrid).map(([hand, data]) => ({
+    return Object.entries(chartGrid || {}).map(([hand, data]) => ({
         hand,
         ...data
     }));

@@ -323,7 +323,7 @@ export default function BountyTrainerPage() {
         <div style={{ padding: '16px 20px', maxWidth: 900, margin: '0 auto' }}>
           {/* Format Selector */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-            {Object.values(BOUNTY_FORMATS).map((f) => (
+            {Object.values(BOUNTY_FORMATS || {}).map((f) => (
               <button
                 key={f.id}
                 onClick={() => setActiveFormat(f.id)}

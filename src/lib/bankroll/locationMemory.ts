@@ -243,7 +243,7 @@ export async function getLocationStats(
   // Find worst non-expense category
   let worstCategory: string | null = null;
   let worstCategoryLoss = 0;
-  Object.entries(categoryTotals).forEach(([cat, net]) => {
+  Object.entries(categoryTotals || {}).forEach(([cat, net]) => {
     if (cat !== 'expense' && net < worstCategoryLoss) {
       worstCategory = cat;
       worstCategoryLoss = net;
@@ -253,7 +253,7 @@ export async function getLocationStats(
   // Find top performing stake
   let topStake: string | null = null;
   let topStakeHourly = -Infinity;
-  Object.entries(stakeTotals).forEach(([stakes, stats]) => {
+  Object.entries(stakeTotals || {}).forEach(([stakes, stats]) => {
     if (stats.hours >= 5) {
       const hourly = stats.net / stats.hours;
       if (hourly > topStakeHourly) {
@@ -384,11 +384,11 @@ export async function getStakePerformanceAtLocation(
   });
 
   // Calculate hourly rates
-  Object.values(stakeStats).forEach((s) => {
+  Object.values(stakeStats || {}).forEach((s) => {
     s.hourlyRate = s.hours > 0 ? s.net / s.hours : 0;
   });
 
-  return Object.values(stakeStats).sort((a, b) => b.hourlyRate - a.hourlyRate);
+  return Object.values(stakeStats || {}).sort((a, b) => b.hourlyRate - a.hourlyRate);
 }
 
 /**

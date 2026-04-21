@@ -48,7 +48,7 @@ export async function runScraper(scraperName) {
 export async function runAllScrapers() {
     const results = {};
 
-    for (const [name, config] of Object.entries(SCRAPERS)) {
+    for (const [name, config] of Object.entries(SCRAPERS || {})) {
         if (config.enabled) {
             try {
                 results[name] = await runScraper(name);

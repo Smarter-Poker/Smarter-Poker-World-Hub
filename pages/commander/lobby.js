@@ -97,7 +97,7 @@ const headers = { };
   };
 
   const getGameColor = (name) => {
-    for (const [key, color] of Object.entries(GAME_COLORS)) {
+    for (const [key, color] of Object.entries(GAME_COLORS || {})) {
       if (name.includes(key)) return color;
     }
     return '#1877F2';
@@ -124,7 +124,7 @@ const headers = { };
         <div className="bg-[#1877F2] px-8 py-4 flex items-center justify-between flex-shrink-0">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Now Playing</h1>
-            <p className="text-sm opacity-80">{activeTables.length} tables running — {Object.keys(waitlists).length > 0 ? `${Object.values(waitlists).reduce((s, n) => s + n, 0)} on waitlist` : 'No waitlist'}</p>
+            <p className="text-sm opacity-80">{activeTables.length} tables running — {Object.keys(waitlists || {}).length > 0 ? `${Object.values(waitlists || {}).reduce((s, n) => s + n, 0)} on waitlist` : 'No waitlist'}</p>
           </div>
           <p className="text-4xl font-mono font-bold tabular-nums">
             {now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
@@ -136,7 +136,7 @@ const headers = { };
 
           {/* left: Running Games */}
           <div className="flex-1 p-6 overflow-y-auto">
-            {Object.keys(gameGroups).length === 0 ? (
+            {Object.keys(gameGroups || {}).length === 0 ? (
               <div className="h-full flex items-center justify-center">
                 <div className="text-center">
                   <p className="text-4xl font-bold text-white/20 mb-2">No Games Running</p>
@@ -145,7 +145,7 @@ const headers = { };
               </div>
             ) : (
               <div className="space-y-4">
-                {Object.entries(gameGroups).map(([gameName, group]) => {
+                {Object.entries(gameGroups || {}).map(([gameName, group]) => {
                   const color = getGameColor(gameName);
                   return (
                     <div key={gameName} className="rounded-xl border border-white/10 overflow-hidden">
@@ -209,11 +209,11 @@ const headers = { };
             {/* Waitlist */}
             <div className="p-4 border-b border-white/10">
               <h3 className="text-sm font-semibold text-white/40 uppercase tracking-wider mb-3">Waitlist</h3>
-              {Object.keys(waitlists).length === 0 ? (
+              {Object.keys(waitlists || {}).length === 0 ? (
                 <p className="text-sm text-white/20">No One Waiting</p>
               ) : (
                 <div className="space-y-2">
-                  {Object.entries(waitlists).map(([game, count]) => (
+                  {Object.entries(waitlists || {}).map(([game, count]) => (
                     <div key={game} className="flex items-center justify-between px-3 py-2 rounded-lg bg-white/3">
                       <span className="text-sm text-white">{game}</span>
                       <span className="text-lg font-bold text-[#F59E0B]">{count}</span>

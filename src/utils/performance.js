@@ -130,8 +130,8 @@ export function batchDOMUpdates(updates) {
  * Optimize React re-renders with shallow comparison
  */
 export function shallowEqual(obj1, obj2) {
-    const keys1 = Object.keys(obj1);
-    const keys2 = Object.keys(obj2);
+    const keys1 = Object.keys(obj1 || {});
+    const keys2 = Object.keys(obj2 || {});
 
     if (keys1.length !== keys2.length) {
         return false;
@@ -265,7 +265,7 @@ export class OptimizedStorage {
 
     clear() {
         // Clear all keys with our prefix
-        const keys = Object.keys(localStorage);
+        const keys = Object.keys(localStorage || {});
         keys.forEach(key => {
             if (key.startsWith(this.prefix)) {
                 localStorage.removeItem(key);

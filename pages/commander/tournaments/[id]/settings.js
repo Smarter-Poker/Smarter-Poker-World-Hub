@@ -481,7 +481,7 @@ const res = await commanderFetch(`/api/commander/tournaments/${id}`, {
               <div>
                 <p className="text-xs text-[#B0B3B8] mb-2 uppercase tracking-wider">Load Template</p>
                 <div className="flex gap-2">
-                  {Object.entries(STRUCTURE_TEMPLATES).map(([key, template]) => (
+                  {Object.entries(STRUCTURE_TEMPLATES || {}).map(([key, template]) => (
                     <button key={key} onClick={() => loadTemplate(key)}
                       className="flex-1 py-2.5 rounded-lg bg-[#3A3B3C] text-sm text-[#E4E6EB] font-medium active:bg-[#4A4B4C]">
                       {template.name}
@@ -740,7 +740,7 @@ const res = await commanderFetch(`/api/commander/tournaments/${id}`, {
               <div>
                 <p className="text-xs text-[#B0B3B8] uppercase tracking-wider mb-2">Payout Structure</p>
                 <div className="grid grid-cols-3 gap-2">
-                  {Object.entries(PAYOUT_STRUCTURES).map(([key, struct]) => (
+                  {Object.entries(PAYOUT_STRUCTURES || {}).map(([key, struct]) => (
                     <button key={key} onClick={() => setPayoutStructure(key)}
                       className={`py-2.5 rounded-lg text-xs font-medium ${payoutStructure === key ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'
                         }`}>{struct.name.split('(')[0].trim()}</button>

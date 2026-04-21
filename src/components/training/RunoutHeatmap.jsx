@@ -53,7 +53,7 @@ export default function RunoutHeatmap({ runoutData = {}, deadCards = [], loading
     // Find max absolute delta for normalization
     const maxDelta = useMemo(() => {
         let max = 0.01; // Minimum to avoid division by zero
-        Object.values(runoutData).forEach(d => {
+        Object.values(runoutData || {}).forEach(d => {
             if (d && d.ev_delta !== undefined) {
                 max = Math.max(max, Math.abs(d.ev_delta));
             }
@@ -104,7 +104,7 @@ export default function RunoutHeatmap({ runoutData = {}, deadCards = [], loading
                     fontSize: 10, color: '#64748b', background: 'rgba(255,255,255,0.04)',
                     padding: '2px 8px', borderRadius: 12,
                 }}>
-                    {Object.values(runoutData).filter(d => d?.has_data).length} / 49 cards
+                    {Object.values(runoutData || {}).filter(d => d?.has_data).length} / 49 cards
                 </span>
             </div>
 

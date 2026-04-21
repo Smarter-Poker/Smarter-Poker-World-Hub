@@ -54,9 +54,9 @@ export default async function handler(req, res) {
               }
           });
 
-          const biggestStreet = Object.keys(streetErrors).reduce((a, b) => streetErrors[a] > streetErrors[b] ? a : b);
-          const biggestPos = Object.keys(positionErrors).length > 0
-              ? Object.keys(positionErrors).reduce((a, b) => positionErrors[a] > positionErrors[b] ? a : b)
+          const biggestStreet = Object.keys(streetErrors || {}).reduce((a, b) => streetErrors[a] > streetErrors[b] ? a : b);
+          const biggestPos = Object.keys(positionErrors || {}).length > 0
+              ? Object.keys(positionErrors || {}).reduce((a, b) => positionErrors[a] > positionErrors[b] ? a : b)
               : 'Unknown';
 
           const insights = [

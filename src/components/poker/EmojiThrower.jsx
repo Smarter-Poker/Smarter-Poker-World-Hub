@@ -61,7 +61,7 @@ function EmojiPicker({ onSelect, onClose }) {
     >
       {/* Category tabs */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 8, overflowX: 'auto' }}>
-        {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
+        {Object.entries(CATEGORY_LABELS || {}).map(([key, label]) => (
           <button
             key={key}
             onClick={() => setCategory(key)}
@@ -375,7 +375,7 @@ export default function EmojiThrower({
       </AnimatePresence>
 
       {/* Floating emojis on seats — exported for LivePokerTable to use */}
-      {Object.entries(seatEmojis).map(([idx, data]) => {
+      {Object.entries(seatEmojis || {}).map(([idx, data]) => {
         const pos = seatPositions?.[idx];
         if (!pos) return null;
         return (

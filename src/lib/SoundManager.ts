@@ -92,7 +92,7 @@ export class SoundManager {
     private async preloadAll(): Promise<void> {
         if (this.isInitialized) return;
 
-        const loadPromises = Object.entries(SOUND_MANIFEST).map(async ([event, path]) => {
+        const loadPromises = Object.entries(SOUND_MANIFEST || {}).map(async ([event, path]) => {
             try {
                 const audio = new Audio();
                 audio.preload = 'auto';
@@ -117,7 +117,7 @@ export class SoundManager {
         await Promise.allSettled(loadPromises);
 
         this.isInitialized = true;
-        console.log(`🔊 Preloaded ${this.audioCache.size}/${Object.keys(SOUND_MANIFEST).length} sounds`);
+        console.log(`🔊 Preloaded ${this.audioCache.size}/${Object.keys(SOUND_MANIFEST || {}).length} sounds`);
     }
 
     /**

@@ -130,7 +130,7 @@ function runStandardGuards(body, { maxBodySize = 1024, allowedFields, uuids } = 
 
     // 4. UUID validation
     if (uuids) {
-        for (const [name, value] of Object.entries(uuids)) {
+        for (const [name, value] of Object.entries(uuids || {})) {
             if (value !== undefined && value !== null) {
                 const uuidErr = validateUUID(value, name);
                 if (uuidErr) return { error: uuidErr, status: 400 };

@@ -134,7 +134,7 @@ Make it practical and actionable for a busy player.`);
                     What do you want to focus on?
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {Object.entries(STUDY_TOPICS).map(([key, topic]) => (
+                    {Object.entries(STUDY_TOPICS || {}).map(([key, topic]) => (
                         <button
                             key={key}
                             onClick={() => setSelectedFocus(key)}

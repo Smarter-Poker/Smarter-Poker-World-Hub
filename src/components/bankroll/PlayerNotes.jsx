@@ -407,7 +407,7 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
                                 onChange={e => setFormData({ ...formData, player_type: e.target.value })}
                                 style={styles.select}
                             >
-                                {Object.entries(PLAYER_TYPE_LABELS).map(([val, label]) => (
+                                {Object.entries(PLAYER_TYPE_LABELS || {}).map(([val, label]) => (
                                     <option key={val} value={val}>{label}</option>
                                 ))}
                             </select>

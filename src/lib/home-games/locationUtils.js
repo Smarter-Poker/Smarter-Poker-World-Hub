@@ -34,7 +34,7 @@ export const US_STATES_BY_CODE = {
 
 // Reverse map: lowercase full name -> 2-letter code
 const _NAME_TO_CODE = Object.fromEntries(
-  Object.entries(US_STATES_BY_CODE).map(([code, name]) => [name.toLowerCase(), code])
+  Object.entries(US_STATES_BY_CODE || {}).map(([code, name]) => [name.toLowerCase(), code])
 );
 
 /**

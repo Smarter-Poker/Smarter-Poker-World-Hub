@@ -38,7 +38,7 @@ export function usePersistedFilters(pageKey, defaults, options = {}) {
   const router = useRouter();
   const storageKey = `${FILTER_PREFIX}${pageKey}`;
   const hydrated = useRef(false);
-  const keysToSync = queryKeys || Object.keys(defaults);
+  const keysToSync = queryKeys || Object.keys(defaults || {});
 
   // ── Load from storage on mount ───────────────────────────────────────
   const [filters, setFiltersRaw] = useState(() => {

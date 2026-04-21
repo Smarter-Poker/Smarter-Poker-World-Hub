@@ -115,7 +115,7 @@ export default async function handler(req, res) {
       // 5. Generate recommendations
       const recommendations = [];
 
-      for (const [gameType, waiters] of Object.entries(waitlistByGame)) {
+      for (const [gameType, waiters] of Object.entries(waitlistByGame || {})) {
         const waitCount = waiters.length;
         const currentTables = tablesByGame[gameType] || 0;
         const historicalDemand = demandByGame[gameType] || 0;

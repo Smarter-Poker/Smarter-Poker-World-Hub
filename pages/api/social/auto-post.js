@@ -67,7 +67,7 @@ export default async function handler(req, res) {
       }
 
       if (!POST_TEMPLATES[post_type]) {
-          return res.status(400).json({ success: false, error: `Invalid post_type: ${post_type}. Valid: ${Object.keys(POST_TEMPLATES).join(', ')}` });
+          return res.status(400).json({ success: false, error: `Invalid post_type: ${post_type}. Valid: ${Object.keys(POST_TEMPLATES || {}).join(', ')}` });
       }
 
       try {

@@ -67,7 +67,7 @@ function setCachedHand(handId, data) {
     const cache = JSON.parse(localStorage.getItem(DVR_CACHE_KEY) || '{}');
     cache[handId] = { data, ts: Date.now() };
     // LRU eviction
-    const keys = Object.keys(cache);
+    const keys = Object.keys(cache || {});
     if (keys.length > DVR_CACHE_MAX) {
       const sorted = keys.sort((a, b) => (cache[a].ts || 0) - (cache[b].ts || 0));
       for (let i = 0; i < keys.length - DVR_CACHE_MAX; i++) delete cache[sorted[i]];
@@ -95,7 +95,7 @@ function generateHandHistoryText(handData) {
   
   // Streets
   const streetNames = { preflop: '*** HOLE CARDS ***', flop: '*** FLOP ***', turn: '*** TURN ***', river: '*** RIVER ***' };
-  for (const [street, label] of Object.entries(streetNames)) {
+  for (const [street, label] of Object.entries(streetNames || {})) {
     const sd = handData.streets?.[street];
     if (!sd) continue;
     if (street !== 'preflop' && (!sd.cards || sd.cards.length === 0)) continue;
@@ -629,7 +629,7 @@ export default function HandReplayerModal({ handId: initialHandId, supabase, cur
   // #6: Equity calculation
   const equity = useMemo(() => {
     if (!showEquity || !stateAtStep || stateAtStep.board.length === 0) return null;
-    const active = Object.values(stateAtStep.players).filter(p => p.status === 'active');
+    const active = Object.values(stateAtStep.players || {}).filter(p => p.status === 'active');
     return calculateSimpleEquity(active, stateAtStep.board);
   }, [showEquity, stateAtStep]);
 
@@ -808,8 +808,8 @@ export default function HandReplayerModal({ handId: initialHandId, supabase, cur
                 )}
 
                 {/* Seats */}
-                {Object.values(stateAtStep.players).map((p, i) => {
-                  const numP = Object.keys(stateAtStep.players).length;
+                {Object.values(stateAtStep.players || {}).map((p, i) => {
+                  const numP = Object.keys(stateAtStep.players || {}).length;
                   const angle = (i / numP) * Math.PI * 2 - Math.PI / 2;
                   const rX = isMobile ? 160 : 340;
                   const rY = isMobile ? 120 : 170;

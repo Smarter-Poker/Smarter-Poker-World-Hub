@@ -239,7 +239,7 @@ function CreateTableDialog({ onConfirm, onCancel }) {
         {/* Variant */}
         <Field label="Game">
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {Object.entries(FILTER_VARIANTS).map(([k, v]) => (
+            {Object.entries(FILTER_VARIANTS || {}).map(([k, v]) => (
               <Chip key={k} label={v} active={config.variant === k} onClick={() => update('variant', k)} />
             ))}
           </div>
@@ -558,7 +558,7 @@ export default function PokerLobby({ supabase, userId, onJoinTable }) {
             }}
           />
 
-          {['all', ...Object.keys(FILTER_VARIANTS)].map(v => (
+          {['all', ...Object.keys(FILTER_VARIANTS || {})].map(v => (
             <Chip
               key={v}
               label={v === 'all' ? 'All Games' : FILTER_VARIANTS[v]}

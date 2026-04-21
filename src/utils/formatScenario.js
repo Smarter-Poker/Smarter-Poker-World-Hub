@@ -54,7 +54,7 @@ function formatPosition(position, viewMode) {
 
     if (viewMode === 'pro') {
         // Pro view: use abbreviations
-        const abbrev = Object.keys(POSITION_MAP).find(
+        const abbrev = Object.keys(POSITION_MAP || {}).find(
             key => POSITION_MAP[key].toLowerCase() === position.toLowerCase()
         );
         return abbrev || position;

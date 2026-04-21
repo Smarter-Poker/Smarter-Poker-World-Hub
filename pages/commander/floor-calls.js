@@ -305,7 +305,7 @@ export default function FloorCalls() {
           <div style={{ padding: '10px 16px 6px', display: 'flex', gap: 6, overflowX: 'auto', flexWrap: 'nowrap' }}>
             {[
               { key: 'all', label: 'All' },
-              ...Object.entries(REASON_CONFIG).map(([k, v]) => ({ key: k, label: v.label }))
+              ...Object.entries(REASON_CONFIG || {}).map(([k, v]) => ({ key: k, label: v.label }))
             ].map(f => (
               <button key={f.key} onClick={() => setReasonFilter(f.key)}
                 style={{
@@ -521,7 +521,7 @@ export default function FloorCalls() {
               {/* Reason */}
               <label style={{ ...labelStyle, marginTop: 14 }}>Reason</label>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 8 }}>
-                {Object.entries(REASON_CONFIG).map(([key, cfg]) => {
+                {Object.entries(REASON_CONFIG || {}).map(([key, cfg]) => {
                   const Icon = cfg.icon;
                   return (
                     <button key={key} onClick={() => setNewReason(key)}
@@ -541,7 +541,7 @@ export default function FloorCalls() {
               {/* Priority */}
               <label style={{ ...labelStyle, marginTop: 8 }}>Priority</label>
               <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
-                {Object.entries(PRIORITY_CONFIG).map(([key, cfg]) => (
+                {Object.entries(PRIORITY_CONFIG || {}).map(([key, cfg]) => (
                   <button key={key} onClick={() => setNewPriority(key)}
                     style={{
                       flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 12, fontWeight: 600,

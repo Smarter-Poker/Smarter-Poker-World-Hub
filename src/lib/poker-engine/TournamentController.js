@@ -1503,7 +1503,7 @@ class TournamentController extends EventEmitter {
 
   /** @private */
   _getDefaultPayoutStructure(entries) {
-    const thresholds = Object.keys(DEFAULT_PAYOUT_STRUCTURES).map(Number).sort((a, b) => a - b);
+    const thresholds = Object.keys(DEFAULT_PAYOUT_STRUCTURES || {}).map(Number).sort((a, b) => a - b);
     let selected = thresholds[0];
     for (const t of thresholds) { if (entries >= t) selected = t; }
     return DEFAULT_PAYOUT_STRUCTURES[selected] || DEFAULT_PAYOUT_STRUCTURES[2];

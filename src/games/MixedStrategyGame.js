@@ -122,7 +122,7 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
         // Use combined pool of hand-picked + solver-generated scenarios
         const pool = ALL_MIXED_SCENARIOS.length > 0 ? ALL_MIXED_SCENARIOS : MIXED_SCENARIOS;
         const scenario = pool[Math.floor(Math.random() * pool.length)];
-        const actions = Object.entries(scenario.frequencies).filter(([_, freq]) => freq > 0);
+        const actions = Object.entries(scenario.frequencies || {}).filter(([_, freq]) => freq > 0);
         const [action] = actions[Math.floor(Math.random() * actions.length)];
         return { scenario, action };
     }, []);

@@ -135,7 +135,7 @@ const staffData = getStaffData();
     if (!waitlistByGame[key]) waitlistByGame[key] = [];
     waitlistByGame[key].push(w);
   });
-  Object.values(waitlistByGame).forEach(entries => {
+  Object.values(waitlistByGame || {}).forEach(entries => {
     entries.sort((a, b) => {
       if (a.status === 'called' && b.status !== 'called') return -1;
       if (b.status === 'called' && a.status !== 'called') return 1;
@@ -175,7 +175,7 @@ const staffData = getStaffData();
 
   const activeTables = tables.filter(t => t.is_active !== false && t.status !== 'maintenance');
   const totalWaiting = waitlists.filter(w => w.status === 'waiting').length;
-  const gameEntries = Object.entries(waitlistByGame);
+  const gameEntries = Object.entries(waitlistByGame || {});
 
   // ── PAGINATION ─────────────────────────────────────────────────
   const totalPages = Math.max(1, Math.ceil(gameEntries.length / GAMES_PER_PAGE));

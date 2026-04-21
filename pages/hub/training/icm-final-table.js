@@ -258,7 +258,7 @@ export default function ICMFinalTableLibrary() {
                 color: '#e4e6eb',
               }}
             >
-              {Object.entries(PAYOUT_STRUCTURES).map(([k, v]) => (
+              {Object.entries(PAYOUT_STRUCTURES || {}).map(([k, v]) => (
                 <option key={k} value={k}>
                   {v.label} Payout
                 </option>

@@ -61,8 +61,8 @@ function SessionReviewChecklist() {
   };
 
   const totalItems = CATEGORIES.reduce((s, c) => s + c.items.length, 0);
-  const positives = Object.values(checks).filter(v => v === 1).length;
-  const negatives = Object.values(checks).filter(v => v === -1).length;
+  const positives = Object.values(checks || {}).filter(v => v === 1).length;
+  const negatives = Object.values(checks || {}).filter(v => v === -1).length;
   const score = totalItems > 0 ? Math.round((positives / totalItems) * 100) : 0;
 
   try {

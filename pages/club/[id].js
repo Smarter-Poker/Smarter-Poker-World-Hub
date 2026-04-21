@@ -1101,7 +1101,7 @@ export default function ClubPage() {
                 <h3 className="font-semibold text-[#1F2937] mb-3">Poker Room Features</h3>
                 <div className="space-y-2">
                   {/* Dynamic amenities from JSON metadata */}
-                  {venue.amenities && Object.entries(venue.amenities)
+                  {venue.amenities && Object.entries(venue.amenities || {})
                     .filter(([, v]) => v === true)
                     .map(([key]) => {
                       const labels = {

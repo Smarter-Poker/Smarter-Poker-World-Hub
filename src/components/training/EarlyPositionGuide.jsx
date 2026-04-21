@@ -50,7 +50,7 @@ function EarlyPositionGuide() {
         <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#3b82f6' }}>Early Position Guide</h3>
 
         <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-          {Object.entries(EP_RANGES).map(([key, val]) => (
+          {Object.entries(EP_RANGES || {}).map(([key, val]) => (
             <button key={key} onClick={() => setFormat(key)} style={{
               flex: 1, padding: '10px 0', borderRadius: 8, border: 'none', cursor: 'pointer',
               background: format === key ? val.color : 'rgba(255,255,255,0.06)',

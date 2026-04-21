@@ -192,7 +192,7 @@ export default async function handler(req, res) {
                   // ═══ QA VALIDATION GATE ═══
                   const { valid: validQuestions, rejected } = validateBatch(questions);
                   if (rejected.length > 0) {
-                      rejected.forEach(r => r.errors.forEach(e => console.log(`  → ${e}`)));
+                      rejected.forEach(r => r.errors.forEach(e => console.debug(`  → ${e}`)));
                   }
 
                   if (validQuestions.length > 0) {

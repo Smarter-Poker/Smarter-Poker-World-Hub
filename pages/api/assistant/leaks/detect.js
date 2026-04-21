@@ -238,7 +238,7 @@ async function getTrainingStats(supabase, userId) {
     totalTrainingHands += (session.hands_played || 0);
 
     const cc = session.classification_counts || {};
-    Object.keys(cc).forEach(key => {
+    Object.keys(cc || {}).forEach(key => {
       combinedClassifications[key] = (combinedClassifications[key] || 0) + cc[key];
     });
   });
@@ -508,7 +508,7 @@ export default async function handler(req, res) {
       const detectedLeaks = [];
       const now = new Date().toISOString();
 
-      for (const [leakType, pattern] of Object.entries(LEAK_PATTERNS)) {
+      for (const [leakType, pattern] of Object.entries(LEAK_PATTERNS || {})) {
         if (pattern.check(stats)) {
           const existingLeak = existingLeakMap[leakType];
           const currentValue = getCurrentValue(stats, leakType);
@@ -560,7 +560,7 @@ export default async function handler(req, res) {
       }
 
       // Batch-update resolved leaks — eliminates N+1
-      const resolvedIds = Object.entries(existingLeakMap)
+      const resolvedIds = Object.entries(existingLeakMap || {})
         .filter(([leakType, existingLeak]) =>
           !detectedLeaks.find(l => l.leak_type === leakType) &&
           existingLeak.status !== 'resolved'

@@ -253,7 +253,7 @@ export default function CommanderLayout({ children, title, backHref = '/commande
     localStorage.removeItem('commander_branding');
     // Clear all PIN unlock grants from this session
     try {
-      Object.keys(sessionStorage).forEach(k => {
+      Object.keys(sessionStorage || {}).forEach(k => {
         if (k.startsWith('pin_unlock_')) sessionStorage.removeItem(k);
       });
     } catch (e) { console.warn('[App] Handled exception:', e); }

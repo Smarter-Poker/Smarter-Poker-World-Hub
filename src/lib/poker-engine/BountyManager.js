@@ -436,7 +436,7 @@ class BountyManager {
     }
 
     // Sort by largest example amount first
-    return Object.values(summary).sort((a, b) => b.exampleAmount - a.exampleAmount);
+    return Object.values(summary || {}).sort((a, b) => b.exampleAmount - a.exampleAmount);
   }
 }
 

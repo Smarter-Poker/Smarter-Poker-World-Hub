@@ -633,7 +633,7 @@ export default function AnnouncementsDisplay() {
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#B0B3B8', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Priority</label>
                   <select value={formData.priority} onChange={e => setFormData(p => ({ ...p, priority: e.target.value }))}
                     style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #3A3B3C', background: '#18191A', color: '#E4E6EB', fontSize: 14, outline: 'none', cursor: 'pointer' }}>
-                    {Object.entries(PRIORITY_CONFIG).map(([val, cfg]) => (
+                    {Object.entries(PRIORITY_CONFIG || {}).map(([val, cfg]) => (
                       <option key={val} value={val}>{cfg.label}</option>
                     ))}
                   </select>

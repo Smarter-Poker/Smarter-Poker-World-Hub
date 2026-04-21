@@ -142,7 +142,7 @@ function BankrollTrendChart({ entries = [], isLoading = false, chartType = 'line
             const cat = e.category || 'other';
             byDay[d][cat] = (byDay[d][cat] || 0) + ((e.gross_out || 0) - (e.gross_in || 0));
         });
-        return Object.values(byDay);
+        return Object.values(byDay || {});
     }, [filteredEntries]);
 
     // Histogram — distribution
@@ -188,7 +188,7 @@ function BankrollTrendChart({ entries = [], isLoading = false, chartType = 'line
         });
         // Sort by CATEGORY_ORDER, then any remaining
         const ordered = CATEGORY_ORDER.filter(k => byCat[k] !== undefined);
-        const remaining = Object.keys(byCat).filter(k => !CATEGORY_ORDER.includes(k));
+        const remaining = Object.keys(byCat || {}).filter(k => !CATEGORY_ORDER.includes(k));
         return [...ordered, ...remaining].map(key => ({
             key,
             name: CATEGORY_LABELS[key] || key,
@@ -335,7 +335,7 @@ function BankrollTrendChart({ entries = [], isLoading = false, chartType = 'line
             <ResponsiveContainer width="100%" height={chartHeight}>
                 <BarChart data={stackedData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }} barCategoryGap="20%">
                     <defs>
-                        {Object.entries(CATEGORY_COLORS).map(([key, color]) => (
+                        {Object.entries(CATEGORY_COLORS || {}).map(([key, color]) => (
                             <linearGradient key={key} id={`stackGrad_${key}`} x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="0%" stopColor={color} stopOpacity={1} />
                                 <stop offset="100%" stopColor={color} stopOpacity={0.6} />
@@ -418,9 +418,9 @@ function BankrollTrendChart({ entries = [], isLoading = false, chartType = 'line
     };
 
     const renderHeatmap = () => {
-        const days = Object.keys(heatmapData).sort();
+        const days = Object.keys(heatmapData || {}).sort();
         if (days.length === 0) return <div style={S.emptyState}><span style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)' }}>No Data For Heatmap</span></div>;
-        const values = Object.values(heatmapData);
+        const values = Object.values(heatmapData || {});
         const maxAbs = Math.max(1, ...values.map(Math.abs));
 
         // Use full filter window for heatmap

@@ -396,7 +396,7 @@ export function parseHandStrength(text) {
   const foundRanks = new Set();
 
   // Match rank words or single rank chars preceded by space/start
-  for (const [word, rank] of Object.entries(RANK_ALIASES)) {
+  for (const [word, rank] of Object.entries(RANK_ALIASES || {})) {
     if (t.includes(word)) foundRanks.add(rank);
   }
 

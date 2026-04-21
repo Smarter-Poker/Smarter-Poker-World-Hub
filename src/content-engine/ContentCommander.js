@@ -85,7 +85,7 @@ const MemoryService = {
 
     async getPersonality(authorId) {
         const { data } = await supabase.rpc('get_horse_personality', { p_author_id: authorId });
-        return data && Object.keys(data).length > 0 ? data : null;
+        return data && Object.keys(data || {}).length > 0 ? data : null;
     },
 
     async getTopicsOnCooldown(authorId) {

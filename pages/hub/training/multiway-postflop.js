@@ -177,7 +177,7 @@ function MiniCard({ card }) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function FrequencyBar({ actions, playerColor, quizMode, showAnswers }) {
-  const entries = Object.entries(actions).filter(([, v]) => v > 0);
+  const entries = Object.entries(actions || {}).filter(([, v]) => v > 0);
   const actionColors = {
     check: '#64748b',
     bet33: '#22c55e',

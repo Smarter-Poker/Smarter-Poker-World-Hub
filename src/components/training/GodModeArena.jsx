@@ -607,11 +607,11 @@ function HandHistoryRow({ entry, index }) {
                             )}
                         </div>
                         {/* GTO Frequency breakdown if available */}
-                        {entry.gtoFrequencies && Object.keys(entry.gtoFrequencies).length > 0 && (
+                        {entry.gtoFrequencies && Object.keys(entry.gtoFrequencies || {}).length > 0 && (
                             <div style={{ marginTop: 6, padding: '6px 10px', background: 'rgba(0,0,0,0.2)', borderRadius: 6 }}>
                                 <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', letterSpacing: 1, marginBottom: 3 }}>GTO FREQUENCIES</div>
                                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                                    {Object.entries(entry.gtoFrequencies).map(([action, freq]) => (
+                                    {Object.entries(entry.gtoFrequencies || {}).map(([action, freq]) => (
                                         <span key={action} style={{ fontSize: 10, color: '#94a3b8' }}>
                                             {action}: <strong style={{ color: '#e2e8f0' }}>{typeof freq === 'number' ? `${freq}%` : freq}</strong>
                                         </span>
@@ -639,7 +639,7 @@ function AccuracyByPositionChart({ handHistory }) {
         posStats[pos].total++;
         if (h.classification === 'best' || h.classification === 'correct') posStats[pos].correct++;
     });
-    const positions = Object.keys(posStats);
+    const positions = Object.keys(posStats || {});
     if (positions.length === 0) return null;
     return (
         <div style={{ marginBottom: 16, padding: '12px 14px', background: 'rgba(0,0,0,0.2)', borderRadius: 10 }}>
@@ -788,14 +788,14 @@ function ClassificationDonut({ handHistory, gtowScore }) {
     const segments = useMemo(() => {
         if (!handHistory || handHistory.length === 0) return [];
         const counts = {};
-        Object.values(MOVE_CLASSIFICATIONS).forEach(c => counts[c] = 0);
+        Object.values(MOVE_CLASSIFICATIONS || {}).forEach(c => counts[c] = 0);
         handHistory.forEach(h => { if (h.classification) counts[h.classification]++; });
         const total = handHistory.length;
         const colorMap = {};
-        Object.entries(CLASSIFICATION_CONFIG).forEach(([key, cfg]) => { colorMap[key] = cfg.color; });
+        Object.entries(CLASSIFICATION_CONFIG || {}).forEach(([key, cfg]) => { colorMap[key] = cfg.color; });
 
         let cumAngle = 0;
-        return Object.entries(counts)
+        return Object.entries(counts || {})
             .filter(([, count]) => count > 0)
             .map(([key, count]) => {
                 const pct = count / total;
@@ -1866,7 +1866,7 @@ function GodModeArenaInner({
                 if (crossSessionAnalytics) {
                     const findWeakest = (dataMap, labelKey) => {
                         if (!dataMap) return null;
-                        const sorted = Object.entries(dataMap)
+                        const sorted = Object.entries(dataMap || {})
                             .filter(([, v]) => v.total >= 5)
                             .sort((a, b) => (a[1].correct / a[1].total) - (b[1].correct / b[1].total));
                         if (!sorted[0]) return null;
@@ -1907,7 +1907,7 @@ function GodModeArenaInner({
                     const key = `${h.handData?.heroPosition || 'UNK'}|${h.handData?.street || 'flop'}|${h.handData?.spotType || 'general'}`;
                     if (spotBuckets[key]) spotBuckets[key].total++;
                 });
-                Object.values(spotBuckets).forEach(b => {
+                Object.values(spotBuckets || {}).forEach(b => {
                     if (b.total >= 2) weakSpots.push({ ...b, mistakeRate: b.mistakes / b.total });
                 });
                 weakSpots.sort((a, b) => b.mistakeRate - a.mistakeRate);
@@ -1930,7 +1930,7 @@ function GodModeArenaInner({
                 if (acc >= 80) strengths.push('Consistent decision-making');
                 if (bestStreak >= 8) strengths.push(`Excellent streak of ${bestStreak} correct`);
                 else if (bestStreak >= 5) strengths.push('Good streak management');
-                const strongPositions = Object.entries(posStats)
+                const strongPositions = Object.entries(posStats || {})
                     .filter(([, v]) => v.total >= 3 && (v.correct / v.total) >= 0.8)
                     .map(([pos]) => pos);
                 if (strongPositions.length > 0) strengths.push(`Strong from ${strongPositions.join(', ')}`);
@@ -2326,7 +2326,7 @@ function GodModeArenaInner({
             actionCounts[action] = (actionCounts[action] || 0) + 1;
         });
         const totalHands = handHistory.length;
-        const maxActionCount = Math.max(...Object.values(actionCounts));
+        const maxActionCount = Math.max(...Object.values(actionCounts || {}));
         // Perfect mixing = evenly distributed. Overfocusing = one action dominates
         const diversityScore = Math.round((1 - (maxActionCount / totalHands)) * 100);
         return Math.min(100, Math.max(0, diversityScore));
@@ -2429,7 +2429,7 @@ function GodModeArenaInner({
 
         // Count classification distribution
         const classificationCounts = {};
-        Object.values(MOVE_CLASSIFICATIONS).forEach(c => classificationCounts[c] = 0);
+        Object.values(MOVE_CLASSIFICATIONS || {}).forEach(c => classificationCounts[c] = 0);
         handHistory.forEach(h => {
             if (h.classification) classificationCounts[h.classification]++;
         });
@@ -2711,7 +2711,7 @@ function GodModeArenaInner({
                             </div>
 
                             {/* Position accuracy breakdown */}
-                            {positionAccuracy && Object.keys(positionAccuracy).length > 0 && (
+                            {positionAccuracy && Object.keys(positionAccuracy || {}).length > 0 && (
                                 <div style={{ marginBottom: 8 }}>
                                     <div style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
                                         By Position
@@ -2739,7 +2739,7 @@ function GodModeArenaInner({
                             )}
 
                             {/* Street accuracy breakdown */}
-                            {streetAccuracy && Object.keys(streetAccuracy).length > 0 && (
+                            {streetAccuracy && Object.keys(streetAccuracy || {}).length > 0 && (
                                 <div>
                                     <div style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
                                         By Street
@@ -2798,7 +2798,7 @@ function GodModeArenaInner({
 
                                 // Street-based tips
                                 if (streetAccuracy) {
-                                    const streets = Object.entries(streetAccuracy).filter(([, acc]) => acc < 50);
+                                    const streets = Object.entries(streetAccuracy || {}).filter(([, acc]) => acc < 50);
                                     streets.forEach(([st, acc]) => {
                                         if (st === 'preflop') tips.push({ priority: 2, text: `Preflop accuracy is low (${Math.round(acc)}%). Drill opening ranges and 3-bet/call frequencies.`, color: '#f97316' });
                                         else if (st === 'river') tips.push({ priority: 2, text: `River decisions need work (${Math.round(acc)}%). Focus on bluff-catching frequencies and value bet sizing.`, color: '#f97316' });
@@ -2976,7 +2976,7 @@ function GodModeArenaInner({
                         <div style={styles.classBreakdown}>
                             <div style={styles.sectionTitle}>Move Breakdown</div>
                             <div style={styles.classGrid}>
-                                {Object.entries(CLASSIFICATION_CONFIG).map(([key, config]) => (
+                                {Object.entries(CLASSIFICATION_CONFIG || {}).map(([key, config]) => (
                                     <div key={key} style={styles.classItem}>
                                         <div style={{
                                             ...styles.classCount,
@@ -3167,7 +3167,7 @@ function GodModeArenaInner({
                                 const s = h.handData?.street || 'flop';
                                 streetEV[s] = (streetEV[s] || 0) + (h.evLoss || 0);
                             });
-                            const maxEV = Math.max(0.01, ...Object.values(streetEV));
+                            const maxEV = Math.max(0.01, ...Object.values(streetEV || {}));
                             const streetColors = {
                                 preflop: '#8b5cf6', flop: '#22c55e', turn: '#fbbf24', river: '#ef4444'
                             };
@@ -3219,7 +3219,7 @@ function GodModeArenaInner({
                                 spotStats[key].evLoss += (h.evLoss || 0);
                                 if (h.classification && h.classification !== 'best' && h.classification !== 'correct') spotStats[key].mistakes++;
                             });
-                            const worst = Object.entries(spotStats)
+                            const worst = Object.entries(spotStats || {})
                                 .filter(([, v]) => v.total >= 2)
                                 .sort(([, a], [, b]) => b.evLoss - a.evLoss)[0];
                             if (!worst || worst[1].evLoss <= 0) return null;
@@ -3405,7 +3405,7 @@ function GodModeArenaInner({
                                             <div style={{ fontSize: 14, fontWeight: 700, color: '#e2e8f0', marginTop: 2 }}>{upr.tier}</div>
                                         </div>
                                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center' }}>
-                                            {Object.entries(upr.scores).map(([key, val]) => (
+                                            {Object.entries(upr.scores || {}).map(([key, val]) => (
                                                 <div key={key} style={{ padding: '3px 8px', background: 'rgba(0,0,0,0.3)', borderRadius: 8, fontSize: 9 }}>
                                                     <span style={{ color: '#64748b' }}>{key.replace(/([A-Z])/g, ' $1').trim()}: </span>
                                                     <span style={{ color: val >= 70 ? '#4ade80' : val >= 50 ? '#fbbf24' : '#ef4444', fontWeight: 700, fontFamily: "'Orbitron', monospace" }}>{val}%</span>
@@ -4563,7 +4563,7 @@ function GodModeArenaInner({
                                 return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(14,165,233,0.15)' }}>
                                     <div style={{ fontSize: 12, fontWeight: 700, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Hand Strength Distribution</div>
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center' }}>
-                                        {Object.entries(hsd.distribution).map(([cat, count]) => (
+                                        {Object.entries(hsd.distribution || {}).map(([cat, count]) => (
                                             <div key={cat} style={{ padding: '4px 10px', background: `${catColors[cat] || '#64748b'}15`, borderRadius: 6, border: `1px solid ${catColors[cat] || '#64748b'}30` }}>
                                                 <div style={{ fontSize: 12, fontWeight: 700, color: catColors[cat] || '#94a3b8', fontFamily: "'Orbitron', monospace" }}>{count}</div>
                                                 <div style={{ fontSize: 8, color: '#64748b', textTransform: 'capitalize' }}>{cat}</div>
@@ -4634,7 +4634,7 @@ function GodModeArenaInner({
                             });
                             if (totalHands < 3) return null;
                             // Get top actions
-                            const actions = [...new Set([...Object.keys(actionCounts), ...Object.keys(gtoCounts)])].filter(a => a !== 'Other');
+                            const actions = [...new Set([...Object.keys(actionCounts || {}), ...Object.keys(gtoCounts || {})])].filter(a => a !== 'Other');
                             return actions.length > 0 ? (
                                 <div style={{ marginBottom: 12 }}>
                                     <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>

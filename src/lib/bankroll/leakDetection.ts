@@ -106,7 +106,7 @@ export async function detectStakeLeaks(
 
   const alerts: LeakAlert[] = [];
 
-  Object.entries(stakeStats).forEach(([stakes, stats]) => {
+  Object.entries(stakeStats || {}).forEach(([stakes, stats]) => {
     if (stats.hours >= minHours && stats.net < 0) {
       const hourlyRate = stats.net / stats.hours;
       alerts.push({
@@ -161,7 +161,7 @@ export async function detectTimeLeaks(userId: string): Promise<LeakAlert[]> {
 
   const alerts: LeakAlert[] = [];
 
-  Object.entries(timeBlocks).forEach(([block, stats]) => {
+  Object.entries(timeBlocks || {}).forEach(([block, stats]) => {
     if (stats.count >= 10 && stats.net < -500) {
       const blockLabels: Record<string, string> = {
         late_night: 'Late Night (12am-6am)',

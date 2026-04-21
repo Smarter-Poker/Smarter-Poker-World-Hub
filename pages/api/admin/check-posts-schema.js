@@ -49,7 +49,7 @@ export default async function handler(req, res) {
                   content_type: p.content_type,
                   media_urls: p.media_urls,
                   hasLinkFields: !!(p.link_url || p.shared_url || p.article_url || p.embed_url),
-                  allFields: Object.entries(p).filter(([k, v]) => v != null).map(([k, v]) => k)
+                  allFields: Object.entries(p || {}).filter(([k, v]) => v != null).map(([k, v]) => k)
               })),
               postsWithLinksCount: postsWithLinks.length
           });

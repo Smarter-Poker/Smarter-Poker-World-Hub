@@ -368,7 +368,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
      */
     const getWeakSpots = useCallback(() => {
         const map = weakSpotMapRef.current;
-        return Object.values(map)
+        return Object.values(map || {})
             .filter(s => s.total >= 3) // Need min sample
             .map(s => ({ ...s, mistakeRate: s.mistakes / s.total }))
             .sort((a, b) => b.mistakeRate - a.mistakeRate)
@@ -420,7 +420,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
         const scenario = currentQuestion.scenario || {};
 
         // ═══ PREFER REAL PIO DATA, FALL BACK TO SIMULATED ═══
-        const hasPIOData = currentQuestion.gtoFrequencies && Object.keys(currentQuestion.gtoFrequencies).length > 0;
+        const hasPIOData = currentQuestion.gtoFrequencies && Object.keys(currentQuestion.gtoFrequencies || {}).length > 0;
         const frequencies = hasPIOData
             ? currentQuestion.gtoFrequencies  // Real PIO solver frequencies (0-100%)
             : simulateGTOFrequencies(options, correctAnswer, level);
@@ -440,8 +440,8 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
         // ═══ Phase GTO-CLONE: ActionTreeEngine score for solver-node accuracy ═══
         let actionTreeScore = null;
         try {
-            if (frequencies && Object.keys(frequencies).length > 0) {
-                const gtoStrategy = Object.entries(frequencies).map(([id, freq]) => ({
+            if (frequencies && Object.keys(frequencies || {}).length > 0) {
+                const gtoStrategy = Object.entries(frequencies || {}).map(([id, freq]) => ({
                     id,
                     text: options.find(o => o.id === id)?.text || id,
                     frequency: freq,

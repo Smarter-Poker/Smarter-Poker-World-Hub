@@ -656,7 +656,7 @@ export default function NodelockingPage() {
               marginBottom: 20,
             }}
           >
-            {Object.entries(VILLAIN_PROFILES)
+            {Object.entries(VILLAIN_PROFILES || {})
               .filter(([k]) => k !== 'gto')
               .map(([key, profile]) => (
                 <motion.button
@@ -886,7 +886,7 @@ export default function NodelockingPage() {
               </span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {Object.entries(activeProfile.tendencies).map(([key, val]) => (
+              {Object.entries(activeProfile.tendencies || {}).map(([key, val]) => (
                 <div key={key}>
                   <div
                     style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}

@@ -345,7 +345,7 @@ export default function PerformanceHeatmapPage() {
     });
 
     // Add accuracy to each cell
-    Object.keys(grid).forEach((key) => {
+    Object.keys(grid || {}).forEach((key) => {
       const cell = grid[key];
       cell.accuracy =
         cell.handsPlayed > 0 ? Math.round((cell.correct / cell.handsPlayed) * 100) : null;
@@ -623,7 +623,7 @@ export default function PerformanceHeatmapPage() {
           <ErrorBanner message={fetchError} onRetry={() => { setLoading(true); fetchData(); }} />
 
           {/* Quick Summary — Strongest & Weakest */}
-          {Object.keys(gridData).length > 0 && (() => {
+          {Object.keys(gridData || {}).length > 0 && (() => {
             const posStats = POSITIONS.map(pos => {
               let hands = 0, correct = 0;
               STREETS.forEach(st => {

@@ -38,7 +38,7 @@ export default function PositionStatsPanel({ handHistory }) {
                     totalEVLoss: 0,
                     classifications: {},
                 };
-                Object.values(MOVE_CLASSIFICATIONS).forEach(c => (stats[pos].classifications[c] = 0));
+                Object.values(MOVE_CLASSIFICATIONS || {}).forEach(c => (stats[pos].classifications[c] = 0));
             }
 
             stats[pos].total += 1;
@@ -65,7 +65,7 @@ export default function PositionStatsPanel({ handHistory }) {
 
     // Sort positions in standard order
     const sortedPositions = useMemo(() => {
-        return Object.keys(positionStats)
+        return Object.keys(positionStats || {})
             .sort((a, b) => {
                 const ai = POSITION_ORDER.indexOf(a);
                 const bi = POSITION_ORDER.indexOf(b);
@@ -134,7 +134,7 @@ export default function PositionStatsPanel({ handHistory }) {
             <div style={styles.microGrid}>
                 <div style={styles.microHeader}>
                     <div style={styles.microLabel}>Position</div>
-                    {Object.entries(CLASSIFICATION_CONFIG).map(([key, cfg]) => (
+                    {Object.entries(CLASSIFICATION_CONFIG || {}).map(([key, cfg]) => (
                         <div key={key} style={{ ...styles.microLabel, color: cfg.color }}>{cfg.icon}</div>
                     ))}
                 </div>
@@ -145,7 +145,7 @@ export default function PositionStatsPanel({ handHistory }) {
                             <div style={{ ...styles.microLabel, color: POSITION_COLORS[pos] || '#94a3b8', fontWeight: 'bold' }}>
                                 {pos}
                             </div>
-                            {Object.keys(CLASSIFICATION_CONFIG).map(key => (
+                            {Object.keys(CLASSIFICATION_CONFIG || {}).map(key => (
                                 <div key={key} style={{
                                     ...styles.microCell,
                                     opacity: stat.classifications[key] > 0 ? 1 : 0.2,

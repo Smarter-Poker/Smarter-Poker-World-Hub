@@ -167,7 +167,7 @@ function getDeviationColor(deviation) {
 function computeGTOProximityScore(playerStats) {
   let totalDev = 0,
     count = 0;
-  const keys = Object.keys(STAT_LABELS);
+  const keys = Object.keys(STAT_LABELS || {});
   POSITIONS.forEach((pos) => {
     const stats = playerStats[pos];
     if (!stats || stats.hands === 0) return;
@@ -469,7 +469,7 @@ export default function GTOScorecardPage() {
               paddingBottom: 4,
             }}
           >
-            {Object.entries(STAT_LABELS).map(([key, label]) => (
+            {Object.entries(STAT_LABELS || {}).map(([key, label]) => (
               <motion.button
                 key={key}
                 whileTap={{ scale: 0.95 }}
@@ -602,7 +602,7 @@ export default function GTOScorecardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {Object.entries(STAT_LABELS).map(([key, label]) => (
+                  {Object.entries(STAT_LABELS || {}).map(([key, label]) => (
                     <tr key={key} style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
                       <td
                         style={{

@@ -47,7 +47,7 @@ export default async function handler(req, res) {
               videoIdCounts[clip.video_id].push(clip);
           });
 
-          Object.keys(videoIdCounts).forEach(videoId => {
+          Object.keys(videoIdCounts || {}).forEach(videoId => {
               if (videoIdCounts[videoId].length > 1) {
                   duplicates.push({
                       video_id: videoId,

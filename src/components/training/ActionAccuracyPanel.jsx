@@ -51,10 +51,10 @@ function RadialGauge({ accuracy, color, size = 48, strokeWidth = 4 }) {
 export default function ActionAccuracyPanel({ actionAccuracy }) {
     const [hoveredAction, setHoveredAction] = useState(null);
 
-    if (!actionAccuracy || Object.keys(actionAccuracy).length === 0) return null;
+    if (!actionAccuracy || Object.keys(actionAccuracy || {}).length === 0) return null;
 
     // Build sorted actions (exclude unknown with < 3 hands)
-    const actions = Object.entries(actionAccuracy)
+    const actions = Object.entries(actionAccuracy || {})
         .map(([key, data]) => ({
             key: key.toUpperCase(),
             ...data,

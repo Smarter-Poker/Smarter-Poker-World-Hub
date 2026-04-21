@@ -191,7 +191,7 @@ export function analyzeSession(hands) {
         if (d.classification === 'correct') streetStats[d.street].correct++;
     }
 
-    for (const key of Object.keys(streetStats)) {
+    for (const key of Object.keys(streetStats || {})) {
         streetStats[key].accuracy = Math.round(
             (streetStats[key].correct / streetStats[key].decisions) * 100
         );
@@ -212,7 +212,7 @@ export function analyzeSession(hands) {
         if (d.classification === 'correct') positionStats[pos].correct++;
     }
 
-    for (const key of Object.keys(positionStats)) {
+    for (const key of Object.keys(positionStats || {})) {
         positionStats[key].accuracy = Math.round(
             (positionStats[key].correct / positionStats[key].decisions) * 100
         );

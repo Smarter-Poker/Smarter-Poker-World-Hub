@@ -147,7 +147,7 @@ const TIMING_PATTERNS = {
     }
 };
 
-const TIMING_PATTERN_KEYS = Object.keys(TIMING_PATTERNS);
+const TIMING_PATTERN_KEYS = Object.keys(TIMING_PATTERNS || {});
 
 /**
  * Get a horse's timing pattern

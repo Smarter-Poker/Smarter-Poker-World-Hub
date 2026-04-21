@@ -290,7 +290,7 @@ function buildAnalysisFromPio(pioData, params) {
     // Build alternate lines (only for mixed strategies)
     const alternateLines = [];
     if (isMixed) {
-        Object.entries(handFrequencies)
+        Object.entries(handFrequencies || {})
             .filter(([a, f]) => a !== optimalAction && f > 0.01)
             .sort((a, b) => b[1] - a[1])
             .slice(0, 2)

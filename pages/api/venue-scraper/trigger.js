@@ -73,7 +73,7 @@ export default async function handler(req, res) {
             (!v.poker_atlas_url || v.poker_atlas_url.trim().length <= 5)
         );
 
-        console.log(`[Venue Scraper] Tier 1 (website): ${tier1.length}, Tier 2 (aggregator): ${tier2.length}, Tier 3 (no source): ${tier3.length}`);
+        console.debug(`[Venue Scraper] Tier 1 (website): ${tier1.length}, Tier 2 (aggregator): ${tier2.length}, Tier 3 (no source): ${tier3.length}`);
 
         // ── Build Manus tasks in batches ──
         const receiveUrl = `https://smarter.poker/api/venue-scraper/receive`;
@@ -202,7 +202,7 @@ POST body format:
 
                 if (manusRes.ok) {
                     tasksCreated++;
-                    console.log(`[Venue Scraper] Created Manus task ${task.index} (${task.tier}): ${task.batch.length} venues`);
+                    console.debug(`[Venue Scraper] Created Manus task ${task.index} (${task.tier}): ${task.batch.length} venues`);
                 } else {
                     const errText = await manusRes.text();
                     errors.push(`Task ${task.index}: ${manusRes.status} - ${errText}`);

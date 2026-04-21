@@ -410,7 +410,7 @@ function determineNeededQuestions(stats) {
         // Calculate needed per difficulty
         const totalNeeded = TARGET_PER_CATEGORY - catStats.total;
 
-        for (const [diff, targetPercent] of Object.entries(DIFFICULTY_DISTRIBUTION)) {
+        for (const [diff, targetPercent] of Object.entries(DIFFICULTY_DISTRIBUTION || {})) {
             const targetCount = Math.floor(TARGET_PER_CATEGORY * (targetPercent / 100));
             const currentCount = catStats[diff];
             const needed = Math.max(0, targetCount - currentCount);
@@ -442,7 +442,7 @@ export default async function handler(req, res) {
 
           // Get current stats
           const stats = await getPoolStats();
-          const totalQuestions = Object.values(stats).reduce((sum, s) => sum + s.total, 0);
+          const totalQuestions = Object.values(stats || {}).reduce((sum, s) => sum + s.total, 0);
           const targetTotal = CATEGORIES.length * TARGET_PER_CATEGORY;
 
 
@@ -534,7 +534,7 @@ export default async function handler(req, res) {
 
           // Get updated stats
           const updatedStats = await getPoolStats();
-          const newTotal = Object.values(updatedStats).reduce((sum, s) => sum + s.total, 0);
+          const newTotal = Object.values(updatedStats || {}).reduce((sum, s) => sum + s.total, 0);
 
           return res.status(200).json({
               success: true,

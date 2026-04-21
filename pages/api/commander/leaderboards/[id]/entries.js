@@ -224,7 +224,7 @@ async function calculateAllEntries(req, res, leaderboard) {
     });
 
     // Create entries
-    const entries = Object.entries(playerData).map(([playerId, data]) => {
+    const entries = Object.entries(playerData || {}).map(([playerId, data]) => {
       let score = 0;
       switch (leaderboard.leaderboard_type) {
         case 'hours_played':

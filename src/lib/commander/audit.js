@@ -162,5 +162,5 @@ export function calculateChanges(oldObj, newObj, fields = null) {
     }
   }
 
-  return Object.keys(changes).length > 0 ? changes : null;
+  return Object.keys(changes || {}).length > 0 ? changes : null;
 }

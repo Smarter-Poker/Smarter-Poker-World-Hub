@@ -66,7 +66,7 @@ export default async function handler(req, res) {
               });
 
               if (type === 'checkins') {
-                  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, maxLimit);
+                  const sorted = Object.entries(counts || {}).sort((a, b) => b[1] - a[1]).slice(0, maxLimit);
                   const userIds = sorted.map(([id]) => id);
                   const { data: profiles } = await getSupabase()
                       .from('profiles')
@@ -89,7 +89,7 @@ export default async function handler(req, res) {
               }
 
               // Store for overall
-              Object.entries(counts).forEach(([id, count]) => {
+              Object.entries(counts || {}).forEach(([id, count]) => {
                   const existing = leaders.find(l => l.user_id === id);
                   if (existing) { existing.checkins = count; existing.score += count * 2; }
                   else { leaders.push({ user_id: id, checkins: count, reviews: 0, posts: 0, score: count * 2 }); }
@@ -109,7 +109,7 @@ export default async function handler(req, res) {
               });
 
               if (type === 'reviews') {
-                  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, maxLimit);
+                  const sorted = Object.entries(counts || {}).sort((a, b) => b[1] - a[1]).slice(0, maxLimit);
                   const userIds = sorted.map(([id]) => id);
                   const { data: profiles } = await getSupabase()
                       .from('profiles')
@@ -131,7 +131,7 @@ export default async function handler(req, res) {
                   });
               }
 
-              Object.entries(counts).forEach(([id, count]) => {
+              Object.entries(counts || {}).forEach(([id, count]) => {
                   const existing = leaders.find(l => l.user_id === id);
                   if (existing) { existing.reviews = count; existing.score += count * 3; }
                   else { leaders.push({ user_id: id, checkins: 0, reviews: count, posts: 0, score: count * 3 }); }
@@ -151,7 +151,7 @@ export default async function handler(req, res) {
               });
 
               if (type === 'activity') {
-                  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, maxLimit);
+                  const sorted = Object.entries(counts || {}).sort((a, b) => b[1] - a[1]).slice(0, maxLimit);
                   const userIds = sorted.map(([id]) => id);
                   const { data: profiles } = await getSupabase()
                       .from('profiles')
@@ -173,7 +173,7 @@ export default async function handler(req, res) {
                   });
               }
 
-              Object.entries(counts).forEach(([id, count]) => {
+              Object.entries(counts || {}).forEach(([id, count]) => {
                   const existing = leaders.find(l => l.user_id === id);
                   if (existing) { existing.posts = count; existing.score += count; }
                   else { leaders.push({ user_id: id, checkins: 0, reviews: 0, posts: count, score: count }); }

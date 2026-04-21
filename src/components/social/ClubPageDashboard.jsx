@@ -119,7 +119,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
         { key: 'logo', label: 'Upload a logo', done: !!(meta.logo_url || page.avatar_url) },
         { key: 'cover', label: 'Add a cover photo', done: !!(meta.cover_photo_url || page.cover_url) },
         { key: 'description', label: 'Write a description', done: !!(page.description && page.description.length > 10) },
-        { key: 'schedule', label: 'Set your schedule', done: !!meta.run_schedule && Object.values(meta.run_schedule).some(d => d && d.open) },
+        { key: 'schedule', label: 'Set your schedule', done: !!meta.run_schedule && Object.values(meta.run_schedule || {}).some(d => d && d.open) },
         { key: 'post', label: 'Create your first post', done: posts.length > 0 },
     ];
     const completedCount = completionChecks.filter(c => c.done).length;
@@ -437,7 +437,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                     }
                     const sched = merged.run_schedule || newMeta.run_schedule;
                     if (sched) {
-                        Object.values(sched).forEach(day => {
+                        Object.values(sched || {}).forEach(day => {
                             if (day && day.open && day.location && day.location.trim()) {
                                 locations.push(day.location.trim());
                             }

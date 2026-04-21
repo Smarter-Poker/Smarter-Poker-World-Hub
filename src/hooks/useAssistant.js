@@ -635,7 +635,7 @@ export function useQuizLeaderboard(limit = 10) {
         });
 
         // Sort by accuracy (min 3 attempts)
-        const sorted = Object.entries(userMap)
+        const sorted = Object.entries(userMap || {})
           .filter(([, v]) => v.total >= 3)
           .map(([userId, v]) => ({
             userId,
@@ -877,7 +877,7 @@ export function useTrainingStats() {
           categoryMap[cat].count += 1;
         });
 
-        const categoryProgress = Object.entries(categoryMap).map(([category, data]) => ({
+        const categoryProgress = Object.entries(categoryMap || {}).map(([category, data]) => ({
           category,
           accuracy: Math.round(data.total / data.count),
           gamesPlayed: data.count

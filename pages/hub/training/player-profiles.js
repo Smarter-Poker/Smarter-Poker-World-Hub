@@ -459,7 +459,7 @@ export default function PlayerProfilesPage() {
               marginBottom: 20,
             }}
           >
-            {Object.values(PROFILES).map((p) => (
+            {Object.values(PROFILES || {}).map((p) => (
               <motion.button
                 key={p.id}
                 whileHover={{ scale: 1.03 }}
@@ -740,7 +740,7 @@ export default function PlayerProfilesPage() {
                       >
                         PREFLOP ADJUSTMENTS
                       </h4>
-                      {Object.entries(adaptation.preflopAdj).map(([key, val]) => (
+                      {Object.entries(adaptation.preflopAdj || {}).map(([key, val]) => (
                         <div
                           key={key}
                           style={{
@@ -780,7 +780,7 @@ export default function PlayerProfilesPage() {
                       >
                         POSTFLOP ADJUSTMENTS
                       </h4>
-                      {Object.entries(adaptation.postflopAdj).map(([key, val]) => (
+                      {Object.entries(adaptation.postflopAdj || {}).map(([key, val]) => (
                         <div
                           key={key}
                           style={{

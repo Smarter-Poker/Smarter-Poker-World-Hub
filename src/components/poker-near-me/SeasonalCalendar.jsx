@@ -150,7 +150,7 @@ export default function SeasonalCalendar({ series = [], tours = [], dailyTournam
 
             {/* Legend */}
             <div className="sc-legend">
-                {Object.entries(TOUR_COLORS_MAP).filter(([k]) => k !== 'default').map(([code, colors]) => (
+                {Object.entries(TOUR_COLORS_MAP || {}).filter(([k]) => k !== 'default').map(([code, colors]) => (
                     <div key={code} className="sc-legend-item">
                         <div className="sc-legend-dot" style={{ background: colors.bg }} />
                         <span>{code.toUpperCase()}</span>

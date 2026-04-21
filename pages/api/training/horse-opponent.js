@@ -100,7 +100,7 @@ function classifyBoardTexture(boardCards) {
 
     const suitCounts = {};
     suits.forEach(s => { suitCounts[s] = (suitCounts[s] || 0) + 1; });
-    const maxSuit = Math.max(...Object.values(suitCounts));
+    const maxSuit = Math.max(...Object.values(suitCounts || {}));
 
     if (maxSuit >= 3) return 'monotone';
 

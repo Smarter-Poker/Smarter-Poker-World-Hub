@@ -133,7 +133,7 @@ async function updateLeaderboard(req, res, id) {
       }
     });
 
-    if (Object.keys(updates).length === 0) {
+    if (Object.keys(updates || {}).length === 0) {
       return res.status(400).json({ error: 'No updates provided' });
     }
 

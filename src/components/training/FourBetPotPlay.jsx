@@ -49,7 +49,7 @@ export default function FourBetPotPlay() {
         </div>
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 12 }}>{scenario.advice}</p>
 
-        {Object.entries(scenario.hands).map(([action, hands]) => {
+        {Object.entries(scenario.hands || {}).map(([action, hands]) => {
           const actionColor = action === 'shove' || action === 'cbet' ? '#22c55e' : action === 'check' || action === 'call' ? '#f59e0b' : action === 'raise' ? '#3b82f6' : '#ef4444';
           return (
             <div key={action} style={{ background: `${actionColor}08`, borderLeft: `3px solid ${actionColor}`, borderRadius: 8, padding: '8px 12px', marginBottom: 6 }}>

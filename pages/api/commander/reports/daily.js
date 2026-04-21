@@ -103,7 +103,7 @@ export default async function handler(req, res) {
       });
 
       // Calculate peak tables (max concurrent games)
-      const peakTables = games.length > 0 ? Math.max(...Object.values(gamesByStakes).map(g => g.tables)) : 0;
+      const peakTables = games.length > 0 ? Math.max(...Object.values(gamesByStakes || {}).map(g => g.tables)) : 0;
 
       // Get hourly breakdown
       const hourlyData = {};
@@ -127,7 +127,7 @@ export default async function handler(req, res) {
           tournaments_run: tournaments.length,
           waitlist_joins: waitlistEntries.length
         },
-        gamesByStakes: Object.entries(gamesByStakes).map(([stakes, data]) => ({
+        gamesByStakes: Object.entries(gamesByStakes || {}).map(([stakes, data]) => ({
           stakes,
           tables_run: data.tables,
           sessions: data.count
@@ -140,7 +140,7 @@ export default async function handler(req, res) {
           prizepool: t.guaranteed_pool || 0,
           status: t.status
         })),
-        hourlyBreakdown: Object.entries(hourlyData).map(([hour, data]) => ({
+        hourlyBreakdown: Object.entries(hourlyData || {}).map(([hour, data]) => ({
           hour: parseInt(hour),
           players: data.players,
           tables: data.tables

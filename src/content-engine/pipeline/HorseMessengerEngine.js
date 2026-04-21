@@ -147,7 +147,7 @@ async function processDirectMessages() {
 
     let repliesSent = 0;
 
-    for (const convId of Object.keys(convMap)) {
+    for (const convId of Object.keys(convMap || {})) {
         // Fetch the conversation details to see who is in it
         const { data: convInfo } = await getSupabase()
             .from('social_conversations')

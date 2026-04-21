@@ -122,7 +122,7 @@ export async function checkAndExecuteAutoBreak(tournamentId, tournament) {
                 tableMap[e.table_number].players.push(e);
             }
         }
-        for (const tNum of Object.keys(tableMap)) {
+        for (const tNum of Object.keys(tableMap || {})) {
             const t = tableMap[tNum];
             const occupied = new Set(t.players.map(p => p.seat_number));
             for (let s = 1; s <= t.max_seats; s++) {
@@ -131,7 +131,7 @@ export async function checkAndExecuteAutoBreak(tournamentId, tournament) {
         }
 
         // ── Find the smallest active table (break candidate) ──
-        const tableStats = Object.values(tableMap)
+        const tableStats = Object.values(tableMap || {})
             .filter(t => t.players.length > 0)
             .sort((a, b) => a.players.length - b.players.length);
 

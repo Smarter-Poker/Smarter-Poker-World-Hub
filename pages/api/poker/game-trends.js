@@ -61,8 +61,8 @@ export default async function handler(req, res) {
         
         // We consider it "historical" if we have prior counts AND they aren't from just right now.
         // To avoid locking in 'stable' if the system just started, we require a minimum data payload.
-        const currentTotal = Object.keys(currentCounts).length;
-        const prevTotal = Object.keys(previousCounts).length;
+        const currentTotal = Object.keys(currentCounts || {}).length;
+        const prevTotal = Object.keys(previousCounts || {}).length;
         hasHistoricalData = prevTotal > 0 && currentTotal > 0 && prevTotal >= Math.min(5, currentTotal / 2);
       }
     } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
@@ -90,7 +90,7 @@ export default async function handler(req, res) {
     }
 
     // Build trend analysis
-    const allGames = new Set([...Object.keys(currentCounts), ...Object.keys(previousCounts)]);
+    const allGames = new Set([...Object.keys(currentCounts || {}), ...Object.keys(previousCounts || {})]);
     const trends = [];
     
     allGames.forEach(game => {

@@ -118,7 +118,7 @@ export default async function handler(req, res) {
               // Per-position aggregation
               const posStats = session.position_stats;
               if (posStats && typeof posStats === 'object') {
-                  Object.entries(posStats).forEach(([pos, stats]) => {
+                  Object.entries(posStats || {}).forEach(([pos, stats]) => {
                       if (!positionAgg[pos]) {
                           positionAgg[pos] = { total: 0, correct: 0, evLoss: 0 };
                       }
@@ -131,7 +131,7 @@ export default async function handler(req, res) {
               // Classification aggregation
               const classBreakdown = session.classification_breakdown;
               if (classBreakdown && typeof classBreakdown === 'object') {
-                  Object.entries(classBreakdown).forEach(([cls, count]) => {
+                  Object.entries(classBreakdown || {}).forEach(([cls, count]) => {
                       if (classAgg[cls] !== undefined) {
                           classAgg[cls] += count;
                       }
@@ -194,7 +194,7 @@ export default async function handler(req, res) {
 
           // Calculate per-position accuracy and deviation from GTO
           const positionReport = {};
-          Object.entries(positionAgg).forEach(([pos, data]) => {
+          Object.entries(positionAgg || {}).forEach(([pos, data]) => {
               const accuracy = data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0;
               const gtoBaseline = GTO_BASELINES.preflop[pos];
               positionReport[pos] = {
@@ -214,7 +214,7 @@ export default async function handler(req, res) {
           // Calculate global GTO Proximity Score (0-100)
           let totalDeviation = 0;
           let positionsWithData = 0;
-          Object.values(positionReport).forEach(data => {
+          Object.values(positionReport || {}).forEach(data => {
               if (data.deviation !== null) {
                   totalDeviation += data.deviation;
                   positionsWithData++;

@@ -575,7 +575,7 @@ async function voidComp(req, res, staffAuth) {
     }
 
     // 6. Update the member record
-    if (Object.keys(updateFields).length > 0) {
+    if (Object.keys(updateFields || {}).length > 0) {
       // Optimistic locking: ensure balance hasn't changed since we read it
       const { data: updated, error: updateErr } = await getSupabase()
         .from('commander_members')

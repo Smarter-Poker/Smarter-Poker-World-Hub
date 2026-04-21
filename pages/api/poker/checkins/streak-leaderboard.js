@@ -49,7 +49,7 @@ export default async function handler(req, res) {
 
         // Calculate longest streak per user
         const leaders = [];
-        for (const [userId, data] of Object.entries(userMap)) {
+        for (const [userId, data] of Object.entries(userMap || {})) {
             const sorted = Array.from(data.dates).sort();
             let longestStreak = 1;
             let currentStreak = 1;

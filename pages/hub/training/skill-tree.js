@@ -186,7 +186,7 @@ function getNodeStatus(node, stats, unlockedNodes) {
   // Find matching stats
   let totalHands = 0,
     totalCorrect = 0;
-  Object.entries(stats).forEach(([gid, data]) => {
+  Object.entries(stats || {}).forEach(([gid, data]) => {
     if (
       gid.includes(node.gameId?.split('-').pop() || '') ||
       node.gameId?.includes(gid.split('-')[1] || '')

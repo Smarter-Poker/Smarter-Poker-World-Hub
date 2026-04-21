@@ -85,7 +85,7 @@ const classifyStops = (events, today) => {
     stopMap[key].events.push(e);
   }
 
-  const stops = Object.values(stopMap).sort((a, b) => {
+  const stops = Object.values(stopMap || {}).sort((a, b) => {
     if (!a.stop_start_date) return 1;
     if (!b.stop_start_date) return -1;
     return new Date(a.stop_start_date) - new Date(b.stop_start_date);

@@ -213,7 +213,7 @@ function calculateDamage(userAction, userSizing, solverNode, potSize) {
     let maxEvAction = userAction;
     let maxEvFreq = 0;
 
-    for (const [key, data] of Object.entries(actions)) {
+    for (const [key, data] of Object.entries(actions || {})) {
         const ev = data.ev || 0;
         if (ev > maxEv) {
             maxEv = ev;
@@ -278,13 +278,13 @@ function findMatchingAction(userAction, userSizing, actions) {
         if (actions[sizedKey]) return sizedKey;
 
         // Find closest sizing
-        for (const key of Object.keys(actions)) {
+        for (const key of Object.keys(actions || {})) {
             if (key.startsWith(action)) return key;
         }
     }
 
     // Partial match
-    for (const key of Object.keys(actions)) {
+    for (const key of Object.keys(actions || {})) {
         if (key.includes(action) || action.includes(key.split('_')[0])) {
             return key;
         }

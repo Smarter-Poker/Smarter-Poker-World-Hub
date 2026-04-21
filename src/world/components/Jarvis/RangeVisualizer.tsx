@@ -107,7 +107,7 @@ export function RangeVisualizer({ rangeName, customRange, onClose }: RangeVisual
     // Count hands in range
     const countHands = () => {
         let total = 0;
-        Object.entries(currentRange).forEach(([hand, freq]) => {
+        Object.entries(currentRange || {}).forEach(([hand, freq]) => {
             const frequency = freq as number;
             if (hand.length === 2) {
                 // Pair: 6 combos
@@ -191,7 +191,7 @@ export function RangeVisualizer({ rangeName, customRange, onClose }: RangeVisual
                     cursor: 'pointer'
                 }}
             >
-                {Object.keys(PRESET_RANGES).map(name => (
+                {Object.keys(PRESET_RANGES || {}).map(name => (
                     <option key={name} value={name} style={{ background: '#1a0a2e' }}>
                         {name}
                     </option>

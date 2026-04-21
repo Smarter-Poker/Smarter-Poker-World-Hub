@@ -657,7 +657,7 @@ const res = await commanderFetch('/api/commander/tables', {
                                 {/* Quick Actions */}
                                 {/* Table Purpose Toggle */}
                                 <div style={{ marginBottom: 10, display: 'flex', gap: 8 }}>
-                                  {Object.entries(PURPOSE_COLORS).map(([key, pc]) => {
+                                  {Object.entries(PURPOSE_COLORS || {}).map(([key, pc]) => {
                                     // Use mode to determine the active purpose, with fallback to table_purpose
                                     const tableMode = table.mode || table.table_purpose || 'cash';
                                     const mappedPurpose = tableMode === 'tournament' ? 'tournament' : 'cash_game';
@@ -867,7 +867,7 @@ const res = await commanderFetch('/api/commander/tables', {
                         {/* Quick Actions */}
                         {/* Table Purpose Toggle */}
                         <div style={{ marginBottom: 12, display: 'flex', gap: 8 }}>
-                          {Object.entries(PURPOSE_COLORS).map(([key, pc]) => {
+                          {Object.entries(PURPOSE_COLORS || {}).map(([key, pc]) => {
                             const tableMode = selectedTable.mode || selectedTable.table_purpose || 'cash';
                             const mappedPurpose = tableMode === 'tournament' ? 'tournament' : 'cash_game';
                             const isActive = mappedPurpose === key;

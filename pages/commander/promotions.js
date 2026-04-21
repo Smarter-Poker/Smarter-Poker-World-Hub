@@ -1298,7 +1298,7 @@ const res = await commanderFetch('/api/commander/high-hands', {
                           </tr>
                         </thead>
                         <tbody>
-                          {Object.entries(analytics.byType).map(([type, data]) => (
+                          {Object.entries(analytics.byType || {}).map(([type, data]) => (
                             <tr key={type} style={{ borderBottom: '1px solid rgba(58,59,60,0.5)' }}>
                               <td style={{ padding: '10px 18px', fontSize: 13, color: '#E4E6EB', fontWeight: 600 }}>
                                 {type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}

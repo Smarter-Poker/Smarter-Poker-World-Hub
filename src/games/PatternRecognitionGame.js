@@ -40,13 +40,13 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
         const scenario = getRandomEnrichedScenario(level);
         if (!scenario) return null;
         const solution = scenario.solution || {};
-        const hands = Object.keys(solution);
+        const hands = Object.keys(solution || {});
         const visibleCount = Math.floor(hands.length * 0.7);
         const shuffled = hands.sort(() => Math.random() - 0.5);
         const visibleHands = shuffled.slice(0, visibleCount);
         const actionCounts = { raise: 0, call: 0, fold: 0 };
-        Object.values(solution).forEach(action => { if (actionCounts[action] !== undefined) actionCounts[action]++; });
-        const dominantAction = Object.entries(actionCounts).sort((a, b) => b[1] - a[1])[0][0];
+        Object.values(solution || {}).forEach(action => { if (actionCounts[action] !== undefined) actionCounts[action]++; });
+        const dominantAction = Object.entries(actionCounts || {}).sort((a, b) => b[1] - a[1])[0][0];
         return { scenario, visibleHands, allHands: hands, solution, correctAnswer: dominantAction, actionCounts };
     }, [level]);
 
@@ -240,7 +240,7 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
                         {mistakesRef.current.length > 0 && (() => {
                             const posCounts = {};
                             mistakesRef.current.forEach(m => { posCounts[m.position] = (posCounts[m.position] || 0) + 1; });
-                            const sorted = Object.entries(posCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
+                            const sorted = Object.entries(posCounts || {}).sort((a, b) => b[1] - a[1]).slice(0, 3);
                             return (
                                 <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
                                     <div style={{ fontSize: 11, fontWeight: 700, color: '#EF4444', letterSpacing: 1.5, marginBottom: 10 }}>{'\u26A0\uFE0F'} WEAKNESS DETECTED</div>

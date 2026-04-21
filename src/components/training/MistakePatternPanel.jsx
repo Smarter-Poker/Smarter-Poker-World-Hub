@@ -51,7 +51,7 @@ function generateInsight(pattern) {
 
     // Figure out dominant error type
     const cls = pattern.classifications || {};
-    const dominant = Object.entries(cls).sort((a, b) => b[1] - a[1])[0];
+    const dominant = Object.entries(cls || {}).sort((a, b) => b[1] - a[1])[0];
     const errorType = dominant ? dominant[0] : 'mistake';
 
     const templates = {
@@ -111,7 +111,7 @@ export default function MistakePatternPanel({ mistakePatterns }) {
 
                         // Classification breakdown bar
                         const cls = pattern.classifications || {};
-                        const clsTotal = Object.values(cls).reduce((s, v) => s + v, 0) || 1;
+                        const clsTotal = Object.values(cls || {}).reduce((s, v) => s + v, 0) || 1;
 
                         return (
                             <motion.div
@@ -140,7 +140,7 @@ export default function MistakePatternPanel({ mistakePatterns }) {
 
                                     {/* Mini classification bar */}
                                     <div style={styles.miniClsBar}>
-                                        {Object.entries(cls)
+                                        {Object.entries(cls || {})
                                             .filter(([_, v]) => v > 0)
                                             .sort((a, b) => {
                                                 const order = ['blunder', 'wrong', 'inaccuracy'];
@@ -207,7 +207,7 @@ export default function MistakePatternPanel({ mistakePatterns }) {
                             spotCounts[s].count += p.count;
                             spotCounts[s].evLoss += p.totalEvLoss;
                         });
-                        return Object.entries(spotCounts)
+                        return Object.entries(spotCounts || {})
                             .sort((a, b) => b[1].evLoss - a[1].evLoss)
                             .slice(0, 4)
                             .map(([spot, data]) => (

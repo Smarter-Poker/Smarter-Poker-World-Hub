@@ -42,7 +42,7 @@ export function getAuthUser() {
         }
 
         // FALLBACK: Legacy sb-* keys (for backwards compatibility during migration)
-        const sbKeys = Object.keys(localStorage).filter(
+        const sbKeys = Object.keys(localStorage || {}).filter(
             k => k.startsWith('sb-') && k.endsWith('-auth-token')
         );
 
@@ -263,7 +263,7 @@ export function getSessionToken() {
         }
 
         // FALLBACK: Legacy sb-* keys
-        const sbKeys = Object.keys(localStorage).filter(
+        const sbKeys = Object.keys(localStorage || {}).filter(
             k => k.startsWith('sb-') && k.endsWith('-auth-token')
         );
 
@@ -447,7 +447,7 @@ export async function querySocialPosts(offset = 0, limit = 10) {
 export async function queryTable(table, params = {}) {
     const queryParams = new URLSearchParams();
 
-    for (const [key, value] of Object.entries(params)) {
+    for (const [key, value] of Object.entries(params || {})) {
         queryParams.append(key, value.toString());
     }
 
@@ -470,7 +470,7 @@ export async function insertIntoTable(table, data) {
  */
 export async function updateTable(table, match, data) {
     const matchParams = new URLSearchParams();
-    for (const [key, value] of Object.entries(match)) {
+    for (const [key, value] of Object.entries(match || {})) {
         matchParams.append(key, `eq.${value}`);
     }
 
@@ -595,7 +595,7 @@ export function clearAuth(force = false) {
         localStorage.removeItem(AUTH_STORAGE_KEY);
         // Clear fast-path flag so useRequireAuth does full check after logout
         try { sessionStorage.removeItem('sp_auth_confirmed'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-        const sbKeys = Object.keys(localStorage).filter(
+        const sbKeys = Object.keys(localStorage || {}).filter(
             k => k.startsWith('sb-') && k.endsWith('-auth-token')
         );
         sbKeys.forEach(k => localStorage.removeItem(k));

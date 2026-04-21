@@ -1097,7 +1097,7 @@ export default function CustomSolvePage() {
               Rake Structure
             </div>
             <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-              {Object.entries(RAKE_PRESETS).map(([key, preset]) => (
+              {Object.entries(RAKE_PRESETS || {}).map(([key, preset]) => (
                 <motion.button
                   key={key}
                   whileTap={{ scale: 0.95 }}

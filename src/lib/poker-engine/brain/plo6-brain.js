@@ -100,7 +100,7 @@ function scorePLO6Hand(holeCards) {
     // Step 3: Evaluate suitedness
     const suitCounts = {};
     suits.forEach(s => { suitCounts[s] = (suitCounts[s] || 0) + 1; });
-    const suitValues = Object.values(suitCounts).sort((a, b) => b - a);
+    const suitValues = Object.values(suitCounts || {}).sort((a, b) => b - a);
     const numSuitsWithPairs = suitValues.filter(v => v >= 2).length;
 
     let suitedness = 'rainbow';
@@ -155,7 +155,7 @@ function scorePLO6Hand(holeCards) {
     // BONUS: Double-paired (+12) -- full house potential on 2 different boards
     const rankCounts = {};
     ranks.forEach(r => { rankCounts[r] = (rankCounts[r] || 0) + 1; });
-    const pairCount = Object.values(rankCounts).filter(c => c >= 2).length;
+    const pairCount = Object.values(rankCounts || {}).filter(c => c >= 2).length;
     if (pairCount >= 2) {
         extraBonus += 12;
         if (extraCardValue === 'neutral') extraCardValue = 'double-paired';
@@ -318,7 +318,7 @@ function evaluatePLO6FlushHierarchy(holeCards, boardCards) {
         boardSuits[s] = (boardSuits[s] || 0) + 1;
     });
 
-    const flushSuit = Object.entries(boardSuits).find(([, count]) => count >= 3);
+    const flushSuit = Object.entries(boardSuits || {}).find(([, count]) => count >= 3);
     if (!flushSuit) {
         return { flushRank: 'none', flushStrength: 0, commitLevel: 'none' };
     }
@@ -482,7 +482,7 @@ function _boardHasFlushDraw(boardCards) {
         const s = c[c.length - 1];
         suitCounts[s] = (suitCounts[s] || 0) + 1;
     });
-    return Object.values(suitCounts).some(v => v >= 3);
+    return Object.values(suitCounts || {}).some(v => v >= 3);
 }
 
 /**
@@ -494,7 +494,7 @@ function _boardIsPaired(boardCards) {
         const r = c.length === 3 ? c.substring(0, 2) : c[0];
         rankCounts[r] = (rankCounts[r] || 0) + 1;
     });
-    return Object.values(rankCounts).some(v => v >= 2);
+    return Object.values(rankCounts || {}).some(v => v >= 2);
 }
 
 // ======================================================================
@@ -532,7 +532,7 @@ function getPLO6BlockerValue(holeCards, boardCards) {
         boardSuits[s] = (boardSuits[s] || 0) + 1;
     });
 
-    for (const [suit, count] of Object.entries(boardSuits)) {
+    for (const [suit, count] of Object.entries(boardSuits || {})) {
         if (count >= 3) {
             // Flush possible -- check if we block the nut flush
             const hasAceOfSuit = parsed.some(c => c.rank === 12 && c.suit === suit);
@@ -575,7 +575,7 @@ function getPLO6BlockerValue(holeCards, boardCards) {
             boardRankCounts[rank] = (boardRankCounts[rank] || 0) + 1;
         });
 
-        for (const [rank, count] of Object.entries(boardRankCounts)) {
+        for (const [rank, count] of Object.entries(boardRankCounts || {})) {
             if (count >= 2) {
                 // Board is paired on this rank -- do we block the top trips/quads?
                 const topUnpairedRank = boardRanks.find(r => boardRankCounts[r] === 1);
@@ -1452,7 +1452,7 @@ function reassessPLO6Turn(flopDraws, turnDraws, flopMadeStrength, turnMadeStreng
     if (boardCards && boardCards.length >= 4) {
         const suits = {};
         boardCards.forEach(c => { suits[c[c.length - 1]] = (suits[c[c.length - 1]] || 0) + 1; });
-        const boardFlush = Object.values(suits).some(v => v >= 4);
+        const boardFlush = Object.values(suits || {}).some(v => v >= 4);
         if (boardFlush && flopDraws && flopDraws.nutFlushDraw && turnMadeStrength < 80) {
             result.drawCounterfeited = true;
             result.turnStrategy = 'check-fold-counterfeited';
@@ -1660,7 +1660,7 @@ function getPLO6CardRemoval(holeCards, boardCards) {
 
     // Opponent outs reduction: each of our cards in a suit reduces opponent flush outs
     let opponentOutsReduction = 0;
-    for (const [suit, count] of Object.entries(suitCounts)) {
+    for (const [suit, count] of Object.entries(suitCounts || {})) {
         if (count >= 3) {
             // We hold 3+ cards in this suit: opponent flush draws are significantly weaker
             opponentOutsReduction += count - 1;
@@ -1672,7 +1672,7 @@ function getPLO6CardRemoval(holeCards, boardCards) {
     // Rank-based removal: count how many of our ranks overlap
     const rankCounts = {};
     parsed.forEach(c => { rankCounts[c.rank] = (rankCounts[c.rank] || 0) + 1; });
-    for (const [rank, count] of Object.entries(rankCounts)) {
+    for (const [rank, count] of Object.entries(rankCounts || {})) {
         if (count >= 2) {
             // Holding pairs: reduces opponent set/trips combos
             opponentOutsReduction += 1;
@@ -2297,7 +2297,7 @@ function analyzePLO6BoardRunout(boardCards, madeStrength, hasFlushDraw, hasStrai
         rankValues.push(val);
     });
 
-    const maxSuitCount = Math.max(...Object.values(suitCounts));
+    const maxSuitCount = Math.max(...Object.values(suitCounts || {}));
     const ranksSorted = [...rankValues].sort((a, b) => a - b);
     const hasGaps = ranksSorted.some((v, i) => i > 0 && v - ranksSorted[i - 1] <= 2);
 

@@ -156,7 +156,7 @@ export default class PlayerDatabase {
   searchPlayer(partial) {
     const needle = this._normalize(partial);
     if (!needle) return [];
-    return Object.entries(this._db)
+    return Object.entries(this._db || {})
       .filter(([key, s]) => {
         if (key.includes(needle)) return true;
         return s.aliases.some(a => this._normalize(a).includes(needle));
@@ -169,7 +169,7 @@ export default class PlayerDatabase {
    * Get all tracked players sorted by hands observed.
    */
   getAllPlayers() {
-    return Object.values(this._db)
+    return Object.values(this._db || {})
       .sort((a, b) => b.handsObserved - a.handsObserved)
       .map(s => this.getStats(s.displayName))
       .filter(Boolean);

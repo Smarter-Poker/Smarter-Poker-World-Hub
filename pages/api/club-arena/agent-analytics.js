@@ -246,7 +246,7 @@ export default async function handler(req, res) {
                   }
               }
 
-              const trendData = Object.entries(dailyBuckets).map(([date, amount]) => ({ date, amount }));
+              const trendData = Object.entries(dailyBuckets || {}).map(([date, amount]) => ({ date, amount }));
 
               return res.status(200).json({ success: true, trends: trendData });
           } catch (err) {

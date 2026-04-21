@@ -688,7 +688,7 @@ export default function EventsCalendarPage({ fallbackData }) {
         };
       }
     });
-    return Object.values(venueMap);
+    return Object.values(venueMap || {});
   }, [events]);
 
   const clearFilters = () => {

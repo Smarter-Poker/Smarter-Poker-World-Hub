@@ -225,7 +225,7 @@ async function handlePatch(req, res, tableId) {
       updates.status = status;
     }
 
-    if (Object.keys(updates).length === 0) {
+    if (Object.keys(updates || {}).length === 0) {
       return res.status(400).json({
         success: false,
         error: { code: 'VALIDATION_ERROR', message: 'No valid fields to update' }

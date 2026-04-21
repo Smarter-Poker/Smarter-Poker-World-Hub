@@ -124,7 +124,7 @@ async function submitReview(req, res) {
 
   // Validate ratings
   const ratings = { reliability, sportsmanship, etiquette, communication };
-  for (const [name, val] of Object.entries(ratings)) {
+  for (const [name, val] of Object.entries(ratings || {})) {
     if (val !== undefined && val !== null && (val < 1 || val > 5)) {
       return res.status(400).json({ success: false, error: { code: 'INVALID_RANGE', message: `${name} must be 1-5` } });
     }

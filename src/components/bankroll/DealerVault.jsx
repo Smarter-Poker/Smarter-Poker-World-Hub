@@ -156,7 +156,7 @@ function DealerVault({ userId, completedGigs = [] }) {
                     sum + (day.downs || []).reduce((s, d) => s + (d.toke_amount || 0), 0), 0);
             venueMap[venue] = (venueMap[venue] || 0) + total;
         }
-        return Object.entries(venueMap)
+        return Object.entries(venueMap || {})
             .filter(([, total]) => total >= 600)
             .map(([venue, total]) => ({ venue, total }));
     })();

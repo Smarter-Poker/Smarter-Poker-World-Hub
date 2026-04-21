@@ -233,7 +233,7 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
                 </div>
                 <div className="nmf-type-filter">
                     <button className={'nmf-chip' + (filter === 'all' ? ' active' : '')} onClick={() => setFilter('all')}>All</button>
-                    {Object.entries(TYPE_COLORS).map(([key, val]) => (
+                    {Object.entries(TYPE_COLORS || {}).map(([key, val]) => (
                         <button key={key} className={'nmf-chip' + (filter === key ? ' active' : '')} onClick={() => setFilter(key)} style={filter === key ? { background: val.bg, borderColor: val.border, color: val.text } : {}}>
                             {val.label}
                         </button>

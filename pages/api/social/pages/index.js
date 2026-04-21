@@ -562,7 +562,7 @@ export default async function handler(req, res) {
               if (updates.metadata?.address) venueUpdates.address = updates.metadata.address;
               if (updates.location_city) venueUpdates.city = updates.location_city;
               if (updates.location_state) venueUpdates.state = updates.location_state;
-              if (Object.keys(venueUpdates).length > 0) {
+              if (Object.keys(venueUpdates || {}).length > 0) {
                   try {
                       const { error: venueErr } = await getSupabase().from('poker_venues')
                           .update(venueUpdates)

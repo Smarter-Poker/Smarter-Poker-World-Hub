@@ -194,7 +194,7 @@ export default function SocialStakingProfile({ entries = [], stats, user }) {
                     Privacy Controls
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
-                    {Object.entries(privacy).map(([key, value]) => (
+                    {Object.entries(privacy || {}).map(([key, value]) => (
                         <button
                             key={key}
                             onClick={() => togglePrivacy(key)}

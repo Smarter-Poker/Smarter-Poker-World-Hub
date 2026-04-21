@@ -239,7 +239,7 @@ function SpotTypeBreakdown({ handHistory }) {
             types[key].evLoss += (h.evLoss || 0);
         });
 
-        return Object.entries(types)
+        return Object.entries(types || {})
             .filter(([_, v]) => v.hands > 0)
             .sort(([_, a], [__, b]) => b.evLoss - a.evLoss);
     }, [handHistory]);

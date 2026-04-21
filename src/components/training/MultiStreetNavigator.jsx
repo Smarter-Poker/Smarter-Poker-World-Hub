@@ -231,7 +231,7 @@ const StreetNode = memo(({ street, handData, isActive, isCompleted, onSelect, he
                     <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600, marginBottom: 4, textTransform: 'uppercase' }}>
                         Solver Frequencies
                     </div>
-                    {Object.entries(strategy.actions)
+                    {Object.entries(strategy.actions || {})
                         .filter(([, d]) => d.frequency > 0.02)
                         .sort(([, a], [, b]) => b.frequency - a.frequency)
                         .slice(0, 5)
@@ -370,7 +370,7 @@ export default function MultiStreetNavigator({ handHistory = [] }) {
 
     const totalEVLoss = useMemo(() => {
         if (!currentGroup) return 0;
-        return Object.values(currentGroup.streets).reduce((s, sd) => s + (sd.evLoss || 0), 0);
+        return Object.values(currentGroup.streets || {}).reduce((s, sd) => s + (sd.evLoss || 0), 0);
     }, [currentGroup]);
 
     if (!handHistory.length) {

@@ -57,7 +57,7 @@ class ActionTracker {
       this.prev = { ...obs, timestamp: ts };
       // Initialize active seats from non-null villain stacks
       if (obs.villainStacks) {
-        for (const [seat, stack] of Object.entries(obs.villainStacks)) {
+        for (const [seat, stack] of Object.entries(obs.villainStacks || {})) {
           if (typeof stack === 'number' && stack > 0) {
             this.activeSeats.add(seat);
           }
@@ -76,7 +76,7 @@ class ActionTracker {
     const prevStacks = this.prev.villainStacks || {};
     const currStacks = obs.villainStacks || {};
 
-    for (const seat of new Set([...Object.keys(prevStacks), ...Object.keys(currStacks)])) {
+    for (const seat of new Set([...Object.keys(prevStacks || {}), ...Object.keys(currStacks || {})])) {
       if (this.foldedSeats.has(seat)) continue; // already folded
 
       const prevStack = prevStacks[seat];

@@ -93,12 +93,12 @@ export default async function handler(req, res) {
           if (totalEVLoss !== undefined) {
               performanceContext += `\n  TOTAL EV LOSS: ${typeof totalEVLoss === 'number' ? totalEVLoss.toFixed(2) : totalEVLoss} BB`;
           }
-          if (classificationCounts && Object.keys(classificationCounts).length > 0) {
+          if (classificationCounts && Object.keys(classificationCounts || {}).length > 0) {
               const cc = classificationCounts;
               performanceContext += `\n  MOVE CLASSIFICATION BREAKDOWN: Best: ${cc.best || 0}, Correct: ${cc.correct || 0}, Inaccuracy: ${cc.inaccuracy || 0}, Wrong: ${cc.wrong || 0}, Blunder: ${cc.blunder || 0}`;
           }
-          if (positionStats && Object.keys(positionStats).length > 0) {
-              const posLines = Object.entries(positionStats)
+          if (positionStats && Object.keys(positionStats || {}).length > 0) {
+              const posLines = Object.entries(positionStats || {})
                   .map(([pos, stats]) => `    ${pos}: ${stats.correct || 0}/${stats.total || 0}`)
                   .join('\n');
               performanceContext += `\n  BY POSITION:\n${posLines}`;

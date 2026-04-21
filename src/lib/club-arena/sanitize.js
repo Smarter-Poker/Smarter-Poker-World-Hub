@@ -167,7 +167,7 @@ const ALLOWED_TABLE_SETTINGS = new Set([
 function sanitizeSettings(raw) {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
     const clean = {};
-    for (const [key, value] of Object.entries(raw)) {
+    for (const [key, value] of Object.entries(raw || {})) {
         if (ALLOWED_TABLE_SETTINGS.has(key) && key !== '__proto__' && key !== 'constructor' && key !== 'prototype') {
             clean[key] = value;
         }

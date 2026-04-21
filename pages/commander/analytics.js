@@ -300,7 +300,7 @@ const headers = { };
         }
       });
       let peakHour = '--';
-      const peakEntries = Object.entries(peakHourWeights);
+      const peakEntries = Object.entries(peakHourWeights || {});
       if (peakEntries.length > 0) {
         const [topHourStr] = peakEntries.reduce((a, b) => (a[1] > b[1] ? a : b));
         const h = parseInt(topHourStr, 10);

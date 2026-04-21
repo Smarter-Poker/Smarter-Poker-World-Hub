@@ -836,7 +836,7 @@ export default function VirtualSandbox() {
     }
 
     // Set position
-    for (const [key, val] of Object.entries(posWords)) {
+    for (const [key, val] of Object.entries(posWords || {})) {
       if (text.includes(key)) { setHeroPosition(val); break; }
     }
 
@@ -1578,7 +1578,7 @@ export default function VirtualSandbox() {
             <select value={villains[0]?.archetype?.id || 'gto_neutral'}
               onChange={e => handleVillainArchetypeChange(0, e.target.value)}
               style={{ width: '100%', padding: '4px 3px', borderRadius: 5, fontSize: 10, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' }}>
-              {Object.values(ARCHETYPE_CONFIG).map(a => <option key={a.id} value={a.id}>{a.icon} {a.name}</option>)}
+              {Object.values(ARCHETYPE_CONFIG || {}).map(a => <option key={a.id} value={a.id}>{a.icon} {a.name}</option>)}
             </select>
             {/* VPIP badge */}
             {(villains[0]?.vpip != null) && (
@@ -1968,7 +1968,7 @@ export default function VirtualSandbox() {
             // Directly hydrate board and positions from parsed import
             if (state.board) setBoard(state.board);
             if (state.heroPosition) {
-              const newPos = Object.values(heroPositions).find(p => p.id === state.heroPosition) || heroPositions.BTN;
+              const newPos = Object.values(heroPositions || {}).find(p => p.id === state.heroPosition) || heroPositions.BTN;
               setHeroPosition(newPos);
             }
             if (state.villains) setVillains(state.villains);
@@ -2061,11 +2061,11 @@ export default function VirtualSandbox() {
                     </div>
                   </div>
                   {/* Position breakdown */}
-                  {leakStats.positionDistribution && Object.keys(leakStats.positionDistribution).length > 0 && (
+                  {leakStats.positionDistribution && Object.keys(leakStats.positionDistribution || {}).length > 0 && (
                     <div style={{ marginBottom: 12 }}>
                       <div style={{ fontSize: 10, color: '#B0B3B8', fontWeight: 600, marginBottom: 4, textTransform: 'uppercase' }}>Position Distribution</div>
-                      {Object.entries(leakStats.positionDistribution).sort((a, b) => b[1] - a[1]).map(([pos, count]) => {
-                        const maxCount = Math.max(...Object.values(leakStats.positionDistribution));
+                      {Object.entries(leakStats.positionDistribution || {}).sort((a, b) => b[1] - a[1]).map(([pos, count]) => {
+                        const maxCount = Math.max(...Object.values(leakStats.positionDistribution || {}));
                         return (
                           <div key={pos} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
                             <span style={{ fontSize: 10, fontWeight: 700, color: '#E4E6EB', width: 30 }}>{pos}</span>

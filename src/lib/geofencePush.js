@@ -97,7 +97,7 @@ function _setPushCooldown(venueId) {
 
         // Prune expired entries
         const now = Date.now();
-        for (const key of Object.keys(cooldowns)) {
+        for (const key of Object.keys(cooldowns || {})) {
             if (now - cooldowns[key] > COOLDOWN_MS) {
                 delete cooldowns[key];
             }

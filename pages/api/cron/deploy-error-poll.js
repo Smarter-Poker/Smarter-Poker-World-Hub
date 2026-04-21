@@ -363,7 +363,7 @@ export default async function handler(req, res) {
     // Also initializes attemptTracker so escalation works even without GH_PAT.
     if (!attemptTracker[commitSha]) {
       attemptTracker[commitSha] = 1; // Default: first attempt
-      const trackedKeys = Object.keys(attemptTracker);
+      const trackedKeys = Object.keys(attemptTracker || {});
       if (trackedKeys.length > 50) delete attemptTracker[trackedKeys[0]];
     }
     if (ghPat && commitSha) {

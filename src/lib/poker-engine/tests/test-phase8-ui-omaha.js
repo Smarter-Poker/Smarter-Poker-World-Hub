@@ -222,7 +222,7 @@ async function runTests() {
     holdem: 2, omaha4: 4, omaha5: 5, omaha6: 6, omaha_hilo: 4, short_deck: 2,
   };
 
-  for (const [variant, expected] of Object.entries(CARDS_PER_VARIANT)) {
+  for (const [variant, expected] of Object.entries(CARDS_PER_VARIANT || {})) {
     assert(expected >= 2 && expected <= 6, `${variant}: ${expected} face-down cards`);
   }
 

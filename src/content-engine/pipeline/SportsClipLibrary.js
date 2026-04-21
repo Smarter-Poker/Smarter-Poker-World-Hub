@@ -112,7 +112,7 @@ export function getRandomSportsClip(options = {}) {
     if (source) filtered = filtered.filter(c => c.source === source);
     if (category) filtered = filtered.filter(c => c.category === category);
     if (sportType) {
-        const sources = Object.entries(SPORTS_CLIP_SOURCES)
+        const sources = Object.entries(SPORTS_CLIP_SOURCES || {})
             .filter(([_, s]) => s.type === sportType)
             .map(([key, _]) => key);
         filtered = filtered.filter(c => sources.includes(c.source));
@@ -139,7 +139,7 @@ export function markSportsClipUsed(clipId) {
     usedSportsClipIds.add(clipId);
 }
 
-const SOURCE_KEYS = Object.keys(SPORTS_CLIP_SOURCES);
+const SOURCE_KEYS = Object.keys(SPORTS_CLIP_SOURCES || {});
 
 export function getHorseSportsPreferredSources(horseProfileId) {
     if (!horseProfileId) return null;

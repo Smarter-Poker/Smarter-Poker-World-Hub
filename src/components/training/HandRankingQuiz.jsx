@@ -197,7 +197,7 @@ function HandRankingQuiz() {
         {/* Category Breakdown */}
         {stats.total > 0 && (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {Object.entries(stats.byCategory).map(([cat, s]) => (
+            {Object.entries(stats.byCategory || {}).map(([cat, s]) => (
               <div key={cat} style={{ padding: '6px 12px', borderRadius: 6, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', fontSize: 11 }}>
                 <span style={{ color: 'rgba(255,255,255,0.5)' }}>{cat}: </span>
                 <span style={{ fontWeight: 700, color: (s.correct / s.total) >= 0.7 ? '#10b981' : '#f59e0b' }}>{s.correct}/{s.total}</span>

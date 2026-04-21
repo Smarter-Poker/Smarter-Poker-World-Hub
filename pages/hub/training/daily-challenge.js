@@ -810,7 +810,7 @@ export default function DailyChallengePage() {
                           GTO Frequencies
                         </div>
                         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                          {Object.entries(frequencies)
+                          {Object.entries(frequencies || {})
                             .sort(([, a], [, b]) => b - a)
                             .map(([act, freq]) => (
                               <span

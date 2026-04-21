@@ -1036,7 +1036,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                     reactions.forEach(r => { counts[r] = (counts[r] || 0) + 1; });
                     
                     // Sort descending by count
-                    const sortedReactions = Object.entries(counts).sort((a,b) => b[1] - a[1]);
+                    const sortedReactions = Object.entries(counts || {}).sort((a,b) => b[1] - a[1]);
                     
                     const emojiMap = {
                         like: '👍',
@@ -1136,19 +1136,19 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
             </div>
             
             {/* Display Animated Typing Indicators (Phase 11) */}
-            {Object.values(typists).length > 0 && (
+            {Object.values(typists || {}).length > 0 && (
                 <div style={{ display: 'flex', gap: 8, marginTop: 12, padding: '0 12px', alignItems: 'center' }}>
                     <div style={{ display: 'flex', position: 'relative', width: 24, height: 24 }}>
-                        {Object.values(typists).slice(0, 3).map((t, i) => (
+                        {Object.values(typists || {}).slice(0, 3).map((t, i) => (
                             <img key={i} src={t.avatar || '/default-avatar.png'} alt="typing" 
                                 style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover', border: '2px solid white', position: 'absolute', left: i * 12, zIndex: 3 - i }} />
                         ))}
                     </div>
                     <div style={{ 
                         background: C.bg, borderRadius: 16, padding: '8px 12px', fontSize: 12,
-                        color: C.textSec, display: 'flex', alignItems: 'center', gap: 6, marginLeft: Object.values(typists).length > 2 ? 30 : (Object.values(typists).length - 1) * 12
+                        color: C.textSec, display: 'flex', alignItems: 'center', gap: 6, marginLeft: Object.values(typists || {}).length > 2 ? 30 : (Object.values(typists || {}).length - 1) * 12
                     }}>
-                        <span>{Object.values(typists)[0].name.split(' ')[0]} is typing</span>
+                        <span>{Object.values(typists || {})[0].name.split(' ')[0]} is typing</span>
                         <div style={{ display: 'flex' }}>
                             <TypingDot delay="-0.32s" />
                             <TypingDot delay="-0.16s" />
@@ -2070,7 +2070,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                     }
                     const sched = merged.run_schedule || newMeta.run_schedule;
                     if (sched) {
-                        Object.values(sched).forEach(day => {
+                        Object.values(sched || {}).forEach(day => {
                             if (day && day.open && day.location && day.location.trim()) {
                                 locations.push(day.location.trim());
                             }
@@ -4709,7 +4709,7 @@ function SocialMediaPage() {
                 }
                 // FALLBACK: Legacy sb-* keys
                 if (!authUser) {
-                    const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+                    const sbKeys = Object.keys(localStorage || {}).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
                     if (sbKeys.length > 0) {
                         let tokenData = {};
                         try { tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}'); } catch { /* corrupted */ }
@@ -5359,7 +5359,7 @@ function SocialMediaPage() {
             }
 
             // Step 3: Batch-fetch all profiles in one query
-            const uniqueUserIds = [...new Set(Object.values(convToUser))];
+            const uniqueUserIds = [...new Set(Object.values(convToUser || {}))];
             const { data: profiles } = await supabase
                 .from('profiles')
                 .select('id, username')

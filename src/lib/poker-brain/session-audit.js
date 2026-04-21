@@ -127,7 +127,7 @@ export function analyzeHand(hand) {
   let totalScore = 0;
   let streetCount = 0;
 
-  for (const [street, decision] of Object.entries(hand.streetDecisions)) {
+  for (const [street, decision] of Object.entries(hand.streetDecisions || {})) {
     const evaluation = evaluateDecision(decision, street, context);
     streetGrades[street] = evaluation;
     if (evaluation.score !== null) {
@@ -150,7 +150,7 @@ export function analyzeHand(hand) {
 
   // Flag hands with potential mistakes
   const mistakes = [];
-  for (const [street, sg] of Object.entries(streetGrades)) {
+  for (const [street, sg] of Object.entries(streetGrades || {})) {
     if (sg.score !== null && sg.score < 35) {
       mistakes.push({ street, ...sg });
     }
@@ -213,7 +213,7 @@ export function analyzeSession(hands) {
   let totalDecisions = 0;
 
   for (const review of handReviews) {
-    for (const [street, sg] of Object.entries(review.streetGrades)) {
+    for (const [street, sg] of Object.entries(review.streetGrades || {})) {
       if (sg.score !== null) {
         if (streetScores[street]) streetScores[street].push(sg.score);
         totalDecisions++;
@@ -250,7 +250,7 @@ export function analyzeSession(hands) {
 
   // Street-specific leak detection
   const streetBreakdown = {};
-  for (const [street, scores] of Object.entries(streetScores)) {
+  for (const [street, scores] of Object.entries(streetScores || {})) {
     if (scores.length === 0) continue;
     const avg = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
     streetBreakdown[street] = { avgScore: avg, hands: scores.length };
@@ -269,7 +269,7 @@ export function analyzeSession(hands) {
 
   // Position-specific analysis
   const positionBreakdown = {};
-  for (const [pos, scores] of Object.entries(positionScores)) {
+  for (const [pos, scores] of Object.entries(positionScores || {})) {
     if (scores.length === 0) continue;
     const avg = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
     positionBreakdown[pos] = { avgScore: avg, hands: scores.length };

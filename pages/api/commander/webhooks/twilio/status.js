@@ -50,7 +50,7 @@ export default async function handler(req, res) {
 
       // Build the validation string: URL + sorted form params
       const params = req.body || {};
-      const sortedKeys = Object.keys(params).sort();
+      const sortedKeys = Object.keys(params || {}).sort();
       const paramString = sortedKeys.reduce((acc, key) => acc + key + params[key], '');
       const validationString = webhookUrl + paramString;
 

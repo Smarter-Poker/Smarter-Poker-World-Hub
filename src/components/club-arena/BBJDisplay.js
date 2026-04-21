@@ -239,7 +239,7 @@ function BasicTab({ tiers, rules }) {
           </tr>
         </thead>
         <tbody>
-          {Object.entries(tiers).map(([key, tier]) => (
+          {Object.entries(tiers || {}).map(([key, tier]) => (
             <tr key={key} style={{ borderBottom: `1px solid ${FB.border}20` }}>
               <td style={{ padding: '8px 4px', color: FB.gold, fontWeight: 700, textAlign: 'center', fontSize: 12 }}>
                 {tier.label}
@@ -347,7 +347,7 @@ function QualifyingTab({ hands }) {
         Losing players must have a Minimum Qualifying Hand. <strong style={{ color: FB.text }}>Both players must use two cards from their hands.</strong> If more than one player loses holding a hand that qualifies for the BBJP prize, the prize will be divided proportionally.
       </div>
 
-      {Object.entries(CARD_IMAGES).map(([key, variant]) => {
+      {Object.entries(CARD_IMAGES || {}).map(([key, variant]) => {
         const info = hands[key];
         return (
           <div key={key} style={{

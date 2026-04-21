@@ -26,9 +26,9 @@ async function _flushPendingSettings() {
     const toSave = { ..._pendingValues };
     // Clear immediately so new saves during the async operation
     // will be queued for the next flush cycle
-    for (const k of Object.keys(toSave)) delete _pendingValues[k];
+    for (const k of Object.keys(toSave || {})) delete _pendingValues[k];
 
-    if (Object.keys(toSave).length === 0) return;
+    if (Object.keys(toSave || {}).length === 0) return;
 
     try {
         const user = getAuthUser();
@@ -55,9 +55,9 @@ async function _flushPendingSettings() {
         const merged = { ...current, ...toSave };
 
         const { error } = await supabase.from('profiles').update({ app_settings: merged }).eq('id', user.id);
-        if (error) console.warn('[AppSettings] Flush DB error:', error.message, 'Keys:', Object.keys(toSave));
+        if (error) console.warn('[AppSettings] Flush DB error:', error.message, 'Keys:', Object.keys(toSave || {}));
     } catch (err) {
-        console.warn('[AppSettings] Flush failed:', err, 'Keys:', Object.keys(toSave));
+        console.warn('[AppSettings] Flush failed:', err, 'Keys:', Object.keys(toSave || {}));
     }
 }
 
@@ -182,16 +182,16 @@ export async function seedLocalStorageFromDB(userId) {
     if (typeof window === 'undefined') return;
     try {
         const settings = await loadAppSettings(userId);
-        if (!settings || Object.keys(settings).length === 0) return;
+        if (!settings || Object.keys(settings || {}).length === 0) return;
 
-        for (const [dbKey, lsKey] of Object.entries(DB_TO_LS_MAP)) {
+        for (const [dbKey, lsKey] of Object.entries(DB_TO_LS_MAP || {})) {
             if (settings[dbKey] !== undefined && settings[dbKey] !== null) {
                 const val = settings[dbKey];
                 const str = typeof val === 'object' ? JSON.stringify(val) : String(val);
                 try { localStorage.setItem(lsKey, str); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
             }
         }
-        console.debug('[AppSettings] ✅ Seeded localStorage from DB —', Object.keys(settings).length, 'keys');
+        console.debug('[AppSettings] ✅ Seeded localStorage from DB —', Object.keys(settings || {}).length, 'keys');
     } catch (err) {
         console.warn('[AppSettings] Seed failed:', err);
     }

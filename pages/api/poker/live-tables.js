@@ -301,7 +301,7 @@ export default async function handler(req, res) {
     }
 
     // Separate venues with real-time live data vs catalog-only estimates
-    const venuesWithMeta = Object.values(grouped);
+    const venuesWithMeta = Object.values(grouped || {});
     const venues = venuesWithMeta.map(({ _seenGames, _latestOriginStamp, _hasBravoData, _hasLiveIndicators, _sources, ...v }) => v);
     
     // LIVE tables: only count from venues with real-time indicators

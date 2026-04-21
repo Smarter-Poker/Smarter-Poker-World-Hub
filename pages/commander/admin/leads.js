@@ -101,7 +101,7 @@ const res = await commanderFetch('/api/commander/admin/leads', {
     )
     : leads;
 
-  const totalLeads = Object.values(stats).reduce((a, b) => a + b, 0);
+  const totalLeads = Object.values(stats || {}).reduce((a, b) => a + b, 0);
   const conversionRate =
     totalLeads > 0
       ? (((stats.signed || 0) + (stats.setup || 0) + (stats.live || 0)) / totalLeads) * 100
@@ -180,7 +180,7 @@ const res = await commanderFetch('/api/commander/admin/leads', {
             >
               All ({totalLeads})
             </button>
-            {Object.entries(STATUS_CONFIG).map(([key, config]) => (
+            {Object.entries(STATUS_CONFIG || {}).map(([key, config]) => (
               <button
                 key={key}
                 onClick={() => setStatusFilter(key)}
@@ -282,7 +282,7 @@ const res = await commanderFetch('/api/commander/admin/leads', {
                                 </button>
                                 {showStatusMenu === lead.id && (
                                   <div className="absolute top-full left-0 mt-1 w-48 bg-[#1E293B] border border-[#374151] rounded-lg shadow-lg z-10">
-                                    {Object.entries(STATUS_CONFIG).map(([key, config]) => (
+                                    {Object.entries(STATUS_CONFIG || {}).map(([key, config]) => (
                                       <button
                                         key={key}
                                         onClick={(e) => {
@@ -405,7 +405,7 @@ const res = await commanderFetch('/api/commander/admin/leads', {
                   <div className="border-t border-[#374151] pt-4 mt-4">
                     <div className="text-sm text-[#B0B3B8] mb-2">Update Status</div>
                     <div className="grid grid-cols-2 gap-2">
-                      {Object.entries(STATUS_CONFIG)
+                      {Object.entries(STATUS_CONFIG || {})
                         .slice(0, 6)
                         .map(([key, config]) => (
                           <button

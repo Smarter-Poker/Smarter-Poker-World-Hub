@@ -52,7 +52,7 @@ function buildVenuePages() {
 
 function buildTourPages() {
     const tours = [];
-    for (const [code, tour] of Object.entries(tourRegistry.tours)) {
+    for (const [code, tour] of Object.entries(tourRegistry.tours || {})) {
         if (tour.is_active === false) continue;
         tours.push({
             page_type: 'tour',

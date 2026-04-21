@@ -75,7 +75,7 @@ export default async function handler(req, res) {
             if (rpcError) throw rpcError;
             if (result?.success) {
                 ticketId = result.ticket_id;
-                console.log(`[ReportBug] Atomic bug report successful: Ticket ${ticketId}, MSG: ${result.message_id}`);
+                console.debug(`[ReportBug] Atomic bug report successful: Ticket ${ticketId}, MSG: ${result.message_id}`);
             } else {
                 console.warn('[ReportBug] Atomic bug report failed internally:', result?.error);
             }
@@ -165,7 +165,7 @@ export default async function handler(req, res) {
                 `,
             });
 
-            console.log(`[ReportBug] Bug report sent to admin@smarter.poker: ${ticketRef}`);
+            console.debug(`[ReportBug] Bug report sent to admin@smarter.poker: ${ticketRef}`);
         } catch (emailErr) {
             console.warn('[ReportBug] Email send failed:', emailErr.message);
             // Still return success if DB insert worked

@@ -32,7 +32,7 @@ export function getToken() {
         }
 
         // 3. Supabase default storage: sb-<projectRef>-auth-token (JSON with access_token)
-        const sbKeys = Object.keys(localStorage).filter(
+        const sbKeys = Object.keys(localStorage || {}).filter(
             k => k.startsWith('sb-') && k.endsWith('-auth-token')
         );
         if (sbKeys.length > 0) {

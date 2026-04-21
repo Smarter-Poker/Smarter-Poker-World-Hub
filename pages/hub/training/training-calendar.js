@@ -154,8 +154,8 @@ export default function TrainingCalendarPage() {
   const streak = computeStreak(dayMap);
   const weeklyStats = computeWeeklyStats(dayMap);
   const todayHands = dayMap[today.toISOString().slice(0, 10)]?.hands || 0;
-  const totalDays = Object.keys(dayMap).length;
-  const totalHands = Object.values(dayMap).reduce((s, d) => s + d.hands, 0);
+  const totalDays = Object.keys(dayMap || {}).length;
+  const totalHands = Object.values(dayMap || {}).reduce((s, d) => s + d.hands, 0);
   const selectedData = selectedDay ? dayMap[selectedDay] : null;
 
   return (

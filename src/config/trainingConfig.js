@@ -14,7 +14,7 @@ import { LEVEL_REGISTRY, MASTERY_THRESHOLD, BOSS_MODE_THRESHOLD, MIN_QUESTIONS_R
 // Build pass thresholds from LevelRegistry
 const passThresholds = {};
 const diamondMultipliers = {};
-for (const [levelNum, def] of Object.entries(LEVEL_REGISTRY)) {
+for (const [levelNum, def] of Object.entries(LEVEL_REGISTRY || {})) {
     const lvl = parseInt(levelNum, 10);
     passThresholds[lvl] = Math.round(def.masteryThreshold * 100);
     diamondMultipliers[lvl] = def.diamondMultiplier;
@@ -22,7 +22,7 @@ for (const [levelNum, def] of Object.entries(LEVEL_REGISTRY)) {
 
 export const TRAINING_CONFIG = {
     questionsPerLevel: MIN_QUESTIONS_REQUIRED, // 20 (from LevelRegistry)
-    totalLevels: Object.keys(LEVEL_REGISTRY).length, // 12
+    totalLevels: Object.keys(LEVEL_REGISTRY || {}).length, // 12
 
     // Pass thresholds derived from LevelRegistry (85% standard, 90% Boss Mode)
     passThresholds,

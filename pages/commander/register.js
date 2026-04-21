@@ -639,7 +639,7 @@ export default function RegisterPage() {
             <div className="space-y-6">
               <h2 className="text-xl font-bold text-[#E4E6EB] mb-6">Select Your Plan</h2>
               <div className="grid gap-4">
-                {Object.entries(TIERS).map(([key, tier]) => (
+                {Object.entries(TIERS || {}).map(([key, tier]) => (
                   <div key={key} onClick={() => setSelectedTier(key)} className={`relative p-5 rounded-xl border-2 cursor-pointer ${selectedTier === key ? 'border-[#1877F2] bg-[#1877F2]/10' : 'border-[#3A3B3C] bg-[#3A3B3C]/30'}`}>
                     {tier.popular && <span className="absolute -top-3 left-4 px-3 py-1 bg-[#1877F2] text-white text-xs rounded-full">Most Popular</span>}
                     <div className="flex items-start justify-between">

@@ -137,7 +137,7 @@ return { };
       });
       setPositions(prev => {
         // Only set if we don't have positions yet or table count changed
-        if (Object.keys(prev).length === 0 || Object.keys(prev).length !== rawTables.length) {
+        if (Object.keys(prev || {}).length === 0 || Object.keys(prev || {}).length !== rawTables.length) {
           return posMap;
         }
         return prev;
@@ -146,7 +146,7 @@ return { };
       // Load saved rotations
       const rotMap = {};
       rawTables.forEach(t => { rotMap[t.id] = t.rotation || 0; });
-      setRotations(prev => Object.keys(prev).length === 0 ? rotMap : prev);
+      setRotations(prev => Object.keys(prev || {}).length === 0 ? rotMap : prev);
 
       if (waitlistRes.success) {
         const grouped = {};
@@ -258,7 +258,7 @@ return { };
   const openCount = tables.filter(t => t.status === 'available').length;
   const totalSeats = tables.reduce((s, t) => s + (t.max_seats || 9), 0);
   const occupiedSeats = tables.reduce((s, t) => s + (t.current_players || 0), 0);
-  const totalWaiting = Object.values(waitlists).reduce((s, n) => s + n, 0);
+  const totalWaiting = Object.values(waitlists || {}).reduce((s, n) => s + n, 0);
 
   const getElapsed = (startedAt) => {
     if (!startedAt) return '';
@@ -270,8 +270,8 @@ return { };
   };
 
   // Canvas dimensions based on furthest table position
-  const canvasWidth = Math.max(980, ...Object.values(positions).map(p => p.x + TABLE_WIDTH + 60));
-  const canvasHeight = Math.max(600, ...Object.values(positions).map(p => p.y + TABLE_HEIGHT + 60));
+  const canvasWidth = Math.max(980, ...Object.values(positions || {}).map(p => p.x + TABLE_WIDTH + 60));
+  const canvasHeight = Math.max(600, ...Object.values(positions || {}).map(p => p.y + TABLE_HEIGHT + 60));
 
   return (
     <CommanderLayout title="Floor Map" backHref="/commander/dashboard?card=floor">
@@ -333,7 +333,7 @@ return { };
           <StatPill label="Open" value={openCount} color="#1877F2" />
           <StatPill label="Seats" value={`${occupiedSeats}/${totalSeats}`} color="#E4E6EB" />
           {totalWaiting > 0 && <StatPill label="Waiting" value={totalWaiting} color="#F59E0B" />}
-          {Object.entries(waitlists).map(([g, c]) => (
+          {Object.entries(waitlists || {}).map(([g, c]) => (
             <span key={g} style={{ fontSize: 11, color: '#F59E0B', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
               <AlertTriangle size={10} /> {g}: {c}
             </span>

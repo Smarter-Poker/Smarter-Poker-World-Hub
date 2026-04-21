@@ -60,7 +60,7 @@ const SLEEP_PATTERNS = {
     irregular: { sleepStart: 3, sleepEnd: 10, name: 'Irregular' }
 };
 
-const SLEEP_PATTERN_KEYS = Object.keys(SLEEP_PATTERNS);
+const SLEEP_PATTERN_KEYS = Object.keys(SLEEP_PATTERNS || {});
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SUPERSTITIONS
@@ -86,7 +86,7 @@ const SUPERSTITIONS = {
     }
 };
 
-const SUPERSTITION_KEYS = Object.keys(SUPERSTITIONS);
+const SUPERSTITION_KEYS = Object.keys(SUPERSTITIONS || {});
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPING PATTERNS
@@ -114,7 +114,7 @@ const TYPING_PATTERNS = {
     }
 };
 
-const TYPING_PATTERN_KEYS = Object.keys(TYPING_PATTERNS);
+const TYPING_PATTERN_KEYS = Object.keys(TYPING_PATTERNS || {});
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HELPER FUNCTIONS

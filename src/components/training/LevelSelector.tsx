@@ -58,25 +58,25 @@ interface LevelSelectorProps {
 
 // Derive level metadata from LevelRegistry (solver-backed source of truth)
 // Fallback arrays ensure zero breakage if registry import fails
-const LEVEL_TITLES = Array.from({ length: Object.keys(LEVEL_REGISTRY).length }, (_, i) => {
+const LEVEL_TITLES = Array.from({ length: Object.keys(LEVEL_REGISTRY || {}).length }, (_, i) => {
     const reg = LEVEL_REGISTRY[i + 1];
     return reg?.name || ['The Basics', 'Building Blocks', 'Getting Serious', 'Challenge Mode', 'Mid-Game Mastery', 'Advanced Tactics', 'Expert Level', 'Master Class', 'Elite Training', 'Final Exam'][i];
 });
 
-const LEVEL_DESCRIPTIONS = Array.from({ length: Object.keys(LEVEL_REGISTRY).length }, (_, i) => {
+const LEVEL_DESCRIPTIONS = Array.from({ length: Object.keys(LEVEL_REGISTRY || {}).length }, (_, i) => {
     const reg = LEVEL_REGISTRY[i + 1];
     return reg?.description || ['Learn the fundamentals', 'Reinforce core concepts', 'Apply what you know', 'Test your knowledge', 'Handle complex spots', 'Advanced decision making', 'Expert-level scenarios', 'Master the subtleties', 'Elite performance required', 'Prove your mastery'][i];
 });
 
 // Passing grades from LevelRegistry — masteryThreshold is 0.85 (85%) for L1-10, 0.90 for Boss Mode
 // EV tolerance tightens each level, so we scale passing grades based on registry complexity
-const PASSING_GRADES = Array.from({ length: Object.keys(LEVEL_REGISTRY).length }, (_, i) => {
+const PASSING_GRADES = Array.from({ length: Object.keys(LEVEL_REGISTRY || {}).length }, (_, i) => {
     const reg = LEVEL_REGISTRY[i + 1];
     return reg ? Math.round(reg.masteryThreshold * 100) : [85, 87, 89, 91, 93, 95, 97, 98, 99, 100][i];
 });
 
 // Level accent colors from registry for UI theming
-const LEVEL_COLORS = Array.from({ length: Object.keys(LEVEL_REGISTRY).length }, (_, i) => {
+const LEVEL_COLORS = Array.from({ length: Object.keys(LEVEL_REGISTRY || {}).length }, (_, i) => {
     const reg = LEVEL_REGISTRY[i + 1];
     return reg?.accentColor || '#00D4FF';
 });
@@ -306,7 +306,7 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
             // Build level data with lock logic
             const levelDataList: LevelData[] = [];
 
-            const totalLevels = Object.keys(LEVEL_REGISTRY).length;
+            const totalLevels = Object.keys(LEVEL_REGISTRY || {}).length;
             for (let i = 1; i <= totalLevels; i++) {
                 const levelKey = `level_${i}`;
                 const progress = levelProgress[levelKey] || {};

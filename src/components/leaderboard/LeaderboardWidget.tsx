@@ -203,7 +203,7 @@ export function LeaderboardWidget({
                 padding: '12px',
                 borderBottom: '1px solid rgba(255,255,255,0.05)'
             }}>
-                {Object.entries(CATEGORY_CONFIG).map(([key, cfg]) => (
+                {Object.entries(CATEGORY_CONFIG || {}).map(([key, cfg]) => (
                     <button
                         key={key}
                         onClick={() => setActiveCategory(key as LeaderboardCategory)}

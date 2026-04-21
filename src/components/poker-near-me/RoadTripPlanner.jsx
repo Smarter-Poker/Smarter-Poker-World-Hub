@@ -70,7 +70,7 @@ async function geocodeCity(query) {
     const key = query.toLowerCase().trim();
     if (POPULAR_CITIES_GEO[key]) return POPULAR_CITIES_GEO[key];
     // Try partial match
-    for (const [k, v] of Object.entries(POPULAR_CITIES_GEO)) {
+    for (const [k, v] of Object.entries(POPULAR_CITIES_GEO || {})) {
         if (k.includes(key) || key.includes(k.split(',')[0])) return v;
     }
     // Fallback: Nominatim (free, no API key)

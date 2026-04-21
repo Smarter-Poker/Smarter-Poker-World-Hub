@@ -76,7 +76,7 @@ export default function EvHeatmapPage() {
   // Dynamically adjust the baseline mock EV data based on the selected game type filter
   const activeData = useMemo(() => {
     const adjusted = {};
-    for (const [key, value] of Object.entries(BASE_STATS)) {
+    for (const [key, value] of Object.entries(BASE_STATS || {})) {
       let evMod = value.ev;
       if (activeFilter === 'MTT') evMod -= 0.1; // ICM taxation lowers overall EV
       if (activeFilter === 'PLO') evMod *= 1.5; // High variance swings

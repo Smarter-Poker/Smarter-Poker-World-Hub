@@ -161,7 +161,7 @@ export default async function handler(req, res) {
                   updates.comp_balance = Math.floor(Math.random() * 15000) / 100; // $0-$150
               }
 
-              if (Object.keys(updates).length > 0) {
+              if (Object.keys(updates || {}).length > 0) {
                   updates.updated_at = new Date().toISOString();
                   const { error: upErr } = await getSupabase()
                       .from('commander_members')

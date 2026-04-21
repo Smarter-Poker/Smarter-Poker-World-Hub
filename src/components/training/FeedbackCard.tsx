@@ -247,7 +247,7 @@ export function FeedbackCard({
                     ? `${coaching.text} — ${strategyInsight.strategicConcept}`
                     : coaching.text,
                 shortExplanation: shortExplain,
-                deepDive: Object.keys(deepDive).length > 0 ? deepDive : undefined,
+                deepDive: Object.keys(deepDive || {}).length > 0 ? deepDive : undefined,
                 keyTakeaway,
                 confidence: 1.0,
             });

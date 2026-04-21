@@ -243,7 +243,7 @@ export default function PositionMasteryPage() {
     });
 
     // If no position-specific data, generate sample from overall progress
-    const hasAnyData = Object.values(data).some((d) => d.totalQ > 0);
+    const hasAnyData = Object.values(data || {}).some((d) => d.totalQ > 0);
     if (!hasAnyData && progress.length > 0) {
       const totalQ = progress.reduce((s, r) => s + (r.total_questions_answered || 0), 0);
       const totalC = progress.reduce((s, r) => s + (r.total_correct || 0), 0);

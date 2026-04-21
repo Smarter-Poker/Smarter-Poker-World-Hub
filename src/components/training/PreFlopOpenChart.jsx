@@ -38,7 +38,7 @@ function PreFlopOpenChart() {
         <h3 style={{ margin: '0 0 16px 0', fontSize: 18, color: '#a78bfa' }}>Preflop Open Chart</h3>
 
         <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
-          {Object.keys(RANGES).map(pos => (
+          {Object.keys(RANGES || {}).map(pos => (
             <button key={pos} onClick={() => setPosition(pos)} style={{
               flex: 1, padding: '8px 4px', borderRadius: 8, border: 'none', cursor: 'pointer',
               background: position === pos ? posColors[pos] : 'rgba(255,255,255,0.06)',

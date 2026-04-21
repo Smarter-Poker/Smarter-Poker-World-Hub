@@ -645,7 +645,7 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
             else if (rawTourString.includes('NAPT')) matchedTourCode = 'NAPT';
             else {
                 // Fallback exact match attempt
-                matchedTourCode = Object.keys(TOUR_LOGO_MAP).find(k => rawTourString.includes(k));
+                matchedTourCode = Object.keys(TOUR_LOGO_MAP || {}).find(k => rawTourString.includes(k));
             }
 
             // Logo cascade: (1) series own logo_url → (2) known tour brand logo → (3) resolved venue logo

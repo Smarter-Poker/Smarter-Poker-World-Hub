@@ -45,7 +45,7 @@ const VENUE_ALIASES = {
 
 // Build reverse lookup
 const ALIAS_LOOKUP = {};
-Object.entries(VENUE_ALIASES).forEach(([canonical, aliases]) => {
+Object.entries(VENUE_ALIASES || {}).forEach(([canonical, aliases]) => {
   aliases.forEach(alias => {
     ALIAS_LOOKUP[alias.toLowerCase()] = canonical;
   });
@@ -80,7 +80,7 @@ export function mergeVenueData(tables) {
   });
   
   // Convert Sets to arrays for JSON serialization
-  Object.values(merged).forEach(v => {
+  Object.values(merged || {}).forEach(v => {
     v.original_names = [...v.original_names];
     v.sources = [...v.sources];
   });
@@ -103,24 +103,24 @@ export default async function handler(req, res) {
     
     if (error) {
       console.warn('Venue dedup: live tables query failed:', error.message);
-      return res.status(200).json({ total_venues_raw: 0, total_venues_after_dedup: 0, duplicates_resolved: 0, resolved: [], alias_registry_size: Object.keys(VENUE_ALIASES).length });
+      return res.status(200).json({ total_venues_raw: 0, total_venues_after_dedup: 0, duplicates_resolved: 0, resolved: [], alias_registry_size: Object.keys(VENUE_ALIASES || {}).length });
     }
     
     const merged = mergeVenueData(data || []);
     
     // Find duplicates that were resolved
-    const resolvedDups = Object.values(merged).filter(v => v.original_names.length > 1);
+    const resolvedDups = Object.values(merged || {}).filter(v => v.original_names.length > 1);
     
     res.status(200).json({
       total_venues_raw: new Set((data || []).map(t => t.venue_name)).size,
-      total_venues_after_dedup: Object.keys(merged).length,
+      total_venues_after_dedup: Object.keys(merged || {}).length,
       duplicates_resolved: resolvedDups.length,
       resolved: resolvedDups.map(v => ({
         canonical: v.venue_name,
         aliases: v.original_names,
         sources: v.sources,
       })),
-      alias_registry_size: Object.keys(VENUE_ALIASES).length,
+      alias_registry_size: Object.keys(VENUE_ALIASES || {}).length,
     });
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }

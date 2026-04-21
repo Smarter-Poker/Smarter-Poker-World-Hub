@@ -136,7 +136,7 @@ export default async function handler(req, res) {
         }
 
         // Check for imbalanced categories
-        const lowCategories = Object.values(stats).filter(s => s.total < TARGET_PER_CATEGORY / 3);
+        const lowCategories = Object.values(stats || {}).filter(s => s.total < TARGET_PER_CATEGORY / 3);
         if (lowCategories.length > 0) {
             poolStatus.recommendations.push(
                 `🎯 PRIORITY: Focus on ${lowCategories.map(c => c.name).join(', ')}`

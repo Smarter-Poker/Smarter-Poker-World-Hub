@@ -149,7 +149,7 @@ export default function MemoryGamesStats() {
                     spot_trainer: { label: 'Spot Trainer', icon: '🎯', color: '#10B981' },
                     tournament: { label: 'Tournament', icon: '⚔️', color: '#9333EA' },
                 };
-                const modeData = Object.entries(byMode).map(([mode, data]) => ({
+                const modeData = Object.entries(byMode || {}).map(([mode, data]) => ({
                     mode,
                     ...MODE_LABELS[mode] || { label: mode, icon: '🎮', color: '#fff' },
                     gamesPlayed: data.count,

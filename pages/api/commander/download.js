@@ -26,7 +26,7 @@ export default function handler(req, res) {
     if (!platform || !DOWNLOADS[platform]) {
         return res.status(400).json({
             error: 'Invalid platform',
-            valid: Object.keys(DOWNLOADS)
+            valid: Object.keys(DOWNLOADS || {})
         });
     }
 

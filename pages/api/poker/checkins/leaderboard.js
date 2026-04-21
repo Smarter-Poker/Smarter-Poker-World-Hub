@@ -70,7 +70,7 @@ export default async function handler(req, res) {
         }
 
         // Sort by count descending, take top 10
-        const sorted = Object.values(userMap)
+        const sorted = Object.values(userMap || {})
             .sort((a, b) => b.count - a.count)
             .slice(0, 10);
 

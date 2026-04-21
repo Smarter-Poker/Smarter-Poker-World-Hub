@@ -34,7 +34,7 @@ function analyzeBoardTexture(board) {
     // Flush texture
     const suitCounts = {};
     suits.forEach(s => { suitCounts[s] = (suitCounts[s] || 0) + 1; });
-    const maxSuit = Math.max(...Object.values(suitCounts));
+    const maxSuit = Math.max(...Object.values(suitCounts || {}));
     if (maxSuit >= 3) tags.push('Monotone');
     else if (maxSuit >= 2) tags.push('Two-Tone');
     else tags.push('Rainbow');
@@ -42,7 +42,7 @@ function analyzeBoardTexture(board) {
     // Paired
     const rankCounts = {};
     ranks.forEach(r => { rankCounts[r] = (rankCounts[r] || 0) + 1; });
-    if (Object.values(rankCounts).some(c => c >= 2)) tags.push('Paired');
+    if (Object.values(rankCounts || {}).some(c => c >= 2)) tags.push('Paired');
 
     // Connectivity (checking gaps)
     const unique = [...new Set(ranks)].sort((a, b) => b - a);
@@ -124,7 +124,7 @@ export default function RangeReport({ classificationGroups = [], gridData = {}, 
 
     // Total combos in range
     const totalCombos = useMemo(() => {
-        return Object.values(gridData).filter(v => v !== null && v !== undefined).length;
+        return Object.values(gridData || {}).filter(v => v !== null && v !== undefined).length;
     }, [gridData]);
 
     // Weighted average EV
@@ -156,9 +156,9 @@ export default function RangeReport({ classificationGroups = [], gridData = {}, 
             });
         });
         // Normalize
-        Object.values(result).forEach(cat => {
+        Object.values(result || {}).forEach(cat => {
             if (cat.hands > 0) {
-                Object.keys(cat.actions).forEach(a => {
+                Object.keys(cat.actions || {}).forEach(a => {
                     cat.actions[a] = Math.round((cat.actions[a] / cat.hands) * 10) / 10;
                 });
             }
@@ -197,7 +197,7 @@ export default function RangeReport({ classificationGroups = [], gridData = {}, 
             <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 16 }}>
                 <DonutChart segments={donutSegments} size={90} />
                 <div style={{ flex: 1 }}>
-                    {Object.entries(CATEGORY_COLORS).map(([cat, info]) => (
+                    {Object.entries(CATEGORY_COLORS || {}).map(([cat, info]) => (
                         <div key={cat} style={{
                             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                             marginBottom: 4,
@@ -264,7 +264,7 @@ export default function RangeReport({ classificationGroups = [], gridData = {}, 
             <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600, marginBottom: 6, textTransform: 'uppercase' }}>
                 Action by Category
             </div>
-            {Object.entries(CATEGORY_COLORS).map(([cat, info]) => {
+            {Object.entries(CATEGORY_COLORS || {}).map(([cat, info]) => {
                 const bd = categoryBreakdown[cat];
                 if (!bd || bd.hands === 0) return null;
                 const topActions = Object.entries(bd.actions || {})

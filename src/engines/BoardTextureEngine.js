@@ -39,8 +39,8 @@ export function analyzeFlushTexture(board) {
         if (suitCounts[suit] !== undefined) suitCounts[suit]++;
     }
 
-    const maxCount = Math.max(...Object.values(suitCounts));
-    const dominantSuit = Object.keys(suitCounts).find(s => suitCounts[s] === maxCount);
+    const maxCount = Math.max(...Object.values(suitCounts || {}));
+    const dominantSuit = Object.keys(suitCounts || {}).find(s => suitCounts[s] === maxCount);
 
     let texture;
     if (board.length <= 3) {
@@ -75,8 +75,8 @@ export function analyzePairTexture(board) {
         rankCounts[rank] = (rankCounts[rank] || 0) + 1;
     }
 
-    const maxCount = Math.max(...Object.values(rankCounts));
-    const pairedRanks = Object.keys(rankCounts).filter(r => rankCounts[r] >= 2);
+    const maxCount = Math.max(...Object.values(rankCounts || {}));
+    const pairedRanks = Object.keys(rankCounts || {}).filter(r => rankCounts[r] >= 2);
 
     let texture;
     if (maxCount >= 3) texture = PAIR_TEXTURE.TRIPS;

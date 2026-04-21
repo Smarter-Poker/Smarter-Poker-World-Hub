@@ -149,7 +149,7 @@ export function useTrainingRealtime(userId) {
         // ── Channel connection with auto-reconnect ──────────────
         const connectChannels = () => {
             // Clean up any existing channels
-            Object.entries(channelRefs.current).forEach(([key, ch]) => {
+            Object.entries(channelRefs.current || {}).forEach(([key, ch]) => {
                 if (ch) {
                     try { client.removeChannel(ch); } catch { /* ignore */ }
                     channelRefs.current[key] = null;
@@ -233,13 +233,13 @@ export function useTrainingRealtime(userId) {
             mountedRef.current = false;
             console.debug('[TrainingRealtime] Cleaning up subscriptions');
 
-            Object.values(debounceTimersRef.current).forEach(t => { if (t) clearTimeout(t); });
+            Object.values(debounceTimersRef.current || {}).forEach(t => { if (t) clearTimeout(t); });
             debounceTimersRef.current = {};
             if (reconnectTimerRef.current) {
                 clearTimeout(reconnectTimerRef.current);
                 reconnectTimerRef.current = null;
             }
-            Object.entries(channelRefs.current).forEach(([key, ch]) => {
+            Object.entries(channelRefs.current || {}).forEach(([key, ch]) => {
                 if (ch) {
                     try { client.removeChannel(ch); } catch { /* ignore */ }
                     channelRefs.current[key] = null;

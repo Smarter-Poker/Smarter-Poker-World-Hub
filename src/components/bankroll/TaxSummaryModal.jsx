@@ -73,7 +73,7 @@ export default function TaxSummaryModal({ completedGigs = [], onClose }) {
             map[venue].miles += gig.mileage || 0;
             map[venue].events += 1;
         }
-        return Object.entries(map)
+        return Object.entries(map || {})
             .map(([venue, data]) => ({ venue, ...data }))
             .sort((a, b) => b.tokes - a.tokes);
     }, [yearGigs]);
@@ -89,7 +89,7 @@ export default function TaxSummaryModal({ completedGigs = [], onClose }) {
                 map[cat] = (map[cat] || 0) + (e.amount || 0);
             }
         }
-        return Object.entries(map)
+        return Object.entries(map || {})
             .map(([cat, amt]) => ({ cat, label: EXPENSE_LABELS[cat] || cat, amt }))
             .sort((a, b) => b.amt - a.amt);
     }, [yearGigs]);

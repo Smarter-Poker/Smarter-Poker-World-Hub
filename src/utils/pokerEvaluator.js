@@ -101,7 +101,7 @@ export function evaluateHand(heroCards, boardCards) {
 
     // Flushes
     let isFlush = false;
-    let maxSuit = Object.keys(suitCounts).find(s => suitCounts[s] >= 5);
+    let maxSuit = Object.keys(suitCounts || {}).find(s => suitCounts[s] >= 5);
     if (maxSuit) isFlush = true;
 
     // Straights

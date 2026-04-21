@@ -174,7 +174,7 @@ export default function TourDetailPage() {
     let accessToken = null;
     let userId = null;
     try {
-      const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+      const sbKeys = Object.keys(localStorage || {}).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
       if (sbKeys.length > 0) {
         const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
         accessToken = tokenData.access_token || null;
@@ -267,7 +267,7 @@ export default function TourDetailPage() {
     // Persist follow state via API (JWT required)
     const fetchHeaders = { 'Content-Type': 'application/json' };
     try {
-      const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+      const sbKeys = Object.keys(localStorage || {}).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
       if (sbKeys.length > 0) {
         const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
         if (tokenData.access_token) fetchHeaders['Authorization'] = 'Bearer ' + tokenData.access_token;

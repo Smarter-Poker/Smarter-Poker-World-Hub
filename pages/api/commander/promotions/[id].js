@@ -155,7 +155,7 @@ async function updatePromotion(req, res, id) {
       }
     });
 
-    if (Object.keys(updates).length === 0) {
+    if (Object.keys(updates || {}).length === 0) {
       return res.status(400).json({ success: false, error: 'No updates provided' });
     }
 

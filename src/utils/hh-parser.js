@@ -339,7 +339,7 @@ export function parseHandHistory(rawText) {
         // Fallback position detection
         if (result.heroPosition === 'UNK') {
             // Check for position labels in text
-            for (const [alias, pos] of Object.entries(POSITION_ALIASES)) {
+            for (const [alias, pos] of Object.entries(POSITION_ALIASES || {})) {
                 const re = new RegExp(`${heroName}.*?\\(${alias}\\)`, 'i');
                 if (re.test(rawText)) { result.heroPosition = pos; break; }
             }

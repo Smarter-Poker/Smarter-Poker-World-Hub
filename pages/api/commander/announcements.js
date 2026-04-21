@@ -122,7 +122,7 @@ export default async function handler(req, res) {
         if (starts_at !== undefined) updates.starts_at = starts_at || null;
         updates.updated_at = new Date().toISOString();
 
-        if (Object.keys(updates).length <= 1) {
+        if (Object.keys(updates || {}).length <= 1) {
           return res.status(400).json({ success: false, error: 'No updates provided' });
         }
 

@@ -208,7 +208,7 @@ const SpotTypeBreakdown = memo(({ sessions }) => {
             });
         });
 
-        return Object.values(spots).filter(s => s.total > 0);
+        return Object.values(spots || {}).filter(s => s.total > 0);
     }, [sessions]);
 
     if (spotData.length === 0) return null;

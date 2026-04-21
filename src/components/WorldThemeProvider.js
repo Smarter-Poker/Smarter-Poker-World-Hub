@@ -45,7 +45,7 @@ function getWorldFromPath(pathname) {
     }
 
     // Check prefix matches for dynamic routes
-    for (const [route, world] of Object.entries(ROUTE_TO_WORLD)) {
+    for (const [route, world] of Object.entries(ROUTE_TO_WORLD || {})) {
         if (pathname.startsWith(route)) {
             return world;
         }

@@ -137,7 +137,7 @@ export function resolveEntityCoordinates(entity, allVenues = []) {
     // 6. Last resort: try matching just city name in fallback table
     const justCity = locationCity || city;
     if (justCity) {
-        for (const [key, coords] of Object.entries(CITY_COORDS)) {
+        for (const [key, coords] of Object.entries(CITY_COORDS || {})) {
             if (key.startsWith(justCity + ',') || key === justCity) {
                 return { latitude: coords.lat, longitude: coords.lng, city: justCity, state: locationState || state };
             }

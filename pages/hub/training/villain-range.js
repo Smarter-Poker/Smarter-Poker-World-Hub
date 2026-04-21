@@ -446,7 +446,7 @@ export default function VillainRange() {
       // Clamp stats to valid ranges on load
       validated.forEach((p) => {
         if (p.stats) {
-          Object.keys(p.stats).forEach((k) => {
+          Object.keys(p.stats || {}).forEach((k) => {
             const v = parseFloat(p.stats[k]);
             p.stats[k] =
               isNaN(v) || !isFinite(v)
@@ -477,7 +477,7 @@ export default function VillainRange() {
     if (!sanitizedName) return;
     // HARDENED: clamp all stats to valid ranges
     const clampedStats = {};
-    Object.keys(profileStats).forEach((k) => {
+    Object.keys(profileStats || {}).forEach((k) => {
       const v = parseFloat(profileStats[k]);
       clampedStats[k] =
         isNaN(v) || !isFinite(v)
@@ -1157,7 +1157,7 @@ export default function VillainRange() {
                   <div
                     style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}
                   >
-                    {Object.entries(profileStats).map(([key, val]) => (
+                    {Object.entries(profileStats || {}).map(([key, val]) => (
                       <div key={key}>
                         <div
                           style={{
@@ -1238,7 +1238,7 @@ export default function VillainRange() {
                       vs GTO Baseline Deviation
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
-                      {Object.entries(profileStats)
+                      {Object.entries(profileStats || {})
                         .filter(([k]) => k !== 'aggFactor')
                         .map(([key, val]) => {
                           const diff = val - GTO_BASELINE[key];
@@ -1401,7 +1401,7 @@ export default function VillainRange() {
                           </div>
                         </div>
                         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                          {Object.entries(profile.stats).map(([k, v]) => (
+                          {Object.entries(profile.stats || {}).map(([k, v]) => (
                             <span
                               key={k}
                               style={{

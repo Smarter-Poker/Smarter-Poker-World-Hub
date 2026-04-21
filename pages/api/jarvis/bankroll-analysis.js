@@ -209,7 +209,7 @@ function calculateMetrics(entries) {
     // Find worst category/day
     let worstCategory = null;
     let worstCategoryLoss = 0;
-    Object.entries(sessionsByCategory).forEach(([cat, data]) => {
+    Object.entries(sessionsByCategory || {}).forEach(([cat, data]) => {
         if (data.netPL < worstCategoryLoss && data.count >= 3) {
             worstCategory = cat;
             worstCategoryLoss = data.netPL;
@@ -218,7 +218,7 @@ function calculateMetrics(entries) {
 
     let worstDay = null;
     let worstDayLoss = 0;
-    Object.entries(sessionsByDay).forEach(([day, data]) => {
+    Object.entries(sessionsByDay || {}).forEach(([day, data]) => {
         if (data.netPL < worstDayLoss && data.count >= 2) {
             worstDay = day;
             worstDayLoss = data.netPL;
@@ -233,7 +233,7 @@ function calculateMetrics(entries) {
     let bestTimeSlotPL = -Infinity;
     let worstTimeSlot = null;
     let worstTimeSlotPL = Infinity;
-    Object.entries(sessionsByHour).forEach(([slot, data]) => {
+    Object.entries(sessionsByHour || {}).forEach(([slot, data]) => {
         if (data.count >= 2) {
             if (data.netPL > bestTimeSlotPL) {
                 bestTimeSlot = slot;
@@ -293,7 +293,7 @@ function detectTiltPatterns(entries) {
     });
 
     // Check patterns
-    Object.values(byDate).forEach(daySessions => {
+    Object.values(byDate || {}).forEach(daySessions => {
         if (daySessions.length >= 2) {
             // Multiple sessions same day - check if first was a loss
             const firstNet = (daySessions[daySessions.length - 1].gross_out || 0) -
@@ -321,7 +321,7 @@ function detectTiltPatterns(entries) {
 
     // Check if session happened right after big loss (same day)
     const avgBuyIn = sortedEntries.reduce((sum, e) => sum + (e.gross_in || 0), 0) / sortedEntries.length;
-    Object.values(byDate).forEach(daySessions => {
+    Object.values(byDate || {}).forEach(daySessions => {
         for (let i = 0; i < daySessions.length - 1; i++) {
             const session = daySessions[i];
             const net = (session.gross_out || 0) - (session.gross_in || 0);
@@ -359,17 +359,17 @@ Key Metrics:
 - Biggest Loss: $${Math.abs(metrics.biggestLoss)}
 
 Category Breakdown:
-${Object.entries(metrics.sessionsByCategory).map(([cat, data]) =>
+${Object.entries(metrics.sessionsByCategory || {}).map(([cat, data]) =>
         `- ${cat}: ${data.count} sessions, $${data.netPL > 0 ? '+' : ''}${data.netPL}`
     ).join('\n')}
 
 Day Breakdown:
-${Object.entries(metrics.sessionsByDay).map(([day, data]) =>
+${Object.entries(metrics.sessionsByDay || {}).map(([day, data]) =>
         `- ${day}: ${data.count} sessions, $${data.netPL > 0 ? '+' : ''}${data.netPL}`
     ).join('\n')}
 
 Time of Day Breakdown:
-${Object.entries(metrics.sessionsByHour).map(([slot, data]) =>
+${Object.entries(metrics.sessionsByHour || {}).map(([slot, data]) =>
         `- ${slot}: ${data.count} sessions, $${data.netPL > 0 ? '+' : ''}${data.netPL}`
     ).join('\n') || 'No time data available'}
 

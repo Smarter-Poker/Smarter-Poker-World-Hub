@@ -14,7 +14,7 @@ import { supabase } from './supabase';
  * Generate a cache key from request parameters
  */
 function generateCacheKey(endpoint, params) {
-    const normalizedParams = JSON.stringify(params, Object.keys(params).sort());
+    const normalizedParams = JSON.stringify(params, Object.keys(params || {}).sort());
     const hash = crypto.createHash('sha256').update(`${endpoint}:${normalizedParams}`).digest('hex');
     return hash.substring(0, 32); // Use first 32 chars
 }

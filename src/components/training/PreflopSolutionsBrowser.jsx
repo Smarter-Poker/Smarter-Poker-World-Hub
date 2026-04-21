@@ -159,7 +159,7 @@ const getScenarioRange = (scenario, position, stackBB) => {
       case 'coldCall': {
         const r = generate3BetRange(position, 'CO', stackBB);
         // Swap raise and call for cold-call view
-        Object.keys(r).forEach(k => { const tmp = r[k].raise; r[k].raise = 0; r[k].call = tmp + r[k].call; r[k].fold = 100 - r[k].call; });
+        Object.keys(r || {}).forEach(k => { const tmp = r[k].raise; r[k].raise = 0; r[k].call = tmp + r[k].call; r[k].fold = 100 - r[k].call; });
         return r;
       }
       case 'squeeze': return generate3BetRange(position, 'BTN', stackBB * 0.9);
@@ -237,7 +237,7 @@ export default function PreflopSolutionsBrowser() {
 
       {/* ═══ SCENARIO SELECTOR ═══ */}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-        {Object.entries(SCENARIOS).map(([id, s]) => (
+        {Object.entries(SCENARIOS || {}).map(([id, s]) => (
           <button key={id} onClick={() => setScenario(id)} style={{
             padding: '6px 12px', borderRadius: 6, border: 'none', cursor: 'pointer',
             background: scenario === id ? '#3b82f6' : 'rgba(255,255,255,0.06)',

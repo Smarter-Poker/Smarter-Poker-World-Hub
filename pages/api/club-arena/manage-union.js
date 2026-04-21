@@ -180,7 +180,7 @@ export default async function handler(req, res) {
           updates.settings = safeSettings;
         }
 
-        if (Object.keys(updates).length === 0) return res.status(400).json({ success: false, error: 'Nothing to update' });
+        if (Object.keys(updates || {}).length === 0) return res.status(400).json({ success: false, error: 'Nothing to update' });
 
         const { error } = await getSupabase()
           .from('unions')

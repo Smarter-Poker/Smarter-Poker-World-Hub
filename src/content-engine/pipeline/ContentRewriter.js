@@ -141,7 +141,7 @@ Source: ${article.source_name}`;
         }
 
         const results = [];
-        const formats = Object.keys(CONTENT_FORMATS);
+        const formats = Object.keys(CONTENT_FORMATS || {});
 
         for (let i = 0; i < count; i++) {
             // Pick random article and persona

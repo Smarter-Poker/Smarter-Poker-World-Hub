@@ -139,8 +139,8 @@ function evaluate5Cards(cards) {
     // Count ranks
     const rankCounts = {};
     for (const v of values) rankCounts[v] = (rankCounts[v] || 0) + 1;
-    const counts = Object.values(rankCounts).sort((a, b) => b - a);
-    const ranksDesc = Object.entries(rankCounts)
+    const counts = Object.values(rankCounts || {}).sort((a, b) => b - a);
+    const ranksDesc = Object.entries(rankCounts || {})
         .sort((a, b) => b[1] - a[1] || b[0] - a[0])
         .map(e => Number(e[0]));
 
@@ -250,7 +250,7 @@ export function classifyDraws(holeCards, board) {
         const suit = card[1];
         suitCounts[suit] = (suitCounts[suit] || 0) + 1;
     }
-    const maxSuit = Math.max(...Object.values(suitCounts));
+    const maxSuit = Math.max(...Object.values(suitCounts || {}));
     const hasFlushDraw = maxSuit === 4;
     const hasBackdoorFlush = maxSuit === 3 && board.length === 3;
 

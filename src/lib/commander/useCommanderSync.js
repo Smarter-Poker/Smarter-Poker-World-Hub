@@ -102,7 +102,7 @@ const ENTITY_TO_TABLES = {
 };
 
 // All Supabase tables (used when no entity filter is specified)
-const ALL_SUPABASE_TABLES = Object.keys(TABLE_TO_ENTITY);
+const ALL_SUPABASE_TABLES = Object.keys(TABLE_TO_ENTITY || {});
 
 // ─── Singleton Channel Manager (Optimization 1) ───────────────
 // Shares ONE Supabase Realtime channel per venue across all hook

@@ -337,7 +337,7 @@ function matchSolverSpot(scenario) {
 
     // 3-bet ranges
     if (title.includes('3-bet') || title.includes('3bet')) {
-        const keys = Object.keys(SOLVER_3BET);
+        const keys = Object.keys(SOLVER_3BET || {});
         // Try exact match with vsPosition
         if (scenario.vsPosition) {
             const exactKey = `${pos}_vs_${scenario.vsPosition}`;
@@ -350,7 +350,7 @@ function matchSolverSpot(scenario) {
 
     // 4-bet ranges
     if (title.includes('4-bet') || title.includes('4bet')) {
-        const keys = Object.keys(SOLVER_4BET);
+        const keys = Object.keys(SOLVER_4BET || {});
         for (const key of keys) {
             if (key.toUpperCase().startsWith(pos)) return SOLVER_4BET[key];
         }
@@ -358,7 +358,7 @@ function matchSolverSpot(scenario) {
 
     // Squeeze ranges
     if (title.includes('squeeze') || title.includes('sqz')) {
-        const keys = Object.keys(SOLVER_SQZ);
+        const keys = Object.keys(SOLVER_SQZ || {});
         for (const key of keys) {
             if (key.toUpperCase().startsWith(pos)) return SOLVER_SQZ[key];
         }
@@ -366,7 +366,7 @@ function matchSolverSpot(scenario) {
 
     // Cold call ranges
     if (title.includes('cold call') || title.includes('flat') || title.includes('cold-call')) {
-        const keys = Object.keys(SOLVER_CC);
+        const keys = Object.keys(SOLVER_CC || {});
         if (scenario.vsPosition) {
             const exactKey = `${pos}_vs_${scenario.vsPosition}`;
             if (SOLVER_CC[exactKey]) return SOLVER_CC[exactKey];
@@ -396,7 +396,7 @@ export function enrichScenarioWithFrequencies(scenario) {
     if (!solverSpot) return scenario;
 
     const enrichedSolution = {};
-    for (const [hand, action] of Object.entries(scenario.solution)) {
+    for (const [hand, action] of Object.entries(scenario.solution || {})) {
         const solverFreqs = solverGetFreqs(solverSpot, hand);
         enrichedSolution[hand] = {
             primaryAction: action,
@@ -407,7 +407,7 @@ export function enrichScenarioWithFrequencies(scenario) {
     }
 
     // Include hands in solver range but NOT in the binary solution
-    const allSolverHands = Object.keys(solverSpot);
+    const allSolverHands = Object.keys(solverSpot || {});
     for (const hand of allSolverHands) {
         if (!enrichedSolution[hand]) {
             const solverFreqs = solverGetFreqs(solverSpot, hand);

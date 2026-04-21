@@ -170,7 +170,7 @@ export async function initializeHorseSourceAssignments(allSources, sourceType = 
 
     console.debug(`\n🐴 Initializing source assignments for ${horses.length} horses...`);
 
-    const sourceKeys = Object.keys(allSources);
+    const sourceKeys = Object.keys(allSources || {});
     const horsesPerSource = 2; // Each source assigned to exactly 2 horses
     const sourcesPerHorse = 3; // Each horse gets 3 sources
 

@@ -26,10 +26,10 @@ const CLASSIFICATION_COLORS = {
 export default function StreetAccuracyPanel({ streetAccuracy }) {
     const [expanded, setExpanded] = useState(null);
 
-    if (!streetAccuracy || Object.keys(streetAccuracy).length === 0) return null;
+    if (!streetAccuracy || Object.keys(streetAccuracy || {}).length === 0) return null;
 
     // Sort streets in logical order
-    const streets = Object.entries(streetAccuracy)
+    const streets = Object.entries(streetAccuracy || {})
         .map(([key, data]) => ({
             key: key.toUpperCase(),
             ...data,
@@ -50,7 +50,7 @@ export default function StreetAccuracyPanel({ streetAccuracy }) {
                 {streets.map((street, i) => {
                     const isExpanded = expanded === street.key;
                     const cls = street.classifications || {};
-                    const clsTotal = Object.values(cls).reduce((s, v) => s + v, 0) || 1;
+                    const clsTotal = Object.values(cls || {}).reduce((s, v) => s + v, 0) || 1;
 
                     return (
                         <motion.div
@@ -91,7 +91,7 @@ export default function StreetAccuracyPanel({ streetAccuracy }) {
                                         animate={{ opacity: 1, height: 6 }}
                                         style={styles.classBar}
                                     >
-                                        {Object.entries(cls)
+                                        {Object.entries(cls || {})
                                             .filter(([_, v]) => v > 0)
                                             .sort((a, b) => {
                                                 const order = ['best', 'correct', 'inaccuracy', 'wrong', 'blunder'];

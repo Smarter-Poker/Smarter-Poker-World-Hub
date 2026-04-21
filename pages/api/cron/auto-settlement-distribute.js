@@ -92,7 +92,7 @@ export default async function handler(req, res) {
           byClub[dist.club_id].push(dist);
         }
 
-        for (const [clubId, distributions] of Object.entries(byClub)) {
+        for (const [clubId, distributions] of Object.entries(byClub || {})) {
           // Group by agent within club
           const byAgent = {};
           for (const dist of distributions) {
@@ -100,7 +100,7 @@ export default async function handler(req, res) {
             byAgent[dist.agent_user_id].push(dist);
           }
 
-          for (const [agentUserId, agentDists] of Object.entries(byAgent)) {
+          for (const [agentUserId, agentDists] of Object.entries(byAgent || {})) {
             try {
               // Get agent's current chip balance
               const { data: agentMember } = await getSupabaseAdmin()

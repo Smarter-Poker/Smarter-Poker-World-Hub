@@ -163,7 +163,7 @@ export default async function handler(req, res) {
               const spotData = FOUR_BET[spotKey];
               if (!spotData) {
                   // Fallback: try closest available spot
-                  const fallbackKey = Object.keys(FOUR_BET).find(k => k.startsWith(pos)) || 'BTN_vs_3bet';
+                  const fallbackKey = Object.keys(FOUR_BET || {}).find(k => k.startsWith(pos)) || 'BTN_vs_3bet';
                   const fbData = FOUR_BET[fallbackKey] || {};
                   actions = ['4-Bet', 'Call', 'Fold'];
                   spotLabel = `${pos} vs 3-Bet (${fallbackKey})`;
@@ -206,7 +206,7 @@ export default async function handler(req, res) {
           // ─── Cold Call ─────────────────────────────────────────────────
           else if (scenario === 'cold_call') {
               // Cold call spots: CO_vs_UTG, BTN_vs_UTG, BTN_vs_CO, SB_vs_BTN
-              const ccKey = vsPos ? `${pos}_vs_${vsPos}` : Object.keys(COLD_CALL).find(k => k.startsWith(pos)) || 'BTN_vs_CO';
+              const ccKey = vsPos ? `${pos}_vs_${vsPos}` : Object.keys(COLD_CALL || {}).find(k => k.startsWith(pos)) || 'BTN_vs_CO';
               const spotData = COLD_CALL[ccKey];
               if (!spotData) {
                   return res.status(400).json({ success: false, error: `No cold-call data for ${ccKey}` });
@@ -224,7 +224,7 @@ export default async function handler(req, res) {
           // ─── Squeeze ───────────────────────────────────────────────────
           else if (scenario === 'squeeze') {
               // Find matching squeeze spot
-              const sqzKey = Object.keys(SQUEEZE).find(k => k.startsWith(pos)) || Object.keys(SQUEEZE)[0];
+              const sqzKey = Object.keys(SQUEEZE || {}).find(k => k.startsWith(pos)) || Object.keys(SQUEEZE || {})[0];
               const spotData = SQUEEZE[sqzKey];
               if (!spotData) {
                   return res.status(400).json({ success: false, error: `No squeeze data for ${pos}` });

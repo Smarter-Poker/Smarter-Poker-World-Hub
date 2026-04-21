@@ -125,7 +125,7 @@ function shuffle(array) {
 function pickRandomHand(strategyMatrix) {
     // Try hand_evs first
     if (strategyMatrix.hand_evs && typeof strategyMatrix.hand_evs === 'object') {
-        const hands = Object.keys(strategyMatrix.hand_evs);
+        const hands = Object.keys(strategyMatrix.hand_evs || {});
         if (hands.length > 0) {
             return hands[Math.floor(Math.random() * hands.length)];
         }
@@ -133,7 +133,7 @@ function pickRandomHand(strategyMatrix) {
 
     // Try frequencies
     if (strategyMatrix.frequencies && typeof strategyMatrix.frequencies === 'object') {
-        const firstAction = Object.keys(strategyMatrix.frequencies)[0];
+        const firstAction = Object.keys(strategyMatrix.frequencies || {})[0];
         if (firstAction && strategyMatrix.frequencies[firstAction]) {
             const hands = Object.keys(strategyMatrix.frequencies[firstAction]);
             if (hands.length > 0) {
@@ -143,7 +143,7 @@ function pickRandomHand(strategyMatrix) {
     }
 
     // Fallback to direct keys (old format)
-    const hands = Object.keys(strategyMatrix).filter(k => !['actions', 'frequencies', 'hand_evs', 'ev_ip', 'ev_oop', 'tree_file', 'tree_lines', 'exploitability'].includes(k));
+    const hands = Object.keys(strategyMatrix || {}).filter(k => !['actions', 'frequencies', 'hand_evs', 'ev_ip', 'ev_oop', 'tree_file', 'tree_lines', 'exploitability'].includes(k));
     if (hands.length === 0) return null;
     return hands[Math.floor(Math.random() * hands.length)];
 }

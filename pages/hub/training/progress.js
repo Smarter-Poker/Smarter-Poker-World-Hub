@@ -135,7 +135,7 @@ export default function TrainingProgress() {
         })) || [];
 
       // Weak areas (categories with < 70% accuracy)
-      const weakAreas = Object.entries(categoryBreakdown)
+      const weakAreas = Object.entries(categoryBreakdown || {})
         .map(([category, data]) => ({
           category,
           accuracy: data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0,
@@ -251,7 +251,7 @@ export default function TrainingProgress() {
           <section style={styles.section}>
             <h2 style={styles.sectionTitle}>📚 Category Breakdown</h2>
             <div style={styles.categoryList}>
-              {Object.entries(stats.categoryBreakdown).map(([category, data]) => {
+              {Object.entries(stats.categoryBreakdown || {}).map(([category, data]) => {
                 const accuracy = data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0;
                 return (
                   <CategoryCard

@@ -409,7 +409,7 @@ export default function SeriesDetailPage() {
     }
 
     // BUG FIX: Read token from all known Supabase storage key patterns
-    const tokenKey = Object.keys(localStorage).find(k =>
+    const tokenKey = Object.keys(localStorage || {}).find(k =>
       k.includes('auth-token') || k.includes('supabase.auth.token') || k.startsWith('sb-')
     );
     let storedToken = null;

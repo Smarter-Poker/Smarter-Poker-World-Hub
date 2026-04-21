@@ -101,7 +101,7 @@ export default async function handler(req, res) {
               });
           }
 
-          console.log(`[SpacedRepetition] Saved ${rows.length} mistake spots for user ${userId.slice(0, 8)}`);
+          console.debug(`[SpacedRepetition] Saved ${rows.length} mistake spots for user ${userId.slice(0, 8)}`);
           return res.status(200).json({ success: true, saved: rows.length });
       }
 

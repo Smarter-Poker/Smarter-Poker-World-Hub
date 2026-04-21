@@ -32,7 +32,7 @@ function classifyPLOPreflop(cards) {
     // ── Suitedness ──
     const suitFreq = {};
     for (const s of suits) suitFreq[s] = (suitFreq[s] || 0) + 1;
-    const suitCounts = Object.values(suitFreq).sort((a, b) => b - a);
+    const suitCounts = Object.values(suitFreq || {}).sort((a, b) => b - a);
     let suitScore = 0;
     if (suitCounts[0] >= 3) suitScore = 30;               // Triple/quad-suited (rare, very strong)
     else if (suitCounts[0] === 2 && (suitCounts[1] >= 2)) suitScore = 22; // Double-suited
@@ -62,7 +62,7 @@ function classifyPLOPreflop(cards) {
     // ── Pair / High Card quality ──
     const rankFreq = {};
     for (const r of ranks) rankFreq[r] = (rankFreq[r] || 0) + 1;
-    const pairs = Object.entries(rankFreq).filter(([, c]) => c >= 2);
+    const pairs = Object.entries(rankFreq || {}).filter(([, c]) => c >= 2);
     const hasAA = rankFreq[12] >= 2;
     const hasKK = rankFreq[11] >= 2;
     const hasQQ = rankFreq[10] >= 2;
@@ -412,7 +412,7 @@ function countBackdoorOuts(holeCards, boardCards) {
     //
     const hRankFreq = {};
     for (const r of holeRanks) hRankFreq[r] = (hRankFreq[r] || 0) + 1;
-    const holePairs = Object.entries(hRankFreq).filter(([, c]) => c >= 2).map(([r]) => parseInt(r));
+    const holePairs = Object.entries(hRankFreq || {}).filter(([, c]) => c >= 2).map(([r]) => parseInt(r));
 
     const bRankFreq = {};
     for (const r of boardRanks) bRankFreq[r] = (bRankFreq[r] || 0) + 1;
@@ -434,7 +434,7 @@ function countBackdoorOuts(holeCards, boardCards) {
     }
 
     // Path D: Trips via board pair + hole card → need board to pair for FH
-    const boardPairedRanks = Object.entries(bRankFreq).filter(([, c]) => c >= 2).map(([r]) => parseInt(r));
+    const boardPairedRanks = Object.entries(bRankFreq || {}).filter(([, c]) => c >= 2).map(([r]) => parseInt(r));
     for (const bp of boardPairedRanks) {
         if (holeRanks.includes(bp)) {
             // We have trips. Other hole ranks that could pair for FH:
@@ -453,7 +453,7 @@ function countBackdoorOuts(holeCards, boardCards) {
     // Our backdoor draws gain +1 pseudo-out from fold equity on non-flush scare cards
     const boardSuitFreq = {};
     for (const s of boardSuits) boardSuitFreq[s] = (boardSuitFreq[s] || 0) + 1;
-    const twoToneSuits = Object.entries(boardSuitFreq).filter(([, c]) => c >= 2).map(([s]) => s);
+    const twoToneSuits = Object.entries(boardSuitFreq || {}).filter(([, c]) => c >= 2).map(([s]) => s);
     const boardTwoToneNotOurs = twoToneSuits.some(s =>
         holeCards.filter(c => c.suit === s).length < 2 // We don't have the flush draw in this suit
     );
@@ -493,7 +493,7 @@ function evaluatePLOMadeHand(holeCards, boardCards) {
     const allRanks = [...hRanks, ...bRanks];
     const allRankFreq = {};
     for (const r of allRanks) allRankFreq[r] = (allRankFreq[r] || 0) + 1;
-    for (const [rank, count] of Object.entries(allRankFreq)) {
+    for (const [rank, count] of Object.entries(allRankFreq || {})) {
         if (count >= 4) {
             const r = parseInt(rank);
             const holeCount = hRanks.filter(hr => hr === r).length;
@@ -582,7 +582,7 @@ function evaluatePLOMadeHand(holeCards, boardCards) {
             if (hRanks.some(r => bRanks.includes(r))) flushHasRedraw = true;
             const hRankFreqLocal = {};
             for (const r of hRanks) hRankFreqLocal[r] = (hRankFreqLocal[r] || 0) + 1;
-            if (Object.values(hRankFreqLocal).some(cnt => cnt >= 2)) flushHasRedraw = true;
+            if (Object.values(hRankFreqLocal || {}).some(cnt => cnt >= 2)) flushHasRedraw = true;
         }
     }
     if (hasFlush) {
@@ -698,12 +698,12 @@ function evaluatePLOMadeHand(holeCards, boardCards) {
     // ── Trips on board (one pair board + our pair = full house) ──
     const bRankFreq = {};
     for (const r of bRanks) bRankFreq[r] = (bRankFreq[r] || 0) + 1;
-    const boardPairs = Object.entries(bRankFreq).filter(([, c]) => c >= 2).map(([r]) => parseInt(r));
-    const boardTrips = Object.entries(bRankFreq).filter(([, c]) => c >= 3).map(([r]) => parseInt(r));
+    const boardPairs = Object.entries(bRankFreq || {}).filter(([, c]) => c >= 2).map(([r]) => parseInt(r));
+    const boardTrips = Object.entries(bRankFreq || {}).filter(([, c]) => c >= 3).map(([r]) => parseInt(r));
 
     const hRankFreq = {};
     for (const r of hRanks) hRankFreq[r] = (hRankFreq[r] || 0) + 1;
-    const holePairs = Object.entries(hRankFreq).filter(([, c]) => c >= 2).map(([r]) => parseInt(r));
+    const holePairs = Object.entries(hRankFreq || {}).filter(([, c]) => c >= 2).map(([r]) => parseInt(r));
 
     // ── Full House — Bug #112: Comprehensive nut vs non-nut differentiation ──
     // In PLO, full house RANK matters enormously:
@@ -899,7 +899,7 @@ function evaluatePLOMadeHand(holeCards, boardCards) {
     // ── Bug #90: Overpair detection (pocket pair above all board cards) ──
     const hRankFreqOP = {};
     for (const r of hRanks) hRankFreqOP[r] = (hRankFreqOP[r] || 0) + 1;
-    for (const [rank, cnt] of Object.entries(hRankFreqOP)) {
+    for (const [rank, cnt] of Object.entries(hRankFreqOP || {})) {
         const r = parseInt(rank);
         if (cnt >= 2 && r > boardTop) {
             return {
@@ -1197,7 +1197,7 @@ function analyzePLOBoardTexture(boardCards) {
     if (!boardCards || boardCards.length === 0) return { texture: 'unknown', flushCompleted: false, monoBoardPenalty: 0, isDangerous: false, straightCompleted: false, isRunOutBoard: false, isPaired: false, isMonotone: false };
     const suits = boardCards.map(c => c.suit), ranks = boardCards.map(c => c.rank);
     const suitFreq = {}; for (const s of suits) suitFreq[s] = (suitFreq[s] || 0) + 1;
-    const maxSuit = Math.max(...Object.values(suitFreq));
+    const maxSuit = Math.max(...Object.values(suitFreq || {}));
     const flushCompleted = maxSuit >= 4;
     // Bug #106: Was `maxSuit === boardCards.length && boardCards.length === 3` — only detected
     // monotone on the FLOP. A 4-card or 5-card all-same-suit board was labeled 'two_tone'
@@ -1205,7 +1205,7 @@ function analyzePLOBoardTexture(boardCards) {
     // texture classification, aggression dampening) to silently fail on turn/river.
     const isMonotone = maxSuit === boardCards.length;
     const rankFreq = {}; for (const r of ranks) rankFreq[r] = (rankFreq[r] || 0) + 1;
-    const numPairs = Object.values(rankFreq).filter(v => v >= 2).length;
+    const numPairs = Object.values(rankFreq || {}).filter(v => v >= 2).length;
     const isPaired = numPairs >= 1, isDoublePaired = numPairs >= 2;
     const uniqueRanks = [...new Set(ranks)].sort((a, b) => a - b);
     let cc = 1, maxC = 1;
@@ -1217,8 +1217,8 @@ function analyzePLOBoardTexture(boardCards) {
     if (isMonotone) texture = 'monotone';
     else if (isDoublePaired) texture = 'double_paired';
     else if (isPaired) texture = 'paired';
-    else if (Object.values(suitFreq).some(v => v >= 2)) texture = 'two_tone';
-    const twoTone = Object.values(suitFreq).some(v => v >= 2) && !isMonotone;
+    else if (Object.values(suitFreq || {}).some(v => v >= 2)) texture = 'two_tone';
+    const twoTone = Object.values(suitFreq || {}).some(v => v >= 2) && !isMonotone;
     const isWet = twoTone || isMonotone || straightCompleted || (maxC >= 3);
     return { texture, flushCompleted, monoBoardPenalty, isDangerous: isMonotone || isPaired || flushCompleted || straightCompleted, straightCompleted, isRunOutBoard, isPaired, isMonotone, twoTone, isWet };
 }
@@ -1321,7 +1321,7 @@ function getPLOBlockers(holeCards, boardCards) {
     const bSuits = boardCards.map(c => c.suit), bRanks = boardCards.map(c => c.rank);
     const hRanks = holeCards.map(c => c.rank);
     const sf = {}; for (const s of bSuits) sf[s] = (sf[s] || 0) + 1;
-    const dom = Object.entries(sf).sort(([, a], [, b]) => b - a)[0]?.[0];
+    const dom = Object.entries(sf || {}).sort(([, a], [, b]) => b - a)[0]?.[0];
     const hasFlushBlocker = !!(dom && holeCards.some(c => c.suit === dom && c.rank === 12));
     const bTop = Math.max(...bRanks, 0);
     const nutRanks = [bTop + 1, bTop, bTop - 1, bTop - 2, bTop - 3];
@@ -2234,7 +2234,7 @@ async function updatePLOOpponentRead(horseId, opponentId, revealedHand, opponent
         if (wasStation) update.fold_tendency = -0.02;     // Downward nudge (calls more)
         if (wasSlowPlay) update.slow_play_tendency = 0.02;
 
-        if (Object.keys(update).length === 0) return;
+        if (Object.keys(update || {}).length === 0) return;
 
         // Read existing record first, then merge
         const { data: existing } = await supabaseClient
@@ -2379,7 +2379,7 @@ function getPLOCardRemovalEffects(holeCards, boardCards) {
 
     // Flush nut blocker: holding Ace of dominant suit blocks nut flush draw combos
     const sFq = {}; for (const s of bSuits) sFq[s] = (sFq[s] || 0) + 1;
-    const dom = Object.entries(sFq).sort(([, a], [, b]) => b - a)[0]?.[0];
+    const dom = Object.entries(sFq || {}).sort(([, a], [, b]) => b - a)[0]?.[0];
     if (dom && bSuits.filter(s => s === dom).length >= 2) {
         const hasAceOfFlushSuit = holeCards.some(c => c.suit === dom && c.rank === 12);
         if (hasAceOfFlushSuit) {
@@ -2676,7 +2676,7 @@ function deduplicatePLOComboOuts(holeCards, boardCards, rawStraightOuts, rawFlus
     const bSuits = boardCards.map(c => c.suit);
     const hSuits = holeCards.map(c => c.suit);
     const sFq = {}; for (const s of [...bSuits, ...hSuits]) sFq[s] = (sFq[s] || 0) + 1;
-    const dom = Object.entries(sFq).sort(([, a], [, b]) => b - a)[0]?.[0];
+    const dom = Object.entries(sFq || {}).sort(([, a], [, b]) => b - a)[0]?.[0];
 
     // Estimate overlap: straight outs that are also the flush suit
     const flushStraightOverlap = dom ? Math.min(Math.floor(rawStraightOuts * 0.2), 3) : 0;
@@ -5564,7 +5564,7 @@ function enhancePLOPreflopScore(holeCards) {
     // Double-suited detection (2 cards of one suit + 2 cards of another suit)
     const suitCount = {};
     for (const c of holeCards) suitCount[c.suit] = (suitCount[c.suit] || 0) + 1;
-    const suitValues = Object.values(suitCount).sort((a, b) => b - a);
+    const suitValues = Object.values(suitCount || {}).sort((a, b) => b - a);
     const isDoubleSuited = suitValues[0] >= 2 && suitValues[1] >= 2;
     const isSingleSuited = !isDoubleSuited && suitValues[0] >= 2;
     const doubleSuitBonus = isDoubleSuited ? 12 : isSingleSuited ? 5 : 0;
@@ -5582,8 +5582,8 @@ function enhancePLOPreflopScore(holeCards) {
     // Pair bonus: pairs have set-mining value (full house potential)
     const rankGroups = {};
     for (const r of ranks) rankGroups[r] = (rankGroups[r] || 0) + 1;
-    const hasPair = Object.values(rankGroups).some(v => v >= 2);
-    const hasDoublePair = Object.values(rankGroups).filter(v => v >= 2).length >= 2;
+    const hasPair = Object.values(rankGroups || {}).some(v => v >= 2);
+    const hasDoublePair = Object.values(rankGroups || {}).filter(v => v >= 2).length >= 2;
     const pairBonus = hasDoublePair ? -3 : hasPair ? 4 : 0; // Double pairs = dangler risk
 
     // Dangler penalty: if one card is an outlier rank (>4 from nearest neighbor)
@@ -7160,10 +7160,10 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         const boardSuits = boardCards.map(c => c.suit);
         const suitCounts = {};
         for (const s of boardSuits) suitCounts[s] = (suitCounts[s] || 0) + 1;
-        const flushPossible = Object.values(suitCounts).some(c => c >= 3);
+        const flushPossible = Object.values(suitCounts || {}).some(c => c >= 3);
         const boardRankFreq = {};
         for (const r of boardCards.map(c => c.rank)) boardRankFreq[r] = (boardRankFreq[r] || 0) + 1;
-        const boardPaired = Object.values(boardRankFreq).some(c => c >= 2);
+        const boardPaired = Object.values(boardRankFreq || {}).some(c => c >= 2);
         if (!flushPossible && !boardPaired) {
             console.debug('[HorseBrain]  BUG #118 PLO SAFE TURN: naked nut straight on safe turn — raising now.');
             return { type: raiseAction.type, amount: clampedPotRaise };

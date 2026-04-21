@@ -258,8 +258,8 @@ export function StoriesBar({ userId, userAvatar, onCreateStory }) {
                         grouped[story.author_id].stories.push(story);
                     }
                 });
-                console.debug('[Stories] Grouped stories:', Object.keys(grouped).length);
-                setStories(Object.values(grouped));
+                console.debug('[Stories] Grouped stories:', Object.keys(grouped || {}).length);
+                setStories(Object.values(grouped || {}));
             }
         } catch (e) {
             console.warn('Error loading stories:', e);

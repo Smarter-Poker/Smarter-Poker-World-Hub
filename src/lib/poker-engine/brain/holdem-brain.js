@@ -1250,7 +1250,7 @@ function evaluatePostflopHand(holeCards, board) {
     // ═══ STRAIGHT FLUSH ═══ (new — was completely missing!)
     // Check before quads since straight flush beats quads
     {
-        const flushSuit = Object.keys(suitCounts).find(s => suitCounts[s] >= 5);
+        const flushSuit = Object.keys(suitCounts || {}).find(s => suitCounts[s] >= 5);
         if (flushSuit && heroSuits.includes(flushSuit)) {
             const flushCards = allCards.filter(c => c[1] === flushSuit).map(c => RANKS.indexOf(c[0]));
             const uniqueFlush = [...new Set(flushCards)].sort((a, b) => a - b);
@@ -1280,7 +1280,7 @@ function evaluatePostflopHand(holeCards, board) {
 
     // Quads
     if (category === 'high_card') {
-        const quadRank = Object.keys(rankCounts).find(r => rankCounts[r] === 4);
+        const quadRank = Object.keys(rankCounts || {}).find(r => rankCounts[r] === 4);
         if (quadRank && heroRanks.includes(Number(quadRank))) {
             strength = 97; category = 'quads';
             // ═══ KICKER MATTERS FOR QUADS ═══ (e.g., quad 2s with Ace kicker > quad 2s with 5 kicker)
@@ -1291,8 +1291,8 @@ function evaluatePostflopHand(holeCards, board) {
 
     // Full house (check before flush/straight)
     if (category === 'high_card') {
-        const trips = Object.keys(rankCounts).filter(r => rankCounts[r] >= 3).map(Number);
-        const pairs = Object.keys(rankCounts).filter(r => rankCounts[r] >= 2).map(Number);
+        const trips = Object.keys(rankCounts || {}).filter(r => rankCounts[r] >= 3).map(Number);
+        const pairs = Object.keys(rankCounts || {}).filter(r => rankCounts[r] >= 2).map(Number);
         if (trips.length >= 1 && pairs.length >= 2) {
             if (heroRanks.some(r => rankCounts[r] >= 2)) {
                 // ═══ BUG #112: NUT-VS-NON-NUT FULL HOUSE (Hold'em) ═══
@@ -1367,7 +1367,7 @@ function evaluatePostflopHand(holeCards, board) {
 
     // Flush
     if (category === 'high_card') {
-        const flushSuit = Object.keys(suitCounts).find(s => suitCounts[s] >= 5);
+        const flushSuit = Object.keys(suitCounts || {}).find(s => suitCounts[s] >= 5);
         if (flushSuit && heroSuits.includes(flushSuit)) {
             const flushCards = allCards.filter(c => c[1] === flushSuit).map(c => RANKS.indexOf(c[0])).sort((a, b) => b - a);
             const heroFlushCards = heroRanks.filter((r, i) => heroSuits[i] === flushSuit);
@@ -1502,7 +1502,7 @@ function evaluatePostflopHand(holeCards, board) {
 
     // Three of a kind
     if (category === 'high_card') {
-        const tripRank = Object.keys(rankCounts).find(r => rankCounts[r] === 3);
+        const tripRank = Object.keys(rankCounts || {}).find(r => rankCounts[r] === 3);
         if (tripRank && heroRanks.includes(Number(tripRank))) {
             const boardHasTrip = boardRanks.filter(r => r === Number(tripRank)).length >= 2;
             if (boardHasTrip) {
@@ -1524,7 +1524,7 @@ function evaluatePostflopHand(holeCards, board) {
 
     // Two pair
     if (category === 'high_card') {
-        const pairRanks = Object.keys(rankCounts).filter(r => rankCounts[r] >= 2).map(Number);
+        const pairRanks = Object.keys(rankCounts || {}).filter(r => rankCounts[r] >= 2).map(Number);
         if (pairRanks.length >= 2) {
             const heroPairs = pairRanks.filter(r => heroRanks.includes(r));
             if (heroPairs.length >= 2) {
@@ -1565,7 +1565,7 @@ function evaluatePostflopHand(holeCards, board) {
                     // So QQ on KK558 = KKQQ two pair = bluff-catcher, NOT a strong hand.
                     //
                     // Count how many board pairs exist — more board pairs = more full houses out there.
-                    const numBoardPairs = Object.values(boardRankCounts).filter(c => c >= 2).length;
+                    const numBoardPairs = Object.values(boardRankCounts || {}).filter(c => c >= 2).length;
                     if (numBoardPairs >= 2) {
                         // Board has 2+ pairs — full houses are EVERYWHERE
                         // Hero's pocket pair is just a better bluff-catcher than having high cards
@@ -1583,8 +1583,8 @@ function evaluatePostflopHand(holeCards, board) {
                     }
                 } else {
                     // Hero pair is NOT in the top 2 pairs — weakest position
-                    const numBoardPairsGeneric = Object.values(boardRankCounts).filter(c => c >= 2).length;
-                    const boardPairRanksArr = Object.keys(boardRankCounts).filter(r => boardRankCounts[r] >= 2).map(Number);
+                    const numBoardPairsGeneric = Object.values(boardRankCounts || {}).filter(c => c >= 2).length;
+                    const boardPairRanksArr = Object.keys(boardRankCounts || {}).filter(r => boardRankCounts[r] >= 2).map(Number);
                     const allBoardPairsHigher = boardPairRanksArr.length >= 2 && boardPairRanksArr.every(r => r > heroPairRank);
 
                     if (numBoardPairsGeneric >= 2 && allBoardPairsHigher) {
@@ -1619,7 +1619,7 @@ function evaluatePostflopHand(holeCards, board) {
 
     // One pair
     if (category === 'high_card') {
-        const pairRanks = Object.keys(rankCounts).filter(r => rankCounts[r] >= 2).map(Number);
+        const pairRanks = Object.keys(rankCounts || {}).filter(r => rankCounts[r] >= 2).map(Number);
         if (pairRanks.length >= 1) {
             const heroPair = pairRanks.find(r => heroRanks.includes(r));
             if (heroPair !== undefined) {
@@ -1687,8 +1687,8 @@ function evaluatePostflopHand(holeCards, board) {
     //   Board single pair (5582K): Anyone with a 5 has trips. Pairs make two-pair.
     //     → Hero is only better than worse unpaired hands.
     if (category === 'high_card' || category === 'no_pair') {
-        const boardTripRanks = Object.keys(boardRankCounts).filter(r => boardRankCounts[r] >= 3).map(Number);
-        const boardPairRanks = Object.keys(boardRankCounts).filter(r => boardRankCounts[r] >= 2).map(Number);
+        const boardTripRanks = Object.keys(boardRankCounts || {}).filter(r => boardRankCounts[r] >= 3).map(Number);
+        const boardPairRanks = Object.keys(boardRankCounts || {}).filter(r => boardRankCounts[r] >= 2).map(Number);
         const bestKicker = Math.max(...heroRanks);
         const secondKicker = Math.min(...heroRanks);
 
@@ -1765,7 +1765,7 @@ function evaluatePostflopHand(holeCards, board) {
         if (board.length === 5) {
             const boardSuitCounts = {};
             boardSuits.forEach(s => { boardSuitCounts[s] = (boardSuitCounts[s] || 0) + 1; });
-            const boardFlushSuit = Object.keys(boardSuitCounts).find(s => boardSuitCounts[s] >= 5);
+            const boardFlushSuit = Object.keys(boardSuitCounts || {}).find(s => boardSuitCounts[s] >= 5);
             if (boardFlushSuit && !heroSuits.includes(boardFlushSuit)) {
                 // Board has a 5-card flush and hero has no matching suit.
                 // Hero plays the board flush but loses to ANYONE with a card of that suit.
@@ -2036,11 +2036,11 @@ function makeTurnRiverHeuristicDecision(params) {
     // Suit analysis
     const suitCounts = {};
     boardSuits.forEach(s => { suitCounts[s] = (suitCounts[s] || 0) + 1; });
-    const maxSuitCount = Math.max(...Object.values(suitCounts));
+    const maxSuitCount = Math.max(...Object.values(suitCounts || {}));
     const flushPossible = maxSuitCount >= 3;
     const flushCompleted = maxSuitCount >= 3 && board.length >= 5;
     const flushDrew = maxSuitCount >= 3 && board.length === 4;
-    const flushSuit = Object.entries(suitCounts).find(([s, c]) => c >= 3)?.[0];
+    const flushSuit = Object.entries(suitCounts || {}).find(([s, c]) => c >= 3)?.[0];
 
     // Straight analysis
     const uniqueRanks = [...new Set(boardRanks)].sort((a, b) => a - b);
@@ -5654,7 +5654,7 @@ function makeFlopHeuristicDecision(params) {
     const boardSuits = board.map(c => c[1]);
     const suitCounts = {};
     boardSuits.forEach(s => { suitCounts[s] = (suitCounts[s] || 0) + 1; });
-    const maxSuitCount = Math.max(...Object.values(suitCounts));
+    const maxSuitCount = Math.max(...Object.values(suitCounts || {}));
     const boardIsMonotone = maxSuitCount === 3;
     const boardHasFlushDraw = maxSuitCount >= 2;
 
@@ -7020,7 +7020,7 @@ function evaluateBoardWetness(board) {
     // Suit analysis
     const suitCounts = {};
     suits.forEach(s => { suitCounts[s] = (suitCounts[s] || 0) + 1; });
-    const maxSuit = Math.max(...Object.values(suitCounts));
+    const maxSuit = Math.max(...Object.values(suitCounts || {}));
 
     // Connectedness
     const gaps = [];
@@ -8104,8 +8104,8 @@ function analyzeBoardEvolution(board, street) {
     const flopSuits = flopBoard.map(c => c[1]);
     const flopSuitCounts = {};
     flopSuits.forEach(s => { flopSuitCounts[s] = (flopSuitCounts[s] || 0) + 1; });
-    const flopMaxSuit = Math.max(...Object.values(flopSuitCounts));
-    const flopFlushDrawSuit = Object.entries(flopSuitCounts).find(([s, c]) => c >= 2)?.[0];
+    const flopMaxSuit = Math.max(...Object.values(flopSuitCounts || {}));
+    const flopFlushDrawSuit = Object.entries(flopSuitCounts || {}).find(([s, c]) => c >= 2)?.[0];
 
     const result = {
         evolution: 'neutral',
@@ -8148,7 +8148,7 @@ function analyzeBoardEvolution(board, street) {
         // Flush draw created or completed
         const turnSuitCounts = { ...flopSuitCounts };
         turnSuitCounts[turnSuit] = (turnSuitCounts[turnSuit] || 0) + 1;
-        const turnMaxSuit = Math.max(...Object.values(turnSuitCounts));
+        const turnMaxSuit = Math.max(...Object.values(turnSuitCounts || {}));
         if (flopMaxSuit < 3 && turnMaxSuit >= 3) {
             result.drawsCompleted.push('flush');
             result.flushCompleted = true;
@@ -8208,7 +8208,7 @@ function analyzeBoardEvolution(board, street) {
         const turnSuits = turnBoard.map(c => c[1]);
         const turnSuitCounts2 = {};
         turnSuits.forEach(s => { turnSuitCounts2[s] = (turnSuitCounts2[s] || 0) + 1; });
-        const turnMaxSuit2 = Math.max(...Object.values(turnSuitCounts2));
+        const turnMaxSuit2 = Math.max(...Object.values(turnSuitCounts2 || {}));
 
         // River overcard
         if (riverRank > Math.max(...turnRanks)) {
@@ -8226,7 +8226,7 @@ function analyzeBoardEvolution(board, street) {
         // Flush completed on river
         const riverSuitCounts = { ...turnSuitCounts2 };
         riverSuitCounts[riverSuit] = (riverSuitCounts[riverSuit] || 0) + 1;
-        const riverMaxSuit = Math.max(...Object.values(riverSuitCounts));
+        const riverMaxSuit = Math.max(...Object.values(riverSuitCounts || {}));
         if (turnMaxSuit2 < 3 && riverMaxSuit >= 3) {
             result.drawsCompleted.push('flush');
             result.flushCompleted = true;
@@ -9078,7 +9078,7 @@ function getHoldemBlockerAnalysis(holeCards, boardCards, street) {
     // ── Flush blocker analysis ──
     const suitCounts = {};
     bSuits.forEach(s => { suitCounts[s] = (suitCounts[s] || 0) + 1; });
-    const flushSuit = Object.entries(suitCounts).find(([, c]) => c >= 3);
+    const flushSuit = Object.entries(suitCounts || {}).find(([, c]) => c >= 3);
 
     if (flushSuit) {
         const [suit] = flushSuit;
@@ -9517,7 +9517,7 @@ function getRangeAdvantage(wasPreAggressor, boardCards, street) {
     // Suit analysis
     const suitCounts = {};
     suits.forEach(s => { suitCounts[s] = (suitCounts[s] || 0) + 1; });
-    const maxSuitCount = Math.max(...Object.values(suitCounts));
+    const maxSuitCount = Math.max(...Object.values(suitCounts || {}));
     const isMonotone = maxSuitCount >= 3;
     const isTwoTone = maxSuitCount === 2;
 
@@ -9532,7 +9532,7 @@ function getRangeAdvantage(wasPreAggressor, boardCards, street) {
     // Paired board
     const rankCounts = {};
     ranks.forEach(r => { rankCounts[r] = (rankCounts[r] || 0) + 1; });
-    const isPaired = Object.values(rankCounts).some(c => c >= 2);
+    const isPaired = Object.values(rankCounts || {}).some(c => c >= 2);
 
     let raiserAdvantage = 50; // Start neutral
 

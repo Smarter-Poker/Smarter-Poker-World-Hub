@@ -80,7 +80,7 @@ function evaluate5(cards) {
     // Count ranks
     const counts = {};
     vals.forEach(v => counts[v] = (counts[v] || 0) + 1);
-    const groups = Object.entries(counts).map(([v, c]) => ({ value: +v, count: c }));
+    const groups = Object.entries(counts || {}).map(([v, c]) => ({ value: +v, count: c }));
     groups.sort((a, b) => b.count - a.count || b.value - a.value);
 
     const makeTie = (...parts) => {

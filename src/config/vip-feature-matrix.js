@@ -320,7 +320,7 @@ export function getFeatureGate(featureKey) {
  */
 export function getFeaturesByGateType() {
   const grouped = { FREE: [], VIP: [], DIAMOND: [], MIXED: [] };
-  Object.entries(VIP_FEATURE_MATRIX).forEach(([key, config]) => {
+  Object.entries(VIP_FEATURE_MATRIX || {}).forEach(([key, config]) => {
     grouped[config.gate]?.push({ key, ...config });
   });
   return grouped;
@@ -330,7 +330,7 @@ export function getFeaturesByGateType() {
  * Summary counts for the audit
  */
 export function getFeatureGateSummary() {
-  const entries = Object.entries(VIP_FEATURE_MATRIX);
+  const entries = Object.entries(VIP_FEATURE_MATRIX || {});
   return {
     total: entries.length,
     free: entries.filter(([, c]) => c.gate === 'FREE').length,

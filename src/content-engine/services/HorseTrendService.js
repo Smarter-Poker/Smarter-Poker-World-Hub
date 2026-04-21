@@ -60,7 +60,7 @@ const MOODS = {
     }
 };
 
-const MOOD_TYPES = Object.keys(MOODS);
+const MOOD_TYPES = Object.keys(MOODS || {});
 
 // ═══════════════════════════════════════════════════════════════════════════
 // LOCATION/TIMEZONE DEFINITIONS
@@ -73,7 +73,7 @@ const LOCATIONS = {
     international: { utcOffset: 0, peakHours: [12, 13, 14, 15, 16, 17, 18], name: 'International' }
 };
 
-const LOCATION_KEYS = Object.keys(LOCATIONS);
+const LOCATION_KEYS = Object.keys(LOCATIONS || {});
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HELPER FUNCTIONS
@@ -103,7 +103,7 @@ export function getCurrentTrends() {
 
     const activeTrends = [];
 
-    for (const [key, event] of Object.entries(POKER_CALENDAR)) {
+    for (const [key, event] of Object.entries(POKER_CALENDAR || {})) {
         const { start, end } = event;
 
         // Handle year wraparound (e.g., holidays Dec-Jan)

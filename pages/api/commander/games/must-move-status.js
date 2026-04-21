@@ -119,7 +119,7 @@ async function handleGet(req, res) {
     });
 
     // Only return groups with 2+ tables (must-move candidates)
-    const candidates = Object.values(groups).filter(g => g.all.length >= 2);
+    const candidates = Object.values(groups || {}).filter(g => g.all.length >= 2);
 
     // ── Defensive: fix orphaned must-move flags ──
     const activeGameIds = new Set(enriched.map(g => g.id));
@@ -190,7 +190,7 @@ async function handleGet(req, res) {
     }
 
     // Also return all singles for reference
-    const singles = Object.values(groups).filter(g => g.all.length === 1);
+    const singles = Object.values(groups || {}).filter(g => g.all.length === 1);
 
     // Attach waitlist counts
     candidates.forEach(g => {

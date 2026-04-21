@@ -154,7 +154,7 @@ async function handlePatch(req, res, venueId, user, manager) {
         const updates = req.body;
 
         // Validate permissions for different update types
-        const updateFields = Object.keys(updates);
+        const updateFields = Object.keys(updates || {});
         const infoFields = ['name', 'address', 'city', 'state', 'phone', 'website', 'description'];
         const hoursFields = ['hours', 'hours_json'];
         const gamesFields = ['games_offered', 'stakes_cash', 'stakes_tournament'];
@@ -186,7 +186,7 @@ async function handlePatch(req, res, venueId, user, manager) {
             }
         }
 
-        if (Object.keys(filteredUpdates).length === 0) {
+        if (Object.keys(filteredUpdates || {}).length === 0) {
             return res.status(400).json({ success: false, error: 'No valid fields to update' });
         }
 
@@ -214,7 +214,7 @@ async function handlePatch(req, res, venueId, user, manager) {
                 action: 'info_updated',
                 performed_by: user.id,
                 details: {
-                    fields_updated: Object.keys(filteredUpdates).filter(f => f !== 'updated_at')
+                    fields_updated: Object.keys(filteredUpdates || {}).filter(f => f !== 'updated_at')
                 }
             });
 

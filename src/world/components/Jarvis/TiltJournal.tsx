@@ -149,7 +149,7 @@ export function TiltJournal({ onAskJarvis, onClose }: TiltJournalProps) {
             triggerCounts[e.trigger] = (triggerCounts[e.trigger] || 0) + 1;
         });
 
-        const topTriggers = Object.entries(triggerCounts)
+        const topTriggers = Object.entries(triggerCounts || {})
             .sort((a, b) => b[1] - a[1])
             .slice(0, 3);
 

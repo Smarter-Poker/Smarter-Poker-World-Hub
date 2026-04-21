@@ -131,7 +131,7 @@ export default function SessionHistoryPage() {
       groups[key].hands += s.hands_played || 0;
       groups[key].pl += (s.ending_stack || 0) - (s.starting_stack || 0);
     });
-    return Object.entries(groups)
+    return Object.entries(groups || {})
       .filter(([, v]) => v.sessions >= 2)
       .sort((a, b) => b[1].pl - a[1].pl)
       .slice(0, 5);

@@ -99,7 +99,7 @@ async function getTableData(tournamentId, venueId) {
     }
   }
   // Calculate open seats
-  for (const tNum of Object.keys(tableMap)) {
+  for (const tNum of Object.keys(tableMap || {})) {
     const t = tableMap[tNum];
     const occupied = new Set(t.players.map(p => p.seat_number));
     for (let s = 1; s <= t.max_seats; s++) {
@@ -127,7 +127,7 @@ async function handleCheck(req, res, tournament) {
   }
 
   // Find table with fewest players (candidate to break)
-  const tableStats = Object.values(tableMap)
+  const tableStats = Object.values(tableMap || {})
     .filter(t => t.players.length > 0)
     .sort((a, b) => a.players.length - b.players.length);
 

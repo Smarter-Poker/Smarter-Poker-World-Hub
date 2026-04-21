@@ -13,7 +13,7 @@ export function getAuthToken() {
 
         // FALLBACK: Legacy sb-* keys for older users
         if (!token) {
-            const sbKeys = Object.keys(localStorage).filter(
+            const sbKeys = Object.keys(localStorage || {}).filter(
                 k => k.startsWith('sb-') && k.endsWith('-auth-token')
             );
             if (sbKeys.length > 0) token = localStorage.getItem(sbKeys[0]);

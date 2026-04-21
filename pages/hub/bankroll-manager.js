@@ -467,7 +467,7 @@ export default function BankrollManagerPage() {
       }
 
       // 4. Create ONE summary row per completed trip/series
-      var completedTripIds = Object.keys(completedTripMap);
+      var completedTripIds = Object.keys(completedTripMap || {});
       for (var k = 0; k < completedTripIds.length; k++) {
         var tid = completedTripIds[k];
         var items = completedTripMap[tid];

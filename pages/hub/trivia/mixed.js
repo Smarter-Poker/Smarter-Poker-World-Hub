@@ -400,7 +400,7 @@ export default function MixedModePage() {
                     if (wasCorrect) actualCategoryStats[cat].correct += 1;
                 });
 
-                for (const [category, stats] of Object.entries(actualCategoryStats)) {
+                for (const [category, stats] of Object.entries(actualCategoryStats || {})) {
                     if (stats.answered === 0) continue;
 
                     const { data: existing } = await supabase

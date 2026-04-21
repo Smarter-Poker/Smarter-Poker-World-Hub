@@ -151,7 +151,7 @@ export default function SpotFilterTrainer() {
     }, 1200);
   };
 
-  const activeFilters = Object.values(filters).flat().length;
+  const activeFilters = Object.values(filters || {}).flat().length;
   const correctCount = answers.filter(a => a.correct).length;
 
   try {

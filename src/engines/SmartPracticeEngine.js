@@ -73,7 +73,7 @@ export function analyzeWeakSpots(handHistory) {
     // Score each dimension (lower accuracy = worse)
     const weaknesses = [];
 
-    Object.entries(positionStats).forEach(([pos, stats]) => {
+    Object.entries(positionStats || {}).forEach(([pos, stats]) => {
         if (stats.total >= 3) {
             const accuracy = Math.round((stats.correct / stats.total) * 100);
             weaknesses.push({
@@ -88,7 +88,7 @@ export function analyzeWeakSpots(handHistory) {
         }
     });
 
-    Object.entries(streetStats).forEach(([street, stats]) => {
+    Object.entries(streetStats || {}).forEach(([street, stats]) => {
         if (stats.total >= 3) {
             const accuracy = Math.round((stats.correct / stats.total) * 100);
             weaknesses.push({
@@ -103,7 +103,7 @@ export function analyzeWeakSpots(handHistory) {
         }
     });
 
-    Object.entries(handClassStats).forEach(([cls, stats]) => {
+    Object.entries(handClassStats || {}).forEach(([cls, stats]) => {
         if (stats.total >= 3) {
             const accuracy = Math.round((stats.correct / stats.total) * 100);
             weaknesses.push({

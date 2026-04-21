@@ -124,15 +124,15 @@ export function simulateGTOFrequencies(options, correctAnswer, level = 1) {
     });
 
     // Normalize to 100%
-    const total = Object.values(frequencies).reduce((sum, f) => sum + f, 0);
-    Object.keys(frequencies).forEach(key => {
+    const total = Object.values(frequencies || {}).reduce((sum, f) => sum + f, 0);
+    Object.keys(frequencies || {}).forEach(key => {
         frequencies[key] = Math.round((frequencies[key] / total) * 100);
     });
 
     // Ensure they sum to exactly 100
-    const currentSum = Object.values(frequencies).reduce((s, f) => s + f, 0);
+    const currentSum = Object.values(frequencies || {}).reduce((s, f) => s + f, 0);
     const diff = 100 - currentSum;
-    const correctKey = Object.keys(frequencies).find(k =>
+    const correctKey = Object.keys(frequencies || {}).find(k =>
         k === correctAnswer || k?.toLowerCase() === correctAnswer?.toLowerCase()
     );
     if (correctKey) frequencies[correctKey] += diff;
@@ -276,7 +276,7 @@ export function classifyMove(selectedAnswer, correctAnswer, gtoFrequencies = {},
         // Distinguish by checking how many valid actions exist and the correctFreq:
         // - If the solver is "pure" (one action >= 90%) and player chose something else → BLUNDER
         // - If multiple actions have decent frequency (mixed strategy) → WRONG (less egregious)
-        const nonZeroActions = Object.values(gtoFrequencies).filter(f => f > 0).length;
+        const nonZeroActions = Object.values(gtoFrequencies || {}).filter(f => f > 0).length;
         const isPureStrategy = correctFreq >= 80;
         if (isPureStrategy || nonZeroActions <= 1) {
             // Solver overwhelmingly prefers one action — choosing 0% is a BLUNDER
@@ -513,7 +513,7 @@ export default function useGTOWScore() {
     // ═══ Phase 38: Derived position/street accuracy maps ═══
     const positionAccuracy = useMemo(() => {
         const result = {};
-        for (const [pos, stats] of Object.entries(positionStats)) {
+        for (const [pos, stats] of Object.entries(positionStats || {})) {
             result[pos] = {
                 ...stats,
                 accuracy: stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0,
@@ -524,7 +524,7 @@ export default function useGTOWScore() {
 
     const streetAccuracy = useMemo(() => {
         const result = {};
-        for (const [st, stats] of Object.entries(streetStats)) {
+        for (const [st, stats] of Object.entries(streetStats || {})) {
             result[st] = {
                 ...stats,
                 accuracy: stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0,
@@ -537,7 +537,7 @@ export default function useGTOWScore() {
     const weakestPosition = useMemo(() => {
         let worst = null;
         let worstAcc = 101;
-        for (const [pos, data] of Object.entries(positionAccuracy)) {
+        for (const [pos, data] of Object.entries(positionAccuracy || {})) {
             if (data.total >= 2 && data.accuracy < worstAcc) {
                 worstAcc = data.accuracy;
                 worst = pos;
@@ -643,7 +643,7 @@ export default function useGTOWScore() {
             const pos = (h.heroPosition || '').toUpperCase();
             if (pos) positionMistakeCounts[pos] = (positionMistakeCounts[pos] || 0) + 1;
         });
-        const worstPos = Object.entries(positionMistakeCounts).sort(([, a], [, b]) => b - a)[0];
+        const worstPos = Object.entries(positionMistakeCounts || {}).sort(([, a], [, b]) => b - a)[0];
         if (worstPos && worstPos[1] >= 3 && worstPos[1] / mistakes.length >= 0.35) {
             const posName = { UTG: 'Under the Gun', MP: 'Middle Position', CO: 'Cutoff', BTN: 'Button', SB: 'Small Blind', BB: 'Big Blind' }[worstPos[0]] || worstPos[0];
             patterns.push({
@@ -663,7 +663,7 @@ export default function useGTOWScore() {
             const st = (h.street || '').toLowerCase();
             if (st) streetMistakeCounts[st] = (streetMistakeCounts[st] || 0) + 1;
         });
-        const worstStreet = Object.entries(streetMistakeCounts).sort(([, a], [, b]) => b - a)[0];
+        const worstStreet = Object.entries(streetMistakeCounts || {}).sort(([, a], [, b]) => b - a)[0];
         if (worstStreet && worstStreet[1] >= 3 && worstStreet[1] / mistakes.length >= 0.4) {
             const streetName = worstStreet[0].charAt(0).toUpperCase() + worstStreet[0].slice(1);
             patterns.push({
@@ -731,7 +731,7 @@ export default function useGTOWScore() {
         });
 
         // Convert to sorted array with accuracy
-        return Object.entries(typeStats)
+        return Object.entries(typeStats || {})
             .filter(([type]) => type !== 'unknown')
             .map(([type, stats]) => ({
                 type,

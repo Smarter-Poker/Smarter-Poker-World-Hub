@@ -222,7 +222,7 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
       const st = t.venue_state || t.state;
       if (st) stateCounts[st] = (stateCounts[st] || 0) + 1;
     });
-    return Object.entries(stateCounts).sort((a, b) => b[1] - a[1]).slice(0, 8);
+    return Object.entries(stateCounts || {}).sort((a, b) => b[1] - a[1]).slice(0, 8);
   }, [tournaments, selectedDay]);
 
   const renderTournamentCard = (t, idx) => {
@@ -490,7 +490,7 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
 
       {/* Tournament cards — grouped or flat */}
       {groupByState && groupedByState ? (
-        Object.keys(groupedByState).sort().map(st => (
+        Object.keys(groupedByState || {}).sort().map(st => (
           <div key={st} style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#ffffff', marginBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.15)', paddingBottom: 4 }}>
               {st} ({groupedByState[st].length})

@@ -895,7 +895,7 @@ function ThrowablePicker({ onSelect, onClose }) {
     >
       {/* Category tabs */}
       <div style={{ display: 'flex', gap: 3, marginBottom: 8, overflowX: 'auto', paddingBottom: 2 }}>
-        {Object.entries(CATEGORIES).map(([key, cat]) => (
+        {Object.entries(CATEGORIES || {}).map(([key, cat]) => (
           <button
             key={key}
             onClick={() => setCategory(key)}
@@ -1126,7 +1126,7 @@ function ThrowableEmojis({
       </AnimatePresence>
 
       {/* Seat impacts */}
-      {Object.entries(seatImpacts).map(([idx, data]) => {
+      {Object.entries(seatImpacts || {}).map(([idx, data]) => {
         const pos = seatPositions?.[idx];
         if (!pos) return null;
         return (

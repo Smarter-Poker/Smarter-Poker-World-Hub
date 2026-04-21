@@ -313,9 +313,9 @@ async function unleashTheHorses() {
     console.debug(`\n✅ Successful: ${successful.length}`);
     console.debug(`❌ Failed: ${failed.length}`);
 
-    if (Object.keys(sourceStats).length > 0) {
+    if (Object.keys(sourceStats || {}).length > 0) {
         console.debug('\n📺 SOURCE DISTRIBUTION:');
-        Object.entries(sourceStats)
+        Object.entries(sourceStats || {})
             .sort((a, b) => b[1] - a[1])
             .forEach(([source, count]) => {
                 const name = CLIP_SOURCES[source]?.name || source;
@@ -339,7 +339,7 @@ async function unleashTheHorses() {
         failed.forEach(r => {
             reasons[r.reason] = (reasons[r.reason] || 0) + 1;
         });
-        Object.entries(reasons).forEach(([reason, count]) => {
+        Object.entries(reasons || {}).forEach(([reason, count]) => {
             console.debug(`   ${reason}: ${count}`);
         });
     }

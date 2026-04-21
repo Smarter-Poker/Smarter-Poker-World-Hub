@@ -74,7 +74,7 @@ export function recordSessionWeakness(gameMode, mistakes, totalAnswers) {
         // (We can't know exact per-position totals from the game, so we
         //  increment each position that had at least one mistake, plus
         //  give a baseline to all positions based on total answers)
-        const detectedPositions = Object.keys(positionMistakes);
+        const detectedPositions = Object.keys(positionMistakes || {});
         if (detectedPositions.length > 0 && totalAnswers > 0) {
             // Add mistakes to cumulative
             detectedPositions.forEach(pos => {
@@ -245,7 +245,7 @@ export function getWeakestSpots(minTotal = 5) {
         const data = JSON.parse(raw);
         if (!data.spots) return [];
 
-        return Object.entries(data.spots)
+        return Object.entries(data.spots || {})
             .filter(([, v]) => v.total >= minTotal)
             .map(([key, v]) => {
                 const [position, spotType] = key.split('_');
@@ -275,7 +275,7 @@ export function getWeakestHands(minTotal = 3) {
         const data = JSON.parse(raw);
         if (!data.hands) return [];
 
-        return Object.entries(data.hands)
+        return Object.entries(data.hands || {})
             .filter(([, v]) => v.total >= minTotal)
             .map(([hand, v]) => ({
                 hand,

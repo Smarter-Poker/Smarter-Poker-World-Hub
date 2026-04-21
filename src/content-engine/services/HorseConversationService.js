@@ -64,7 +64,7 @@ const CONVERSATION_TYPES = {
     }
 };
 
-const CONVO_TYPES = Object.keys(CONVERSATION_TYPES);
+const CONVO_TYPES = Object.keys(CONVERSATION_TYPES || {});
 
 // Active conversations in memory
 const activeConversations = new Map();

@@ -162,7 +162,7 @@ async function updatePreferences(req, res, groupId, userId) {
     if (typeof notify_game_reminders === 'boolean') updates.notify_game_reminders = notify_game_reminders;
     if (typeof notify_rsvp_updates === 'boolean') updates.notify_rsvp_updates = notify_rsvp_updates;
 
-    if (Object.keys(updates).length === 0) {
+    if (Object.keys(updates || {}).length === 0) {
       return res.status(400).json({ success: false, error: 'No preferences to update' });
     }
 

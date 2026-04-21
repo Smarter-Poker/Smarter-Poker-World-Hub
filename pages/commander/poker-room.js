@@ -237,11 +237,11 @@ const res = await commanderFetch('/api/commander/settings', {
           </div>
 
           {/* Active Cash Games Breakdown */}
-          {Object.keys(cashGameGroups).length > 0 && (
+          {Object.keys(cashGameGroups || {}).length > 0 && (
             <div className="px-4 py-2">
               <h3 className="text-xs font-semibold text-[#31A24C] uppercase tracking-wider mb-2">Cash Games ({cashTables.length})</h3>
               <div className="space-y-1.5">
-                {Object.entries(cashGameGroups).map(([game, data]) => (
+                {Object.entries(cashGameGroups || {}).map(([game, data]) => (
                   <div key={game} className="bg-[#242526] rounded-xl border border-[#3A3B3C] px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-2 h-2 rounded-full bg-[#31A24C] animate-pulse" />
@@ -258,11 +258,11 @@ const res = await commanderFetch('/api/commander/settings', {
           )}
 
           {/* Tournament Tables Breakdown */}
-          {Object.keys(tournamentGameGroups).length > 0 && (
+          {Object.keys(tournamentGameGroups || {}).length > 0 && (
             <div className="px-4 py-2">
               <h3 className="text-xs font-semibold text-[#F59E0B] uppercase tracking-wider mb-2">Tournament Tables ({tournamentTables.length})</h3>
               <div className="space-y-1.5">
-                {Object.entries(tournamentGameGroups).map(([game, data]) => (
+                {Object.entries(tournamentGameGroups || {}).map(([game, data]) => (
                   <div key={game} className="bg-[#242526] rounded-xl border border-[#F59E0B]/20 px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-2 h-2 rounded-full bg-[#F59E0B] animate-pulse" />

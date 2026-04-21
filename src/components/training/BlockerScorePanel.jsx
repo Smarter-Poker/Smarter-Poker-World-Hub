@@ -86,7 +86,7 @@ function categorizeHands(gridData, actions) {
 
             const raiseFreq = (cell.actions.r || 0) + (cell.actions.R || 0) + (cell.actions.b || 0) + (cell.actions.B || 0);
             const foldFreq = cell.actions.f || cell.actions.F || 0;
-            const total = Object.values(cell.actions).reduce((s, v) => s + v, 0);
+            const total = Object.values(cell.actions || {}).reduce((s, v) => s + v, 0);
 
             if (total === 0) return;
 

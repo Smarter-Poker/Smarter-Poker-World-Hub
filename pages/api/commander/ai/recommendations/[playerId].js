@@ -116,15 +116,15 @@ export default async function handler(req, res) {
       });
 
       // Determine player's preferred game type and stakes
-      const preferredGameType = Object.keys(gameTypeCount).sort(
+      const preferredGameType = Object.keys(gameTypeCount || {}).sort(
         (a, b) => gameTypeCount[b] - gameTypeCount[a]
       )[0] || 'nlhe';
 
-      const preferredStakes = Object.keys(stakesCount).sort(
+      const preferredStakes = Object.keys(stakesCount || {}).sort(
         (a, b) => stakesCount[b] - stakesCount[a]
       )[0] || '1/3';
 
-      const favoriteVenue = Object.keys(venueCount).sort(
+      const favoriteVenue = Object.keys(venueCount || {}).sort(
         (a, b) => venueCount[b] - venueCount[a]
       )[0];
 

@@ -66,7 +66,7 @@ function classifyBoardTexture(boardCards) {
     });
 
     // Suit texture
-    const maxSuit = Math.max(...Object.values(suitCounts));
+    const maxSuit = Math.max(...Object.values(suitCounts || {}));
     let suitTexture = 'RAINBOW';
     if (maxSuit >= 3) suitTexture = 'MONOTONE';
     else if (maxSuit === 2) suitTexture = 'TWO-TONE';
@@ -281,7 +281,7 @@ function RangeMatrixViewer({ rawFrequencies, correctAnswer, show, heroHand }) {
     const { matrix, actionLegend } = useMemo(() => {
         if (!rawFrequencies) return { matrix: [], actionLegend: [] };
         const grid = [];
-        const actions = Object.keys(rawFrequencies);
+        const actions = Object.keys(rawFrequencies || {});
         const actionSet = new Set();
 
         for (let r = 0; r < 13; r++) {
@@ -311,7 +311,7 @@ function RangeMatrixViewer({ rawFrequencies, correctAnswer, show, heroHand }) {
                     }
                 }
 
-                const isMixed = Object.keys(handActions).length > 1 && bestFreq < 0.9;
+                const isMixed = Object.keys(handActions || {}).length > 1 && bestFreq < 0.9;
                 const isHeroHand = heroHand && (hand === heroHand || (heroHand.length === 2 && hand === heroHand));
 
                 row.push({ hand, bestAction, bestFreq, handActions, isMixed, totalFreq, isHeroHand });
@@ -349,7 +349,7 @@ function RangeMatrixViewer({ rawFrequencies, correctAnswer, show, heroHand }) {
                     // Mixed strategy: show gradient between top 2 actions
                     let background = bgColor;
                     if (cell.isMixed) {
-                        const sorted = Object.entries(cell.handActions).sort((a, b) => b[1] - a[1]);
+                        const sorted = Object.entries(cell.handActions || {}).sort((a, b) => b[1] - a[1]);
                         if (sorted.length >= 2) {
                             const c1 = getRangeActionColor(sorted[0][0]);
                             const c2 = getRangeActionColor(sorted[1][0]);
@@ -360,7 +360,7 @@ function RangeMatrixViewer({ rawFrequencies, correctAnswer, show, heroHand }) {
 
                     // Build tooltip with all actions
                     const tip = cell.bestAction
-                        ? `${cell.hand}: ${Object.entries(cell.handActions).sort((a, b) => b[1] - a[1]).map(([a, f]) => `${a} ${(f * 100).toFixed(0)}%`).join(', ')}`
+                        ? `${cell.hand}: ${Object.entries(cell.handActions || {}).sort((a, b) => b[1] - a[1]).map(([a, f]) => `${a} ${(f * 100).toFixed(0)}%`).join(', ')}`
                         : `${cell.hand}: not in range`;
 
                     return (
@@ -559,7 +559,7 @@ function evaluateHandStrength(hCards, bCards) {
     const heroHigh = Math.min(...heroRanks.map(r => RANK_ORDER.indexOf(r)));
     const suitCounts = {};
     suits.forEach(s => { suitCounts[s] = (suitCounts[s] || 0) + 1; });
-    const maxSuit = Math.max(...Object.values(suitCounts));
+    const maxSuit = Math.max(...Object.values(suitCounts || {}));
     const heroSuits = hCards.map(getSuit);
     const hasFlushDraw = maxSuit === 4 && heroSuits.some(s => suitCounts[s] >= 4);
     const hasFlush = maxSuit >= 5 && heroSuits.some(s => suitCounts[s] >= 5);
@@ -1137,7 +1137,7 @@ function UniversalDynamicTable({
                 if (meta?.name) return meta.name;
             }
             // Fallback: standard Supabase key pattern
-            const keys = Object.keys(localStorage);
+            const keys = Object.keys(localStorage || {});
             const sbKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
             if (sbKey) {
                 const session = JSON.parse(localStorage.getItem(sbKey));
@@ -2180,7 +2180,7 @@ function UniversalDynamicTable({
             })()}
 
             {/* Phase 38: Position & Street accuracy row — shows after 5+ hands */}
-            {positionAccuracy && Object.keys(positionAccuracy).length > 0 && questionNumber > 5 && (
+            {positionAccuracy && Object.keys(positionAccuracy || {}).length > 0 && questionNumber > 5 && (
                 <div style={{ padding: '0 16px', marginBottom: 2, display: 'flex', gap: 4, justifyContent: 'center', flexWrap: 'wrap' }}>
                     {/* Position pills */}
                     {['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'].filter(p => positionAccuracy[p]).map(pos => {
@@ -2201,7 +2201,7 @@ function UniversalDynamicTable({
                         );
                     })}
                     {/* Street divider + pills */}
-                    {streetAccuracy && Object.keys(streetAccuracy).length > 0 && (
+                    {streetAccuracy && Object.keys(streetAccuracy || {}).length > 0 && (
                         <>
                             <div style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.08)', alignSelf: 'center' }} />
                             {['preflop', 'flop', 'turn', 'river'].filter(s => streetAccuracy[s]).map(st => {
@@ -3476,7 +3476,7 @@ function UniversalDynamicTable({
                             <span style={{ color: '#e2e8f0', fontWeight: 600 }}>
                                 {(() => {
                                     let cumulative = 0;
-                                    for (const [actionId, freq] of Object.entries(computedFrequencies)) {
+                                    for (const [actionId, freq] of Object.entries(computedFrequencies || {})) {
                                         cumulative += freq;
                                         if (rngRoll <= cumulative) {
                                             const opt = options.find(o => o.id === actionId);
@@ -3540,7 +3540,7 @@ function UniversalDynamicTable({
                     })()}
 
                     {/* Phase 32: Stacked GTO Frequency Bar — shows all actions in one visual strip */}
-                    {computedFrequencies && Object.keys(computedFrequencies).length > 0 && (
+                    {computedFrequencies && Object.keys(computedFrequencies || {}).length > 0 && (
                         <motion.div
                             initial={{ opacity: 0, y: 5 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -3618,7 +3618,7 @@ function UniversalDynamicTable({
                     )}
 
                     {/* Per-Action EV Comparison */}
-                    {question?.evData?.actionEVs && Object.keys(question.evData.actionEVs).length > 0 && (
+                    {question?.evData?.actionEVs && Object.keys(question.evData.actionEVs || {}).length > 0 && (
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
@@ -3636,8 +3636,8 @@ function UniversalDynamicTable({
                                 const optId = opt.id || opt;
                                 const ev = question.evData.actionEVs[optId];
                                 if (ev === undefined) return null;
-                                const maxEV = Math.max(...Object.values(question.evData.actionEVs).filter(v => typeof v === 'number'));
-                                const minEV = Math.min(...Object.values(question.evData.actionEVs).filter(v => typeof v === 'number'));
+                                const maxEV = Math.max(...Object.values(question.evData.actionEVs || {}).filter(v => typeof v === 'number'));
+                                const minEV = Math.min(...Object.values(question.evData.actionEVs || {}).filter(v => typeof v === 'number'));
                                 const range = maxEV - minEV || 1;
                                 const barWidth = Math.max(5, ((ev - minEV) / range) * 100);
                                 const isOptimal = optId === correctAnswer;
@@ -3965,10 +3965,10 @@ function UniversalDynamicTable({
                                                 )}
 
                                                 {/* Phase 53: Full EV comparison table when available */}
-                                                {question?.evData?.actionEVs && Object.keys(question.evData.actionEVs).length > 1 && (
+                                                {question?.evData?.actionEVs && Object.keys(question.evData.actionEVs || {}).length > 1 && (
                                                     <div style={{ marginTop: 6, marginBottom: 4 }}>
                                                         <div style={{ fontSize: 8, fontWeight: 700, color: '#94a3b8', letterSpacing: 0.5, marginBottom: 3 }}>EV BY ACTION</div>
-                                                        {Object.entries(question.evData.actionEVs)
+                                                        {Object.entries(question.evData.actionEVs || {})
                                                             .sort(([, a], [, b]) => b - a)
                                                             .map(([action, ev]) => {
                                                                 const isOptimal = action === correctAnswer;
@@ -4265,7 +4265,7 @@ function UniversalDynamicTable({
                                 })}
                             </div>
                             {question?.rawFrequencies && (() => {
-                                const actions = Object.keys(question.rawFrequencies);
+                                const actions = Object.keys(question.rawFrequencies || {});
                                 const gridData = {};
                                 const allRanks = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
                                 for (let r = 0; r < 13; r++) {

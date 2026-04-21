@@ -87,7 +87,7 @@ function EnhancedReviewPanel({ gradeResult, scenario, userGrid, sessionHistory, 
                             {gradeResult.score >= 95 ? 'PERFECT RECALL' : gradeResult.score >= 85 ? 'MASTERY ACHIEVED' : gradeResult.score >= 70 ? 'ALMOST THERE' : 'KEEP PRACTICING'}
                         </div>
                         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
-                            {positionLabel} • Level {scenario.level || '?'} • {Object.keys(solution).length} hands in range
+                            {positionLabel} • Level {scenario.level || '?'} • {Object.keys(solution || {}).length} hands in range
                         </div>
                     </div>
 
@@ -120,7 +120,7 @@ function EnhancedReviewPanel({ gradeResult, scenario, userGrid, sessionHistory, 
                             {gradeResult.wrongActionHands.length > 0 && <div style={{ flex: gradeResult.wrongActionHands.length, background: '#F59E0B' }} />}
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
-                            <span>{gradeResult.correctHands}/{Object.keys(solution).length} correct</span>
+                            <span>{gradeResult.correctHands}/{Object.keys(solution || {}).length} correct</span>
                             <span>{mistakes.length} mistakes</span>
                         </div>
                     </div>
@@ -311,7 +311,7 @@ function EnhancedReviewPanel({ gradeResult, scenario, userGrid, sessionHistory, 
 
                     {/* Legend */}
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center', marginTop: 12, fontSize: 11 }}>
-                        {Object.entries(ACTION_COLORS_REF).filter(([k]) => k !== 'fold').map(([action, cfg]) => (
+                        {Object.entries(ACTION_COLORS_REF || {}).filter(([k]) => k !== 'fold').map(([action, cfg]) => (
                             <div key={action} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                                 <div style={{ width: 10, height: 10, borderRadius: 2, background: cfg.bg, border: `1px solid ${cfg.border}` }} />
                                 <span style={{ color: 'rgba(255,255,255,0.5)' }}>{cfg.label}</span>
@@ -329,13 +329,13 @@ function EnhancedReviewPanel({ gradeResult, scenario, userGrid, sessionHistory, 
                     <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginTop: 16, fontSize: 12 }}>
                         <div style={{ textAlign: 'center' }}>
                             <div style={{ fontFamily: 'Orbitron', fontSize: 18, fontWeight: 800, color: '#00d4ff' }}>
-                                {Object.keys(solution).length}
+                                {Object.keys(solution || {}).length}
                             </div>
                             <div style={{ color: 'rgba(255,255,255,0.4)' }}>Hands in Range</div>
                         </div>
                         <div style={{ textAlign: 'center' }}>
                             <div style={{ fontFamily: 'Orbitron', fontSize: 18, fontWeight: 800, color: '#00d4ff' }}>
-                                {Math.round(Object.keys(solution).length / 169 * 100)}%
+                                {Math.round(Object.keys(solution || {}).length / 169 * 100)}%
                             </div>
                             <div style={{ color: 'rgba(255,255,255,0.4)' }}>Range Width</div>
                         </div>

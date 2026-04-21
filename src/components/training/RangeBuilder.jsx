@@ -148,7 +148,7 @@ const RangeStats = memo(({ range, solverRange }) => {
     const stats = useMemo(() => {
         let combos = 0, totalWeight = 0, pairs = 0, suited = 0, offsuit = 0;
 
-        Object.entries(range).forEach(([hand, weight]) => {
+        Object.entries(range || {}).forEach(([hand, weight]) => {
             if (weight <= 0) return;
             totalWeight += weight;
             if (hand.length === 2) { combos += 6 * weight; pairs += weight; }
@@ -159,7 +159,7 @@ const RangeStats = memo(({ range, solverRange }) => {
         // Compare with solver
         let matching = 0, missing = 0, extra = 0;
         if (solverRange) {
-            const allHands = new Set([...Object.keys(range), ...Object.keys(solverRange)]);
+            const allHands = new Set([...Object.keys(range || {}), ...Object.keys(solverRange || {})]);
             allHands.forEach(h => {
                 const r = range[h] || 0;
                 const s = solverRange[h] || 0;
@@ -274,7 +274,7 @@ export default function RangeBuilder({ solverRange: propSolverRange, onRangeChan
 
     // Export range as string
     const rangeString = useMemo(() => {
-        return Object.entries(range)
+        return Object.entries(range || {})
             .filter(([, w]) => w > 0)
             .map(([h, w]) => w >= 1 ? h : `${h}:${(w * 100).toFixed(0)}`)
             .join(', ');
@@ -330,7 +330,7 @@ export default function RangeBuilder({ solverRange: propSolverRange, onRangeChan
 
                 {/* Presets */}
                 <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', marginBottom: 6 }}>
-                    {Object.keys(RANGE_PRESETS).filter(k => k !== 'Empty').map(name => (
+                    {Object.keys(RANGE_PRESETS || {}).filter(k => k !== 'Empty').map(name => (
                         <button
                             key={name}
                             onClick={() => { setRange({ ...RANGE_PRESETS[name] }); setSelectedPreset(name); }}
@@ -362,7 +362,7 @@ export default function RangeBuilder({ solverRange: propSolverRange, onRangeChan
                                 borderRadius: 3, outline: 'none',
                             }}
                         >
-                            {Object.keys(RANGE_PRESETS).filter(k => k !== 'Empty').map(name => (
+                            {Object.keys(RANGE_PRESETS || {}).filter(k => k !== 'Empty').map(name => (
                                 <option key={name} value={name}>{name}</option>
                             ))}
                         </select>
@@ -432,7 +432,7 @@ export default function RangeBuilder({ solverRange: propSolverRange, onRangeChan
                 )}
 
                 {/* Range string */}
-                {Object.keys(range).length > 0 && (
+                {Object.keys(range || {}).length > 0 && (
                     <div style={{
                         marginTop: 8, padding: 8, borderRadius: 4,
                         background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(100,116,139,0.08)',

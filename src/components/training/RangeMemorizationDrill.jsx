@@ -104,7 +104,7 @@ const RANGES = {
   ]),
 };
 
-const RANGE_NAMES = Object.keys(RANGES);
+const RANGE_NAMES = Object.keys(RANGES || {});
 
 function generateHand() {
   const i = Math.floor(Math.random() * 13);

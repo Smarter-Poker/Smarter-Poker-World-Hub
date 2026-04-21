@@ -125,7 +125,7 @@ const PokerBrainEngine = (() => {
     const countRanks = () => {
       const counts = {};
       getRanks().forEach(v => { counts[v] = (counts[v] || 0) + 1; });
-      return Object.entries(counts)
+      return Object.entries(counts || {})
         .sort((a, b) => b[1] - a[1] || b[0] - a[0])
         .map(([rank, count]) => ({ rank: parseInt(rank, 10), count }));
     };
@@ -721,7 +721,7 @@ const PokerBrainEngine = (() => {
     const uniqueRanks = new Set(boardCards.map(c => c.rank));
     const suitCounts = {};
     for (const s of suits) suitCounts[s] = (suitCounts[s] || 0) + 1;
-    const maxSuit = Math.max(...Object.values(suitCounts));
+    const maxSuit = Math.max(...Object.values(suitCounts || {}));
 
     const paired = uniqueRanks.size < boardCards.length;
     const monotone = maxSuit >= boardCards.length;
@@ -965,7 +965,7 @@ const PokerBrainEngine = (() => {
     for (const c of holeCards) {
       suitCounts[c.suit] = (suitCounts[c.suit] || 0) + 1;
     }
-    const suitPairs = Object.values(suitCounts).filter(v => v >= 2).length;
+    const suitPairs = Object.values(suitCounts || {}).filter(v => v >= 2).length;
     if (suitPairs >= 2) {
       score += 15;
       features.push('double-suited');
@@ -979,7 +979,7 @@ const PokerBrainEngine = (() => {
     for (const c of holeCards) {
       rankCounts[c.rank] = (rankCounts[c.rank] || 0) + 1;
     }
-    const hasPair = Object.values(rankCounts).some(v => v >= 2);
+    const hasPair = Object.values(rankCounts || {}).some(v => v >= 2);
     if (hasPair) {
       score += 12;
       features.push('pair');
@@ -1125,7 +1125,7 @@ const PokerBrainEngine = (() => {
         const singleSuited = suitCount < holeCards.length;
         const rankCounts = {};
         holeCards.forEach(c => { rankCounts[c.rank] = (rankCounts[c.rank] || 0) + 1; });
-        const pairs = Object.values(rankCounts).filter(n => n >= 2).length;
+        const pairs = Object.values(rankCounts || {}).filter(n => n >= 2).length;
         const lowPot = isHiLo ? nutLowPotential(holeCards) : 0;
 
         // Premium: 2+ broadways AND (double suited OR pair among broadways)

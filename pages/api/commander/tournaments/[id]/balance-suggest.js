@@ -95,7 +95,7 @@ export default async function handler(req, res) {
 
       // --- CAN WE BREAK A TABLE? ---
       if (tableNumbers.length > minTablesNeeded) {
-        const sorted = Object.entries(tableCounts).sort((a, b) => a[1] - b[1]);
+        const sorted = Object.entries(tableCounts || {}).sort((a, b) => a[1] - b[1]);
         const tableToBreak = parseInt(sorted[0][0]);
         const playersToMove = entries
           .filter(e => e.table_number === tableToBreak)
@@ -148,7 +148,7 @@ export default async function handler(req, res) {
       }
 
       // --- BALANCE (move from fullest to emptiest) ---
-      const sorted = Object.entries(tableCounts).sort((a, b) => b[1] - a[1]);
+      const sorted = Object.entries(tableCounts || {}).sort((a, b) => b[1] - a[1]);
       const maxCount = sorted[0][1];
       const minCount = sorted[sorted.length - 1][1];
 

@@ -39,7 +39,7 @@ export default function LocationAnalytics({ entries = [], isLoading }) {
             if (net > 0) stats[locationId].winCount++;
         });
 
-        return Object.values(stats);
+        return Object.values(stats || {});
     }, [entries]);
 
     const sortedLocations = useMemo(() => {

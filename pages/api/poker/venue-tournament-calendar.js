@@ -149,12 +149,12 @@ async function handler(req, res) {
 
         // ── 7. Merge: real dated events override generated ones ───────────────
         const mergedByDate = { ...generatedDated };
-        Object.entries(byDate).forEach(([date, events]) => {
+        Object.entries(byDate || {}).forEach(([date, events]) => {
             mergedByDate[date] = events; // Real scraped dated events win
         });
 
         // Sort merged calendar dates
-        const sortedDates = Object.keys(mergedByDate).sort();
+        const sortedDates = Object.keys(mergedByDate || {}).sort();
 
         // ── 8. Stats ──────────────────────────────────────────────────────────
         const activeDays     = DAYS_ORDER.filter(d => byDay[d].length > 0);

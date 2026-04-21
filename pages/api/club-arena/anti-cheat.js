@@ -612,7 +612,7 @@ try {
 
           // Flag pairs with one-directional chip flow above threshold
           const flaggedPairs = [];
-          for (const [pairKey, flow] of Object.entries(flowMatrix)) {
+          for (const [pairKey, flow] of Object.entries(flowMatrix || {})) {
             const hands = pairHandCount[pairKey] || 0;
             if (hands < minHands) continue;
 

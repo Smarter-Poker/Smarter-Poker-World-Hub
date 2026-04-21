@@ -82,7 +82,7 @@ function getContextualFallbackImage(title) {
     const lowerTitle = title.toLowerCase();
 
     // Check for keyword matches
-    for (const [keyword, imageUrl] of Object.entries(KEYWORD_IMAGES)) {
+    for (const [keyword, imageUrl] of Object.entries(KEYWORD_IMAGES || {})) {
         if (lowerTitle.includes(keyword)) {
             return imageUrl;
         }
@@ -1393,7 +1393,7 @@ export default async function handler(req, res) {
 
           results.archived = await archiveOldArticles();
 
-          for (const [name, stats] of Object.entries(results.sources)) {
+          for (const [name, stats] of Object.entries(results.sources || {})) {
           }
 
           return res.status(200).json({

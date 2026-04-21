@@ -216,7 +216,7 @@ const DecisionNode = memo(({ hand, streetIndex, totalStreets }) => {
     // Sort actions by EV descending
     const sortedActions = useMemo(() => {
         if (!evAnalysis?.actions) return [];
-        return Object.entries(evAnalysis.actions)
+        return Object.entries(evAnalysis.actions || {})
             .sort(([, a], [, b]) => b.ev - a.ev);
     }, [evAnalysis]);
 

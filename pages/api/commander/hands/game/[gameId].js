@@ -85,7 +85,7 @@ export default async function handler(req, res) {
         let playerCards = [];
 
         if (hand.player_cards && typeof hand.player_cards === 'object') {
-          const seats = Object.keys(hand.player_cards);
+          const seats = Object.keys(hand.player_cards || {});
           if (seats.length > 0) {
             // Check player_seat_map for user's seat
             if (hand.player_seat_map && hand.player_seat_map[user.id]) {

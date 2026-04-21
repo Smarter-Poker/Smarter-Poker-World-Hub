@@ -59,7 +59,7 @@ const TOUR_LOGOS = {
 // Build tours list from registry (authoritative source for rich data)
 function getToursFromRegistry(excludeStationary = false) {
     const tours = [];
-    for (const [code, tour] of Object.entries(tourRegistry.tours)) {
+    for (const [code, tour] of Object.entries(tourRegistry.tours || {})) {
         if (tour.is_active === false) continue;
         if (excludeStationary && STATIONARY_CODES.has(code)) continue;
 
@@ -325,7 +325,7 @@ function findVenueCoords(stop) {
     // 6. Fallback dictionary (City only)
     const justCity = locationCity || city;
     if (justCity) {
-        for (const [key, coords] of Object.entries(CITY_COORDS)) {
+        for (const [key, coords] of Object.entries(CITY_COORDS || {})) {
             if (key.startsWith(justCity + ',') || key === justCity) {
                 return { latitude: coords.lat, longitude: coords.lng };
             }

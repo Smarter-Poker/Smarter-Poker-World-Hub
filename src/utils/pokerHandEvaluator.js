@@ -109,13 +109,13 @@ function hasStraight(allValues) {
 /** Check for flush (5+ same suit) */
 function hasFlush(allCards) {
     const suitCounts = countSuits(allCards);
-    return Object.values(suitCounts).some(c => c >= 5);
+    return Object.values(suitCounts || {}).some(c => c >= 5);
 }
 
 /** Get the flush suit if flushable */
 function getFlushSuit(allCards) {
     const suitCounts = countSuits(allCards);
-    for (const [suit, count] of Object.entries(suitCounts)) {
+    for (const [suit, count] of Object.entries(suitCounts || {})) {
         if (count >= 5) return suit;
     }
     return null;
@@ -153,7 +153,7 @@ export function evaluateHand(holeCards, board) {
     // ─── MADE HAND DETECTION ───────────────────────────────────────────
 
     // QUADS: 4 of a kind
-    for (const [val, count] of Object.entries(allRankCounts)) {
+    for (const [val, count] of Object.entries(allRankCounts || {})) {
         if (count >= 4) {
             // Check if hero contributes to the quads
             const heroContrib = hole.filter(c => c.value === parseInt(val)).length;
@@ -166,7 +166,7 @@ export function evaluateHand(holeCards, board) {
     // FULL HOUSE: 3 of a kind + pair (hero must contribute)
     const tripsVals = [];
     const pairVals = [];
-    for (const [val, count] of Object.entries(allRankCounts)) {
+    for (const [val, count] of Object.entries(allRankCounts || {})) {
         if (count >= 3) tripsVals.push(parseInt(val));
         else if (count >= 2) pairVals.push(parseInt(val));
     }
@@ -235,7 +235,7 @@ export function evaluateHand(holeCards, board) {
     // Pocket pair (not hitting board) + one hero card pairing with board = Two Pair
     if (holeValues[0] === holeValues[1] && uniqueHeroPairs.length === 0) {
         // Check if there's a board pair that gives us two pair
-        const boardPairExists = Object.values(boardRankCounts).some(c => c >= 2);
+        const boardPairExists = Object.values(boardRankCounts || {}).some(c => c >= 2);
         if (boardPairExists) {
             return { classification: 'TWO_PAIR', subType: 'Two Pair (Pocket + Board)', rank: 14, category: 'made' };
         }
@@ -283,7 +283,7 @@ export function evaluateHand(holeCards, board) {
         const allSuitCounts = countSuits(allCards);
         const boardSuitCounts = countSuits(boardCards);
 
-        for (const [suit, count] of Object.entries(allSuitCounts)) {
+        for (const [suit, count] of Object.entries(allSuitCounts || {})) {
             if (count >= 4) {
                 const heroSuitCards = hole.filter(c => c.suit === suit);
                 if (heroSuitCards.length > 0) {
@@ -308,7 +308,7 @@ export function evaluateHand(holeCards, board) {
 
         // BACKDOOR FLUSH: 3 cards of same suit (only on flop)
         if (boardCards.length === 3) {
-            for (const [suit, count] of Object.entries(allSuitCounts)) {
+            for (const [suit, count] of Object.entries(allSuitCounts || {})) {
                 if (count === 3) {
                     const heroSuitCards = hole.filter(c => c.suit === suit);
                     if (heroSuitCards.length > 0) {
@@ -536,7 +536,7 @@ export function getAllClassifications() {
 export function groupByClassification(classifiedHands, gridData) {
     const groups = {};
 
-    for (const [hand, info] of Object.entries(classifiedHands)) {
+    for (const [hand, info] of Object.entries(classifiedHands || {})) {
         const cls = info.classification;
         if (!groups[cls]) {
             const meta = CLASSIFICATIONS[cls] || CLASSIFICATIONS.AIR;
@@ -557,20 +557,20 @@ export function groupByClassification(classifiedHands, gridData) {
         // Aggregate action frequencies for this class
         const freqs = gridData?.[hand];
         if (freqs) {
-            for (const [action, freq] of Object.entries(freqs)) {
+            for (const [action, freq] of Object.entries(freqs || {})) {
                 groups[cls].actionTotals[action] = (groups[cls].actionTotals[action] || 0) + freq;
             }
         }
     }
 
     // Normalize action totals to percentages
-    const result = Object.values(groups)
+    const result = Object.values(groups || {})
         .filter(g => g.handCount > 0)
         .sort((a, b) => b.rank - a.rank)
         .map(g => {
-            const totalFreq = Object.values(g.actionTotals).reduce((sum, v) => sum + v, 0);
+            const totalFreq = Object.values(g.actionTotals || {}).reduce((sum, v) => sum + v, 0);
             const actionSummary = {};
-            for (const [action, total] of Object.entries(g.actionTotals)) {
+            for (const [action, total] of Object.entries(g.actionTotals || {})) {
                 actionSummary[action] = totalFreq > 0 ? Math.round((total / totalFreq) * 1000) / 10 : 0;
             }
             return {

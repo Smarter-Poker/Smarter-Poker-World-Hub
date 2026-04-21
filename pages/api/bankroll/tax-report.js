@@ -182,7 +182,7 @@ function calculateTaxReport(sessions, trips, year) {
 
     trips.forEach(trip => {
         if (trip.expenses) {
-            Object.keys(expenseBreakdown).forEach(key => {
+            Object.keys(expenseBreakdown || {}).forEach(key => {
                 const amount = trip.expenses[key] || 0;
                 expenseBreakdown[key] += amount;
                 totalExpenses += amount;
@@ -328,7 +328,7 @@ function generateTaxPDF(report, user) {
     autoTable(doc, {
         startY: yPos,
         head: [['Category', 'Amount']],
-        body: Object.entries(report.expenses)
+        body: Object.entries(report.expenses || {})
             .filter(([, amount]) => amount > 0)
             .map(([cat, amount]) => [
                 cat.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),

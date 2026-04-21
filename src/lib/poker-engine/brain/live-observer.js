@@ -656,7 +656,7 @@ function getLiveRead(horseId, tableId, opponentId) {
     const snapFreq = p.decisionCount > 5 ? p.snapActionCount / p.decisionCount : null;
     const longTankFreq = p.decisionCount > 5 ? p.longTankCount / p.decisionCount : null;
     const timingProfile = {};
-    for (const [st, data] of Object.entries(p.timingByStreet)) {
+    for (const [st, data] of Object.entries(p.timingByStreet || {})) {
         timingProfile[st] = data.count > 0 ? { avgMs: data.totalMs / data.count, count: data.count } : null;
     }
 

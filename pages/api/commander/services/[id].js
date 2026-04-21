@@ -182,7 +182,7 @@ async function handlePatch(req, res, requestId) {
     if (assigned_to !== undefined) updates.assigned_to = assigned_to;
     if (notes !== undefined) updates.notes = notes;
 
-    if (Object.keys(updates).length === 0) {
+    if (Object.keys(updates || {}).length === 0) {
       return res.status(400).json({
         success: false,
         error: { code: 'VALIDATION_ERROR', message: 'No valid fields to update' }

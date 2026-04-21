@@ -97,7 +97,7 @@ export default async function handler(req, res) {
       if (hand.player_cards && typeof hand.player_cards === 'object') {
         // player_cards is an object with seat numbers as keys
         // Find the seat for the current user
-        const seats = Object.keys(hand.player_cards);
+        const seats = Object.keys(hand.player_cards || {});
         if (seats.length > 0) {
           // If we have player_seat_map, use it to find user's seat
           if (hand.player_seat_map && hand.player_seat_map[user.id]) {

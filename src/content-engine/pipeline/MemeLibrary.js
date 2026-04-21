@@ -115,7 +115,7 @@ export function getRandomMeme(category = null) {
         templates = MEME_TEMPLATES[category];
     } else {
         // Random category
-        const categories = Object.keys(MEME_TEMPLATES);
+        const categories = Object.keys(MEME_TEMPLATES || {});
         const randomCategory = categories[Math.floor(Math.random() * categories.length)];
         templates = MEME_TEMPLATES[randomCategory];
         category = randomCategory;

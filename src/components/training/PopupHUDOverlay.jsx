@@ -138,7 +138,7 @@ function PlayerCard({ player, isExpanded, onToggle }) {
             Positional VPIP / PFR
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 3 }}>
-            {Object.entries(player.positional).map(([pos, stats]) => (
+            {Object.entries(player.positional || {}).map(([pos, stats]) => (
               <div key={pos} style={{
                 background: 'rgba(0,0,0,0.2)', borderRadius: 4, padding: '4px 2px', textAlign: 'center',
               }}>
@@ -283,7 +283,7 @@ export default function PopupHUDOverlay() {
 
         {/* Legend */}
         <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-          {Object.values(ARCHETYPES).map(a => (
+          {Object.values(ARCHETYPES || {}).map(a => (
             <div key={a.label} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
               <span style={{ fontSize: 10 }}>{a.icon}</span>
               <span style={{ color: a.color, fontSize: 9, fontWeight: 600 }}>{a.label}</span>

@@ -252,7 +252,7 @@ async function generateQuestionFromPIO(pioScenarios, gameId, level, game) {
         // Select a random hero hand from the frequency data
         const sampleAction = actions[0];
         const handFreqs = frequencies[sampleAction] || {};
-        const allHands = Object.keys(handFreqs);
+        const allHands = Object.keys(handFreqs || {});
 
         if (allHands.length === 0) {
             return null;
@@ -380,8 +380,8 @@ async function generateQuestionFromPIO(pioScenarios, gameId, level, game) {
         // Extract hand EVs from strategy matrix for real EV loss computation
         const handEVs = strategyMatrix.hand_evs || scenario.handEVs || {};
         const heroHandEV = handEVs[heroHand] || 0;
-        const maxHandEV = Object.keys(handEVs).length > 0
-            ? Math.max(...Object.values(handEVs).filter(v => typeof v === 'number'))
+        const maxHandEV = Object.keys(handEVs || {}).length > 0
+            ? Math.max(...Object.values(handEVs || {}).filter(v => typeof v === 'number'))
             : heroHandEV;
 
         const question = {
@@ -424,7 +424,7 @@ async function generateQuestionFromPIO(pioScenarios, gameId, level, game) {
             },
             explanation: maxFreq >= 0.95
                 ? `According to GTO, this is a pure ${actionNameMap[optimalAction] || optimalAction} (${(maxFreq * 100).toFixed(0)}% frequency).`
-                : `GTO mixes here: ${Object.entries(handActions)
+                : `GTO mixes here: ${Object.entries(handActions || {})
                     .filter(([, f]) => f > 0.01)
                     .map(([a, f]) => `${actionNameMap[a] || a} ${(f * 100).toFixed(0)}%`)
                     .join(', ')}. The highest frequency play is ${actionNameMap[optimalAction] || optimalAction}.`,
@@ -708,7 +708,7 @@ function enrichGrokQuestion(q, gameConfig, level, gameType) {
     }
 
     // 3. Ensure gtoFrequencies exist (map option ids to 0-100 percentages)
-    if (!q.gtoFrequencies || Object.keys(q.gtoFrequencies).length === 0) {
+    if (!q.gtoFrequencies || Object.keys(q.gtoFrequencies || {}).length === 0) {
         q.gtoFrequencies = {};
         let remaining = 100;
 
@@ -739,7 +739,7 @@ function enrichGrokQuestion(q, gameConfig, level, gameType) {
             }
         });
 
-        const sum = Object.values(q.gtoFrequencies).reduce((s, v) => s + v, 0);
+        const sum = Object.values(q.gtoFrequencies || {}).reduce((s, v) => s + v, 0);
         if (sum !== 100 && correctAnswer) {
             q.gtoFrequencies[correctAnswer] = (q.gtoFrequencies[correctAnswer] || 0) + (100 - sum);
         }

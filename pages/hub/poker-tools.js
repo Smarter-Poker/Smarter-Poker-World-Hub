@@ -237,7 +237,7 @@ export default function PokerToolsPage() {
                         display: 'flex', gap: 3, flexWrap: 'wrap',
                         background: '#111', borderRadius: 10, padding: 4, border: '1px solid #222',
                     }}>
-                        {Object.entries(GAME_CONFIGS).map(([key, cfg]) => (
+                        {Object.entries(GAME_CONFIGS || {}).map(([key, cfg]) => (
                             <button key={key} onClick={() => changeGame(key)}
                                 style={{
                                     flex: 1, minWidth: 70, padding: '10px 6px', borderRadius: 8, border: 'none',

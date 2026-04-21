@@ -30,12 +30,12 @@ function buildTreeFromSpot(spotDetail) {
     if (!spotDetail) return null;
 
     const actions = spotDetail.actions || spotDetail.gridData?.[0]?.[0]?.actions || {};
-    const total = Object.values(actions).reduce((s, v) => s + (v || 0), 0) || 1;
+    const total = Object.values(actions || {}).reduce((s, v) => s + (v || 0), 0) || 1;
 
     const rootChildren = [];
     const actionMap = { r: 'raise', R: 'raise', b: 'bet', B: 'bet', c: 'call', C: 'call', x: 'check', X: 'check', f: 'fold', F: 'fold' };
 
-    Object.entries(actions).forEach(([key, freq]) => {
+    Object.entries(actions || {}).forEach(([key, freq]) => {
         if (freq <= 0) return;
         const actionType = actionMap[key] || 'check';
         const pct = Math.round((freq / total) * 100);

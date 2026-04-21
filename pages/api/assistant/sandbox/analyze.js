@@ -63,7 +63,7 @@ function getActionLabel(actionCode, potSize = 6) {
 }
 
 function getActionColor(actionLabel) {
-  for (const [key, color] of Object.entries(ACTION_COLORS)) {
+  for (const [key, color] of Object.entries(ACTION_COLORS || {})) {
     if (actionLabel.startsWith(key)) return color;
   }
   return '#3b82f6';
@@ -354,7 +354,7 @@ function parseStrategyForHand(strategyMatrix, heroHandNotation, potSize) {
     if (handEVs[variant] !== undefined) { heroEV = Number(handEVs[variant]) || 0; break; }
   }
 
-  const allEVs = Object.values(handEVs).filter(v => typeof v === 'number');
+  const allEVs = Object.values(handEVs || {}).filter(v => typeof v === 'number');
   const maxEV = allEVs.length > 0 ? Math.max(...allEVs) : heroEV;
   const minEV = allEVs.length > 0 ? Math.min(...allEVs) : heroEV;
   const avgEV = allEVs.length > 0 ? allEVs.reduce((s, v) => s + v, 0) / allEVs.length : 0;
@@ -470,7 +470,7 @@ function parsePreflopChart(chart, heroHandNotation) {
 
 function buildPreflopHeatmap(chart) {
   const handMatrix = chart.hand_matrix || {};
-  const allHands = Object.keys(handMatrix);
+  const allHands = Object.keys(handMatrix || {});
   if (allHands.length === 0) return null;
 
   const rangeData = {};

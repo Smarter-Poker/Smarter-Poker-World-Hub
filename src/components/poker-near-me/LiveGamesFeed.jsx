@@ -352,13 +352,13 @@ function LiveGamesFeed({
                 // the feed. Instead we keep the last-known data and show an amber
                 // 'Using Cached Data' banner so the page always has content.
                 // ────────────────────────────────────────────────────────────────
-                if (Object.keys(mapping).length > 0) {
+                if (Object.keys(mapping || {}).length > 0) {
                     setLiveData(prev => {
                         const next = { ...mapping };
                         // Per-venue fallback: if a venue was successfully scraped previously but is MISSING
                         // from the current payload (due to Cloudflare 403 or scraper crash), preserve it
                         // for up to 4 hours to prevent flickering to 0 tables (static catalog fallback).
-                        for (const key of Object.keys(prev)) {
+                        for (const key of Object.keys(prev || {})) {
                             if (!next[key]) {
                                 const lastAge = prev[key].last_updated ? (Date.now() - new Date(prev[key].last_updated).getTime()) : Infinity;
                                 if (lastAge < 14400000) { // 4 hours
@@ -371,7 +371,7 @@ function LiveGamesFeed({
                         return next;
                     });
                     setIsScraperDead(false);
-                } else if (lastGoodLiveDataRef.current && Object.keys(lastGoodLiveDataRef.current).length > 0) {
+                } else if (lastGoodLiveDataRef.current && Object.keys(lastGoodLiveDataRef.current || {}).length > 0) {
                     // Scrapers returned nothing (0 venues total) — preserve last-known data silently
                     console.warn('[LGF] Scraper returned 0 venues — preserving last-known data, feed intact.');
                     setIsScraperDead(true);
@@ -402,7 +402,7 @@ function LiveGamesFeed({
                 busEmit.dataMutated('live_tables');
             } else {
                 // HTTP error — preserve last-known data
-                if (lastGoodLiveDataRef.current && Object.keys(lastGoodLiveDataRef.current).length > 0) {
+                if (lastGoodLiveDataRef.current && Object.keys(lastGoodLiveDataRef.current || {}).length > 0) {
                     console.warn('[LGF] API HTTP error — preserving last-known data.');
                     setIsScraperDead(true);
                     // Do NOT clear isDataStale — offline data continues aging.
@@ -411,7 +411,7 @@ function LiveGamesFeed({
         } catch (e) {
             console.warn('Fetch global live data error:', e);
             // Network failure — preserve last-known data
-            if (lastGoodLiveDataRef.current && Object.keys(lastGoodLiveDataRef.current).length > 0) {
+            if (lastGoodLiveDataRef.current && Object.keys(lastGoodLiveDataRef.current || {}).length > 0) {
                 setIsScraperDead(true);
                 // Do NOT clear isDataStale — offline data continues aging.
             }
@@ -538,7 +538,7 @@ function LiveGamesFeed({
 
     // ─── FILTER & MERGE (with fallback to last-known data) ───
     const mergedVenues = useMemo(() => {
-        const liveEntries = Object.values(liveData);
+        const liveEntries = Object.values(liveData || {});
 
         // Build multi-layer lookups from parent venues for enrichment
         const venueByName = {};       // exact lowercase name → venue
@@ -1162,7 +1162,7 @@ function LiveGamesFeed({
             return null;
         };
         const states = new Set();
-        Object.values(liveData).forEach(v => {
+        Object.values(liveData || {}).forEach(v => {
             const parent = findParent(v.bravo_slug, v.venue_name);
             if (parent?.state) states.add(parent.state);
         });
@@ -1263,7 +1263,7 @@ function LiveGamesFeed({
 
             {/* ─── 2. HORIZONTAL CONTROL BAR (Removed to unify with global filters) ─── */}
 <div className="lgf-main" style={{ flex: 1, minWidth: 0 }}>
-                {liveLoading && Object.keys(liveData).length === 0 ? (
+                {liveLoading && Object.keys(liveData || {}).length === 0 ? (
                     renderSkeletons(4)
                 ) : (
                     <>

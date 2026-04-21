@@ -227,7 +227,7 @@ export function getLevel(levelId: number): LevelDefinition | null {
 }
 
 export function getAllLevels(): LevelDefinition[] {
-    return Object.values(LEVEL_REGISTRY).sort((a, b) => a.id - b.id);
+    return Object.values(LEVEL_REGISTRY || {}).sort((a, b) => a.id - b.id);
 }
 
 export function getLevelsByTier(tier: DifficultyTier): LevelDefinition[] {

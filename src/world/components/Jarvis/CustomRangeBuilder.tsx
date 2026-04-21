@@ -69,7 +69,7 @@ export function CustomRangeBuilder({ initialRange, onSave, onAskJarvis, onClose 
     // Count hands in range
     const countHands = () => {
         let total = 0;
-        Object.entries(customRange).forEach(([hand, freq]) => {
+        Object.entries(customRange || {}).forEach(([hand, freq]) => {
             const f = freq as number;
             if (hand.length === 2) total += 6 * f;
             else if (hand.endsWith('s')) total += 4 * f;
@@ -102,7 +102,7 @@ export function CustomRangeBuilder({ initialRange, onSave, onAskJarvis, onClose 
     };
 
     const askJarvisToReview = () => {
-        const handsInRange = Object.entries(customRange)
+        const handsInRange = Object.entries(customRange || {})
             .filter(([_, freq]) => freq as number > 0)
             .map(([hand, freq]) => `${hand}(${Math.round((freq as number) * 100)}%)`)
             .join(', ');
@@ -238,7 +238,7 @@ Compare this to a standard ${compareTo} range and tell me:
                         cursor: 'pointer'
                     }}
                 >
-                    {Object.keys(PRESET_RANGES).map(name => (
+                    {Object.keys(PRESET_RANGES || {}).map(name => (
                         <option key={name} value={name} style={{ background: '#1a0a2e' }}>
                             {name}
                         </option>
@@ -381,38 +381,38 @@ Compare this to a standard ${compareTo} range and tell me:
             <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
                 <button
                     onClick={gradeMyRange}
-                    disabled={Object.keys(customRange).length === 0}
+                    disabled={Object.keys(customRange || {}).length === 0}
                     style={{
                         flex: 1,
                         padding: '10px',
-                        background: Object.keys(customRange).length > 0
+                        background: Object.keys(customRange || {}).length > 0
                             ? 'linear-gradient(135deg, #22c55e, #16a34a)'
                             : 'rgba(34, 197, 94, 0.2)',
                         border: 'none',
                         borderRadius: '8px',
-                        color: Object.keys(customRange).length > 0 ? '#fff' : 'rgba(255, 255, 255, 0.3)',
+                        color: Object.keys(customRange || {}).length > 0 ? '#fff' : 'rgba(255, 255, 255, 0.3)',
                         fontSize: '12px',
                         fontWeight: 600,
-                        cursor: Object.keys(customRange).length > 0 ? 'pointer' : 'not-allowed'
+                        cursor: Object.keys(customRange || {}).length > 0 ? 'pointer' : 'not-allowed'
                     }}
                 >
                     📊 Grade vs GTO
                 </button>
                 <button
                     onClick={askJarvisToReview}
-                    disabled={Object.keys(customRange).length === 0}
+                    disabled={Object.keys(customRange || {}).length === 0}
                     style={{
                         flex: 1,
                         padding: '10px',
-                        background: Object.keys(customRange).length > 0
+                        background: Object.keys(customRange || {}).length > 0
                             ? 'linear-gradient(135deg, #FFD700, #FFA500)'
                             : 'rgba(255, 215, 0, 0.2)',
                         border: 'none',
                         borderRadius: '8px',
-                        color: Object.keys(customRange).length > 0 ? '#000' : 'rgba(255, 255, 255, 0.3)',
+                        color: Object.keys(customRange || {}).length > 0 ? '#000' : 'rgba(255, 255, 255, 0.3)',
                         fontSize: '12px',
                         fontWeight: 600,
-                        cursor: Object.keys(customRange).length > 0 ? 'pointer' : 'not-allowed'
+                        cursor: Object.keys(customRange || {}).length > 0 ? 'pointer' : 'not-allowed'
                     }}
                 >
                     🎩 Ask Jarvis
@@ -440,7 +440,7 @@ Compare this to a standard ${compareTo} range and tell me:
                     </div>
                     {gradeResult.categoryBreakdown && (
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                            {Object.entries(gradeResult.categoryBreakdown).map(([cat, data]: [string, any]) => (
+                            {Object.entries(gradeResult.categoryBreakdown || {}).map(([cat, data]: [string, any]) => (
                                 <span key={cat} style={{
                                     padding: '2px 6px',
                                     background: data.score >= 80 ? 'rgba(34, 197, 94, 0.2)' : data.score >= 60 ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)',

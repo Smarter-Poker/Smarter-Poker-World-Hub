@@ -340,7 +340,7 @@ export default function HomeGamesByState({ stateCode, stateName, stateSlug, game
               <div className="rounded-xl bg-[#132240]/60 border border-[#1E293B] p-4">
                 <h2 className="text-xs uppercase tracking-wider text-[#94A3B8] mb-3">Other states</h2>
                 <ul className="space-y-1.5 text-sm">
-                  {Object.entries(US_STATES_BY_CODE)
+                  {Object.entries(US_STATES_BY_CODE || {})
                     .filter(([c]) => c !== stateCode)
                     .slice(0, 8)
                     .map(([code, name]) => (

@@ -59,7 +59,7 @@ function evaluateHand(cards) {
     // Count groups
     const counts = {};
     vals.forEach(v => { counts[v] = (counts[v] || 0) + 1; });
-    const groups = Object.entries(counts).map(([v, c]) => ({ val: parseInt(v), count: c })).sort((a, b) => b.count - a.count || b.val - a.val);
+    const groups = Object.entries(counts || {}).map(([v, c]) => ({ val: parseInt(v), count: c })).sort((a, b) => b.count - a.count || b.val - a.val);
 
     if (isFlush && isStraight) return { rank: 8, value: straightHigh };
     if (groups[0].count === 4) return { rank: 7, value: groups[0].val * 100 + groups[1].val };

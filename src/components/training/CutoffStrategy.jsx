@@ -50,7 +50,7 @@ export default function CutoffStrategy() {
         </div>
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 12 }}>{section.content}</p>
 
-        {Object.entries(section.range).map(([key, val]) => (
+        {Object.entries(section.range || {}).map(([key, val]) => (
           <div key={key} style={{ background: `${section.color}08`, borderRadius: 8, padding: 10, marginBottom: 6, borderLeft: `3px solid ${section.color}` }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: section.color, textTransform: 'uppercase' }}>{key}</div>
             <div style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'monospace' }}>{val}</div>

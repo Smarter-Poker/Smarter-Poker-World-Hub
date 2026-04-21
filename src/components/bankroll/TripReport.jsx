@@ -51,11 +51,11 @@ function TripReport({ report, onBack }) {
             </div>
 
             {/* Category Breakdown */}
-            {Object.keys(categoryBreakdown).length > 0 && (
+            {Object.keys(categoryBreakdown || {}).length > 0 && (
                 <div style={styles.section}>
                     <h3 style={styles.sectionTitle}>Breakdown By Category</h3>
                     <div style={styles.catGrid}>
-                        {Object.entries(categoryBreakdown).map(([cat, data]) => (
+                        {Object.entries(categoryBreakdown || {}).map(([cat, data]) => (
                             <div key={cat} style={styles.catCard}>
                                 <div style={styles.catName}>{CATEGORY_LABELS[cat] || cat}</div>
                                 <div style={{
@@ -74,11 +74,11 @@ function TripReport({ report, onBack }) {
             )}
 
             {/* Daily Breakdown */}
-            {Object.keys(dailyBreakdown).length > 0 && (
+            {Object.keys(dailyBreakdown || {}).length > 0 && (
                 <div style={styles.section}>
                     <h3 style={styles.sectionTitle}>Daily Results</h3>
                     <div style={styles.dailyList}>
-                        {Object.entries(dailyBreakdown)
+                        {Object.entries(dailyBreakdown || {})
                             .sort(([a], [b]) => a.localeCompare(b))
                             .map(([day, net]) => (
                                 <div key={day} style={styles.dailyRow}>

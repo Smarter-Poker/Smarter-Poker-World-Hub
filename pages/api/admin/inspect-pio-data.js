@@ -79,7 +79,7 @@ export default async function handler(req, res) {
                   const firstAction = sm.actions[0];
                   const freqObj = sm.frequencies[firstAction];
                   if (freqObj) {
-                      const hands = Object.keys(freqObj);
+                      const hands = Object.keys(freqObj || {});
                       strategyStructure.totalHands = hands.length;
                       strategyStructure.frequencySample = {};
                       hands.slice(0, 5).forEach(h => {
@@ -90,7 +90,7 @@ export default async function handler(req, res) {
 
               // Get sample EVs
               if (sm.hand_evs) {
-                  const evHands = Object.keys(sm.hand_evs);
+                  const evHands = Object.keys(sm.hand_evs || {});
                   strategyStructure.handEvSample = {};
                   evHands.slice(0, 5).forEach(h => {
                       strategyStructure.handEvSample[h] = sm.hand_evs[h];

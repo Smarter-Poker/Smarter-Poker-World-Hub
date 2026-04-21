@@ -1172,7 +1172,7 @@ export default function TrainingPage() {
                                     posLosses[pos] = (posLosses[pos] || 0) + h.evLoss;
                                 }
                             });
-                            const worstPos = Object.entries(posLosses).sort(([, a], [, b]) => b - a)[0];
+                            const worstPos = Object.entries(posLosses || {}).sort(([, a], [, b]) => b - a)[0];
                             if (worstPos && worstPos[1] > 2) {
                                 insights.push({ text: `Work on ${worstPos[0]} play — you leak ${worstPos[1].toFixed(1)} BB from that position.`, color: '#fbbf24' });
                             }
@@ -1416,7 +1416,7 @@ export default function TrainingPage() {
                                             const pos = h.handData?.heroPosition;
                                             if (pos && h.evLoss > 0) posLosses[pos] = (posLosses[pos] || 0) + h.evLoss;
                                         });
-                                        const worstPos = Object.entries(posLosses).sort(([, a], [, b]) => b - a)[0];
+                                        const worstPos = Object.entries(posLosses || {}).sort(([, a], [, b]) => b - a)[0];
 
                                         return (
                                             <>

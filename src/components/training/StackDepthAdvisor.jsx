@@ -131,7 +131,7 @@ function SPRGauge({ spr, color }) {
 function PositionRanges({ ranges, color }) {
   const positions = ['utg', 'mp', 'co', 'btn', 'sb'];
   const labels = { utg: 'UTG', mp: 'MP', co: 'CO', btn: 'BTN', sb: 'SB' };
-  const maxRange = Math.max(...Object.values(ranges));
+  const maxRange = Math.max(...Object.values(ranges || {}));
   return (
     <div>
       <div style={{ color: '#64748b', fontSize: 8, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Open-Raise Range by Position</div>

@@ -54,7 +54,7 @@ class SoundManager {
         this.enabled = enabled;
         if (!enabled) {
             // Stop all sounds
-            Object.values(this.sounds).forEach(sound => sound.stop());
+            Object.values(this.sounds || {}).forEach(sound => sound.stop());
         }
     }
 }

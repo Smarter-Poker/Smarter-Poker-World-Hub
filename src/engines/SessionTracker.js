@@ -211,7 +211,7 @@ export function calculateTrends(sessions) {
         dailyMap[day].hands += s.hands_played;
     }
 
-    const dailyScores = Object.entries(dailyMap).map(([date, data]) => ({
+    const dailyScores = Object.entries(dailyMap || {}).map(([date, data]) => ({
         date,
         avgScore: Math.round(data.scores.reduce((a, b) => a + b, 0) / data.scores.length),
         avgEVLoss: Math.round((data.evLoss.reduce((a, b) => a + b, 0) / data.evLoss.length) * 100) / 100,
@@ -269,7 +269,7 @@ export function identifyLeaks(sessions) {
         levelGroups[s.level].push(s.gto_score);
     }
 
-    for (const [level, scores] of Object.entries(levelGroups)) {
+    for (const [level, scores] of Object.entries(levelGroups || {})) {
         const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
         if (avg < avgScore - 10 && scores.length >= 2) {
             const levelNum = parseInt(level);

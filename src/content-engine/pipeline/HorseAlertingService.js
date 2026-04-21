@@ -169,7 +169,7 @@ class HorseAlertingService {
 
             // Merge source distribution
             if (day.source_distribution) {
-                for (const [source, count] of Object.entries(day.source_distribution)) {
+                for (const [source, count] of Object.entries(day.source_distribution || {})) {
                     summary.sourceDistribution[source] =
                         (summary.sourceDistribution[source] || 0) + count;
                 }
@@ -243,7 +243,7 @@ class HorseAlertingService {
         });
 
         // Sort by total engagement
-        return Object.entries(horseStats)
+        return Object.entries(horseStats || {})
             .map(([id, stats]) => ({
                 authorId: id,
                 ...stats,

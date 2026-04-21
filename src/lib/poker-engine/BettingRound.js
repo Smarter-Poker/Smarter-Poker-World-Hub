@@ -99,7 +99,7 @@ class BettingRound {
     
     // Carry forward total investments from prior rounds
     if (options.playerTotalInvestments) {
-      for (const [playerId, total] of Object.entries(options.playerTotalInvestments)) {
+      for (const [playerId, total] of Object.entries(options.playerTotalInvestments || {})) {
         const player = this.players.find(p => String(p.id) === String(playerId));
         if (player) {
           player.totalInvested = total;

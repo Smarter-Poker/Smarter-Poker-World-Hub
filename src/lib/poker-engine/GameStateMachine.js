@@ -1353,7 +1353,7 @@ class GameStateMachine {
     });
 
     // Apply payouts to player stacks
-    for (const [pid, amount] of Object.entries(payouts)) {
+    for (const [pid, amount] of Object.entries(payouts || {})) {
       const player = this.currentHand.players.find(p => String(p.id) === String(pid));
       if (player) player.stack += amount;
     }
@@ -1392,7 +1392,7 @@ class GameStateMachine {
 
     // Set hand result for _finishHand
     this.currentHand.result = {
-      winners: Object.entries(payouts).map(([playerId, amount]) => ({
+      winners: Object.entries(payouts || {}).map(([playerId, amount]) => ({
         playerId,
         amount,
         hand: allResults[0].results.find(r => r.playerId === playerId)?.hand ||
@@ -1717,13 +1717,13 @@ class GameStateMachine {
           boardIndex: br.boardIndex,
           board: br.board,
           winners: br.winners.map(w => w.playerId),
-          portion: Object.values(payouts).reduce((s, v) => s + v, 0) / boardResults.length,
+          portion: Object.values(payouts || {}).reduce((s, v) => s + v, 0) / boardResults.length,
         });
       });
 
       // Apply payouts
       const winnerDetails = [];
-      for (const [pid, amount] of Object.entries(payouts)) {
+      for (const [pid, amount] of Object.entries(payouts || {})) {
         const player = this.currentHand.players.find(p => String(p.id) === String(pid));
         if (player) {
           player.stack += amount;

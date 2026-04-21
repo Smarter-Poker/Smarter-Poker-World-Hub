@@ -511,7 +511,7 @@ export default function SPRTrainer() {
                       marginBottom: 14,
                     }}
                   >
-                    {Object.entries(ACTION_CONFIG).map(([a, cfg]) => (
+                    {Object.entries(ACTION_CONFIG || {}).map(([a, cfg]) => (
                       <button
                         key={a}
                         onClick={() => handleChoice(a)}

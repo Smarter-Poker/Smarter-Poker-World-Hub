@@ -104,7 +104,7 @@ export default async function handler(req, res) {
       byPosition[pos].totalEquity += (h.equity || 0);
 
       // Street stats — derive from street_decisions keys or board card count
-      const streets = h.street_decisions ? Object.keys(h.street_decisions) : [];
+      const streets = h.street_decisions ? Object.keys(h.street_decisions || {}) : [];
       const lastStreet = streets.length > 0 ? streets[streets.length - 1] : 'unknown';
       if (!byStreet[lastStreet]) byStreet[lastStreet] = { hands: 0, avgEquity: 0, totalEquity: 0 };
       byStreet[lastStreet].hands++;
@@ -126,13 +126,13 @@ export default async function handler(req, res) {
     }
 
     // Compute averages
-    for (const pos of Object.keys(byPosition)) {
+    for (const pos of Object.keys(byPosition || {})) {
       byPosition[pos].avgEquity = byPosition[pos].hands > 0
         ? Math.round((byPosition[pos].totalEquity / byPosition[pos].hands) * 100) / 100
         : 0;
       delete byPosition[pos].totalEquity;
     }
-    for (const st of Object.keys(byStreet)) {
+    for (const st of Object.keys(byStreet || {})) {
       byStreet[st].avgEquity = byStreet[st].hands > 0
         ? Math.round((byStreet[st].totalEquity / byStreet[st].hands) * 100) / 100
         : 0;

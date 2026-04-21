@@ -23,7 +23,7 @@ const TABLE = 'diag-table';
     const horses = await Brain.loadHorseIds();
     horses.add(HR);
 
-    const boardKeys = Object.keys(BOARDS);
+    const boardKeys = Object.keys(BOARDS || {});
     const allHands = [NUT, DRAW, WEAK, TRASH];
     const positions = ['btn', 'bb', 'sb', 'co', 'ep', 'mp'];
     let issues = 0;

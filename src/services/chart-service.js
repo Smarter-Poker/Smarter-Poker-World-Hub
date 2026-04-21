@@ -162,13 +162,13 @@ export function validateChartData(chartData) {
     }
 
     // Validate chart_grid structure
-    const gridKeys = Object.keys(chartData.chart_grid);
+    const gridKeys = Object.keys(chartData.chart_grid || {});
     if (gridKeys.length === 0) {
         return { valid: false, error: 'Chart grid cannot be empty' };
     }
 
     // Validate each hand in the grid
-    for (const [hand, data] of Object.entries(chartData.chart_grid)) {
+    for (const [hand, data] of Object.entries(chartData.chart_grid || {})) {
         if (!data.action) {
             return { valid: false, error: `Hand ${hand} is missing action` };
         }

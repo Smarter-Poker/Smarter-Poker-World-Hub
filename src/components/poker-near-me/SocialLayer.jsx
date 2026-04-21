@@ -128,7 +128,7 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
             });
 
             if (!isMounted.current) return;
-            setFriendCheckins(Object.values(venueMap));
+            setFriendCheckins(Object.values(venueMap || {}));
         } catch (err) {
             if (!isMounted.current) return;
             console.warn('Failed to fetch friend checkins:', err);

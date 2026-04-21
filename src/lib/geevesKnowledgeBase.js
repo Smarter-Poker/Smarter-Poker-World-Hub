@@ -185,7 +185,7 @@ const PAGE_CONTEXT_MAP = {
 function getPageCategories(currentPage) {
     if (!currentPage) return [];
     const p = (currentPage || '').toLowerCase();
-    for (const [key, cats] of Object.entries(PAGE_CONTEXT_MAP)) {
+    for (const [key, cats] of Object.entries(PAGE_CONTEXT_MAP || {})) {
         if (p.includes(key)) return cats;
     }
     return [];

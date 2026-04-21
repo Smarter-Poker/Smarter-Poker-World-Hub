@@ -208,7 +208,7 @@ export default function QuizModeEngine() {
         <div style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 8, padding: 12, marginBottom: 16 }}>
           <div style={{ color: '#64748b', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', marginBottom: 8 }}>By Category</div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {Object.entries(typeBreakdown).map(([type, data]) => (
+            {Object.entries(typeBreakdown || {}).map(([type, data]) => (
               <div key={type} style={{ padding: '6px 10px', borderRadius: 6, background: 'rgba(255,255,255,0.04)', textAlign: 'center' }}>
                 <div style={{ color: '#94a3b8', fontSize: 10, fontWeight: 600, textTransform: 'capitalize' }}>{type}</div>
                 <div style={{ color: data.correct === data.total ? '#22c55e' : '#f59e0b', fontSize: 14, fontWeight: 700 }}>

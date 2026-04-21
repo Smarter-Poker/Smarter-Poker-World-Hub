@@ -316,7 +316,7 @@ function convertToCSV(data) {
   const flatData = data.map(row => flattenObject(row));
 
   // Get all unique keys
-  const allKeys = [...new Set(flatData.flatMap(row => Object.keys(row)))];
+  const allKeys = [...new Set(flatData.flatMap(row => Object.keys(row || {})))];
 
   // Create header row
   const header = allKeys.join(',');

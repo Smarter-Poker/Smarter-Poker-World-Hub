@@ -508,7 +508,7 @@ export default async function handler(req, res) {
       isDryRun,
       batchId,
       stats: {
-        venuesInRegistry: Object.keys(CHARITY_SOURCE_REGISTRY).length,
+        venuesInRegistry: Object.keys(CHARITY_SOURCE_REGISTRY || {}).length,
         total: stats.total,
         scraped: stats.scraped,
         skippedFresh: stats.skipped,

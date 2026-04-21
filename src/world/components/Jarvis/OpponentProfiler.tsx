@@ -325,7 +325,7 @@ Give me 3 specific exploits for this player type.`;
                             Player Style:
                         </p>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                            {(Object.keys(STYLE_LABELS) as Array<keyof typeof STYLE_LABELS>).map(style => (
+                            {(Object.keys(STYLE_LABELS || {}) as Array<keyof typeof STYLE_LABELS>).map(style => (
                                 <button
                                     key={style}
                                     onClick={() => updateProfile(current.id, { style })}

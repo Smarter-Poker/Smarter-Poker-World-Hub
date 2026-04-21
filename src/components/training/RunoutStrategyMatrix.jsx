@@ -67,7 +67,7 @@ function classifyRunoutType(flopBoard, newCard) {
     // Check if it completes a flush
     const suitCounts = {};
     [...boardSuits, newSuit].forEach(s => { suitCounts[s] = (suitCounts[s] || 0) + 1; });
-    const flushCompleting = Object.values(suitCounts).some(c => c >= 4);
+    const flushCompleting = Object.values(suitCounts || {}).some(c => c >= 4);
 
     // Check if it pairs the board
     const pairing = boardRanks.includes(newRank);
@@ -115,7 +115,7 @@ function getRunoutStrategy(holeCards, flopBoard, runoutCard, position, street) {
             // Determine dominant sizing
             let dominantSize = 'bet_medium';
             if (strategy.sizes) {
-                const maxSize = Object.entries(strategy.sizes)
+                const maxSize = Object.entries(strategy.sizes || {})
                     .sort((a, b) => b[1] - a[1])[0];
                 if (maxSize) {
                     const key = maxSize[0];
@@ -144,7 +144,7 @@ function getRunoutStrategy(holeCards, flopBoard, runoutCard, position, street) {
             const allRanks = newBoard.map(c => c[0]);
             const rankCounts = {};
             allRanks.forEach(r => { rankCounts[r] = (rankCounts[r] || 0) + 1; });
-            const hasPair = Object.values(rankCounts).some(c => c >= 2);
+            const hasPair = Object.values(rankCounts || {}).some(c => c >= 2);
             const isMonotone = suitSet.size <= 2;
 
             let boardState = 'dry_runout';
@@ -160,7 +160,7 @@ function getRunoutStrategy(holeCards, flopBoard, runoutCard, position, street) {
 
             let dominantSize = 'bet_large';
             if (strategy.sizes) {
-                const maxSize = Object.entries(strategy.sizes)
+                const maxSize = Object.entries(strategy.sizes || {})
                     .sort((a, b) => b[1] - a[1])[0];
                 if (maxSize) {
                     const key = maxSize[0];
@@ -276,9 +276,9 @@ const RunoutCell = memo(({ rank, suit, strategy, isDead, isSelected, onClick }) 
                         <span style={{ color: '#22c55e', fontWeight: 700 }}>Bet {strategy.betFreq}%</span>
                         <span style={{ color: '#64748b', fontWeight: 700 }}>Chk {strategy.checkFreq}%</span>
                     </div>
-                    {strategy.sizes && Object.keys(strategy.sizes).length > 0 && (
+                    {strategy.sizes && Object.keys(strategy.sizes || {}).length > 0 && (
                         <div style={{ marginTop: 3, borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 3 }}>
-                            {Object.entries(strategy.sizes)
+                            {Object.entries(strategy.sizes || {})
                                 .filter(([_, w]) => w > 0.05)
                                 .sort((a, b) => b[1] - a[1])
                                 .map(([size, weight]) => (
@@ -392,12 +392,12 @@ function RunoutDetail({ card, strategy, suitInfo, onClose }) {
             </div>
 
             {/* Sizing breakdown */}
-            {strategy.sizes && Object.keys(strategy.sizes).length > 0 && (
+            {strategy.sizes && Object.keys(strategy.sizes || {}).length > 0 && (
                 <div>
                     <div style={{ fontSize: 9, color: '#64748b', marginBottom: 4, fontWeight: 600 }}>
                         When betting:
                     </div>
-                    {Object.entries(strategy.sizes)
+                    {Object.entries(strategy.sizes || {})
                         .filter(([_, w]) => w > 0.02)
                         .sort((a, b) => b[1] - a[1])
                         .map(([size, weight]) => {
@@ -446,7 +446,7 @@ function RunoutSummary({ strategies }) {
         let totalCheck = 0;
         let count = 0;
 
-        Object.values(strategies).forEach(s => {
+        Object.values(strategies || {}).forEach(s => {
             if (!s) return;
             totalBet += s.betFreq;
             totalCheck += s.checkFreq;
@@ -472,7 +472,7 @@ function RunoutSummary({ strategies }) {
                 {stats.count} runouts analyzed
             </div>
             <div style={{ display: 'flex', gap: 6 }}>
-                {Object.entries(stats.types).filter(([_, c]) => c > 0).map(([type, count]) => (
+                {Object.entries(stats.types || {}).filter(([_, c]) => c > 0).map(([type, count]) => (
                     <span key={type} style={{
                         fontSize: 8, color: '#94a3b8',
                         background: 'rgba(255,255,255,0.04)',
@@ -556,7 +556,7 @@ export default function RunoutStrategyMatrix({
                 display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center',
                 fontSize: 9,
             }}>
-                {Object.entries(ACTION_COLORS).map(([action, color]) => (
+                {Object.entries(ACTION_COLORS || {}).map(([action, color]) => (
                     <div key={action} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                         <div style={{ width: 10, height: 10, borderRadius: 2, background: color, opacity: 0.85 }} />
                         <span style={{ color: '#94a3b8' }}>

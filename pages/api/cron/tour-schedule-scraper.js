@@ -290,7 +290,7 @@ async function scrapeTourPdfs(tourCode, sources, stats) {
 
                 // Also try known event IDs as fallback/supplement
                 if (sourceConfig.known_event_ids && sourceConfig.pdf_base) {
-                    const knownEntries = Object.entries(sourceConfig.known_event_ids);
+                    const knownEntries = Object.entries(sourceConfig.known_event_ids || {});
                     for (const [name, eventId] of knownEntries) {
                         const pdfUrl = `${sourceConfig.pdf_base}${eventId}`;
                         const alreadyFound = pdfEntries.some(e => e.pdfUrl.includes(String(eventId)));

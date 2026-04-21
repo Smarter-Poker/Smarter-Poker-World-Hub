@@ -186,7 +186,7 @@ export class SessionScorer {
             streets[m.street].totalEVLoss += m.evLoss;
         }
 
-        for (const key of Object.keys(streets)) {
+        for (const key of Object.keys(streets || {})) {
             streets[key].avgScore = Math.round(streets[key].totalScore / streets[key].moves);
             streets[key].avgEVLoss = Math.round((streets[key].totalEVLoss / streets[key].moves) * 100) / 100;
         }

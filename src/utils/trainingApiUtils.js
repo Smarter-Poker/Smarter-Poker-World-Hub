@@ -162,7 +162,7 @@ export function apiLog(endpoint) {
     const _emit = (level, message, extra = {}) => {
         const entry = { ts: Date.now(), endpoint, level, message, ...extra };
         // Strip undefined values for cleaner output
-        Object.keys(entry).forEach(k => entry[k] === undefined && delete entry[k]);
+        Object.keys(entry || {}).forEach(k => entry[k] === undefined && delete entry[k]);
         if (level === 'error') {
             console.warn(JSON.stringify(entry));
         } else if (level === 'warn') {

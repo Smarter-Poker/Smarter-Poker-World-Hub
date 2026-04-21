@@ -475,14 +475,14 @@ export class GameContentFactory {
      * Get all available game IDs
      */
     static getAvailableGames(): string[] {
-        return Object.keys(GAMES_LIST);
+        return Object.keys(GAMES_LIST || {});
     }
 
     /**
      * Get game count
      */
     static getGameCount(): number {
-        return Object.keys(GAMES_LIST).length;
+        return Object.keys(GAMES_LIST || {}).length;
     }
 }
 

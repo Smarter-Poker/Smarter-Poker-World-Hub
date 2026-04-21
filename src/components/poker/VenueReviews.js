@@ -53,7 +53,7 @@ const SORT_OPTIONS = [
 function getAccessToken() {
     if (typeof window === 'undefined') return null;
     try {
-        const keys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+        const keys = Object.keys(localStorage || {}).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
         if (keys.length > 0) {
             const data = JSON.parse(localStorage.getItem(keys[0]) || '{}');
             return data?.access_token || null;
@@ -66,7 +66,7 @@ function getAccessToken() {
 function getCurrentUser() {
     if (typeof window === 'undefined') return null;
     try {
-        const keys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+        const keys = Object.keys(localStorage || {}).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
         if (keys.length > 0) {
             const data = JSON.parse(localStorage.getItem(keys[0]) || '{}');
             return data?.user || null;
@@ -291,10 +291,10 @@ export default function VenueReviews({ venueId, venueName }) {
 
             // Only include categories that were rated
             const filledCategories = {};
-            for (const [key, val] of Object.entries(formCategories)) {
+            for (const [key, val] of Object.entries(formCategories || {})) {
                 if (val && val >= 1 && val <= 5) filledCategories[key] = val;
             }
-            if (Object.keys(filledCategories).length > 0) {
+            if (Object.keys(filledCategories || {}).length > 0) {
                 body.category_ratings = filledCategories;
             }
 
@@ -378,7 +378,7 @@ export default function VenueReviews({ venueId, venueName }) {
         );
     }
 
-    const hasCategoryData = Object.values(summary.category_averages).some(v => v != null);
+    const hasCategoryData = Object.values(summary.category_averages || {}).some(v => v != null);
 
     return (
         <div className="vr-root">

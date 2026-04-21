@@ -128,7 +128,7 @@ export function resolveCityCoords(location) {
     const key = location.toLowerCase().trim();
     if (CITY_COORDINATES[key]) return CITY_COORDINATES[key];
     const cityPart = key.split(',')[0].trim();
-    for (const [k, v] of Object.entries(CITY_COORDINATES)) {
+    for (const [k, v] of Object.entries(CITY_COORDINATES || {})) {
         if (k.startsWith(cityPart + ',')) return v;
     }
     return null;

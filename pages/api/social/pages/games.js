@@ -177,7 +177,7 @@ export default async function handler(req, res) {
 
                           // Fetch active dealer rotations for all tables in one batch
                           // Rotations may have table_id, table_number, or both — query by both
-                          const tableNumbers = Object.values(tableMap).map(t => t.table_number).filter(Boolean);
+                          const tableNumbers = Object.values(tableMap || {}).map(t => t.table_number).filter(Boolean);
                           let dealerRotationMap = {};
                           if (tableIds.length > 0 || tableNumbers.length > 0) {
                               try {
@@ -203,7 +203,7 @@ export default async function handler(req, res) {
                                           .is('ended_at', null);
                                       // Build a reverse map: table_number → table_id
                                       const numToId = {};
-                                      Object.entries(tableMap).forEach(([tid, t]) => { numToId[t.table_number] = tid; });
+                                      Object.entries(tableMap || {}).forEach(([tid, t]) => { numToId[t.table_number] = tid; });
                                       (rotByNum || []).forEach(r => {
                                           const name = r.dealer_name || r.commander_dealers?.name || null;
                                           const resolvedTableId = r.table_id || numToId[r.table_number];
