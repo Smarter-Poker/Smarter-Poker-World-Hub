@@ -108,7 +108,7 @@ export default async function handler(req, res) {
           });
       } catch (logError) {
         // Transaction logging is optional - don't fail if table doesn't exist
-        console.log('Buy-in transaction log skipped:', logError.message);
+        console.debug('[buyin] Transaction log skipped (table optional):', logError.message);
       }
 
       return res.status(200).json({

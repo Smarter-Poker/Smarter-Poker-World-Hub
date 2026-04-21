@@ -585,7 +585,7 @@ export default async function handler(req, res) {
                                   effectiveLat = String(data[0].lat);
                                   effectiveLng = String(data[0].lon);
                                   effectiveRadius = effectiveRadius || '50';
-                                  console.log(`[venues] Dynamically geocoded ${rawSearch} to ${effectiveLat}, ${effectiveLng}`);
+                                  console.debug(`[venues] Geocoded search to coordinates.`);
                               }
                           }
                       } catch (e) {

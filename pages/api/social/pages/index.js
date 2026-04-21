@@ -424,7 +424,7 @@ export default async function handler(req, res) {
                               });
                           }).catch(() => { });
                       } else {
-                          console.log(`[geocode] Success for page ${data.id}: ${locStr}`);
+                          console.debug(`[geocode] Success for page ${data.id}`);
                       }
                   }).catch(e => {
                       console.error(`[geocode] Error for page ${data.id}:`, e.message);
@@ -529,7 +529,7 @@ export default async function handler(req, res) {
                   }),
               }).then(r => {
                   if (!r.ok) console.error(`[AutoPost] Failed ${postType} for page ${id}: HTTP ${r.status}`);
-                  else console.log(`[AutoPost] Created ${postType} for page "${pageName}"`);
+                  else console.debug(`[AutoPost] Created ${postType} post.`);
               }).catch(e => console.error(`[AutoPost] Error ${postType}:`, e.message));
           };
 
@@ -572,7 +572,7 @@ export default async function handler(req, res) {
                           .update(venueUpdates)
                           .eq('id', data.linked_venue_id);
                       if (venueErr) console.error('[VenueSync] Failed to sync:', venueErr.message);
-                      else console.log('[VenueSync] Synced venue', data.linked_venue_id, ':', Object.keys(venueUpdates).join(', '));
+                      else console.debug('[VenueSync] Synced venue updates.');
                   } catch (err) {
                       console.error('[VenueSync] Error:', err.message);
                   }

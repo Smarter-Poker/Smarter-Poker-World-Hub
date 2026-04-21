@@ -20,18 +20,19 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
 
   const GAME_TYPES = ['NLH 1/2', 'NLH 1/3', 'NLH 2/5', 'NLH 5/10', 'PLO 1/2', 'PLO 1/3', 'PLO 2/5', 'LHE 3/6', 'LHE 4/8', 'LHE 6/12', 'Mixed Game'];
 
-  const loadAlerts = useCallback((signal) => {
+  const loadAlerts = useCallback((signal, mounted = { current: true }) => {
     if (!userId) return;
     fetch(`/api/poker/venue-alerts?user_id=${userId}`, signal ? { signal } : undefined)
       .then(r => r.json())
-      .then(d => { setAlerts(d.alerts || []); setLoading(false); })
-      .catch(e => { if (e.name !== 'AbortError') setLoading(false); });
+      .then(d => { if (mounted.current) { setAlerts(d.alerts || []); setLoading(false); } })
+      .catch(e => { if (mounted.current && e.name !== 'AbortError') setLoading(false); });
   }, [userId]);
 
   useEffect(() => {
     const controller = new AbortController();
-    loadAlerts(controller.signal);
-    return () => controller.abort();
+    const mounted = { current: true };
+    loadAlerts(controller.signal, mounted);
+    return () => { mounted.current = false; controller.abort(); };
   }, [loadAlerts]);
 
   // Fetch live game data for context

@@ -187,7 +187,7 @@ export default async function handler(req, res) {
                 role: 'venue_owner',
               }
             });
-          } catch (e) { console.log('Metadata update non-critical error:', e.message); }
+          } catch (e) { console.warn('[create-subscription] Metadata update non-critical error:', e.message); }
         } else {
           return res.status(400).json({
             error: 'No Smarter.Poker account found with this email. Please uncheck "I already have a Smarter.Poker account" and create a new account instead.'
