@@ -81,6 +81,15 @@ export default function NotificationBell({ userId }) {
         body: JSON.stringify({}),
       });
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      // Fire global broadcasts so UniversalHeader and other tabs sync the badge drop
+      try {
+        const { broadcastSync } = require('../../lib/broadcastSync');
+        const { eventBus, EventType } = require('../../lib/eventBus');
+        broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: 'club-arena' });
+        eventBus.emit(EventType.NOTIFICATIONS_READ, { count: unreadCount }, 'NotificationBell');
+        // Clear local storage count assumption since we wiped social
+        localStorage.setItem('sp-notif-count', '0');
+      } catch (e) { /* ignore import failure if isolated */ }
       setUnreadCount(0);
     } catch (_) { /* silent */ }
   };
