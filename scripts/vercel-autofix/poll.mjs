@@ -94,6 +94,38 @@ async function fetchWithRetry(url, opts = {}, { retries = 2, baseMs = 500 } = {}
   throw lastErr;
 }
 
+// Honor [DO NOT AUTOFIX] / [skip autofix] / [skip vercel-autofix] in commit
+// messages. Case-insensitive, whitespace-tolerant. Examples it must catch:
+//   "[DO NOT AUTOFIX] fix(build): 6144MB heap"
+//   "fix(build): 4096MB heap [DO NOT AUTOFIX] [skip autofix]"
+//   "fix(build): bump heap [skip vercel-autofix]"
+export const AUTOFIX_SKIP_TAG_RE =
+  /\[\s*(?:do\s*not\s*autofix|skip\s+(?:autofix|vercel[-\s]?autofix))\s*\]/i;
+
+async function getCommitMessage(repo, sha, fallback) {
+  if (typeof fallback === 'string' && fallback.length > 0) return fallback;
+  // Vercel's list endpoint sometimes omits githubCommitMessage. Fall back to
+  // the GitHub commits API. Returns null on failure (caller treats as
+  // fail-closed and skips the dispatch).
+  try {
+    const [owner, name] = repo.split('/');
+    const res = await fetchWithRetry(
+      `https://api.github.com/repos/${owner}/${name}/commits/${sha}`,
+      {
+        headers: {
+          Authorization: `Bearer ${GITHUB_TOKEN}`,
+          Accept: 'application/vnd.github+json',
+        },
+      }
+    );
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json?.commit?.message ?? null;
+  } catch {
+    return null;
+  }
+}
+
 async function vercelFetch(path) {
   const url = new URL(`https://api.vercel.com${path}`);
   url.searchParams.set('teamId', VERCEL_TEAM_ID);
@@ -364,6 +396,34 @@ async function run() {
           project: proj.vercelName,
           deploy: d.id,
           commitSha,
+        });
+        continue;
+      }
+
+      // Honor [DO NOT AUTOFIX] / [skip autofix] / [skip vercel-autofix] tags
+      // in the commit message. The human has explicitly told us this commit
+      // should NOT be reverted or rewritten (e.g. a NODE_OPTIONS heap bump
+      // that must stick). Fail-closed: if we can't read the commit message,
+      // skip dispatch rather than risk fighting the user.
+      const commitMsg = await getCommitMessage(proj.githubRepo, commitSha, d.meta?.githubCommitMessage);
+      if (commitMsg == null) {
+        log({
+          level: 'warn',
+          msg: 'commit message unavailable — skipping autofix (fail-closed)',
+          project: proj.vercelName,
+          deploy: d.id,
+          commitSha,
+        });
+        continue;
+      }
+      if (AUTOFIX_SKIP_TAG_RE.test(commitMsg)) {
+        log({
+          level: 'info',
+          msg: 'commit has skip-autofix tag — not dispatching',
+          project: proj.vercelName,
+          deploy: d.id,
+          commitSha,
+          tagPreview: commitMsg.slice(0, 120),
         });
         continue;
       }

@@ -3,7 +3,7 @@
 // Fixtures are real-world log tails captured from Vercel builds.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { classifyBuildFailure } from './poll.mjs';
+import { classifyBuildFailure, AUTOFIX_SKIP_TAG_RE } from './poll.mjs';
 
 test('OOM: JavaScript heap out of memory', () => {
   const log = `
@@ -95,4 +95,26 @@ info  - No Type error in this section
 Compiled successfully
 `;
   assert.equal(classifyBuildFailure(log), null);
+});
+
+test('AUTOFIX_SKIP_TAG_RE: honors [DO NOT AUTOFIX]', () => {
+  // Real-world commit messages the user has been using to tag memory-bump
+  // commits that must not be reverted.
+  assert.ok(AUTOFIX_SKIP_TAG_RE.test('[DO NOT AUTOFIX] fix(build): 6144MB heap'));
+  assert.ok(AUTOFIX_SKIP_TAG_RE.test('fix(build): lock heap [skip autofix]'));
+  assert.ok(AUTOFIX_SKIP_TAG_RE.test('fix(build): 4096MB heap [DO NOT AUTOFIX] [skip autofix]'));
+  assert.ok(AUTOFIX_SKIP_TAG_RE.test('fix(build): bump heap [skip vercel-autofix]'));
+  assert.ok(AUTOFIX_SKIP_TAG_RE.test('fix(build): bump heap [skip vercel autofix]'));
+  // Case insensitive
+  assert.ok(AUTOFIX_SKIP_TAG_RE.test('[do not autofix] lower case'));
+  assert.ok(AUTOFIX_SKIP_TAG_RE.test('[Skip Autofix] mixed case'));
+});
+
+test('AUTOFIX_SKIP_TAG_RE: does NOT match ordinary commits', () => {
+  assert.equal(AUTOFIX_SKIP_TAG_RE.test('fix: normal bug'), false);
+  assert.equal(AUTOFIX_SKIP_TAG_RE.test('feat: add feature'), false);
+  // "autofix" in the message body without brackets must NOT trigger skip.
+  assert.equal(AUTOFIX_SKIP_TAG_RE.test('fix: improve autofix logic'), false);
+  // Bare word "skip" must not match — requires bracketed tag.
+  assert.equal(AUTOFIX_SKIP_TAG_RE.test('docs: skip this paragraph'), false);
 });
