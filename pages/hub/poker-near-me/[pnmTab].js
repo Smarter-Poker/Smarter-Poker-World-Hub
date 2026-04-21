@@ -638,7 +638,7 @@ export default function PokerNearMePage({ initialTab }) {
         if (currentTutorialTab) {
             const updated = { ...tabTutorialsSeen, [currentTutorialTab]: true };
             setTabTutorialsSeen(updated);
-            try { localStorage.setItem('pnm_tab_tutorials_seen', JSON.stringify(updated)); } catch {}
+            try { localStorage.setItem('pnm_tab_tutorials_seen', JSON.stringify(updated)); } catch (e) { console.warn('[App] Handled exception:', e); }
         }
     }, [currentTutorialTab, tabTutorialsSeen]);
 
@@ -647,7 +647,7 @@ export default function PokerNearMePage({ initialTab }) {
         // Mark ALL tabs as seen
         const allSeen = { venues: true, events: true, live: true, map: true, saved: true, more: true };
         setTabTutorialsSeen(allSeen);
-        try { localStorage.setItem('pnm_tab_tutorials_seen', JSON.stringify(allSeen)); } catch {}
+        try { localStorage.setItem('pnm_tab_tutorials_seen', JSON.stringify(allSeen)); } catch (e) { console.warn('[App] Handled exception:', e); }
     }, []);
 
     const replayTutorial = useCallback(() => {
@@ -822,7 +822,7 @@ export default function PokerNearMePage({ initialTab }) {
                 try {
                     const seriesIds = JSON.parse(localStorage.getItem('followed-series') || '[]');
                     seriesIds.forEach(id => { favs['series-' + id] = true; });
-                } catch {}
+                } catch (e) { console.warn('[App] Handled exception:', e); }
                 return favs;
             } catch { return {}; }
         }
@@ -1319,7 +1319,7 @@ export default function PokerNearMePage({ initialTab }) {
                         });
                         return changed ? next : prev;
                     });
-                } catch { }
+                } catch (e) { console.warn('[App] Handled exception:', e); }
             }
             if (e.key === 'followed-series' && e.newValue) {
                 try {
@@ -1335,7 +1335,7 @@ export default function PokerNearMePage({ initialTab }) {
                         });
                         return changed ? next : prev;
                     });
-                } catch { }
+                } catch (e) { console.warn('[App] Handled exception:', e); }
             }
         };
         window.addEventListener('storage', handleStorageSync);

@@ -1330,9 +1330,9 @@ function UniversalDynamicTable({
                 // HARDENED: Cap at 500 bookmarks to prevent localStorage overflow
                 next = [...prev, entry].slice(-500);
             }
-            try { localStorage.setItem('sp_bookmarked_hands', JSON.stringify(next)); } catch { }
+            try { localStorage.setItem('sp_bookmarked_hands', JSON.stringify(next)); } catch (e) { console.warn('[App] Handled exception:', e); }
             // HARDENED: EventBus emission for cross-page sync
-            try { busEmit('BOOKMARK_TOGGLED', { questionId: qId, action: exists ? 'removed' : 'added', count: next.length }); } catch { }
+            try { busEmit('BOOKMARK_TOGGLED', { questionId: qId, action: exists ? 'removed' : 'added', count: next.length }); } catch (e) { console.warn('[App] Handled exception:', e); }
             return next;
         });
     }, [question, questionNumber, heroCards, boardCards, heroPosition, villainPosition, selectedAnswer, moveClassification, evLoss, gameTitle]);
@@ -1360,7 +1360,7 @@ function UniversalDynamicTable({
                     };
                     sessionMistakesListRef.current = [...sessionMistakesListRef.current, entry];
                     // HARDENED: EventBus emission for mistake tracking
-                    try { busEmit('MISTAKE_TRACKED', { questionId: qId, classification: moveClassification, total: sessionMistakesListRef.current.length }); } catch { }
+                    try { busEmit('MISTAKE_TRACKED', { questionId: qId, classification: moveClassification, total: sessionMistakesListRef.current.length }); } catch (e) { console.warn('[App] Handled exception:', e); }
                 }
             }
         }
@@ -1375,9 +1375,9 @@ function UniversalDynamicTable({
     const toggleSimplifiedMode = useCallback(() => {
         setSimplifiedMode(prev => {
             const next = !prev;
-            try { localStorage.setItem('sp_simplified_mode', String(next)); } catch { }
+            try { localStorage.setItem('sp_simplified_mode', String(next)); } catch (e) { console.warn('[App] Handled exception:', e); }
             // HARDENED: EventBus emission for cross-page awareness
-            try { busEmit('SIMPLIFIED_MODE_CHANGED', { enabled: next }); } catch { }
+            try { busEmit('SIMPLIFIED_MODE_CHANGED', { enabled: next }); } catch (e) { console.warn('[App] Handled exception:', e); }
             return next;
         });
     }, []);
@@ -1509,7 +1509,7 @@ function UniversalDynamicTable({
         // Speed bonus tracking
         const elapsed = (Date.now() - answerStartTime.current) / 1000;
         if (onAnswer) onAnswer(answerId, { answerTimeSeconds: elapsed });
-        try { busEmit('ARENA_HAND_ANSWERED', { answerId, timeSeconds: elapsed, questionNumber, isCorrect: answerId === correctAnswer }); } catch { }
+        try { busEmit('ARENA_HAND_ANSWERED', { answerId, timeSeconds: elapsed, questionNumber, isCorrect: answerId === correctAnswer }); } catch (e) { console.warn('[App] Handled exception:', e); }
     }, [showFeedback, onAnswer, options, questionNumber, correctAnswer]);
 
     // Phase 25: Keyboard Shortcuts — UNIFIED handler (1-4, F/C/R, Space/Enter, Esc)
@@ -1735,7 +1735,7 @@ function UniversalDynamicTable({
         setSelectedAnswer(resolvedId);
         const elapsed = (Date.now() - answerStartTime.current) / 1000;
         if (onAnswer) onAnswer(resolvedId, { answerTimeSeconds: elapsed });
-        try { busEmit('ARENA_HAND_ANSWERED', { answerId: resolvedId, timeSeconds: elapsed, questionNumber, isCorrect: resolvedId === correctAnswer }); } catch { }
+        try { busEmit('ARENA_HAND_ANSWERED', { answerId: resolvedId, timeSeconds: elapsed, questionNumber, isCorrect: resolvedId === correctAnswer }); } catch (e) { console.warn('[App] Handled exception:', e); }
     }, [showFeedback, activeDifficultyMode, difficultyActionMapping, computedFrequencies, onAnswer, questionNumber, correctAnswer]);
 
     // Compute move classification for feedback display
@@ -1765,7 +1765,7 @@ function UniversalDynamicTable({
     React.useEffect(() => {
         setSelectedAnswer(null);
         setFeedbackCollapsed(false);
-        try { busEmit('ARENA_HAND_LOADED', { questionNumber, gameId: question?.gameId || null }); } catch { }
+        try { busEmit('ARENA_HAND_LOADED', { questionNumber, gameId: question?.gameId || null }); } catch (e) { console.warn('[App] Handled exception:', e); }
     }, [questionNumber]);
 
 

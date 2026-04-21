@@ -48,7 +48,7 @@ export default async function handler(req, res) {
           // Owner login path
           venueId = staffSession.venue_id;
         }
-      } catch { }
+      } catch (e) { console.warn('[App] Handled exception:', e); }
 
       // Fallback: try Bearer token for backward compatibility
       if (!venueId) {
@@ -67,7 +67,7 @@ export default async function handler(req, res) {
               venueId = staff?.venue_id;
             }
           }
-        } catch { }
+        } catch (e) { console.warn('[App] Handled exception:', e); }
       }
 
       if (!venueId) return res.status(403).json({ success: false, error: 'Could not determine venue' });
@@ -81,7 +81,7 @@ export default async function handler(req, res) {
         staffRole = sess.role || 'owner';
         staffName = sess.name || sess.venue_name || 'Staff';
         staffUserId = sess.user_id || sess.id || null;
-      } catch { }
+      } catch (e) { console.warn('[App] Handled exception:', e); }
 
       // Helper: normalize a preset row from DB into frontend-friendly shape
       // DB stores { tables: [...], promotions: [...], tournaments: [...] } all inside `tables` JSONB

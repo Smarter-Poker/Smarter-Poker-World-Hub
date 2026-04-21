@@ -94,7 +94,7 @@ export default function VoiceSearch({ onResult, isListening: externalListening }
     useEffect(() => {
         return () => {
             if (recognitionRef.current) {
-                try { recognitionRef.current.abort(); } catch {}
+                try { recognitionRef.current.abort(); } catch (e) { console.warn('[App] Handled exception:', e); }
                 recognitionRef.current = null;
             }
             if (animFrameRef.current) {

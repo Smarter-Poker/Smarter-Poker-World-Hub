@@ -35,7 +35,7 @@ export default function MyPlaybookPage() {
     try {
       const stored = localStorage.getItem('my-playbook');
       if (stored) setPlays(JSON.parse(stored));
-    } catch {}
+    } catch (e) { console.warn('[App] Handled exception:', e); }
   }, []);
 
   // EventBus listener
@@ -53,7 +53,7 @@ export default function MyPlaybookPage() {
     setPlays(next);
     try {
       localStorage.setItem('my-playbook', JSON.stringify(next));
-    } catch {}
+    } catch (e) { console.warn('[App] Handled exception:', e); }
 
     // Save to Supabase
     const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
@@ -95,7 +95,7 @@ export default function MyPlaybookPage() {
     setPlays(next);
     try {
       localStorage.setItem('my-playbook', JSON.stringify(next));
-    } catch {}
+    } catch (e) { console.warn('[App] Handled exception:', e); }
   };
 
   const togglePin = (id) => {
@@ -103,7 +103,7 @@ export default function MyPlaybookPage() {
     setPlays(next);
     try {
       localStorage.setItem('my-playbook', JSON.stringify(next));
-    } catch {}
+    } catch (e) { console.warn('[App] Handled exception:', e); }
   };
 
   // Sort: pinned first, then search

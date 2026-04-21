@@ -159,7 +159,7 @@ export default function StudyGroupFinderPage() {
     try {
       const saved = localStorage.getItem('study-group-applied');
       if (saved) setApplied(JSON.parse(saved));
-    } catch {}
+    } catch (e) { console.warn('[App] Handled exception:', e); }
   }, []);
 
   const applyGroup = useCallback(
@@ -169,7 +169,7 @@ export default function StudyGroupFinderPage() {
       setApplied(next);
       try {
         localStorage.setItem('study-group-applied', JSON.stringify(next));
-      } catch {}
+      } catch (e) { console.warn('[App] Handled exception:', e); }
 
       // Save to Supabase
       const token = typeof getAccessToken === 'function' ? getAccessToken() : null;

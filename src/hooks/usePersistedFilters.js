@@ -123,7 +123,7 @@ export function usePersistedFilters(pageKey, defaults, options = {}) {
   const resetFilters = useCallback(() => {
     setFiltersRaw({ ...defaults });
     if (typeof window !== 'undefined') {
-      try { localStorage.removeItem(storageKey); } catch {}
+      try { localStorage.removeItem(storageKey); } catch (e) { console.warn('[App] Handled exception:', e); }
     }
   }, [defaults, storageKey]);
 

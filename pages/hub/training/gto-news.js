@@ -200,7 +200,7 @@ export default function GtoNewsPage() {
       if (savedBm) setBookmarks(new Set(JSON.parse(savedBm)));
       const savedRead = localStorage.getItem('gto-news-read');
       if (savedRead) setReadArticles(new Set(JSON.parse(savedRead)));
-    } catch {}
+    } catch (e) { console.warn('[App] Handled exception:', e); }
   }, []);
 
   // EventBus listener for cross-page reactivity
@@ -217,7 +217,7 @@ export default function GtoNewsPage() {
     setBookmarks(next);
     try {
       localStorage.setItem('gto-news-bookmarks', JSON.stringify([...next]));
-    } catch {}
+    } catch (e) { console.warn('[App] Handled exception:', e); }
   };
 
   const markRead = (id) => {
@@ -227,7 +227,7 @@ export default function GtoNewsPage() {
     setReadArticles(next);
     try {
       localStorage.setItem('gto-news-read', JSON.stringify([...next]));
-    } catch {}
+    } catch (e) { console.warn('[App] Handled exception:', e); }
 
     // Save read progress to Supabase every 5 articles
     if (next.size % 5 === 0) {

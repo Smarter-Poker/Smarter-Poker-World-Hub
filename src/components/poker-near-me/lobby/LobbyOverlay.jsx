@@ -376,7 +376,7 @@ export default function LobbyOverlay({
                 key={hotspot.id}
                 data-tutorial-id={`pod-${hotspot.id}`}
                 onClick={() => {
-                  try { navigator.vibrate?.([10, 30, 10]); } catch { }
+                  try { navigator.vibrate?.([10, 30, 10]); } catch (e) { console.warn('[App] Handled exception:', e); }
                   onPodSelect?.(hotspot.id);
                 }}
                 aria-label={`Open ${hotspot.label}`}

@@ -39,7 +39,7 @@ export default async function handler(req, res) {
           try {
               const session = JSON.parse(req.headers['x-staff-session'] || '{}');
               resolvedVenueId = session.venue_id;
-          } catch { }
+          } catch (e) { console.warn('[App] Handled exception:', e); }
       }
 
       if (req.method === 'GET') {

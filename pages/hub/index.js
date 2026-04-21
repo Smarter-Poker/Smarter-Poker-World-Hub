@@ -93,7 +93,7 @@ export default function HubPage() {
                 if (parsed?.id || parsed?.venue_id || parsed?.role) unlocked.push('club-commander');
             }
             // Employee Portal removed — Work Schedule merged into Toke Tracker
-        } catch { }
+        } catch (e) { console.warn('[App] Handled exception:', e); }
         setUnlockedSpecialIds(unlocked);
     }, []);
 

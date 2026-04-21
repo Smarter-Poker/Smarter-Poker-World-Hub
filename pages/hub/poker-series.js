@@ -702,11 +702,11 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
             try {
                 const stored = localStorage.getItem('pnm_series_favorites');
                 if (stored) current = JSON.parse(stored);
-            } catch {}
+            } catch (e) { console.warn('[App] Handled exception:', e); }
             const next = { ...current };
             if (next[seriesId]) delete next[seriesId];
             else next[seriesId] = Date.now();
-            try { localStorage.setItem('pnm_series_favorites', JSON.stringify(next)); } catch {}
+            try { localStorage.setItem('pnm_series_favorites', JSON.stringify(next)); } catch (e) { console.warn('[App] Handled exception:', e); }
             return next;
         });
     }, []);

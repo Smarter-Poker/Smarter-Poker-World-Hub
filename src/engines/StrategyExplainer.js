@@ -237,7 +237,7 @@ export function explainStrategy(params) {
     try {
         // Classify hand and board
         let handClass = 'air';
-        try { handClass = classifyHandClass(holeCards, board) || 'air'; } catch {}
+        try { handClass = classifyHandClass(holeCards, board) || 'air'; } catch (e) { console.warn('[App] Handled exception:', e); }
 
         let boardTexture = 'dry_rainbow_high';
         try {
@@ -262,7 +262,7 @@ export function explainStrategy(params) {
             else if (isConnected) boardTexture = 'connected_wet';
             else if (uniqueSuits === 2) boardTexture = isHigh ? 'two_tone_high' : 'two_tone_low';
             else boardTexture = isHigh ? 'dry_rainbow_high' : 'dry_rainbow_low';
-        } catch {}
+        } catch (e) { console.warn('[App] Handled exception:', e); }
 
         const handMeta = HAND_CLASS_META[handClass] || HAND_CLASS_META.air;
         const textureMeta = TEXTURE_REASONING[boardTexture] || TEXTURE_REASONING.dry_rainbow_high;

@@ -321,7 +321,7 @@ export default function QuizBuilderPage() {
     try {
       const saved = localStorage.getItem('custom-quizzes');
       if (saved) setSavedQuizzes(JSON.parse(saved));
-    } catch {}
+    } catch (e) { console.warn('[App] Handled exception:', e); }
   }, []);
 
   // Bus listener
@@ -358,7 +358,7 @@ export default function QuizBuilderPage() {
     setSavedQuizzes(updated);
     try {
       localStorage.setItem('custom-quizzes', JSON.stringify(updated));
-    } catch {}
+    } catch (e) { console.warn('[App] Handled exception:', e); }
     setQuizName('');
     setQuestions([{ ...DEFAULT_QUESTION }]);
     setTab('saved');
@@ -369,7 +369,7 @@ export default function QuizBuilderPage() {
     setSavedQuizzes(updated);
     try {
       localStorage.setItem('custom-quizzes', JSON.stringify(updated));
-    } catch {}
+    } catch (e) { console.warn('[App] Handled exception:', e); }
   };
 
   return (

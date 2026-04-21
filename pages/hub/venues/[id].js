@@ -239,7 +239,7 @@ export default function VenueDetailPage() {
       try {
         const f = JSON.parse(localStorage.getItem('sp-favorites') || '{}');
         setIsSaved(!!f['venue-' + id]);
-      } catch {}
+      } catch (e) { console.warn('[App] Handled exception:', e); }
     };
     loadFavs();
     const handleStorage = (e) => {
@@ -647,7 +647,7 @@ export default function VenueDetailPage() {
     try {
       var authUser = getAuthUser();
       var token = null;
-      try { token = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token; } catch {}
+      try { token = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token; } catch (e) { console.warn('[App] Handled exception:', e); }
       if (!token) { setScheduleSaving(false); return; }
       var res = await fetch('/api/poker/venue-schedules', {
         method: 'POST',
@@ -673,7 +673,7 @@ export default function VenueDetailPage() {
     setScheduleDeleting(entryId);
     try {
       var token = null;
-      try { token = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token; } catch {}
+      try { token = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token; } catch (e) { console.warn('[App] Handled exception:', e); }
       if (!token) { setScheduleDeleting(null); return; }
       await fetch('/api/poker/venue-schedules?id=' + entryId + '&venue_id=' + id, {
         method: 'DELETE',
@@ -857,10 +857,10 @@ export default function VenueDetailPage() {
       const spFavs = JSON.parse(spFavoritesStr);
       if (newState) {
         spFavs['venue-' + venueId] = Date.now();
-        try { busEmit.venueSaved(venueId, venue?.name); } catch {}
+        try { busEmit.venueSaved(venueId, venue?.name); } catch (e) { console.warn('[App] Handled exception:', e); }
       } else {
         delete spFavs['venue-' + venueId];
-        try { busEmit.venueUnsaved(venueId); } catch {}
+        try { busEmit.venueUnsaved(venueId); } catch (e) { console.warn('[App] Handled exception:', e); }
       }
       localStorage.setItem('sp-favorites', JSON.stringify(spFavs));
       // Cross-tab trigger native event (for the current tab, EventBus handles it, but just in case, emit a full StorageEvent)
@@ -892,7 +892,7 @@ export default function VenueDetailPage() {
         const spFavs = JSON.parse(localStorage.getItem('sp-favorites') || '{}');
         if (!newState) { spFavs['venue-' + venueId] = Date.now(); } else { delete spFavs['venue-' + venueId]; }
         localStorage.setItem('sp-favorites', JSON.stringify(spFavs));
-      } catch {}
+      } catch (e) { console.warn('[App] Handled exception:', e); }
     }
   };
 
@@ -1114,7 +1114,7 @@ export default function VenueDetailPage() {
         setShowReviewForm(false);
         setReviewForm({ rating: 0, reviewer_name: '', review_text: '' });
         await fetchReviews();
-        try { bus?.emit?.('venue:review', { venueId: id, rating: reviewForm.rating }); } catch { }
+        try { bus?.emit?.('venue:review', { venueId: id, rating: reviewForm.rating }); } catch (e) { console.warn('[App] Handled exception:', e); }
 
         // Award venue review diamonds (geo-fenced, fire-and-forget)
         // Only for authenticated users — anonymous reviews still save but don't earn diamonds

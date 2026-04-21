@@ -47,7 +47,7 @@ export default function ScanMemberModal({ isOpen, onClose, venueId, onMemberFoun
                     stopScanning(); await lookupMember(barcodes[0].rawValue); return;
                 }
             }
-        } catch { }
+        } catch (e) { console.warn('[App] Handled exception:', e); }
         animFrameRef.current = requestAnimationFrame(detectQR);
     }, []);
 

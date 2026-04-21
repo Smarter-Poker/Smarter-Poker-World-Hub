@@ -68,7 +68,7 @@ export default function ShareableHandCard({ hand, onClose }) {
                     text: `Check out my ${hand?.handName || 'hand'} — ${hand?.amount || ''} at ${hand?.stakes || 'cash game'}!`,
                     url: shareUrl,
                 });
-            } catch { }
+            } catch (e) { console.warn('[App] Handled exception:', e); }
             setSharing(false);
         } else {
             copyLink();

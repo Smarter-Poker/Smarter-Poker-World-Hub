@@ -266,7 +266,7 @@ async function handler(req, res) {
               singleSeries.events = evts;
               singleSeries.events_count = evts.length;
             }
-          } catch {}
+          } catch (e) { console.warn('[App] Handled exception:', e); }
         }
 
         return res.status(200).json({

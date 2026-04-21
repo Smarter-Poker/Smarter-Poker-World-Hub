@@ -300,7 +300,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     const lightboxTouchRef = useRef({ startX: 0, startY: 0 });
 
     // Haptic feedback utility (mobile vibration)
-    const haptic = (ms = 10) => { try { navigator?.vibrate?.(ms); } catch {} };
+    const haptic = (ms = 10) => { try { navigator?.vibrate?.(ms); } catch (e) { console.warn('[App] Handled exception:', e); } };
     const showCommentsRef = useRef(false);
     const commentsRef = useRef([]);
     const typingDebounceRef = useRef(null);
@@ -662,7 +662,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                 post_id: post.id, user_id: currentUserId,
                 name: currentUserName, avatar_url: currentUserAvatar, isTyping: false
             }}).catch(() => {});
-        } catch {}
+        } catch (e) { console.warn('[App] Handled exception:', e); }
 
         // Capture values and clear input immediately for snappy UX
         const commentText = newComment.trim();
@@ -1271,7 +1271,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                                                 setComments(prev => prev.filter(cm => cm.id !== c.id));
                                                                 setCommentCount(prev => Math.max(0, prev - 1));
                                                                 eventBus.emit('SOCIAL_COMMENT_UPDATE', { postId: post.id, removed: true }, 'CommentDelete');
-                                                                try { await supabase.rpc('decrement_post_count', { p_post_id: post.id, p_field: 'comment_count' }); } catch {}
+                                                                try { await supabase.rpc('decrement_post_count', { p_post_id: post.id, p_field: 'comment_count' }); } catch (e) { console.warn('[App] Handled exception:', e); }
                                                             }
                                                             setDeletingCommentId(null);
                                                         }}>Yes</span>
@@ -1425,14 +1425,14 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                             post_id: post.id, user_id: currentUserId,
                                             name: currentUserName, avatar_url: currentUserAvatar, isTyping: true
                                         }}).catch(() => {});
-                                    } catch {}
+                                    } catch (e) { console.warn('[App] Handled exception:', e); }
                                     typingDebounceRef.current = setTimeout(() => {
                                         try {
                                             supabase.channel('social-feed').send({ type: 'broadcast', event: 'typing', payload: {
                                                 post_id: post.id, user_id: currentUserId,
                                                 name: currentUserName, avatar_url: currentUserAvatar, isTyping: false
                                             }}).catch(() => {});
-                                        } catch {}
+                                        } catch (e) { console.warn('[App] Handled exception:', e); }
                                     }, 3000);
                                 }}
                                 onKeyDown={e => {
@@ -3614,7 +3614,7 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
     // Hydration-safe: read localStorage only on the client after mount
     const [isStaff, setIsStaff] = useState(false);
     useEffect(() => {
-        try { setIsStaff(!!JSON.parse(localStorage.getItem('commander_staff') || 'null')); } catch { }
+        try { setIsStaff(!!JSON.parse(localStorage.getItem('commander_staff') || 'null')); } catch (e) { console.warn('[App] Handled exception:', e); }
     }, []);
 
     function getAnonUserId() {
@@ -3693,7 +3693,7 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
             if (isNowFollowing) { if (!stored.includes(pageId)) stored.push(pageId); }
             else { const idx = stored.indexOf(pageId); if (idx !== -1) stored.splice(idx, 1); }
             localStorage.setItem(storageKey, JSON.stringify(stored));
-        } catch { }
+        } catch (e) { console.warn('[App] Handled exception:', e); }
         try {
             const _token = getAccessToken();
             if (!_token) return; // Anonymous users: localStorage-only follow (no server persistence)
@@ -3704,7 +3704,7 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _token },
                 body: JSON.stringify({ page_type: pageType, page_id: pageId, action: isNowFollowing ? 'follow' : 'unfollow' }),
             });
-        } catch { }
+        } catch (e) { console.warn('[App] Handled exception:', e); }
     };
 
     const cats = [
@@ -4114,7 +4114,7 @@ function SocialMediaPage() {
         const onTouchEnd = async () => {
             if (pullRefreshStateRef.current === 'pulling') {
                 setPullRefreshState('refreshing');
-                try { await loadFeed(0, false); } catch {}
+                try { await loadFeed(0, false); } catch (e) { console.warn('[App] Handled exception:', e); }
                 setPullRefreshState('idle');
             }
             startY = 0;
@@ -5361,7 +5361,7 @@ function SocialMediaPage() {
                     toast.error(result.error || 'Failed to delete post');
                     return;
                 }
-                try { localStorage.removeItem('sp-feed-cache'); } catch {}
+                try { localStorage.removeItem('sp-feed-cache'); } catch (e) { console.warn('[App] Handled exception:', e); }
                 busEmit.dataMutated('social');
             } catch (e) {
                 console.error('[Delete] Error:', e);

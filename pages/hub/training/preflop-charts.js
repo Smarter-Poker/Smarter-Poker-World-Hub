@@ -152,7 +152,7 @@ export default function PreflopCharts() {
                 game_id: 'preflop-charts',
                 hands_played: 1,
               });
-            } catch { }
+            } catch (e) { console.warn('[App] Handled exception:', e); }
             saveSession({
               game_id: 'preflop-charts',
               hands_played: 1,

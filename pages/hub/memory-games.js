@@ -550,7 +550,7 @@ export default function MemoryGamesPage() {
         };
         setSessionHistory(prev => {
             const updated = [...prev, sessionEntry].slice(-50); // Keep last 50
-            try { localStorage.setItem('preflop_session_history', JSON.stringify(updated)); } catch {}
+            try { localStorage.setItem('preflop_session_history', JSON.stringify(updated)); } catch (e) { console.warn('[App] Handled exception:', e); }
             return updated;
         });
 
@@ -1629,7 +1629,7 @@ export default function MemoryGamesPage() {
                                 try {
                                     const stored = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem(`pb_${card.mode}`) || 'null') : null;
                                     if (stored && stored.score) personalBest = stored;
-                                } catch {}
+                                } catch (e) { console.warn('[App] Handled exception:', e); }
 
                                 return (
                                     <motion.div

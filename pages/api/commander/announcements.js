@@ -38,7 +38,7 @@ export default async function handler(req, res) {
         try {
           const result = await verifyStaffSession(req);
           if (result.staff) venueId = result.staff.venue_id;
-        } catch { }
+        } catch (e) { console.warn('[App] Handled exception:', e); }
       }
       if (!venueId) return res.status(400).json({ success: false, error: 'venue_id required' });
 

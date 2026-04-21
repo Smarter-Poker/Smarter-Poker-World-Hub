@@ -121,7 +121,7 @@ export default function NotificationPrompt({ userId, onDismiss }) {
                     } else {
                         isFirstVisit = false;
                     }
-                } catch {}
+                } catch (e) { console.warn('[App] Handled exception:', e); }
 
                 // Do not show prompt on first ever visit to prevent interrupting onboarding/first experience
                 if (isFirstVisit) return;

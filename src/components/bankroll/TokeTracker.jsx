@@ -195,7 +195,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
     const saveGoal = () => {
         const val = parseFloat(goalInput) || 0;
         setMonthlyGoal(val);
-        try { localStorage.setItem('toke_monthly_goal', String(val)); } catch { }
+        try { localStorage.setItem('toke_monthly_goal', String(val)); } catch (e) { console.warn('[App] Handled exception:', e); }
         setShowGoalEdit(false);
         setGoalInput('');
     };

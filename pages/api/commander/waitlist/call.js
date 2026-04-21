@@ -73,7 +73,7 @@ export default async function handler(req, res) {
             .eq('id', entry.venue_id)
             .maybeSingle();
           if (venue?.name) venueName = venue.name;
-        } catch { }
+        } catch (e) { console.warn('[App] Handled exception:', e); }
 
         const gameLabel = `${entry.stakes || ''} ${(entry.game_type || 'Cash Game').toUpperCase()}`.trim();
         const tableInfo = table_number ? ` at Table ${table_number}` : '';

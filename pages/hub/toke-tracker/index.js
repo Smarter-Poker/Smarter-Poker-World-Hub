@@ -83,7 +83,7 @@ export default function TokeTrackerLanding() {
         // Cross-tab sync
         window.dispatchEvent(new CustomEvent('toke-settings-sync', { detail: newPrefs }));
         // Persist to localStorage
-        try { localStorage.setItem('toke-tracker-prefs', JSON.stringify(newPrefs)); } catch { }
+        try { localStorage.setItem('toke-tracker-prefs', JSON.stringify(newPrefs)); } catch (e) { console.warn('[App] Handled exception:', e); }
         // Persist to Supabase
         if (!userId) return;
         try {

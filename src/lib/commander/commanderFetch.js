@@ -53,7 +53,7 @@ export async function commanderFetch(url, opts = {}) {
   if (response.status === 401) {
     if (typeof window !== 'undefined') {
       // Store the current page so login can redirect back
-      try { sessionStorage.setItem('commander_return_url', window.location.pathname); } catch {}
+      try { sessionStorage.setItem('commander_return_url', window.location.pathname); } catch (e) { console.warn('[App] Handled exception:', e); }
       window.location.href = '/commander/login?expired=1';
     }
     // Still throw so the caller's catch block fires
@@ -93,7 +93,7 @@ export async function commanderFetchJSON(url, opts = {}) {
   const res = await commanderFetch(url, opts);
   if (!res.ok) {
     let errorMsg = `Request failed (${res.status})`;
-    try { const body = await res.json(); errorMsg = body?.error?.message || body?.error || errorMsg; } catch {}
+    try { const body = await res.json(); errorMsg = body?.error?.message || body?.error || errorMsg; } catch (e) { console.warn('[App] Handled exception:', e); }
     throw new Error(errorMsg);
   }
   return res.json();

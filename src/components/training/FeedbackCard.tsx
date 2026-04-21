@@ -226,7 +226,7 @@ export function FeedbackCard({
                         is3BetPot: scenario.is3BetPot || false,
                     });
                 }
-            } catch {}
+            } catch (e) { console.warn('[App] Handled exception:', e); }
 
             const keyTakeaway = strategyInsight?.keyFactors?.length
                 ? strategyInsight.keyFactors.slice(0, 3).join(' • ')

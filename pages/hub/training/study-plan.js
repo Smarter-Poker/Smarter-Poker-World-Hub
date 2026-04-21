@@ -478,7 +478,7 @@ export default function StudyPlanPage() {
         if (saved && savedWeek === String(currentWeek)) {
           setCompletedAreas(JSON.parse(saved));
         }
-      } catch {}
+      } catch (e) { console.warn('[App] Handled exception:', e); }
     }
   }, [loading, sessions]);
 
@@ -510,7 +510,7 @@ export default function StudyPlanPage() {
     try {
       localStorage.setItem('study-plan-completed', JSON.stringify(newCompleted));
       localStorage.setItem('study-plan-week', String(getWeekNumber()));
-    } catch {}
+    } catch (e) { console.warn('[App] Handled exception:', e); }
   };
 
   const regeneratePlan = () => {
@@ -519,7 +519,7 @@ export default function StudyPlanPage() {
     setCompletedAreas([]);
     try {
       localStorage.removeItem('study-plan-completed');
-    } catch {}
+    } catch (e) { console.warn('[App] Handled exception:', e); }
   };
 
   // Week number helper

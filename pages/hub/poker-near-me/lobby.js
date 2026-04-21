@@ -562,7 +562,7 @@ export default function PokerNearMeLobby() {
     try {
       const followedSeries = JSON.parse(localStorage.getItem('followed-series') || '[]');
       followedSeries.forEach(id => { favMap[`series-${id}`] = true; });
-    } catch { }
+    } catch (e) { console.warn('[App] Handled exception:', e); }
 
     // 2. Fetch Venues from DB if logged in
     if (userId) {
@@ -977,7 +977,7 @@ export default function PokerNearMeLobby() {
             });
             return changed ? next : prev;
           });
-        } catch { }
+        } catch (e) { console.warn('[App] Handled exception:', e); }
       }
       
       // Listen to cross-tab updates from localStorage 'followed-series'
@@ -1002,7 +1002,7 @@ export default function PokerNearMeLobby() {
             });
             return changed ? next : prev;
           });
-        } catch { }
+        } catch (e) { console.warn('[App] Handled exception:', e); }
       }
     };
 
@@ -1536,7 +1536,7 @@ export default function PokerNearMeLobby() {
       router.push(route);
     }
     // Emit TrainingBus event for pod interaction tracking
-    try { bus?.emitHandComplete?.({ action: 'pod_click', pod: podId }); } catch { }
+    try { bus?.emitHandComplete?.({ action: 'pod_click', pod: podId }); } catch (e) { console.warn('[App] Handled exception:', e); }
   }, [bus, router]);
 
   // ─── Auto-open panel for GPS-gated pods after GPS is enabled ───
@@ -1635,14 +1635,14 @@ export default function PokerNearMeLobby() {
             if (wasFavorited) delete spFavs[`venue-${id}`];
             else spFavs[`venue-${id}`] = Date.now();
             localStorage.setItem('sp-favorites', JSON.stringify(spFavs));
-          } catch { }
+          } catch (e) { console.warn('[App] Handled exception:', e); }
         } else if (type === 'series') {
           // Sync with the Series Detail Page persistence
           try {
             const followed = JSON.parse(localStorage.getItem('followed-series') || '[]');
             const updated = wasFavorited ? followed.filter(x => x !== String(id)) : (followed.includes(String(id)) ? followed : [...followed, String(id)]);
             localStorage.setItem('followed-series', JSON.stringify(updated));
-          } catch { }
+          } catch (e) { console.warn('[App] Handled exception:', e); }
         }
       }
     } catch (err) {
@@ -2212,7 +2212,7 @@ export default function PokerNearMeLobby() {
           searchQuery={searchQuery}
           liveData={liveData}
           showTutorial={showTutorial}
-          onTutorialDismiss={() => { setShowTutorial(false); try { localStorage.setItem('pnm_lobby_tutorial_seen', '1'); } catch {} }}
+          onTutorialDismiss={() => { setShowTutorial(false); try { localStorage.setItem('pnm_lobby_tutorial_seen', '1'); } catch (e) { console.warn('[App] Handled exception:', e); } }}
           gpsActive={gpsActive}
           gpsLoading={gpsLoading}
           onGpsClick={handleGpsClick}

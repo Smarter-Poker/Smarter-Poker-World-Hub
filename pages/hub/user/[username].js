@@ -594,7 +594,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
                                                             setComments(prev => prev.filter(cm => cm.id !== c.id));
                                                             setCommentCount(prev => Math.max(0, prev - 1));
                                                             busEmit.socialCommentAdded(post.id, currentUserId, { removed: true });
-                                                            try { await supabase.rpc('decrement_post_count', { p_post_id: post.id, p_field: 'comment_count' }); } catch {}
+                                                            try { await supabase.rpc('decrement_post_count', { p_post_id: post.id, p_field: 'comment_count' }); } catch (e) { console.warn('[App] Handled exception:', e); }
                                                             toast.success('Comment deleted');
                                                         } catch (e) { console.error('Delete comment error:', e); toast.error('Could not delete comment'); }
                                                     }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#F02849', fontSize: 11, padding: 0 }}>Delete</button>
@@ -779,12 +779,12 @@ export default function UserProfilePage() {
     const handleDeclineField = (label) => {
         const updated = [...declinedFields, label];
         setDeclinedFields(updated);
-        try { localStorage.setItem(`sp-profile-completion-declined-${currentUser?.id}`, JSON.stringify(updated)); } catch {}
+        try { localStorage.setItem(`sp-profile-completion-declined-${currentUser?.id}`, JSON.stringify(updated)); } catch (e) { console.warn('[App] Handled exception:', e); }
     };
 
     const handleDismissCompletion = () => {
         setCompletionDismissed(true);
-        try { localStorage.setItem(`sp-profile-completion-dismissed-${currentUser?.id}`, 'true'); } catch {}
+        try { localStorage.setItem(`sp-profile-completion-dismissed-${currentUser?.id}`, 'true'); } catch (e) { console.warn('[App] Handled exception:', e); }
     };
 
     // ── BULLETPROOF AUTH: Listen for late session resolution ──

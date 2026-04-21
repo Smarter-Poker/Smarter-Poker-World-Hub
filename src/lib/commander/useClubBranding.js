@@ -32,7 +32,7 @@ export default function useClubBranding() {
             if (cached.logo_url !== undefined) {
                 setLogoUrl(cached.logo_url || null);
             }
-        } catch { }
+        } catch (e) { console.warn('[App] Handled exception:', e); }
     }, []);
 
     // Fetch fresh from API (with TTL cache)
@@ -69,7 +69,7 @@ export default function useClubBranding() {
                     fetched_at: now
                 }));
             }
-        } catch { }
+        } catch (e) { console.warn('[App] Handled exception:', e); }
         setIsLoading(false);
     }, []);
 

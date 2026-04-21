@@ -414,7 +414,7 @@ function CoachingCard({ session }) {
           return;
         }
       }
-    } catch {}
+    } catch (e) { console.warn('[App] Handled exception:', e); }
 
     setLoadingCoach(true);
     const acc = Number(session.accuracy || session.gtow_score) || 0;
@@ -440,7 +440,7 @@ function CoachingCard({ session }) {
       .then(data => {
         if (data?.success && data.coaching) {
           setCoaching(data.coaching);
-          try { sessionStorage.setItem(cacheKey, JSON.stringify({ data: data.coaching, ts: Date.now() })); } catch {}
+          try { sessionStorage.setItem(cacheKey, JSON.stringify({ data: data.coaching, ts: Date.now() })); } catch (e) { console.warn('[App] Handled exception:', e); }
         } else { setError(true); }
       })
       .catch(() => setError(true))

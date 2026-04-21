@@ -23,7 +23,8 @@ export default function SessionHistoryPage() {
     if (!sb) return;
     try {
       if (!userIdRef.current) {
-        const { data: { user } } = await sb.auth.getUser();
+        const { data: authData } = await sb.auth.getUser();
+        const user = authData?.user;
         if (!user) { setLoading(false); return; }
         userIdRef.current = user.id;
       }

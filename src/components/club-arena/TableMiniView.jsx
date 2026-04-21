@@ -428,7 +428,7 @@ export default function TableMiniView({
             try {
               const { eventBus } = require('../../engine/EventBus');
               if (eventBus) eventBus.emit('UI_PREF_CHANGED', { key: 'miniViewTheme', value: next });
-            } catch {}
+            } catch (e) { console.warn('[App] Handled exception:', e); }
           }}
           style={S.themeBtn}
           title={currentTheme.name}

@@ -28,7 +28,7 @@ function getAuthToken() {
             const raw = localStorage.getItem(key);
             if (raw) { const p = JSON.parse(raw); if (p?.access_token) return p.access_token; }
         }
-    } catch { }
+    } catch (e) { console.warn('[App] Handled exception:', e); }
     return null;
 }
 
@@ -45,7 +45,7 @@ function loadSessionMessages() {
 }
 
 function saveSessionMessages(msgs) {
-    try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(msgs.slice(-30))); } catch { }
+    try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(msgs.slice(-30))); } catch (e) { console.warn('[App] Handled exception:', e); }
 }
 
 // ─── Context-aware quick chips ───
@@ -154,19 +154,19 @@ export default function GeevesFloatingOrb() {
         if (mounted) {
             try {
                 setIsHidden(localStorage.getItem(HIDDEN_KEY) === '1');
-            } catch { }
+            } catch (e) { console.warn('[App] Handled exception:', e); }
         }
     }, [mounted]);
 
     const hideGeeves = useCallback(() => {
-        try { localStorage.setItem(HIDDEN_KEY, '1'); } catch { }
+        try { localStorage.setItem(HIDDEN_KEY, '1'); } catch (e) { console.warn('[App] Handled exception:', e); }
         setIsHidden(true);
         setIsOpen(false);
         setShowTip(false);
     }, []);
 
     const showGeeves = useCallback(() => {
-        try { localStorage.removeItem(HIDDEN_KEY); } catch { }
+        try { localStorage.removeItem(HIDDEN_KEY); } catch (e) { console.warn('[App] Handled exception:', e); }
         setIsHidden(false);
         setIsOpen(true);
         setShowTip(false);
@@ -342,7 +342,7 @@ export default function GeevesFloatingOrb() {
         rec.onerror = () => setIsListening(false);
         rec.onend = () => setIsListening(false);
         // Safety: stop after 10s
-        setTimeout(() => { try { rec.stop(); } catch { } }, 10000);
+        setTimeout(() => { try { rec.stop(); } catch (e) { console.warn('[App] Handled exception:', e); } }, 10000);
     }, [voiceSupported, sendMessage]);
 
     // ── Suppress on: auth pages, gameplay, video, live streams, and if user hid Geeves ──
@@ -552,7 +552,7 @@ export default function GeevesFloatingOrb() {
                             <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', letterSpacing: '0.5px' }}>Ask Geeves</div>
                             <div style={{ fontSize: 11, color: 'rgba(0,212,255,0.6)' }}>Your AI Help Expert · ⌘J</div>
                         </div>
-                        <button onClick={() => { setMessages([]); try { sessionStorage.removeItem(SESSION_KEY); } catch { } }} title="Clear chat"
+                        <button onClick={() => { setMessages([]); try { sessionStorage.removeItem(SESSION_KEY); } catch (e) { console.warn('[App] Handled exception:', e); } }} title="Clear chat"
                             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', fontSize: 13, padding: '4px 8px' }}>
                             Clear
                         </button>

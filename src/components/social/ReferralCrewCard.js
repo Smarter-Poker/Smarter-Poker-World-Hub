@@ -80,7 +80,7 @@ export default function ReferralCrewCard() {
                     text: `Join me on Smarter.Poker and get ${data.bonusPerReferral} bonus diamonds!`,
                     url: data.shareUrl,
                 });
-            } catch { }
+            } catch (e) { console.warn('[App] Handled exception:', e); }
         } else {
             copyCode();
         }

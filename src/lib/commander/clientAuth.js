@@ -28,7 +28,7 @@ export function getToken() {
         // 2. Unified auth key
         const unified = localStorage.getItem('smarter-poker-auth');
         if (unified) {
-            try { const p = JSON.parse(unified); if (p?.access_token) return p.access_token; } catch {}
+            try { const p = JSON.parse(unified); if (p?.access_token) return p.access_token; } catch (e) { console.warn('[App] Handled exception:', e); }
         }
 
         // 3. Supabase default storage: sb-<projectRef>-auth-token (JSON with access_token)
@@ -38,10 +38,10 @@ export function getToken() {
         if (sbKeys.length > 0) {
             const raw = localStorage.getItem(sbKeys[0]);
             if (raw) {
-                try { const p = JSON.parse(raw); if (p?.access_token) return p.access_token; } catch {}
+                try { const p = JSON.parse(raw); if (p?.access_token) return p.access_token; } catch (e) { console.warn('[App] Handled exception:', e); }
             }
         }
-    } catch {}
+    } catch (e) { console.warn('[App] Handled exception:', e); }
     return '';
 }
 

@@ -375,7 +375,7 @@ export default function FlashcardsPage() {
     try {
       const saved = localStorage.getItem('flashcard-sm2');
       if (saved) setSm2Data(JSON.parse(saved));
-    } catch {}
+    } catch (e) { console.warn('[App] Handled exception:', e); }
     // Trigger initial deck generation after sm2Data loads
     sm2LoadedRef.current = true;
     setDeckGenKey(k => k + 1);
@@ -438,7 +438,7 @@ export default function FlashcardsPage() {
       const updated = { ...prevData, [current.id]: nextStats };
       try {
         localStorage.setItem('flashcard-sm2', JSON.stringify(updated));
-      } catch {}
+      } catch (e) { console.warn('[App] Handled exception:', e); }
       return updated;
     });
 

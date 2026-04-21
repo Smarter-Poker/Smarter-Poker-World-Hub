@@ -32,14 +32,14 @@ export default function LiveHudSyncPage() {
     try {
       const saved = localStorage.getItem('hud-sync-settings');
       if (saved) setSettings(JSON.parse(saved));
-    } catch {}
+    } catch (e) { console.warn('[App] Handled exception:', e); }
   }, []);
 
   // Save settings on change
   useEffect(() => {
     try {
       localStorage.setItem('hud-sync-settings', JSON.stringify(settings));
-    } catch {}
+    } catch (e) { console.warn('[App] Handled exception:', e); }
   }, [settings]);
 
   // EventBus listener

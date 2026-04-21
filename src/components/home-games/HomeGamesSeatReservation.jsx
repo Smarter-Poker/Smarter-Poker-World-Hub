@@ -90,7 +90,7 @@ export default function HomeGamesSeatReservation({
 
     // Clean up prior channels
     for (const ch of channelsRef.current) {
-      try { supabase.removeChannel(ch); } catch {}
+      try { supabase.removeChannel(ch); } catch (e) { console.warn('[App] Handled exception:', e); }
     }
     channelsRef.current = [];
 
@@ -117,7 +117,7 @@ export default function HomeGamesSeatReservation({
 
     return () => {
       for (const ch of channelsRef.current) {
-        try { supabase.removeChannel(ch); } catch {}
+        try { supabase.removeChannel(ch); } catch (e) { console.warn('[App] Handled exception:', e); }
       }
       channelsRef.current = [];
     };

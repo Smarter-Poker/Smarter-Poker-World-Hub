@@ -257,7 +257,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                         const data = await res.json();
                         if (mounted && data.is_following) setIsFollowing(true);
                     }
-                } catch { }
+                } catch (e) { console.warn('[App] Handled exception:', e); }
             }
         };
         checkFollowState();
@@ -327,7 +327,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
             });
             if (res.ok) {
                 setIsFollowing(true);
-                try { eventBus.emit('page:follow', { slug: venue.host_social_page_slug }, 'VenueCard'); } catch {}
+                try { eventBus.emit('page:follow', { slug: venue.host_social_page_slug }, 'VenueCard'); } catch (e) { console.warn('[App] Handled exception:', e); }
             }
         } catch (err) {
             console.error('Follow error:', err);

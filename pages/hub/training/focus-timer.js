@@ -40,7 +40,7 @@ export default function FocusTimerPage() {
       if (c) setCompletedBlocks(parseInt(c, 10));
       const log = localStorage.getItem('focus-timer-log');
       if (log) setSessionLog(JSON.parse(log));
-    } catch {}
+    } catch (e) { console.warn('[App] Handled exception:', e); }
   }, []);
 
   useEffect(() => {
@@ -62,7 +62,7 @@ export default function FocusTimerPage() {
         setCompletedBlocks(next);
         try {
           localStorage.setItem('focus-timer-completed', next.toString());
-        } catch {}
+        } catch (e) { console.warn('[App] Handled exception:', e); }
         // Log the session
         const entry = {
           id: Date.now(),
@@ -73,7 +73,7 @@ export default function FocusTimerPage() {
         setSessionLog(newLog);
         try {
           localStorage.setItem('focus-timer-log', JSON.stringify(newLog));
-        } catch {}
+        } catch (e) { console.warn('[App] Handled exception:', e); }
         // Save to Supabase
         const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
         if (token) {

@@ -21,7 +21,7 @@ function getAuthToken() {
                 return parsed?.access_token || null;
             }
         }
-    } catch { }
+    } catch (e) { console.warn('[App] Handled exception:', e); }
     return null;
 }
 

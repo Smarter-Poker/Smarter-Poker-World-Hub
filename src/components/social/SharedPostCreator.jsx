@@ -55,7 +55,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         try {
             const draft = localStorage.getItem('sp-post-draft');
             if (draft && !content) setContent(draft);
-        } catch {}
+        } catch (e) { console.warn('[App] Handled exception:', e); }
     }, []);
 
     // Cleanup pending timeouts on unmount to prevent zombie timers
@@ -280,7 +280,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         // Debounced draft save to localStorage
         if (draftTimeout.current) clearTimeout(draftTimeout.current);
         draftTimeout.current = setTimeout(() => {
-            try { if (value.trim()) localStorage.setItem('sp-post-draft', value); else localStorage.removeItem('sp-post-draft'); } catch {}
+            try { if (value.trim()) localStorage.setItem('sp-post-draft', value); else localStorage.removeItem('sp-post-draft'); } catch (e) { console.warn('[App] Handled exception:', e); }
         }, 2000);
 
         // 🔗 AUTO-DETECT URLs - SmarterPoker-style: remove URL and show preview card
@@ -476,7 +476,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                     setCheckInVenue(null);
                 }
             }
-            setContent(''); setMedia([]); setLinkPreview(null); try { localStorage.removeItem('sp-post-draft'); } catch {}
+            setContent(''); setMedia([]); setLinkPreview(null); try { localStorage.removeItem('sp-post-draft'); } catch (e) { console.warn('[App] Handled exception:', e); }
         }
         else setError('Unable to post at this time. Please try again later.');
     };

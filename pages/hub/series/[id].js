@@ -353,7 +353,7 @@ export default function SeriesDetailPage() {
         setIsFollowing(followed.includes(String(id)));
         // Mutate SWR internal cache to refresh live count
         if (swrKey) mutate();
-      } catch { }
+      } catch (e) { console.warn('[App] Handled exception:', e); }
     };
     updateFollowState();
     
@@ -403,7 +403,7 @@ export default function SeriesDetailPage() {
       // Emit universal bus event for multi-tab synchronization within identical process memory
       try { 
         eventBus.emit(newState ? 'series:favorite' : 'series:unfavorite', { seriesId: sid, name: series?.name }, 'SeriesDetail'); 
-      } catch {}
+      } catch (e) { console.warn('[App] Handled exception:', e); }
     } catch {
       // ignore
     }
@@ -414,7 +414,7 @@ export default function SeriesDetailPage() {
     );
     let storedToken = null;
     if (tokenKey) {
-      try { storedToken = JSON.parse(localStorage.getItem(tokenKey) || '{}')?.access_token; } catch {}
+      try { storedToken = JSON.parse(localStorage.getItem(tokenKey) || '{}')?.access_token; } catch (e) { console.warn('[App] Handled exception:', e); }
     }
     const token = typeof window !== 'undefined' && (window.__supabaseToken || storedToken);
 
@@ -443,7 +443,7 @@ export default function SeriesDetailPage() {
               ? (followed.includes(sid) ? followed : [...followed, sid])
               : followed.filter(x => x !== sid);
             localStorage.setItem('followed-series', JSON.stringify(updated));
-          } catch { }
+          } catch (e) { console.warn('[App] Handled exception:', e); }
         }
       })
       .finally(() => { if (isMountedRef.current) setFollowPending(false); });
@@ -461,7 +461,7 @@ export default function SeriesDetailPage() {
             ? (followed.includes(sid) ? followed : [...followed, sid])
             : followed.filter(x => x !== sid);
           localStorage.setItem('followed-series', JSON.stringify(reverted));
-        } catch {}
+        } catch (e) { console.warn('[App] Handled exception:', e); }
         // Update share message display to guide user
         setShareMessage('Sign in to follow series');
         if (shareTimeoutRef.current) clearTimeout(shareTimeoutRef.current);

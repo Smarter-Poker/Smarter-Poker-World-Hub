@@ -89,14 +89,14 @@ export default function ClubPagesView({ C, pages, setPages, loading, setLoading,
             if (isNowFollowing) { if (!stored.includes(pageId)) stored.push(pageId); }
             else { const idx = stored.indexOf(pageId); if (idx !== -1) stored.splice(idx, 1); }
             localStorage.setItem(storageKey, JSON.stringify(stored));
-        } catch { }
+        } catch (e) { console.warn('[App] Handled exception:', e); }
         try {
             // Extract JWT from Supabase localStorage key — required by the follow API
             let _token = null;
             try {
                 const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
                 if (sbKeys.length > 0) { const td = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}'); _token = td.access_token || null; }
-            } catch { }
+            } catch (e) { console.warn('[App] Handled exception:', e); }
             if (!_token) return; // Skip — anonymous users only get localStorage state synced above
 
             // Only venue/tour/series types are supported by /api/poker/follow
@@ -108,7 +108,7 @@ export default function ClubPagesView({ C, pages, setPages, loading, setLoading,
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _token },
                 body: JSON.stringify({ page_type: pageType, page_id: pageId, action: isNowFollowing ? 'follow' : 'unfollow' }),
             });
-        } catch { }
+        } catch (e) { console.warn('[App] Handled exception:', e); }
     };
 
     const cats = [

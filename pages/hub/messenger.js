@@ -4339,7 +4339,7 @@ function MessengerPage() {
                     if (cancelled) return;
                     if (data?.messenger_preferences?.pushPromptHandled) {
                         setPushPromptHandled(true);
-                        try { localStorage.setItem('messenger_push_prompt_handled', '1'); } catch {}
+                        try { localStorage.setItem('messenger_push_prompt_handled', '1'); } catch (e) { console.warn('[App] Handled exception:', e); }
                         return;
                     }
                     // User hasn't handled it — show prompt after 3s delay
@@ -4858,7 +4858,7 @@ function MessengerPage() {
                             const success = await subscribePush();
                             // Persist choice permanently — never ask again
                             setPushPromptHandled(true);
-                            try { localStorage.setItem('messenger_push_prompt_handled', '1'); } catch {}
+                            try { localStorage.setItem('messenger_push_prompt_handled', '1'); } catch (e) { console.warn('[App] Handled exception:', e); }
                             if (user?.id) {
                                 // Safe JSONB merge — preserves existing messenger_preferences
                                 const { data: cur } = await supabase.from('profiles').select('messenger_preferences').eq('id', user.id).maybeSingle();
@@ -4884,7 +4884,7 @@ function MessengerPage() {
                         onClick={async () => {
                             // Persist dismissal permanently — never ask again
                             setPushPromptHandled(true);
-                            try { localStorage.setItem('messenger_push_prompt_handled', '1'); } catch {}
+                            try { localStorage.setItem('messenger_push_prompt_handled', '1'); } catch (e) { console.warn('[App] Handled exception:', e); }
                             if (user?.id) {
                                 // Safe JSONB merge — preserves existing messenger_preferences
                                 const { data: cur } = await supabase.from('profiles').select('messenger_preferences').eq('id', user.id).maybeSingle();
@@ -5414,7 +5414,7 @@ function MessengerPage() {
                                         onPin={(id) => {
                                             setPinnedConvoIds(prev => {
                                                 const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
-                                                try { localStorage.setItem('sp-pinned-conversations', JSON.stringify(next)); } catch {}
+                                                try { localStorage.setItem('sp-pinned-conversations', JSON.stringify(next)); } catch (e) { console.warn('[App] Handled exception:', e); }
                                                 return next;
                                             });
                                         }}

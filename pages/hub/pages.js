@@ -151,7 +151,7 @@ export default function PokerPagesPage() {
                 if (idx !== -1) stored.splice(idx, 1);
             }
             localStorage.setItem(storageKey, JSON.stringify(stored));
-        } catch { }
+        } catch (e) { console.warn('[App] Handled exception:', e); }
 
         // Call API
         try {
@@ -165,7 +165,7 @@ export default function PokerPagesPage() {
                     user_id: userId,
                 }),
             });
-        } catch { }
+        } catch (e) { console.warn('[App] Handled exception:', e); }
     };
 
     const followingCount = Array.from(followingIds).length;

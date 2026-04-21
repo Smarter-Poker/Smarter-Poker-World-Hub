@@ -279,7 +279,7 @@ export default function GlossaryPage() {
     try {
       const saved = localStorage.getItem('glossary-favorites');
       if (saved) setFavorites(new Set(JSON.parse(saved)));
-    } catch {}
+    } catch (e) { console.warn('[App] Handled exception:', e); }
   }, []);
 
   // EventBus listener
@@ -296,7 +296,7 @@ export default function GlossaryPage() {
     setFavorites(next);
     try {
       localStorage.setItem('glossary-favorites', JSON.stringify([...next]));
-    } catch {}
+    } catch (e) { console.warn('[App] Handled exception:', e); }
   };
 
   const filtered = TERMS.filter((t) => {

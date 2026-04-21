@@ -33,7 +33,7 @@ export default function VenueIntelPage() {
         try {
             const stored = localStorage.getItem('toke-tracker-prefs');
             if (stored) setTokePrefs(JSON.parse(stored));
-        } catch { }
+        } catch (e) { console.warn('[App] Handled exception:', e); }
     }, []);
 
     // Load completed gigs for VenueIntelligence
@@ -85,7 +85,7 @@ export default function VenueIntelPage() {
         await new Promise(r => setTimeout(r, 0));
         if (!newPrefs) return;
         window.dispatchEvent(new CustomEvent('toke-settings-sync', { detail: newPrefs }));
-        try { localStorage.setItem('toke-tracker-prefs', JSON.stringify(newPrefs)); } catch { }
+        try { localStorage.setItem('toke-tracker-prefs', JSON.stringify(newPrefs)); } catch (e) { console.warn('[App] Handled exception:', e); }
         if (!userId) return;
         try {
             const { data: profile } = await supabase.from('profiles').select('settings').eq('id', userId).maybeSingle();

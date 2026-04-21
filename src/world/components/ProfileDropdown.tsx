@@ -94,7 +94,7 @@ export function ProfileDropdown({ isOpen, onClose, anchorRef, onCustomizeCards }
                 clearAuth(true);
                 const { supabase } = await import('../../lib/supabase');
                 await supabase.auth.signOut();
-            } catch { }
+            } catch (e) { console.warn('[App] Handled exception:', e); }
             router.push('/');
             return;
         }

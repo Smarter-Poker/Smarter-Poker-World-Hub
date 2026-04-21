@@ -47,7 +47,7 @@ export default async function handler(req, res) {
         } else if (staffSession.user_id) {
           venueId = staffSession.venue_id;
         }
-      } catch { }
+      } catch (e) { console.warn('[App] Handled exception:', e); }
 
       // Fallback: Bearer token
       if (!venueId) {
@@ -66,7 +66,7 @@ export default async function handler(req, res) {
               venueId = staff?.venue_id;
             }
           }
-        } catch { }
+        } catch (e) { console.warn('[App] Handled exception:', e); }
       }
 
       if (!venueId) return res.status(403).json({ success: false, error: 'Could not determine venue' });
@@ -76,7 +76,7 @@ export default async function handler(req, res) {
       try {
         const sess = JSON.parse(req.headers['x-staff-session'] || '{}');
         staffUserId = sess.user_id || sess.id || null;
-      } catch { }
+      } catch (e) { console.warn('[App] Handled exception:', e); }
 
       if (req.method === 'GET') return handleGet(req, res, venueId);
       if (req.method === 'PUT') return handlePut(req, res, venueId, staffUserId);

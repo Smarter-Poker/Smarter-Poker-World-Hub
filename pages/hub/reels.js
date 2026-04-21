@@ -166,7 +166,7 @@ export default function ReelsPage() {
         if (typeof window !== 'undefined') {
             const saved = localStorage.getItem('smarter-reels-watched');
             if (saved) {
-                try { setWatchedReelIds(JSON.parse(saved)); } catch {}
+                try { setWatchedReelIds(JSON.parse(saved)); } catch (e) { console.warn('[App] Handled exception:', e); }
             }
         }
     }, []);
@@ -552,7 +552,7 @@ export default function ReelsPage() {
     };
 
     // Haptic helper
-    const haptic = (ms = 10) => { try { navigator?.vibrate?.(ms); } catch {} };
+    const haptic = (ms = 10) => { try { navigator?.vibrate?.(ms); } catch (e) { console.warn('[App] Handled exception:', e); } };
 
     // Track view count on reel change
     useEffect(() => {
@@ -565,7 +565,7 @@ export default function ReelsPage() {
                 // Increment in DB AND update local state so UI reflects the view
                 const reelId = currentReel.id;
                 setViewCounts(prev => ({ ...prev, [reelId]: (prev[reelId] || currentReel.view_count || 0) + 1 }));
-                (async () => { try { await supabase.rpc('increment_post_count', { p_post_id: reelId, p_field: 'view_count' }); } catch {} })();
+                (async () => { try { await supabase.rpc('increment_post_count', { p_post_id: reelId, p_field: 'view_count' }); } catch (e) { console.warn('[App] Handled exception:', e); } })();
             }
         }
     }, [currentReel?.id]);
@@ -587,18 +587,18 @@ export default function ReelsPage() {
         // Mutual exclusion: remove dislike when liking
         if (!wasLiked && disliked[postId]) {
             setDisliked(prev => ({ ...prev, [postId]: false }));
-            try { await supabase.from('social_likes').delete().eq('post_id', postId).eq('user_id', user.id).eq('reaction_type', 'dislike'); } catch {}
+            try { await supabase.from('social_likes').delete().eq('post_id', postId).eq('user_id', user.id).eq('reaction_type', 'dislike'); } catch (e) { console.warn('[App] Handled exception:', e); }
         }
 
         try {
             if (wasLiked) {
                 await supabase.from('social_likes').delete().eq('post_id', postId).eq('user_id', user.id).eq('reaction_type', 'like');
                 busEmit.socialPostLiked(postId, user.id, { added: false, reactionType: 'like' });
-                try { await supabase.rpc('decrement_post_count', { p_post_id: postId, p_field: 'like_count' }); } catch {}
+                try { await supabase.rpc('decrement_post_count', { p_post_id: postId, p_field: 'like_count' }); } catch (e) { console.warn('[App] Handled exception:', e); }
             } else {
                 await supabase.from('social_likes').insert({ post_id: postId, user_id: user.id, reaction_type: 'like' });
                 busEmit.socialPostLiked(postId, user.id, { added: true, reactionType: 'like' });
-                try { await supabase.rpc('increment_post_count', { p_post_id: postId, p_field: 'like_count' }); } catch {}
+                try { await supabase.rpc('increment_post_count', { p_post_id: postId, p_field: 'like_count' }); } catch (e) { console.warn('[App] Handled exception:', e); }
             }
         } catch (err) {
             setLiked(prev => ({ ...prev, [postId]: wasLiked }));
@@ -623,8 +623,8 @@ export default function ReelsPage() {
             setLikeCounts(prev => ({ ...prev, [postId]: Math.max(0, (prev[postId] || 0) - 1) }));
             try {
                 await supabase.from('social_likes').delete().eq('post_id', postId).eq('user_id', user.id).eq('reaction_type', 'like');
-                try { await supabase.rpc('decrement_post_count', { p_post_id: postId, p_field: 'like_count' }); } catch {}
-            } catch {}
+                try { await supabase.rpc('decrement_post_count', { p_post_id: postId, p_field: 'like_count' }); } catch (e) { console.warn('[App] Handled exception:', e); }
+            } catch (e) { console.warn('[App] Handled exception:', e); }
         }
         try {
             if (wasDisliked) {
@@ -741,7 +741,7 @@ export default function ReelsPage() {
                     const clCounts = {};
                     (clData || []).forEach(row => { const cid = row.metadata?.comment_id; if (cid) clCounts[cid] = (clCounts[cid] || 0) + 1; });
                     setCommentLikeCounts(clCounts);
-                } catch {}
+                } catch (e) { console.warn('[App] Handled exception:', e); }
             } catch (e) { console.error('Load comments:', e); }
         }
     };
@@ -798,7 +798,7 @@ export default function ReelsPage() {
             const { error } = await supabase.from('social_comments').insert(payload);
             if (error) throw error;
             busEmit.socialCommentAdded(currentReel.id, user.id);
-            try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'comment_count' }); } catch {}
+            try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'comment_count' }); } catch (e) { console.warn('[App] Handled exception:', e); }
             setCommentCounts(prev => ({ ...prev, [currentReel.id]: (prev[currentReel.id] || 0) + 1 }));
         } catch {
             setComments(prev => prev.filter(c => c.id !== tempId));
@@ -838,7 +838,7 @@ export default function ReelsPage() {
             const { error } = await supabase.from('social_comments').delete()
                 .eq('id', commentId).eq('author_id', user.id);
             if (error) throw error;
-            try { await supabase.rpc('decrement_post_count', { p_post_id: currentReel.id, p_field: 'comment_count' }); } catch {}
+            try { await supabase.rpc('decrement_post_count', { p_post_id: currentReel.id, p_field: 'comment_count' }); } catch (e) { console.warn('[App] Handled exception:', e); }
             setCommentCounts(p => ({ ...p, [currentReel.id]: Math.max(0, (p[currentReel.id] || 1) - 1) }));
             busEmit.socialCommentAdded && busEmit.socialCommentAdded(currentReel.id, user.id, { removed: true });
         } catch { setComments(prev); }
@@ -909,7 +909,7 @@ export default function ReelsPage() {
             } else if (platform === 'whatsapp') {
                 window.open(`https://wa.me/?text=${encodeURIComponent(title + ' ' + url)}`, '_blank');
             }
-            try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'share_count' }); } catch {}
+            try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'share_count' }); } catch (e) { console.warn('[App] Handled exception:', e); }
             if (user?.id) busEmit.socialPostShared(currentReel.id, user.id);
         } catch {
             setShareToast(true);
@@ -946,7 +946,7 @@ export default function ReelsPage() {
                 link_url: reelLink,
             });
             if (error) throw error;
-            try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'share_count' }); } catch {}
+            try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'share_count' }); } catch (e) { console.warn('[App] Handled exception:', e); }
             busEmit.socialPostShared(currentReel.id, user.id);
             busEmit.dataMutated('social');
             setSharedToFeed(true);
@@ -1138,7 +1138,7 @@ export default function ReelsPage() {
                 e.preventDefault();
                 e.stopPropagation();
 
-                try { navigator?.vibrate?.(10); } catch {}
+                try { navigator?.vibrate?.(10); } catch (e) { console.warn('[App] Handled exception:', e); }
                 if (diff > 0) {
                     slideToNextRef.current();
                 } else {
@@ -1181,7 +1181,7 @@ export default function ReelsPage() {
                     const pct = (data.info.currentTime / data.info.duration) * 100;
                     setVideoProgress(Math.min(100, Math.max(0, pct)));
                 }
-            } catch {}
+            } catch (e) { console.warn('[App] Handled exception:', e); }
         };
 
         document.addEventListener('touchstart', handleTouchStart, { passive: true, capture: true });

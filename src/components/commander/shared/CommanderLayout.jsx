@@ -86,7 +86,7 @@ export default function CommanderLayout({ children, title, backHref = '/commande
       setSessionExpiring(e.detail);
       // Auto-logout when session has already expired (0 min left)
       if (e.detail?.minutesLeft <= 0 && typeof window !== 'undefined') {
-        try { sessionStorage.setItem('commander_return_url', window.location.pathname); } catch {}
+        try { sessionStorage.setItem('commander_return_url', window.location.pathname); } catch (e) { console.warn('[App] Handled exception:', e); }
         window.location.href = '/commander/login?expired=1';
       }
     };
@@ -113,11 +113,11 @@ export default function CommanderLayout({ children, title, backHref = '/commande
     try {
       const stored = localStorage.getItem('commander_staff');
       if (stored) setStaff(JSON.parse(stored));
-    } catch { }
+    } catch (e) { console.warn('[App] Handled exception:', e); }
     try {
       const sub = JSON.parse(localStorage.getItem('commander_subscription') || '{}');
       if (sub.tier) setCurrentTier(sub.tier);
-    } catch { }
+    } catch (e) { console.warn('[App] Handled exception:', e); }
     setStaffLoaded(true);
 
     // Track Commander navigation history in sessionStorage
@@ -133,7 +133,7 @@ export default function CommanderLayout({ children, title, backHref = '/commande
           sessionStorage.setItem('commander_nav_history', JSON.stringify(hist));
         }
       }
-    } catch { }
+    } catch (e) { console.warn('[App] Handled exception:', e); }
   }, []);
 
   // ── ROUTE GUARD: Check if staff role can access this page ──
@@ -212,7 +212,7 @@ export default function CommanderLayout({ children, title, backHref = '/commande
             const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
             if (createdAt > hourAgo) return; // Less than 1 hour old, skip
           }
-        } catch { }
+        } catch (e) { console.warn('[App] Handled exception:', e); }
 
         // Check if user already has a club page
         const res = await fetch(`/api/social/pages?linked_venue_id=${staff.venue_id}`);
@@ -256,7 +256,7 @@ export default function CommanderLayout({ children, title, backHref = '/commande
       Object.keys(sessionStorage).forEach(k => {
         if (k.startsWith('pin_unlock_')) sessionStorage.removeItem(k);
       });
-    } catch { }
+    } catch (e) { console.warn('[App] Handled exception:', e); }
     // Bulletproof redirect
     window.location.href = '/commander/login';
   };
@@ -277,7 +277,7 @@ export default function CommanderLayout({ children, title, backHref = '/commande
       try {
         const stored = JSON.parse(localStorage.getItem('commander_staff') || '{}');
         venueId = stored.venue_id;
-      } catch { }
+      } catch (e) { console.warn('[App] Handled exception:', e); }
     }
     if (!venueId) {
       setPinError('No venue session — please log in first');

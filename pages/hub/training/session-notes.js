@@ -89,7 +89,7 @@ export default function SessionNotesPage() {
     try {
       const saved = localStorage.getItem('session-notes');
       if (saved) setNotes(JSON.parse(saved));
-    } catch {}
+    } catch (e) { console.warn('[App] Handled exception:', e); }
   }, []);
 
   const fetchRecentSession = useCallback(async () => {
@@ -141,7 +141,7 @@ export default function SessionNotesPage() {
     setNotes(updated);
     try {
       localStorage.setItem('session-notes', JSON.stringify(updated));
-    } catch {}
+    } catch (e) { console.warn('[App] Handled exception:', e); }
     setWentWell('');
     setToImprove('');
     setFreeText('');
@@ -155,7 +155,7 @@ export default function SessionNotesPage() {
     setNotes(updated);
     try {
       localStorage.setItem('session-notes', JSON.stringify(updated));
-    } catch {}
+    } catch (e) { console.warn('[App] Handled exception:', e); }
   };
 
   const deleteNote = (id) => {
@@ -163,7 +163,7 @@ export default function SessionNotesPage() {
     setNotes(updated);
     try {
       localStorage.setItem('session-notes', JSON.stringify(updated));
-    } catch {}
+    } catch (e) { console.warn('[App] Handled exception:', e); }
   };
 
   const filtered = notes

@@ -18,12 +18,12 @@ function getCtx() {
 // ══ Mute Toggle ══
 const MUTE_KEY = 'trivia_audio_muted';
 let _muted = false;
-try { if (typeof window !== 'undefined') _muted = localStorage.getItem(MUTE_KEY) === 'true'; } catch { }
+try { if (typeof window !== 'undefined') _muted = localStorage.getItem(MUTE_KEY) === 'true'; } catch (e) { console.warn('[App] Handled exception:', e); }
 
 export function isMuted() { return _muted; }
 export function toggleMute() {
     _muted = !_muted;
-    try { localStorage.setItem(MUTE_KEY, String(_muted)); } catch { }
+    try { localStorage.setItem(MUTE_KEY, String(_muted)); } catch (e) { console.warn('[App] Handled exception:', e); }
     return _muted;
 }
 

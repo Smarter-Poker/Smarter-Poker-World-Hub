@@ -96,7 +96,7 @@ export default async function handler(req, res) {
       .getPublicUrl(path);
 
     // Clean up temp file
-    try { fs.unlinkSync(file.filepath); } catch {}
+    try { fs.unlinkSync(file.filepath); } catch (e) { console.warn('[App] Handled exception:', e); }
 
     return res.status(200).json({ success: true, url: publicUrl });
   } catch (err) {

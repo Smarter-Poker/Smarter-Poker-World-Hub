@@ -235,7 +235,7 @@ export default function BoardExplorer() {
                 totalBet += strategy?.frequencies?.bet || 0;
                 totalCheck += strategy?.frequencies?.check || (1 - (strategy?.frequencies?.bet || 0));
                 count++;
-            } catch {}
+            } catch (e) { console.warn('[App] Handled exception:', e); }
         });
         if (count === 0) return { avgBet: 0, avgCheck: 0 };
         return { avgBet: totalBet / count, avgCheck: totalCheck / count };

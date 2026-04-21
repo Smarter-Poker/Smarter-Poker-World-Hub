@@ -93,7 +93,7 @@ export default function SessionWarmupPage() {
     try {
       const count = parseInt(localStorage.getItem('warmup-count') || '0', 10);
       setCompletionCount(count);
-    } catch {}
+    } catch (e) { console.warn('[App] Handled exception:', e); }
   }, []);
 
   // EventBus listener
@@ -145,7 +145,7 @@ export default function SessionWarmupPage() {
       setCompletionCount(newCount);
       try {
         localStorage.setItem('warmup-count', String(newCount));
-      } catch {}
+      } catch (e) { console.warn('[App] Handled exception:', e); }
 
       const save = async () => {
         try {

@@ -1048,7 +1048,7 @@ export default function SocialPageDetail() {
                         (json.data || []).filter(sp => sp.id !== page.id && !sp.is_following).slice(0, 3)
                     );
                 }
-            } catch {}
+            } catch (e) { console.warn('[App] Handled exception:', e); }
         };
         fetchSugg();
     }, [user, page?.id, isPageOwner]);

@@ -117,7 +117,7 @@ export default function DailyGoalsPage() {
       if (saved.lastDate === today) setStreakDays(saved.streak || 0);
       else if (saved.lastDate === yesterday) setStreakDays(saved.streak || 0);
       else setStreakDays(0);
-    } catch {}
+    } catch (e) { console.warn('[App] Handled exception:', e); }
   }, []);
 
   // Fetch daily bonus status
@@ -129,7 +129,7 @@ export default function DailyGoalsPage() {
           const d = await res.json();
           if (d.success) setDailyBonus(d);
         }
-      } catch {}
+      } catch (e) { console.warn('[App] Handled exception:', e); }
     }
     checkBonus();
   }, []);
@@ -158,7 +158,7 @@ export default function DailyGoalsPage() {
               'daily-goals-streak',
               JSON.stringify({ streak: newStreak, lastDate: today })
             );
-          } catch {}
+          } catch (e) { console.warn('[App] Handled exception:', e); }
           eventBus?.emit?.(
             EventType?.SESSION_END || 'session:end',
             { gameId: 'daily-goals', allComplete: true, streak: newStreak },
@@ -177,7 +177,7 @@ export default function DailyGoalsPage() {
                 setDailyBonus((prev) => ({ ...prev, available: false, alreadyClaimed: true, diamondsAwarded: bonusData.totalAwarded }));
               }
             }
-          } catch {}
+          } catch (e) { console.warn('[App] Handled exception:', e); }
         }
         setPrevComplete(result.completeCount);
       }

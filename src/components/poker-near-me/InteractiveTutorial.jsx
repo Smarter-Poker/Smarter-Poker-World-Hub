@@ -663,7 +663,7 @@ export default function InteractiveTutorial({
   const handleDontShow = useCallback(() => {
     try {
       localStorage.setItem(storageKey, '1');
-    } catch {}
+    } catch (e) { console.warn('[App] Handled exception:', e); }
     onDontShowAgain?.();
     onDismiss?.();
     setCurrentStep(0);

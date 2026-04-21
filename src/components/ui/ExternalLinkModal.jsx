@@ -175,7 +175,7 @@ function ExternalLinkModal({ url, title, onClose }) {
             if (shortMatch) return shortMatch[1];
             const embedMatch = url.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]+)/);
             if (embedMatch) return embedMatch[1];
-        } catch { }
+        } catch (e) { console.warn('[App] Handled exception:', e); }
         return null;
     })();
 

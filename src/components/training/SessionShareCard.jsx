@@ -221,7 +221,7 @@ export default function SessionShareCard({
                     const blob = await res.blob();
                     const file = new File([blob], 'smarter-poker-results.png', { type: 'image/png' });
                     shareData.files = [file];
-                } catch {}
+                } catch (e) { console.warn('[App] Handled exception:', e); }
             }
             await navigator.share(shareData);
         } catch (err) {

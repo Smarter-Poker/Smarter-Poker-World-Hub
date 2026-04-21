@@ -75,7 +75,7 @@ export default function GtoPreloaderPage() {
       try {
         const saved = localStorage.getItem('gto-offline-trees');
         if (saved) localMeta = JSON.parse(saved);
-      } catch {}
+      } catch (e) { console.warn('[App] Handled exception:', e); }
 
       for (const t of TREES) {
         // Cross-check IndexedDB
@@ -113,7 +113,7 @@ export default function GtoPreloaderPage() {
           const next = { ...prev, [id]: { progress: 100, status: 'done' } };
           try {
             localStorage.setItem('gto-offline-trees', JSON.stringify(next));
-          } catch {}
+          } catch (e) { console.warn('[App] Handled exception:', e); }
           return next;
         });
 
@@ -131,7 +131,7 @@ export default function GtoPreloaderPage() {
       const next = { ...prev, [id]: { progress: 0, status: 'idle' } };
       try {
         localStorage.setItem('gto-offline-trees', JSON.stringify(next));
-      } catch {}
+      } catch (e) { console.warn('[App] Handled exception:', e); }
       return next;
     });
     logCacheEvent(id, 'deleted');

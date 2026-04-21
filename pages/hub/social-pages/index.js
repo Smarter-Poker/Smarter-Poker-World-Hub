@@ -253,7 +253,7 @@ export default function SocialPagesHub() {
                 setHasMore(batch.length >= PAGE_SIZE);
                 setOffset(off + batch.length);
             }
-        } catch {}
+        } catch (e) { console.warn('[App] Handled exception:', e); }
         if (!append) setLoading(false);
         else setLoadingMore(false);
     }, [user, buildParams]);
@@ -309,7 +309,7 @@ export default function SocialPagesHub() {
                 const res = await fetch(`/api/social/pages?${p}`);
                 const json = await res.json();
                 if (json.success) setTrendingPages((json.data || []).filter(pg => (pg.follower_count || 0) > 0).slice(0, 8));
-            } catch {}
+            } catch (e) { console.warn('[App] Handled exception:', e); }
         };
         fetchTrending();
     }, [tab, user, search]);
@@ -327,7 +327,7 @@ export default function SocialPagesHub() {
                     const notFollowed = (json.data || []).filter(pg => !followingIds.has(pg.id));
                     setSuggestedPages(notFollowed.slice(0, 4));
                 }
-            } catch {}
+            } catch (e) { console.warn('[App] Handled exception:', e); }
         };
         fetchSuggested();
     }, [user, tab, search, followingIds]);

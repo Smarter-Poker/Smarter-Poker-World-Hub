@@ -454,7 +454,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                 // Accept any valid staff record — venue_id may be null for owners without a venue
                 if (parsed?.id || parsed?.venue_id || parsed?.role) setHasCommanderAccount(true);
             }
-        } catch { }
+        } catch (e) { console.warn('[App] Handled exception:', e); }
         // Load hidden card preferences
         setHiddenCardIdsState(getHiddenCardIds());
     }, []);
@@ -535,7 +535,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                                                 localStorage.setItem('commander_subscription', JSON.stringify(sub));
                                             }
                                             console.log('[WorldHub] 🏢 Commander account detected via API');
-                                        } catch { }
+                                        } catch (e) { console.warn('[App] Handled exception:', e); }
                                     }
                                 }
                             }
@@ -626,7 +626,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
         // Poker Near Me routes to the 12-icon lobby, not the tab-based page
         if (cardId === 'poker-near-me') {
             // Set flag so poker-near-me page knows to play intro video
-            try { sessionStorage.setItem('poker-near-me-from-hub', '1'); } catch {}
+            try { sessionStorage.setItem('poker-near-me-from-hub', '1'); } catch (e) { console.warn('[App] Handled exception:', e); }
             router.push('/hub/poker-near-me/lobby');
             return;
         }
@@ -698,7 +698,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
         // Poker Near Me routes to the 12-icon lobby
         if (orbId === 'poker-near-me') {
             // Set flag so poker-near-me page knows to play intro video
-            try { sessionStorage.setItem('poker-near-me-from-hub', '1'); } catch {}
+            try { sessionStorage.setItem('poker-near-me-from-hub', '1'); } catch (e) { console.warn('[App] Handled exception:', e); }
             router.push('/hub/poker-near-me/lobby');
             return;
         }

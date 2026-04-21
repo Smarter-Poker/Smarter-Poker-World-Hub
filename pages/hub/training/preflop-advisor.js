@@ -376,7 +376,7 @@ export default function PreflopAdvisor() {
             correct_answers: next.correct,
             total_questions: next.total,
           });
-        } catch {}
+        } catch (e) { console.warn('[App] Handled exception:', e); }
         saveSession({
           game_id: 'preflop-advisor',
           accuracy,

@@ -280,7 +280,7 @@ export default function CoachModePage() {
     try {
       const saved = localStorage.getItem('coach-completed');
       if (saved) setCompleted(new Set(JSON.parse(saved)));
-    } catch {}
+    } catch (e) { console.warn('[App] Handled exception:', e); }
   }, []);
 
   useEffect(() => {
@@ -314,7 +314,7 @@ export default function CoachModePage() {
       setCompleted(next);
       try {
         localStorage.setItem('coach-completed', JSON.stringify([...next]));
-      } catch {}
+      } catch (e) { console.warn('[App] Handled exception:', e); }
       setStep(activeLesson.concepts.length + 1); // results
     }
   };
