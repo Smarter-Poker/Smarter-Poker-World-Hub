@@ -1,7 +1,14 @@
 # Smarter-Poker-World-Hub -- Agent Instructions
 
 ALL agents (Claude, AntiGravity, Cowork, any AI) MUST read this file at session start.
-This is the single source of truth. Updated 2026-04-16.
+This is the single source of truth for **this repo**. Updated 2026-04-21.
+
+**Platform-level plan** (World Hub + Club Arena + Club Engine + Supabase + Hetzner):
+`./CLUB-ARENA-OFFICIAL-UPGRADE-INTEGRATION.md`
+
+That document is the authoritative upgrade/integration plan and supersedes
+`POKERBROS-PARITY-UPGRADE-PLAN.md` plus every older upgrade/blueprint doc in
+the club-arena repo. If anything conflicts, the platform plan wins.
 
 ---
 
