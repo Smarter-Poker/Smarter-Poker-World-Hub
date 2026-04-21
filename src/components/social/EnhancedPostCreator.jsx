@@ -586,7 +586,7 @@ export const EnhancedPostCreator = ({
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm"
+            accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/quicktime,video/x-m4v,video/x-msvideo,video/3gpp,video/3gpp2,video/hevc,video/x-matroska"
             multiple
             onChange={handleFileSelect}
             style={{ display: 'none' }}
@@ -902,7 +902,7 @@ export const EnhancedPostCreator = ({
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm"
+              accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/quicktime,video/x-m4v,video/x-msvideo,video/3gpp,video/3gpp2,video/hevc,video/x-matroska"
               multiple
               onChange={handleFileSelect}
               style={{ display: 'none' }}

@@ -5091,6 +5091,8 @@ function SocialMediaPage() {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 toast.success(`Posted as ${identityStored.clubPage.name}!`, 2000);
                 busEmit.dataMutated('social');
+                busEmit.socialPostCreated(json.data?.id, user.id);
+                broadcastSync('smarter_poker_social_sync', { action: 'refresh_feed', tabId: BROADCAST_TAB_ID });
                 return true;
             }
 
@@ -5148,6 +5150,8 @@ function SocialMediaPage() {
             // Show success toast
             toast.success('Posted Successfully!', 2000);
             busEmit.dataMutated('social');
+            busEmit.socialPostCreated(data.id, user.id);
+            broadcastSync('smarter_poker_social_sync', { action: 'refresh_feed', tabId: BROADCAST_TAB_ID });
 
             // ═══ SECONDARY OPERATIONS (isolated — failure must NOT affect post UX) ═══
             try {

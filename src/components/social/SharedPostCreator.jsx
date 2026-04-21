@@ -405,7 +405,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         if (ok) {
             if (checkInVenue) {
                 try {
-                    const token = await getAccessToken();
+                    const token = getAccessToken();
                     if (token) {
                         const checkinRes = await fetch('/api/poker/checkins', {
                             method: 'POST',
