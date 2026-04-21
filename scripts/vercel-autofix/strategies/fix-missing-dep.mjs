@@ -5,14 +5,16 @@
 // pre-commit so we don't push broken installs.
 //
 // Refuses to install:
-//   - Scoped packages from unfamiliar orgs (allowlist: @supabase, @sentry,
-//     @next, @anthropic, @radix-ui, @tailwindcss, @tanstack, @types).
-//   - Typo candidates (uses npm registry exists-check).
-//   - Deep-path imports (e.g. 'lodash/debounce' — the parent is the pkg).
+//   - Scoped packages from unfamiliar orgs (allowlist below)
+//   - Packages that already exist in package.json deps (likely a
+//     transient Vercel cache issue; no-op and let it retry)
+//   - Deep-path imports (e.g. 'lodash/debounce' — parent is the pkg)
+//   - Packages the npm registry doesn't know about
 // ═════════════════════════════════════════════════════════════════════════
 
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
+import path from 'node:path';
 
 const MODULE = process.env.MODULE_NAME;
 if (!MODULE) {
@@ -20,9 +22,8 @@ if (!MODULE) {
   process.exit(2);
 }
 
-function log(obj) {
-  console.log(JSON.stringify({ ts: new Date().toISOString(), ...obj }));
-}
+function log(obj) { console.log(JSON.stringify({ ts: new Date().toISOString(), ...obj })); }
+function fail(reason, extra = {}) { log({ level: 'error', reason, ...extra }); process.exit(2); }
 
 // Strip deep path: '@foo/bar/baz' → '@foo/bar', 'lodash/debounce' → 'lodash'
 function resolvePackageName(m) {
@@ -46,25 +47,50 @@ if (pkgName.startsWith('@') && !ALLOWED_SCOPES.some((s) => pkgName.startsWith(s 
   process.exit(2);
 }
 
+// Check if the package is already declared — if so, this is probably a
+// Vercel cache blip, not a genuinely missing dep. Skip.
+try {
+  const pkg = JSON.parse(fs.readFileSync(path.resolve('package.json'), 'utf8'));
+  const all = { ...pkg.dependencies, ...pkg.devDependencies, ...pkg.peerDependencies, ...pkg.optionalDependencies };
+  if (all[pkgName]) {
+    log({
+      level: 'info',
+      reason: 'already_declared_in_package_json',
+      pkgName,
+      existingVersion: all[pkgName],
+      note: 'Likely Vercel cache corruption. Skipping autofix so humans investigate.',
+    });
+    process.exit(2);
+  }
+} catch (e) {
+  log({ level: 'warn', msg: 'pkg.json read failed — proceeding', err: String(e) });
+}
+
 // Registry existence check
 try {
   execSync(`npm view ${pkgName} name`, { stdio: 'pipe' });
 } catch {
-  log({ level: 'error', reason: 'npm_view_failed', pkgName });
-  process.exit(2);
+  fail('npm_view_failed', { pkgName });
 }
 
 // Install
 log({ level: 'info', action: 'installing', pkgName });
-execSync(`npm install ${pkgName} --save --no-audit --no-fund`, { stdio: 'inherit' });
+try {
+  execSync(`npm install ${pkgName} --save --no-audit --no-fund`, { stdio: 'inherit' });
+} catch (e) {
+  fail('npm_install_failed', { pkgName, err: String(e) });
+}
 
 // Verify build completes
 log({ level: 'info', action: 'verifying_build' });
 try {
-  execSync('npm run build', { stdio: 'inherit', env: { ...process.env, CI: 'true' } });
+  execSync('npm run build', {
+    stdio: 'inherit',
+    env: { ...process.env, CI: 'true' },
+    timeout: 15 * 60 * 1000, // 15 min hard cap
+  });
 } catch {
-  log({ level: 'error', reason: 'verify_build_still_fails' });
-  process.exit(2);
+  fail('verify_build_still_fails');
 }
 
 const title = `fix(deps): add missing package \`${pkgName}\` to resolve build failure`;
@@ -85,3 +111,4 @@ const body = [
 
 fs.writeFileSync('/tmp/vercel-autofix-commit-title.txt', title);
 fs.writeFileSync('/tmp/vercel-autofix-commit-body.txt', body);
+fs.writeFileSync('/tmp/vercel-autofix-paths.txt', 'package.json\npackage-lock.json\n');

@@ -2,29 +2,21 @@
 // ═════════════════════════════════════════════════════════════════════════
 // vercel-autofix poller — Hetzner cron-01 (systemd timer, every 2 min)
 //
-// Closes the blind spot the Sentry poller has: Vercel *build-time* failures
-// (OOM, SIGKILL, TSC errors, missing modules) never reach Sentry, so they
-// were detected + fixed only by humans watching the dashboard.
-//
-// This poller:
-//   1. Lists recent production deployments for each configured Vercel project
-//   2. For ERROR / long-QUEUED deploys on `main`, fetches the tail of build
-//      logs and pattern-matches against known failure classes.
-//   3. Dedupes via Supabase `autofix_attempts` keyed on commit SHA (a given
-//      failed commit is attempted once).
-//   4. Dispatches GitHub `repository_dispatch` with event_type=`vercel-autofix`
-//      and a `strategy` payload ∈ { oom | missing-dep | tsc | generic }.
-//   5. Reuses the Supabase `autofix_budget_exhausted()` circuit-breaker
-//      (same $/day cap as Sentry autofix).
+// Detects Vercel build-time failures (OOM, SIGKILL, TSC errors, missing
+// modules) that never reach Sentry, classifies them, and dispatches the
+// GitHub `vercel-autofix` workflow. Mirrors the Sentry runtime-autofix
+// loop but for build-time failures.
 //
 // Env vars (required):
-//   VERCEL_TOKEN            — personal access token, scope: full access
-//   VERCEL_TEAM_ID          — team_SVD8r7AOPH065G3usBxVvrBc
-//   GITHUB_TOKEN            — PAT with repo + workflow scope
-//   SUPABASE_URL
-//   SUPABASE_SERVICE_ROLE_KEY
+//   VERCEL_TOKEN, VERCEL_TEAM_ID, GITHUB_TOKEN,
+//   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 //
-// Config (edit PROJECTS to add/remove Vercel projects):
+// Env vars (optional):
+//   SLACK_ALERT_WEBHOOK          — posts a message on stale QUEUED
+//   DRY_RUN=1                    — force every project to dry-run mode
+//   STALE_QUEUED_MINUTES=15
+//   LOG_TAIL_LINES=400
+//   LOOKBACK_MINUTES=60
 // ═════════════════════════════════════════════════════════════════════════
 
 import { createClient } from '@supabase/supabase-js';
@@ -40,19 +32,26 @@ const PROJECTS = [
   // { projectId: 'prj_...', vercelName: 'club-commander',  githubRepo: 'Smarter-Poker/club-commander-desktop' },
 ];
 
-const VERCEL_TOKEN = requireEnv('VERCEL_TOKEN');
-const VERCEL_TEAM_ID = requireEnv('VERCEL_TEAM_ID');
-const GITHUB_TOKEN = requireEnv('GITHUB_TOKEN');
-const SUPABASE_URL = requireEnv('SUPABASE_URL');
-const SUPABASE_SERVICE_ROLE_KEY = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
+// Env + Supabase client are initialized lazily inside run() so that
+// classifyBuildFailure() can be unit-tested without env vars being set.
+let VERCEL_TOKEN, VERCEL_TEAM_ID, GITHUB_TOKEN;
+let SLACK_ALERT_WEBHOOK, FORCE_DRY_RUN;
+let STALE_QUEUED_MINUTES, LOG_TAIL_LINES, LOOKBACK_MINUTES;
+let sb;
 
-const STALE_QUEUED_MINUTES = 15;
-const LOG_TAIL_LINES = 400;
-const LOOKBACK_MINUTES = 60; // scan the last hour of deploys
-
-const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { persistSession: false },
-});
+function initRuntime() {
+  VERCEL_TOKEN = requireEnv('VERCEL_TOKEN');
+  VERCEL_TEAM_ID = requireEnv('VERCEL_TEAM_ID');
+  GITHUB_TOKEN = requireEnv('GITHUB_TOKEN');
+  const SUPABASE_URL = requireEnv('SUPABASE_URL');
+  const SUPABASE_SERVICE_ROLE_KEY = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
+  SLACK_ALERT_WEBHOOK = process.env.SLACK_ALERT_WEBHOOK;
+  FORCE_DRY_RUN = process.env.DRY_RUN === '1';
+  STALE_QUEUED_MINUTES = Number(process.env.STALE_QUEUED_MINUTES ?? 15);
+  LOG_TAIL_LINES = Number(process.env.LOG_TAIL_LINES ?? 400);
+  LOOKBACK_MINUTES = Number(process.env.LOOKBACK_MINUTES ?? 60);
+  sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+}
 
 function requireEnv(name) {
   const v = process.env[name];
@@ -67,10 +66,28 @@ function log(obj) {
   console.log(JSON.stringify({ ts: new Date().toISOString(), ...obj }));
 }
 
+// ---------------------------------------------------------------------------
+// Retry wrapper: one exponential-backoff retry on 5xx / network errors
+// ---------------------------------------------------------------------------
+async function fetchWithRetry(url, opts = {}, { retries = 2, baseMs = 500 } = {}) {
+  let lastErr;
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const res = await fetch(url, opts);
+      if (res.status < 500 && res.status !== 429) return res;
+      lastErr = new Error(`${res.status} ${res.statusText}`);
+    } catch (e) {
+      lastErr = e;
+    }
+    if (i < retries) await new Promise(r => setTimeout(r, baseMs * Math.pow(2, i)));
+  }
+  throw lastErr;
+}
+
 async function vercelFetch(path) {
   const url = new URL(`https://api.vercel.com${path}`);
   url.searchParams.set('teamId', VERCEL_TEAM_ID);
-  const res = await fetch(url, {
+  const res = await fetchWithRetry(url, {
     headers: { Authorization: `Bearer ${VERCEL_TOKEN}` },
   });
   if (!res.ok) throw new Error(`vercel ${path} → ${res.status} ${await res.text().catch(() => '')}`);
@@ -78,7 +95,6 @@ async function vercelFetch(path) {
 }
 
 async function listRecentDeploys(projectId) {
-  // Vercel paginates newest-first; grab the last 20 and filter client-side.
   const { deployments } = await vercelFetch(
     `/v6/deployments?projectId=${projectId}&limit=20`
   );
@@ -87,11 +103,9 @@ async function listRecentDeploys(projectId) {
 }
 
 async function getBuildLogTail(deployId) {
-  // Vercel returns build events as an array; take the tail N and join text fields.
   const events = await vercelFetch(
     `/v2/deployments/${deployId}/events?builds=1&limit=${LOG_TAIL_LINES}`
   );
-  // events may be an array or { events: [] } depending on API version
   const arr = Array.isArray(events) ? events : events.events || [];
   return arr.map((e) => e.text ?? e.payload?.text ?? '').join('\n');
 }
@@ -99,8 +113,9 @@ async function getBuildLogTail(deployId) {
 /**
  * Classify a build-log tail into a known failure class.
  * Order matters — more specific patterns first.
+ * Covered by classify.test.mjs fixtures.
  */
-function classifyBuildFailure(logTail) {
+export function classifyBuildFailure(logTail) {
   if (!logTail) return null;
 
   // OOM — SIGKILL during build, or Vercel's own "OOM detected" line
@@ -130,12 +145,15 @@ function classifyBuildFailure(logTail) {
   }
 
   // TypeScript type errors (Next.js emits these during build)
-  const tsError = logTail.match(/(?:^|\n)[^\n]*Type error:[^\n]*/);
+  // - "Type error:" is anchored to start-of-line (Next.js formatted output).
+  // - "TS####:" is a unique tsc error code; it's fine to match mid-line
+  //   because it appears in the `foo.ts(12,5): TS2339: ...` CLI format.
+  const tsError = logTail.match(/(?:(?:^|\n)[ \t]*Type error:|\bTS\d{4,5}:)[^\n]*/);
   if (tsError) {
     return {
       strategy: 'tsc',
       confidence: 'medium',
-      snippet: extractSnippet(logTail, /Type error:/),
+      snippet: extractSnippet(logTail, /Type error:|TS\d{4,5}:/),
     };
   }
 
@@ -148,7 +166,7 @@ function classifyBuildFailure(logTail) {
     };
   }
 
-  // Any other "Build failed" — give Claude the tail and hope
+  // Any other build failure
   if (/Build failed|npm ERR!|exit code 1/i.test(logTail)) {
     return {
       strategy: 'generic',
@@ -168,10 +186,42 @@ function extractSnippet(log, anchor, ctx = 30) {
   return lines.slice(start, start + ctx).join('\n');
 }
 
+// ---------------------------------------------------------------------------
+// Supabase gates (kill-switch, per-loop budget, per-project dry-run, dedupe)
+// ---------------------------------------------------------------------------
+async function isPaused() {
+  const { data, error } = await sb.rpc('autofix_is_paused');
+  if (error) {
+    log({ level: 'warn', msg: 'pause check failed — proceeding', err: error.message });
+    return false;
+  }
+  return data === true;
+}
+
+async function budgetExhausted(source = 'vercel') {
+  // Check global cap first, then per-loop
+  for (const src of ['_global', source]) {
+    const { data, error } = await sb.rpc('autofix_budget_exhausted', { p_source: src });
+    if (error) {
+      log({ level: 'warn', msg: 'budget check failed — proceeding', src, err: error.message });
+      continue;
+    }
+    if (data === true) return { exhausted: true, bucket: src };
+  }
+  return { exhausted: false };
+}
+
+async function getProjectOverride(projectId) {
+  const { data } = await sb
+    .from('autofix_projects')
+    .select('dry_run, enabled')
+    .eq('id', projectId)
+    .eq('source', 'vercel')
+    .maybeSingle();
+  return data; // null → project not in table → default: enabled=true, dry_run=false
+}
+
 async function alreadyAttempted(commitSha) {
-  // Dedupe by (source, commit_sha). Any active or terminal-non-retry status
-  // blocks a new dispatch. The partial unique index in the DB acts as a
-  // belt-and-suspenders against race conditions here.
   const { data, error } = await sb
     .from('autofix_attempts')
     .select('id, status')
@@ -186,16 +236,7 @@ async function alreadyAttempted(commitSha) {
   return (data ?? []).length > 0;
 }
 
-async function budgetExhausted() {
-  const { data, error } = await sb.rpc('autofix_budget_exhausted');
-  if (error) {
-    log({ level: 'warn', msg: 'budget check failed — proceeding', err: error.message });
-    return false;
-  }
-  return data === true;
-}
-
-async function recordAttempt({ deployId, commitSha, repo, strategy, snippet }) {
+async function recordAttempt({ deployId, commitSha, repo, strategy, confidence, snippet, dryRun }) {
   const attemptId = crypto.randomUUID();
   const { error } = await sb.from('autofix_attempts').insert({
     id: attemptId,
@@ -203,8 +244,11 @@ async function recordAttempt({ deployId, commitSha, repo, strategy, snippet }) {
     deployment_id: deployId,
     commit_sha: commitSha,
     repo,
-    status: 'running',
-    metadata: { strategy, snippet: snippet?.slice(0, 2000) },
+    strategy,
+    confidence,
+    status: dryRun ? 'skipped_unfixable' : 'running',
+    error_message: dryRun ? 'dry_run_mode' : null,
+    metadata: { snippet: snippet?.slice(0, 2000), dryRun },
   });
   if (error) throw new Error(`insert autofix_attempts: ${error.message}`);
   return attemptId;
@@ -212,7 +256,7 @@ async function recordAttempt({ deployId, commitSha, repo, strategy, snippet }) {
 
 async function dispatchWorkflow({ repo, attemptId, classified, commitSha, deployId }) {
   const [owner, name] = repo.split('/');
-  const res = await fetch(
+  const res = await fetchWithRetry(
     `https://api.github.com/repos/${owner}/${name}/dispatches`,
     {
       method: 'POST',
@@ -230,7 +274,7 @@ async function dispatchWorkflow({ repo, attemptId, classified, commitSha, deploy
           strategy: classified.strategy,
           confidence: classified.confidence,
           snippet: classified.snippet,
-          module: classified.module, // missing-dep only
+          module: classified.module,
         },
       }),
     }
@@ -241,13 +285,43 @@ async function dispatchWorkflow({ repo, attemptId, classified, commitSha, deploy
   }
 }
 
+async function slackAlert(text) {
+  if (!SLACK_ALERT_WEBHOOK) return;
+  try {
+    await fetchWithRetry(SLACK_ALERT_WEBHOOK, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+  } catch (e) {
+    log({ level: 'warn', msg: 'slack alert failed', err: String(e) });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------------------
 async function run() {
-  if (await budgetExhausted()) {
-    log({ level: 'info', msg: 'daily budget cap hit — exiting' });
+  initRuntime();
+  if (await isPaused()) {
+    log({ level: 'info', msg: 'autofix globally paused — exiting' });
+    return;
+  }
+
+  const b = await budgetExhausted('vercel');
+  if (b.exhausted) {
+    log({ level: 'info', msg: 'budget cap hit — exiting', bucket: b.bucket });
     return;
   }
 
   for (const proj of PROJECTS) {
+    const override = await getProjectOverride(proj.projectId);
+    if (override && override.enabled === false) {
+      log({ level: 'debug', msg: 'project disabled', project: proj.vercelName });
+      continue;
+    }
+    const dryRun = FORCE_DRY_RUN || override?.dry_run === true;
+
     let deploys;
     try {
       deploys = await listRecentDeploys(proj.projectId);
@@ -263,12 +337,12 @@ async function run() {
       const commitSha = d.meta?.githubCommitSha;
       if (!commitSha) continue;
 
-      // State gate: ERROR, or main stuck QUEUED > N minutes
       const ageMin = (Date.now() - d.created) / 60000;
       const isError = d.state === 'ERROR';
       const isStaleQueued = d.state === 'QUEUED' && ageMin >= STALE_QUEUED_MINUTES;
       if (!isError && !isStaleQueued) continue;
 
+      // Dedupe BEFORE fetching logs (saves a Vercel API call)
       if (await alreadyAttempted(commitSha)) {
         log({
           level: 'debug',
@@ -281,15 +355,15 @@ async function run() {
       }
 
       if (isStaleQueued) {
-        // Stuck queue isn't a code bug — page instead of autofix
-        log({
-          level: 'alert',
-          msg: 'main-branch deploy QUEUED > threshold',
-          project: proj.vercelName,
-          deploy: d.id,
-          ageMin: ageMin.toFixed(1),
-        });
-        // TODO: wire to PostHog alert / Slack webhook
+        // Not a code bug — page humans instead
+        const msg =
+          `:warning: Vercel main-branch deploy stuck QUEUED for ${ageMin.toFixed(1)} min\n` +
+          `Project: ${proj.vercelName}\n` +
+          `Deploy:  ${d.id}\n` +
+          `Commit:  ${commitSha.slice(0, 7)}\n` +
+          `Likely: Vercel capacity issue. No autofix will be attempted.`;
+        log({ level: 'alert', msg: 'main stuck QUEUED', project: proj.vercelName, deploy: d.id, ageMin: ageMin.toFixed(1) });
+        await slackAlert(msg);
         continue;
       }
 
@@ -318,8 +392,22 @@ async function run() {
           commitSha,
           repo: proj.githubRepo,
           strategy: classified.strategy,
+          confidence: classified.confidence,
           snippet: classified.snippet,
+          dryRun,
         });
+
+        if (dryRun) {
+          log({
+            level: 'info',
+            msg: 'DRY-RUN: would dispatch vercel-autofix',
+            project: proj.vercelName,
+            deploy: d.id,
+            strategy: classified.strategy,
+            attemptId,
+          });
+          continue;
+        }
 
         await dispatchWorkflow({
           repo: proj.githubRepo,
@@ -345,7 +433,11 @@ async function run() {
   }
 }
 
-run().catch((e) => {
-  log({ level: 'fatal', err: String(e), stack: e.stack });
-  process.exit(1);
-});
+// Only auto-run when invoked as a script, not when imported for testing
+const isMain = import.meta.url === `file://${process.argv[1]}`;
+if (isMain) {
+  run().catch((e) => {
+    log({ level: 'fatal', err: String(e), stack: e.stack });
+    process.exit(1);
+  });
+}
