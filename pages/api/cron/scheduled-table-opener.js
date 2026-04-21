@@ -123,7 +123,7 @@ export default async function handler(req, res) {
           await _updateNextScheduled(tmpl);
 
           opened++;
-          console.log(`[scheduled-table-opener] Opened "${tmpl.name}" in club ${tmpl.clubs?.name || tmpl.club_id}`);
+          console.warn(`[scheduled-table-opener] Opened "${tmpl.name}" in club ${tmpl.clubs?.name || tmpl.club_id}`);
         } catch (e) {
           errors.push({ template: tmpl.name, error: e.message });
           console.warn(`[scheduled-table-opener] Error for "${tmpl.name}":`, e.message);

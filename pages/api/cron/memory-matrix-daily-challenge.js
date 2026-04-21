@@ -146,7 +146,7 @@ export default async function handler(req, res) {
               throw error || new Error('No data returned from insert');
           }
 
-          console.log('[DailyChallenge] Created:', {
+          console.warn('[DailyChallenge] Created:', {
               id: challenge.id,
               level,
               title: scenario.title,

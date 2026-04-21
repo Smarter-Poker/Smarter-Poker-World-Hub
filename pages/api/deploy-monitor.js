@@ -160,7 +160,7 @@ async function createAlertIssue(title, body, { alertKey, ghPat } = {}) {
           8000
         );
         if (!res.ok) throw new Error(`GitHub comment API failed: ${res.status}`);
-        console.log(`[deploy-monitor] Alert comment added to issue #${existing[0].number}`);
+        console.warn(`[deploy-monitor] Alert comment added to issue #${existing[0].number}`);
         return;
       }
     }
@@ -179,7 +179,7 @@ async function createAlertIssue(title, body, { alertKey, ghPat } = {}) {
       8000
     );
     if (!res.ok) throw new Error(`GitHub issues API failed: ${res.status}`);
-    console.log('[deploy-monitor] Alert issue created on GitHub');
+    console.warn('[deploy-monitor] Alert issue created on GitHub');
   } catch (err) {
     console.warn('[deploy-monitor] Failed to create alert issue:', err.message);
   }
@@ -213,7 +213,7 @@ async function sendSmsAlert(message) {
   const ownerPhone = '+17086775221';
 
   if (!accountSid || !authToken || !fromPhone) {
-    console.log('[deploy-monitor] Twilio credentials missing — skipping SMS');
+    console.warn('[deploy-monitor] Twilio credentials missing — skipping SMS');
     return;
   }
 
@@ -238,7 +238,7 @@ async function sendSmsAlert(message) {
     );
 
     if (res.ok) {
-      console.log(`[deploy-monitor] SMS alert sent to ${ownerPhone}`);
+      console.warn(`[deploy-monitor] SMS alert sent to ${ownerPhone}`);
     } else {
       const errData = await res.json().catch(() => ({}));
       console.warn('[deploy-monitor] SMS API error:', res.status, errData);
@@ -254,7 +254,7 @@ async function sendSmsAlert(message) {
 async function sendEmailAlert({ subject, markdown, tag = 'info' }) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
-    console.log('[deploy-monitor] RESEND_API_KEY not set — skipping email');
+    console.warn('[deploy-monitor] RESEND_API_KEY not set — skipping email');
     return;
   }
   const to = process.env.OPS_ALERT_EMAIL || 'admin@smarter.poker';
@@ -283,7 +283,7 @@ async function sendEmailAlert({ subject, markdown, tag = 'info' }) {
       const errText = await res.text();
       console.warn(`[deploy-monitor] Resend rejected email (HTTP ${res.status}):`, errText.substring(0, 200));
     } else {
-      console.log(`[deploy-monitor] Email alert sent (tag=${tag})`);
+      console.warn(`[deploy-monitor] Email alert sent (tag=${tag})`);
     }
   } catch (err) {
     console.warn('[deploy-monitor] Resend fetch error:', err.message);
@@ -295,7 +295,7 @@ async function sendEmailAlert({ subject, markdown, tag = 'info' }) {
 // Swap this function body with a PostHog ingest call once POSTHOG_KEY is set
 // ─────────────────────────────────────────────────────────────────────────────
 function logTelemetry(decision, context = {}) {
-  console.log(
+  console.warn(
     `[telemetry] ${JSON.stringify({
       event: 'deploy_monitor_decision',
       decision,
@@ -542,7 +542,7 @@ export default async function handler(req, res) {
     }
     // Method 3: Rejected — fire alert so this never vanishes silently
     else {
-      console.log('[deploy-monitor] AUTH FAILED — hmac=%s querySecret=%s headerSecret=%s',
+      console.warn('[deploy-monitor] AUTH FAILED — hmac=%s querySecret=%s headerSecret=%s',
         sigHeader ? 'present(mismatch)' : 'absent',
         querySecret ? 'present(mismatch)' : 'absent',
         headerSecret ? 'present(mismatch)' : 'absent');
@@ -611,14 +611,14 @@ Alert is rate-limited to 1 issue/comment per hour.`,
     const commitMsg = deployment.meta?.githubCommitMessage || '';
     const state = deployState || eventType;
 
-    console.log(`[deploy-monitor] Received ${eventType}/${state} for deployment ${deploymentId} (project: ${projectId}, SHA: ${commitSha}, auth: ${authMethod})`);
+    console.warn(`[deploy-monitor] Received ${eventType}/${state} for deployment ${deploymentId} (project: ${projectId}, SHA: ${commitSha}, auth: ${authMethod})`);
 
     // ── Project filter (HARDENED): require exact match ────────────────────
     // Previous version allowed projectId === 'unknown' through. That meant any
     // payload-shape change (Vercel webhook v1 vs v2) would cause ALL failures
     // across ALL projects to be processed against the World Hub repo.
     if (!projectId || projectId !== PROJECT_ID) {
-      console.log(`[deploy-monitor] Ignoring deployment from project ${projectId} (not hub-vanguard)`);
+      console.warn(`[deploy-monitor] Ignoring deployment from project ${projectId} (not hub-vanguard)`);
       return res.status(200).json({
         action: 'ignored',
         reason: `Deployment belongs to project ${projectId || 'unknown'}, not hub-vanguard (${PROJECT_ID})`,
@@ -628,7 +628,7 @@ Alert is rate-limited to 1 issue/comment per hour.`,
 
     // ── Hard stop: never auto-fix an [autofix] commit ─────────────────────
     if (commitMsg.startsWith('[autofix]')) {
-      console.log(`[deploy-monitor] Refusing to auto-fix an [autofix] commit: ${commitSha}`);
+      console.warn(`[deploy-monitor] Refusing to auto-fix an [autofix] commit: ${commitSha}`);
       await createAlertIssue(
         `Autofix commit failed to build — ${commitSha.substring(0, 8)}`,
         `## Autofix Commit Failed
@@ -654,7 +654,7 @@ Manual intervention required. The self-healing pipeline will NOT retry this comm
     const branchName = deployment.meta?.githubCommitRef || 'main';
     const attempts = await countPersistentAttempts(commitSha, branchName, process.env.GH_PAT);
     if (attempts >= MAX_FIX_ATTEMPTS) {
-      console.log(`[deploy-monitor] Circuit breaker: ${commitSha} has ${attempts} autofix commits. Stopping.`);
+      console.warn(`[deploy-monitor] Circuit breaker: ${commitSha} has ${attempts} autofix commits. Stopping.`);
       logTelemetry('circuit_breaker_tripped', {
         commitSha: commitSha.substring(0, 8),
         attempts,
@@ -728,7 +728,7 @@ https://vercel.com/smarter-poker/hub-vanguard/deployments`,
       return res.status(500).json({ error: 'VERCEL_TOKEN not configured' });
     }
 
-    console.log(`[deploy-monitor] Fetching build logs for ${deploymentId}...`);
+    console.warn(`[deploy-monitor] Fetching build logs for ${deploymentId}...`);
     const logsRes = await fetchWithTimeout(
       `https://api.vercel.com/v2/deployments/${deploymentId}/events?teamId=${TEAM_ID}&direction=backward&limit=1000`,
       { headers: { Authorization: `Bearer ${vercelToken}` } },
@@ -755,7 +755,7 @@ https://vercel.com/smarter-poker/hub-vanguard/deployments`,
     }
 
     if (!buildErrors) {
-      console.log(`[deploy-monitor] Could not extract build errors for ${deploymentId}`);
+      console.warn(`[deploy-monitor] Could not extract build errors for ${deploymentId}`);
       // Fire agent notification — empty log = pipeline blind spot, not a benign skip.
       // The deployment failed but we cannot auto-fix. Human or agent must investigate.
       await createAlertIssue(
@@ -772,7 +772,7 @@ https://vercel.com/smarter-poker/hub-vanguard/deployments`,
       });
     }
 
-    console.log(`[deploy-monitor] Build errors extracted (${buildErrors.length} chars). Calling autofix...`);
+    console.warn(`[deploy-monitor] Build errors extracted (${buildErrors.length} chars). Calling autofix...`);
 
     // ── Call autofix ──────────────────────────────────────────────────────
     const host = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.NEXT_PUBLIC_SITE_URL?.replace(/^https?:\/\//, '') || 'smarter.poker';
@@ -812,7 +812,7 @@ https://vercel.com/smarter-poker/hub-vanguard/deployments`,
       }
     }
     const duration = Date.now() - startTime;
-    console.log(`[deploy-monitor] Autofix result: ${autofixResult.action} (${duration}ms)`);
+    console.warn(`[deploy-monitor] Autofix result: ${autofixResult.action} (${duration}ms)`);
 
     // Structured telemetry for every autofix run (success or skip)
     logTelemetry('autofix_completed', {

@@ -255,25 +255,25 @@ async function scrapeTourPdfs(tourCode, sources, stats) {
 
         // ── pdf_direct: download this URL as a PDF directly ──
         if (method === 'pdf_direct' || isPdfUrl(sourceConfig.url)) {
-            console.log(`  [PDF:${tourCode}] Direct PDF: ${sourceConfig.url}`);
+            console.warn(`  [PDF:${tourCode}] Direct PDF: ${sourceConfig.url}`);
             try {
                 const result = await extractPdfSchedule(sourceConfig.url, { tourCode, seriesName: tourSources.tour_name });
                 if (result.events.length > 0) {
                     allPdfEvents.push(...result.events);
                     stats.pdf_events_found = (stats.pdf_events_found || 0) + result.events.length;
-                    console.log(`  [PDF:${tourCode}] ✓ ${result.events.length} events from direct PDF`);
+                    console.warn(`  [PDF:${tourCode}] ✓ ${result.events.length} events from direct PDF`);
                 } else if (result.error) {
-                    console.log(`  [PDF:${tourCode}] ⚠ PDF error: ${result.error}`);
+                    console.warn(`  [PDF:${tourCode}] ⚠ PDF error: ${result.error}`);
                 }
             } catch (err) {
-                console.log(`  [PDF:${tourCode}] Error: ${err.message}`);
+                console.warn(`  [PDF:${tourCode}] Error: ${err.message}`);
             }
             await sleep(RATE_LIMIT_MS);
         }
 
         // ── pdf_crawl: crawl schedule page to find PDF links ──
         if (method === 'pdf_crawl') {
-            console.log(`  [PDF:${tourCode}] Crawling for PDFs: ${sourceConfig.url}`);
+            console.warn(`  [PDF:${tourCode}] Crawling for PDFs: ${sourceConfig.url}`);
             try {
                 const html = await fetchWithRetry(sourceConfig.url);
 
@@ -286,7 +286,7 @@ async function scrapeTourPdfs(tourCode, sources, stats) {
                     pdfEntries = pdfLinks.map((url, i) => ({ stopName: `Stop ${i + 1}`, pdfUrl: url }));
                 }
 
-                console.log(`  [PDF:${tourCode}] Found ${pdfEntries.length} PDF links on page`);
+                console.warn(`  [PDF:${tourCode}] Found ${pdfEntries.length} PDF links on page`);
 
                 // Also try known event IDs as fallback/supplement
                 if (sourceConfig.known_event_ids && sourceConfig.pdf_base) {
@@ -298,7 +298,7 @@ async function scrapeTourPdfs(tourCode, sources, stats) {
                             pdfEntries.push({ stopName: name.replace(/_/g, ' '), pdfUrl });
                         }
                     }
-                    console.log(`  [PDF:${tourCode}] Total PDF targets (incl. known IDs): ${pdfEntries.length}`);
+                    console.warn(`  [PDF:${tourCode}] Total PDF targets (incl. known IDs): ${pdfEntries.length}`);
                 }
 
                 // Extract each PDF
@@ -312,18 +312,18 @@ async function scrapeTourPdfs(tourCode, sources, stats) {
                         if (result.events.length > 0) {
                             allPdfEvents.push(...result.events);
                             stats.pdf_events_found = (stats.pdf_events_found || 0) + result.events.length;
-                            console.log(`  [PDF:${tourCode}] ✓ ${result.events.length} events from: ${stopName}`);
+                            console.warn(`  [PDF:${tourCode}] ✓ ${result.events.length} events from: ${stopName}`);
                         } else {
-                            console.log(`  [PDF:${tourCode}] ⚠ 0 events from: ${stopName}${result.error ? ' — ' + result.error : ''}`);
+                            console.warn(`  [PDF:${tourCode}] ⚠ 0 events from: ${stopName}${result.error ? ' — ' + result.error : ''}`);
                         }
                     } catch (err) {
-                        console.log(`  [PDF:${tourCode}] Error on ${stopName}: ${err.message}`);
+                        console.warn(`  [PDF:${tourCode}] Error on ${stopName}: ${err.message}`);
                     }
                     await sleep(RATE_LIMIT_MS);
                 }
 
             } catch (err) {
-                console.log(`  [PDF:${tourCode}] Crawl error: ${err.message}`);
+                console.warn(`  [PDF:${tourCode}] Crawl error: ${err.message}`);
                 stats.errors.push({ tour: tourCode, source: sourceName, pdf: true, error: err.message });
             }
         }
@@ -486,7 +486,7 @@ async function storePdfEvents(tourCode, pdfEvents) {
 
             if (error && !error.message?.includes('duplicate') && !error.message?.includes('does not exist')) {
                 errors++;
-                if (errors <= 3) console.log(`  [DB:${tourCode}] Insert warn: ${error.message}`);
+                if (errors <= 3) console.warn(`  [DB:${tourCode}] Insert warn: ${error.message}`);
             } else if (!error) {
                 inserted++;
             }
@@ -596,10 +596,10 @@ export default async function handler(req, res) {
 
         let registryModified = false;
 
-        console.log(`[TOUR SCRAPER] v2.0 — ${scraperName}`);
-        console.log(`[TOUR SCRAPER] Tours to process: ${tourCodes.join(', ')}`);
-        console.log(`[TOUR SCRAPER] PDF scraping: ${pdfOnly ? 'PDF ONLY' : 'enabled'}`);
-        console.log(`[TOUR SCRAPER] Started: ${stats.startedAt}\n`);
+        console.warn(`[TOUR SCRAPER] v2.0 — ${scraperName}`);
+        console.warn(`[TOUR SCRAPER] Tours to process: ${tourCodes.join(', ')}`);
+        console.warn(`[TOUR SCRAPER] PDF scraping: ${pdfOnly ? 'PDF ONLY' : 'enabled'}`);
+        console.warn(`[TOUR SCRAPER] Started: ${stats.startedAt}\n`);
 
         // ─── Process each tour ───
         for (const tourCode of tourCodes) {
@@ -610,7 +610,7 @@ export default async function handler(req, res) {
                 continue;
             }
 
-            console.log(`\n[${tourCode}] ==========================================`);
+            console.warn(`\n[${tourCode}] ==========================================`);
 
             try {
                 // ── 1. HTML scraping (unless pdf_only mode) ──
@@ -658,7 +658,7 @@ export default async function handler(req, res) {
                     const stored = await storePdfEvents(tourCode, pdfEvents);
                     stats.pdf_events_stored += stored.inserted;
 
-                    console.log(`[${tourCode}] PDF: ${pdfEvents.length} events stored (${stored.inserted} new, ${stored.errors} errors)`);
+                    console.warn(`[${tourCode}] PDF: ${pdfEvents.length} events stored (${stored.inserted} new, ${stored.errors} errors)`);
 
                     // Update registry with pdf scan timestamp
                     if (registry.tours[tourCode]) {
@@ -673,7 +673,7 @@ export default async function handler(req, res) {
 
             } catch (error) {
                 stats.errors.push({ tour: tourCode, error: error.message });
-                console.log(`[${tourCode}] FATAL: ${error.message}`);
+                console.warn(`[${tourCode}] FATAL: ${error.message}`);
             }
 
             // Rate limit between tours
@@ -707,13 +707,13 @@ export default async function handler(req, res) {
         }
 
         // ─── Summary log ───
-        console.log('\n[TOUR SCRAPER] ══════════════════════════════════════');
-        console.log(`[TOUR SCRAPER] COMPLETE — ${Math.round(stats.duration_ms / 1000)}s`);
-        console.log(`[TOUR SCRAPER] HTML: ${stats.tours_updated}/${stats.tours_scraped} tours updated, ${stats.total_events} events`);
-        console.log(`[TOUR SCRAPER] PDF:  ${stats.pdf_events_found} events extracted, ${stats.pdf_events_stored} stored in DB`);
-        console.log(`[TOUR SCRAPER] Errors: ${stats.errors.length}, Skipped: ${stats.tours_skipped}`);
-        console.log(`[TOUR SCRAPER] Next run: ${new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()}`);
-        console.log('[TOUR SCRAPER] ══════════════════════════════════════\n');
+        console.warn('\n[TOUR SCRAPER] ══════════════════════════════════════');
+        console.warn(`[TOUR SCRAPER] COMPLETE — ${Math.round(stats.duration_ms / 1000)}s`);
+        console.warn(`[TOUR SCRAPER] HTML: ${stats.tours_updated}/${stats.tours_scraped} tours updated, ${stats.total_events} events`);
+        console.warn(`[TOUR SCRAPER] PDF:  ${stats.pdf_events_found} events extracted, ${stats.pdf_events_stored} stored in DB`);
+        console.warn(`[TOUR SCRAPER] Errors: ${stats.errors.length}, Skipped: ${stats.tours_skipped}`);
+        console.warn(`[TOUR SCRAPER] Next run: ${new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()}`);
+        console.warn('[TOUR SCRAPER] ══════════════════════════════════════\n');
 
         return res.status(200).json(stats);
 

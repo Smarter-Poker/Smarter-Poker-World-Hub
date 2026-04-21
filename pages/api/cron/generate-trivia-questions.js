@@ -501,7 +501,7 @@ export default async function handler(req, res) {
                       const { valid: validQuestions, rejected } = validateBatch(uniqueQuestions);
                       if (rejected.length > 0) {
                           rejected.forEach(r => {
-                              r.errors.forEach(e => console.log(`  → ${e}`));
+                              r.errors.forEach(e => console.warn(`  → ${e}`));
                           });
                       }
 

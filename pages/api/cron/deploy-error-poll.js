@@ -212,7 +212,7 @@ export default async function handler(req, res) {
   // Flip autofix_config.paused=true in Supabase to halt both loops without SSH.
   const paused = await isAutofixPaused();
   if (paused) {
-    console.log('[deploy-error-poll] Autofix globally paused via autofix_config — exiting');
+    console.warn('[deploy-error-poll] Autofix globally paused via autofix_config — exiting');
     return res.status(200).json({ action: 'paused', message: 'Autofix is globally paused via kill-switch' });
   }
   // NOTE: Anthropic billing/credit exhaustion is detected in deploy-autofix.js
@@ -277,7 +277,7 @@ export default async function handler(req, res) {
         });
         canceledUids.add(stale.uid);
         const reason = stale.state === 'BUILDING' ? 'Hung >15m' : (stale.meta?.githubCommitRef === 'main' ? 'Redundant Queue' : 'Preview >5m');
-        console.log(`[deploy-error-poll] Cancelled ${stale.state} build ${stale.uid} (${reason}, branch: ${stale.meta?.githubCommitRef})`);
+        console.warn(`[deploy-error-poll] Cancelled ${stale.state} build ${stale.uid} (${reason}, branch: ${stale.meta?.githubCommitRef})`);
       } catch (e) {
         console.warn(`[deploy-error-poll] Failed to cancel ${stale.uid}: ${e.message}`);
       }
@@ -431,7 +431,7 @@ export default async function handler(req, res) {
     }
 
     // ── Step 4: Fetch build logs ──
-    console.log(`[deploy-error-poll] Processing ERROR deployment ${deployId} (${commitSha.substring(0, 8)})`);
+    console.warn(`[deploy-error-poll] Processing ERROR deployment ${deployId} (${commitSha.substring(0, 8)})`);
 
     let buildErrors = '';
     // Track log-fetch failures per deploy — if we can't get logs 3 times, permanently skip.
@@ -474,7 +474,7 @@ export default async function handler(req, res) {
             /\bOOM\b/.test(l)
           );
           if (isSigkill) {
-            console.log(`[deploy-error-poll] SIGKILL/SIGABRT/OOM detected for ${deployId}`);
+            console.warn(`[deploy-error-poll] SIGKILL/SIGABRT/OOM detected for ${deployId}`);
             fixedDeployments.add(deployId); // Prevent re-fetching logs every 2 min
             // Write to Supabase so the Hetzner poller won't open a competing OOM PR
             // (its fix-oom.mjs bumps heap which we know makes OOM WORSE on serial build).
@@ -533,7 +533,7 @@ export default async function handler(req, res) {
       attemptTracker[logFailKey] = (attemptTracker[logFailKey] || 0) + 1;
       if (attemptTracker[logFailKey] >= 3) {
         fixedDeployments.add(deployId);
-        console.log(`[deploy-error-poll] Log fetch failed 3 times for ${deployId} — deduped`);
+        console.warn(`[deploy-error-poll] Log fetch failed 3 times for ${deployId} — deduped`);
       }
     }
 
@@ -545,15 +545,15 @@ export default async function handler(req, res) {
     const brokenFiles = extractBrokenFiles(buildErrors);
     const attempt = attemptTracker[commitSha] || 1;
 
-    console.log(`[deploy-error-poll] Found ${brokenFiles.length} broken file(s): ${brokenFiles.join(', ')}`);
-    console.log(`[deploy-error-poll] Attempt ${attempt}/${MAX_FIX_ATTEMPTS} for ${commitSha.substring(0, 8)}`);
+    console.warn(`[deploy-error-poll] Found ${brokenFiles.length} broken file(s): ${brokenFiles.join(', ')}`);
+    console.warn(`[deploy-error-poll] Attempt ${attempt}/${MAX_FIX_ATTEMPTS} for ${commitSha.substring(0, 8)}`);
 
     // ── Step 5b: Cross-poller dedup — check Supabase before firing Claude ──
     // If the Hetzner poller already dispatched a GitHub Actions fix for this commit,
     // skip to avoid two competing fixes on the same broken file.
     const alreadyHandled = await alreadyAttemptedInSupa(commitSha);
     if (alreadyHandled) {
-      console.log(`[deploy-error-poll] ${commitSha.substring(0, 8)} already handled by another poller — skipping`);
+      console.warn(`[deploy-error-poll] ${commitSha.substring(0, 8)} already handled by another poller — skipping`);
       fixedDeployments.add(deployId); // Don't check Supabase again this session
       return res.status(200).json({ action: 'skipped', deployId, reason: 'already handled by another autofix poller (Supabase dedup)' });
     }
@@ -610,7 +610,7 @@ export default async function handler(req, res) {
       // Only permanently mark as fixed if the fix was ACTUALLY pushed
       if (autofixResult.action === 'fixed') {
         fixedDeployments.add(deployId);
-        console.log(`[deploy-error-poll] ✅ Fix pushed for ${deployId}`);
+        console.warn(`[deploy-error-poll] ✅ Fix pushed for ${deployId}`);
 
         // Notify about the fix (fire-and-forget)
         sendNotification({
@@ -646,14 +646,14 @@ export default async function handler(req, res) {
         }
         if (attemptTracker[skipKey] >= 2) {
           fixedDeployments.add(deployId);
-          console.log(`[deploy-error-poll] Deduped unfixable deploy ${deployId} after ${attemptTracker[skipKey]} skips`);
+          console.warn(`[deploy-error-poll] Deduped unfixable deploy ${deployId} after ${attemptTracker[skipKey]} skips`);
         } else {
-          console.log(`[deploy-error-poll] Autofix skipped (attempt ${attemptTracker[skipKey]}/2) — will retry once more`);
+          console.warn(`[deploy-error-poll] Autofix skipped (attempt ${attemptTracker[skipKey]}/2) — will retry once more`);
         }
         // Release Hetzner — our skip doesn't mean Hetzner can't do better
         updateAttemptStatus(attemptId, 'failed').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       } else {
-        console.log(`[deploy-error-poll] Autofix returned: ${autofixResult.action} — will retry`);
+        console.warn(`[deploy-error-poll] Autofix returned: ${autofixResult.action} — will retry`);
         // Release Hetzner — our failure doesn't mean Hetzner can't succeed
         updateAttemptStatus(attemptId, 'failed').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       }

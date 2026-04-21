@@ -67,7 +67,7 @@ export default async function handler(req, res) {
               return res.status(500).json({ error: updateErr.message });
           }
 
-          console.log(`[VIP Expiry] Successfully revoked VIP status for ${userIds.length} users.`);
+          console.warn(`[VIP Expiry] Successfully revoked VIP status for ${userIds.length} users.`);
 
           return res.status(200).json({
               success: true,

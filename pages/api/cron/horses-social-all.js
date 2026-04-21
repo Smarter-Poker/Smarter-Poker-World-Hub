@@ -20,7 +20,7 @@ export const config = {
 async function withDeadline(fn, deadlineMs, label) {
     const remaining = deadlineMs - Date.now();
     if (remaining <= 2000) {
-        console.log(`   [DEADLINE] Skipping ${label} — only ${Math.round(remaining / 1000)}s left`);
+        console.warn(`   [DEADLINE] Skipping ${label} — only ${Math.round(remaining / 1000)}s left`);
         return null;
     }
     try {

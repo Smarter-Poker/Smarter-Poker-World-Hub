@@ -61,7 +61,7 @@ export default async function handler(req, res) {
       const baseUrl = getBaseUrl(req);
       const taskUrl = `${baseUrl}${task.endpoint}`;
 
-      console.log(`[ClawBot] Dispatching: ${task.name} → ${taskUrl}`);
+      console.warn(`[ClawBot] Dispatching: ${task.name} → ${taskUrl}`);
 
       const taskStart = Date.now();
       const response = await fetch(taskUrl, {

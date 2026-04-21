@@ -133,7 +133,7 @@ async function fetchSentryIssues() {
         const projects = await sentryFetch(`/organizations/${orgSlug}/projects/`);
         if (Array.isArray(projects) && projects.length > 0) {
           const projectSlug = projects[0].slug;
-          console.log(`[CB-01] Discovered org=${orgSlug}, project=${projectSlug}`);
+          console.warn(`[CB-01] Discovered org=${orgSlug}, project=${projectSlug}`);
           const issues = await sentryFetch(
             `/projects/${orgSlug}/${projectSlug}/issues/?query=is:unresolved&sort=users&limit=${MAX_ERRORS_TO_FETCH}`
           );

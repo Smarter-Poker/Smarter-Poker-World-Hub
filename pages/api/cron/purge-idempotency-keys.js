@@ -40,7 +40,7 @@ export default async function handler(req, res) {
     const deleted = typeof data === "number" ? data : Number(data || 0);
     const elapsedMs = Date.now() - started;
 
-    console.log(
+    console.warn(
       `[purge-idempotency-keys] deleted=${deleted} elapsed_ms=${elapsedMs}`
     );
 

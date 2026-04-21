@@ -85,7 +85,7 @@ export default async function handler(req, res) {
         `[ledger-reconcile] WARN: ${warnCount} entities with sub-dollar drift; worst = $${worstDrift.toFixed(2)}`
       );
     } else {
-      console.log(
+      console.warn(
         `[ledger-reconcile] clean run: ${totalChecked} entities, all ok`
       );
     }

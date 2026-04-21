@@ -222,7 +222,7 @@ export default async function handler(req, res) {
     const errorFile = allErrorFiles.length > 0 ? allErrorFiles[0] : extractErrorFile(buildErrors);
 
     if (!errorFile) {
-      console.log('[deploy-autofix] Could not identify broken file from build errors');
+      console.warn('[deploy-autofix] Could not identify broken file from build errors');
       return res.status(200).json({
         action: 'skipped',
         reason: 'Could not identify the broken file from build error output',
@@ -232,7 +232,7 @@ export default async function handler(req, res) {
 
     // If multiple files are broken, fix them all in one pass
     const filesToFix = allErrorFiles.length > 1 ? allErrorFiles : [errorFile];
-    console.log(`[deploy-autofix] Found ${filesToFix.length} broken file(s): ${filesToFix.join(', ')}`);
+    console.warn(`[deploy-autofix] Found ${filesToFix.length} broken file(s): ${filesToFix.join(', ')}`);
 
     const results = [];
     for (const currentFile of filesToFix) {
@@ -307,7 +307,7 @@ async function fixSingleFile({ errorFile, buildErrors, commitSha, attempt, escal
 
     // Validate that the extracted path is a file (has extension), not a directory.
     if (!/\.(jsx|tsx|mjs|cjs|js|ts)$/.test(errorFile)) {
-      console.log(`[deploy-autofix] Extracted path has no file extension (likely a directory): ${errorFile}`);
+      console.warn(`[deploy-autofix] Extracted path has no file extension (likely a directory): ${errorFile}`);
       return {
         action: 'skipped',
         reason: `Extracted path "${errorFile}" has no recognized file extension — cannot autofix a directory`,
@@ -326,7 +326,7 @@ async function fixSingleFile({ errorFile, buildErrors, commitSha, attempt, escal
       normalizedPath.includes('//') ||
       /(^|\/)\.\.(\/|$)/.test(normalizedPath);
     if (hasTraversal) {
-      console.log(`[deploy-autofix] Path traversal attempt blocked: ${errorFile}`);
+      console.warn(`[deploy-autofix] Path traversal attempt blocked: ${errorFile}`);
       return {
         action: 'skipped',
         reason: `Suspicious file path rejected: ${errorFile}`,
@@ -338,7 +338,7 @@ async function fixSingleFile({ errorFile, buildErrors, commitSha, attempt, escal
     const isProtected = PROTECTED_FILES.some(pf => normalizedPath.endsWith(pf));
 
     if (!isAllowed || isProtected) {
-      console.log(`[deploy-autofix] File ${errorFile} is outside allowed directories or is protected`);
+      console.warn(`[deploy-autofix] File ${errorFile} is outside allowed directories or is protected`);
       return {
         action: 'skipped',
         reason: `File ${errorFile} is not in an allowed directory or is protected`,
@@ -346,7 +346,7 @@ async function fixSingleFile({ errorFile, buildErrors, commitSha, attempt, escal
     }
 
     // ── Step 2: Fetch the broken file from GitHub ──
-    console.log(`[deploy-autofix] Fetching ${normalizedPath} from GitHub...`);
+    console.warn(`[deploy-autofix] Fetching ${normalizedPath} from GitHub...`);
     // URL-encode each path segment individually (preserves / as separator, escapes
     // spaces, #, ?, %, etc). Raw template interpolation here was a real bug:
     // a filename with `#` turns the URL into contents/path#fragment, stripping
@@ -425,7 +425,7 @@ ${attempt >= 2 && escalation?.hint ? `
 ESCALATION (attempt ${attempt}): ${escalation.hint}` : ''}
 Return ONLY the complete fixed file content. No explanation, no markdown fences, no commentary. Just the raw file content that should replace the current file.`;
 
-    console.log(`[deploy-autofix] Calling AI to fix ${normalizedPath} (${originalContent.length} chars)...`);
+    console.warn(`[deploy-autofix] Calling AI to fix ${normalizedPath} (${originalContent.length} chars)...`);
     let fixedContent = '';
     let apiError = '';
 
@@ -435,7 +435,7 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
     // ── Primary: Anthropic Claude ──
     if (anthropicKey) {
       try {
-        console.log(`[deploy-autofix] Trying Anthropic (${CLAUDE_MODEL})...`);
+        console.warn(`[deploy-autofix] Trying Anthropic (${CLAUDE_MODEL})...`);
         const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
           signal: abortController.signal,
@@ -497,7 +497,7 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
       clearTimeout(apiTimeout);
       const grokAbort = new AbortController();
       const grokTimeout = setTimeout(() => grokAbort.abort(), 45000);
-      console.log(`[deploy-autofix] Anthropic unavailable — falling back to Grok...`);
+      console.warn(`[deploy-autofix] Anthropic unavailable — falling back to Grok...`);
       try {
         const grokRes = await fetch('https://api.x.ai/v1/chat/completions', {
           method: 'POST',
@@ -581,7 +581,7 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
     // Shrink guard: fixes that remove bad imports from small files legitimately shrink a lot.
     // Only enforce the 70% floor on files > 500 chars. Tiny stubs can shrink freely.
     if (originalContent.length >= 500 && sizeRatio < 0.7) {
-      console.log(`[deploy-autofix] Size ratio guard (shrink): fix is ${Math.round(sizeRatio * 100)}% of original (${fixedContent.length} vs ${originalContent.length} chars)`);
+      console.warn(`[deploy-autofix] Size ratio guard (shrink): fix is ${Math.round(sizeRatio * 100)}% of original (${fixedContent.length} vs ${originalContent.length} chars)`);
       return {
         action: 'skipped',
         reason: `Fix is only ${Math.round(sizeRatio * 100)}% of original file size — too destructive, skipping`,
@@ -590,7 +590,7 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
       };
     }
     if (originalContent.length >= 100 && sizeRatio > 3.0) {
-      console.log(`[deploy-autofix] Size ratio guard (expand): fix is ${Math.round(sizeRatio * 100)}% of original (${fixedContent.length} vs ${originalContent.length} chars)`);
+      console.warn(`[deploy-autofix] Size ratio guard (expand): fix is ${Math.round(sizeRatio * 100)}% of original (${fixedContent.length} vs ${originalContent.length} chars)`);
       return {
         action: 'skipped',
         reason: `Fix is ${Math.round(sizeRatio * 100)}% of original file size — suspicious mass expansion (likely hallucination), skipping`,
@@ -618,7 +618,7 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
 
     if (usePR) {
       // ── PR MODE ──
-      console.log(`[deploy-autofix] Routing through PR (sensitive=${sensitive}, hot=${hot}): ${normalizedPath}`);
+      console.warn(`[deploy-autofix] Routing through PR (sensitive=${sensitive}, hot=${hot}): ${normalizedPath}`);
 
       // Get current main HEAD sha to branch from
       const mainRefRes = await fetch(
@@ -708,7 +708,7 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
         };
       }
 
-      console.log(`[deploy-autofix] PR opened: ${prRes.url}`);
+      console.warn(`[deploy-autofix] PR opened: ${prRes.url}`);
       return {
         action: 'pr_opened',
         filePath: normalizedPath,
@@ -724,7 +724,7 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
     }
 
     // ── DIRECT-TO-MAIN MODE (existing behavior) ──
-    console.log(`[deploy-autofix] Pushing fix for ${normalizedPath} to main...`);
+    console.warn(`[deploy-autofix] Pushing fix for ${normalizedPath} to main...`);
 
     // Re-fetch the current SHA from main immediately before the PUT.
     // If main advanced between Step 2 and now (another commit was pushed in the
@@ -776,7 +776,7 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
     const newSha = pushData.commit?.sha?.substring(0, 8) || 'unknown';
     const fullNewSha = pushData.commit?.sha || '';
 
-    console.log(`[deploy-autofix] Fix pushed successfully. New commit: ${newSha}`);
+    console.warn(`[deploy-autofix] Fix pushed successfully. New commit: ${newSha}`);
 
     return {
       action: 'fixed',

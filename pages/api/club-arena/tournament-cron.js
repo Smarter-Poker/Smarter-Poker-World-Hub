@@ -41,7 +41,7 @@ export default async function handler(req, res) {
 
           if (lockErr) throw new Error(`Lock error: ${lockErr.message}`);
           if (!lockResult) {
-              console.log('[TournCron] Execution aborted: Process currently locked by another instance.');
+              console.warn('[TournCron] Execution aborted: Process currently locked by another instance.');
               return res.json({ success: true, locked: true, message: 'Cron is already running' });
           }
 
@@ -65,7 +65,7 @@ export default async function handler(req, res) {
                           .from('club_tournaments')
                           .update({ status: 'registering' })
                           .eq('id', tourn.id);
-                      console.log(`[TournCron] Opened registration for ${tourn.name} (${tourn.id})`);
+                      console.warn(`[TournCron] Opened registration for ${tourn.name} (${tourn.id})`);
                       results.autoStarted++;
                   } else if (tourn.status === 'registering') {
                       const minPlayers = tourn.settings?.min_players || 2;
@@ -108,7 +108,7 @@ export default async function handler(req, res) {
                                   .update({ status: 'running', started_at: now.toISOString() })
                                   .eq('id', tourn.id);
 
-                              console.log(`[TournCron] Auto-started ${tourn.name} (${tourn.id}) with ${regs?.length || 0} players`);
+                              console.warn(`[TournCron] Auto-started ${tourn.name} (${tourn.id}) with ${regs?.length || 0} players`);
                               results.autoStarted++;
                           } else {
                               console.warn(`[TournCron] Engine create failed for ${tourn.id}:`, createResult.error);
@@ -118,7 +118,7 @@ export default async function handler(req, res) {
                           // ═══════════════════════════════════════════════════════
                           // AUTO-CANCEL [Improvement #8 Extension]
                           // ═══════════════════════════════════════════════════════
-                          console.log(`[TournCron] Cancelling ${tourn.name} (${tourn.id}) - Not enough players (${tourn.registered_count}/${minPlayers})`);
+                          console.warn(`[TournCron] Cancelling ${tourn.name} (${tourn.id}) - Not enough players (${tourn.registered_count}/${minPlayers})`);
 
                           const { data: regsToRefund } = await getSupabase()
                               .from('tournament_registrations')
@@ -213,7 +213,7 @@ export default async function handler(req, res) {
                       .update({ reminder_sent: true })
                       .eq('id', tourn.id);
 
-                  console.log(`[TournCron] Sent ${regs?.length || 0} reminders for ${tourn.name}`);
+                  console.warn(`[TournCron] Sent ${regs?.length || 0} reminders for ${tourn.name}`);
               } catch (err) {
                   console.warn(`[TournCron] Reminder error for ${tourn.id}:`, err.message);
                   results.errors.push({ id: tourn.id, error: err.message });

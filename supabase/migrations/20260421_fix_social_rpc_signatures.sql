@@ -130,6 +130,8 @@ COMMENT ON FUNCTION public.fn_create_story IS
 
 -- Also fix fn_get_stories to accept p_viewer_id (Stories.jsx calls rpc/fn_get_stories via REST)
 -- Ensure it exists with the correct signature
+DROP FUNCTION IF EXISTS public.fn_get_stories(uuid);
+DROP FUNCTION IF EXISTS public.fn_get_stories();
 CREATE OR REPLACE FUNCTION public.fn_get_stories(p_viewer_id uuid DEFAULT NULL)
 RETURNS jsonb
 LANGUAGE plpgsql
