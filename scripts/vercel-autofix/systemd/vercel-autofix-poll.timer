@@ -1,0 +1,23 @@
+[Unit]
+Description=Run vercel-autofix-poll every 2 minutes
+Documentation=https://github.com/Smarter-Poker/Smarter-Poker-World-Hub/blob/main/scripts/vercel-autofix/README.md
+
+[Timer]
+# First run 30s after boot so the machine isn't hammered immediately
+OnBootSec=30s
+
+# Every 2 minutes after the previous run COMPLETES (not starts) — avoids
+# pileup if one run takes longer than the interval.
+OnUnitInactiveSec=2min
+
+# Randomize by ±20s so we don't sync up exactly with the sentry poller's
+# Vercel/Supabase calls
+RandomizedDelaySec=20
+
+# If the machine was asleep, run once on wake rather than catching up
+Persistent=false
+
+Unit=vercel-autofix-poll.service
+
+[Install]
+WantedBy=timers.target

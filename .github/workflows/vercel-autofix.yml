@@ -1,0 +1,105 @@
+# ═════════════════════════════════════════════════════════════════════════
+# Vercel → PR auto-fix loop
+#
+# Closes the blind-spot the Sentry autofix loop has — Vercel *build-time*
+# failures (OOM, missing module, TS errors) never reach Sentry, so humans
+# had to watch the dashboard and fix them. Dispatched by
+# /opt/vercel-autofix-poller/poll.mjs on Hetzner cron-01.
+#
+# Strategies (strategy input in client_payload):
+#   - oom         → deterministic: bump NODE_OPTIONS max-old-space-size,
+#                   cap at 7168MB on 8GB build machine. No Claude call.
+#   - missing-dep → deterministic: `npm install <module>`, commit, PR.
+#   - tsc         → Claude call with the TS error + referenced file.
+#   - generic     → Claude call with the log tail.
+#
+# Same safety rails as sentry-autofix.yml: allowlist paths, draft PR,
+# budget circuit-breaker check inside run-vercel-fix.mjs.
+# ═════════════════════════════════════════════════════════════════════════
+
+name: Vercel Autofix
+
+on:
+  repository_dispatch:
+    types: [vercel-autofix]
+  workflow_dispatch:
+    inputs:
+      strategy:
+        description: 'oom | missing-dep | tsc | generic'
+        required: true
+        default: 'oom'
+      deployment_id:
+        description: 'Vercel deployment ID (dpl_*)'
+        required: true
+      commit_sha:
+        description: 'Failing commit SHA'
+        required: true
+      snippet:
+        description: 'Error snippet from build log (optional)'
+        required: false
+      module:
+        description: 'Missing module name (missing-dep only)'
+        required: false
+
+concurrency:
+  group: vercel-autofix-${{ github.event.client_payload.commit_sha || github.event.inputs.commit_sha }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  autofix:
+    name: Autofix Vercel build failure
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      STRATEGY: ${{ github.event.client_payload.strategy || github.event.inputs.strategy }}
+      DEPLOYMENT_ID: ${{ github.event.client_payload.deployment_id || github.event.inputs.deployment_id }}
+      COMMIT_SHA: ${{ github.event.client_payload.commit_sha || github.event.inputs.commit_sha }}
+      SNIPPET: ${{ github.event.client_payload.snippet || github.event.inputs.snippet }}
+      MODULE_NAME: ${{ github.event.client_payload.module || github.event.inputs.module }}
+      ATTEMPT_ID: ${{ github.event.client_payload.attempt_id }}
+      CONFIDENCE: ${{ github.event.client_payload.confidence || 'medium' }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      ANTHROPIC_MODEL: claude-haiku-4-5-20251001
+      GH_TOKEN: ${{ secrets.AUTOFIX_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          token: ${{ env.GH_TOKEN }}
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install runner deps
+        working-directory: scripts/vercel-autofix
+        run: npm ci --no-audit --no-fund
+
+      # ─────────────────────────────────────────────────────────────────────
+      # Strategy dispatch. Each strategy runs its own small script,
+      # then a common PR-open step.
+      # ─────────────────────────────────────────────────────────────────────
+
+      - name: Strategy — OOM (deterministic heap bump)
+        if: env.STRATEGY == 'oom'
+        run: node scripts/vercel-autofix/strategies/fix-oom.mjs
+
+      - name: Strategy — missing-dep (deterministic npm install)
+        if: env.STRATEGY == 'missing-dep'
+        run: node scripts/vercel-autofix/strategies/fix-missing-dep.mjs
+
+      - name: Strategy — tsc / generic (Claude-assisted)
+        if: env.STRATEGY == 'tsc' || env.STRATEGY == 'generic'
+        run: node scripts/vercel-autofix/strategies/fix-claude.mjs
+
+      - name: Open draft PR
+        run: node scripts/vercel-autofix/open-pr.mjs

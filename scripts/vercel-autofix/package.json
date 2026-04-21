@@ -1,0 +1,18 @@
+{
+  "name": "vercel-autofix-poller",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Hetzner-side poller that detects Vercel build failures and dispatches GitHub autofix workflows. Closes the Vercel blind-spot in the Sentry autofix loop.",
+  "main": "poll.mjs",
+  "scripts": {
+    "poll": "node poll.mjs",
+    "dry-run": "DRY_RUN=1 node poll.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0"
+  }
+}
