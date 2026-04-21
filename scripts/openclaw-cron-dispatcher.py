@@ -59,6 +59,31 @@ REQUEST_TIMEOUT = 120  # seconds — cron jobs can be slow
 
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
+# ─── PID file lock — prevents double-execution if launchd races or restart overlaps ──
+import atexit
+import fcntl
+
+PID_FILE = LOG_DIR / 'openclaw-cron.pid'
+
+def _acquire_pid_lock():
+    """Bail out if another instance is already running."""
+    try:
+        fp = open(PID_FILE, 'w')
+        fcntl.flock(fp, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        fp.write(str(os.getpid()))
+        fp.flush()
+        atexit.register(lambda: PID_FILE.unlink(missing_ok=True))
+        return fp  # keep file handle open to hold the lock
+    except BlockingIOError:
+        # Another instance holds the lock — exit silently
+        import sys
+        print(f"[openclaw-cron] Another instance is running (lock held). Exiting.", flush=True)
+        sys.exit(0)
+
+_pid_lock_fh = _acquire_pid_lock()
+
+
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(message)s',
