@@ -105,7 +105,7 @@ function NotificationsPage() {
                     broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID });
                 }
             }
-        } catch (err) { console.warn('[App] Handled exception:', err?.message || err); });
+        } catch (err) { console.warn('[App] Handled exception:', err?.message || err);
             // [Pass4-Fix] Trigger header re-fetch to restore badge count we decremented
             if (wasUnread) {
                 broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID });

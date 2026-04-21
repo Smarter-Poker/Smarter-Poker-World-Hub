@@ -2283,8 +2283,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                     let crops;
                     try {
                       crops = extractTemplatesFromFrame(video, layout, { variant: gameType });
-                    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); });
-                    }
+                    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                     const fullFrame = captureFullFrame(video);
                     setCapturePreview({ crops, fullFrame });
                     // Pre-populate labels from current diagInfo best matches

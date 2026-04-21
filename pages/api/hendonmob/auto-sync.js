@@ -81,6 +81,8 @@ After processing all players, report a summary of how many succeeded and failed.
 }
 
 export default async function handler(req, res) {
+  try {
+
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
@@ -177,4 +179,11 @@ export default async function handler(req, res) {
         console.warn('[Auto-Sync Error]', err);
         return res.status(500).json({ error: err.message });
     }
+
+  } catch (err) {
+    console.warn('[API] Unhandled exception in handler:', err?.message || err);
+    if (!res.headersSent) {
+      return res.status(500).json({ error: 'Internal server error', message: err?.message || 'Unknown error' });
+    }
+  }
 }

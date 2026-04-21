@@ -25,6 +25,8 @@ function getSupabase() {
 }
 
 export default async function handler(req, res) {
+  try {
+
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'POST only' });
     }
@@ -91,4 +93,11 @@ export default async function handler(req, res) {
         console.warn('[Auto-Sync Receive Error]', err);
         return res.status(500).json({ error: err.message });
     }
+
+  } catch (err) {
+    console.warn('[API] Unhandled exception in handler:', err?.message || err);
+    if (!res.headersSent) {
+      return res.status(500).json({ error: 'Internal server error', message: err?.message || 'Unknown error' });
+    }
+  }
 }

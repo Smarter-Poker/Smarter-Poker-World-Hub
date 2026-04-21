@@ -86,7 +86,10 @@ export async function getServerSideProps({ params, res, req }) {
     res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=180');
 
     return { props: { data: json.data, serverError: false } };
-  } catch (err) { console.warn('[App] Handled exception:', err?.message || err); } };
+  } catch (err) {
+    console.warn('[App] Handled exception:', err?.message || err);
+    res.statusCode = 500;
+    return { props: { data: null, serverError: true } };
   }
 }
 

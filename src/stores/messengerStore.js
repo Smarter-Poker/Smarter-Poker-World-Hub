@@ -12,6 +12,7 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
  */
 
 function loadCachedConversations() {
+    if (typeof window === 'undefined') return [];
     try {
         const raw = localStorage.getItem(CACHE_KEY);
         if (!raw) return [];
@@ -34,6 +35,7 @@ function persistConversations(conversations) {
 }
 
 function isCacheFresh() {
+    if (typeof window === 'undefined') return false;
     try {
         const raw = localStorage.getItem(CACHE_KEY);
         if (!raw) return false;

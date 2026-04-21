@@ -932,7 +932,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
 
 
                 {/* Keyframe animations for shine, pedestal, and holographic inner effects */}
-                <style jsx global>{`
+                <style dangerouslySetInnerHTML={{ __html: `
                 @keyframes pedestalPulse {
                     0%, 100% { opacity: 0.6; transform: translateX(-50%) rotateX(75deg) scale(1); }
                     50% { opacity: 1; transform: translateX(-50%) rotateX(75deg) scale(1.05); }
@@ -991,7 +991,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                 div::-webkit-scrollbar {
                     display: none;
                 }
-            `}</style>
+            `}} />
 
                 {/* ═══════════════════════════════════════════════════════════════
                 CIRCUIT BRAIN BACKGROUND OVERLAY

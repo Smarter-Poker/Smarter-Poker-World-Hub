@@ -16,6 +16,8 @@ const XAI_API_URL = 'https://api.x.ai/v1/images/generations';
 const TARGET_LOGO_SIZE = 340;
 
 export default async function handler(req, res) {
+  try {
+
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
@@ -79,4 +81,11 @@ export default async function handler(req, res) {
             error: error instanceof Error ? error.message : 'Unknown error',
         });
     }
+
+  } catch (err) {
+    console.warn('[API] Unhandled exception in handler:', err?.message || err);
+    if (!res.headersSent) {
+      return res.status(500).json({ error: 'Internal server error', message: err?.message || 'Unknown error' });
+    }
+  }
 }

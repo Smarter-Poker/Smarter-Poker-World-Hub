@@ -22,6 +22,8 @@ function getSupabase() {
 }
 
 export default async function handler(req, res) {
+  try {
+
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
@@ -74,4 +76,11 @@ export default async function handler(req, res) {
         console.warn('Share count API error:', err);
         return res.status(200).json({ success: false }); // Don't fail the request
     }
+
+  } catch (err) {
+    console.warn('[API] Unhandled exception in handler:', err?.message || err);
+    if (!res.headersSent) {
+      return res.status(500).json({ error: 'Internal server error', message: err?.message || 'Unknown error' });
+    }
+  }
 }

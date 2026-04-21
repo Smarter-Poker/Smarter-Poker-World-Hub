@@ -621,7 +621,7 @@ export default async function handler(req, res) {
                       } else {
                           throw new Error(error?.message || 'Not found in Supabase');
                       }
-                  } catch (dbError) { console.warn('[App] Handled exception:', dbError?.message || dbError); });
+                  } catch (dbError) { console.warn('[App] Handled exception:', dbError?.message || dbError);
                   }
               } else {
                   // Non-numeric ID (slug): search by slug/bravo_slug in JSON data

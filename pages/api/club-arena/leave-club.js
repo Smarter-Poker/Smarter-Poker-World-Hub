@@ -32,6 +32,8 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
+  try {
+
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
   // RED TEAM: Payload size + field allowlist
@@ -362,5 +364,12 @@ export default async function handler(req, res) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.warn('[leave-club]', err);
     return res.status(500).json(safeErrorResponse(err, 'Failed to leave club'));
+  }
+
+  } catch (err) {
+    console.warn('[API] Unhandled exception in handler:', err?.message || err);
+    if (!res.headersSent) {
+      return res.status(500).json({ error: 'Internal server error', message: err?.message || 'Unknown error' });
+    }
   }
 }

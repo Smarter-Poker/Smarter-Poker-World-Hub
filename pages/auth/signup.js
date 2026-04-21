@@ -568,88 +568,96 @@ export default function SignUpPage() {
                             })
                             .eq('id', authData.user.id);
                     }
-                } catch (rpcErr) { console.warn('[App] Handled exception:', rpcErr?.message || rpcErr); } = await supabase
-                        .from('profiles')
-                        .select('player_number')
-                        .order('player_number', { ascending: false })
-                        .limit(1)
-                        .maybeSingle();
+                } catch (rpcErr) {
+                    console.warn('[App] Handled exception:', rpcErr?.message || rpcErr);
 
-                    const nextPlayerNumber = (parseInt(maxData?.player_number, 10) || 1254) + 1;
-                    console.log('Updating profile for user:', authData.user.id);
-
-                    // UPDATE the profile created by the database trigger
-                    // The trigger creates the profile with correct id = auth.user.id
-                    // We just need to add/update the additional fields
-                    // ── FIRST MONTH FREE VIP: All new users get 30-day VIP card ──
-                    const vipExpiresAt = new Date();
-                    vipExpiresAt.setDate(vipExpiresAt.getDate() + 30);
-
-                    const { error: updateError } = await supabase
-                        .from('profiles')
-                        .update({
-                            full_name: cleanFullName,
-                            first_name: cleanFirstName,
-                            last_name: cleanLastName,
-                            phone: cleanPhoneFormatted,
-                            city: formData.city,
-                            state: formData.state,
-                            username: formData.pokerAlias,
-                            player_number: nextPlayerNumber,
-                            diamonds: 500, // Welcome diamond bonus
-                            diamond_multiplier: 1.0,
-                            streak_count: 0,
-                            skill_tier: 'Newcomer',
-                            access_tier: isRestrictedState ? 'Restricted_Tier' : 'Full_Access',
-                            is_vip: true,
-                            vip_tier: 'monthly',
-                            vip_expires_at: vipExpiresAt.toISOString(),
-                            last_login: new Date().toISOString(),
-                            birthday: `${formData.birthYear}-${formData.birthMonth}-${formData.birthDay}`,
-                            birth_year: parseInt(formData.birthYear),
-                        })
-                        .eq('id', authData.user.id);
-
-                    if (updateError) {
-                        console.warn('Profile update error:', updateError);
-                        // If update fails (profile doesn't exist yet), try insert as fallback
-                        const vipExpiresAtFallback = new Date();
-                        vipExpiresAtFallback.setDate(vipExpiresAtFallback.getDate() + 30);
-
-                        const { error: insertError } = await supabase
+                    // Fallback: query current max player_number and do a direct profile update
+                    try {
+                        const { data: maxData } = await supabase
                             .from('profiles')
-                            .insert({
-                                id: authData.user.id,
+                            .select('player_number')
+                            .order('player_number', { ascending: false })
+                            .limit(1)
+                            .maybeSingle();
+
+                        const nextPlayerNumber = (parseInt(maxData?.player_number, 10) || 1254) + 1;
+                        console.log('Updating profile for user:', authData.user.id);
+
+                        // UPDATE the profile created by the database trigger
+                        // The trigger creates the profile with correct id = auth.user.id
+                        // We just need to add/update the additional fields
+                        // ── FIRST MONTH FREE VIP: All new users get 30-day VIP card ──
+                        const vipExpiresAt = new Date();
+                        vipExpiresAt.setDate(vipExpiresAt.getDate() + 30);
+
+                        const { error: updateError } = await supabase
+                            .from('profiles')
+                            .update({
                                 full_name: cleanFullName,
                                 first_name: cleanFirstName,
                                 last_name: cleanLastName,
-                                email: formData.email,
                                 phone: cleanPhoneFormatted,
                                 city: formData.city,
                                 state: formData.state,
                                 username: formData.pokerAlias,
                                 player_number: nextPlayerNumber,
-                                diamonds: 500,
+                                diamonds: 500, // Welcome diamond bonus
                                 diamond_multiplier: 1.0,
                                 streak_count: 0,
                                 skill_tier: 'Newcomer',
                                 access_tier: isRestrictedState ? 'Restricted_Tier' : 'Full_Access',
                                 is_vip: true,
                                 vip_tier: 'monthly',
-                                vip_expires_at: vipExpiresAtFallback.toISOString(),
-                                created_at: new Date().toISOString(),
+                                vip_expires_at: vipExpiresAt.toISOString(),
                                 last_login: new Date().toISOString(),
                                 birthday: `${formData.birthYear}-${formData.birthMonth}-${formData.birthDay}`,
                                 birth_year: parseInt(formData.birthYear),
-                            });
+                            })
+                            .eq('id', authData.user.id);
 
-                        if (insertError) {
-                            console.warn('Profile insert fallback error:', insertError);
+                        if (updateError) {
+                            console.warn('Profile update error:', updateError);
+                            // If update fails (profile doesn't exist yet), try insert as fallback
+                            const vipExpiresAtFallback = new Date();
+                            vipExpiresAtFallback.setDate(vipExpiresAtFallback.getDate() + 30);
+
+                            const { error: insertError } = await supabase
+                                .from('profiles')
+                                .insert({
+                                    id: authData.user.id,
+                                    full_name: cleanFullName,
+                                    first_name: cleanFirstName,
+                                    last_name: cleanLastName,
+                                    email: formData.email,
+                                    phone: cleanPhoneFormatted,
+                                    city: formData.city,
+                                    state: formData.state,
+                                    username: formData.pokerAlias,
+                                    player_number: nextPlayerNumber,
+                                    diamonds: 500,
+                                    diamond_multiplier: 1.0,
+                                    streak_count: 0,
+                                    skill_tier: 'Newcomer',
+                                    access_tier: isRestrictedState ? 'Restricted_Tier' : 'Full_Access',
+                                    is_vip: true,
+                                    vip_tier: 'monthly',
+                                    vip_expires_at: vipExpiresAtFallback.toISOString(),
+                                    created_at: new Date().toISOString(),
+                                    last_login: new Date().toISOString(),
+                                    birthday: `${formData.birthYear}-${formData.birthMonth}-${formData.birthDay}`,
+                                    birth_year: parseInt(formData.birthYear),
+                                });
+
+                            if (insertError) {
+                                console.warn('Profile insert fallback error:', insertError);
+                            }
                         }
-                    }
 
-                    // Set the assigned player number
-                    setAssignedPlayerNumber(nextPlayerNumber);
+                        // Set the assigned player number
+                        setAssignedPlayerNumber(nextPlayerNumber);
+                    } catch (fallbackErr) {
+                        console.warn('[Signup] Profile fallback error:', fallbackErr?.message || fallbackErr);
+                    }
                 }
 
                 // ── CRITICAL: Persist phone_verified to Supabase ─────────────

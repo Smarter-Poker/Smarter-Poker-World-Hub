@@ -172,8 +172,7 @@ export default function PokerNearMeLobby() {
             try {
                 const savedStr = localStorage.getItem('poker-near-me-search-filters');
                 parsed = savedStr ? JSON.parse(savedStr) : {};
-            } catch (_parseErr) { console.warn('[App] Handled exception:', _parseErr?.message || _parseErr); };
-            }
+            } catch (_parseErr) { console.warn('[App] Handled exception:', _parseErr?.message || _parseErr); }
             parsed.radius = 50;
             localStorage.setItem('poker-near-me-search-filters', JSON.stringify(parsed));
             // Force Lobby's default pod memory to 50mi immediately

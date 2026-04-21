@@ -751,7 +751,7 @@ function FriendsPage() {
                 });
                 toast.error('Could not send friend request. Please try again.');
             }
-        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); });
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e);
             toast.error('Network error. Please try again.');
         } finally { actionInProgress.current = false; }
     };

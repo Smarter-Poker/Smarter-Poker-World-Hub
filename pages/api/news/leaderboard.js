@@ -45,9 +45,9 @@ export default async function handler(req, res) {
           }
 
           return res.status(200).json({ success: true, data });
-      } catch (error) { console.warn('[App] Handled exception:', error?.message || error); });
+      } catch (error) { console.warn('[App] Handled exception:', error?.message || error);
+          return res.status(200).json({ success: true, data: FALLBACK_LEADERBOARD.slice(0, parseInt(limit || 10)) });
       }
-
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.warn('[API Error]', err);

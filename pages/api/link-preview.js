@@ -43,6 +43,8 @@ const { applyCors } = require('../../src/lib/cors');
 import { reportApiError } from '../../src/lib/sentryWrap';
 
 export default async function handler(req, res) {
+  try {
+
       if (!applyCors(req, res, { methods: 'GET', headers: 'Content-Type, Authorization' })) return;
 // Rate limit — this endpoint makes external requests, protect against abuse
     if (!applyRateLimit(req, res, LIMITS.read)) return;
@@ -174,6 +176,13 @@ export default async function handler(req, res) {
         const fallback = extractFallbackMetadata(url);
         return res.status(200).json(fallback);
     }
+
+  } catch (err) {
+    console.warn('[API] Unhandled exception in handler:', err?.message || err);
+    if (!res.headersSent) {
+      return res.status(500).json({ error: 'Internal server error', message: err?.message || 'Unknown error' });
+    }
+  }
 }
 
 // Parse OpenGraph and other meta tags from HTML

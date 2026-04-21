@@ -10,6 +10,8 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 import { COMMANDER_FREE_MODE, COMMANDER_FREE_TAGLINE } from '../../../src/lib/commander/tierConfig';
 
 export default async function handler(req, res) {
+  try {
+
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
@@ -169,5 +171,12 @@ export default async function handler(req, res) {
       try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.warn('Email error:', error);
     return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+
+  } catch (err) {
+    console.warn('[API] Unhandled exception in handler:', err?.message || err);
+    if (!res.headersSent) {
+      return res.status(500).json({ error: 'Internal server error', message: err?.message || 'Unknown error' });
+    }
   }
 }

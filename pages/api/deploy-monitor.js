@@ -464,6 +464,8 @@ async function countPersistentAttempts(commitSha, branchName, ghPat) {
 // Main handler
 // ─────────────────────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
+  try {
+
   const startTime = Date.now();
 
   // ── GET: health / diagnostics ────────────────────────────────────────────
@@ -926,5 +928,12 @@ Manual intervention needed. Check the Vercel build: https://vercel.com/smarter-p
       error: 'Internal server error',
       timestamp: new Date().toISOString(),
     });
+  }
+
+  } catch (err) {
+    console.warn('[API] Unhandled exception in handler:', err?.message || err);
+    if (!res.headersSent) {
+      return res.status(500).json({ error: 'Internal server error', message: err?.message || 'Unknown error' });
+    }
   }
 }

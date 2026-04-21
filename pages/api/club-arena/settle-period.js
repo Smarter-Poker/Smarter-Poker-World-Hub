@@ -33,6 +33,8 @@ const UTC_SETTLEMENT_DAY = 1;  // Monday (0=Sun, 1=Mon)
 const UTC_SETTLEMENT_HOUR = 10; // 10:00 UTC
 
 export default async function handler(req, res) {
+  try {
+
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
   const token = req.headers.authorization?.replace('Bearer ', '');
@@ -755,5 +757,12 @@ export default async function handler(req, res) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.warn('[settle-period]', err);
     return res.status(500).json({ success: false, error: 'Settlement action failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
+  }
+
+  } catch (err) {
+    console.warn('[API] Unhandled exception in handler:', err?.message || err);
+    if (!res.headersSent) {
+      return res.status(500).json({ error: 'Internal server error', message: err?.message || 'Unknown error' });
+    }
   }
 }

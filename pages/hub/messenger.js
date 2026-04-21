@@ -1708,8 +1708,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                             let receiptData = null;
                             try {
                                 receiptData = JSON.parse(raw);
-                            } catch (_) { console.warn('[App] Handled exception:', _?.message || _); };
-                            }
+                            } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                             const st = receiptData.status || 'completed';
                             const tp = receiptData.type || 'voice';
                             const dur = receiptData.duration || 0;

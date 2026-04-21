@@ -67,6 +67,8 @@ async function canAdminUnion(userId, unionId) {
 }
 
 export default async function handler(req, res) {
+  try {
+
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
@@ -298,5 +300,12 @@ export default async function handler(req, res) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.warn('[union-application]', err);
     return res.status(500).json({ success: false, error: 'Server error' });
+  }
+
+  } catch (err) {
+    console.warn('[API] Unhandled exception in handler:', err?.message || err);
+    if (!res.headersSent) {
+      return res.status(500).json({ error: 'Internal server error', message: err?.message || 'Unknown error' });
+    }
   }
 }

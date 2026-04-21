@@ -2,7 +2,7 @@
    CONVERSATION HISTORY — Recent conversations dropdown
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 interface Conversation {
     id: string;
@@ -19,9 +19,27 @@ export function ConversationHistory({ onSelect, onNewConversation }: Conversatio
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [isOpen, setIsOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const mounted = useRef(true);
+    const abortController = useRef<AbortController | null>(null);
+
+    useEffect(() => {
+        mounted.current = true;
+        return () => {
+            mounted.current = false;
+            if (abortController.current) {
+                abortController.current.abort();
+            }
+        };
+    }, []);
 
     const loadConversations = async () => {
         setIsLoading(true);
+        // Cancel any pending request
+        if (abortController.current) {
+            abortController.current.abort();
+        }
+        abortController.current = new AbortController();
+
         try {
             const token = localStorage.getItem('smarter-poker-auth');
             const authData = token ? JSON.parse(token) : null;
@@ -31,17 +49,22 @@ export function ConversationHistory({ onSelect, onNewConversation }: Conversatio
             const response = await fetch('/api/geeves/conversations', {
                 headers: {
                     'Authorization': `Bearer ${authData.access_token}`
-                }
+                },
+                signal: abortController.current.signal
             });
 
-            if (response.ok) {
+            if (response.ok && mounted.current) {
                 const data = await response.json();
                 setConversations(data.conversations || []);
             }
         } catch (error) {
-            console.warn('Failed to load conversations:', error);
+            if ((error as Error).name !== 'AbortError' && mounted.current) {
+                console.warn('Failed to load conversations:', error);
+            }
         } finally {
-            setIsLoading(false);
+            if (mounted.current) {
+                setIsLoading(false);
+            }
         }
     };
 
