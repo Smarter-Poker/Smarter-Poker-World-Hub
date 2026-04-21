@@ -33,6 +33,31 @@ const C = {
 // Module-level cache for link-preview metadata (avoids N+1 API calls)
 const _metadataCache = new Map();
 const _inflightRequests = new Map();
+// Track which proxy URLs have already been pre-warmed to avoid duplicate fetches
+const _prewarmedUrls = new Set();
+
+/**
+ * Pre-warms the Vercel edge cache for an article URL.
+ * Called on hover so the proxy response is cached before the user clicks.
+ * Fire-and-forget — errors are silently swallowed.
+ */
+function prewarmProxy(url) {
+    if (!url || _prewarmedUrls.has(url)) return;
+    try {
+        const hostname = new URL(url).hostname.toLowerCase();
+        // Skip social platforms that block server-side proxying anyway
+        if (hostname.includes('facebook.com') || hostname.includes('instagram.com') ||
+            hostname.includes('tiktok.com') || hostname.includes('twitter.com') ||
+            hostname.includes('x.com') || hostname.includes('threads.net')) return;
+    } catch { return; }
+    _prewarmedUrls.add(url);
+    fetch(`/api/proxy?url=${encodeURIComponent(url)}`, {
+        method: 'GET',
+        priority: 'low',       // Don’t compete with the page’s own resources
+        credentials: 'omit',
+    }).catch(() => { /* silently ignore — this is best-effort */ });
+}
+
 
 async function fetchLinkPreview(url) {
     // Return cached result if available
@@ -226,7 +251,11 @@ export default function ArticleCard({
                 cursor: 'pointer',
                 transition: 'box-shadow 0.2s',
             }}
-            onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)'}
+            onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                // Pre-warm the proxy cache so the article is ready on click
+                prewarmProxy(url);
+            }}
             onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}
         >
             {/* Image Container - FULL WIDTH for maximum visual impact */}

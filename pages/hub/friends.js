@@ -78,9 +78,12 @@ function FollowButton({ isFollowing, onFollow, onUnfollow, size = 'normal' }) {
     const [hovering, setHovering] = useState(false);
 
     const baseStyle = {
+        width: size === 'small' ? 110 : 130,
+        boxSizing: 'border-box',
+        justifyContent: 'center',
         padding: size === 'small' ? '6px 14px' : '8px 18px',
         borderRadius: 20,
-        border: 'none',
+        border: '1px solid transparent',
         fontWeight: 600,
         fontSize: size === 'small' ? 12 : 14,
         cursor: 'pointer',
@@ -282,12 +285,16 @@ function UserCard({
                     <button
                         onClick={() => onRemoveFriend(user.id)}
                         style={{
-                            padding: '8px 16px',
-                            borderRadius: 10,
+                            width: 110,
+                            justifyContent: 'center',
+                            boxSizing: 'border-box',
+                            padding: '6px 14px',
+                            borderRadius: 20,
                             border: `1px solid ${C.green}`,
                             background: 'rgba(34, 197, 94, 0.15)',
                             color: C.green,
                             fontWeight: 600,
+                            fontSize: 12,
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
@@ -311,6 +318,9 @@ function UserCard({
                             <button
                                 onClick={() => onAddFriend(user.id)}
                                 style={{
+                                    width: 110,
+                                    justifyContent: 'center',
+                                    boxSizing: 'border-box',
                                     padding: '6px 14px',
                                     borderRadius: 20,
                                     border: `1px solid ${C.blue}`,

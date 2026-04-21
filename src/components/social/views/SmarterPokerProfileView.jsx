@@ -258,10 +258,13 @@ const ProfileHeader = ({ user, isOwnProfile, onEditProfile, onAddFriend, onMessa
             }
 
             .btn-primary {
+                width: 140px;
+                justify-content: center;
+                box-sizing: border-box;
                 padding: 10px 20px;
                 background: ${SP_COLORS.blue};
-                border: none;
-                border-radius: 6px;
+                border: 1px solid transparent;
+                border-radius: 20px;
                 color: white;
                 font-size: 15px;
                 font-weight: 600;
@@ -276,10 +279,13 @@ const ProfileHeader = ({ user, isOwnProfile, onEditProfile, onAddFriend, onMessa
             }
 
             .btn-secondary {
+                width: 140px;
+                justify-content: center;
+                box-sizing: border-box;
                 padding: 10px 20px;
                 background: ${SP_COLORS.bgMain};
-                border: none;
-                border-radius: 6px;
+                border: 1px solid transparent;
+                border-radius: 20px;
                 color: ${SP_COLORS.textPrimary};
                 font-size: 15px;
                 font-weight: 600;

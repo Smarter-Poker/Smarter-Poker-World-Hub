@@ -39,13 +39,15 @@ import { reportApiError } from '../../src/lib/sentryWrap';
 
 // Configuration
 const CONFIG = {
-    TIMEOUT_MS: 10000,           // 10 second timeout
-    MAX_RETRIES: 3,              // Retry up to 3 times
-    RETRY_DELAY_MS: 1000,        // Initial retry delay (doubles each attempt)
+    TIMEOUT_MS: 7000,            // 7 second timeout (was 10s — fail faster)
+    MAX_RETRIES: 2,              // Retry up to 2 times (was 3 — less wait on failure)
+    RETRY_DELAY_MS: 800,         // Initial retry delay (was 1000ms)
     MAX_BODY_SIZE: 10 * 1024 * 1024, // 10MB max
     ALLOWED_PROTOCOLS: ['http:', 'https:'],
     BLOCKED_HOSTS: ['localhost', '127.0.0.1', '0.0.0.0', '[::1]', '::1'], // Prevent SSRF
     // Additional private/reserved IP ranges checked in isPrivateIP()
+    CACHE_MAX_AGE: 300,          // 5 min Vercel edge cache for articles
+    CACHE_SWR: 600,              // 10 min stale-while-revalidate
 };
 
 /**
@@ -355,6 +357,9 @@ export default async function handler(req, res) {
           res.setHeader('Content-Security-Policy', "frame-ancestors 'self'");
           res.setHeader('X-Proxy-Source', targetOrigin);
           res.setHeader('X-Proxy-Success', 'true');
+          // Edge cache: Vercel CDN will serve cached HTML for 5 min,
+          // then revalidate in background — repeat opens are near-instant.
+          res.setHeader('Cache-Control', `public, s-maxage=${CONFIG.CACHE_MAX_AGE}, stale-while-revalidate=${CONFIG.CACHE_SWR}`);
 
           return res.send(html);
 
