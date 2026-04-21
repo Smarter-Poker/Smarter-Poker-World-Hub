@@ -37,9 +37,14 @@ const PROJECTS = [
     vercelName: 'hub-vanguard',
     githubRepo: 'Smarter-Poker/Smarter-Poker-World-Hub',
   },
-  // Club Arena — fill in when projectId is known
-  // { projectId: 'prj_...', vercelName: 'club-arena',      githubRepo: 'Smarter-Poker/club-arena' },
-  // { projectId: 'prj_...', vercelName: 'club-commander',  githubRepo: 'Smarter-Poker/club-commander-desktop' },
+  {
+    // Club Arena — must stay in sync with poll.mjs PROJECTS.
+    projectId: 'prj_oaCq8RYhExLRUYizLG93li0uX468',
+    vercelName: 'club-arena',
+    githubRepo: 'Smarter-Poker/club-arena',
+  },
+  // club-commander-desktop: not on Vercel yet (lives under pages/commander/
+  // inside the World Hub monolith → covered by hub-vanguard).
 ];
 
 let VERCEL_TOKEN, VERCEL_TEAM_ID, GITHUB_TOKEN;

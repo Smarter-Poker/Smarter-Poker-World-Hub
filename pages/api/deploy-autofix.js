@@ -1,4 +1,5 @@
 import { reportApiError } from '../../src/lib/sentryWrap';
+import { sendSMS } from '../../src/lib/commander/twilio';
 /**
  * /api/deploy-autofix — AI-Powered Auto-Fix for Failed Deployments
  *
@@ -460,8 +461,29 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
           // fence-stripping, size-guard, and GitHub push code below.
           clearTimeout(apiTimeout);
         } else {
-          apiError = `Anthropic API returned ${claudeRes.status}: ${await claudeRes.text()}`;
-          console.error(`[deploy-autofix] ${apiError}`);
+          const errBody = await claudeRes.text();
+          apiError = `Anthropic API returned ${claudeRes.status}: ${errBody}`;
+          console.error(`[deploy-autofix] ${apiError.substring(0, 300)}`);
+
+          // ── Detect Anthropic billing/credit exhaustion ──
+          // Anthropic returns 402 (payment), 429 with credit-related messages,
+          // or 400 with 'credit_balance_too_low' / 'insufficient_balance'.
+          // When detected: SMS immediately so credits can be added. Grok
+          // fallback below runs automatically (fixedContent is still empty).
+          const isBillingError =
+            claudeRes.status === 402 ||
+            /credit|balance|billing|payment|quota|insufficient|prepaid|funds/i.test(errBody);
+
+          if (isBillingError) {
+            console.error('[deploy-autofix] 🚨 ANTHROPIC BILLING ALERT: API credits exhausted or payment required');
+            const adminPhone = process.env.MY_PHONE_NUMBER || process.env.ADMIN_PHONE;
+            if (adminPhone) {
+              sendSMS(
+                adminPhone,
+                `🚨 SMARTER.POKER ALERT 🚨\n\nAnthropic (Claude) API credits are exhausted.\n\nStatus: ${claudeRes.status}\nError: ${errBody.substring(0, 120)}\n\nAdd credits at: console.anthropic.com\n\nAutofix has switched to Grok as fallback.`
+              ).catch(e => console.error('[deploy-autofix] SMS billing alert failed:', e.message));
+            }
+          }
         }
       } catch (e) {
         apiError = `Anthropic request failed: ${e.message}`;

@@ -29,9 +29,16 @@ const PROJECTS = [
     vercelName: 'hub-vanguard',
     githubRepo: 'Smarter-Poker/Smarter-Poker-World-Hub',
   },
-  // Club Arena — fill in real IDs before first run
-  // { projectId: 'prj_...', vercelName: 'club-arena',      githubRepo: 'Smarter-Poker/club-arena' },
-  // { projectId: 'prj_...', vercelName: 'club-commander',  githubRepo: 'Smarter-Poker/club-commander-desktop' },
+  {
+    // Club Arena — Vite 6 + React 19 poker client. Starts in autofix_projects
+    // with dry_run=true so the first 24h only classifies; flip dry_run=false
+    // after the canary bakes. club-commander-desktop is not on Vercel yet
+    // (still lives under pages/commander/ inside the World Hub monolith), so
+    // it routes through the hub-vanguard entry above.
+    projectId: 'prj_oaCq8RYhExLRUYizLG93li0uX468',
+    vercelName: 'club-arena',
+    githubRepo: 'Smarter-Poker/club-arena',
+  },
 ];
 
 // Env + Supabase client are initialized lazily inside run() so that

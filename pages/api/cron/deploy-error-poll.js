@@ -66,16 +66,8 @@ async function isAutofixPaused() {
   } catch { return false; }
 }
 
-async function isBudgetExhausted() {
-  try {
-    const res = await sbFetch('/rest/v1/rpc/autofix_budget_exhausted', {
-      method: 'POST',
-      body: JSON.stringify({ p_source: 'vercel' }),
-    });
-    if (!res?.ok) return false;
-    return await res.json(); // boolean
-  } catch { return false; }
-}
+
+
 
 async function alreadyAttemptedInSupa(commitSha) {
   try {
@@ -191,26 +183,17 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'VERCEL_TOKEN not configured' });
   }
 
-  // ── Supabase gates: kill-switch and daily budget cap ──
-  // These RPCs are shared with the Hetzner poll.mjs poller — both pollers
-  // respect the same kill-switch and budget. Checks run in parallel to save time.
-  const [paused, budgetExhausted] = await Promise.all([
-    isAutofixPaused(),
-    isBudgetExhausted(),
-  ]);
+  // ── Supabase kill-switch ──
+  // Shared emergency stop with the Hetzner poll.mjs poller.
+  // Flip autofix_config.paused=true in Supabase to halt both loops without SSH.
+  const paused = await isAutofixPaused();
   if (paused) {
     console.log('[deploy-error-poll] Autofix globally paused via autofix_config — exiting');
     return res.status(200).json({ action: 'paused', message: 'Autofix is globally paused via kill-switch' });
   }
-  if (budgetExhausted) {
-    console.log('[deploy-error-poll] Vercel autofix daily budget exhausted — exiting');
-    // SMS the admin immediately — this is the alert the user explicitly requested
-    sendErrorSMS(
-      '💸 Autofix Budget Exhausted',
-      'The daily Claude API budget for Vercel autofix has been hit. No more autofixes will run today. Check Supabase autofix_budget table to raise the cap.'
-    ).catch(() => {});
-    return res.status(200).json({ action: 'budget_exhausted', message: 'Daily vercel autofix budget reached — no action taken' });
-  }
+  // NOTE: Anthropic billing/credit exhaustion is detected in deploy-autofix.js
+  // directly from the API response (402, credit-related error body).
+  // When detected there, an SMS is sent immediately and Grok takes over as fallback.
 
   try {
     // 10s timeout on Step 1 Vercel deployments fetch — prevents hanging the whole
