@@ -98,7 +98,7 @@ function extractAllErrorFiles(buildErrors) {
     /\.\/([\w./\-\[\]]+\.(?:jsx|tsx|mjs|cjs|js|ts))/g,
     /\/vercel\/path0\/([\w./\-\[\]]+\.(?:jsx|tsx|mjs|cjs|js|ts))/g,
     /((?:pages|src|lib|components|services|data)\/[\w./\-\[\]]+\.(?:jsx|tsx|mjs|cjs|js|ts)):\d+/g,
-    /x\s+((?:pages|src)\/[\w./\-\[\]]+\.(?:jsx|tsx|mjs|cjs|js|ts))/g,
+    /x\s+((?:pages|src|lib|components|services|data)\/[\w./\-\[\]]+\.(?:jsx|tsx|mjs|cjs|js|ts))/g,
   ];
   const seen = new Set();
   const out = [];
