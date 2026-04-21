@@ -92,9 +92,9 @@ export function OneSignalProvider({ children }) {
                 const perm = await OneSignal.Notifications.permission;
                 setPermission(perm ? 'granted' : 'default');
 
-            } catch (error) { console.warn('[App] Handled exception:', error?.message || error); } else {
-                    console.warn('OneSignal initialization error:', error);
-                }
+            } catch (error) {
+                console.warn('[App] Handled exception:', error?.message || error);
+                console.warn('OneSignal initialization error:', error);
             }
         };
 

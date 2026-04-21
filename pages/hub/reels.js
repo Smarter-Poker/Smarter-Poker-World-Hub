@@ -1052,9 +1052,9 @@ export default function ReelsPage() {
                 await savedReelsService.saveReel(user.id, currentReel.id);
             }
             busEmit.socialPostBookmarked(currentReel.id, user.id, { added: !isSaved });
-        } catch (err) { console.warn('[App] Handled exception:', err?.message || err); } else {
-                setSavedReels(prev => { const s = new Set(prev); s.delete(currentReel.id); return s; });
-            }
+        } catch (err) {
+            console.warn('[App] Handled exception:', err?.message || err);
+            setSavedReels(prev => { const s = new Set(prev); s.delete(currentReel.id); return s; });
             showErrorToast('Save failed — try again');
             console.warn('Save reel failed:', err);
         }

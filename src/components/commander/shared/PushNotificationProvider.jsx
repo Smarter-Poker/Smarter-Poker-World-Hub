@@ -112,9 +112,9 @@ export default function PushNotificationProvider({ children }) {
             });
 
             setSdkReady(true);
-          } catch (initError) { console.warn('[App] Handled exception:', initError?.message || initError); } else {
+          } catch (initError) {
+              console.warn('[App] Handled exception:', initError?.message || initError);
               console.warn('OneSignal init error:', initError);
-            }
           }
         });
       } catch (err) {
