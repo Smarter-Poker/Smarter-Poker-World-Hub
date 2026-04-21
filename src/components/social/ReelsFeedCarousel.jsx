@@ -194,22 +194,7 @@ function ReelCard({ reel, onClick }) {
                 )}
             </div>
 
-            {/* View count */}
-            <div style={{
-                position: 'absolute',
-                top: 8,
-                left: 8,
-                background: 'rgba(0,0,0,0.6)',
-                borderRadius: 4,
-                padding: '2px 6px',
-                fontSize: 10,
-                color: 'white',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-            }}>
-                {formatViews(reel.view_count)} views
-            </div>
+            {/* View count intentionally hidden — visible to poster only, not shown publicly */}
         </div>
     );
 }

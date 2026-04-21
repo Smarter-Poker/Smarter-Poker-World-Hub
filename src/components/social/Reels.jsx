@@ -1657,16 +1657,7 @@ export function ReelsViewer({ onClose }) {
 
 
 
-                {/* View count */}
-                <div style={{
-                    position: 'absolute', top: 20, left: 60,
-                    color: C.textSec, fontSize: 12,
-                    display: 'flex', alignItems: 'center', gap: 4,
-                    pointerEvents: 'none',
-                }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ opacity: 0.8 }}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
-                    {' '}{viewCounts[currentReel?.id] || currentReel?.view_count || 0} views
-                </div>
+                {/* View count intentionally hidden from HUD — private to poster only */}
                 {/* Phase 8 — Copy Link Toast */}
                 {copyToast && (
                     <div style={{
