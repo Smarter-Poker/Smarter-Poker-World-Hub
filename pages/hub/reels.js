@@ -970,7 +970,9 @@ export default function ReelsPage() {
             } else if (platform === 'whatsapp') {
                 window.open(`https://wa.me/?text=${encodeURIComponent(title + ' ' + url)}`, '_blank');
             }
-            try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'share_count' }); } catch (e) { console.warn('[App] Handled exception:', e); }
+            if (platform !== 'copy') {
+                incrementMetric(currentReel, 'share_count', 1);
+            }
             if (user?.id) busEmit.socialPostShared(currentReel.id, user.id);
         } catch {
             setShareToast(true);
@@ -1007,7 +1009,7 @@ export default function ReelsPage() {
                 link_url: reelLink,
             });
             if (error) throw error;
-            try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'share_count' }); } catch (e) { console.warn('[App] Handled exception:', e); }
+            incrementMetric(currentReel, 'share_count', 1);
             busEmit.socialPostShared(currentReel.id, user.id);
             busEmit.dataMutated('social');
             setSharedToFeed(true);
