@@ -1,0 +1,9 @@
+--- node_modules/next/dist/build/index.js
++++ node_modules/next/dist/build/index.js
+@@ -1071,7 +1071,7 @@
+         disableOptimizedLoading: false,
+         experimental: {
+-            cpus: Math.max(1, (Number(process.env.CIRCLE_NODE_TOTAL) || (os.cpus() || { length: 1 }).length) - 1),
++            cpus: 1, // ALWAYS 1 FOR SMARTER.POKER - OS CANNOT HANDLE 950 PAGES WITH 4 CORES
+             sharedPool: true,
+             workerThreads: true,
