@@ -450,37 +450,45 @@ export default async function handler(req, res) {
             .map((e) => e.payload?.text || e.text || '')
             .filter(Boolean);
 
-          // ── SIGKILL/OOM detection ──
+          // ── SIGKILL / SIGABRT / OOM detection ──
+          // SIGKILL  = Linux kernel killed the process (container RAM limit exceeded).
+          // SIGABRT  = Node.js aborted itself when heap exceeded --max-old-space-size.
+          // Both are infrastructure-level — NOT fixable by changing application code.
+          // DO NOT bump max-old-space-size as a fix: the correct fix is cpus:1 in next.config.
           // Use word-boundary anchored patterns to avoid false positives on words
           // like 'bloom', 'gloom', 'BOOM' etc. that contain 'OOM' as a substring.
           const isSigkill = allLines.some((l) =>
             l.includes('SIGKILL') ||
+            l.includes('SIGABRT') ||
             l.includes('out of memory') ||
+            l.includes('Ineffective mark-compacts near heap limit') ||
+            l.includes('JavaScript heap out of memory') ||
+            l.includes('Allocation failed') ||
             /\bOOM\b/.test(l)
           );
           if (isSigkill) {
-            console.log(`[deploy-error-poll] SIGKILL/OOM detected for ${deployId}`);
+            console.log(`[deploy-error-poll] SIGKILL/SIGABRT/OOM detected for ${deployId}`);
             fixedDeployments.add(deployId); // Prevent re-fetching logs every 2 min
             // Write to Supabase so the Hetzner poller won't open a competing OOM PR
-            // (its fix-oom.mjs bumps to 7168MB which we know causes more OOM).
+            // (its fix-oom.mjs bumps heap which we know makes OOM WORSE on serial build).
             recordAttempt({
               deployId, commitSha, strategy: 'oom', confidence: 'high',
               status: 'skipped_unfixable',
-              metadata: { reason: 'SIGKILL_OOM_detected_by_openclaw' },
+              metadata: { reason: 'SIGKILL_SIGABRT_OOM_detected_by_openclaw' },
             }).catch(() => {});
 
             // Fire-and-forget — don't block response for webhook delivery
             sendNotification({
-              title: '💥 Build OOM/SIGKILL',
-              message: `Deploy \`${commitSha.substring(0, 9)}\` killed by SIGKILL (out of memory). Not fixable by autofix.`,
+              title: '💥 Build OOM/SIGABRT',
+              message: `Deploy \`${commitSha.substring(0, 9)}\` killed by OOM signal (infrastructure issue). DO NOT bump heap — cpus:1 is the fix.`,
               color: 'danger',
               fields: [{ title: 'SHA', value: commitSha.substring(0, 9), short: true }],
             }).catch(() => {});
-            sendErrorSMS('Build OOM/SIGKILL', `Deploy ${commitSha.substring(0, 9)} killed by SIGKILL (out of memory). Not fixable by autofix.`).catch(() => {});
+            sendErrorSMS('Build OOM/SIGABRT', `Deploy ${commitSha.substring(0, 9)} killed by OOM. Infrastructure issue — NOT fixable by bumping heap. cpus:1 is the fix.`).catch(() => {});
 
             return res.status(200).json({
               action: 'skipped', deployId, commitSha: commitSha.substring(0, 8),
-              reason: 'SIGKILL/OOM — infrastructure error, not fixable by code changes.',
+              reason: 'SIGKILL/SIGABRT/OOM — infrastructure error. NOT fixable by heap bump. cpus:1 in next.config is the correct fix.',
             });
           }
 
