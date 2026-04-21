@@ -753,11 +753,21 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     uploadFile = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
                 } catch { uploadFile = file; }
             }
+            if (uploadFile.size > 4.5 * 1024 * 1024) {
+                showErrorToast('Image is too large (max 4.5MB).');
+                setUploadingReelImage(false);
+                return;
+            }
             formData.append('image', uploadFile);
             const token = getAccessToken();
+            if (!token) {
+                showErrorToast('Auth required — please refresh.');
+                setUploadingReelImage(false);
+                return;
+            }
             const resp = await fetch('/api/social/upload-comment-image', {
                 method: 'POST',
-                headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+                headers: { 'Authorization': `Bearer ${token}` },
                 body: formData,
             });
             const result = await resp.json();

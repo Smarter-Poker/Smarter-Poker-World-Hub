@@ -382,7 +382,11 @@ function NotificationsPage() {
             );
         }
         if (mounted.current) {
-            setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+            setNotifications(prev => {
+                const next = prev.map(n => n.id === id ? { ...n, read: true } : n);
+                try { localStorage.setItem('sp-notif-cache', JSON.stringify(next.slice(0, 30))); } catch (_) {}
+                return next;
+            });
         }
         // Sync badge localStorage and broadcast to header
         try { localStorage.setItem('sp-notif-count', String(Math.max(0, parseInt(localStorage.getItem('sp-notif-count') || '0', 10) - 1))); } catch (_) {}
@@ -483,11 +487,15 @@ function NotificationsPage() {
 
                 // Update local state
                 if (mounted.current) {
-                    setNotifications(prev => prev.map(n =>
-                        n.id === notification.id
-                            ? { ...n, message: 'Is Now Your Friend!', type: 'friend_accepted', handled: true }
-                            : n
-                    ));
+                    setNotifications(prev => {
+                        const next = prev.map(n =>
+                            n.id === notification.id
+                                ? { ...n, message: 'Is Now Your Friend!', type: 'friend_accepted', handled: true, read: true }
+                                : n
+                        );
+                        try { localStorage.setItem('sp-notif-cache', JSON.stringify(next.slice(0, 30))); } catch (_) {}
+                        return next;
+                    });
                     toast.success('Friend request accepted!');
                 }
 
@@ -546,11 +554,15 @@ function NotificationsPage() {
 
             // Update local state
             if (mounted.current) {
-                setNotifications(prev => prev.map(n =>
-                    n.id === notification.id
-                        ? { ...n, message: 'Is Now Following You', type: 'new_follow', handled: true }
-                        : n
-                ));
+                setNotifications(prev => {
+                    const next = prev.map(n =>
+                        n.id === notification.id
+                            ? { ...n, message: 'Is Now Following You', type: 'new_follow', handled: true, read: true }
+                            : n
+                    );
+                    try { localStorage.setItem('sp-notif-cache', JSON.stringify(next.slice(0, 30))); } catch (_) {}
+                    return next;
+                });
                 toast.success('Request declined \u2014 they now follow you.');
             }
 
