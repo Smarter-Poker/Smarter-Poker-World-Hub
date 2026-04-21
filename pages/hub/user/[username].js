@@ -217,7 +217,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
             text,
             onHashtagClick: (tag) => {
                 // Future: navigate to hashtag search
-                console.log('Hashtag clicked:', tag);
+                console.warn('[Hashtag] Clicked:', tag);
             }
         });
     }

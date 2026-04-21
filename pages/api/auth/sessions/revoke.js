@@ -36,7 +36,8 @@ export default async function handler(req, res) {
           }
 
           const token = authHeader.replace('Bearer ', '');
-          const { data: { user }, error: userError } = await getSupabase().auth.getUser(token);
+          const { data: authData, error: userError } = await getSupabase().auth.getUser(token);
+          const user = authData?.user;
 
           if (userError || !user) {
               return res.status(401).json({ error: 'Invalid session' });

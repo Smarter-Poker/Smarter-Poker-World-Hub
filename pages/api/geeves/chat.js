@@ -92,7 +92,8 @@ export default async function handler(req, res) {
           }
           return res.status(401).json({ success: false, error: 'Sign in for AI-powered answers' });
       }
-      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
+      const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+      const user = authData?.user;
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       try {

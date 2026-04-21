@@ -357,10 +357,9 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                 allowFullScreen
                             />
                         </div>
-                    ) : post.media_urls.length === 1 && (post.media_urls[0].endsWith('.mp4') || post.media_urls[0].endsWith('.webm') || post.media_urls[0].endsWith('.mov')) ? (
+                    ) : post.media_urls.length === 1 && (post.media_urls[0].endsWith('.mp4') || post.media_urls[0].endsWith('.webm') || post.media_urls[0].endsWith('.mov') || post.media_urls[0].endsWith('.m4v') || post.media_urls[0].endsWith('.hevc')) ? (
                         <div style={{ position: 'relative' }}>
                             <video src={post.media_urls[0]} style={{ maxWidth: '100%', display: 'block', margin: '0 auto' }} controls playsInline preload="metadata" />
-                            }}>▶</div>
                         </div>
                     ) : (
                         /* Standard image carousel */

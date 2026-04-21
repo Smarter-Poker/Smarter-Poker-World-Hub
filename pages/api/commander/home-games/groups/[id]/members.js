@@ -70,7 +70,8 @@ async function listMembers(req, res, groupId) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
+    const { data: authData, error: authError } = await getSupabase().auth.getUser(token);
+    const user = authData?.user;
 
     if (authError || !user) {
       return res.status(401).json({ success: false, error: 'Invalid token' });
@@ -131,7 +132,8 @@ async function joinOrInvite(req, res, groupId) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
+    const { data: authData, error: authError } = await getSupabase().auth.getUser(token);
+    const user = authData?.user;
 
     if (authError || !user) {
       return res.status(401).json({ success: false, error: 'Invalid token' });
@@ -256,7 +258,8 @@ async function updateMembership(req, res, groupId) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
+    const { data: authData, error: authError } = await getSupabase().auth.getUser(token);
+    const user = authData?.user;
 
     if (authError || !user) {
       return res.status(401).json({ success: false, error: 'Invalid token' });
@@ -362,7 +365,8 @@ async function leaveOrRemove(req, res, groupId) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
+    const { data: authData, error: authError } = await getSupabase().auth.getUser(token);
+    const user = authData?.user;
 
     if (authError || !user) {
       return res.status(401).json({ success: false, error: 'Invalid token' });

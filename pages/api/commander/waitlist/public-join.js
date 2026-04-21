@@ -61,7 +61,8 @@ export default async function handler(req, res) {
       } catch { /* token is already a raw JWT */ }
 
       // Verify the user with Supabase
-      const { data: { user }, error: authError } = await supabaseAnon.auth.getUser(accessToken);
+      const { data: authData, error: authError } = await supabaseAnon.auth.getUser(accessToken);
+      const user = authData?.user;
 
       if (authError || !user) {
           return res.status(401).json({

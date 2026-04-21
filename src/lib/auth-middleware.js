@@ -47,7 +47,8 @@ export async function requireAuth(req, res, supabaseClient) {
   }
 
   const sb = supabaseClient || getAuthSupabase();
-  const { data: { user }, error } = await sb.auth.getUser(token);
+  const { data: authData, error } = await sb.auth.getUser(token);
+  const user = authData?.user;
 
   if (error || !user) {
     res.status(401).json({ success: false, error: 'Invalid token' });

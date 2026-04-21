@@ -20,7 +20,8 @@ const supabaseAdmin = createClient(
 );
 
 async function verifyUnionAdmin(token, unionId) {
-  const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+  const { data: authData } = await supabaseAdmin.auth.getUser(token);
+  const user = authData?.user;
   if (error || !user) return { error: 'Not authenticated', status: 401 };
 
   const { data: admin } = await supabaseAdmin

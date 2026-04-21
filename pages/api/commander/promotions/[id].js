@@ -108,7 +108,8 @@ async function updatePromotion(req, res, id) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
+    const { data: authData, error: authError } = await getSupabase().auth.getUser(token);
+    const user = authData?.user;
 
     if (authError || !user) {
       return res.status(401).json({ success: false, error: 'Invalid token' });
@@ -187,7 +188,8 @@ async function deletePromotion(req, res, id) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
+    const { data: authData, error: authError } = await getSupabase().auth.getUser(token);
+    const user = authData?.user;
 
     if (authError || !user) {
       return res.status(401).json({ success: false, error: 'Invalid token' });

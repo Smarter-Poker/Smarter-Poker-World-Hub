@@ -43,7 +43,8 @@ export default async function handler(req, res) {
       if (!validEngineKey) {
           const token = req.headers['authorization']?.replace('Bearer ', '');
           if (!token) return res.status(401).json({ error: 'Unauthorized' });
-          const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
+          const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+          const user = authData?.user;
           if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
           // Verify caller is a platform admin
           const { data: profile } = await getSupabase().from('profiles').select('role').eq('id', user.id).maybeSingle();

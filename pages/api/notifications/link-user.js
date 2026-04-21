@@ -43,7 +43,8 @@ export default async function handler(req, res) {
           // BUG #242 FIX: Require JWT auth and verify caller is linking their OWN user ID
           const token = req.headers.authorization?.replace('Bearer ', '');
           if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-          const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
+          const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+          const user = authData?.user;
           if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
           if (user.id !== userId) {
               return res.status(403).json({ success: false, error: 'Cannot link notifications for another user' });

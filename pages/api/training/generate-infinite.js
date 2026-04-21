@@ -73,7 +73,8 @@ export default async function handler(req, res) {
       // ── Auth: verify JWT (prevent unauthenticated AI API abuse) ──
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { data: { user }, error: authErr } = await getSupabaseAdmin().auth.getUser(token);
+      const { data: authData, error: authErr } = await getSupabaseAdmin().auth.getUser(token);
+      const user = authData?.user;
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       const { gameId: rawGameId, level = '5', gameType: rawGameType = 'cash', category = 'CASH' } = req.query;

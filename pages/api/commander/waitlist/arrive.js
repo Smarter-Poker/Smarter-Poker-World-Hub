@@ -49,7 +49,8 @@ export default async function handler(req, res) {
       if (parsed.access_token) accessToken = parsed.access_token;
     } catch { /* raw JWT */ }
 
-    const { data: { user }, error: authError } = await supabaseAnon.auth.getUser(accessToken);
+    const { data: authData, error: authError } = await supabaseAnon.auth.getUser(accessToken);
+    const user = authData?.user;
     if (authError || !user) {
       return res.status(401).json({
         success: false,

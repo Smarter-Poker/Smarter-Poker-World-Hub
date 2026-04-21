@@ -92,7 +92,8 @@ export function AvatarProvider({ children }) {
     // Refresh user session to get latest metadata
     async function refreshUser() {
         try {
-            const { data: { user: freshUser }, error } = await supabase.auth.refreshSession();
+            const { data: authData, error } = await supabase.auth.refreshSession();
+            const freshUser = authData?.user;
             if (freshUser && !error) {
                 setUser(freshUser);
                 await fetchVipStatus(freshUser.id);

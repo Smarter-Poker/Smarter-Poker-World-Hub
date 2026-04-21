@@ -4528,7 +4528,7 @@ function SocialMediaPage() {
                         // 4. Load live streams (non-critical)
                         LiveStreamService.getLiveStreams()
                             .then(streams => setLiveStreams(streams || []))
-                            .catch(e => console.log('No live streams:', e)),
+                            .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)),
                     ]);
                 } else {
                     if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] No authenticated user found');

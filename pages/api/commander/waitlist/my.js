@@ -37,7 +37,8 @@ export default async function handler(req, res) {
           error: { code: 'AUTH_REQUIRED', message: 'Authentication required' }
         });
       }
-      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
+      const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+      const user = authData?.user;
       if (authErr || !user) {
         return res.status(401).json({
           success: false,

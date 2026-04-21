@@ -53,7 +53,8 @@ async function authenticatePlayer(req, res, options = {}) {
 
   // Verify token with Supabase
   const sb = getSupabase();
-  const { data: { user }, error } = await sb.auth.getUser(token);
+  const { data: authData, error } = await sb.auth.getUser(token);
+  const user = authData?.user;
 
   if (error || !user) {
     res.status(401).json({ error: 'Invalid or expired token', code: 'INVALID_TOKEN' });

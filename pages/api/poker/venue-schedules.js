@@ -134,7 +134,8 @@ export default async function handler(req, res) {
             const token = req.headers.authorization?.replace('Bearer ', '');
             if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
 
-            const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
+            const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+            const authUser = authData?.user;
             if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
             const { venue_id, day_of_week, game_name, start_time, end_time, notes, id: updateId } = req.body;
@@ -215,7 +216,8 @@ export default async function handler(req, res) {
             const token = req.headers.authorization?.replace('Bearer ', '');
             if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
 
-            const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
+            const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+            const authUser = authData?.user;
             if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
             const safeQD = (v) => Array.isArray(v) ? v[0] : v;

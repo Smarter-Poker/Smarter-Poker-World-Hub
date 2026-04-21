@@ -19,7 +19,8 @@ function getSupabase() {
 async function getVerifiedUserId(req) {
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) return null;
-  const { data: { user }, error } = await getSupabase().auth.getUser(token);
+  const { data: authData } = await getSupabase().auth.getUser(token);
+  const user = authData?.user;
   return (!error && user) ? user.id : null;
 }
 

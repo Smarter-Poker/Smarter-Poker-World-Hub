@@ -50,16 +50,15 @@ export default async function handler(req, res) {
           let query = getSupabase()
               .from('social_interactions')
               .select('id, post_id, user_id, interaction_type, created_at')
-              .eq('post_id', post_id)
-                  .limit(100);
+              .eq('post_id', post_id);
 
           if (type) {
-              query = query.eq('interaction_type', type)
-                  .limit(100);
+              query = query.eq('interaction_type', type);
           }
 
-          const { data, error } = await query.order('created_at', { ascending: false })
-              .limit(100);
+          const { data, error } = await query
+              .order('created_at', { ascending: false })
+              .limit(200);
 
           if (error) {
               return res.status(500).json({ success: false, error: 'Internal server error' });

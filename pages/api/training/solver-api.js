@@ -60,7 +60,8 @@ async function getUserFromToken(req) {
     const token = auth.replace('Bearer ', '');
 
     try {
-        const { data: { user }, error } = await getSupabase().auth.getUser(token);
+        const { data: authData } = await getSupabase().auth.getUser(token);
+        const user = authData?.user;
         if (error || !user) return null;
         return user;
     } catch {

@@ -27,7 +27,8 @@ try {
         // Require JWT for page claims
         const token = req.headers.authorization?.replace('Bearer ', '');
         if (!token) return res.status(401).json({ success: false, error: 'Auth required for page claims' });
-        const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
+        const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+        const authUser = authData?.user;
         if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
         const { page_type, page_id, contact_name, contact_email, contact_phone, role, verification_notes } = req.body;

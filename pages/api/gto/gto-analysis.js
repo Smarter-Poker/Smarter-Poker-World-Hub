@@ -77,7 +77,8 @@ export default async function handler(req, res) {
     const _authSupa = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
     const _token = req.headers.authorization?.replace('Bearer ', '');
     if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
-    const { data: { user: _authUser }, error: _authErr } = await _authSupa.auth.getUser(_token);
+    const { data: authData, error: _authErr } = await _authSupa.auth.getUser(_token);
+    const _authUser = authData?.user;
     if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       if (req.method !== 'POST') {

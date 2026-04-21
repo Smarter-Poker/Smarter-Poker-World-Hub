@@ -32,7 +32,8 @@ export default async function handler(req, res) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
 
-      const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
+      const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+      const authUser = authData?.user;
       if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       const userId = authUser.id; // Trust JWT, not query string

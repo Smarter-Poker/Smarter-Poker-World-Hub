@@ -718,7 +718,8 @@ export default async function handler(req, res) {
       if (authHeader?.startsWith('Bearer ')) {
         const token = authHeader.replace('Bearer ', '');
         try {
-          const { data: { user: authUser }, error: authError } = await getSupabase().auth.getUser(token);
+          const { data: authData, error: authError } = await getSupabase().auth.getUser(token);
+          const authUser = authData?.user;
           if (!authError && authUser) {
             userId = authUser.id;
           }

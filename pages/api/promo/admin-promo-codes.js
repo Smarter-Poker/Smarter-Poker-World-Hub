@@ -35,7 +35,8 @@ export default async function handler(req, res) {
       if (!authHeader) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
+      const { data: authData, error: authError } = await getSupabase().auth.getUser(token);
+      const user = authData?.user;
       if (authError || !user) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
       // Verify user is owner/manager at a venue OR a platform admin/superadmin

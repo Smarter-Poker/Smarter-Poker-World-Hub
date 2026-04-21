@@ -362,7 +362,8 @@ async function getBalances(req, res) {
       const authHeader = req.headers.authorization;
       if (!authHeader) return res.status(401).json({ success: false, error: 'Authorization required' });
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
+      const { data: authData, error: authError } = await getSupabase().auth.getUser(token);
+      const user = authData?.user;
       if (authError || !user) return res.status(401).json({ success: false, error: 'Session expired — please refresh the page' });
       userId = user.id;
     }

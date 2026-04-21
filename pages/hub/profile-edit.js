@@ -130,7 +130,7 @@ async function compressImage(file, maxWidth = 1200, quality = 0.85) {
             canvas.toBlob((blob) => {
                 if (!blob) { resolve(file); return; }
                 const compressed = new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() });
-                console.log(`[Compress] ${(file.size/1024).toFixed(0)}KB → ${(compressed.size/1024).toFixed(0)}KB (${Math.round((1-compressed.size/file.size)*100)}% reduction)`);
+                console.warn(`[Compress] ${(file.size/1024).toFixed(0)}KB → ${(compressed.size/1024).toFixed(0)}KB (${Math.round((1-compressed.size/file.size)*100)}% reduction)`);
                 resolve(compressed);
             }, 'image/jpeg', quality);
         };

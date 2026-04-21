@@ -54,7 +54,8 @@ async function getDailyAnalytics(req, res) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
+    const { data: authData, error: authError } = await getSupabase().auth.getUser(token);
+    const user = authData?.user;
 
     if (authError || !user) {
       return res.status(401).json({ error: 'Invalid token' });
@@ -141,7 +142,8 @@ async function calculateDailyAnalytics(req, res) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
+    const { data: authData, error: authError } = await getSupabase().auth.getUser(token);
+    const user = authData?.user;
 
     if (authError || !user) {
       return res.status(401).json({ error: 'Invalid token' });

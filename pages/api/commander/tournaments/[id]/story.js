@@ -60,7 +60,8 @@ export default async function handler(req, res) {
           return res.status(401).json({ success: false, error: 'Authorization required' });
       }
 
-      const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
+      const { data: authData, error: authError } = await getSupabase().auth.getUser(token);
+      const user = authData?.user;
       if (authError || !user) {
           return res.status(401).json({ success: false, error: 'Invalid token' });
       }

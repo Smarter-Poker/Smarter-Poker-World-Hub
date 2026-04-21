@@ -1053,8 +1053,8 @@ export default function TrainingPage() {
 
                     {/* LAW 1: Leak Fixer Intercept - Shows when leaks are detected */}
                     <LeakFixerIntercept
-                        onDismiss={() => console.log('[LAW 1] Intercept dismissed')}
-                        onAccept={(clinic) => console.log('[LAW 1] Starting clinic:', clinic.name)}
+                        onDismiss={() => console.warn('[LAW 1] Intercept dismissed')}
+                        onAccept={(clinic) => console.warn('[LAW 1] Starting clinic:', clinic.name)}
                     />
 
                     {/* Out of Diamonds Modal */}

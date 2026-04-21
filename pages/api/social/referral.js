@@ -40,7 +40,8 @@ export default async function handler(req, res) {
     // Auth
     const token = (req.headers.authorization || '').replace('Bearer ', '');
     const supabase = getSupabase();
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: authData, error: authError } = await supabase.auth.getUser(token);
+    const user = authData?.user;
     if (authError || !user) {
         return res.status(401).json({ error: 'Not authenticated' });
     }

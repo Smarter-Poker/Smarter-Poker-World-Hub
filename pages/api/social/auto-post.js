@@ -51,7 +51,8 @@ export default async function handler(req, res) {
           // Internal server-to-server call — trust user_id from body
           verified_user_id = req.body.user_id;
       } else if (token) {
-          const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
+          const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+          const authUser = authData?.user;
           if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
           verified_user_id = authUser.id;
       } else {

@@ -31,7 +31,8 @@ export default async function handler(req, res) {
       // BUG #249 FIX: Require JWT auth — prevent IDOR on bankroll data
       const _token = req.headers.authorization?.replace('Bearer ', '');
       if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { data: { user: _authUser }, error: _authErr } = await getSupabase().auth.getUser(_token);
+      const { data: authData, error: _authErr } = await getSupabase().auth.getUser(_token);
+      const _authUser = authData?.user;
       if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       if (req.method !== 'POST') {

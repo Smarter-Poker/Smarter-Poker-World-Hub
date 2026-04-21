@@ -41,7 +41,8 @@ try {
         // Require JWT for writes
         const token = req.headers.authorization?.replace('Bearer ', '');
         if (!token) return res.status(401).json({ success: false, error: 'Auth required for live game reports' });
-        const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
+        const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+        const authUser = authData?.user;
         if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
         const { venue_id, game_type, stakes, table_count, wait_time, notes } = req.body;
@@ -168,7 +169,8 @@ try {
         // Require JWT for deletes — use authenticated user ID, not query param
         const token = req.headers.authorization?.replace('Bearer ', '');
         if (!token) return res.status(401).json({ success: false, error: 'Auth required for deleting games' });
-        const { data: { user: delUser }, error: delAuthErr } = await getSupabase().auth.getUser(token);
+        const { data: authData, error: delAuthErr } = await getSupabase().auth.getUser(token);
+        const delUser = authData?.user;
         if (delAuthErr || !delUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
         const game_id = safeQ(req.query.game_id);

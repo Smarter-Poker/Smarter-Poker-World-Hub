@@ -45,7 +45,8 @@ export default async function handler(req, res) {
       if (!hasAdminAuth) {
           const token = req.headers.authorization?.replace('Bearer ', '');
           if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-          const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
+          const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+          const user = authData?.user;
           if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
           // BUG #243 FIX: JWT users can only send to specific users (not broadcast to segments)

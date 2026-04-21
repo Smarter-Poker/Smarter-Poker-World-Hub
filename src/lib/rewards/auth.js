@@ -14,7 +14,8 @@ export async function requireAuth(req, res, supabase) {
         res.status(401).json({ error: 'Auth required' });
         return null;
     }
-    const { data: { user }, error } = await supabase.auth.getUser(token);
+    const { data: authData, error } = await supabase.auth.getUser(token);
+    const user = authData?.user;
     if (error || !user) {
         res.status(401).json({ error: 'Invalid token' });
         return null;

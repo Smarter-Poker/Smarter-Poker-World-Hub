@@ -33,7 +33,8 @@ export default async function handler(req, res) {
         if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
         
         const supabase = getSupabase();
-        const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+        const { data: authData, error: authErr } = await supabase.auth.getUser(token);
+        const user = authData?.user;
         
         if (authErr || !user) {
             return res.status(401).json({ success: false, error: 'Invalid or expired session token' });

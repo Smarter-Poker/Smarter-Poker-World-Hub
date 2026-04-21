@@ -32,7 +32,8 @@ export default async function handler(req, res) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user: authUser }, error: authError } = await getSupabase().auth.getUser(token);
+    const { data: authData, error: authError } = await getSupabase().auth.getUser(token);
+    const authUser = authData?.user;
     if (authError || !authUser) {
       return res.status(401).json({ success: false, error: 'Invalid token' });
     }

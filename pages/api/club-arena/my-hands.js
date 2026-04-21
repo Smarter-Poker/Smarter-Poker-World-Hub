@@ -31,7 +31,8 @@ export default async function handler(req, res) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'Not authenticated' });
 
-      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
+      const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+      const user = authData?.user;
       if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
       const { clubId, page = '1', limit = '50' } = req.query;

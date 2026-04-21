@@ -32,7 +32,8 @@ export default async function handler(req, res) {
         }
 
         const supabase = getSupabase();
-        const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+        const { data: authData, error: authErr } = await supabase.auth.getUser(token);
+        const user = authData?.user;
 
         if (authErr || !user) {
             return res.status(401).json({ error: 'Invalid token' });

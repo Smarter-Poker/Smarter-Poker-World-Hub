@@ -157,7 +157,9 @@ async function getServerUserWithFallback(req, supabase) {
         const token = req.headers.authorization?.replace('Bearer ', '');
         if (!token) return { user: null, error: 'No token' };
 
-        const { data: { user }, error } = await supabase.auth.getUser(token);
+        const { data: authData, error } = await supabase.auth.getUser(token);
+
+        const user = authData?.user;
         if (user) return { user, error: null };
         return { user: null, error: error?.message || 'Invalid token' };
     } catch (e) {

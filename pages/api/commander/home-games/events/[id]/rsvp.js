@@ -64,7 +64,8 @@ async function getRsvps(req, res, eventId) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
+    const { data: authData, error: authError } = await getSupabase().auth.getUser(token);
+    const user = authData?.user;
 
     if (authError || !user) {
       return res.status(401).json({ error: 'Invalid token' });
@@ -135,7 +136,8 @@ async function submitRsvp(req, res, eventId) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
+    const { data: authData, error: authError } = await getSupabase().auth.getUser(token);
+    const user = authData?.user;
 
     if (authError || !user) {
       return res.status(401).json({ error: 'Invalid token' });
@@ -292,7 +294,8 @@ async function updateRsvp(req, res, eventId) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
+    const { data: authData, error: authError } = await getSupabase().auth.getUser(token);
+    const user = authData?.user;
 
     if (authError || !user) {
       return res.status(401).json({ error: 'Invalid token' });

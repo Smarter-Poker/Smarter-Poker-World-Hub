@@ -63,7 +63,8 @@ export default async function handler(req, res) {
       // ── Auth: JWT required (awards diamonds) ──
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'Auth required' });
-      const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
+      const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+      const authUser = authData?.user;
       if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
 
 

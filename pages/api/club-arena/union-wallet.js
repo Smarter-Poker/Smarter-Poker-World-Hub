@@ -23,7 +23,8 @@ const supabaseAdmin = createClient(
 );
 
 async function verifyUnionLead(token, unionId) {
-  const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+  const { data: authData } = await supabaseAdmin.auth.getUser(token);
+  const user = authData?.user;
   if (error || !user) return { error: 'Not authenticated', status: 401 };
 
   // Union lead check

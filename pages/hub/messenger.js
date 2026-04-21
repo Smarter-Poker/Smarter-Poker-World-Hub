@@ -4231,7 +4231,7 @@ function MessengerPage() {
                 const state = presenceChannel.presenceState();
                 const onlineSet = new Set(Object.keys(state));
                 setOnlineUsers(onlineSet);
-                console.log('[Presence] Sync — online users:', onlineSet.size);
+                console.warn('[Presence] Sync — online users:', onlineSet.size);
 
                 // Update active conversation's other user status in real-time
                 if (activeConversationRef.current?.otherUser?.id) {

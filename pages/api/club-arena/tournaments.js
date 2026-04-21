@@ -41,7 +41,8 @@ export default async function handler(req, res) {
 
     try {
       const token = req.headers.authorization?.replace('Bearer ', '');
-      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
+      const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+      const user = authData?.user;
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Not authenticated' });
 
       const { action, ...params } = req.body;

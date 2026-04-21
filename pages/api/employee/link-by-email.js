@@ -40,7 +40,8 @@ async function handleGet(req, res) {
         const token = (req.headers.authorization || '').replace('Bearer ', '');
         if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
 
-        const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
+        const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+        const user = authData?.user;
         if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid session' });
 
         const userEmail = user.email;
@@ -92,7 +93,8 @@ async function handlePost(req, res) {
         const token = (req.headers.authorization || '').replace('Bearer ', '');
         if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
 
-        const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
+        const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+        const user = authData?.user;
         if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid session' });
 
         const { staff_id } = req.body;

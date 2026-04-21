@@ -59,7 +59,8 @@ export default async function handler(req, res) {
 
     let callerUserId = null;
     if (token && !validEngineKey) {
-      const { data: { user }, error } = await getSupabase().auth.getUser(token);
+      const { data: authData } = await getSupabase().auth.getUser(token);
+      const user = authData?.user;
       if (error || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
       callerUserId = user.id;
     }
