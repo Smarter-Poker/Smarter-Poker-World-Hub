@@ -605,8 +605,8 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
 
     const inputSt = { width: '100%', padding: '8px 12px', border: '1px solid #3A3B3C', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit', background: '#18191A', color: '#E4E6EB' };
     const labelSt = { display: 'block', fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4 };
-    const btnPrimary = { padding: '8px 20px', borderRadius: 8, border: 'none', background: C.blue, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' };
-    const btnSec = { padding: '8px 16px', borderRadius: 8, border: 'none', background: '#3A3B3C', color: C.text, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' };
+    const btnPrimary = { padding: '8px 20px', borderRadius: 20, border: 'none', background: C.blue, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' };
+    const btnSec = { padding: '8px 16px', borderRadius: 20, border: 'none', background: '#3A3B3C', color: C.text, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' };
     const cardSt = { background: C.card, borderRadius: 12, padding: 16, marginBottom: 8 };
     const savedBadge = metaSaved ? <span style={{ fontSize: 12, color: metaSaved === 'Error saving' ? '#F02849' : '#42B72A', fontWeight: 600, marginLeft: 8 }}>{metaSaved}</span> : null;
 
@@ -634,7 +634,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                     <input type="file" accept="image/*" ref={coverInputRef} onChange={handleCoverUpload} style={{ display: 'none' }} />
                     <button onClick={() => coverInputRef.current?.click()} disabled={coverUploading} style={{
                         position: 'absolute', top: 12, right: 12, display: 'flex', alignItems: 'center', gap: 6,
-                        padding: '8px 16px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                        padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer',
                         background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: 13, fontWeight: 600,
                         fontFamily: 'inherit', backdropFilter: 'blur(4px)'
                     }}>
@@ -812,7 +812,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                         </div>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
-                        <button onClick={() => setEditingPage(false)} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#3A3B3C', color: C.text, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+                        <button onClick={() => setEditingPage(false)} style={{ padding: '8px 16px', borderRadius: 20, border: 'none', background: '#3A3B3C', color: C.text, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
                         <button onClick={handleSavePage} disabled={saving} style={{
                             padding: '8px 20px', borderRadius: 8, border: 'none', background: C.blue, color: '#fff',
                             fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: saving ? 0.5 : 1
@@ -1158,8 +1158,8 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                                     </div>
                                 </div>
                                 <div style={{ display: 'flex', gap: 6 }}>
-                                    <button onClick={() => handleApproveFollower(f.user_id, 'approve')} style={{ padding: '4px 14px', borderRadius: 6, border: 'none', background: '#22c55e', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Approve</button>
-                                    <button onClick={() => handleApproveFollower(f.user_id, 'reject')} style={{ padding: '4px 14px', borderRadius: 6, border: 'none', background: '#ef4444', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Reject</button>
+                                    <button onClick={() => handleApproveFollower(f.user_id, 'approve')} style={{ padding: '6px 16px', borderRadius: 20, border: 'none', background: '#22c55e', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', minWidth: 80, textAlign: 'center', boxSizing: 'border-box' }}>Approve</button>
+                                    <button onClick={() => handleApproveFollower(f.user_id, 'reject')} style={{ padding: '6px 16px', borderRadius: 20, border: 'none', background: '#ef4444', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', minWidth: 70, textAlign: 'center', boxSizing: 'border-box' }}>Reject</button>
                                 </div>
                             </div>
                         ))}
