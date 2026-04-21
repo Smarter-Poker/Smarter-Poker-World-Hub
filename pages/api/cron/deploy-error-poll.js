@@ -15,6 +15,8 @@
  *   8. Only dedup on successful fix — retries failures
  */
 
+import { sendSMS } from '../../../src/lib/commander/twilio';
+
 export const config = {
   maxDuration: 60,
 };
@@ -32,6 +34,13 @@ const fixedDeployments = new Set();
 const attemptTracker = {};
 
 // ── Notification helper ──────────────────────────────────────────────────────
+async function sendErrorSMS(title, message) {
+  const adminPhone = process.env.MY_PHONE_NUMBER || process.env.ADMIN_PHONE;
+  if (!adminPhone) return;
+  const body = `🚨 SMARTER.POKER ALERT 🚨\n\n${title}\n${message}`;
+  await sendSMS(adminPhone, body).catch(e => console.error('[deploy-error-poll] SMS failed:', e));
+}
+
 async function sendNotification({ title, message, color, fields }) {
   const webhookUrl = process.env.SLACK_WEBHOOK_URL || process.env.DISCORD_WEBHOOK_URL;
   if (!webhookUrl) return;
@@ -210,6 +219,7 @@ export default async function handler(req, res) {
           { title: 'SHA', value: commitSha.substring(0, 9), short: true },
         ],
       }).catch(() => {});
+      sendErrorSMS('Autofix Rebuild Failed', `The autofix commit ${commitSha.substring(0, 9)} itself failed to build. Manual intervention may be needed.`).catch(() => {});
 
       return res.status(200).json({ action: 'skipped', deployId, reason: 'is an [autofix] commit — skipping to prevent loops' });
     }
@@ -241,6 +251,7 @@ export default async function handler(req, res) {
               color: 'danger',
               fields: [{ title: 'Attempts', value: String(autofixCount), short: true }],
             }).catch(() => {});
+            sendErrorSMS('Autofix Circuit Breaker', `Reached ${MAX_FIX_ATTEMPTS} fix attempts for ${commitSha.substring(0, 9)}. Stopping. Manual fix required.`).catch(() => {});
 
             return res.status(200).json({ action: 'circuit_breaker', deployId, commitSha: commitSha.substring(0, 8), attempts: autofixCount });
           }
@@ -288,6 +299,7 @@ export default async function handler(req, res) {
               color: 'danger',
               fields: [{ title: 'SHA', value: commitSha.substring(0, 9), short: true }],
             }).catch(() => {});
+            sendErrorSMS('Build OOM/SIGKILL', `Deploy ${commitSha.substring(0, 9)} killed by SIGKILL (out of memory). Not fixable by autofix.`).catch(() => {});
 
             return res.status(200).json({
               action: 'skipped', deployId, commitSha: commitSha.substring(0, 8),
@@ -403,6 +415,7 @@ export default async function handler(req, res) {
             { title: 'Attempt', value: `${attempt}/${MAX_FIX_ATTEMPTS}`, short: true },
           ],
         }).catch(() => {});
+        sendErrorSMS('Autofix PR Opened', `Fix for ${autofixResult.filePath || 'unknown'} staged in PR #${autofixResult.prNumber}. Review and merge to unblock deploy.`).catch(() => {});
       } else {
         console.log(`[deploy-error-poll] Autofix returned: ${autofixResult.action} — will retry`);
       }
