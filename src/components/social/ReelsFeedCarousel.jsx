@@ -1913,7 +1913,7 @@ export function ReelsFeedCarousel() {
             setLoadError(true);
         }
         setLoading(false);
-    };
+    }, []);
 
     // Initial load + Realtime subscriptions
     useEffect(() => {
