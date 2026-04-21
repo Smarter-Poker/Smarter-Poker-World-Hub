@@ -54,11 +54,12 @@ Next.js 14, React 19, Vite 6, Supabase (Postgres + Auth + Storage), PostHog (ana
 - **Repo on server:** `/opt/club-arena` (structure differs from World Hub — verify paths)
 - **Deploy:** `ssh root@178.156.160.206 "cd /opt/club-arena && git pull origin main && docker restart club-arena-engine"`
 
-## Dan's Workflow Preferences (Added 2026-04-16)
+## Dan's Workflow Preferences (Added 2026-04-16, Updated 2026-04-20)
 
-- **BINDING**: Dan NEVER runs terminal commands directly. Always provide AntiGravity prompts.
-- All pushes, deploys, builds, and git operations go through AntiGravity agents.
-- Prompts must be self-contained, step-by-step, with verification criteria.
+- **BINDING**: Dan NEVER runs terminal commands himself. YOU execute pushes, deploys, builds, git ops, SQL, migrations directly from bash.
+- **NO HANDOFFS (2026-04-20 override)**: The old "AntiGravity prompt handoff" pattern is DEAD. Acquire credentials yourself from `.memory/`, env files, and prior session transcripts. Execute the push/deploy/SQL yourself.
+- **BOSS MODE (2026-04-20)**: Do not ask "what's next?" or present options. Decide based on the implementation plan + execution state, then EXECUTE.
+- Sandbox constraints are facts to work around (use bash mounts, chunk edits, pipe around disk limits), not reasons to hand off.
 - See: `.memory/preferences/dan-workflow-preferences.md`
 
 ## Automated Deploy Pipeline (Added 2026-04-16)

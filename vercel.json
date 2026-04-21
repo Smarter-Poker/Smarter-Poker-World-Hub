@@ -530,5 +530,5 @@
       "schedule": "0 6 * * *"
     }
   ],
-  "buildCommand": "NODE_OPTIONS='--max-old-space-size=6144' next build"
+  "buildCommand": "NODE_OPTIONS='--max-old-space-size=7168' next build"
 }
