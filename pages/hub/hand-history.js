@@ -484,7 +484,7 @@ export default function HandHistoryPage() {
                           style={{
                             background: 'rgba(79,172,254,0.1)', border: '1px solid rgba(79,172,254,0.3)',
                             color: T.accent, fontSize: 11, fontWeight: 700, padding: '6px 14px',
-                            borderRadius: 6, cursor: 'pointer'
+                            borderRadius: 20, cursor: 'pointer'
                           }}
                         >
                           🔗 Share Hand Card

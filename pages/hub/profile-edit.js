@@ -558,7 +558,7 @@ function PokerResumeBadge({ hendonData, onRefresh, isRefreshing, syncStatus }) {
                             disabled={isRefreshing}
                             style={{
                                 background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.2)',
-                                padding: '6px 16px', borderRadius: 6, fontSize: 12, cursor: isRefreshing ? 'wait' : 'pointer',
+                                padding: '6px 16px', borderRadius: 20, fontSize: 12, cursor: isRefreshing ? 'wait' : 'pointer',
                                 opacity: isRefreshing ? 0.7 : 1
                             }}
                         >
@@ -590,7 +590,7 @@ function PokerResumeBadge({ hendonData, onRefresh, isRefreshing, syncStatus }) {
                                 onClick={onRefresh}
                                 style={{
                                     background: C.gold, color: '#000', border: 'none',
-                                    padding: '12px 32px', borderRadius: 8, fontWeight: 700,
+                                    padding: '12px 32px', borderRadius: 20, fontWeight: 700,
                                     cursor: 'pointer', fontSize: 15
                                 }}
                             >
