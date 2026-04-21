@@ -86,6 +86,13 @@ function extractImage(item) {
 }
 
 export default async function handler(req, res) {
+    if (req.method !== 'GET') {
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
+    }
+    // Block in production — this is a debug/dev-only endpoint
+    if (process.env.NODE_ENV === 'production') {
+        return res.status(404).json({ error: 'Not found' });
+    }
     const results = [];
 
     const testFeeds = [
