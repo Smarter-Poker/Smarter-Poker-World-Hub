@@ -138,6 +138,10 @@ export default async function handler(req, res) {
         const userLng = parseFloat(lng);
         const maxRadius = parseFloat(radius);
 
+        // Skip geo-filtering if coordinates are invalid
+        if (isNaN(userLat) || isNaN(userLng)) {
+          // Continue without geo-filtering
+        } else {
         enrichedVenues = enrichedVenues.map(venue => {
           const vLat = venue.latitude || venue.lat;
           const vLng = venue.longitude || venue.lng;
@@ -153,7 +157,8 @@ export default async function handler(req, res) {
         });
 
         // Filter by radius
-        enrichedVenues = enrichedVenues.filter(v => !v.distance_km || v.distance_km <= maxRadius);
+        enrichedVenues = enrichedVenues.filter(v => !v.distance_km || v.distance_km <= (isNaN(maxRadius) ? 100 : maxRadius));
+        }
       }
 
       // Sort nearby by distance
