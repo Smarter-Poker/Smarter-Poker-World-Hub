@@ -700,7 +700,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                                 </div>
                             </div>
                             <button onClick={publishPage} disabled={publishing} style={{
-                                padding: '10px 24px', borderRadius: 8, border: 'none',
+                                padding: '10px 24px', borderRadius: 20, border: 'none',
                                 background: completionPct === 100 ? '#42B72A' : '#4E4F50',
                                 color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer',
                                 fontFamily: 'inherit', boxShadow: completionPct === 100 ? '0 2px 8px rgba(66,183,42,0.4)' : 'none',
@@ -731,29 +731,29 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                 {/* Action Bar */}
                 <div style={{ padding: '10px 16px', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                     <button onClick={() => onBack ? onBack() : router.back()} style={{
-                        padding: '8px 16px', borderRadius: 8, border: 'none', background: '#3A3B3C',
+                        padding: '8px 16px', borderRadius: 20, border: 'none', background: '#3A3B3C',
                         color: C.text, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
                     }}>Back</button>
                     <button onClick={() => setEditingPage(!editingPage)} style={{
-                        padding: '8px 16px', borderRadius: 8, border: 'none',
+                        padding: '8px 16px', borderRadius: 20, border: 'none',
                         background: editingPage ? C.blue : '#3A3B3C',
                         color: editingPage ? '#fff' : C.text,
                         fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
                         display: showPreview ? 'none' : undefined
                     }}>Edit Page</button>
                     {onGoLive && !showPreview && <button onClick={onGoLive} style={{
-                        padding: '8px 16px', borderRadius: 8, border: 'none', background: '#3A3B3C',
+                        padding: '8px 16px', borderRadius: 20, border: 'none', background: '#3A3B3C',
                         color: '#E53935', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
                         display: 'flex', alignItems: 'center', gap: 6
                     }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#E53935', display: 'inline-block' }}></span>Go Live</button>}
                     <button onClick={() => setShowPreview(!showPreview)} style={{
-                        padding: '8px 16px', borderRadius: 8, border: 'none',
+                        padding: '8px 16px', borderRadius: 20, border: 'none',
                         background: showPreview ? '#7C3AED' : '#3A3B3C',
                         color: showPreview ? '#fff' : C.text,
                         fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
                     }}>{showPreview ? '✕ Exit Preview' : '👁 Preview as Visitor'}</button>
                     <button onClick={() => router.push(`/club/${page.id}`)} style={{
-                        padding: '8px 16px', borderRadius: 8, border: 'none', background: '#3A3B3C',
+                        padding: '8px 16px', borderRadius: 20, border: 'none', background: '#3A3B3C',
                         color: C.text, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginLeft: 'auto'
                     }}>View Public Page</button>
                 </div>
@@ -814,7 +814,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
                         <button onClick={() => setEditingPage(false)} style={{ padding: '8px 16px', borderRadius: 20, border: 'none', background: '#3A3B3C', color: C.text, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
                         <button onClick={handleSavePage} disabled={saving} style={{
-                            padding: '8px 20px', borderRadius: 8, border: 'none', background: C.blue, color: '#fff',
+                            padding: '8px 20px', borderRadius: 20, border: 'none', background: C.blue, color: '#fff',
                             fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: saving ? 0.5 : 1
                         }}>{saving ? 'Saving...' : 'Save Changes'}</button>
                     </div>
@@ -869,7 +869,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                             <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                                 <input type="file" accept="image/*,video/*" multiple ref={postMediaRef} onChange={handlePostMediaSelect} style={{ display: 'none' }} />
                                 <button onClick={() => postMediaRef.current?.click()} disabled={postUploading} style={{
-                                    display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8,
+                                    display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 20,
                                     border: 'none', background: '#3A3B3C', color: '#2D88FF', fontSize: 13,
                                     fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
                                 }}>
@@ -880,7 +880,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                                 </button>
                             </div>
                             <button onClick={handlePost} disabled={posting || postUploading || (!postContent.trim() && postMedia.length === 0)} style={{
-                                padding: '8px 24px', borderRadius: 8, border: 'none', background: '#2D88FF', color: '#fff',
+                                padding: '8px 24px', borderRadius: 20, border: 'none', background: '#2D88FF', color: '#fff',
                                 fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
                                 opacity: (posting || postUploading || (!postContent.trim() && postMedia.length === 0)) ? 0.5 : 1
                             }}>{posting ? 'Posting...' : 'Post'}</button>
@@ -1192,7 +1192,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                             </div>
                             <div style={{ fontSize: 18, marginBottom: 6, fontWeight: 700, color: C.text }}>No Active Games</div>
                             <p style={{ margin: '0 0 12px', fontSize: 14 }}>Open Club Commander To Create And Manage Live Games</p>
-                            <Link href="/hub/commander" style={{ display: 'inline-block', padding: '10px 24px', borderRadius: 8, background: C.blue, color: '#fff', fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>Open Club Commander</Link>
+                            <Link href="/hub/commander" style={{ display: 'inline-block', padding: '10px 24px', borderRadius: 20, background: C.blue, color: '#fff', fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>Open Club Commander</Link>
                         </div>
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

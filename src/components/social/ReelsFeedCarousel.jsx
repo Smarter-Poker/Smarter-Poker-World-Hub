@@ -1242,15 +1242,12 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     })()}
                 </div>
 
-                {/* Right Action Sidebar — Consolidated (matches reels.js) */}
+                {/* Right Action Sidebar — ALWAYS VISIBLE & TOUCHABLE on mobile */}
                 <div
                     onClick={(e) => e.stopPropagation()}
                     style={{
                         position: 'absolute', right: 12, bottom: 110, zIndex: 20,
                         display: 'flex', flexDirection: 'column', gap: 24, alignItems: 'center',
-                        opacity: showOverlay ? 1 : 0,
-                        pointerEvents: showOverlay ? 'auto' : 'none',
-                        transition: 'opacity 0.3s ease',
                     }}
                 >
                     {/* Heart — tap to like, long-press for reactions */}

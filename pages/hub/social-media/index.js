@@ -2262,7 +2262,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                     <input type="file" accept="image/*" ref={coverInputRef} onChange={handleCoverUpload} style={{ display: 'none' }} />
                     <button onClick={() => coverInputRef.current?.click()} disabled={coverUploading} style={{
                         position: 'absolute', top: 12, right: 12, display: 'flex', alignItems: 'center', gap: 6,
-                        padding: '8px 16px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                        padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer',
                         background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: 13, fontWeight: 600,
                         fontFamily: 'inherit', backdropFilter: 'blur(4px)'
                     }}>
@@ -3215,7 +3215,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                         <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>Live Games</h2>
                         <p style={{ margin: '2px 0 0', fontSize: 13, opacity: 0.8 }}>{pageName || 'Club Games'}</p>
                     </div>
-                    {onClose && <button onClick={() => onClose ? onClose() : router.back()} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.15)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>← Back</button>}
+                    {onClose && <button onClick={() => onClose ? onClose() : router.back()} style={{ padding: '6px 14px', borderRadius: 20, border: 'none', background: 'rgba(255,255,255,0.15)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>← Back</button>}
                 </div>
 
                 {/* Follow Status Banner */}
@@ -3795,7 +3795,7 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
                     {showFollowedOnly && (
                         <button onClick={() => setShowFollowedOnly(false)} style={{
                             marginTop: 12, padding: '8px 20px', background: '#1877F2', border: 'none',
-                            borderRadius: 8, color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
+                            borderRadius: 20, color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
                         }}>Browse All Pages</button>
                     )}
                 </div>
@@ -6651,14 +6651,14 @@ function SocialMediaPage() {
                                 onClick={() => setDeletePostId(null)}
                                 style={{
                                     flex: 1, padding: '10px 16px', background: C.bg, color: C.text,
-                                    border: `1px solid ${C.border}`, borderRadius: 8, fontWeight: 600, cursor: 'pointer'
+                                    border: `1px solid ${C.border}`, borderRadius: 20, fontWeight: 600, cursor: 'pointer'
                                 }}
                             >Cancel</button>
                             <button
                                 onClick={confirmDeletePost}
                                 style={{
                                     flex: 1, padding: '10px 16px', background: '#F02849', color: 'white',
-                                    border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer'
+                                    border: 'none', borderRadius: 20, fontWeight: 600, cursor: 'pointer'
                                 }}
                             >Delete</button>
                         </div>
