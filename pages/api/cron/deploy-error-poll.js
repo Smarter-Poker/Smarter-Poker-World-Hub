@@ -116,9 +116,20 @@ export default async function handler(req, res) {
     }
 
     const data = await deploymentsRes.json();
-    const deployments = data.deployments || [];
+    const allDeployments = data.deployments || [];
 
-    // ── Step 2: Check if latest deploy is READY or BUILDING ──
+    // CRITICAL: Filter to main branch only. Preview branch deploys (sentry-autofix/,
+    // fix/, feature/) must not affect production error detection. Without this filter,
+    // a BUILDING preview deploy masks a main branch ERROR behind it.
+    const deployments = allDeployments.filter(
+      (d) => (d.meta?.githubCommitRef || '') === 'main'
+    );
+
+    if (deployments.length === 0) {
+      return res.status(200).json({ action: 'ok', message: 'No main branch deployments in recent history', checked: allDeployments.length });
+    }
+
+    // ── Step 2: Check if latest MAIN deploy is READY or BUILDING ──
     const latestDeploy = deployments[0];
     if (latestDeploy && (latestDeploy.state === 'READY' || latestDeploy.state === 'BUILDING')) {
       // NOTE: QUEUED intentionally NOT included — queued deploys can get CANCELED by Vercel,

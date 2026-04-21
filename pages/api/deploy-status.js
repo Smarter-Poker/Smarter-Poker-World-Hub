@@ -30,7 +30,10 @@ export default async function handler(req, res) {
       return res.status(502).json({ error: `Vercel API error: ${deploymentsRes.status}` });
     }
     const deploymentsData = await deploymentsRes.json();
-    const deployments = (deploymentsData.deployments || []).map(d => ({
+    // Filter to main branch only — preview branch deploys clutter the dashboard
+    const deployments = (deploymentsData.deployments || [])
+      .filter(d => (d.meta?.githubCommitRef || '') === 'main')
+      .map(d => ({
       id: d.uid,
       state: d.state,
       createdAt: d.createdAt,
