@@ -30,8 +30,6 @@ export default async function handler(req, res) {
             return res.status(400).json({ success: false, error: 'venue_id required' });
         }
 
-        const supabase = createClient();
-
         // 1. Check if we already hit them up in the last 12 hours
         // We can just rely on the 'user_venue_checkins' checkin_time or push_sent_time if we added one.
         // Or simply we query `user_venue_checkins`
@@ -53,7 +51,7 @@ export default async function handler(req, res) {
         // We will just send the notification right now via OneSignal.
         try {
             await sendPushNotification(userId, 'venue_alert', {
-                title: '📍 At the poker table?',
+                title: 'At the poker table?',
                 body: `Are you currently at ${venue_name || 'a saved venue'}? Tap to check in!`,
                 url: `/hub/venues/${venue_id}`,
                 data: { action: 'checkin', venueId: venue_id }
