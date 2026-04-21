@@ -216,6 +216,12 @@ export default async function handler(req, res) {
           }
           // Track attempt count for escalation
           attemptTracker[commitSha] = autofixCount + 1;
+          
+          // Optimization: prevent memory leak over many days on cold starts
+          const trackedKeys = Object.keys(attemptTracker);
+          if (trackedKeys.length > 50) {
+            delete attemptTracker[trackedKeys[0]]; // Remove oldest
+          }
         }
       } catch (e) {
         console.error(`[deploy-error-poll] Git history check failed: ${e.message}`);

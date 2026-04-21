@@ -317,7 +317,8 @@ async function fixSingleFile({ errorFile, buildErrors, commitSha, attempt, escal
     // The old check rejected any filename containing `..`, which false-positives
     // on legitimate names like `foo..bar.js`. Now only reject true traversal
     // segments: `/../`, `../` prefix, or any run of 2+ dots as a path segment.
-    const normalizedPath = errorFile.replace(/\\/g, '/');
+    // Also strip any leading slashes so prefix matching works.
+    const normalizedPath = errorFile.replace(/\\/g, '/').replace(/^\/+/, '');
     const hasTraversal =
       normalizedPath.startsWith('../') ||
       normalizedPath.startsWith('/') ||

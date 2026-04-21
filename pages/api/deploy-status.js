@@ -72,6 +72,10 @@ export default async function handler(req, res) {
       } catch (_) { /* ignore */ }
     }
 
+    // Optimize: Add caching to prevent rate-limiting from Vercel's own API
+    // if multiple admins have the dashboard open.
+    res.setHeader('Cache-Control', 's-maxage=15, stale-while-revalidate=30');
+
     return res.status(200).json({
       timestamp: new Date().toISOString(),
       pipeline: {
