@@ -109,7 +109,11 @@ async function listRecentDeploys(projectId) {
     `/v6/deployments?projectId=${projectId}&limit=20`
   );
   const cutoff = Date.now() - LOOKBACK_MINUTES * 60 * 1000;
-  return deployments.filter((d) => d.created >= cutoff);
+  // Vercel's list endpoint returns `uid` while the single-deployment endpoint
+  // returns `id`. Normalize so downstream code can use `d.id` uniformly.
+  return deployments
+    .filter((d) => d.created >= cutoff)
+    .map((d) => ({ ...d, id: d.uid ?? d.id }));
 }
 
 async function getBuildLogTail(deployId) {
