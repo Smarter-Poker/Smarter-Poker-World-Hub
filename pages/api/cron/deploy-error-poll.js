@@ -116,8 +116,12 @@ export default async function handler(req, res) {
 
   try {
     // ── Step 1: Fetch recent deployments ──
+    // CRITICAL: Use limit=25 — with 4+ QUEUED + 1 BUILDING + CANCELED deploys in flight,
+    // a limit=10 window means ERROR deploys at position 11+ are COMPLETELY INVISIBLE.
+    // Confirmed failure: b0f1a1058 (OOM) at position 10, 788d4a365 at 14, eb1389692 at 20
+    // — all silently skipped because they were past the window.
     const deploymentsRes = await fetch(
-      `https://api.vercel.com/v6/deployments?projectId=${PROJECT_ID}&teamId=${TEAM_ID}&limit=10`,
+      `https://api.vercel.com/v6/deployments?projectId=${PROJECT_ID}&teamId=${TEAM_ID}&limit=25`,
       { headers: { Authorization: `Bearer ${vercelToken}` } }
     );
 
@@ -175,31 +179,33 @@ export default async function handler(req, res) {
       return res.status(200).json({ action: 'ok', message: 'No main branch deployments in recent history', checked: allDeployments.length });
     }
 
-    // ── Step 2: Short-circuit ONLY if latest main deploy is READY ──
-    // BUILDING intentionally NOT included here: a BUILDING deploy may be an OOM-retry
-    // that will eventually ERROR. We must still check for older unhandled ERRORs
-    // behind it. If the latest is READY, everything is healthy.
-    const latestDeploy = deployments[0];
-    if (latestDeploy && latestDeploy.state === 'READY') {
+    // ── Step 2: Short-circuit ONLY if the latest ACTIONABLE main deploy is READY ──
+    // QUEUED = not yet started (not a health signal).
+    // CANCELED = dropped (not a health signal).
+    // Only READY = healthy. BUILDING = may go ERROR later. ERROR = act on it.
+    const latestActionable = deployments.find(
+      (d) => d.state === 'READY' || d.state === 'ERROR' || d.state === 'BUILDING'
+    );
+    if (latestActionable && latestActionable.state === 'READY') {
       // ── Post-fix verification: check if a previous autofix deploy went READY ──
-      const latestMsg = latestDeploy.meta?.githubCommitMessage || '';
+      const latestMsg = latestActionable.meta?.githubCommitMessage || '';
       if (latestMsg.includes('[autofix]')) {
         // Fire-and-forget — don't block poll response for webhook delivery
         sendNotification({
           title: '✅ Autofix Rebuild Succeeded',
-          message: `\`${latestDeploy.meta?.githubCommitSha?.substring(0, 9)}\` is READY — autofix resolved the build error.`,
+          message: `\`${latestActionable.meta?.githubCommitSha?.substring(0, 9)}\` is READY — autofix resolved the build error.`,
           color: 'good',
           fields: [
             { title: 'File', value: latestMsg.match(/in (.+?) \(/)?.[1] || 'unknown', short: true },
-            { title: 'SHA', value: latestDeploy.meta?.githubCommitSha?.substring(0, 9) || '', short: true },
+            { title: 'SHA', value: latestActionable.meta?.githubCommitSha?.substring(0, 9) || '', short: true },
           ],
         }).catch(() => {});
       }
 
       return res.status(200).json({
         action: 'ok',
-        message: 'Latest deploy is READY — no action needed',
-        latestSha: latestDeploy.meta?.githubCommitSha?.substring(0, 9),
+        message: 'Latest actionable deploy is READY — no action needed',
+        latestSha: latestActionable.meta?.githubCommitSha?.substring(0, 9),
       });
     }
 
@@ -430,6 +436,21 @@ export default async function handler(req, res) {
           ],
         }).catch(() => {});
         sendErrorSMS('Autofix PR Opened', `Fix for ${autofixResult.filePath || 'unknown'} staged in PR #${autofixResult.prNumber}. Review and merge to unblock deploy.`).catch(() => {});
+      } else if (autofixResult.action === 'skipped') {
+        // Track 'skipped' results — if a deploy is skipped twice in a row (e.g. OOM with
+        // no code to fix), permanently dedup it so we don't hammer the API every 2min.
+        const skipKey = `skip:${deployId}`;
+        if (!attemptTracker[skipKey]) {
+          attemptTracker[skipKey] = 1;
+        } else {
+          attemptTracker[skipKey]++;
+        }
+        if (attemptTracker[skipKey] >= 2) {
+          fixedDeployments.add(deployId);
+          console.log(`[deploy-error-poll] Deduped unfixable deploy ${deployId} after ${attemptTracker[skipKey]} skips`);
+        } else {
+          console.log(`[deploy-error-poll] Autofix skipped (attempt ${attemptTracker[skipKey]}/2) — will retry once more`);
+        }
       } else {
         console.log(`[deploy-error-poll] Autofix returned: ${autofixResult.action} — will retry`);
       }

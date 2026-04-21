@@ -73,6 +73,8 @@ function NotificationsPage() {
                 }
             } catch (_) {}
         }, 300);
+        // [Audit#11] Broadcast delete to other tabs so they remove it too
+        broadcastSync('smarter_poker_notif_sync', { action: 'delete', id: notifId, tabId: BROADCAST_TAB_ID });
         if (isPokerNotif) return; // [Audit#5] Don't hit API for synthetic IDs
         try {
             // [Audit#1] getAccessToken() is async — was missing await
@@ -272,7 +274,13 @@ function NotificationsPage() {
                         // Sync notification count to header badge cache
                         try { localStorage.setItem('sp-notif-count', '0'); } catch (_) {}
                     }
+                } else if (mounted.current) {
+                    // [Audit#14] No notifications — clear state
+                    setNotifications([]);
                 }
+            } else {
+                // [Audit#14] Not logged in — clear loading state to avoid infinite shimmer
+                if (mounted.current) setLoading(false);
             }
             if (mounted.current) {
                 setLoading(false);
@@ -334,7 +342,11 @@ function NotificationsPage() {
     }, [user?.id]);
 
     const markAsRead = async (id) => {
-        await supabase.from('notifications').update({ read: true }).eq('id', id);
+        // [Audit#12] Guard poker-prefixed IDs — they don't exist in DB
+        const isPoker = typeof id === 'string' && id.startsWith('poker-');
+        if (!isPoker) {
+            await supabase.from('notifications').update({ read: true }).eq('id', id);
+        }
         if (mounted.current) {
             setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
         }
@@ -554,12 +566,17 @@ function NotificationsPage() {
                     )}
                 </header>
 
-                {/* Notifications List */}
-                <div style={{ maxWidth: 680, margin: '0 auto' }}>
+                {/* Notifications List — [Audit#17] tap anywhere to dismiss open swipes */}
+                <div
+                    style={{ maxWidth: 680, margin: '0 auto' }}
+                    onClick={() => { if (swipedId) setSwipedId(null); }}
+                >
                     {notifications.length === 0 ? (
                         <div style={{ padding: 40, textAlign: 'center' }}>
-                            <div style={{ fontSize: 48 }}></div>
-                            <h3 style={{ color: C.text, marginTop: 16 }}>No Notifications Yet</h3>
+                            <div style={{ fontSize: 48, display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
+                                <Bell size={48} color={C.textSec} />
+                            </div>
+                            <h3 style={{ color: C.text, marginTop: 8 }}>No Notifications Yet</h3>
                             <p style={{ color: C.textSec }}>When Someone Likes, Comments, Or Tags You, You'll See It Here.</p>
                         </div>
                     ) : (
@@ -660,6 +677,10 @@ function NotificationsPage() {
 
                             // Navigate to page detail or user profile
                             const handleClick = () => {
+                                // [Audit#18] Mark as read on click-through
+                                if (!n.read) markAsRead(n.id);
+                                // [Audit#17] Dismiss any open swipe
+                                setSwipedId(null);
                                 if (n.data?.page_type && n.data?.page_id) {
                                     const pt = n.data.page_type;
                                     const pid = n.data.page_id;
@@ -727,6 +748,7 @@ function NotificationsPage() {
                                         <div style={{ position: 'relative', flexShrink: 0 }}>
                                             <img
                                                 src={n.actor_avatar_url || '/default-avatar.png'}
+                                                alt={n.actor_name || 'User'}
                                                 style={{
                                                     width: 56, height: 56, borderRadius: '50%',
                                                     objectFit: 'cover', border: '2px solid #ddd'
