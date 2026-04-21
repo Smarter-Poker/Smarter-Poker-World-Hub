@@ -93,7 +93,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
     // P12-3: Image lightbox
     const [lightboxUrl, setLightboxUrl] = useState(null);
     // Feature parity: FullScreen video viewer (from social-media)
-    const [fullScreenVideo, setFullScreenVideo] = useState(null);
+    const [showCommentsForPost, setShowCommentsForPost] = useState({});
     // Phase 3: Bookmark support (feature parity with social-media)
     const [bookmarked, setBookmarked] = useState(false);
     // Phase 3: Comment media (GIF/image attachments)
@@ -349,20 +349,17 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                     }}>
                     {/* Check if media is a YouTube URL or video */}
                     {post.media_urls.length === 1 && isYouTubeUrl(post.media_urls[0]) ? (
-                        <VideoPostWrapper
-                            url={post.media_urls[0]}
-                            onValidVideoClick={() => setFullScreenVideo(post.media_urls[0])}
-                        >
-                            <VideoThumbnail url={post.media_urls[0]} />
-                        </VideoPostWrapper>
+                        <div style={{ aspectRatio: '16/9' }}>
+                            <iframe
+                                src={getYouTubeEmbedUrl(post.media_urls[0])}
+                                style={{ width: '100%', height: '100%', border: 'none' }}
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                            />
+                        </div>
                     ) : post.media_urls.length === 1 && (post.media_urls[0].endsWith('.mp4') || post.media_urls[0].endsWith('.webm') || post.media_urls[0].endsWith('.mov')) ? (
-                        <div onClick={() => setFullScreenVideo(post.media_urls[0])} style={{ cursor: 'pointer', position: 'relative' }}>
-                            <video src={post.media_urls[0]} style={{ maxWidth: '100%', display: 'block', margin: '0 auto' }} muted playsInline preload="metadata" />
-                            <div style={{
-                                position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-                                width: 64, height: 64, borderRadius: '50%', background: 'rgba(255,255,255,0.9)',
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                color: '#333', fontSize: 28, pointerEvents: 'none',
+                        <div style={{ position: 'relative' }}>
+                            <video src={post.media_urls[0]} style={{ maxWidth: '100%', display: 'block', margin: '0 auto' }} controls playsInline preload="metadata" />
                             }}>▶</div>
                         </div>
                     ) : (
@@ -430,23 +427,6 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                 <div onClick={() => onOpenArticle?.({ open: true, url: post.link_preview.url, title: post.link_preview.title || 'Article' })} style={{ cursor: 'pointer' }}>
                     <SharedLinkPreviewCard url={post.link_preview.url} />
                 </div>
-            )}
-
-            {/* FullScreen Video Viewer (feature parity with social-media) */}
-            {fullScreenVideo && (
-                <FullScreenVideoViewer
-                    videoUrl={fullScreenVideo}
-                    author={{ name: post.author?.full_name || post.author?.username, avatar: post.author?.avatar_url }}
-                    caption={post.content}
-                    onClose={() => setFullScreenVideo(null)}
-                    onLike={() => { if (!post.user_liked) onLike(post.id); }}
-                    onComment={() => { setFullScreenVideo(null); fetchComments(); }}
-                    onShare={() => {
-                        const url = typeof window !== 'undefined' ? `${window.location.origin}/hub/social-pages/${page?.slug || page?.id}` : '';
-                        navigator.clipboard.writeText(url).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-                        toast.success('Link copied!');
-                    }}
-                />
             )}
 
             {/* Check-in venue badge (feature parity with social-media) */}

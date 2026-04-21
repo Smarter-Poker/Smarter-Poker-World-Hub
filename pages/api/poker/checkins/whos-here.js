@@ -97,7 +97,8 @@ export default async function handler(req, res) {
         const token = req.headers.authorization?.replace('Bearer ', '');
         if (token) {
             try {
-                const { data: { user: authUser } } = await getSupabase().auth.getUser(token);
+                const { data: authData } = await getSupabase().auth.getUser(token);
+                const authUser = authData?.user;
                 if (authUser) {
                     // Get caller's friends
                     const { data: friendships } = await getSupabase()

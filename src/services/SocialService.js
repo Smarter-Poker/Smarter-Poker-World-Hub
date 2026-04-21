@@ -697,7 +697,9 @@ export class SocialService {
             const partnerId = conversationId?.replace('conv_', '').replace('chat_', '');
             if (!partnerId) return [];
 
-            const { data: { user } } = await this.supabase.auth.getUser();
+            const { data: authData } = await this.supabase.auth.getUser();
+
+            const user = authData?.user;
             if (!user) return [];
 
             const { data, error } = await this.supabase
@@ -724,7 +726,8 @@ export class SocialService {
     async sendMessage(conversationId, text) {
         try {
             const partnerId = conversationId?.replace('conv_', '').replace('chat_', '');
-            const { data: { user } } = await this.supabase.auth.getUser();
+            const { data: authData } = await this.supabase.auth.getUser();
+            const user = authData?.user;
             if (!user || !partnerId) throw new Error('Missing user or partner');
 
             const { data, error } = await this.supabase

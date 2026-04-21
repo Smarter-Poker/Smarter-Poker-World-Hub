@@ -72,7 +72,8 @@ export async function optionalAuth(req, supabaseClient) {
   if (!token) return null;
 
   const sb = supabaseClient || getAuthSupabase();
-  const { data: { user } } = await sb.auth.getUser(token);
+  const { data: authData } = await sb.auth.getUser(token);
+  const user = authData?.user;
   return user || null;
 }
 

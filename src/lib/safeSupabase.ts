@@ -89,7 +89,8 @@ export default safeSupabase;
    
    BEFORE (dangerous):
    import { supabase } from '@/lib/supabase';
-   const { data: { user } } = await supabase.auth.getUser();
+   const { data: authData } = await supabase.auth.getUser();
+   const user = authData?.user;
    
    AFTER (safe):
    import { getAuthUser } from '@/lib/authUtils';

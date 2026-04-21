@@ -85,7 +85,8 @@ export function getAuthUser() {
 export async function getSafeUser(supabaseClient) {
     // Level 1: Try supabase.auth.getUser() (network call)
     try {
-        const { data: { user } } = await supabaseClient.auth.getUser();
+        const { data: authData } = await supabaseClient.auth.getUser();
+        const user = authData?.user;
         if (user) return user;
     } catch (_) { /* AbortError — fall through */ }
 

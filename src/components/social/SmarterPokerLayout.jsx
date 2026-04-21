@@ -331,7 +331,8 @@ export const SmarterPokerLayout = ({ children, currentUser: propUser, onNavigate
     useEffect(() => {
         const checkAuth = async () => {
             try {
-                const { data: { user } } = await supabase.auth.getUser();
+                const { data: authData } = await supabase.auth.getUser();
+                const user = authData?.user;
                 if (user) {
                     setAuthUser(user);
                     const { data: profile } = await supabase

@@ -27,7 +27,8 @@ try {
         // Require JWT for writes
         const token = req.headers.authorization?.replace('Bearer ', '');
         if (!token) return res.status(401).json({ success: false, error: 'Auth required for check-ins' });
-        const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
+        const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+        const authUser = authData?.user;
         if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
         const { venue_id, user_name, message } = req.body;
@@ -137,6 +138,7 @@ try {
             console.error('Error fetching global today checkins:', error);
             return res.status(500).json({ success: false, error: 'Internal server error' });
           }
+          res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
           return res.status(200).json({ success: true, data: data || [] });
         }
 
@@ -162,6 +164,7 @@ try {
               return res.status(500).json({ success: false, error: 'Internal server error' });
             }
 
+            res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
             return res.status(200).json({ success: true, venue_id: venueIdNum, count: count || 0 });
           }
 

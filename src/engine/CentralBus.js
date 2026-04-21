@@ -72,7 +72,8 @@ class CentralBusEngine {
         const sb = getSupabase();
         if (sb) {
             try {
-                const { data: { user } } = await sb.auth.getUser();
+                const { data: authData } = await sb.auth.getUser();
+                const user = authData?.user;
                 this.userId = user?.id || null;
                 await this._healthCheck();
             } catch (err) {

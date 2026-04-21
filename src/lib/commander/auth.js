@@ -27,7 +27,8 @@ function getSupabase() {
 export async function getUser(req, res) {
   try {
     const supabaseServerClient = createPagesServerClient({ req, res });
-    const { data: { user } } = await supabaseServerClient.auth.getUser();
+    const { data: authData } = await supabaseServerClient.auth.getUser();
+    const user = authData?.user;
     return user;
   } catch (error) {
     console.error('Auth getUser error:', error);
