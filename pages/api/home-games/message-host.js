@@ -44,13 +44,52 @@ export default async function handler(req, res) {
         const userId = user.id;
         const { host_id, game_id, game_name, message } = req.body;
 
-        if (!host_id || !game_id) {
-            return res.status(400).json({ success: false, error: 'host_id and game_id are required' });
+        // Validate required fields as UUIDs — the prior code trusted raw
+        // strings, which meant two failure modes:
+        //   (a) malformed IDs produced opaque PostgREST errors later, and
+        //   (b) an attacker could supply any UUID as host_id + an
+        //       attacker-invented game_id and trigger an outbound DM to
+        //       ANY platform user. The rate-limit check is keyed on the
+        //       game_id tag, so any fresh random UUID bypasses it.
+        const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!host_id || typeof host_id !== 'string' || !UUID_RE.test(host_id)) {
+            return res.status(400).json({ success: false, error: 'host_id must be a UUID' });
+        }
+        if (!game_id || typeof game_id !== 'string' || !UUID_RE.test(game_id)) {
+            return res.status(400).json({ success: false, error: 'game_id must be a UUID' });
         }
 
         // Can't message yourself
         if (host_id === userId) {
             return res.status(400).json({ success: false, error: "You can't message yourself" });
+        }
+
+        // CRITICAL: verify host_id actually hosts game_id. Without this check
+        // the endpoint is a "DM any user, rate-limited per made-up game_id"
+        // backchannel — an attacker who knows a victim's UUID can spam them
+        // indefinitely by rotating fake game_ids.
+        const { data: gameRow, error: gameErr } = await getSupabase()
+            .from('commander_home_games')
+            .select('id, host_id, group_id')
+            .eq('id', game_id)
+            .maybeSingle();
+        if (gameErr) {
+            console.error('[MessageHost] Game lookup failed:', gameErr?.message);
+            return res.status(500).json({ success: false, error: 'Game lookup failed' });
+        }
+        if (!gameRow) {
+            return res.status(404).json({ success: false, error: 'Game not found' });
+        }
+        if (String(gameRow.host_id) !== String(host_id)) {
+            // Don't leak whether the game exists with a different host —
+            // just reject with the same message. Prevents host enumeration.
+            return res.status(400).json({ success: false, error: 'host_id does not match game' });
+        }
+
+        // Sanitize the user-supplied message here. 2000 char cap mirrors the
+        // broadcast endpoint and is above fn_send_message's own ceiling.
+        if (message != null && (typeof message !== 'string' || message.length > 2000)) {
+            return res.status(400).json({ success: false, error: 'message too long (max 2000 chars)' });
         }
 
         // Anti-spam: Check if user already messaged this host about this game in last 24h

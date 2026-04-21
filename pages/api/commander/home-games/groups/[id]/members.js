@@ -10,6 +10,7 @@ import { createClient } from '../../../../../../src/lib/supabaseServerClient';
 import { guardUser } from '../../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../../../src/lib/sentryWrap';
+import { getUserScopedClient } from '../../../../../../src/lib/home-games/rpcBridge';
 
 let _supabase = null;
 function getSupabase() {
@@ -201,10 +202,15 @@ async function joinOrInvite(req, res, groupId) {
       return res.status(201).json({ member, message: 'User invited successfully' });
     }
 
-    // User joining themselves
-    const { data: result, error: rpcError } = await getSupabase().rpc('join_home_group', {
+    // User joining themselves. CRITICAL: join_home_group checks
+    //   auth.uid() <> p_caller_user_id → UNAUTHORIZED
+    // so we must use a user-JWT-scoped client (not service role). And the
+    // correct parameter name is p_caller_user_id, not p_user_id — the old
+    // code triggered PostgREST 42883 "function does not exist" every time.
+    const userClient = getUserScopedClient(token);
+    const { data: result, error: rpcError } = await userClient.rpc('join_home_group', {
       p_group_id: groupId,
-      p_user_id: user.id,
+      p_caller_user_id: user.id,
       p_invite_code: invite_code || null
     });
 

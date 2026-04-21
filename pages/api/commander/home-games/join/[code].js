@@ -8,6 +8,7 @@ import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardUser } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../../src/lib/sentryWrap';
+import { getUserScopedClient } from '../../../../../src/lib/home-games/rpcBridge';
 
 let _supabase = null;
 function getSupabase() {
@@ -141,10 +142,17 @@ async function joinClubByCode(req, res, code) {
       return res.status(404).json({ error: 'Club not found. Check the code and try again.' });
     }
 
-    // Use the RPC for Phase 40
-    const { data: result, error: rpcError } = await getSupabase().rpc('join_home_group', {
+    // Use the RPC for Phase 40. CRITICAL: join_home_group internally does
+    //   IF auth.uid() IS NULL OR (auth.uid() <> p_caller_user_id) THEN RAISE UNAUTHORIZED
+    // so we MUST invoke it via a user-JWT-scoped client (anon key + caller's
+    // Bearer token) rather than the service-role client — otherwise auth.uid()
+    // is NULL and the RPC rejects every join. The parameter name is also
+    // `p_caller_user_id`, not `p_user_id` (earlier code passed the wrong name
+    // and PostgREST returned "function does not exist" 42883).
+    const userClient = getUserScopedClient(token);
+    const { data: result, error: rpcError } = await userClient.rpc('join_home_group', {
       p_group_id: group.id,
-      p_user_id: user.id,
+      p_caller_user_id: user.id,
       p_invite_code: code
     });
 

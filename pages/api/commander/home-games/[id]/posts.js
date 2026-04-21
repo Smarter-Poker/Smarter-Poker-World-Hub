@@ -20,14 +20,26 @@ function getSupabase() {
 
 export default async function handler(req, res) {
   try {
-    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-      if (!applyRateLimit(req, res, LIMITS.write)) return;
-    }
+    // Rate-limit ALL methods, not just writes. GET was uncapped before and
+    // could be hit in a loop to DoS the feed pull path.
+    const rateKind = ['POST','PUT','PATCH','DELETE'].includes(req.method) ? LIMITS.write : LIMITS.read;
+    if (!applyRateLimit(req, res, rateKind)) return;
 
     if (req.method !== 'GET') { const _u = await guardUser(req, res); if (!_u) return; }
 
     try {
       const { id } = req.query;
+
+      // Validate UUID shape up-front. Prior code trusted raw string and let
+      // PostgREST reject with a 400 that included schema detail.
+      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!id || typeof id !== 'string' || !UUID_RE.test(id)) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'INVALID_GROUP_ID', message: 'Invalid group id' }
+        });
+      }
+
       const authHeader = req.headers.authorization;
 
       if (!authHeader) {
@@ -96,10 +108,66 @@ export default async function handler(req, res) {
       if (req.method === 'POST') {
         const { content, post_type = 'announcement', image_urls, video_url, is_pinned = false, visible_to = 'members' } = req.body;
 
-        if (!content) {
+        if (!content || typeof content !== 'string') {
           return res.status(400).json({
             success: false,
             error: { code: 'MISSING_CONTENT', message: 'Post content required' }
+          });
+        }
+        // Mirror DB CHECK: chk_home_posts_content_length (max 10000)
+        if (content.length > 10000) {
+          return res.status(400).json({
+            success: false,
+            error: { code: 'CONTENT_TOO_LONG', message: 'content too long (max 10000 chars)' }
+          });
+        }
+        // Mirror DB CHECK: commander_home_posts_post_type_check
+        const ALLOWED_POST_TYPES = ['announcement','game_recap','photo','update'];
+        if (typeof post_type !== 'string' || !ALLOWED_POST_TYPES.includes(post_type)) {
+          return res.status(400).json({
+            success: false,
+            error: { code: 'INVALID_POST_TYPE',
+                     message: `post_type must be one of: ${ALLOWED_POST_TYPES.join(', ')}` }
+          });
+        }
+        // Mirror DB CHECK: commander_home_posts_visible_to_check
+        const ALLOWED_VISIBLE_TO = ['public','members'];
+        if (typeof visible_to !== 'string' || !ALLOWED_VISIBLE_TO.includes(visible_to)) {
+          return res.status(400).json({
+            success: false,
+            error: { code: 'INVALID_VISIBLE_TO',
+                     message: `visible_to must be one of: ${ALLOWED_VISIBLE_TO.join(', ')}` }
+          });
+        }
+        // image_urls: array of string URLs, capped at 10 items, each ≤ 2000 chars
+        let safeImageUrls = [];
+        if (image_urls != null) {
+          if (!Array.isArray(image_urls)) {
+            return res.status(400).json({
+              success: false,
+              error: { code: 'INVALID_IMAGE_URLS', message: 'image_urls must be an array' }
+            });
+          }
+          safeImageUrls = image_urls
+            .filter(u => typeof u === 'string' && u.length > 0 && u.length <= 2000)
+            .slice(0, 10);
+        }
+        // video_url: single string, ≤ 2000 chars
+        let safeVideoUrl = null;
+        if (video_url != null) {
+          if (typeof video_url !== 'string' || video_url.length > 2000) {
+            return res.status(400).json({
+              success: false,
+              error: { code: 'INVALID_VIDEO_URL', message: 'video_url must be a string (max 2000 chars)' }
+            });
+          }
+          safeVideoUrl = video_url;
+        }
+        // is_pinned: bool
+        if (typeof is_pinned !== 'boolean') {
+          return res.status(400).json({
+            success: false,
+            error: { code: 'INVALID_IS_PINNED', message: 'is_pinned must be boolean' }
           });
         }
 
@@ -118,8 +186,8 @@ export default async function handler(req, res) {
             author_id: user.id,
             content,
             post_type,
-            image_urls: image_urls || [],
-            video_url: video_url || null,
+            image_urls: safeImageUrls,
+            video_url: safeVideoUrl,
             is_pinned,
             visible_to,
             is_published: true

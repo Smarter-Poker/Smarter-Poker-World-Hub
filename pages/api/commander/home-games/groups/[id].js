@@ -124,10 +124,16 @@ async function getGroup(req, res, id) {
       }
     }
 
-    // Filter members to only approved for non-admins
+    // Filter members to only approved for non-admins. IMPORTANT: we ALSO
+    // require the viewing user's membership to be status='approved' — a
+    // member whose role is 'admin' but whose status is 'pending', 'banned',
+    // or 'declined' should NOT see the full (including pending/banned)
+    // member list. Prior code checked role only and leaked.
     let members = group.commander_home_members || [];
     const userMembership = members.find(m => m.user_id === userId);
-    const isAdmin = userMembership?.role === 'owner' || userMembership?.role === 'admin';
+    const isAdmin =
+      userMembership?.status === 'approved' &&
+      (userMembership?.role === 'owner' || userMembership?.role === 'admin');
 
     if (!isAdmin) {
       members = members.filter(m => m.status === 'approved');
@@ -206,15 +212,60 @@ async function updateGroup(req, res, id) {
       return res.status(403).json({ success: false, error: 'Only owners and admins can update the group' });
     }
 
-    const updates = { ...req.body, updated_at: new Date().toISOString() };
-
-    // Remove fields that shouldn't be updated
-    delete updates.id;
-    delete updates.owner_id;
-    delete updates.invite_code;
-    delete updates.member_count;
-    delete updates.games_hosted;
-    delete updates.created_at;
+    // Explicit ALLOW-LIST instead of the prior strip-list. Prior code took the
+    // full req.body, stripped a handful of fields, and wrote the rest. Any
+    // admin could smuggle privileged columns in the body:
+    //   • is_active                 — disable the group for everyone
+    //   • last_activity_at          — bypass the 45-day inactivity auto-hide
+    //   • visibility_override_until — grant self infinite discover visibility
+    //   • quality_score / vitality_score — manipulate discovery ranking
+    //   • promoted_to_club_id, promotion_{requested,approved}_at — fake promo
+    //   • view_count, share_click_count, member_count — counter tampering
+    //   • location_geog / search_vector — PostGIS / tsvector injection
+    //   • promoted_to_club_id        — self-link to any arbitrary club
+    //
+    // Only expose the fields that hosts/admins are supposed to be able to
+    // edit from the Commander group-settings UI. Unknown keys are silently
+    // dropped (not rejected) so clients with cached extra fields don't fail.
+    const EDITABLE = [
+      'name',
+      'description',
+      'tagline',
+      'is_private',
+      'requires_approval',
+      'city',
+      'state',
+      'zip_code',
+      'latitude',
+      'longitude',
+      'default_game_type',
+      'default_stakes',
+      'typical_buyin_min',
+      'typical_buyin_max',
+      'max_players',
+      'typical_day',
+      'typical_time',
+      'frequency',
+      'cover_photo_url',
+      'profile_photo_url',
+      'tags',
+      'auto_generate_games',
+      'auto_generate_weeks_ahead',
+      'auto_ban_after_flakes',
+      'is_21_plus',
+      'is_charity',
+      'charity_beneficiary',
+      'smoking_policy',
+      'messenger_conversation_id',
+      'settings',
+    ];
+    const body = req.body || {};
+    const updates = { updated_at: new Date().toISOString() };
+    for (const key of EDITABLE) {
+      if (Object.prototype.hasOwnProperty.call(body, key)) {
+        updates[key] = body[key];
+      }
+    }
 
     const { data: updated, error } = await getSupabase()
       .from('commander_home_groups')

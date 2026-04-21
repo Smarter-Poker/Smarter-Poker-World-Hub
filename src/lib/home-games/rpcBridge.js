@@ -164,4 +164,4 @@ async function bridgeRequest(req, res, { method = 'POST', limit } = {}) {
   return { ok: true, user, supabase, token };
 }
 
-module.exports = { bridgeRequest, mapRpcError, LIMITS };
+module.exports = { bridgeRequest, mapRpcError, LIMITS, getUserScopedClient };
