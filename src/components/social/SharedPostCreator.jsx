@@ -174,16 +174,12 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         setError('Video upload failed: invalid upload URL received');
                         continue;
                     }
-                    // Supabase Storage signed-upload endpoint requires FormData (not raw binary)
-                    // when the body is a File/Blob — mirrors exactly what uploadToSignedUrl() does.
-                    // Raw binary PUT causes silent failures or 400 errors.
-                    const uploadBody = new FormData();
-                    uploadBody.append('cacheControl', '3600');
-                    uploadBody.append('', file);
+                    // Supabase Storage signed-upload endpoint requires raw binary PUT with correct Content-Type.
+                    // Vercel serverless functions intercept FormData and fail there, raw bytes are correct.
                     const uploadRes = await fetch(meta.signedUrl, {
                         method: 'PUT',
-                        headers: { 'x-upsert': 'false' },
-                        body: uploadBody,
+                        headers: { 'Content-Type': file.type },
+                        body: file,
                     });
                     if (!uploadRes.ok) {
                         let errDetail = '';
@@ -717,18 +713,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" /></svg>
                         Check In
                     </button>
-                    {context === 'social-media' && onOpenClubPages && <>
-                        <span style={{ color: '#BCC0C4' }}>·</span>
-                        <span
-                            onClick={onOpenClubPages}
-                            style={{
-                                padding: '6px 8px', borderRadius: 6, background: 'transparent',
-                                color: '#65676B', fontSize: 14, fontWeight: 600, transition: 'background 0.2s', cursor: 'pointer', whiteSpace: 'nowrap'
-                            }}
-                            onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
-                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                        >Club Pages</span>
-                    </>}
+                    {/* Reels, Find Friends, and Club Pages are in the bottom/side navigation naturally */}
                 </div>
                 <div style={{ padding: '4px 8px 8px', display: 'flex', gap: 8, alignItems: 'center' }}>
                     {context === 'social-media' && (

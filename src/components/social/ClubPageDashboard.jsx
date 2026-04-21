@@ -325,13 +325,10 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                         alert('Upload failed: ' + (meta.error || 'Unknown error'));
                         continue;
                     }
-                    const uploadBody = new FormData();
-                    uploadBody.append('cacheControl', '3600');
-                    uploadBody.append('', file);
                     const uploadRes = await fetch(meta.signedUrl, {
                         method: 'PUT',
-                        headers: { 'x-upsert': 'false' },
-                        body: uploadBody,
+                        headers: { 'Content-Type': file.type },
+                        body: file,
                     });
                     if (!uploadRes.ok) {
                         alert('Video upload failed — please try again');
