@@ -76,7 +76,7 @@ async function main() {
   const issueId = process.env.SENTRY_ISSUE_ID;
   const attemptId = process.env.AUTOFIX_ATTEMPT_ID || '';
   const mode = process.env.AUTOFIX_MODE || 'dry-run';
-  const model = process.env.ANTHROPIC_MODEL || 'claude-opus-4-6';
+  const model = process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001';
   const root = repoRoot();
   const repoEnv = process.env.GITHUB_REPOSITORY || 'Smarter-Poker/Smarter-Poker-World-Hub';
   const [owner, repo] = repoEnv.split('/');
@@ -105,7 +105,7 @@ async function main() {
     log({ level: 'info', msg: 'issue originates in denylist — opening diagnostic PR', denied: preAssess.denied });
   }
 
-  const files = resolveFiles(root, stack.source_files, SUBDIRS, { maxFiles: 8, maxSize: 500_000 });
+  const files = resolveFiles(root, stack.source_files, SUBDIRS, { maxFiles: 3, maxSize: 200_000 });
   if (files.length === 0) {
     log({ level: 'warn', msg: 'no in-app source files resolved — Claude cannot propose a diff', tried: stack.source_files });
     await updateAttempt(attemptId, { status: 'rejected', error_message: 'no in-app source files to show Claude' });
@@ -119,7 +119,7 @@ async function main() {
   log({ level: 'info', msg: 'calling Claude', model, files: files.map(f => f.path) });
 
   const t0 = Date.now();
-  const reply = await callClaude({ model, system: SYSTEM_PROMPT, messages, maxTokens: 8192, temperature: 0 });
+  const reply = await callClaude({ model, system: SYSTEM_PROMPT, messages, maxTokens: 3072, temperature: 0 });
   log({ level: 'info', msg: 'Claude responded', elapsed_ms: Date.now() - t0, stop: reply.stopReason, tokens_in: reply.usage?.input_tokens, tokens_out: reply.usage?.output_tokens });
 
   let parsed;
