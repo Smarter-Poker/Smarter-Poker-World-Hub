@@ -16,6 +16,7 @@ import { busEmit } from '../../engine/EventBus';
 import { broadcastSync, BROADCAST_TAB_ID } from '../../lib/broadcastSync';
 import { getAccessToken } from '../../lib/authUtils';
 import { compressImage, sniffMimeType, uploadVideoWithProgress } from '../../lib/socialHelpers';
+import { useSupabase } from '../../providers/SupabaseProvider';
 
 // File validation — uses sniffMimeType to correctly handle iOS Photo Library uploads.
 // Size constants are aligned with the upload API limits.
@@ -65,7 +66,8 @@ const MAX_CHARS = 2000;
 
 const MediaPreview = ({ file, onRemove, uploadProgress }) => {
   const [preview, setPreview] = useState(null);
-  const isVideo = file.type.startsWith('video/');
+  // Use sniffMimeType so iOS MOV files (which have empty file.type) are detected as video
+  const isVideo = sniffMimeType(file).startsWith('video/');
 
   useEffect(() => {
     const url = URL.createObjectURL(file);
@@ -119,10 +121,13 @@ export const EnhancedPostCreator = ({
   isOpen = true,  // Default to true for inline mode
   onClose,
   onPostCreated,
-  user,           // User object passed from parent
-  supabase,       // Supabase client passed from parent
-  inline = false  // New: inline mode renders without modal overlay
+  user,              // User object passed from parent
+  supabase: supabaseProp, // Supabase client passed from parent (optional — falls back to useSupabase)
+  inline = false     // New: inline mode renders without modal overlay
 }) => {
+  // Resolve supabase: prefer explicit prop (legacy callers), fall back to context (inline FeedView usage)
+  const { supabase: supabaseCtx } = useSupabase();
+  const supabase = supabaseProp || supabaseCtx;
 
   const [content, setContent] = useState('');
   const [visibility, setVisibility] = useState('public');
@@ -179,7 +184,7 @@ export const EnhancedPostCreator = ({
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === 'Escape' && isOpen && !isSubmitting) {
-        onClose();
+        if (onClose) onClose();
       }
     };
     document.addEventListener('keydown', handleEscape);
@@ -189,7 +194,7 @@ export const EnhancedPostCreator = ({
   // Handle backdrop click
   const handleBackdropClick = useCallback((e) => {
     if (e.target === modalRef.current && !isSubmitting) {
-      onClose();
+      if (onClose) onClose();
     }
   }, [isSubmitting, onClose]);
 
@@ -255,11 +260,6 @@ export const EnhancedPostCreator = ({
     }
 
     if (!user || !user.id) {
-      setError('Please log in to create a post');
-      return;
-    }
-
-    if (!user.isAuthenticated) {
       setError('Please log in to create a post');
       return;
     }

@@ -80,6 +80,11 @@ export default async function handler(req, res) {
           // mimeType may be empty from iOS Photo Library — sniff from extension as fallback
           let mimeType = (req.body?.mimeType || '').split(';')[0].trim(); // strip codec suffix
           if (!mimeType && fileName) mimeType = sniffMimeFromExt(fileName) || '';
+          // If client sent generic octet-stream (iOS fallback), try to upgrade via extension
+          if (mimeType === 'application/octet-stream' && fileName) {
+              const sniffed = sniffMimeFromExt(fileName);
+              if (sniffed) mimeType = sniffed;
+          }
 
           if (!fileName || !fileSize || !mimeType) {
               return res.status(400).json({ success: false, error: 'Missing required fields: fileName, fileSize, mimeType' });

@@ -8,6 +8,7 @@
 import { createPost, createComment, createAuthor } from './social-types';
 import { claimReward } from '../lib/claimReward';
 import { busEmit } from '../engine/EventBus';
+import { getAuthUser } from '../lib/authUtils';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🌐 SOCIAL SERVICE CLASS
@@ -214,7 +215,8 @@ export class SocialService {
                 try {
                     // Get first media URL if available
                     const mediaUrl = mediaUrls?.[0] || null;
-                    const mediaType = mediaUrl?.includes('.mp4') || mediaUrl?.includes('.webm') ? 'video' : 'image';
+                    const _videoExts = /\.(mp4|webm|mov|m4v|3gp|3g2|hevc|mkv|avi)$/i;
+                    const mediaType = mediaUrl && _videoExts.test(mediaUrl) ? 'video' : 'image';
 
                     // Create story using RPC function
                     const { error: storyError } = await this.supabase.rpc('fn_create_story', {
@@ -697,9 +699,7 @@ export class SocialService {
             const partnerId = conversationId?.replace('conv_', '').replace('chat_', '');
             if (!partnerId) return [];
 
-            const { data: authData } = await this.supabase.auth.getUser();
-
-            const user = authData?.user;
+            const user = getAuthUser();
             if (!user) return [];
 
             const { data, error } = await this.supabase
@@ -726,8 +726,7 @@ export class SocialService {
     async sendMessage(conversationId, text) {
         try {
             const partnerId = conversationId?.replace('conv_', '').replace('chat_', '');
-            const { data: authData } = await this.supabase.auth.getUser();
-            const user = authData?.user;
+            const user = getAuthUser();
             if (!user || !partnerId) throw new Error('Missing user or partner');
 
             const { data, error } = await this.supabase
