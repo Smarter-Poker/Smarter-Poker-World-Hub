@@ -889,7 +889,7 @@ export default function ReelsPage() {
         }
     };
 
-    const shareUrl = currentReel ? (window.location.origin + '/hub/reels?id=' + currentReel.id) : '';
+    const shareUrl = currentReel ? ((typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker') + '/hub/reels?id=' + currentReel.id) : '';
 
     const handleShareAction = async (platform) => {
         setShowShareModal(false);
@@ -1437,17 +1437,13 @@ export default function ReelsPage() {
                     Reels
                 </div>
 
-                {/* Engagement Stats Pill */}
+                {/* Engagement Stats Pill — view count removed (private to poster only) */}
                 <div style={{
                     position: 'absolute', top: 20, right: 16, zIndex: 100,
                     display: 'flex', gap: 12, padding: '6px 14px', borderRadius: 20,
                     background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)',
                     WebkitBackdropFilter: 'blur(8px)',
                 }}>
-                    <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: 11, display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                        {viewCounts[currentReel?.id] || currentReel?.view_count || 0}
-                    </span>
                     <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: 11, display: 'flex', alignItems: 'center', gap: 4 }}>
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="#ef4444" stroke="#ef4444" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                         {likeCounts[currentReel?.id] ?? (currentReel?.like_count || 0)}
