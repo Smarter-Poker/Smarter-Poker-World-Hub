@@ -205,7 +205,7 @@ try {
 
           const alreadyRead = new Set((existingReads || []).map((r) => r.notification_id));
           const unreadIds = allNotifIds.filter((id) => !alreadyRead.has(id))
-            .limit(100);
+            .slice(0, 100);
 
           if (unreadIds.length === 0) {
             return res.status(200).json({ success: true, marked: 0 });

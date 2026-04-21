@@ -253,6 +253,7 @@ function NotificationsPage() {
                     });
                     if (mounted.current) {
                         setNotifications(enriched);
+                        setLoading(false);
                         // Cache for instant load next time (keep last 30 for storage space)
                         try {
                             localStorage.setItem('sp-notif-cache', JSON.stringify(enriched.slice(0, 30)));
@@ -277,15 +278,15 @@ function NotificationsPage() {
                 } else if (mounted.current) {
                     // [Audit#14] No notifications — clear state
                     setNotifications([]);
+                    setLoading(false);
                 }
             } else {
                 // [Audit#14] Not logged in — clear loading state to avoid infinite shimmer
                 if (mounted.current) setLoading(false);
             }
-            if (mounted.current) {
-                setLoading(false);
-            }
         };
+        // Note: setLoading(false) for logged-in path is called inside the if-block above
+        // (after notifications are set), NOT here, to avoid a double-render.
         fetchNotifications();
         return () => controller.abort();
     }, []);
@@ -705,8 +706,8 @@ function NotificationsPage() {
                                         position: 'relative', overflow: 'hidden',
                                         borderBottom: `1px solid ${C.border}`,
                                         opacity: isDeleting ? 0 : 1,
-                                        // [Audit#10] 200px clips friend_request rows with Accept+Decline buttons
-                                        maxHeight: isDeleting ? 0 : 500,
+                                        // [Audit#10] 800px to fit friend_request rows with Accept+Decline buttons
+                                        maxHeight: isDeleting ? 0 : 800,
                                         transition: 'opacity 0.3s ease, max-height 0.3s ease',
                                     }}
                                 >
@@ -804,7 +805,7 @@ function NotificationsPage() {
                                                         }}
                                                         title="They'll Become Your Follower"
                                                     >
-                                                        Delete
+                                                        Decline
                                                     </button>
                                                 </div>
                                             )}
