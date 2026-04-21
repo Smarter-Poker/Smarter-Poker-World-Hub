@@ -2,19 +2,14 @@
 # ═══════════════════════════════════════════════════════════════════════════
 # INSTALL GIT HOOKS
 # ═══════════════════════════════════════════════════════════════════════════
-# Run this script once after cloning the repo to install the pre-push
-# safety gate that prevents catastrophic deployment failures.
-#
-# Usage: bash scripts/install-hooks.sh
+# Installs the pre-push safety gate and pre-commit combined hook.
+# Run automatically via `npm install` (postinstall script) or manually:
+#   bash scripts/install-hooks.sh
 # ═══════════════════════════════════════════════════════════════════════════
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 HOOKS_DIR="$PROJECT_ROOT/.git/hooks"
-
-echo ""
-echo "Installing Smarter.Poker git hooks..."
-echo ""
 
 # Ensure .git/hooks directory exists
 if [ ! -d "$HOOKS_DIR" ]; then
@@ -23,18 +18,34 @@ if [ ! -d "$HOOKS_DIR" ]; then
     exit 1
 fi
 
-# Copy pre-push hook
-cp "$SCRIPT_DIR/pre-push-hook.sh" "$HOOKS_DIR/pre-push"
-chmod +x "$HOOKS_DIR/pre-push"
+# Disable husky's core.hooksPath override so our native hooks are used
+git config --unset core.hooksPath 2>/dev/null || true
 
-echo "✓ Pre-push safety gate installed at .git/hooks/pre-push"
+# Copy pre-push hook (syntax validation + corruption detection)
+if [ -f "$SCRIPT_DIR/pre-push-hook.sh" ]; then
+    cp "$SCRIPT_DIR/pre-push-hook.sh" "$HOOKS_DIR/pre-push"
+    chmod +x "$HOOKS_DIR/pre-push"
+    echo "✓ Pre-push safety gate installed (CHECK 1-9)"
+fi
+
+# Copy pre-commit hook (Club Arena + Supabase auth)
+if [ -f "$SCRIPT_DIR/pre-commit-hook.sh" ]; then
+    cp "$SCRIPT_DIR/pre-commit-hook.sh" "$HOOKS_DIR/pre-commit"
+    chmod +x "$HOOKS_DIR/pre-commit"
+    echo "✓ Pre-commit combined hook installed (Arena + Auth)"
+fi
+
 echo ""
-echo "The following checks will run before every push:"
-echo "  1. Unused hook imports (prevents SSG ReferenceErrors)"
-echo "  2. Module-scope browser APIs without window guards"
-echo "  3. .single() calls (must use .maybeSingle())"
-echo "  4. Raw @supabase/supabase-js imports in API routes"
-echo "  5. Basic syntax validation"
+echo "Pre-push checks:"
+echo "  1. Unused hook imports        5. node -c syntax validation"
+echo "  2. SSG-unsafe browser APIs    6. Auth route canonicalization"
+echo "  3. No .single() calls         7. Unauth'd API fetch calls"
+echo "  4. No raw Supabase imports    8. Broken import resolution"
+echo "  9. Catch-block corruption detection"
+echo ""
+echo "Pre-commit checks:"
+echo "  A. Club Arena build enforcement"
+echo "  B. Dangerous Supabase auth pattern detection"
 echo ""
 echo "To bypass in an emergency: git push --no-verify"
 echo ""

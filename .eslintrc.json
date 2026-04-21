@@ -20,6 +20,10 @@
       {
         "selector": "AwaitExpression[argument.callee.name='getAuthUser']",
         "message": "getAuthUser() is SYNCHRONOUS — do not await it. Use direct assignment: const user = getAuthUser();"
+      },
+      {
+        "selector": "CatchClause[body.body.length=1][body.body.0.type='ExpressionStatement'][body.body.0.expression.callee.object.name='console']",
+        "message": "Single-statement catch blocks that only console.warn may be hiding errors. If the try block has return/await/throw, expand the catch to handle them properly. See: .agent/workflows/no-catch-corruption.md"
       }
     ]
   }
