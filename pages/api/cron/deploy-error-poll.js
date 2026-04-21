@@ -81,12 +81,17 @@ async function alreadyAttemptedInSupa(commitSha) {
   } catch { return false; }
 }
 
+// Returns the row id so the caller can update the status after autofix completes.
 async function recordAttempt({ deployId, commitSha, strategy, confidence, status, metadata }) {
   try {
-    await sbFetch('/rest/v1/autofix_attempts', {
+    // Generate ID client-side — poll.mjs always provides it, so the table
+    // may not have gen_random_uuid() as a DEFAULT. Safe to provide even if DEFAULT exists.
+    const id = crypto.randomUUID();
+    const res = await sbFetch('/rest/v1/autofix_attempts', {
       method: 'POST',
-      headers: { Prefer: 'return=minimal' },
+      headers: { Prefer: 'return=representation', Accept: 'application/json' },
       body: JSON.stringify({
+        id,
         source: 'vercel_openclaw',
         deployment_id: deployId,
         commit_sha: commitSha,
@@ -97,8 +102,27 @@ async function recordAttempt({ deployId, commitSha, strategy, confidence, status
         metadata: metadata || {},
       }),
     });
+    // Return the id whether or not the response parsed correctly
+    return id;
   } catch (e) {
     console.error(`[deploy-error-poll] recordAttempt failed: ${e.message}`);
+    return null;
+  }
+}
+
+// Update the status of a recorded attempt by id.
+// Used to flip 'running' → 'failed' when autofix doesn't succeed,
+// so the Hetzner poller isn't permanently blocked by a stale 'running' row.
+async function updateAttemptStatus(id, status) {
+  if (!id) return;
+  try {
+    await sbFetch(`/rest/v1/autofix_attempts?id=eq.${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ status }),
+    });
+  } catch (e) {
+    console.error(`[deploy-error-poll] updateAttemptStatus failed: ${e.message}`);
   }
 }
 
@@ -534,7 +558,9 @@ export default async function handler(req, res) {
       return res.status(200).json({ action: 'skipped', deployId, reason: 'already handled by another autofix poller (Supabase dedup)' });
     }
     // Record attempt in Supabase BEFORE firing so the Hetzner poller sees it immediately
-    await recordAttempt({
+    // Capture the ID so we can update it to 'failed' if autofix doesn't succeed —
+    // otherwise a stale 'running' row permanently blocks Hetzner from retrying.
+    const attemptId = await recordAttempt({
       deployId, commitSha,
       strategy: brokenFiles.length > 0 ? 'generic' : 'generic',
       confidence: brokenFiles.length > 0 ? 'medium' : 'low',
@@ -624,8 +650,12 @@ export default async function handler(req, res) {
         } else {
           console.log(`[deploy-error-poll] Autofix skipped (attempt ${attemptTracker[skipKey]}/2) — will retry once more`);
         }
+        // Release Hetzner — our skip doesn't mean Hetzner can't do better
+        updateAttemptStatus(attemptId, 'failed').catch(() => {});
       } else {
         console.log(`[deploy-error-poll] Autofix returned: ${autofixResult.action} — will retry`);
+        // Release Hetzner — our failure doesn't mean Hetzner can't succeed
+        updateAttemptStatus(attemptId, 'failed').catch(() => {});
       }
 
       return res.status(200).json({
