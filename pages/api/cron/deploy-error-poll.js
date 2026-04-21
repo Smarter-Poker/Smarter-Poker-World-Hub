@@ -77,9 +77,10 @@ async function sendNotification({ title, message, color, fields }) {
 function extractBrokenFiles(buildErrors) {
   const files = new Set();
 
-  // Module not found: Can't resolve './path/to/file'
-  // Then next line: ./pages/some-page.js
-  const moduleNotFound = buildErrors.match(/\.\/(pages|src|lib|components|utils|hooks|styles|services|data)\/[^\s'",)]+/g);
+  // Module not found: Can't resolve './path/to/file.js'
+  // MUST end with a recognized extension — otherwise module names like
+  // 'lib/does-not-exist-for-autofix-test' are falsely matched as file paths.
+  const moduleNotFound = buildErrors.match(/\.\/(pages|src|lib|components|utils|hooks|styles|services|data)\/[\w./\-\[\]]+\.(jsx?|tsx?|mjs|cjs)/g);
   if (moduleNotFound) moduleNotFound.forEach(f => files.add(f.replace('./', '')));
 
   // TypeScript: src/components/Foo.tsx(12,5): error TS2304
