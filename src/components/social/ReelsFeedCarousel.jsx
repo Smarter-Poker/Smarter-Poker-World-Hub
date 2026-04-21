@@ -1915,6 +1915,33 @@ export function ReelsFeedCarousel() {
         setLoading(false);
     };
 
+    // Initial load + Realtime subscriptions
+    useEffect(() => {
+        loadReels();
+
+        const _ch = supabase
+            .channel(`reels-feed-carousel`)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_reels' }, () => {
+                loadReels();
+            })
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_posts' }, () => {
+                loadReels();
+            })
+            .subscribe();
+
+        const handleDataMutated = (event) => {
+            if (event?.payload === 'social' || event?.payload === 'reels') {
+                loadReels();
+            }
+        };
+        eventBus.on(EventType.DATA_MUTATED, handleDataMutated);
+
+        return () => { 
+            supabase.removeChannel(_ch); 
+            eventBus.off(EventType.DATA_MUTATED, handleDataMutated);
+        };
+    }, [loadReels]);
+
     const openViewer = (index) => {
         setViewerStartIndex(index);
         setViewerOpen(true);
