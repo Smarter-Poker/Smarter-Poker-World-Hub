@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { supabase } from '../../../src/lib/supabase';
 import { getAccessToken } from '../../../src/lib/authUtils';
@@ -15,6 +15,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
     const [content, setContent] = useState('');
     const [media, setMedia] = useState([]);
     const [uploading, setUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(null); // null | { pct: number, label: string }
     const [error, setError] = useState('');
     const [mentionQuery, setMentionQuery] = useState('');
     const [mentionResults, setMentionResults] = useState([]);
@@ -118,6 +119,48 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         setUploading(false);
     };
 
+    // iOS Photo Library often returns an empty file.type for videos.
+    // Sniff the real MIME type from the file extension as a fallback.
+    const sniffMimeType = (file) => {
+        if (file.type) return file.type;
+        const ext = (file.name || '').split('.').pop().toLowerCase();
+        const map = {
+            mp4: 'video/mp4', mov: 'video/quicktime', m4v: 'video/x-m4v',
+            avi: 'video/x-msvideo', webm: 'video/webm',
+            '3gp': 'video/3gpp', '3g2': 'video/3gpp2',
+            hevc: 'video/hevc', mkv: 'video/x-matroska',
+            jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
+            gif: 'image/gif', webp: 'image/webp',
+        };
+        return map[ext] || 'application/octet-stream';
+    };
+
+    // Upload a video via XHR so we get real upload progress events.
+    const uploadVideoWithProgress = (signedUrl, file, mimeType) => {
+        return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('PUT', signedUrl);
+            xhr.setRequestHeader('Content-Type', mimeType);
+            xhr.upload.onprogress = (evt) => {
+                if (evt.lengthComputable) {
+                    const pct = Math.round((evt.loaded / evt.total) * 100);
+                    setUploadProgress({ pct, label: `Uploading video… ${pct}%` });
+                }
+            };
+            xhr.onload = () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    resolve(xhr);
+                } else {
+                    reject(new Error(`PUT failed (${xhr.status}): ${xhr.responseText?.slice(0, 200) || ''}`.trim()));
+                }
+            };
+            xhr.onerror = () => reject(new Error('Network error during video upload'));
+            xhr.ontimeout = () => reject(new Error('Video upload timed out'));
+            xhr.timeout = 10 * 60 * 1000; // 10 minute timeout for large videos
+            xhr.send(file);
+        });
+    };
+
     const handleFiles = async (e) => {
         const files = Array.from(e.target.files);
         if (!files.length) return;
@@ -135,16 +178,21 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         }
 
         setUploading(true);
+        setError('');
         const uploaded = [];
         for (const file of filesToUpload) {
-            const isVideo = file.type.startsWith('video/');
+            // iOS Photo Library can return empty file.type — sniff from extension
+            const mimeType = sniffMimeType(file);
+            const isVideo = mimeType.startsWith('video/');
             const folder = isVideo ? 'videos' : 'photos';
             try {
                 if (isVideo) {
                     // Direct-to-Supabase upload for videos (bypasses Vercel body limit)
+                    setUploadProgress({ pct: 0, label: 'Preparing video upload…' });
                     const _uploadToken = getAccessToken();
                     if (!_uploadToken) {
                         setError('Authentication required — please refresh the page and try again.');
+                        setUploadProgress(null);
                         continue;
                     }
                     const metaRes = await fetch('/api/social/upload-url', {
@@ -154,9 +202,9 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                             Authorization: `Bearer ${_uploadToken}`,
                         },
                         body: JSON.stringify({
-                            fileName: file.name,
+                            fileName: file.name || `video_${Date.now()}.mp4`,
                             fileSize: file.size,
-                            mimeType: file.type,
+                            mimeType,
                             folder,
                             prefix: user.id,
                         }),
@@ -168,27 +216,19 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                     const meta = await metaRes.json();
                     if (!meta.success) {
                         setError('Upload failed: ' + (meta.error || 'Unknown error'));
+                        setUploadProgress(null);
                         continue;
                     }
                     if (!meta.signedUrl || !meta.signedUrl.startsWith('http')) {
                         setError('Video upload failed: invalid upload URL received');
+                        setUploadProgress(null);
                         continue;
                     }
-                    // Supabase Storage signed-upload endpoint requires raw binary PUT with correct Content-Type.
-                    // Vercel serverless functions intercept FormData and fail there, raw bytes are correct.
-                    const uploadRes = await fetch(meta.signedUrl, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': file.type },
-                        body: file,
-                    });
-                    if (!uploadRes.ok) {
-                        let errDetail = '';
-                        try { const t = await uploadRes.text(); errDetail = t ? ` (${t.slice(0, 200)})` : ''; } catch {}
-                        console.error('[SharedPostCreator] Video PUT failed', uploadRes.status, errDetail);
-                        setError(`Video upload failed (${uploadRes.status})${errDetail} — please try again`);
-                        continue;
-                    }
+                    // Use XHR for real upload progress (fetch has no upload progress API)
+                    await uploadVideoWithProgress(meta.signedUrl, file, mimeType);
+                    setUploadProgress({ pct: 100, label: 'Processing video…' });
                     uploaded.push({ type: 'video', url: meta.publicUrl });
+                    setUploadProgress(null);
                 } else {
                     // Compress image before upload (skip GIFs, small files)
                     const compressedFile = await compressImage(file);
@@ -222,10 +262,12 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
             } catch (err) {
                 console.error('[SharedPostCreator] Upload error:', err);
                 setError('Upload failed: ' + err.message);
+                setUploadProgress(null);
             }
         }
         setMedia(prev => [...prev, ...uploaded]);
         setUploading(false);
+        setUploadProgress(null);
         // Reset file input so the same file can be re-selected
         if (fileRef.current) fileRef.current.value = '';
     };
@@ -676,7 +718,22 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                     </div>
                 </div>
             )}
-            {error && <div style={{ padding: '0 12px 8px', color: C.red, fontSize: 13 }}> {error}</div>}
+            {error && <div style={{ padding: '0 12px 8px', color: C.red, fontSize: 13 }}>{error}</div>}
+            {uploadProgress && (
+                <div style={{ padding: '0 12px 8px' }}>
+                    <div style={{ background: '#E4E6EB', borderRadius: 4, height: 6, overflow: 'hidden' }}>
+                        <div style={{
+                            height: '100%', borderRadius: 4,
+                            background: 'linear-gradient(90deg, #1877F2, #42B72A)',
+                            width: `${uploadProgress.pct}%`,
+                            transition: 'width 0.3s ease'
+                        }} />
+                    </div>
+                    <div style={{ fontSize: 12, color: C.textSec, marginTop: 4, textAlign: 'center' }}>
+                        {uploadProgress.label}
+                    </div>
+                </div>
+            )}
             <div style={{ borderTop: `1px solid ${C.border}` }}>
                 <input ref={fileRef} type="file" accept="image/*,video/*" multiple hidden onChange={handleFiles} />
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 8px 4px', gap: 4 }}>
@@ -689,7 +746,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                    >{uploading ? 'Uploading...' : 'Photo/Video'}</button>
+                    >{uploading ? (uploadProgress ? `${uploadProgress.pct}%` : 'Uploading…') : 'Photo/Video'}</button>
                     <span style={{ color: '#BCC0C4' }}>·</span>
                     <button
                         onClick={onGoLive}

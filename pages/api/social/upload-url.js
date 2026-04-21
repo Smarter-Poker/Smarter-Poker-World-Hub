@@ -23,7 +23,24 @@ const MAX_IMAGE_SIZE = 10 * 1024 * 1024;        // 10MB for images
 const ALLOWED_TYPES = [
     'image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml',
     'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo',
+    'video/x-m4v', 'video/3gpp', 'video/3gpp2', 'video/hevc',
+    'video/x-matroska',
 ];
+
+// Fallback MIME sniffer — iOS Photo Library sometimes returns empty file type
+const EXT_MIME_MAP = {
+    mp4: 'video/mp4', mov: 'video/quicktime', m4v: 'video/x-m4v',
+    avi: 'video/x-msvideo', webm: 'video/webm',
+    '3gp': 'video/3gpp', '3g2': 'video/3gpp2',
+    hevc: 'video/hevc', mkv: 'video/x-matroska',
+    jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
+    gif: 'image/gif', webp: 'image/webp',
+};
+
+function sniffMimeFromExt(fileName) {
+    const ext = (fileName || '').split('.').pop().toLowerCase();
+    return EXT_MIME_MAP[ext] || null;
+}
 
 
 let _supabase = null;
@@ -59,7 +76,10 @@ export default async function handler(req, res) {
       if (!user) return;
 
       try {
-          const { fileName, fileSize, mimeType, folder, prefix } = req.body || {};
+          const { fileName, fileSize, folder, prefix } = req.body || {};
+          // mimeType may be empty from iOS Photo Library — sniff from extension as fallback
+          let mimeType = (req.body?.mimeType || '').split(';')[0].trim(); // strip codec suffix
+          if (!mimeType && fileName) mimeType = sniffMimeFromExt(fileName) || '';
 
           if (!fileName || !fileSize || !mimeType) {
               return res.status(400).json({ success: false, error: 'Missing required fields: fileName, fileSize, mimeType' });
@@ -79,6 +99,7 @@ export default async function handler(req, res) {
                   success: false, error: `File too large (max ${maxMB}MB for ${isVideo ? 'video' : 'image'})`
               });
           }
+
 
           // Build storage path
           const ext = fileName.split('.').pop() || 'bin';
