@@ -34,6 +34,19 @@ export default function TournamentsPage() {
     } catch (_) {}
     return () => _c.abort();
   }, []);
+  // SWR key includes tab + user so switching tabs is instant on revisit
+  const swrKey = `/api/training/tournaments?status=${activeTab}${user ? `&userId=${user.id}` : ''}`;
+  const {
+    data: swrData,
+    isLoading: loading,
+    mutate: refreshTournaments,
+  } = useSWR(swrKey, (url) =>
+    authedFetch(url)
+      .then((r) => r.json())
+      .then((d) => (d.success ? d.tournaments || [] : []))
+  );
+  const tournaments = swrData || [];
+
   // Realtime subscription — live updates
   useEffect(() => {
     if (!user?.id) return;
@@ -56,19 +69,6 @@ export default function TournamentsPage() {
       supabase.removeChannel(_ch);
     };
   }, [user?.id, refreshTournaments]);
-
-  // SWR key includes tab + user so switching tabs is instant on revisit
-  const swrKey = `/api/training/tournaments?status=${activeTab}${user ? `&userId=${user.id}` : ''}`;
-  const {
-    data: swrData,
-    isLoading: loading,
-    mutate: refreshTournaments,
-  } = useSWR(swrKey, (url) =>
-    authedFetch(url)
-      .then((r) => r.json())
-      .then((d) => (d.success ? d.tournaments || [] : []))
-  );
-  const tournaments = swrData || [];
 
   const registerForTournament = async (tournamentId) => {
     if (!user) {

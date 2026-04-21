@@ -229,15 +229,17 @@ export default function LivesPage() {
   }, [currentIndex]);
   // Realtime subscription — live updates
   useEffect(() => {
-    if (!user?.id) return;
+    if (!userId) return;
     const _ch = supabase
-      .channel(`lives:${user?.id}`)
+      .channel(`lives:${userId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'live_streams' }, () => {
-        loadStreams();
+        // Just reload the page if a live stream changes while we are on the discovery page.
+        // Or if we want to reuse fetchStreams, it needs to be abstracted. For now window.location.reload()
+        window.location.reload(); 
       })
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
-  }, [user?.id]);
+  }, [userId]);
 
     return (
         <>
