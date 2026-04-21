@@ -634,6 +634,27 @@ function FriendsPage() {
     // ═══════════════════════════════════════════════════════════════════════
     // HANDLERS
     // ═══════════════════════════════════════════════════════════════════════
+    
+    // [BugFix] BFCache stale UI prevention: Sync cache on ANY optimistic state mutation
+    useEffect(() => {
+        if (loading) return;
+        try {
+            localStorage.setItem(FRIENDS_CACHE_KEY, JSON.stringify({
+                _cachedAt: Date.now(),
+                data: {
+                    friends,
+                    friendIds: Array.from(friendIds),
+                    friendRequests,
+                    pendingOutgoing: Array.from(pendingIds).map(id => ({ friend_id: id })),
+                    following,
+                    followingIds: Array.from(followingIds),
+                    followers,
+                    followerIds: Array.from(followerIds),
+                    suggestions
+                }
+            }));
+        } catch (_) {}
+    }, [friends, friendIds, friendRequests, pendingIds, following, followingIds, followers, followerIds, suggestions, loading]);
 
     const handleFollow = async (userId) => {
         if (!user || actionInProgress.current) return;

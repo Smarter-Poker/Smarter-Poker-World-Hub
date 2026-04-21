@@ -168,7 +168,7 @@ export default async function handler(req, res) {
             // Get friend sessions
             if (type === 'friends') {
                 // Get friend IDs
-                const { data: friendRows } = await sb.from('friends')
+                const { data: friendRows } = await sb.from('friendships')
                     .select('user_id, friend_id')
                     .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
                     .eq('status', 'accepted');
