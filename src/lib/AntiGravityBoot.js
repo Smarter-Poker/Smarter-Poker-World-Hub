@@ -117,7 +117,9 @@ async function supabaseHealthCheck() {
         }
 
         return { success: true, proof: 'FULL_CONNECTION_OK' };
-    } catch (error) { console.warn('[App] Handled exception:', error?.message || error); };
+    } catch (error) {
+        console.warn('[AntiGravity] Health check failed:', error?.message || error);
+        return { success: false, error: error.message || 'Health check failed' };
     }
 }
 

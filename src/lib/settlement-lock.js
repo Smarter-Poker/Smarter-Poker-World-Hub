@@ -75,7 +75,9 @@ export async function checkSettlementLock(supabase, clubId) {
       reason: lock?.lock_reason || 'Weekly auto-settlement in progress. Operations resume at 4:10 AM CST.',
     };
 
-  } catch (err) { console.warn('[App] Handled exception:', err?.message || err); };
+  } catch (err) {
+    console.warn('[SettlementLock] Check failed:', err?.message || err);
+    return { locked: false, error: err?.message || 'Unknown error' };
   }
 }
 

@@ -257,7 +257,9 @@ function HorsesDashboard({ user, onLogout }) {
             setShowCreateModal(false);
             setNewPersona({ name: '', gender: 'male', location: '', specialty: 'cash_games', stakes: '', bio: '', voice: 'casual' });
             showNotification('New author added! ✍️', 'success');
-        } catch (err) { console.warn('[App] Handled exception:', err?.message || err); };
+        } catch (err) {
+            console.warn('[HorsesAdmin] Create failed:', err?.message || err);
+            const demoPersona = { id: Date.now(), ...personaToCreate };
             setPersonas([demoPersona, ...personas]);
             setShowCreateModal(false);
             showNotification('Author created (Demo Mode)', 'success');

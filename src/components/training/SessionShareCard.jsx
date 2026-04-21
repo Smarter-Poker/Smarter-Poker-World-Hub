@@ -191,7 +191,11 @@ export default function SessionShareCard({
             ]);
             setStatus('copied');
             setTimeout(() => setStatus('ready'), 2000);
-        } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }%`);
+        } catch (err) {
+            console.warn('[ShareCard] Clipboard copy failed:', err?.message || err);
+            // Fallback: copy text to clipboard
+            try {
+                await navigator.clipboard.writeText(`I scored ${gtowScore}% on smarter.poker!`);
                 setStatus('copied');
                 setTimeout(() => setStatus('ready'), 2000);
             } catch {

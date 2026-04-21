@@ -212,8 +212,7 @@ class GlobalEventBus {
             if (window.location?.hostname === 'localhost' && !fromBroadcast) {
                 console.debug(`🚌 [BUS] ${eventType}`, payload);
             }
-        } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }:`, err);
-        }
+        } catch (err) { console.warn('[EventBus] Emit error:', err?.message || err); }
     }
 
     getHistory(limit = 10) {

@@ -1691,7 +1691,6 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             setActionValidation(null);
           }
         } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
-        }
       })();
     }, 200);
     return () => {

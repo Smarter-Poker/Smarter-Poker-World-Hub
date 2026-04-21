@@ -101,7 +101,15 @@ async function getRotations(req, res) {
 
       if (result.error) throw result.error;
       rotations = result.data || [];
-    } catch (joinErr) { console.warn('[App] Handled exception:', joinErr?.message || joinErr); })
+    } catch (joinErr) {
+      console.warn('[Rotations] FK join failed, falling back:', joinErr?.message || joinErr);
+      // Fallback: query without FK join
+      const result = await getSupabase()
+        .from('commander_dealer_rotations')
+        .select('id, started_at, ended_at, dealer_name, table_number, dealer_id')
+        .eq('venue_id', venue_id)
+        .is('ended_at', null)
+        .order('started_at', { ascending: false });
 
       if (result.error) throw result.error;
       rotations = result.data || [];

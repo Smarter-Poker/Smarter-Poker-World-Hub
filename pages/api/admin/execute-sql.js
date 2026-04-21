@@ -164,7 +164,11 @@ export default async function handler(req, res) {
                   result = await client.query(sql);
                   await client.query('COMMIT');
                   success = true;
-              } catch (sqlErr) { console.warn('[App] Handled exception:', sqlErr?.message || sqlErr); }
+              } catch (sqlErr) {
+                  console.warn('[App] SQL execution error:', sqlErr?.message || sqlErr);
+                  errorMessage = sqlErr.message;
+                  try { await client.query('ROLLBACK'); } catch (_rb) { /* rollback best-effort */ }
+              }
 
               const ms = Date.now() - start;
 

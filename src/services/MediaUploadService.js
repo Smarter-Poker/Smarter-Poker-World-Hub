@@ -325,7 +325,12 @@ export class MediaUploadService {
                 }
             };
 
-        } catch (error) { console.warn('[App] Handled exception:', error?.message || error); })
+        } catch (error) {
+            console.warn('[MediaUpload] Upload failed:', error?.message || error);
+            // Mark upload as failed in database
+            await this.supabase
+                .from('social_media')
+                .update({ status: 'failed' })
                 .eq('id', media_id);
 
             throw error;
