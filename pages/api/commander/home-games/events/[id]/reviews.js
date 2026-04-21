@@ -120,13 +120,26 @@ async function handleCreate(req, res, eventId, _user) {
       });
     }
 
-    // Check if player attended
-    const { data: rsvp } = await getSupabase()
+    // Check if player attended. NOTE: commander_home_rsvps has a `user_id`
+    // column, not `player_id`. Prior code used `.eq('player_id', ...)`, which
+    // PostgREST rejected with 42703 undefined_column. The destructured
+    // `error` was silently ignored and `rsvp` was always null, so EVERY
+    // review submission short-circuited to 403 NOT_ATTENDED. This is why
+    // nobody has been able to leave a home-game review in production.
+    const { data: rsvp, error: rsvpErr } = await getSupabase()
       .from('commander_home_rsvps')
       .select('response, is_confirmed')
       .eq('game_id', eventId)
-      .eq('player_id', player_id)
+      .eq('user_id', player_id)
       .maybeSingle();
+
+    if (rsvpErr) {
+      console.error('Reviews: RSVP attendance check failed:', rsvpErr);
+      return res.status(500).json({
+        success: false,
+        error: { code: 'SERVER_ERROR', message: 'Attendance check failed' }
+      });
+    }
 
     if (!rsvp || rsvp.response !== 'yes') {
       return res.status(403).json({

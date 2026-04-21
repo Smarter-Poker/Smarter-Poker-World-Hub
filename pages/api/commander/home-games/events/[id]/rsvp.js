@@ -172,6 +172,17 @@ async function submitRsvp(req, res, eventId) {
     if (event.rsvp_closes_at && new Date(event.rsvp_closes_at).getTime() <= Date.now()) {
       return res.status(400).json({ error: 'RSVPs are closed for this event' });
     }
+    // Belt-and-suspenders: even if status wasn't flipped by the status cron,
+    // reject RSVPs to past-date events. scheduled_date is a DATE column; we
+    // compare against today in UTC. Edge case: if a cron hasn't run, a host
+    // could still accept RSVPs for games that already happened, which would
+    // pollute flake-strike logic and review-eligibility checks.
+    if (event.scheduled_date) {
+      const todayUTC = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+      if (String(event.scheduled_date) < todayUTC) {
+        return res.status(400).json({ error: 'This event has already happened' });
+      }
+    }
 
     // Check membership
     const { data: membership } = await getSupabase()
@@ -324,6 +335,21 @@ async function updateRsvp(req, res, eventId) {
     }
 
     let updates = {};
+
+    // Validate seat_number when the action would write one. The RSVP seat_number
+    // column has NO DB CHECK constraint, so garbage input (strings, floats,
+    // negatives, seat 999) would otherwise succeed silently and break the
+    // seating UI. Range is bounded by event.max_players (2–10 per the game
+    // tables CHECK; we use the specific event's configured max).
+    const writesSeat = (action === 'confirm' || action === 'set_seat');
+    if (writesSeat && seat_number != null) {
+      const n = Number(seat_number);
+      if (!Number.isInteger(n) || n < 1 || n > (event.max_players || 10)) {
+        return res.status(400).json({
+          error: `seat_number must be an integer between 1 and ${event.max_players || 10}`
+        });
+      }
+    }
 
     switch (action) {
       case 'confirm':

@@ -241,19 +241,61 @@ async function updateEvent(req, res, id) {
       return res.status(200).json({ event: updated, message: 'Game completed' });
     }
 
-    // Regular update
-    const updates = { ...req.body, updated_at: new Date().toISOString() };
+    // Regular update — explicit ALLOW-LIST, same pattern as groups/[id] F67.
+    // Prior code took the full req.body, stripped 8 fields, and wrote the
+    // rest. A host could smuggle:
+    //   • status                  — bypass start/complete/cancel actions,
+    //                               revert a completed game back to scheduled
+    //   • cancelled_at            — backdate a cancellation to dodge flake
+    //                               strikes or refund policies
+    //   • address_visible_to      — arbitrary value (CHECK would catch most
+    //                               but any valid enum change bypasses UX)
+    //   • completed_at            — fake completion timestamp
+    //   • rsvp_closes_at          — edit without the safety checks the UI
+    //                               would normally impose
+    // Allow-list covers every field the "edit event" UI actually exposes.
+    const EDITABLE = [
+      'title',
+      'description',
+      'game_type',
+      'stakes',
+      'buyin_min',
+      'buyin_max',
+      'scheduled_date',
+      'start_time',
+      'end_time',
+      'address',
+      'address_visible_to',
+      'location_notes',
+      'max_players',
+      'min_players',
+      'allow_guests',
+      'guest_limit',
+      'food_drinks',
+      'special_rules',
+      'settings',
+      'rsvp_closes_at',
+    ];
+    const body = req.body || {};
+    const updates = { updated_at: new Date().toISOString() };
+    for (const key of EDITABLE) {
+      if (Object.prototype.hasOwnProperty.call(body, key)) {
+        updates[key] = body[key];
+      }
+    }
 
-    // Remove fields that shouldn't be updated
-    delete updates.id;
-    delete updates.group_id;
-    delete updates.host_id;
-    delete updates.created_at;
-    delete updates.action;
-    delete updates.rsvp_yes;
-    delete updates.rsvp_maybe;
-    delete updates.rsvp_no;
-    delete updates.waitlist_count;
+    // Validate address_visible_to if present — DB CHECK exists but we want
+    // a clean 400 rather than a 500.
+    if (Object.prototype.hasOwnProperty.call(updates, 'address_visible_to')) {
+      const ALLOWED_AVT = ['all','rsvp','approved'];
+      if (typeof updates.address_visible_to !== 'string' ||
+          !ALLOWED_AVT.includes(updates.address_visible_to)) {
+        return res.status(400).json({
+          success: false,
+          error: `address_visible_to must be one of: ${ALLOWED_AVT.join(', ')}`
+        });
+      }
+    }
 
     const { data: updated, error } = await getSupabase()
       .from('commander_home_games')
