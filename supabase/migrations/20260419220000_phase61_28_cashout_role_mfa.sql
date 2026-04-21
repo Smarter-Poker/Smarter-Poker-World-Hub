@@ -72,9 +72,7 @@ END;
 $$;
 
 COMMENT ON FUNCTION public.fn_sync_mfa_required_on_club_role() IS
-    'Phase 6.1.28: when a user gains a cashout-capable role on a club, ' ||
-    'flip profiles.mfa_required=TRUE. Never flips back — an explicit ' ||
-    'admin UPDATE is required to un-set.';
+    'Phase 6.1.28: when a user gains a cashout-capable role on a club, flip profiles.mfa_required=TRUE. Never flips back — an explicit admin UPDATE is required to un-set.';
 
 DROP TRIGGER IF EXISTS trg_sync_mfa_required_on_club_role ON public.club_members;
 CREATE TRIGGER trg_sync_mfa_required_on_club_role
@@ -101,8 +99,7 @@ END;
 $$;
 
 COMMENT ON FUNCTION public.fn_sync_mfa_required_on_club_owner() IS
-    'Phase 6.1.28: when a club owner is assigned (insert) or changed ' ||
-    '(UPDATE owner_id), flip the new owner''s profiles.mfa_required=TRUE.';
+    'Phase 6.1.28: when a club owner is assigned (insert) or changed (UPDATE owner_id), flip the new owner''s profiles.mfa_required=TRUE.';
 
 DROP TRIGGER IF EXISTS trg_sync_mfa_required_on_club_owner ON public.clubs;
 CREATE TRIGGER trg_sync_mfa_required_on_club_owner

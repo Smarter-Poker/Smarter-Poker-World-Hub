@@ -8,9 +8,9 @@ BEGIN;
 UPDATE public.tournaments
 SET is_active = false
 WHERE 
-  start_date IS NULL OR 
+  start_time IS NULL OR 
   game_type IS NULL OR 
-  buy_in < 0;
+  buy_in_amount < 0;
 
 -- 2. Clean malformed time strings causing formatTime regex failure
 UPDATE public.tournaments
@@ -21,7 +21,7 @@ WHERE
   start_time !~ '^[0-2][0-9]:[0-5][0-9]$';
 
 -- 3. Scrub zombie venues without coordinates disrupting PostGIS bounding maps
-UPDATE public.venues
+UPDATE public.poker_venues
 SET is_active = false
 WHERE 
   latitude IS NULL OR 
@@ -29,7 +29,7 @@ WHERE
 
 -- 4. Set unhandled buy_in entries to 0 rather than dropping
 UPDATE public.tournaments
-SET buy_in = 0
-WHERE buy_in IS NULL;
+SET buy_in_amount = 0
+WHERE buy_in_amount IS NULL;
 
 COMMIT;

@@ -45,10 +45,10 @@ DECLARE
   r RECORD;
 BEGIN
   FOR r IN
-    SELECT constraint_name
+    SELECT tc.constraint_name
     FROM information_schema.referential_constraints rc
     JOIN information_schema.table_constraints tc
-      ON rc.constraint_name = tc.constraint_name
+      ON rc.constraint_name = tc.constraint_name AND rc.constraint_schema = tc.constraint_schema
     WHERE tc.table_name = 'social_comments'
       AND rc.unique_constraint_catalog IS NOT NULL
   LOOP
