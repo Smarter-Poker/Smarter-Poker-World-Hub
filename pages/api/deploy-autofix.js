@@ -351,10 +351,19 @@ async function fixSingleFile({ errorFile, buildErrors, commitSha, attempt, escal
     // a filename with `#` turns the URL into contents/path#fragment, stripping
     // the ?ref= and any path after #.
     const encodedPath = normalizedPath.split('/').map(encodeURIComponent).join('/');
-    const fileRes = await fetch(
-      `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${encodedPath}?ref=${GITHUB_BRANCH}`,
-      { headers: { Authorization: `token ${ghPat}`, Accept: 'application/vnd.github.v3+json' } }
-    );
+    // 15s timeout on GitHub file fetch — prevents hanging the function budget
+    // on a slow GitHub API response.
+    const ghFetchAbort = new AbortController();
+    const ghFetchTimeout = setTimeout(() => ghFetchAbort.abort(), 15000);
+    let fileRes;
+    try {
+      fileRes = await fetch(
+        `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${encodedPath}?ref=${GITHUB_BRANCH}`,
+        { headers: { Authorization: `token ${ghPat}`, Accept: 'application/vnd.github.v3+json' }, signal: ghFetchAbort.signal }
+      );
+    } finally {
+      clearTimeout(ghFetchTimeout);
+    }
 
     if (!fileRes.ok) {
       return {
@@ -447,6 +456,9 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
             ? claudeData.content.filter((b) => b && b.type === 'text').map((b) => b.text || '')
             : [];
           fixedContent = textBlocks.join('\n').trim();
+          // Clear timeout immediately on success so it doesn't run through the
+          // fence-stripping, size-guard, and GitHub push code below.
+          clearTimeout(apiTimeout);
         } else {
           apiError = `Anthropic API returned ${claudeRes.status}: ${await claudeRes.text()}`;
           console.error(`[deploy-autofix] ${apiError}`);
@@ -692,6 +704,24 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
     // ── DIRECT-TO-MAIN MODE (existing behavior) ──
     console.log(`[deploy-autofix] Pushing fix for ${normalizedPath} to main...`);
 
+    // Re-fetch the current SHA from main immediately before the PUT.
+    // If main advanced between Step 2 and now (another commit was pushed in the
+    // interim), the original fileSha is stale and GitHub returns HTTP 422.
+    // We have 1 retry with a fresh SHA before giving up.
+    let currentFileSha = fileSha;
+    try {
+      const freshFileRes = await fetch(
+        `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${encodedPath}?ref=${GITHUB_BRANCH}`,
+        { headers: { Authorization: `token ${ghPat}`, Accept: 'application/vnd.github.v3+json' } }
+      );
+      if (freshFileRes.ok) {
+        const freshData = await freshFileRes.json();
+        if (!Array.isArray(freshData) && freshData.sha) currentFileSha = freshData.sha;
+      }
+    } catch {
+      // Fall through with original fileSha — PUT will 422 if stale, surfaced as push_failed.
+    }
+
     const pushRes = await fetch(
       `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${normalizedPath}`,
       {
@@ -704,7 +734,7 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
         body: JSON.stringify({
           message: commitMsg,
           content: Buffer.from(fixedContent).toString('base64'),
-          sha: fileSha,
+          sha: currentFileSha,
           branch: GITHUB_BRANCH,
         }),
       }

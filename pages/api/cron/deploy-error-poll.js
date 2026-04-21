@@ -284,15 +284,41 @@ export default async function handler(req, res) {
       }
     }
 
+    // ── Step 3b: Guard — don't autofix ERROR if a NEWER BUILDING deploy exists ──
+    // If the most recent BUILDING deploy started AFTER the ERROR deploy, a manual fix
+    // is already in flight. Wait for it to complete before generating a competing autofix.
+    const newerBuilding = deployments.find(
+      (d) => d.state === 'BUILDING' && d.createdAt > latestError.createdAt
+    );
+    if (newerBuilding) {
+      return res.status(200).json({
+        action: 'ok',
+        message: 'Newer BUILDING deploy in progress — waiting before autofix to avoid conflict',
+        buildingSha: newerBuilding.meta?.githubCommitSha?.substring(0, 9),
+        errorSha: commitSha.substring(0, 9),
+      });
+    }
+
     // ── Step 4: Fetch build logs ──
     console.log(`[deploy-error-poll] Processing ERROR deployment ${deployId} (${commitSha.substring(0, 8)})`);
 
     let buildErrors = '';
+    // Track log-fetch failures per deploy — if we can't get logs 3 times, permanently skip.
+    const logFailKey = `logfail:${deployId}`;
     try {
-      const logsRes = await fetch(
-        `https://api.vercel.com/v2/deployments/${deployId}/events?teamId=${TEAM_ID}&direction=backward&limit=500`,
-        { headers: { Authorization: `Bearer ${vercelToken}` } }
-      );
+      // 20s timeout on Vercel log fetch — prevents hanging the whole 60s function
+      // budget on a slow/unresponsive Vercel Events API.
+      const logAbort = new AbortController();
+      const logTimeout = setTimeout(() => logAbort.abort(), 20000);
+      let logsRes;
+      try {
+        logsRes = await fetch(
+          `https://api.vercel.com/v2/deployments/${deployId}/events?teamId=${TEAM_ID}&direction=backward&limit=500`,
+          { headers: { Authorization: `Bearer ${vercelToken}` }, signal: logAbort.signal }
+        );
+      } finally {
+        clearTimeout(logTimeout);
+      }
       if (logsRes.ok) {
         const events = await logsRes.json();
         if (Array.isArray(events)) {
@@ -356,6 +382,13 @@ export default async function handler(req, res) {
       }
     } catch (e) {
       console.error(`[deploy-error-poll] Log fetch failed for ${deployId}: ${e.message}`);
+      // Track consecutive log-fetch failures. After 3, permanently skip so we
+      // don't hammer the Vercel Events API on a deploy whose logs are unavailable.
+      attemptTracker[logFailKey] = (attemptTracker[logFailKey] || 0) + 1;
+      if (attemptTracker[logFailKey] >= 3) {
+        fixedDeployments.add(deployId);
+        console.log(`[deploy-error-poll] Log fetch failed 3 times for ${deployId} — deduped`);
+      }
     }
 
     if (!buildErrors) {
