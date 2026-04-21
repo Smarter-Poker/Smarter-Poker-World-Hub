@@ -365,7 +365,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 }
             });
         // Load follows
-        supabase.from('social_follows')
+        supabase.from('follows')
             .select('following_id')
             .eq('follower_id', authUser.id)
             .then(({ data }) => {
@@ -889,9 +889,9 @@ function ReelViewer({ reels, startIndex, onClose }) {
         haptic(wasFollowing ? 5 : 15);
         try {
             if (wasFollowing) {
-                await supabase.from('social_follows').delete().eq('follower_id', authUser.id).eq('following_id', authorId);
+                await supabase.from('follows').delete().eq('follower_id', authUser.id).eq('following_id', authorId);
             } else {
-                await supabase.from('social_follows').insert({ follower_id: authUser.id, following_id: authorId });
+                await supabase.from('follows').insert({ follower_id: authUser.id, following_id: authorId });
             }
             busEmit.socialFollowChanged && busEmit.socialFollowChanged(authorId, authUser.id, { added: !wasFollowing });
         } catch {
