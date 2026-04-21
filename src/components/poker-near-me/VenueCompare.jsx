@@ -67,9 +67,11 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
   const [liveData, setLiveData] = useState({});
 
   useEffect(() => {
+    let mounted = true;
     fetch('/api/poker/live-tables')
       .then(res => res.json())
       .then(data => {
+        if (!mounted) return;
         if (data.venues) {
           // Build multi-key lookup: by bravo_slug, venue_name (lowered), and normalized name
           const map = {};
@@ -91,6 +93,7 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
         }
       })
       .catch(err => console.warn('Failed to load live data for compare:', err));
+    return () => { mounted = false; };
   }, []);
 
   const selectedVenues = useMemo(() =>

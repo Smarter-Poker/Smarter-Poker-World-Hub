@@ -36,6 +36,7 @@ export default function BestTimeToGoWidget({ venueId, venueName }) {
 
   useEffect(() => {
     if (!venueId) return;
+    let mounted = true;
 
     const fetchAllData = () => {
       setLoading(true);
@@ -46,6 +47,7 @@ export default function BestTimeToGoWidget({ venueId, venueName }) {
         fetch(`/api/poker/peak-activity?venue=${encodeURIComponent(venueName || '')}${gameTypePart}`).then(r => r.json()).catch(() => null),
         fetch(`/api/poker/venue-predictions-batch?venue_ids=${venueId}`).then(r => r.json()).catch(() => null),
       ]).then(([predData, heatData, batchData]) => {
+        if (!mounted) return;
         if (predData?.success) setPredictions(predData);
         if (heatData?.heatmap) setHeatmapData(heatData);
         // Merge batch data into predictions for quiet hours / game ETA
@@ -69,6 +71,7 @@ export default function BestTimeToGoWidget({ venueId, venueName }) {
     });
 
     return () => {
+      mounted = false;
       if (typeof unsub === 'function') unsub();
     };
   }, [venueId, venueName, selectedGame]);
