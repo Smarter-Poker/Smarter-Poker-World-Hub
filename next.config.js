@@ -110,9 +110,16 @@ const nextConfig = {
   // this in dev — dev uses the default server.
   output: process.env.NODE_ENV === 'production' ? 'standalone' : undefined,
 
-  // ─── Three.js / R3F Package Transpilation ──────────────────────────────────
+  // ─── R3F Package Transpilation ──────────────────────────────────────────────
   // ESM-only packages need transpilation for proper Next.js compatibility.
-  transpilePackages: ['three', '@react-three/fiber', '@react-three/drei', '@react-three/postprocessing'],
+  //
+  // [Phase 1.2, 2026-04-21] Removed 'three' from this list. Three.js ships
+  // native ESM (package.json exports map points to ./build/three.module.js).
+  // Running it through SWC on every build just burns CPU/RAM with no benefit —
+  // Next.js 14 loads ESM packages without transpilation. Keeping the three
+  // R3F wrappers because they DO need transpilation (CJS consumers otherwise
+  // hit "Cannot use import statement outside a module").
+  transpilePackages: ['@react-three/fiber', '@react-three/drei', '@react-three/postprocessing'],
 
   // ─── Server External Packages (OOM FIX) ────────────────────────────────────
   // Tell Next.js NOT to bundle these in the server bundle. They are native,
