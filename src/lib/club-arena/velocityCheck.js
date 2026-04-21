@@ -115,7 +115,10 @@ async function checkVelocity(supabaseAdmin, { userId, clubId, actionType, amount
         }
 
         return { passed: true, flagged: false };
-    } catch (err) { console.warn('[App] Handled exception:', err?.message || err); };
+    } catch (err) {
+        console.warn('[VelocityCheck] Error:', err?.message || err);
+        // Fail-open: allow the transaction but flag it
+        return { passed: true, flagged: true, reason: 'Velocity check error — allowed but flagged' };
     }
 }
 

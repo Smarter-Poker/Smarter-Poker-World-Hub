@@ -263,7 +263,8 @@ class PokerBrainMatcher {
         const aHash = computeAHash(imageData);
 
         this.templateHashes.set(key, { dHash, aHash });
-      } catch (err) { console.warn('[App] Handled exception:', err?.message || err); } (${err.message})`);
+      } catch (err) {
+        console.warn(`[Matcher] Failed to load template: ${key} (${err.message})`);
       }
     });
 

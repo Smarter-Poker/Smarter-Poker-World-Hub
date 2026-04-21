@@ -941,8 +941,7 @@ class LobbyManager {
           await resilientMutation(sb, () => sb.rpc('update_table_stats', {
             p_table_id: config.tableId,
             p_pot_total: potTotal,
-          })).catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); }).eq('id', config.tableId)).catch((err) => console.warn('[LobbyManager] Table stats update failed:', err));
-          });
+          })).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         }
       } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     });

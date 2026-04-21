@@ -281,8 +281,7 @@ export async function purchaseFeatureAccess(userId, featureKey, cost, durationHo
             p_amount: cost,
             p_source: 'feature_unlock_refund',
             p_metadata: { feature_key: featureKey, reason: 'access_grant_failed' }
-        }).catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-        });
+        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         return { success: false, error: 'Failed to grant access' };
     }
 

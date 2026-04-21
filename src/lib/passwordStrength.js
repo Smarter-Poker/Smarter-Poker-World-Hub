@@ -191,7 +191,10 @@ async function checkHIBP(pw, { timeoutMs = 3000 } = {}) {
             }
         }
         return { ok: true, breachCount: 0 };
-    } catch (err) { console.warn('[App] Handled exception:', err?.message || err); };
+    } catch (err) {
+        console.warn('[App] Handled exception:', err?.message || err);
+        // HIBP unreachable — fail open so signup isn't blocked
+        return { ok: true, breachCount: null, reason: 'hibp_error' };
     }
 }
 

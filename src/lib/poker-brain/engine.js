@@ -1294,7 +1294,6 @@ const PokerBrainEngine = (() => {
             reasoning += ` (PLO desperation shove at ${Math.round(bbStackCalc)}BB, ~${ploEst.equity}% equity)`;
           }
         } catch (_e) { console.warn('[App] Handled exception:', _e?.message || _e); }
-        }
       }
 
       // ── Preflop equity calculation ──────────────────────────────

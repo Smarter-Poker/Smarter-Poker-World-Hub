@@ -11,8 +11,7 @@ async function getConfetti() {
         try {
             const m = await import('canvas-confetti');
             _confetti = m.default || m;
-        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); };
-        }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     }
     return _confetti;
 }

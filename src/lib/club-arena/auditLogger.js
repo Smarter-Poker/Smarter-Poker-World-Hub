@@ -71,7 +71,8 @@ async function logAudit(supabaseAdmin, {
             ip_address: ip,
             details,
         });
-    } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }:`, err.message);
+    } catch (err) {
+        console.warn('[AuditLogger] Insert failed:', err?.message || err);
     }
 }
 
