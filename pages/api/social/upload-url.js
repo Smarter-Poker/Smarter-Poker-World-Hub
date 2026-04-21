@@ -98,14 +98,22 @@ export default async function handler(req, res) {
               return res.status(500).json({ success: false, error: 'Failed to create upload URL: ' + signError.message });
           }
 
+          // Build the full absolute PUT URL.
+          // createSignedUploadUrl returns data.signedUrl as a relative path like
+          // "/object/upload/sign/bucket/path?token=..." — the client must PUT to
+          // the full Supabase Storage URL, not the app origin.
+          const rawSignedPath = data.signedUrl; // may already be absolute or relative
+          const fullSignedUrl = rawSignedPath.startsWith('http')
+              ? rawSignedPath
+              : `${supabaseUrl}/storage/v1${rawSignedPath}`;
+
           // Get the public URL for after upload completes
           const { data: urlData } = getSupabase().storage.from(BUCKET).getPublicUrl(storagePath);
           const publicUrl = urlData?.publicUrl;
 
-
           return res.status(200).json({
               success: true,
-              signedUrl: data.signedUrl,
+              signedUrl: fullSignedUrl,
               token: data.token,
               path: storagePath,
               publicUrl,

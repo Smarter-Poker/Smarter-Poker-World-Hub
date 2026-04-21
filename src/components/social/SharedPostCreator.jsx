@@ -153,6 +153,10 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         setError('Upload failed: ' + (meta.error || 'Unknown error'));
                         continue;
                     }
+                    if (!meta.signedUrl || !meta.signedUrl.startsWith('http')) {
+                        setError('Video upload failed: invalid upload URL received');
+                        continue;
+                    }
                     // Upload directly to Supabase Storage via signed URL
                     const uploadRes = await fetch(meta.signedUrl, {
                         method: 'PUT',
@@ -160,7 +164,10 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         body: file,
                     });
                     if (!uploadRes.ok) {
-                        setError('Video upload failed — please try again');
+                        let errDetail = '';
+                        try { const t = await uploadRes.text(); errDetail = t ? ` (${t.slice(0, 120)})` : ''; } catch {}
+                        console.error('[SharedPostCreator] Video PUT failed', uploadRes.status, errDetail);
+                        setError(`Video upload failed (${uploadRes.status})${errDetail} — please try again`);
                         continue;
                     }
                     uploaded.push({ type: 'video', url: meta.publicUrl });
@@ -668,16 +675,6 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                     >Go Live</button>
                     <span style={{ color: '#BCC0C4' }}>·</span>
-                    <Link
-                        href="/hub/reels"
-                        style={{
-                            padding: '6px 8px', borderRadius: 6, background: 'transparent', textDecoration: 'none',
-                            color: '#65676B', fontSize: 14, fontWeight: 600, transition: 'background 0.2s', whiteSpace: 'nowrap'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                    >Reels</Link>
-                    <span style={{ color: '#BCC0C4' }}>·</span>
                     <button
                         onClick={() => setShowCheckInModal(true)}
                         style={{
@@ -690,16 +687,6 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" /></svg>
                         Check In
                     </button>
-                    <span style={{ color: '#BCC0C4' }}>·</span>
-                    <Link
-                        href="/hub/friends"
-                        style={{
-                            padding: '6px 8px', borderRadius: 6, background: 'transparent', textDecoration: 'none',
-                            color: '#65676B', fontSize: 14, fontWeight: 600, transition: 'background 0.2s', whiteSpace: 'nowrap'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                    >Find Friends</Link>
                     {context === 'social-media' && onOpenClubPages && <>
                         <span style={{ color: '#BCC0C4' }}>·</span>
                         <span
