@@ -1636,7 +1636,7 @@ export function ReelsViewer({ onClose }) {
                 )}
 
                 {/* Heart burst animation CSS */}
-                <style jsx>{`
+                <style>{`
                     @keyframes heartBurstReels {
                         0% { opacity: 1; transform: translate(-50%, -50%) scale(0.3); }
                         50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }

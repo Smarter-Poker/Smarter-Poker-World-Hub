@@ -1580,7 +1580,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 )}
 
                 {/* Heart burst animation CSS */}
-                <style jsx>{`
+                <style>{`
                     @keyframes heartBurst {
                         0% { opacity: 1; transform: translate(-50%, -50%) scale(0.3); }
                         50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
@@ -2029,7 +2029,7 @@ export function ReelsFeedCarousel() {
             )}
 
             {/* Hide scrollbar */}
-            <style jsx global>{`
+            <style>{`
                 .reels-carousel::-webkit-scrollbar { display: none; }
             `}</style>
         </>
