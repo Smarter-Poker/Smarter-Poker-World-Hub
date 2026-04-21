@@ -1,0 +1,22 @@
+[Unit]
+Description=Run vercel-autofix-verify every 5 minutes
+Documentation=https://github.com/Smarter-Poker/Smarter-Poker-World-Hub/blob/main/scripts/vercel-autofix/README.md
+
+[Timer]
+# Start 90s after boot — later than the poller so any first-run
+# autofix_attempts already exist before we try to verify them.
+OnBootSec=90s
+
+# Every 5 minutes after the previous run COMPLETES. Verify doesn't need
+# to be as aggressive as the poller — deploys take a few minutes anyway.
+OnUnitInactiveSec=5min
+
+# Randomize by ±45s to desync from the poller and from wall-clock minutes
+RandomizedDelaySec=45
+
+Persistent=false
+
+Unit=vercel-autofix-verify.service
+
+[Install]
+WantedBy=timers.target

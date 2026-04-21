@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "postinstall": "patch -p0 < scripts/postinstall-memory-hotfix.patch || true",
+    "postinstall": "bash scripts/install-hooks.sh 2>/dev/null || true",
     "dev": "npx kill-port 3000 2>/dev/null; NODE_OPTIONS='--max-old-space-size=16384' next dev -p 3000",
     "clean:dev": "npx kill-port 3000 && rm -rf .next node_modules/.cache && NODE_OPTIONS='--max-old-space-size=16384' next dev -p 3000",
     "nuke:dev": "npx kill-port 3000 && rm -rf .next node_modules/.cache && NODE_OPTIONS='--max-old-space-size=16384' next dev -p 3000",
@@ -18,7 +18,6 @@
     "deploy:log": "node scripts/deploy-log.js --show",
     "push": "bash scripts/git-safe-push.sh",
     "verify": "node scripts/verify-deploy.js",
-    "postinstall": "bash scripts/install-hooks.sh 2>/dev/null || true",
     "lint": "next lint",
     "prepare": "husky"
   },
@@ -28,7 +27,7 @@
     "@fingerprintjs/fingerprintjs": "^5.0.1",
     "@livekit/components-react": "^2.9.19",
     "@livekit/components-styles": "^1.2.0",
-    "@next/env": "14.2.35",
+    "@next/env": "^14.2.35",
     "@pinecone-database/pinecone": "^6.1.3",
     "@react-spring/three": "^10.0.3",
     "@react-three/drei": "^9.122.0",
