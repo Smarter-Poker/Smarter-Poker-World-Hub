@@ -92,7 +92,7 @@ class PodErrorBoundary extends React.Component {
         React.createElement('p', { style: { fontSize: 12, marginBottom: 16, color: 'rgba(200,214,229,0.35)' } }, String(this.state.error?.message || 'Unknown error')),
         React.createElement('button', {
           onClick: () => { this.setState({ hasError: false, error: null }); if (this.props.onReset) this.props.onReset(); },
-          style: { padding: '8px 20px', borderRadius: 8, border: '1px solid rgba(212,168,83,0.25)', background: 'rgba(212,168,83,0.08)', color: '#d4a853', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }
+          style: { padding: '8px 20px', borderRadius: 20, border: '1px solid rgba(212,168,83,0.25)', background: 'rgba(212,168,83,0.08)', color: '#d4a853', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }
         }, 'Reset Pod')
       );
     }

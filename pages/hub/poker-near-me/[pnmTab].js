@@ -250,7 +250,7 @@ class TabErrorBoundary extends React.Component {
                 React.createElement('p', { style: { fontSize: 12, marginBottom: 20, color: 'rgba(200,214,229,0.4)', maxWidth: 300, margin: '0 auto 20px' } }, String(this.state.error?.message || 'Unknown error')),
                 React.createElement('button', {
                     onClick: () => this.setState({ hasError: false, error: null }),
-                    style: { padding: '10px 24px', borderRadius: 8, border: '1px solid rgba(212,168,83,0.3)', background: 'rgba(212,168,83,0.1)', color: '#d4a853', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }
+                    style: { padding: '10px 24px', borderRadius: 20, border: '1px solid rgba(212,168,83,0.3)', background: 'rgba(212,168,83,0.1)', color: '#d4a853', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }
                 }, 'Reset Tab')
             );
         }
