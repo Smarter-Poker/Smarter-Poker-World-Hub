@@ -154,7 +154,7 @@ async function bridgeRequest(req, res, { method = 'POST', limit } = {}) {
   const token = authHeader.slice(7);
 
   const serviceClient = getServiceClient();
-  const user = await getServerUserWithFallback(req, serviceClient);
+  const { user } = await getServerUserWithFallback(req, serviceClient);
   if (!user || !user.id) {
     return { ok: false, status: 401,
              body: { success: false, error: 'INVALID_TOKEN' } };
