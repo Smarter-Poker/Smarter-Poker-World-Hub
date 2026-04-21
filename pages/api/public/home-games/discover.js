@@ -43,16 +43,38 @@ function escapeIlike(s) {
   return (s || '').replace(/[%_\\]/g, (c) => '\\' + c);
 }
 
-// Deterministic per-group jitter for approximate coordinates. We don't want
-// to leak the exact host address on a public map, but we also don't want a
-// marker to hop around on every page load. Seed the jitter off the group id
-// so it's stable for the same group but different for different groups.
+// Coarse coordinate for public display. The ORIGINAL design used a hash
+// of groupId to jitter the real coord by ±0.005°. That was security-
+// through-obscurity: the hash function lives in public source, so any
+// attacker could recompute the offset for any visible groupId and
+// subtract it out to recover the EXACT host address from a single
+// discover response.
 //
-// Approx bounds: ±0.005° lat ≈ ±0.35 mi, ±0.006° lng ≈ ±0.3 mi at US lats.
+// Real design (F33): snap the real coord to a 0.005° grid (~0.3 mi
+// cell). What we return is the CELL ANCHOR — a single point shared by
+// every real location inside that cell. No reverse-engineering recovers
+// the sub-cell position, because that information was genuinely thrown
+// away when we snapped. Attack surface is bounded at cell size.
+//
+// A small stable in-cell offset (±0.002°) is added so multiple groups
+// inside the same cell don't stack on top of each other on the map. The
+// offset is derived from groupId — publicly computable, but it only
+// scatters pins within the already-privacy-preserved cell, so knowing
+// the offset gives an attacker zero additional information about the
+// real location.
+//
+// Bounds: 0.005° lat ≈ 0.35 mi at US latitudes; 0.005° lng ≈ 0.25 mi at
+// 45°N and 0.4 mi at 30°N. Close enough to the original privacy target.
 function jitterCoord(groupId, lat, lng) {
   if (lat == null || lng == null) return { lat: null, lng: null };
-  if (!groupId) return { lat: Number(lat), lng: Number(lng) };
-  // Cheap stable hash of the UUID string -> two signed offsets in ±0.005°.
+  const nLat = Number(lat);
+  const nLng = Number(lng);
+  // Snap to 0.005° grid — the real coord is somewhere inside this cell.
+  const cellLat = Math.round(nLat * 200) / 200;
+  const cellLng = Math.round(nLng * 200) / 200;
+  if (!groupId) return { lat: cellLat, lng: cellLng };
+  // Stable in-cell offset for map-pin scatter only. Max ±0.002° so
+  // the returned point stays inside the privacy cell.
   let a = 0, b = 0;
   const s = String(groupId);
   for (let i = 0; i < s.length; i++) {
@@ -60,12 +82,9 @@ function jitterCoord(groupId, lat, lng) {
     a = (a * 31 + c) >>> 0;
     b = (b * 37 + c * 7) >>> 0;
   }
-  const dLat = ((a % 10000) / 10000 - 0.5) * 0.01;
-  const dLng = ((b % 10000) / 10000 - 0.5) * 0.012;
-  return {
-    lat: Number(lat) + dLat,
-    lng: Number(lng) + dLng,
-  };
+  const dLat = ((a % 10000) / 10000 - 0.5) * 0.004;
+  const dLng = ((b % 10000) / 10000 - 0.5) * 0.004;
+  return { lat: cellLat + dLat, lng: cellLng + dLng };
 }
 
 export default async function handler(req, res) {
@@ -259,18 +278,35 @@ export default async function handler(req, res) {
     let out = (groups || []).map((g) => {
       const page = pageByGroupId[String(g.id)] || null;
       const next = nextByGroupId[g.id] || null;
-      // ── Distance calc runs BEFORE jittering — use the real DB lat/lng
-      // so distance is accurate. The coordinates returned to the client
-      // are still jittered for privacy.
+      // ── Distance calc
+      // F33 (privacy): prior code computed distance from REAL lat/lng and
+      // exposed the result rounded to 0.1 mile. Combined with the
+      // deterministically-seeded jitter (which anyone can reverse from the
+      // public source + group_id), an attacker could query discover from 3+
+      // GPS points, trilaterate on the exposed distances, and recover the
+      // REAL host address to ~0.05-mile precision — i.e., the exact house.
+      //
+      // Fix layers:
+      //   1. Compute distance from the JITTERED coord. A trilateration now
+      //      solves for the jittered point, which is offset from the real
+      //      point by up to ±0.3 miles.
+      //   2. Round the EXPOSED distance to whole miles. Even if an attacker
+      //      reverses the jitter seed, the distance granularity caps the
+      //      attack at ≈0.5-mile precision — enough for "this group is in
+      //      the Loop" but not "this group is at 123 W Madison #4A."
+      //
+      // The internal radius filter and sort still use the unrounded value
+      // (below) so "within 5 mi" works exactly as before.
       let distance_miles = null;
-      if (hasGps && g.latitude != null && g.longitude != null) {
-        distance_miles = haversineMiles(
-          parsedLat, parsedLng,
-          parseFloat(g.latitude), parseFloat(g.longitude)
-        );
-        distance_miles = Math.round(distance_miles * 10) / 10;
-      }
+      let rawDistanceMiles = null;
       const jittered = jitterCoord(g.id, g.latitude, g.longitude);
+      if (hasGps && jittered.lat != null && jittered.lng != null) {
+        rawDistanceMiles = haversineMiles(
+          parsedLat, parsedLng,
+          jittered.lat, jittered.lng
+        );
+        distance_miles = Math.round(rawDistanceMiles);
+      }
       return {
         id: g.id,
         slug: page?.slug || null,
@@ -287,7 +323,10 @@ export default async function handler(req, res) {
         // Legacy aliases for VenueMap / VenueCard which read 'latitude'/'longitude'.
         latitude: jittered.lat,
         longitude: jittered.lng,
-        distance_miles,  // Phase 21 — null if no GPS in request
+        distance_miles,  // Phase 21 — null if no GPS in request. Whole-mile precision.
+        // Internal-only field used by radius filter + sort below. NOT
+        // exposed to the client (stripped at the end of the shape block).
+        _rawDistanceMiles: rawDistanceMiles,
         avatar_url: page?.avatar_url || g.profile_photo_url || null,
         cover_url: page?.cover_url || g.cover_photo_url || null,
         default_game_type: g.default_game_type || null,
@@ -314,23 +353,32 @@ export default async function handler(req, res) {
     });
 
     // ── PHASE 21 — GEO FILTER + SORT ──────────────────────────────────
-    // Applied AFTER shape so `distance_miles` is populated.
+    // Applied AFTER shape so `_rawDistanceMiles` is populated. Filter and
+    // sort use the unrounded internal value so "within 5 mi" behaves
+    // exactly as the user expects — the rounding only affects what we
+    // EXPOSE (see F33 privacy fix in the map block above).
     if (hasGps) {
       // Filter out groups outside the radius (those without coords are kept;
-      // they have distance_miles=null and surface at the end of the list).
+      // they have _rawDistanceMiles=null and surface at the end of the list).
       out = out.filter((g) =>
-        g.distance_miles == null || g.distance_miles <= parsedRadius
+        g._rawDistanceMiles == null || g._rawDistanceMiles <= parsedRadius
       );
       // Sort: groups with distance first (ascending), groups without
       // coords after, tie-breaking on member_count.
       out.sort((a, b) => {
-        if (a.distance_miles == null && b.distance_miles == null) {
+        if (a._rawDistanceMiles == null && b._rawDistanceMiles == null) {
           return (b.member_count || 0) - (a.member_count || 0);
         }
-        if (a.distance_miles == null) return 1;
-        if (b.distance_miles == null) return -1;
-        return a.distance_miles - b.distance_miles;
+        if (a._rawDistanceMiles == null) return 1;
+        if (b._rawDistanceMiles == null) return -1;
+        return a._rawDistanceMiles - b._rawDistanceMiles;
       });
+    }
+
+    // Strip the internal field before returning so clients can't recover
+    // sub-mile precision. Must run AFTER filter/sort.
+    for (const g of out) {
+      delete g._rawDistanceMiles;
     }
 
     return res.status(200).json({
