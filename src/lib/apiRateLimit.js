@@ -18,12 +18,13 @@ const store = new Map();
 
 // Clean up expired entries every 5 min
 if (typeof setInterval !== 'undefined') {
-  setInterval(() => {
+  const interval = setInterval(() => {
     const now = Date.now();
     for (const [key, entry] of store.entries()) {
       if (now > entry.reset) store.delete(key);
     }
   }, 5 * 60 * 1000);
+  if (interval.unref) interval.unref();
 }
 
 function getIdentifier(req) {

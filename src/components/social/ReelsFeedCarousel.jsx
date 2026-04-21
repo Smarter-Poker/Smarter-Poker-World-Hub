@@ -1879,14 +1879,14 @@ export function ReelsFeedCarousel() {
             // Also fetch social_posts with YouTube URLs
             const { data: postsData } = await supabase
                 .from('social_posts')
-                .select('id, author_id, content, media_urls, like_count, comment_count, created_at, visibility')
+                .select('id, author_id, content, content_type, media_urls, like_count, comment_count, created_at, visibility')
                 .eq('visibility', 'public')
                 .not('media_urls', 'is', null)
                 .order('created_at', { ascending: false })
                 .limit(30);
             const ytPosts = (postsData || []).filter(p => {
                 const url = p.media_urls?.[0];
-                return url && (url.includes('youtube.com') || url.includes('youtu.be'));
+                return p.content_type === 'video' || (url && (url.includes('youtube.com') || url.includes('youtu.be') || url.match(/\.(mp4|webm|mov)(\?|$)/i)));
             });
             if (ytPosts.length > 0) {
                 const authorIds = [...new Set(ytPosts.map(p => p.author_id))];

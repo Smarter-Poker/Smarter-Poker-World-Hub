@@ -316,7 +316,7 @@ export default function ReelsPage() {
             // Load from social_posts (posts with YouTube videos in media_urls)
             const { data: postsData } = await supabase
                 .from('social_posts')
-                .select('id, author_id, content, media_urls, like_count, comment_count, created_at, visibility')
+                .select('id, author_id, content, content_type, media_urls, like_count, comment_count, created_at, visibility')
                 .eq('visibility', 'public')
                 .not('media_urls', 'is', null)
                 .order('created_at', { ascending: false })
@@ -345,9 +345,9 @@ export default function ReelsPage() {
                 allVideos.push(...postsData
                     .filter(post => {
                         if (!post.media_urls || post.media_urls.length === 0) return false;
-                        // Only include posts with YouTube URLs
+                        // Include posts with YouTube URLs or native video uploads
                         const url = post.media_urls[0];
-                        return url && (url.includes('youtube.com') || url.includes('youtu.be'));
+                        return post.content_type === 'video' || (url && (url.includes('youtube.com') || url.includes('youtu.be') || url.match(/\.(mp4|webm|mov)(\?|$)/i)));
                     })
                     .map(post => ({
                         id: post.id,
@@ -503,14 +503,14 @@ export default function ReelsPage() {
             // Fetch more social_posts with YouTube links
             const { data: postsData } = await supabase
                 .from('social_posts')
-                .select('id, author_id, content, media_urls, like_count, comment_count, created_at, visibility')
+                .select('id, author_id, content, content_type, media_urls, like_count, comment_count, created_at, visibility')
                 .eq('visibility', 'public')
                 .not('media_urls', 'is', null)
                 .order('created_at', { ascending: false })
                 .range(offset, offset + 49);
             const videos = (postsData || []).filter(p => {
                 const url = p.media_urls?.[0];
-                return url && (url.includes('youtube.com') || url.includes('youtu.be'));
+                return p.content_type === 'video' || (url && (url.includes('youtube.com') || url.includes('youtu.be') || url.match(/\.(mp4|webm|mov)(\?|$)/i)));
             });
             if (videos.length > 0) {
                 allNewVideos.push(...videos.map(v => ({

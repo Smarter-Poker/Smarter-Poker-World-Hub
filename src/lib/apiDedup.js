@@ -18,12 +18,13 @@ const DEDUP_WINDOW_MS = 2000; // 2 seconds
 
 // Cleanup expired entries every 5 minutes
 if (typeof setInterval !== 'undefined') {
-    setInterval(() => {
+    const interval = setInterval(() => {
         const now = Date.now();
         for (const [key, ts] of recentRequests.entries()) {
             if (now - ts > DEDUP_WINDOW_MS * 2) recentRequests.delete(key);
         }
     }, 5 * 60 * 1000);
+    if (interval.unref) interval.unref();
 }
 
 /**

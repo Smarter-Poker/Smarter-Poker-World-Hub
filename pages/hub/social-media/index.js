@@ -928,10 +928,10 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                         // Single media - full width
                         post.contentType === 'video' ? (
                             // VIDEO: Use VideoPostWrapper to handle broken video detection
-                            // Click opens inline viewer for immediate playback (no navigation)
+                            // Click routes to immersive Reels equivalent
                             <VideoPostWrapper
                                 url={post.mediaUrls[0]}
-                                onValidVideoClick={() => setFullScreenVideo(post.mediaUrls[0])}
+                                onValidVideoClick={() => router.push(`/hub/reels?id=${post.id}`)}
                             >
                                 <video
                                     src={post.mediaUrls[0]}
@@ -964,7 +964,14 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                             {post.mediaUrls.map((url, i) => (
                                 <div key={i} style={{ aspectRatio: '1', overflow: 'hidden' }}>
                                     {post.contentType === 'video' && i === 0 ? (
-                                        <video controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} src={url} />
+                                        <div style={{ width: '100%', height: '100%', cursor: 'pointer', position: 'relative', background: '#000' }} onClick={() => router.push(`/hub/reels?id=${post.id}`)}>
+                                            <video style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }} src={url} muted playsInline />
+                                            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
+                                                </div>
+                                            </div>
+                                        </div>
                                     ) : (
                                         <img src={url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }} onClick={() => { setLightboxImages(post.mediaUrls); setLightboxIndex(post.mediaUrls.indexOf(url)); setLightboxUrl(url); }} onError={e => { e.target.style.display = 'none'; }} />
                                     )}

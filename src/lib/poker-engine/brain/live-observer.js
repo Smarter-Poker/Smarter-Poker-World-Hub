@@ -812,7 +812,8 @@ function cleanupLiveObservers() {
 }
 
 // Auto-cleanup every 5 minutes
-setInterval(cleanupLiveObservers, 5 * 60 * 1000);
+const cleanupInterval = setInterval(cleanupLiveObservers, 5 * 60 * 1000);
+if (cleanupInterval.unref) cleanupInterval.unref();
 
 /**
  * LRU eviction: cap opponent profiles per table observer.

@@ -95,7 +95,8 @@ export class MasteryGate {
 
         // Periodic cleanup of expired tokens to prevent memory leaks
         if (typeof setInterval !== 'undefined') {
-            setInterval(() => this.pruneExpiredTokens(), 60 * 60 * 1000); // hourly
+            const interval = setInterval(() => this.pruneExpiredTokens(), 60 * 60 * 1000); // hourly
+            if (interval.unref) interval.unref();
         }
     }
 
