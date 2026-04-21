@@ -11,10 +11,12 @@
 # 2. Module-scope browser API usage without window guards (SSG bombs)
 # 3. No .single() calls (must use .maybeSingle())
 # 4. No raw @supabase/supabase-js imports in API routes
-# 5. Basic syntax validation
+# 5. Real syntax validation via node -c
 # 6. Auth route canonicalization (/auth/login not /auth/signin)
 # 7. Pages with /api/ fetch calls must import auth (getAccessToken/authedFetch)
 # 8. Broken imports — all import paths resolve to existing files
+# 9. Catch-block corruption — detects collapsed try/catch with orphaned code
+#    (the April 21, 2026 incident: 17 failed deploys from automated refactoring)
 #
 # INSTALL: Run `bash scripts/install-hooks.sh` from the project root
 # ═══════════════════════════════════════════════════════════════════════════
@@ -223,37 +225,89 @@ if [ -z "$UNAUTH_HITS" ]; then
 fi
 echo ""
 
-# ─── CHECK 5: Basic syntax validation ────────────────────────────────────
-echo "CHECK 5: Syntax validation..."
+# ─── CHECK 5: Real syntax validation via node -c ────────────────────────
+echo "CHECK 5: Syntax validation (node -c)..."
 
 if command -v node &> /dev/null; then
     SYNTAX_ERRORS=0
     for file in $JS_FILES; do
         [ -f "$file" ] || continue
-        # Skip TypeScript files (node can't parse them directly)
-        echo "$file" | grep -qE '\.tsx?$' && continue
+        # Skip TypeScript/JSX files (node -c can't parse them, webpack handles it)
+        echo "$file" | grep -qE '\.(tsx?|jsx)$' && continue
+        # Skip files with import assertions (assert { type: 'json' }) — valid in webpack
+        grep -q 'assert {' "$file" 2>/dev/null && continue
 
-        # Try to parse with node
-        node -e "
-            try {
-                require('fs').readFileSync('$file', 'utf8');
-            } catch(e) {
-                process.exit(1);
-            }
-        " 2>/dev/null
-
+        # Real syntax check — this catches the exact errors webpack would catch
+        PARSE_OUTPUT=$(node -c "$file" 2>&1)
         if [ $? -ne 0 ]; then
             echo -e "${RED}  ✗ SYNTAX ERROR: ${file}${NC}"
+            echo "    $PARSE_OUTPUT" | head -3
+            echo ""
             SYNTAX_ERRORS=$((SYNTAX_ERRORS + 1))
             ERRORS=$((ERRORS + 1))
         fi
     done
 
     if [ $SYNTAX_ERRORS -eq 0 ]; then
-        echo -e "${GREEN}  ✓ All files pass syntax check.${NC}"
+        echo -e "${GREEN}  ✓ All .js files pass node -c syntax check.${NC}"
     fi
 else
     echo -e "${YELLOW}  ⚠ Node.js not found. Skipping syntax validation.${NC}"
+fi
+echo ""
+
+# ─── CHECK 9: Catch-block corruption patterns ────────────────────────────
+# Detects the exact class of bugs introduced by automated refactoring agents
+# that collapse try/catch blocks and leave orphaned code outside the catch.
+# Incident: April 21, 2026 — 17 consecutive failed deploys.
+echo "CHECK 9: Catch-block corruption scan..."
+
+CATCH_CORRUPTION_HITS=""
+for file in $JS_FILES; do
+    [ -f "$file" ] || continue
+
+    # Pattern 1: catch(...) { ... } = await  (orphaned assignment after collapsed catch)
+    P1=$(grep -n 'catch.*console\.warn.*} = await' "$file" 2>/dev/null)
+    if [ -n "$P1" ]; then
+        echo -e "${RED}  ✗ CATCH CORRUPTION: ${file}${NC}"
+        echo "$P1" | while IFS= read -r line; do echo "    $line"; done
+        echo "    ↳ Catch block collapsed with orphaned '= await' assignment."
+        echo "    ↳ This was caused by an automated refactoring agent."
+        echo ""
+        ERRORS=$((ERRORS + 1))
+        CATCH_CORRUPTION_HITS="found"
+    fi
+
+    # Pattern 2: catch(...) { ... };\n    }  (stray semicolon + orphaned closing brace)
+    P2=$(grep -n 'catch.*console\.warn.*};$' "$file" 2>/dev/null)
+    if [ -n "$P2" ]; then
+        echo -e "${YELLOW}  ⚠ SUSPICIOUS: ${file}${NC}"
+        echo "$P2" | while IFS= read -r line; do echo "    $line"; done
+        echo "    ↳ Catch block may have stray semicolon. Verify manually."
+        echo ""
+        WARNINGS=$((WARNINGS + 1))
+    fi
+
+    # Pattern 3: catch(...) { ... })  (orphaned closing paren after collapsed catch)
+    P3=$(grep -n 'catch.*console\.warn.*})$' "$file" 2>/dev/null | grep -v '\.catch' | grep -v 'finally')
+    if [ -n "$P3" ]; then
+        # Filter out legitimate .catch() chains — only flag if it's a try/catch
+        echo "$P3" | while IFS= read -r line; do
+            LINE_CONTENT=$(echo "$line" | cut -d: -f2-)
+            # If the line starts with '} catch' (not '.catch'), it's suspicious
+            echo "$LINE_CONTENT" | grep -q '} catch' && {
+                echo -e "${YELLOW}  ⚠ SUSPICIOUS: ${file}${NC}"
+                echo "    $line"
+                echo "    ↳ Catch block may have orphaned closing paren."
+                echo ""
+                WARNINGS=$((WARNINGS + 1))
+            }
+        done
+    fi
+done
+
+if [ -z "$CATCH_CORRUPTION_HITS" ]; then
+    echo -e "${GREEN}  ✓ No catch-block corruption patterns found.${NC}"
 fi
 
 echo ""
