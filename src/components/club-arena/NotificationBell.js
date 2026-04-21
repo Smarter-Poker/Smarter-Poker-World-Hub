@@ -50,7 +50,7 @@ export default function NotificationBell({ userId }) {
         const d = await res.json();
         const notifs = d.notifications || [];
         setNotifications(notifs);
-        setUnreadCount(notifs.filter(n => !n.is_read).length);
+        setUnreadCount(notifs.filter(n => !n.read).length);
       }
     } catch (_) { /* silent */ }
   }, [userId]);
@@ -80,7 +80,7 @@ export default function NotificationBell({ userId }) {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({}),
       });
-      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       setUnreadCount(0);
     } catch (_) { /* silent */ }
   };
@@ -149,7 +149,7 @@ export default function NotificationBell({ userId }) {
                 style={{
                   padding: '10px 16px',
                   borderBottom: `1px solid ${FB.border}20`,
-                  background: n.is_read ? 'transparent' : 'rgba(35,116,225,0.06)',
+                  background: n.read ? 'transparent' : 'rgba(35,116,225,0.06)',
                   cursor: 'default',
                 }}
               >
@@ -158,7 +158,7 @@ export default function NotificationBell({ userId }) {
                     {ICON_MAP[n.type] || ICON_MAP.default}
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ color: FB.text, fontSize: 13, fontWeight: n.is_read ? 400 : 600, lineHeight: 1.4 }}>
+                    <div style={{ color: FB.text, fontSize: 13, fontWeight: n.read ? 400 : 600, lineHeight: 1.4 }}>
                       {n.title || n.message || 'Notification'}
                     </div>
                     {n.message && n.title && (
@@ -170,7 +170,7 @@ export default function NotificationBell({ userId }) {
                       {timeAgo(n.created_at)}
                     </div>
                   </div>
-                  {!n.is_read && (
+                  {!n.read && (
                     <div style={{ width: 8, height: 8, borderRadius: '50%', background: FB.primary, flexShrink: 0, marginTop: 6 }} />
                   )}
                 </div>

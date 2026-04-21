@@ -15,7 +15,7 @@
  * and falls back to local JWT decoding.
  */
 
-const jwt = require('jsonwebtoken');
+const { verifySupabaseJwt } = require('./serverAuth');
 const originalCreateClient = require('@supabase/supabase-js').createClient;
 
 /**
@@ -26,13 +26,14 @@ function decodeSupabaseJWT(token) {
     try {
         if (!token || token.length < 10) return null;
 
-        const decoded = jwt.decode(token);
-        if (!decoded) return null;
-
-        // Check expiration
-        if (decoded.exp && decoded.exp < Math.floor(Date.now() / 1000)) {
+        const secret = process.env.SUPABASE_JWT_SECRET;
+        if (!secret) {
+            console.error('[supabase-patch] SUPABASE_JWT_SECRET not configured, refusing to locally verify token.');
             return null;
         }
+
+        const decoded = verifySupabaseJwt(token, secret);
+        if (!decoded) return null;
 
         if (!decoded.sub) return null;
 

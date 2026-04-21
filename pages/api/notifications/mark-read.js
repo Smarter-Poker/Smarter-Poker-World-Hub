@@ -37,16 +37,16 @@ export default async function handler(req, res) {
         // Mark single notification
         await getSupabase()
           .from('notifications')
-          .update({ is_read: true, read_at: new Date().toISOString() })
+          .update({ read: true })
           .eq('id', notificationId)
           .eq('user_id', user.id);
       } else {
         // Mark all unread
         await getSupabase()
           .from('notifications')
-          .update({ is_read: true, read_at: new Date().toISOString() })
+          .update({ read: true })
           .eq('user_id', user.id)
-          .eq('is_read', false);
+          .eq('read', false);
       }
 
       return res.json({ success: true });
