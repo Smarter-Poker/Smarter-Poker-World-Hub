@@ -103,3 +103,28 @@ jobs:
 
       - name: Open draft PR
         run: node scripts/vercel-autofix/open-pr.mjs
+
+      # ─────────────────────────────────────────────────────────────────────
+      # Close-out: on ANY failure (strategy exit 2, PR open fail, etc.) mark
+      # the autofix_attempts row as skipped_unfixable so Phase B doesn't wait
+      # on it and the dedupe guard doesn't pin the row at 'running' forever.
+      # ─────────────────────────────────────────────────────────────────────
+      - name: Close-out — mark attempt skipped_unfixable on workflow failure
+        if: failure() && env.ATTEMPT_ID != ''
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -e
+          curl -sS -X PATCH \
+            "${SUPABASE_URL}/rest/v1/autofix_attempts?id=eq.${ATTEMPT_ID}" \
+            -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: return=minimal" \
+            -d "{
+              \"status\": \"skipped_unfixable\",
+              \"error_message\": \"workflow_failure_strategy_${STRATEGY}\",
+              \"updated_at\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
+            }"
+          echo "Marked attempt ${ATTEMPT_ID} as skipped_unfixable"
