@@ -154,8 +154,9 @@ export const FriendCard = ({
                     width: 100%;
                     padding: 8px;
                     background: ${SP_COLORS.bgMain};
-                    border: none;
-                    border-radius: 6px;
+                    border: 1px solid transparent;
+                    box-sizing: border-box;
+                    border-radius: 20px;
                     color: ${SP_COLORS.textPrimary};
                     font-size: 15px;
                     font-weight: 600;
@@ -245,8 +246,9 @@ export const FriendRequestItem = ({
             .btn-confirm {
                 padding: 8px 16px;
                 background: ${SP_COLORS.blue};
-                border: none;
-                border-radius: 6px;
+                border: 1px solid transparent;
+                box-sizing: border-box;
+                border-radius: 20px;
                 color: white;
                 font-weight: 600;
                 cursor: pointer;
@@ -259,8 +261,9 @@ export const FriendRequestItem = ({
             .btn-delete {
                 padding: 8px 16px;
                 background: ${SP_COLORS.bgMain};
-                border: none;
-                border-radius: 6px;
+                border: 1px solid transparent;
+                box-sizing: border-box;
+                border-radius: 20px;
                 color: ${SP_COLORS.textPrimary};
                 font-weight: 600;
                 cursor: pointer;
@@ -505,8 +508,9 @@ export const PeopleYouMayKnow = ({
                     width: 100%;
                     padding: 8px;
                     background: ${SP_COLORS.blueLight};
-                    border: none;
-                    border-radius: 6px;
+                    border: 1px solid transparent;
+                    box-sizing: border-box;
+                    border-radius: 20px;
                     color: ${SP_COLORS.blue};
                     font-size: 15px;
                     font-weight: 600;

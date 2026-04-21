@@ -126,18 +126,48 @@ export default function ArticleReaderModal({ url, title, onClose }) {
                     </div>
                 </div>
 
-                {/* Loading State */}
+                {/* Loading State — animated progress bar + shimmer skeleton */}
                 {loading && (
-                    <div style={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        color: C.text,
-                        textAlign: 'center',
-                    }}>
-                        <div style={{ fontSize: 32, marginBottom: 16 }}>{isYouTube ? '▶' : '📰'}</div>
-                        <div>{isYouTube ? 'Loading video...' : 'Loading article...'}</div>
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                        {/* Progress bar */}
+                        <style>{`
+                            @keyframes sp-progress {
+                                0%   { width: 0%; opacity: 1; }
+                                80%  { width: 85%; opacity: 1; }
+                                100% { width: 85%; opacity: 0.7; }
+                            }
+                            @keyframes sp-shimmer {
+                                0%   { background-position: -800px 0; }
+                                100% { background-position: 800px 0; }
+                            }
+                        `}</style>
+                        <div style={{ width: '100%', height: 3, background: 'rgba(255,255,255,0.08)', flexShrink: 0 }}>
+                            <div style={{
+                                height: '100%',
+                                background: 'linear-gradient(90deg, #d4af37, #f0d060)',
+                                borderRadius: 2,
+                                animation: 'sp-progress 3s ease-out forwards',
+                            }} />
+                        </div>
+                        {/* Shimmer skeleton content */}
+                        <div style={{ flex: 1, padding: '32px 24px', maxWidth: 760, margin: '0 auto', width: '100%' }}>
+                            {[1, 0.6, 0.8, 0.5, 0.9, 0.65, 0.75, 0.4].map((w, i) => (
+                                <div key={i} style={{
+                                    height: i === 0 ? 32 : 16,
+                                    width: `${w * 100}%`,
+                                    marginBottom: i === 0 ? 20 : 12,
+                                    borderRadius: 6,
+                                    backgroundImage: 'linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.04) 100%)',
+                                    backgroundSize: '800px 100%',
+                                    animation: `sp-shimmer 1.4s ease-in-out infinite`,
+                                    animationDelay: `${i * 0.07}s`,
+                                }} />
+                            ))}
+                        </div>
+                        {/* Domain hint */}
+                        <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: 12, paddingBottom: 24 }}>
+                            {isYouTube ? 'Loading video...' : `Opening ${domain}…`}
+                        </div>
                     </div>
                 )}
 

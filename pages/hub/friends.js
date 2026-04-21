@@ -757,72 +757,62 @@ function FriendsPage() {
         } finally { actionInProgress.current = false; }
     };
 
-    const handleAcceptRequest = async (request) => {
+    const handleAcceptRequest = (request) => {
         if (!user || actionInProgress.current) return;
         actionInProgress.current = true;
-        try {
 
-        // Update the original request to accepted
-        const { error: updateError } = await supabase
-            .from('friendships')
-            .update({ status: 'accepted' })
-            .eq('id', request.id)
-
-        if (updateError) return;
-
-        // Create reverse friendship
-        await supabase
-            .from('friendships')
-            .insert({ user_id: user.id, friend_id: request.user_id, status: 'accepted' })
-
-        // Update UI
+        // EAGER STATE SYNCHRONIZATION: Update UI and BFCache immediately
         const newFriend = request.requester;
         setFriends(prev => [...prev, newFriend]);
         setFriendIds(prev => new Set([...prev, request.user_id]));
         setFriendRequests(prev => prev.filter(r => r.id !== request.id));
         toast.success('Friend request accepted!');
         eventBus.emit(EventType.FRIEND_REQUEST_ACCEPTED, { friendId: request.user_id }, 'FriendsPage');
-
         busEmit.dataMutated('friends');
         broadcastSyncDebounced('smarter_poker_friends_sync', { action: 'refresh', tabId: BROADCAST_TAB_ID });
-        } finally { actionInProgress.current = false; }
+
+        // Fire-and-forget DB updates
+        supabase.from('friendships').update({ status: 'accepted' }).eq('id', request.id)
+            .then(({ error }) => {
+                if (error) {
+                    // Rollback on failure
+                    setFriends(prev => prev.filter(f => f.id !== request.user_id));
+                    setFriendIds(prev => { const s = new Set(prev); s.delete(request.user_id); return s; });
+                    setFriendRequests(prev => [...prev, request]);
+                    toast.error('Failed to accept friend request.');
+                } else {
+                    // Create reverse friendship after confirm
+                    supabase.from('friendships').insert({ user_id: user.id, friend_id: request.user_id, status: 'accepted' }).then();
+                }
+            });
+
+        actionInProgress.current = false;
     };
 
     //  DECLINE = AUTO-FOLLOW (SmarterPoker style)
-    const handleDeclineRequest = async (request) => {
+    const handleDeclineRequest = (request) => {
         if (!user || actionInProgress.current) return;
         actionInProgress.current = true;
-        try {
 
-        // Delete the friend request
-        await supabase
-            .from('friendships')
-            .delete()
-            .eq('id', request.id)
-
-        //  Auto-convert declined requester to follower
-        // The REQUESTER now FOLLOWS the person who declined
-        await supabase
-            .from('follows')
-            .upsert({
-                follower_id: request.user_id,     // Person who sent request
-                following_id: user.id,             // Person who declined (me)
-                source: 'declined_friend_request'
-            }, { onConflict: 'follower_id,following_id' });
-
-        // Update UI - add them to followers
+        // EAGER STATE SYNCHRONIZATION: Update UI immediately
         const newFollower = request.requester;
         if (newFollower && !followerIds.has(newFollower.id)) {
             setFollowers(prev => [...prev, newFollower]);
             setFollowerIds(prev => new Set([...prev, newFollower.id]));
         }
-
-        // Remove from requests
         setFriendRequests(prev => prev.filter(r => r.id !== request.id));
-
         busEmit.dataMutated('friends');
         broadcastSyncDebounced('smarter_poker_friends_sync', { action: 'refresh', tabId: BROADCAST_TAB_ID });
-        } finally { actionInProgress.current = false; }
+
+        // Fire-and-forget DB updates
+        supabase.from('friendships').delete().eq('id', request.id).then();
+        supabase.from('follows').upsert({
+            follower_id: request.user_id,
+            following_id: user.id,
+            source: 'declined_friend_request'
+        }, { onConflict: 'follower_id,following_id' }).then();
+
+        actionInProgress.current = false;
     };
 
     const handleRemoveFriend = async (friendId) => {
