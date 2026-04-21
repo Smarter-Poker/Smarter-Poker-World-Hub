@@ -1013,8 +1013,8 @@ export default function ProfilePage() {
                 setUsernameStatus('idle');
                 return;
             }
-            // Skip check if username hasn't changed from original
-            if (originalProfile && trimmed === (originalProfile.username || '').trim()) {
+            // Skip check if username hasn't changed from original (case-insensitive: KingFish == kingfish is still yours)
+            if (originalProfile && trimmed.toLowerCase() === (originalProfile.username || '').trim().toLowerCase()) {
                 setUsernameStatus('available');
                 return;
             }
