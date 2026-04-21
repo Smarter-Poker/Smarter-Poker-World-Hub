@@ -660,7 +660,7 @@ export default function LeaderboardsPage() {
                   <BottomNavBar />
     </PageTransition>
 
-            <style jsx global>{`
+            <style>{`
                 @keyframes pulse {
                     0%, 100% { opacity: 1; }
                     50% { opacity: 0.5; }

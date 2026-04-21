@@ -6384,8 +6384,8 @@ function SocialMediaPage() {
                                         <h3 style={{ color: C.text, fontSize: 18, marginBottom: 8 }}>Welcome to Smarter.Poker</h3>
                                         <p style={{ marginBottom: 16, lineHeight: 1.5 }}>Your poker community feed is empty. Follow players, join clubs, or share your first hand to get started!</p>
                                         <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
-                                            <Link href="/hub/friends" style={{ padding: '8px 16px', background: C.blue, color: 'white', borderRadius: 6, fontWeight: 600, textDecoration: 'none', fontSize: 13 }}>Find Players</Link>
-                                            <span onClick={() => { const input = document.querySelector('[placeholder*="What\'s on your mind"]'); if (input) { input.scrollIntoView({ behavior: 'smooth' }); setTimeout(() => input.focus(), 400); } }} style={{ padding: '8px 16px', background: C.card, color: C.text, borderRadius: 6, fontWeight: 600, cursor: 'pointer', fontSize: 13, border: `1px solid ${C.border}` }}>Create a Post</span>
+                                            <Link href="/hub/friends" style={{ padding: '8px 16px', background: C.blue, color: 'white', borderRadius: 20, fontWeight: 600, textDecoration: 'none', fontSize: 13 }}>Find Players</Link>
+                                            <span onClick={() => { const input = document.querySelector('[placeholder*="What\'s on your mind"]'); if (input) { input.scrollIntoView({ behavior: 'smooth' }); setTimeout(() => input.focus(), 400); } }} style={{ padding: '8px 16px', background: C.card, color: C.text, borderRadius: 20, fontWeight: 600, cursor: 'pointer', fontSize: 13, border: `1px solid ${C.border}` }}>Create a Post</span>
                                         </div>
                                     </div>
                                 ) : (
@@ -6477,7 +6477,7 @@ function SocialMediaPage() {
                                 )}
 
                                 {/* Layout CSS — rendered outside of posts conditional so it always applies */}
-                                <style jsx global>{`
+                                <style>{`
                                     @keyframes spin {
                                         to { transform: rotate(360deg); }
                                     }

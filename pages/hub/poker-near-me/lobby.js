@@ -2929,7 +2929,7 @@ export default function PokerNearMeLobby() {
       )}
 
       {/* Global keyframes + VenueCard CSS (required for VenueCard component styling) */}
-      <style jsx global>{`
+      <style>{`
       @keyframes spin { to { transform: rotate(360deg); } }
       @keyframes lobby-panelSlideUp {
         from { transform: translateY(100%); opacity: 0.5; }

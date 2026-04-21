@@ -2020,7 +2020,7 @@ export default function VideoLibraryPage() {
             )}
 
             {/* CSS for hover effects and responsive Jarvis panel */}
-            <style jsx global>{`
+            <style>{`
                 div:hover .play-btn {
                     opacity: 1 !important;
                 }

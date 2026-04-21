@@ -307,23 +307,8 @@ export default async function handler(req, res) {
                 created_at: now.toISOString(),
             });
 
-        // ── #13: Admin audit trail ──
-        console.log(JSON.stringify({
-            event: 'DIAMOND_TRANSFER',
-            senderId: userId,
-            senderName: senderProfile.display_name || senderProfile.username,
-            recipientId,
-            recipientName,
-            amount,
-            tier: isVipTier ? 'vip' : 'standard',
-            senderBalanceBefore: senderProfile.diamonds ?? 0,
-            senderBalanceAfter: actualSenderBalance,
-            recipientBalanceBefore: recipientProfile.diamonds ?? 0,
-            recipientBalanceAfter: actualRecipientBalance,
-            friendshipAgeDays: Math.floor(friendshipAgeDays),
-            dailyTotalBefore: dailyTotal,
-            timestamp: now.toISOString(),
-        }));
+        // ── #13: Admin audit trail — PII-safe summary ──
+        console.info(`[DiamondTransfer] ✓ ${amount} diamonds transferred (tier: ${isVipTier ? 'vip' : 'standard'})`);
 
         return res.status(200).json({
             success: true,

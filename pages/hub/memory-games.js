@@ -3033,7 +3033,7 @@ export default function MemoryGamesPage() {
 
 
             {/* Inject shake animation */}
-            < style jsx global > {`
+            <style> {`
                 @keyframes shake {
                     0%, 100% { transform: translate(0, 0); }
                     25% { transform: translate(-5px, 5px); }

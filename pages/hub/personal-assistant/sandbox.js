@@ -2393,7 +2393,7 @@ export default function VirtualSandbox() {
         )}
       </AnimatePresence >
 
-      <style jsx global>{`
+      <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@400;500;600;700;800&display=swap');
 
         /* Capitalize first letter of every word globally */

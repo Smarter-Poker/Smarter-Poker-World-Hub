@@ -134,7 +134,7 @@ export default async function handler(req, res) {
                       });
                       if (batch && batch.length > 0) {
                           solverQuestions = batch.map(q => ({ question_data: q }));
-                          console.log(`[BatchPreload] ✅ DeterministicEngine generated ${batch.length} solver questions for ${gameId}`);
+                          console.debug(`[BatchPreload] DeterministicEngine generated ${batch.length} solver questions for ${gameId}`);
                       }
                   } catch (solverErr) {
                       console.error('[BatchPreload] ⚠️ Solver engine failed:', solverErr.message);
@@ -153,7 +153,7 @@ export default async function handler(req, res) {
                               if (q.scenario) q.scenario.isPsychology = true;
                               return { question_data: q };
                           });
-                          console.log(`[BatchPreload] ✅ Engine generated ${batch.length} scenario questions for ${gameId}`);
+                          console.debug(`[BatchPreload] Engine generated ${batch.length} scenario questions for ${gameId}`);
                       }
                   } catch (scenarioErr) {
                       console.warn('[BatchPreload] ⚠️ Scenario engine failed:', scenarioErr.message);
@@ -166,7 +166,7 @@ export default async function handler(req, res) {
 
           if (allQuestions.length === 0) {
               // ═══ Engine-only — no AI fallback. Return 404 if no solver data exists. ═══
-              console.log(`[BatchPreload] ⚠️ No questions for ${gameId} level ${gameLevel} — engines returned empty.`);
+              console.warn(`[BatchPreload] No questions for ${gameId} level ${gameLevel} — engines returned empty.`);
               return res.status(404).json({ success: false, error: 'No questions available for this game/level. Solver data not yet loaded for this configuration.' });
           }
 

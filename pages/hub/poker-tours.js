@@ -1112,7 +1112,7 @@ export default function PokerToursPage({ initialTours = [] }) {
                 {/* ═══════════════════════════════════════ */}
                 {/* STYLES — Reuses PNM architecture       */}
                 {/* ═══════════════════════════════════════ */}
-                <style jsx global>{`
+                <style>{`
                     .pnm-page {
                         min-height: 100vh;
                         padding-bottom: 70px;

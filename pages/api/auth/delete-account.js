@@ -214,7 +214,7 @@ export default async function handler(req, res) {
               // Profile data is already gone — log but don't block
           }
 
-          console.log('[delete-account] Account deleted for user:', userId);
+          console.info('[delete-account] Account deletion completed successfully.');
 
           return res.status(200).json({
               success: true,

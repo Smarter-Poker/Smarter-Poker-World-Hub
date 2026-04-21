@@ -121,7 +121,7 @@ export default async function handler(req, res) {
                       gameConfig: pioConfig,
                   });
                   if (question) {
-                      console.log(`[Training] ✅ DETERMINISTIC engine served question for ${gameId} (source: ${question.source})`);
+                      console.debug(`[Training] Deterministic engine served: ${question.source}`);
                   }
               } catch (detErr) {
                   console.error('[Training] ⚠️ Deterministic engine failed, falling back:', detErr.message);
@@ -132,7 +132,7 @@ export default async function handler(req, res) {
           if (!question) {
               if (preferredEngine === 'SCENARIO') {
                   // SCENARIO ENGINE: Now handled by DeterministicGTOEngine — no AI fallback
-                  console.log(`[Training] SCENARIO engine for ${gameId} — engine-only, no Grok.`);
+                  console.debug(`[Training] SCENARIO engine for ${gameId} — engine-only, no Grok.`);
               } else {
                   // PIO ENGINE: GTO Solver Data (Default)
                   try {
@@ -188,7 +188,7 @@ export default async function handler(req, res) {
           // or Supabase cache. If none available, return error.
           // ═══════════════════════════════════════════════════════════════════
           if (!question) {
-              console.log(`[Training] ⚠️ No question available for ${gameId} level ${level} — all engines returned empty.`);
+              console.warn(`[Training] No question available for ${gameId} level ${level} — all engines returned empty.`);
           }
 
           if (!question) {

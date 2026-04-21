@@ -787,9 +787,9 @@ function FriendsPage() {
                     toast.error('Failed to accept friend request.');
                 } else {
                     // Create reverse friendship after confirm
-                    supabase.from('friendships').insert({ user_id: user.id, friend_id: request.user_id, status: 'accepted' }).then();
+                    supabase.from('friendships').insert({ user_id: user.id, friend_id: request.user_id, status: 'accepted' }).then().catch(e => console.warn('[friends] Handled exception:', e));
                 }
-            });
+            }).catch(e => console.warn('[friends] Handled exception:', e));
 
         actionInProgress.current = false;
     };
@@ -810,12 +810,12 @@ function FriendsPage() {
         broadcastSyncDebounced('smarter_poker_friends_sync', { action: 'refresh', tabId: BROADCAST_TAB_ID });
 
         // Fire-and-forget DB updates
-        supabase.from('friendships').delete().eq('id', request.id).then();
+        supabase.from('friendships').delete().eq('id', request.id).then().catch(e => console.warn('[friends] Handled exception:', e));
         supabase.from('follows').upsert({
             follower_id: request.user_id,
             following_id: user.id,
             source: 'declined_friend_request'
-        }, { onConflict: 'follower_id,following_id' }).then();
+        }, { onConflict: 'follower_id,following_id' }).then().catch(e => console.warn('[friends] Handled exception:', e));
 
         actionInProgress.current = false;
     };

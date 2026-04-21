@@ -4863,7 +4863,7 @@ function MessengerPage() {
                                 // Safe JSONB merge — preserves existing messenger_preferences
                                 const { data: cur } = await supabase.from('profiles').select('messenger_preferences').eq('id', user.id).maybeSingle();
                                 const merged = { ...(cur?.messenger_preferences || {}), pushPromptHandled: true };
-                                supabase.from('profiles').update({ messenger_preferences: merged }).eq('id', user.id).then(() => {});
+                                supabase.from('profiles').update({ messenger_preferences: merged }).eq('id', user.id).then(() => {}).catch(e => console.warn('Exception:', e));
                             }
                             setShowPushPrompt(false);
                             if (success) {
@@ -4889,7 +4889,7 @@ function MessengerPage() {
                                 // Safe JSONB merge — preserves existing messenger_preferences
                                 const { data: cur } = await supabase.from('profiles').select('messenger_preferences').eq('id', user.id).maybeSingle();
                                 const merged = { ...(cur?.messenger_preferences || {}), pushPromptHandled: true };
-                                supabase.from('profiles').update({ messenger_preferences: merged }).eq('id', user.id).then(() => {});
+                                supabase.from('profiles').update({ messenger_preferences: merged }).eq('id', user.id).then(() => {}).catch(e => console.warn('Exception:', e));
                             }
                             setShowPushPrompt(false);
                         }}

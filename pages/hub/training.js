@@ -55,7 +55,7 @@ const GodModeArena = dynamic(
                 <div style={{ padding: 40, textAlign: 'center', color: '#fff' }}>
                     <h3 style={{ color: '#ef4444', marginBottom: 12 }}>Failed to load game arena</h3>
                     <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: 16 }}>Please refresh the page to try again.</p>
-                    <button onClick={() => window.location.reload()} style={{ padding: '10px 20px', background: '#3b82f6', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', fontWeight: 600 }}>Refresh</button>
+                    <button onClick={() => window.location.reload()} style={{ padding: '10px 20px', background: '#3b82f6', border: 'none', borderRadius: 20, color: '#fff', cursor: 'pointer', fontWeight: 600 }}>Refresh</button>
                 </div>
             )
         };

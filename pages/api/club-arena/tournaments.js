@@ -382,7 +382,7 @@ export default async function handler(req, res) {
               if (!engineReg.success) {
                 console.error(`[Tournament] Engine late-reg failed for ${user.id}:`, engineReg.error);
               } else {
-                console.log(`[Tournament] Engine late-reg succeeded for ${user.id}`);
+                console.info(`[Tournament] Engine late-reg succeeded.`);
               }
             } catch (err) {
               console.error('[Tournament] Engine late-reg exception:', err.message);
@@ -540,7 +540,7 @@ export default async function handler(req, res) {
             if (gtdAmount > 0 && totalBuyins < gtdAmount) {
                 overlayAmount = gtdAmount - totalBuyins;
                 finalPrizePool = gtdAmount;
-                console.log(`[Tournament] GTD Overlay detected for ${tournamentId}: $${overlayAmount} (GTD: $${gtdAmount}, Buyins: $${totalBuyins})`);
+                console.info(`[Tournament] GTD Overlay detected for ${tournamentId}: $${overlayAmount} (GTD: $${gtdAmount}, Buyins: $${totalBuyins})`);
                 // Note: Future enhancement could deduct `overlayAmount` from club's treasury here.
             }
 
@@ -794,7 +794,7 @@ export default async function handler(req, res) {
             .update({ spin_multiplier: drawnMultiplier, prize_pool: spinPrizePool })
             .eq('id', tournamentId);
 
-          console.log(`[Tournament] Spin & Go multiplier drawn: ${drawnMultiplier}x for ${tournamentId} (prize: ${spinPrizePool})`);
+          console.info(`[Tournament] Spin & Go multiplier drawn: ${drawnMultiplier}x for ${tournamentId}`);
           return res.json({ success: true, multiplier: drawnMultiplier, prizePool: spinPrizePool });
         }
 

@@ -690,7 +690,7 @@ export default function SocialPagesHub() {
               <BottomNavBar />
             </div>
 
-            <style jsx global>{`
+            <style>{`
                 @keyframes spin { to { transform: rotate(360deg); } }
                 @keyframes shimmerAnim { 0% { background-position: -200px 0; } 100% { background-position: 200px 0; } }
             `}

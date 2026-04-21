@@ -107,7 +107,7 @@ export default async function handler(req, res) {
                   .maybeSingle();
 
               if (emailMatch && !emailCheckError) {
-                  console.log(`[ANTIGRAVITY] 🔗 DUPLICATE PREVENTED: Found existing profile for ${email} (profile.id=${emailMatch.id}, new auth.id=${user_id}). Linking instead of creating duplicate.`);
+                  console.info('[ANTIGRAVITY] Duplicate profile prevented — existing account linked via email match.');
 
                   // Update the existing profile to reflect the latest login
                   // but DO NOT change the profile's id — it stays linked to the ORIGINAL auth user
@@ -133,7 +133,7 @@ export default async function handler(req, res) {
           }
 
           // Step 2: Profile doesn't exist by id OR email - CREATE IT NOW
-          console.log(`[ANTIGRAVITY] Creating profile for orphaned user: ${user_id}`);
+          console.info('[ANTIGRAVITY] Creating profile for orphaned user (ID redacted for security).');
 
           // Get next player number
           const { data: maxPlayer } = await getSupabase()
@@ -207,7 +207,7 @@ export default async function handler(req, res) {
               });
           }
 
-          console.log(`[ANTIGRAVITY] ✓ Profile created for ${user_id}: ${finalUsername}`);
+          console.info(`[ANTIGRAVITY] ✓ Profile created — username: ${finalUsername}`);
 
           return res.json({
               status: 'CREATED',

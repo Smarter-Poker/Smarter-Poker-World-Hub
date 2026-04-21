@@ -141,6 +141,8 @@ export default async function handler(req, res) {
         }
 
         if (req.method === 'GET') {
+            // Live session data is auth-protected and real-time — no CDN caching
+            res.setHeader('Cache-Control', 'private, no-store');
             const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
             const type = safeQ(req.query.type);
             const session_id = safeQ(req.query.session_id);

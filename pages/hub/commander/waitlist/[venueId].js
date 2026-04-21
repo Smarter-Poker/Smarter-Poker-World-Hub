@@ -349,7 +349,7 @@ export default function PlayerWaitlistPage() {
           <Loader2 style={{ width: 32, height: 32, color: '#D4AF37', animation: 'spin 1s linear infinite' }} />
           <p style={{ color: '#888', marginTop: 12 }}>Loading Waitlist...</p>
         </div>
-        <style jsx global>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
@@ -622,7 +622,7 @@ export default function PlayerWaitlistPage() {
         </div>
       </div>
 
-      <style jsx global>{`
+      <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes live-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
       `}</style>

@@ -1105,7 +1105,7 @@ export default function EventsCalendarPage({ fallbackData }) {
         currentLocation={userLocation}
       />
 
-      <style jsx global>{`
+      <style>{`
         /* ═══ BASE ═══ */
         .ec-page {
           min-height: 100vh; padding-bottom: 70px;

@@ -785,7 +785,7 @@ export default function CreateSocialPage() {
                 </div>
               <BottomNavBar />
             </div>
-            <style jsx global>{`
+            <style>{`
                 @keyframes spin { to { transform: rotate(360deg); } }
             `}</style>
         </>

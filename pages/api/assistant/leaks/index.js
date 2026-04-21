@@ -75,7 +75,7 @@ export default async function handler(req, res) {
           const { data } = await query;
           legacyLeaks = data || [];
         } catch (e) {
-          console.log('No user_leaks table or error:', e.message);
+          console.warn('No user_leaks table or error:', e.message);
         }
 
         // Also fetch from new user_training_leaks table (Memory Matrix)
@@ -117,7 +117,7 @@ export default async function handler(req, res) {
             recommended_drill: leak.recommended_drill
           }));
         } catch (e) {
-          console.log('No user_training_leaks table or error:', e.message);
+          console.warn('No user_training_leaks table or error:', e.message);
         }
 
         // Combine both sources

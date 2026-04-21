@@ -67,7 +67,7 @@ export default async function handler(req, res) {
       const pioGameTypes = GAME_TYPE_TO_PIO[gameType] || GAME_TYPE_TO_PIO.cash;
 
       try {
-          console.log(`[CustomTrain] Config: ${gameType} | ${position || 'any'} | vs ${villainPosition || 'any'} | ${actionScenario || 'any'} | ${parsedStack}BB | ${street || 'all'} | ${handClass || 'any'} | ${parsedCount} hands`);
+          console.debug(`[CustomTrain] Config: ${gameType} | ${position || 'any'} | ${parsedStack}BB | ${parsedCount} hands`);
 
           // Build query filters
           let query = getSupabase()
@@ -115,7 +115,7 @@ export default async function handler(req, res) {
           }
 
           if (!scenarios || scenarios.length === 0) {
-              console.log(`[CustomTrain] No scenarios found for config, trying broader search...`);
+              console.debug(`[CustomTrain] No scenarios found for config, trying broader search...`);
 
               // Fallback: try without position filter
               let fallbackQuery = getSupabase()
@@ -208,7 +208,7 @@ function buildAndReturnQuestions(res, scenarios, count, position, stackDepth, st
         if (questions.length >= count) break;
     }
 
-    console.log(`[CustomTrain] Generated ${questions.length}/${count} questions from ${scenarios.length} scenarios`);
+    console.debug(`[CustomTrain] Generated ${questions.length}/${count} questions from ${scenarios.length} scenarios`);
 
     return res.status(200).json({
         success: true,

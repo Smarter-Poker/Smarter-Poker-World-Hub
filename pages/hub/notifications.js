@@ -391,7 +391,7 @@ function NotificationsPage() {
         // Fire-and-forget DB update (do not block execution)
         const isPoker = typeof id === 'string' && id.startsWith('poker-');
         if (!isPoker && user?.id) {
-            supabase.from('notifications').update({ read: true }).eq('id', id).eq('user_id', user.id).then();
+            supabase.from('notifications').update({ read: true }).eq('id', id).eq('user_id', user.id).then().catch(e => console.warn('Exception:', e));
         } else if (isPoker && user?.id) {
             const realId = id.replace('poker-', '');
             getAccessToken().then(token => 
@@ -426,7 +426,7 @@ function NotificationsPage() {
         const hasPoker = notifications.some(n => !n.read && n._source === 'poker');
 
         if (hasSocial) {
-            supabase.from('notifications').update({ read: true }).eq('user_id', user.id).eq('read', false).then();
+            supabase.from('notifications').update({ read: true }).eq('user_id', user.id).eq('read', false).then().catch(e => console.warn('Exception:', e));
         }
         if (hasPoker) {
             getAccessToken().then(token => 
@@ -487,9 +487,9 @@ function NotificationsPage() {
                 }
 
                 // Fire-and-forget DB updates (do not block execution)
-                supabase.from('friendships').update({ status: 'accepted' }).eq('id', requestId).then();
-                supabase.from('friendships').upsert({ user_id: user.id, friend_id: requesterId, status: 'accepted' }, { onConflict: 'user_id,friend_id' }).then();
-                supabase.from('notifications').update({ message: 'Is Now Your Friend!', type: 'friend_accepted' }).eq('id', notification.id).then();
+                supabase.from('friendships').update({ status: 'accepted' }).eq('id', requestId).then().catch(e => console.warn('Exception:', e));
+                supabase.from('friendships').upsert({ user_id: user.id, friend_id: requesterId, status: 'accepted' }, { onConflict: 'user_id,friend_id' }).then().catch(e => console.warn('Exception:', e));
+                supabase.from('notifications').update({ message: 'Is Now Your Friend!', type: 'friend_accepted' }).eq('id', notification.id).then().catch(e => console.warn('Exception:', e));
 
                 // Sync friends page cross-tab + EventBus
                 busEmit.dataMutated('friends');
@@ -534,13 +534,13 @@ function NotificationsPage() {
 
             // Fire-and-forget DB updates (do not block execution)
             if (friendshipId) {
-                supabase.from('friendships').delete().eq('id', friendshipId).then();
+                supabase.from('friendships').delete().eq('id', friendshipId).then().catch(e => console.warn('Exception:', e));
             } else {
-                supabase.from('friendships').delete().eq('user_id', requesterId).eq('friend_id', user.id).eq('status', 'pending').then();
+                supabase.from('friendships').delete().eq('user_id', requesterId).eq('friend_id', user.id).eq('status', 'pending').then().catch(e => console.warn('Exception:', e));
             }
 
-            supabase.from('follows').upsert({ follower_id: requesterId, following_id: user.id, source: 'declined_friend_request' }, { onConflict: 'follower_id,following_id' }).then();
-            supabase.from('notifications').update({ message: 'Is Now Following You', type: 'new_follow' }).eq('id', notification.id).then();
+            supabase.from('follows').upsert({ follower_id: requesterId, following_id: user.id, source: 'declined_friend_request' }, { onConflict: 'follower_id,following_id' }).then().catch(e => console.warn('Exception:', e));
+            supabase.from('notifications').update({ message: 'Is Now Following You', type: 'new_follow' }).eq('id', notification.id).then().catch(e => console.warn('Exception:', e));
 
             // Sync friends page cross-tab + EventBus
             busEmit.dataMutated('friends');

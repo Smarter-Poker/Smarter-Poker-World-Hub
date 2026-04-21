@@ -152,7 +152,7 @@ export default async function handler(req, res) {
                       }
                   }
 
-                  console.log(`[SaveSession] Awarded ${safeSpeedBonus} speed bonus diamonds to ${userId}`);
+                  console.info(`[SaveSession] Speed bonus diamonds awarded: ${safeSpeedBonus}`);
               } catch (diamondErr) {
                   console.warn('[SaveSession] Diamond award failed (non-blocking):', diamondErr.message);
               }
@@ -162,7 +162,7 @@ export default async function handler(req, res) {
           // Upsert into a simple lifetime_stats concept in training_progress
           // We use training_progress metadata for now
 
-          console.log(`[SaveSession] Saved session for ${userId}: ${parsedGameId} | GTOW ${parsedGtowScore}% | ${parsedHandsPlayed} hands | -${parsedTotalEVLoss?.toFixed?.(1) || 0} EV`);
+          console.info(`[SaveSession] Session saved — GTOW ${parsedGtowScore}% | ${parsedHandsPlayed} hands played`);
 
           return res.status(200).json({
               success: true,

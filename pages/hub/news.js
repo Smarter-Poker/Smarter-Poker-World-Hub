@@ -3145,7 +3145,7 @@ export default function NewsHub() {
                     This is required because NewsBox, VideoCard etc. are separate 
                     components with their own <style jsx> blocks.
                     ================================================================ */}
-                    <style jsx global>{`
+                    <style>{`
                     @media (max-width: 768px) {
                         /* === SCROLL UNLOCK === */
                         body, html, body.antigravity-scroll-lock {

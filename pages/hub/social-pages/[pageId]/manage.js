@@ -1120,7 +1120,7 @@ export default function ManageSocialPage() {
                 </div>
             )}
 
-            <style jsx global>{`
+            <style>{`
                 @keyframes spin { to { transform: rotate(360deg); } }
             `}</style>
         </>
