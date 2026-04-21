@@ -118,6 +118,27 @@ export default async function handler(req, res) {
     const data = await deploymentsRes.json();
     const allDeployments = data.deployments || [];
 
+    // ── Step 1b: Auto-cancel stale preview-branch QUEUED builds (>5 min) ──
+    // Preview branch builds (sentry-autofix/, fix/, feature/) can clog the
+    // Vercel build concurrency slot, starving main from ever starting.
+    // We cancel any QUEUED preview build older than 5 minutes.
+    const stalePreviewQueueds = allDeployments.filter(d => {
+      const branch = d.meta?.githubCommitRef || '';
+      const ageMs = Date.now() - d.createdAt;
+      return d.state === 'QUEUED' && branch !== 'main' && ageMs > 5 * 60 * 1000;
+    });
+    for (const stale of stalePreviewQueueds) {
+      try {
+        await fetch(`https://api.vercel.com/v12/deployments/${stale.uid}/cancel?teamId=${TEAM_ID}`, {
+          method: 'PATCH',
+          headers: { Authorization: `Bearer ${vercelToken}` },
+        });
+        console.log(`[deploy-error-poll] Cancelled stale preview QUEUED build ${stale.uid} (branch: ${stale.meta?.githubCommitRef}, age: ${Math.round((Date.now()-stale.createdAt)/60000)}m)`);
+      } catch (e) {
+        console.error(`[deploy-error-poll] Failed to cancel ${stale.uid}: ${e.message}`);
+      }
+    }
+
     // CRITICAL: Filter to main branch only. Preview branch deploys (sentry-autofix/,
     // fix/, feature/) must not affect production error detection. Without this filter,
     // a BUILDING preview deploy masks a main branch ERROR behind it.
