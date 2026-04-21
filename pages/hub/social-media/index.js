@@ -4747,10 +4747,10 @@ function SocialMediaPage() {
             if (authUser) {
                 // ⚡ Fetch friends AND follows in PARALLEL (independent queries)
                 const [{ data: friendships }, { data: follows }] = await Promise.all([
-                    supabase.from('friendships').select('friend_id').eq('user_id', authUser.id).eq('status', 'accepted'),
+                    supabase.from('friendships').select('user_id, friend_id').or(`user_id.eq.${authUser.id},friend_id.eq.${authUser.id}`).eq('status', 'accepted'),
                     supabase.from('follows').select('following_id').eq('follower_id', authUser.id),
                 ]);
-                if (friendships) friendIds = friendships.map(f => f.friend_id);
+                if (friendships) friendIds = [...new Set(friendships.map(f => f.user_id === authUser.id ? f.friend_id : f.user_id))];
                 if (follows) followingIds = follows.map(f => f.following_id);
             }
 
