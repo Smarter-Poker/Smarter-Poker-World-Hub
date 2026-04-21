@@ -26,6 +26,9 @@ export default async function handler(req, res) {
     if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' });
     if (!applyRateLimit(req, res, 'club-arena/public-clubs')) return;
 
+    // Public clubs list changes slowly — safe to cache 30s at the CDN edge
+    res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=120');
+
     try {
       const limit = Math.min(parseInt(req.query.limit) || 20, 50);
       const offset = parseInt(req.query.offset) || 0;

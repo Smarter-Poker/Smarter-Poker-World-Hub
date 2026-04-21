@@ -223,12 +223,11 @@ export default function ClinicPlayPage() {
     // Loading state
     if (!router.isReady || loading || !clinic) {
         return (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0a1628' }}>
-                <motion.div
-                    style={{ width: 50, height: 50, border: '4px solid rgba(255,255,255,0.1)', borderTopColor: '#FF6B35', borderRadius: '50%' }}
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 100%)', flexDirection: 'column' }}>
+                <style>{`@keyframes clinic-spin{to{transform:rotate(360deg)}}`}</style>
+                <div style={{ width: 44, height: 44, border: '3px solid rgba(255,107,53,0.15)', borderTopColor: '#FF6B35', borderRadius: '50%', animation: 'clinic-spin 0.8s linear infinite', marginBottom: 14 }} />
+                <div style={{ fontSize: 15, fontWeight: 600, color: '#FF6B35', letterSpacing: 1, fontFamily: "'Inter', -apple-system, sans-serif" }}>Loading Clinic...</div>
+                <div style={{ fontSize: 12, color: '#64748b', marginTop: 6, fontFamily: "'Inter', -apple-system, sans-serif" }}>Preparing remediation drill</div>
             </div>
         );
     }

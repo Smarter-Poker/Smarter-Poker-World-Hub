@@ -71,6 +71,9 @@ export default async function handler(req, res) {
           return res.status(405).json({ error: 'Method not allowed' });
       }
 
+      // Weekly spot is static, refreshed once/day — cache 1 hour at edge
+      res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');
+
       try {
           // Try to fetch from DB first
           if (supabaseUrl && supabaseServiceKey) {

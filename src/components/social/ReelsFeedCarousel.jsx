@@ -245,7 +245,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
         if (typeof window !== 'undefined') {
             const stored = localStorage.getItem('smarter-reels-watched');
             if (stored) {
-                try { setWatchedReelIds(JSON.parse(stored)); } catch {}
+                try { setWatchedReelIds(JSON.parse(stored)); } catch (e) { console.warn('[ReelsFeedCarousel] Handled exception:', e); }
             }
         }
     }, []);
@@ -463,12 +463,12 @@ function ReelViewer({ reels, startIndex, onClose }) {
             const dx = e.changedTouches[0].clientX - touchStartRef.current.x;
             const dy = e.changedTouches[0].clientY - touchStartRef.current.y;
             if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 50) {
-                try { navigator?.vibrate?.(10); } catch {}
+                try { navigator?.vibrate?.(10); } catch (e) { console.warn('[ReelsFeedCarousel] Handled exception:', e); }
                 if (dy < 0) goNext();  // Swipe up = next
                 else goPrev();         // Swipe down = prev
             }
             if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
-                try { navigator?.vibrate?.(10); } catch {}
+                try { navigator?.vibrate?.(10); } catch (e) { console.warn('[ReelsFeedCarousel] Handled exception:', e); }
                 if (dx < 0) goNext();  // Swipe left = next
                 else goPrev();         // Swipe right = prev
             }
@@ -498,18 +498,18 @@ function ReelViewer({ reels, startIndex, onClose }) {
         // Mutual exclusion: remove dislike when liking
         if (!wasLiked && disliked[currentId]) {
             setDisliked(prev => ({ ...prev, [currentId]: false }));
-            try { await supabase.from('social_likes').delete().eq('post_id', currentId).eq('user_id', userId).eq('reaction_type', 'dislike'); } catch {}
+            try { await supabase.from('social_likes').delete().eq('post_id', currentId).eq('user_id', userId).eq('reaction_type', 'dislike'); } catch (e) { console.warn('[ReelsFeedCarousel] Handled exception:', e); }
         }
 
         try {
             if (wasLiked) {
                 await supabase.from('social_likes').delete().eq('post_id', currentId).eq('user_id', userId).eq('reaction_type', 'like');
                 busEmit.socialPostLiked(currentId, userId, { added: false, reactionType: 'like' });
-                try { await supabase.rpc('decrement_post_count', { p_post_id: currentId, p_field: 'like_count' }); } catch {}
+                try { await supabase.rpc('decrement_post_count', { p_post_id: currentId, p_field: 'like_count' }); } catch (e) { console.warn('[ReelsFeedCarousel] Handled exception:', e); }
             } else {
                 await supabase.from('social_likes').insert({ post_id: currentId, user_id: userId, reaction_type: 'like' });
                 busEmit.socialPostLiked(currentId, userId, { added: true, reactionType: 'like' });
-                try { await supabase.rpc('increment_post_count', { p_post_id: currentId, p_field: 'like_count' }); } catch {}
+                try { await supabase.rpc('increment_post_count', { p_post_id: currentId, p_field: 'like_count' }); } catch (e) { console.warn('[ReelsFeedCarousel] Handled exception:', e); }
             }
         } catch (err) {
             console.warn('Reel like persistence failed:', err.message);
@@ -535,8 +535,8 @@ function ReelViewer({ reels, startIndex, onClose }) {
             setLikeCounts(prev => ({ ...prev, [currentId]: Math.max(0, (prev[currentId] || 0) - 1) }));
             try {
                 await supabase.from('social_likes').delete().eq('post_id', currentId).eq('user_id', userId).eq('reaction_type', 'like');
-                try { await supabase.rpc('decrement_post_count', { p_post_id: currentId, p_field: 'like_count' }); } catch {}
-            } catch {}
+                try { await supabase.rpc('decrement_post_count', { p_post_id: currentId, p_field: 'like_count' }); } catch (e) { console.warn('[ReelsFeedCarousel] Handled exception:', e); }
+            } catch (e) { console.warn('[ReelsFeedCarousel] Handled exception:', e); }
         }
 
         try {
@@ -577,7 +577,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     const clCounts = {};
                     (clData || []).forEach(row => { const cid = row.metadata?.comment_id; if (cid) clCounts[cid] = (clCounts[cid] || 0) + 1; });
                     setCommentLikeCounts(clCounts);
-                } catch {}
+                } catch (e) { console.warn('[ReelsFeedCarousel] Handled exception:', e); }
             } catch { setReelComments([]); }
             setTimeout(() => commentInputRef.current?.focus(), 100);
         }
@@ -635,7 +635,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
             const { error } = await supabase.from('social_comments').insert(payload);
             if (error) throw error;
             busEmit.socialCommentAdded(currentReel.id, authUser.id);
-            try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'comment_count' }); } catch {}
+            try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'comment_count' }); } catch (e) { console.warn('[ReelsFeedCarousel] Handled exception:', e); }
             setCommentCounts(prev => ({ ...prev, [currentReel.id]: (prev[currentReel.id] || 0) + 1 }));
         } catch {
             setReelComments(prev => prev.filter(c => c.id !== tempId));
@@ -674,7 +674,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
             const { error } = await supabase.from('social_comments').delete()
                 .eq('id', commentId).eq('author_id', authUser.id);
             if (error) throw error;
-            try { await supabase.rpc('decrement_post_count', { p_post_id: currentReel.id, p_field: 'comment_count' }); } catch {}
+            try { await supabase.rpc('decrement_post_count', { p_post_id: currentReel.id, p_field: 'comment_count' }); } catch (e) { console.warn('[ReelsFeedCarousel] Handled exception:', e); }
             setCommentCounts(p => ({ ...p, [currentReel.id]: Math.max(0, (p[currentReel.id] || 1) - 1) }));
             busEmit.socialCommentAdded && busEmit.socialCommentAdded(currentReel.id, authUser.id, { removed: true });
         } catch { setReelComments(prev); }
@@ -791,7 +791,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
             } else if (platform === 'whatsapp') {
                 window.open(`https://wa.me/?text=${encodeURIComponent(title + ' ' + url)}`, '_blank');
             }
-            (async () => { try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'share_count' }); } catch {} })();
+            (async () => { try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'share_count' }); } catch (e) { console.warn('[ReelsFeedCarousel] Handled exception:', e); } })();
             if (authUser?.id) busEmit.socialPostShared(currentReel.id, authUser.id);
         } catch {
             setShareToast(true);
@@ -828,7 +828,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 link_url: reelLink,
             });
             if (error) throw error;
-            try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'share_count' }); } catch {}
+            try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'share_count' }); } catch (e) { console.warn('[ReelsFeedCarousel] Handled exception:', e); }
             busEmit.socialPostShared(currentReel.id, authUser.id);
             busEmit.dataMutated('social');
             setSharedToFeed(true);
@@ -925,7 +925,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
         if (reelId && authUser?.id && !viewedReelsRef.current.has(reelId)) {
             viewedReelsRef.current.add(reelId);
             setViewCounts(prev => ({ ...prev, [reelId]: (prev[reelId] || reels[currentIndex]?.view_count || 0) + 1 }));
-            (async () => { try { await supabase.rpc('increment_post_count', { p_post_id: reelId, p_field: 'view_count' }); } catch {} })();
+            (async () => { try { await supabase.rpc('increment_post_count', { p_post_id: reelId, p_field: 'view_count' }); } catch (e) { console.warn('[ReelsFeedCarousel] Handled exception:', e); } })();
         }
 
         // Play via canplay event — video element may be remounting due to key change,
@@ -947,7 +947,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
     }, [currentIndex]);
 
     // Haptic helper
-    const haptic = (ms = 10) => { try { navigator?.vibrate?.(ms); } catch {} };
+    const haptic = (ms = 10) => { try { navigator?.vibrate?.(ms); } catch (e) { console.warn('[ReelsFeedCarousel] Handled exception:', e); } };
 
     // Save/Bookmark handler
     const handleSave = async () => {
@@ -1148,9 +1148,9 @@ function ReelViewer({ reels, startIndex, onClose }) {
                                                 iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
                                                 iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
                                             }
-                                        } catch {}
+                                        } catch (e) { console.warn('[ReelsFeedCarousel] Handled exception:', e); }
                                     }, delay));
-                                } catch {}
+                                } catch (e) { console.warn('[ReelsFeedCarousel] Handled exception:', e); }
                             }}
                         />
                     </div>
@@ -1859,11 +1859,7 @@ export function ReelsFeedCarousel() {
     const [viewerStartIndex, setViewerStartIndex] = useState(0);
     const scrollRef = useRef(null);
 
-    useEffect(() => {
-        loadReels();
-    }, []);
-
-    const loadReels = async () => {
+    const loadReels = useCallback(async () => {
         setLoading(true);
         try {
             const allReels = [];

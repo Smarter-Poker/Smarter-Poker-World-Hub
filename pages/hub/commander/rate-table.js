@@ -148,7 +148,8 @@ export default function RateTable() {
           </button>
         </div>
       </div>
-      <style jsx global>{`.spin { animation: spin 1s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`.spin { animation: spin 1s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
     </>
   );
 }

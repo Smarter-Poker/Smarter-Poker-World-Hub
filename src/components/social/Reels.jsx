@@ -79,7 +79,7 @@ export function ReelsViewer({ onClose }) {
         if (typeof window !== 'undefined') {
             const stored = localStorage.getItem('smarter-reels-watched');
             if (stored) {
-                try { setWatchedReelIds(JSON.parse(stored)); } catch {}
+                try { setWatchedReelIds(JSON.parse(stored)); } catch (e) { console.warn('Handled exception:', e); }
             }
         }
     }, []);
@@ -274,7 +274,7 @@ export function ReelsViewer({ onClose }) {
         if (reelId && currentUserId && !viewedReelsRef.current.has(reelId)) {
             viewedReelsRef.current.add(reelId);
             setViewCounts(prev => ({ ...prev, [reelId]: (prev[reelId] || reels[currentIndex]?.view_count || 0) + 1 }));
-            (async () => { try { await supabase.rpc('increment_post_count', { p_post_id: reelId, p_field: 'view_count' }); } catch {} })();
+            (async () => { try { await supabase.rpc('increment_post_count', { p_post_id: reelId, p_field: 'view_count' }); } catch (e) { console.warn('Handled exception:', e); } })();
         }
 
         // Play via canplay event — video element may be remounting due to key change,
@@ -297,7 +297,7 @@ export function ReelsViewer({ onClose }) {
     }, [currentIndex]);
 
     // Haptic helper
-    const haptic = (ms = 10) => { try { navigator?.vibrate?.(ms); } catch {} };
+    const haptic = (ms = 10) => { try { navigator?.vibrate?.(ms); } catch (e) { console.warn('Handled exception:', e); } };
 
     // Save/Bookmark handler
     const handleSave = async () => {
@@ -367,7 +367,7 @@ export function ReelsViewer({ onClose }) {
         return () => { if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current); };
     }, [showOverlay]);
 
-    const loadReels = async () => {
+    async function loadReels() {
         setLoading(true);
         setLoadError(false);
         try {
@@ -470,18 +470,18 @@ export function ReelsViewer({ onClose }) {
         // Mutual exclusion: remove dislike when liking
         if (!wasLiked && disliked[currentReel.id]) {
             setDisliked(prev => ({ ...prev, [currentReel.id]: false }));
-            try { await supabase.from('social_likes').delete().eq('post_id', currentReel.id).eq('user_id', currentUserId).eq('reaction_type', 'dislike'); } catch {}
+            try { await supabase.from('social_likes').delete().eq('post_id', currentReel.id).eq('user_id', currentUserId).eq('reaction_type', 'dislike'); } catch (e) { console.warn('Handled exception:', e); }
         }
 
         try {
             if (wasLiked) {
                 await supabase.from('social_likes').delete().eq('post_id', currentReel.id).eq('user_id', currentUserId).eq('reaction_type', 'like');
                 busEmit.socialPostLiked(currentReel.id, currentUserId, { added: false, reactionType: 'like' });
-                try { await supabase.rpc('decrement_post_count', { p_post_id: currentReel.id, p_field: 'like_count' }); } catch {}
+                try { await supabase.rpc('decrement_post_count', { p_post_id: currentReel.id, p_field: 'like_count' }); } catch (e) { console.warn('Handled exception:', e); }
             } else {
                 await supabase.from('social_likes').insert({ post_id: currentReel.id, user_id: currentUserId, reaction_type: 'like' });
                 busEmit.socialPostLiked(currentReel.id, currentUserId, { added: true, reactionType: 'like' });
-                try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'like_count' }); } catch {}
+                try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'like_count' }); } catch (e) { console.warn('Handled exception:', e); }
             }
         } catch (err) {
             console.warn('Reel like persistence failed:', err.message);
@@ -505,8 +505,8 @@ export function ReelsViewer({ onClose }) {
             setLikeCounts(prev => ({ ...prev, [currentReel.id]: Math.max(0, (prev[currentReel.id] || 0) - 1) }));
             try {
                 await supabase.from('social_likes').delete().eq('post_id', currentReel.id).eq('user_id', currentUserId).eq('reaction_type', 'like');
-                try { await supabase.rpc('decrement_post_count', { p_post_id: currentReel.id, p_field: 'like_count' }); } catch {}
-            } catch {}
+                try { await supabase.rpc('decrement_post_count', { p_post_id: currentReel.id, p_field: 'like_count' }); } catch (e) { console.warn('Handled exception:', e); }
+            } catch (e) { console.warn('Handled exception:', e); }
         }
 
         try {
@@ -545,7 +545,7 @@ export function ReelsViewer({ onClose }) {
                     const clCounts = {};
                     (clData || []).forEach(row => { const cid = row.metadata?.comment_id; if (cid) clCounts[cid] = (clCounts[cid] || 0) + 1; });
                     setCommentLikeCounts(clCounts);
-                } catch {}
+                } catch (e) { console.warn('Handled exception:', e); }
             } catch { setReelComments([]); }
             setTimeout(() => commentInputRef.current?.focus(), 100);
         }
@@ -602,7 +602,7 @@ export function ReelsViewer({ onClose }) {
             const { error } = await supabase.from('social_comments').insert(payload);
             if (error) throw error;
             busEmit.socialCommentAdded(currentReel.id, currentUserId);
-            try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'comment_count' }); } catch {}
+            try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'comment_count' }); } catch (e) { console.warn('Handled exception:', e); }
             setCommentCounts(prev => ({ ...prev, [currentReel.id]: (prev[currentReel.id] || 0) + 1 }));
         } catch {
             setReelComments(prev => prev.filter(c => c.id !== tempId));
@@ -641,7 +641,7 @@ export function ReelsViewer({ onClose }) {
             const { error } = await supabase.from('social_comments').delete()
                 .eq('id', commentId).eq('author_id', currentUserId);
             if (error) throw error;
-            try { await supabase.rpc('decrement_post_count', { p_post_id: currentReel.id, p_field: 'comment_count' }); } catch {}
+            try { await supabase.rpc('decrement_post_count', { p_post_id: currentReel.id, p_field: 'comment_count' }); } catch (e) { console.warn('Handled exception:', e); }
             setCommentCounts(p => ({ ...p, [currentReel.id]: Math.max(0, (p[currentReel.id] || 1) - 1) }));
             busEmit.socialCommentAdded && busEmit.socialCommentAdded(currentReel.id, currentUserId, { removed: true });
         } catch { setReelComments(prev); }
@@ -741,7 +741,7 @@ export function ReelsViewer({ onClose }) {
             } else if (platform === 'whatsapp') {
                 window.open(`https://wa.me/?text=${encodeURIComponent(title + ' ' + url)}`, '_blank');
             }
-            (async () => { try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'share_count' }); } catch {} })();
+            (async () => { try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'share_count' }); } catch (e) { console.warn('Handled exception:', e); } })();
             if (currentUserId) busEmit.socialPostShared(currentReel.id, currentUserId);
         } catch {
             setShareToast(true);
@@ -778,7 +778,7 @@ export function ReelsViewer({ onClose }) {
                 link_url: reelLink,
             });
             if (error) throw error;
-            try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'share_count' }); } catch {}
+            try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'share_count' }); } catch (e) { console.warn('Handled exception:', e); }
             busEmit.socialPostShared(currentReel.id, currentUserId);
             busEmit.dataMutated('social');
             setSharedToFeed(true);
@@ -854,12 +854,12 @@ export function ReelsViewer({ onClose }) {
             const diffY = startY - endY;
             const diffX = startX - endX;
             if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 50) {
-                try { navigator?.vibrate?.(10); } catch {}
+                try { navigator?.vibrate?.(10); } catch (e) { console.warn('Handled exception:', e); }
                 if (diffY > 0) goNext();   // Swipe up = next
                 else goPrev();              // Swipe down = prev
             }
             if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
-                try { navigator?.vibrate?.(10); } catch {}
+                try { navigator?.vibrate?.(10); } catch (e) { console.warn('Handled exception:', e); }
                 if (diffX > 0) goNext();   // Swipe left = next
                 else goPrev();              // Swipe right = prev
             }

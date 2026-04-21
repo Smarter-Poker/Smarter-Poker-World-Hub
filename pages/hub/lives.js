@@ -50,18 +50,16 @@ export default function LivesPage() {
     const { guardAction, UpgradePopup } = useFeatureGate('lives');
 
     // Fetch all streams (active lives + recorded)
-    useEffect(() => {    const _c = new AbortController();
-
-        const fetchStreams = async(signal) => {
-            setLoading(true);
-
+    const fetchStreams = useCallback(async () => {
+        setLoading(true);
+        try {
             // Get active live streams
             const { data: liveStreams } = await supabase
                 .from('live_streams')
                 .select('*, profiles!broadcaster_id(username, avatar_url, full_name)')
                 .eq('status', 'live')
                 .order('started_at', { ascending: false })
-                .limit(50) // live streams
+                .limit(50);
 
             // Get recorded streams with video URLs (posted ones)
             const { data: recordedStreams } = await supabase
@@ -79,12 +77,15 @@ export default function LivesPage() {
             ];
 
             setStreams(allStreams);
-            setLoading(false);
-        };
+        } catch (e) {
+            console.error('fetchStreams error:', e);
+        }
+        setLoading(false);
+    }, []);
 
+    useEffect(() => {
         fetchStreams();
-    return () => _c.abort();
-  }, []);
+    }, [fetchStreams]);
 
     // Handle swipe navigation
     const handleTouchStart = (e) => {
@@ -645,7 +646,7 @@ export default function LivesPage() {
                 </div>
 
                 {/* Pulse animation */}
-                <style jsx global>{`
+                <style>{`
         @keyframes pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.7; }
