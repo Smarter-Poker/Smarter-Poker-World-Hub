@@ -33,6 +33,83 @@ const fixedDeployments = new Set();
 // Track attempt counts per commit SHA (for escalation) — also best-effort.
 const attemptTracker = {};
 
+// ── Supabase coordination helpers ────────────────────────────────────────────
+// OpenClaw participates in the shared kill-switch, daily budget cap, and
+// per-commit dedup table alongside the Hetzner poll.mjs poller. Writing to
+// autofix_attempts prevents the Hetzner poller from opening a competing PR
+// for the same deploy (especially OOM bumps that we already know won't work).
+async function sbFetch(path, options = {}) {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return null;
+  const abort = new AbortController();
+  const t = setTimeout(() => abort.abort(), 5000);
+  try {
+    return await fetch(`${url}${path}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+        ...options.headers,
+      },
+      signal: abort.signal,
+    });
+  } catch { return null; } finally { clearTimeout(t); }
+}
+
+async function isAutofixPaused() {
+  try {
+    const res = await sbFetch('/rest/v1/rpc/autofix_is_paused', { method: 'POST', body: '{}' });
+    if (!res?.ok) return false;
+    return await res.json(); // boolean
+  } catch { return false; }
+}
+
+async function isBudgetExhausted() {
+  try {
+    const res = await sbFetch('/rest/v1/rpc/autofix_budget_exhausted', {
+      method: 'POST',
+      body: JSON.stringify({ p_source: 'vercel' }),
+    });
+    if (!res?.ok) return false;
+    return await res.json(); // boolean
+  } catch { return false; }
+}
+
+async function alreadyAttemptedInSupa(commitSha) {
+  try {
+    const res = await sbFetch(
+      `/rest/v1/autofix_attempts?select=id&commit_sha=eq.${encodeURIComponent(commitSha)}&status=in.(running,pr_opened,merged,skipped_unfixable)`,
+      { method: 'GET' }
+    );
+    if (!res?.ok) return false;
+    const rows = await res.json();
+    return Array.isArray(rows) && rows.length > 0;
+  } catch { return false; }
+}
+
+async function recordAttempt({ deployId, commitSha, strategy, confidence, status, metadata }) {
+  try {
+    await sbFetch('/rest/v1/autofix_attempts', {
+      method: 'POST',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({
+        source: 'vercel_openclaw',
+        deployment_id: deployId,
+        commit_sha: commitSha,
+        repo: `${GITHUB_OWNER}/${GITHUB_REPO}`,
+        strategy: strategy || 'generic',
+        confidence: confidence || 'medium',
+        status,
+        metadata: metadata || {},
+      }),
+    });
+  } catch (e) {
+    console.error(`[deploy-error-poll] recordAttempt failed: ${e.message}`);
+  }
+}
+
 // ── Notification helper ──────────────────────────────────────────────────────
 async function sendErrorSMS(title, message) {
   const adminPhone = process.env.MY_PHONE_NUMBER || process.env.ADMIN_PHONE;
@@ -112,6 +189,27 @@ export default async function handler(req, res) {
 
   if (!vercelToken) {
     return res.status(500).json({ error: 'VERCEL_TOKEN not configured' });
+  }
+
+  // ── Supabase gates: kill-switch and daily budget cap ──
+  // These RPCs are shared with the Hetzner poll.mjs poller — both pollers
+  // respect the same kill-switch and budget. Checks run in parallel to save time.
+  const [paused, budgetExhausted] = await Promise.all([
+    isAutofixPaused(),
+    isBudgetExhausted(),
+  ]);
+  if (paused) {
+    console.log('[deploy-error-poll] Autofix globally paused via autofix_config — exiting');
+    return res.status(200).json({ action: 'paused', message: 'Autofix is globally paused via kill-switch' });
+  }
+  if (budgetExhausted) {
+    console.log('[deploy-error-poll] Vercel autofix daily budget exhausted — exiting');
+    // SMS the admin immediately — this is the alert the user explicitly requested
+    sendErrorSMS(
+      '💸 Autofix Budget Exhausted',
+      'The daily Claude API budget for Vercel autofix has been hit. No more autofixes will run today. Check Supabase autofix_budget table to raise the cap.'
+    ).catch(() => {});
+    return res.status(200).json({ action: 'budget_exhausted', message: 'Daily vercel autofix budget reached — no action taken' });
   }
 
   try {
@@ -282,6 +380,12 @@ export default async function handler(req, res) {
           ).length;
           if (autofixCount >= MAX_FIX_ATTEMPTS) {
             fixedDeployments.add(deployId);
+            // Mark permanently unfixable in Supabase so Hetzner skips it too
+            recordAttempt({
+              deployId, commitSha, strategy: 'generic', confidence: 'low',
+              status: 'skipped_unfixable',
+              metadata: { reason: 'circuit_breaker', attempts: autofixCount },
+            }).catch(() => {});
 
             sendNotification({
               title: '🛑 Autofix Circuit Breaker',
@@ -357,6 +461,13 @@ export default async function handler(req, res) {
           if (isSigkill) {
             console.log(`[deploy-error-poll] SIGKILL/OOM detected for ${deployId}`);
             fixedDeployments.add(deployId); // Prevent re-fetching logs every 2 min
+            // Write to Supabase so the Hetzner poller won't open a competing OOM PR
+            // (its fix-oom.mjs bumps to 7168MB which we know causes more OOM).
+            recordAttempt({
+              deployId, commitSha, strategy: 'oom', confidence: 'high',
+              status: 'skipped_unfixable',
+              metadata: { reason: 'SIGKILL_OOM_detected_by_openclaw' },
+            }).catch(() => {});
 
             // Fire-and-forget — don't block response for webhook delivery
             sendNotification({
@@ -421,6 +532,24 @@ export default async function handler(req, res) {
 
     console.log(`[deploy-error-poll] Found ${brokenFiles.length} broken file(s): ${brokenFiles.join(', ')}`);
     console.log(`[deploy-error-poll] Attempt ${attempt}/${MAX_FIX_ATTEMPTS} for ${commitSha.substring(0, 8)}`);
+
+    // ── Step 5b: Cross-poller dedup — check Supabase before firing Claude ──
+    // If the Hetzner poller already dispatched a GitHub Actions fix for this commit,
+    // skip to avoid two competing fixes on the same broken file.
+    const alreadyHandled = await alreadyAttemptedInSupa(commitSha);
+    if (alreadyHandled) {
+      console.log(`[deploy-error-poll] ${commitSha.substring(0, 8)} already handled by another poller — skipping`);
+      fixedDeployments.add(deployId); // Don't check Supabase again this session
+      return res.status(200).json({ action: 'skipped', deployId, reason: 'already handled by another autofix poller (Supabase dedup)' });
+    }
+    // Record attempt in Supabase BEFORE firing so the Hetzner poller sees it immediately
+    await recordAttempt({
+      deployId, commitSha,
+      strategy: brokenFiles.length > 0 ? 'generic' : 'generic',
+      confidence: brokenFiles.length > 0 ? 'medium' : 'low',
+      status: 'running',
+      metadata: { brokenFiles, attempt },
+    });
 
     // ── Step 6: Call deploy-autofix with escalation context ──
     try {
