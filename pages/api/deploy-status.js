@@ -36,6 +36,7 @@ export default async function handler(req, res) {
       .map(d => ({
       id: d.uid,
       state: d.state,
+      branch: d.meta?.githubCommitRef || 'main',
       createdAt: d.createdAt,
       sha: d.meta?.githubCommitSha?.substring(0, 9) || '',
       message: d.meta?.githubCommitMessage || '',
@@ -79,7 +80,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       timestamp: new Date().toISOString(),
       pipeline: {
-        status: errorCount === 0 ? 'healthy' : 'active',
+        status: errorCount === 0 ? 'healthy' : 'error',
         pollInterval: '2 minutes',
         engine: 'Claude (Anthropic) + Grok fallback',
         mode: 'direct-to-main',

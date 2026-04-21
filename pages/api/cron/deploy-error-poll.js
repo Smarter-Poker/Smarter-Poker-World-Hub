@@ -84,7 +84,8 @@ function extractBrokenFiles(buildErrors) {
   if (moduleNotFound) moduleNotFound.forEach(f => files.add(f.replace('./', '')));
 
   // TypeScript: src/components/Foo.tsx(12,5): error TS2304
-  const tsErrors = buildErrors.match(/(pages|src|lib|components|services|data)\/[^\s(:]+\.(tsx?|jsx?)/g);
+  // Also covers utils/ and hooks/ directories
+  const tsErrors = buildErrors.match(/(pages|src|lib|components|utils|hooks|services|data)\/[^\s(:]+\.(tsx?|jsx?)/g);
   if (tsErrors) tsErrors.forEach(f => files.add(f));
 
   return [...files];
@@ -151,14 +152,15 @@ export default async function handler(req, res) {
       return res.status(200).json({ action: 'ok', message: 'No main branch deployments in recent history', checked: allDeployments.length });
     }
 
-    // ── Step 2: Check if latest MAIN deploy is READY or BUILDING ──
+    // ── Step 2: Short-circuit ONLY if latest main deploy is READY ──
+    // BUILDING intentionally NOT included here: a BUILDING deploy may be an OOM-retry
+    // that will eventually ERROR. We must still check for older unhandled ERRORs
+    // behind it. If the latest is READY, everything is healthy.
     const latestDeploy = deployments[0];
-    if (latestDeploy && (latestDeploy.state === 'READY' || latestDeploy.state === 'BUILDING')) {
-      // NOTE: QUEUED intentionally NOT included — queued deploys can get CANCELED by Vercel,
-      // leaving an ERROR deployment permanently unprocessed. Only skip when confirmed READY/BUILDING.
+    if (latestDeploy && latestDeploy.state === 'READY') {
       // ── Post-fix verification: check if a previous autofix deploy went READY ──
       const latestMsg = latestDeploy.meta?.githubCommitMessage || '';
-      if (latestDeploy.state === 'READY' && latestMsg.includes('[autofix]')) {
+      if (latestMsg.includes('[autofix]')) {
         // Fire-and-forget — don't block poll response for webhook delivery
         sendNotification({
           title: '✅ Autofix Rebuild Succeeded',
@@ -173,7 +175,7 @@ export default async function handler(req, res) {
 
       return res.status(200).json({
         action: 'ok',
-        message: `Latest deploy is ${latestDeploy.state} — no action needed`,
+        message: 'Latest deploy is READY — no action needed',
         latestSha: latestDeploy.meta?.githubCommitSha?.substring(0, 9),
       });
     }
@@ -213,6 +215,12 @@ export default async function handler(req, res) {
     }
 
     // ── Circuit breaker: check git history ──
+    // Also initializes attemptTracker so escalation works even without GH_PAT.
+    if (!attemptTracker[commitSha]) {
+      attemptTracker[commitSha] = 1; // Default: first attempt
+      const trackedKeys = Object.keys(attemptTracker);
+      if (trackedKeys.length > 50) delete attemptTracker[trackedKeys[0]];
+    }
     if (ghPat && commitSha) {
       try {
         const commitsRes = await fetch(
@@ -236,17 +244,12 @@ export default async function handler(req, res) {
 
             return res.status(200).json({ action: 'circuit_breaker', deployId, commitSha: commitSha.substring(0, 8), attempts: autofixCount });
           }
-          // Track attempt count for escalation
+          // Track real attempt count from git history (authoritative)
           attemptTracker[commitSha] = autofixCount + 1;
-          
-          // Optimization: prevent memory leak over many days on cold starts
-          const trackedKeys = Object.keys(attemptTracker);
-          if (trackedKeys.length > 50) {
-            delete attemptTracker[trackedKeys[0]]; // Remove oldest
-          }
         }
       } catch (e) {
         console.error(`[deploy-error-poll] Git history check failed: ${e.message}`);
+        // attemptTracker already defaulted to 1 above — escalation still works
       }
     }
 
@@ -297,11 +300,13 @@ export default async function handler(req, res) {
             'TS7006', 'TS2554', 'TS1005', 'TS1128', 'TS2741',
             'does not exist on type',
           ];
+          // Regex covers ALL source dirs — utils/ and hooks/ were previously missing
+          const srcDirPattern = /\.\/(?:pages|src|lib|components|services|data|utils|hooks|styles)\//.source;
           const includedIndices = new Set();
           allLines.forEach((line, idx) => {
             if (errorKeywords.some((kw) => line.includes(kw)) ||
-                /\.\/(pages|src|lib|components|services|data)\//.test(line)) {
-              // ±3 lines of context (increased from ±2)
+                new RegExp(srcDirPattern).test(line)) {
+              // ±3 lines of context
               for (let j = Math.max(0, idx - 3); j <= Math.min(allLines.length - 1, idx + 3); j++) {
                 includedIndices.add(j);
               }

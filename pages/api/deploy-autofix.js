@@ -97,8 +97,8 @@ function extractAllErrorFiles(buildErrors) {
   const patterns = [
     /\.\/([\w./\-\[\]]+\.(?:jsx|tsx|mjs|cjs|js|ts))/g,
     /\/vercel\/path0\/([\w./\-\[\]]+\.(?:jsx|tsx|mjs|cjs|js|ts))/g,
-    /((?:pages|src|lib|components|services|data)\/[\w./\-\[\]]+\.(?:jsx|tsx|mjs|cjs|js|ts)):\d+/g,
-    /x\s+((?:pages|src|lib|components|services|data)\/[\w./\-\[\]]+\.(?:jsx|tsx|mjs|cjs|js|ts))/g,
+    /((?:pages|src|lib|components|utils|hooks|services|data)\/[\w./\-\[\]]+\.(?:jsx|tsx|mjs|cjs|js|ts)):\d+/g,
+    /x\s+((?:pages|src|lib|components|utils|hooks|services|data)\/[\w./\-\[\]]+\.(?:jsx|tsx|mjs|cjs|js|ts))/g,
   ];
   const seen = new Set();
   const out = [];
@@ -777,8 +777,11 @@ function extractErrorFile(buildErrors) {
   if (nextjsMatch) return nextjsMatch[1];
 
   // Pattern 2: "Module not found: Can't resolve 'xxx' in '/vercel/path0/src/xxx'"
+  // Only use the match if it looks like a file (has a recognized extension).
+  // Without this guard, bare directory paths like 'src/components' would pass
+  // through to fixSingleFile and fail with a 401/404 on the GitHub Contents API.
   const moduleMatch = buildErrors.match(/in '\/vercel\/path0\/([^']+)'/);
-  if (moduleMatch) return moduleMatch[1];
+  if (moduleMatch && /\.(jsx?|tsx?|mjs|cjs|ts)$/.test(moduleMatch[1])) return moduleMatch[1];
 
   // Pattern 3: "Error: /vercel/path0/pages/xxx.js (line:col)"
   const vercelPathMatch = buildErrors.match(/\/vercel\/path0\/([\w./\-\[\]]+\.(?:jsx|tsx|mjs|cjs|js|ts))/);
