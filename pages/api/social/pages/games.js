@@ -43,6 +43,9 @@ export default async function handler(req, res) {
 
       // ===== GET =====
       if (req.method === 'GET') {
+          // Live game lists are safe to cache 30s at the CDN edge.
+          // Seat count changes are reflected via optimistic UI; CDN handles the background pull.
+          res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
           const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
           const page_id = safeQ(req.query.page_id);
           const game_id = safeQ(req.query.game_id);

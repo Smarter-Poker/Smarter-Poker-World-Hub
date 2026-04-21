@@ -227,15 +227,14 @@ export default function LivesPage() {
         setChatText('');
     return () => _c.abort();
   }, [currentIndex]);
-  // Realtime subscription — live updates
+  // Realtime subscription — soft re-fetch on stream changes (no hard reload)
   useEffect(() => {
     if (!userId) return;
     const _ch = supabase
       .channel(`lives:${userId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'live_streams' }, () => {
-        // Just reload the page if a live stream changes while we are on the discovery page.
-        // Or if we want to reuse fetchStreams, it needs to be abstracted. For now window.location.reload()
-        window.location.reload(); 
+        // Soft re-fetch: silently refresh the stream list without destroying scroll position
+        fetchStreams();
       })
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
@@ -300,18 +299,28 @@ export default function LivesPage() {
                         <div style={{ width: 32 }} />
                     </div>
 
-                    {/* Loading State */}
+                    {/* Loading State — Shimmer Skeleton */}
                     {loading && (
-                        <div style={{
-                            position: 'absolute',
-                            top: '50%',
-                            left: '50%',
-                            transform: 'translate(-50%, -50%)',
-                            color: 'white',
-                            textAlign: 'center',
-                        }}>
-                            <div style={{ fontSize: 40, marginBottom: 16 }}>📺</div>
-                            <div>Loading Streams...</div>
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', padding: '80px 20px 20px' }}>
+                            <style>{`
+                                @keyframes lives-shimmer {
+                                    0%   { background-position: -600px 0; }
+                                    100% { background-position: 600px 0; }
+                                }
+                                .lives-skel {
+                                    background-image: linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.04) 100%);
+                                    background-size: 600px 100%;
+                                    animation: lives-shimmer 1.4s ease-in-out infinite;
+                                    border-radius: 8px;
+                                }
+                            `}</style>
+                            {[0, 1, 2].map(i => (
+                                <div key={i} style={{ marginBottom: 24, opacity: 1 - i * 0.25 }}>
+                                    <div className="lives-skel" style={{ width: '60%', height: 16, marginBottom: 8 }} />
+                                    <div className="lives-skel" style={{ width: '40%', height: 12, marginBottom: 16 }} />
+                                    <div className="lives-skel" style={{ width: '100%', height: 200 }} />
+                                </div>
+                            ))}
                         </div>
                     )}
 

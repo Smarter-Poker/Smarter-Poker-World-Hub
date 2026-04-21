@@ -338,12 +338,17 @@ function UserCard({
                             </button>
                         ) : (
                             <div style={{
+                                width: 110,
+                                boxSizing: 'border-box',
                                 padding: '6px 14px',
                                 borderRadius: 20,
                                 background: 'rgba(156, 163, 175, 0.15)',
                                 color: C.textSec,
                                 fontWeight: 600,
                                 fontSize: 12,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
                             }}>
                                 Request Sent
                             </div>

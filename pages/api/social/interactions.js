@@ -43,6 +43,9 @@ export default async function handler(req, res) {
           if (!post_id) {
               return res.status(400).json({ success: false, error: 'post_id required' });
           }
+          // Public CDN cache: interaction counts are safe to cache 30s.
+          // Optimistic UI handles real-time state; CDN serves the background sync.
+          res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
 
           let query = getSupabase()
               .from('social_interactions')

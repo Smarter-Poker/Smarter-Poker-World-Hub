@@ -252,15 +252,23 @@ export default function PublicHomeGamePage({ data, serverError }) {
     if (followBusy) return;
     setFollowBusy(true);
     setFollowError('');
+
+    // EAGER STATE SYNCHRONIZATION: Update UI immediately (BFCache-safe)
+    const wasFollowing = isFollowing;
+    setIsFollowing(!wasFollowing);
+    setFollowerCount(prev => wasFollowing ? Math.max(0, prev - 1) : prev + 1);
+
     try {
       const token = await getAccessToken();
       if (!token) {
-        // Not signed in — bounce to login, return here after.
+        // Not signed in — rollback optimistic state and bounce to login
+        setIsFollowing(wasFollowing);
+        setFollowerCount(prev => wasFollowing ? prev + 1 : Math.max(0, prev - 1));
         const returnTo = typeof window !== 'undefined' ? window.location.pathname : `/hub/home-games/${slugForFollow}`;
         router.push(`/auth/login?redirect=${encodeURIComponent(returnTo)}`);
         return;
       }
-      const method = isFollowing ? 'DELETE' : 'POST';
+      const method = wasFollowing ? 'DELETE' : 'POST';
       const resp = await fetch(`/api/public/home-games/${slugForFollow}/follow`, {
         method,
         headers: { Authorization: `Bearer ${token}` },
@@ -269,9 +277,12 @@ export default function PublicHomeGamePage({ data, serverError }) {
       if (!resp.ok || !json.success) {
         throw new Error(json.error || 'Follow action failed');
       }
-      setIsFollowing(!!json.is_following);
+      // Server may have authoritative count — use it if provided
       if (typeof json.follower_count === 'number') setFollowerCount(json.follower_count);
     } catch (err) {
+      // Rollback optimistic state on failure
+      setIsFollowing(wasFollowing);
+      setFollowerCount(prev => wasFollowing ? prev + 1 : Math.max(0, prev - 1));
       setFollowError(err?.message || 'Could not update follow');
       setTimeout(() => setFollowError(''), 3500);
     } finally {

@@ -1453,21 +1453,30 @@ export default function UserProfilePage() {
     };
 
     const handleDeletePost = async (postId) => {
-        try {
-            const { error } = await supabase.from('social_posts').delete().eq('id', postId);
-            if (error) throw error;
-            // Update local state
-            setPosts(prev => prev.filter(p => p.id !== postId));
-            setPhotos(prev => prev.filter(p => p.id !== postId));
-            setVideos(prev => prev.filter(p => p.id !== postId));
-            setStats(prev => ({ ...prev, posts: Math.max(0, prev.posts - 1) }));
-            invalidateProfileCache();
-            busEmit.dataMutated('social');
-            broadcastSync('smarter_poker_social_sync', { action: 'refresh_feed', tabId: BROADCAST_TAB_ID });
-        } catch (e) {
-            console.error('Error deleting post:', e);
-            throw e;
-        }
+        // EAGER STATE SYNCHRONIZATION: Update UI immediately (BFCache-safe)
+        const prevPosts = posts;
+        const prevPhotos = photos;
+        const prevVideos = videos;
+        const prevStats = { ...stats };
+        setPosts(prev => prev.filter(p => p.id !== postId));
+        setPhotos(prev => prev.filter(p => p.id !== postId));
+        setVideos(prev => prev.filter(p => p.id !== postId));
+        setStats(prev => ({ ...prev, posts: Math.max(0, prev.posts - 1) }));
+        invalidateProfileCache();
+        busEmit.dataMutated('social');
+        broadcastSync('smarter_poker_social_sync', { action: 'refresh_feed', tabId: BROADCAST_TAB_ID });
+
+        // Fire-and-forget DB delete with rollback on failure
+        supabase.from('social_posts').delete().eq('id', postId).then(({ error }) => {
+            if (error) {
+                // Rollback UI on DB failure
+                setPosts(prevPosts);
+                setPhotos(prevPhotos);
+                setVideos(prevVideos);
+                setStats(prevStats);
+                console.error('Error deleting post:', error);
+            }
+        });
     };
 
     const handlePost = async (content, urls = [], type = 'text', mentions = [], linkPreview = null) => {

@@ -150,13 +150,39 @@ export default function ArticlePage() {
 
     if (loading) {
         return (
-            <div className="article-page loading">
-                <div className="spinner" />
-                <style jsx>{`
-                    .article-page { min-height: 100vh; padding-bottom: 70px; background: #0a0a12; display: flex; align-items: center; justify-content: center; }
-                    .spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top-color: #00d4ff; border-radius: 50%; animation: spin 1s linear infinite; }
-                    @keyframes spin { to { transform: rotate(360deg); } }
+            <div style={{ minHeight: '100vh', background: '#0a0a12', paddingBottom: 70 }}>
+                <style>{`
+                    @keyframes art-shimmer {
+                        0%   { background-position: -800px 0; }
+                        100% { background-position: 800px 0; }
+                    }
+                    .art-skel {
+                        background-image: linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.04) 100%);
+                        background-size: 800px 100%;
+                        animation: art-shimmer 1.4s ease-in-out infinite;
+                        border-radius: 6px;
+                    }
                 `}</style>
+                {/* Hero image placeholder */}
+                <div className="art-skel" style={{ width: '100%', height: 280 }} />
+                {/* Content area */}
+                <div style={{ maxWidth: 800, margin: '0 auto', padding: '32px 24px' }}>
+                    {/* Category pill */}
+                    <div className="art-skel" style={{ width: 80, height: 24, borderRadius: 12, marginBottom: 20 }} />
+                    {/* Title */}
+                    <div className="art-skel" style={{ width: '90%', height: 36, marginBottom: 12 }} />
+                    <div className="art-skel" style={{ width: '70%', height: 36, marginBottom: 28 }} />
+                    {/* Meta row */}
+                    <div style={{ display: 'flex', gap: 20, marginBottom: 32, paddingBottom: 24, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                        {[80, 100, 80, 90].map((w, i) => (
+                            <div key={i} className="art-skel" style={{ width: w, height: 14 }} />
+                        ))}
+                    </div>
+                    {/* Body lines */}
+                    {[1, 0.95, 0.85, 1, 0.9, 0.75].map((w, i) => (
+                        <div key={i} className="art-skel" style={{ width: `${w * 100}%`, height: 16, marginBottom: 18, animationDelay: `${i * 0.08}s` }} />
+                    ))}
+                </div>
             </div>
         );
     }

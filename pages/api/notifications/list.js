@@ -29,6 +29,9 @@ export default async function handler(req, res) {
           return res.status(401).json({ success: false, error: 'Auth required' });
       }
       const userId = serverUser.id;
+      // Private cache: browser can reuse within 10s, revalidate for 30s.
+      // User-specific data — never shared via CDN (private directive).
+      res.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=30');
 
       try {
           const limit = parseInt(req.query.limit || '50');
