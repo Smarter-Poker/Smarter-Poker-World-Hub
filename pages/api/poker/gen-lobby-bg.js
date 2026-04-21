@@ -36,6 +36,9 @@ export default async function handler(req, res) {
       response_format: 'b64_json',
     });
 
+    if (!response?.data?.[0]?.b64_json) {
+      return res.status(502).json({ error: 'Image generation returned no data' });
+    }
     const b64 = response.data[0].b64_json;
 
     return res.status(200).json({
