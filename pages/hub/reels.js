@@ -1619,10 +1619,9 @@ export default function ReelsPage() {
                     opacity: showOverlay ? 1 : 0, transition: 'opacity 0.3s ease',
                 }} />
 
-                {/* Author info overlay */}
+                {/* Author info overlay — ALWAYS VISIBLE & TOUCHABLE */}
                 <div style={{
                     position: 'absolute', bottom: 120, left: 16, right: 80, zIndex: 100,
-                    opacity: showOverlay ? 1 : 0, transition: 'opacity 0.3s ease', pointerEvents: showOverlay ? 'auto' : 'none',
                 }}>
                     <Link href={`/hub/user/${currentReel?.profiles?.username}`} style={{
                         display: 'flex', alignItems: 'center', gap: 12,
@@ -1685,13 +1684,10 @@ export default function ReelsPage() {
                     )}
                 </div>
 
-                {/* Right Action Sidebar — Consolidated */}
+                {/* Right Action Sidebar — ALWAYS VISIBLE & TOUCHABLE on mobile */}
                 <div style={{
                     position: 'absolute', right: 12, bottom: 110, zIndex: 100,
                     display: 'flex', flexDirection: 'column', gap: 24, alignItems: 'center',
-                    opacity: showOverlay ? 1 : 0,
-                    pointerEvents: showOverlay ? 'auto' : 'none',
-                    transition: 'opacity 0.3s ease',
                 }}>
                     {/* Heart — tap to like, long-press for reactions */}
                     <div style={{ position: 'relative' }}>
