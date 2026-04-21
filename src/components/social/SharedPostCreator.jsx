@@ -111,7 +111,8 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
 
     const handleFiles = async (e) => {
         const files = Array.from(e.target.files);
-        if (!files.length || !user?.id) return;
+        if (!files.length) return;
+        if (!user?.id) { setError('Please log in to upload media.'); return; }
 
         // Check total media limit
         const remaining = MAX_MEDIA - media.length;
@@ -133,11 +134,15 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                 if (isVideo) {
                     // Direct-to-Supabase upload for videos (bypasses Vercel body limit)
                     const _uploadToken = getAccessToken();
+                    if (!_uploadToken) {
+                        setError('Authentication required — please refresh the page and try again.');
+                        continue;
+                    }
                     const metaRes = await fetch('/api/social/upload-url', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            ...(_uploadToken ? { Authorization: `Bearer ${_uploadToken}` } : {}),
+                            Authorization: `Bearer ${_uploadToken}`,
                         },
                         body: JSON.stringify({
                             fileName: file.name,
@@ -147,7 +152,10 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                             prefix: user.id,
                         }),
                     });
-                    if (!metaRes.ok) throw new Error(`Request failed (${metaRes.status})`);
+                    if (!metaRes.ok) {
+                        const errBody = await metaRes.json().catch(() => ({}));
+                        throw new Error(errBody.error || `Request failed (${metaRes.status})`);
+                    }
                     const meta = await metaRes.json();
                     if (!meta.success) {
                         setError('Upload failed: ' + (meta.error || 'Unknown error'));
@@ -157,15 +165,20 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         setError('Video upload failed: invalid upload URL received');
                         continue;
                     }
-                    // Upload directly to Supabase Storage via signed URL
+                    // Supabase Storage signed-upload endpoint requires FormData (not raw binary)
+                    // when the body is a File/Blob — mirrors exactly what uploadToSignedUrl() does.
+                    // Raw binary PUT causes silent failures or 400 errors.
+                    const uploadBody = new FormData();
+                    uploadBody.append('cacheControl', '3600');
+                    uploadBody.append('', file);
                     const uploadRes = await fetch(meta.signedUrl, {
                         method: 'PUT',
-                        headers: { 'Content-Type': file.type },
-                        body: file,
+                        headers: { 'x-upsert': 'false' },
+                        body: uploadBody,
                     });
                     if (!uploadRes.ok) {
                         let errDetail = '';
-                        try { const t = await uploadRes.text(); errDetail = t ? ` (${t.slice(0, 120)})` : ''; } catch {}
+                        try { const t = await uploadRes.text(); errDetail = t ? ` (${t.slice(0, 200)})` : ''; } catch {}
                         console.error('[SharedPostCreator] Video PUT failed', uploadRes.status, errDetail);
                         setError(`Video upload failed (${uploadRes.status})${errDetail} — please try again`);
                         continue;

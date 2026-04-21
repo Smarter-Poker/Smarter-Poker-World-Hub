@@ -63,7 +63,13 @@ function NotificationsPage() {
         setSwipedId(null);
         // [Audit#2] Snapshot state for rollback on API failure
         let snapshot;
-        setNotifications(prev => { snapshot = prev; return prev; });
+        let wasUnread = false;
+        setNotifications(prev => { snapshot = prev; wasUnread = !!prev.find(n => n.id === notifId && !n.read); return prev; });
+        // [Pass3-Fix] If deleting an unread notification, decrement header badge immediately
+        if (wasUnread) {
+            eventBus.emit(EventType.NOTIFICATIONS_READ, { count: 1 }, 'NotificationsPage');
+            try { localStorage.setItem('sp-notif-count', String(Math.max(0, parseInt(localStorage.getItem('sp-notif-count') || '0', 10) - 1))); } catch (_) {}
+        }
         // Optimistic removal with fade
         setDeletingIds(prev => new Set([...prev, notifId]));
         setTimeout(() => {
@@ -94,12 +100,20 @@ function NotificationsPage() {
                 console.warn('[Delete Notif] API error, rolling back UI');
                 setNotifications(snapshot);
                 setDeletingIds(prev => { const s = new Set(prev); s.delete(notifId); return s; });
+                // [Pass4-Fix] Trigger header re-fetch to restore badge count we decremented
+                if (wasUnread) {
+                    broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID });
+                }
             }
         } catch (err) {
             // [Audit#2] Rollback on network error
             console.error('[Delete Notif]', err);
             if (snapshot && mounted.current) setNotifications(snapshot);
             setDeletingIds(prev => { const s = new Set(prev); s.delete(notifId); return s; });
+            // [Pass4-Fix] Trigger header re-fetch to restore badge count we decremented
+            if (wasUnread) {
+                broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID });
+            }
         }
     }, []);
 
@@ -277,8 +291,11 @@ function NotificationsPage() {
                                 localStorage.setItem('sp-notif-cache', JSON.stringify(updated.slice(0, 30)));
                             } catch (_) {}
                         }
-                        // Sync notification count to header badge cache
+                        // [Pass1-Fix] Sync badge to 0 AND broadcast so header tab re-fetches immediately
                         try { localStorage.setItem('sp-notif-count', '0'); } catch (_) {}
+                        broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID });
+                        // Also instant-update same-tab badge via EventBus
+                        eventBus.emit(EventType.NOTIFICATIONS_READ, { count: unreadIds.length }, 'NotificationsPage');
                     }
                 } else if (mounted.current) {
                     // [Audit#14] No notifications — clear state
@@ -364,10 +381,18 @@ function NotificationsPage() {
     const markAllAsRead = async () => {
         if (!user) return;
         const unreadCount = notifications.filter(n => !n.read).length;
+        if (unreadCount === 0) return; // Nothing to do
         await supabase.from('notifications').update({ read: true }).eq('user_id', user.id).eq('read', false);
         if (mounted.current) {
             setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+            // Update cache so badge stays clear on next load
+            try {
+                const updated = notifications.map(n => ({ ...n, read: true }));
+                localStorage.setItem('sp-notif-cache', JSON.stringify(updated.slice(0, 30)));
+            } catch (_) {}
         }
+        // [Pass1-Fix] Emit exact unread count (not hardcoded 1) so badge decrements fully
+        try { localStorage.setItem('sp-notif-count', '0'); } catch (_) {}
         broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID });
         eventBus.emit(EventType.NOTIFICATIONS_READ, { count: unreadCount }, 'NotificationsPage');
         busEmit.dataMutated('notifications');

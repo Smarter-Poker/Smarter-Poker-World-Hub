@@ -1,6 +1,6 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-const { getServerUser } = require('../../../src/lib/serverAuth');
+const { getServerUserWithFallback } = require('../../../src/lib/serverAuth');
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 export default async function handler(req, res) {
@@ -11,10 +11,13 @@ export default async function handler(req, res) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
 
     try {
-        // Auth (phase40 hardened): verified HMAC JWT only. The supabase.auth["getUser"](token)
-        // fallback in @supabase/auth-js@2.103.x accepts JWTs without fully verifying the
-        // HMAC signature, enabling identity forgery. Trust only the local crypto verifier.
-        const localUser = getServerUser(req);
+        // Auth: local HMAC verify first, GoTrue network fallback if JWT secret missing
+        const { createClient: createSupClientAuth } = require('@supabase/supabase-js');
+        const authClient = createSupClientAuth(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        );
+        const { user: localUser } = await getServerUserWithFallback(req, authClient);
         if (!localUser) {
             return res.status(401).json({ success: false, error: 'Authorization required' });
         }

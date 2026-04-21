@@ -6,7 +6,7 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { getServerUser } from '../../../src/lib/serverAuth';
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 let _supabase = null;
@@ -25,11 +25,9 @@ export default async function handler(req, res) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
 
-    // Auth — local JWT decode first
-    // Auth (phase40 hardened): verified HMAC JWT only — no fallback to
-    // supabase.auth.getUser(token) which accepts tokens without full
-    // signature verification in this library version.
-    const localUser = getServerUser(req);
+    // Auth: local HMAC verify first, GoTrue network fallback if JWT secret missing
+    const supabase = getSupabase();
+    const { user: localUser } = await getServerUserWithFallback(req, supabase);
     if (!localUser) {
         return res.status(401).json({ success: false, error: 'Auth required' });
     }

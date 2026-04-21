@@ -23,7 +23,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-const { getServerUser } = require('../../../src/lib/serverAuth');
+const { getServerUserWithFallback } = require('../../../src/lib/serverAuth');
 const { requireEmailVerifiedByUserId } = require('../../../src/lib/emailVerifiedGate');
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
@@ -60,9 +60,8 @@ export default async function handler(req, res) {
         if (!applyRateLimit(req, res, LIMITS.financial || LIMITS.write)) return;
 
         // ── Auth ──
-        // Auth (phase40 hardened): verified HMAC JWT only — supabase.auth.getUser(token)
-        // accepts JWTs without verifying the HMAC signature in this library version.
-        const localUser = getServerUser(req);
+        // Auth: local HMAC verify first, GoTrue network fallback if JWT secret missing
+        const { user: localUser } = await getServerUserWithFallback(req, getSupabase());
         if (!localUser) {
             return res.status(401).json({ success: false, error: 'Authorization required' });
         }

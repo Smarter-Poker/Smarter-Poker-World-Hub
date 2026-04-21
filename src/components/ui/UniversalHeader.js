@@ -357,7 +357,12 @@ export default function UniversalHeader({
                     // NOTE: Unread messages count is set from API response above (lines 160-165)
                     // No direct query needed - the get-header-stats API handles this correctly
 
-                    // REAL-TIME: Subscribe to new notifications
+                    // REAL-TIME: Subscribe to new notifications (INSERT only — badge increment)
+                    // NOTE: UPDATE/DELETE badge decrements are handled by EventBus.NOTIFICATIONS_READ
+                    //       (same-tab) and broadcastSync → fetchUnreadCount (cross-tab).
+                    //       Supabase RT UPDATE/DELETE payloads have empty payload.old with DEFAULT
+                    //       REPLICA IDENTITY, so checking payload.old.read is unreliable and would
+                    //       double-decrement or decrement already-read notifications.
                     notifChannel = supabase
                         .channel('header-notifications')
                         .on('postgres_changes', {
@@ -367,28 +372,6 @@ export default function UniversalHeader({
                             filter: `user_id=eq.${authUser.id}`
                         }, () => {
                             setNotificationCount(prev => prev + 1);
-                        })
-                        .on('postgres_changes', {
-                            event: 'UPDATE',
-                            schema: 'public',
-                            table: 'notifications',
-                            filter: `user_id=eq.${authUser.id}`
-                        }, (payload) => {
-                            // If marked as read, decrease count
-                            if (payload.new.read && !payload.old.read) {
-                                setNotificationCount(prev => Math.max(0, prev - 1));
-                            }
-                        })
-                        .on('postgres_changes', {
-                            event: 'DELETE',
-                            schema: 'public',
-                            table: 'notifications',
-                            filter: `user_id=eq.${authUser.id}`
-                        }, (payload) => {
-                            // If an unread notification is deleted, decrease count
-                            if (payload.old && !payload.old.read) {
-                                setNotificationCount(prev => Math.max(0, prev - 1));
-                            }
                         })
                         .subscribe();
 
