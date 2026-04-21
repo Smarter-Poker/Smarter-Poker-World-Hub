@@ -24,7 +24,7 @@ export default function VenueQRCodePage() {
   useEffect(() => {
     const storedStaff = getStaffSession();
     if (!storedStaff) {
-      router.push('/commander/login').catch(() => {});
+      router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       return;
     }
 
@@ -41,7 +41,7 @@ export default function VenueQRCodePage() {
       const checkInUrl = `${baseUrl}/hub/commander/check-in/${staffData.venue_id}`;
       setQrUrl(checkInUrl);
     } catch (err) {
-      router.push('/commander/login').catch(() => {});
+      router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     }
   }, [router]);
 

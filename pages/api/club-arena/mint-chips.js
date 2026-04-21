@@ -119,7 +119,7 @@ export default async function handler(req, res) {
         transaction_type: 'mint_cap_blocked',
         notes: `Mint blocked: requested ${amount.toLocaleString()}, cap ${requestCap.toLocaleString()} (${callerRole})`,
         metadata: { requested_amount: amount, cap_applied: requestCap, caller_role: callerRole, user_id: user.id },
-      }).catch(() => { });
+      }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 
       return res.status(400).json({
         success: false,
@@ -151,7 +151,7 @@ export default async function handler(req, res) {
           transaction_type: 'mint_cap_blocked',
           notes: `Daily ceiling blocked: requested ${amount.toLocaleString()}, today total ${dailyTotal.toLocaleString()}, ceiling ${DAILY_CLUB_CEILING.toLocaleString()}`,
           metadata: { requested_amount: amount, daily_total: dailyTotal, daily_ceiling: DAILY_CLUB_CEILING, remaining, caller_role: callerRole, user_id: user.id },
-        }).catch(() => { });
+        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 
         return res.status(429).json({
           success: false,
@@ -197,7 +197,7 @@ export default async function handler(req, res) {
         message: `${amount.toLocaleString()} chips minted to treasury${notes ? ` — ${notes}` : ''}.`,
         data: { amount },
         excludeUserId: user.id,
-      }).catch(() => { });
+      }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 
       logAudit(supabaseAdmin, { actionType: 'chips_minted', userId: user.id, clubId, amount, ip: extractIP(req), details: { treasuryBefore: result.old_treasury, treasuryAfter: result.new_treasury, notes } });
       return res.status(200).json({

@@ -396,7 +396,7 @@ export default async function handler(req, res) {
             message: `You're registered for ${tourn.name}. ${currentCount}/${tourn.max_players} players.`,
             data: { tournamentId, clubId: tourn.club_id, tournamentName: tourn.name },
             pushUrl: `/hub/club-arena/tournaments?club=${tourn.club_id}`,
-          }).catch(() => { });
+          }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 
           return res.json({ success: true, registeredCount: currentCount });
         }
@@ -572,7 +572,7 @@ export default async function handler(req, res) {
             message: `${tourn.name} is now live with ${tourn.registered_count} players!`,
             data: { tournamentId, tournamentName: tourn.name },
             pushUrl: `/hub/club-arena/tournaments?club=${tourn.club_id}`,
-          }).catch(() => { });
+          }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 
           return res.json({ success: true });
         }

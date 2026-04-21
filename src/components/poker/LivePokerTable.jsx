@@ -487,7 +487,7 @@ function TableLayoutManager({ onClose }) {
             user_id: uid,
             name: layout.name,
             arrangement: { arrangement: layout.arrangement, createdAt: layout.createdAt },
-          }).then(() => {}).catch(() => {});
+          }).then(() => {}).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         }
       } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }
@@ -510,7 +510,7 @@ function TableLayoutManager({ onClose }) {
         if (sb && uid && layouts[idx]?.name) {
           sb.from('poker_table_layouts').delete()
             .eq('user_id', uid).eq('name', layouts[idx].name)
-            .then(() => {}).catch(() => {});
+            .then(() => {}).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         }
       } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }
@@ -5907,7 +5907,7 @@ function LivePokerTable({
       .update({ sound_enabled: soundEnabled, updated_at: new Date().toISOString() })
       .eq('user_id', userId)
       .eq('max_seats', 0)
-      .then(() => {}).catch(() => {});
+      .then(() => {}).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
   }, [soundEnabled, supabase, userId]);
 
   // Sound triggers based on game events
@@ -6090,9 +6090,9 @@ function LivePokerTable({
           }).then(() => {
             // G6: Broadcast hand history update so HandHistoryBrowser auto-refreshes
             try { eventBus.emit('DATA_MUTATED', 'hand_history_updated'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-          }).catch(() => {});
+          }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         }
-      }).catch(() => {});
+      }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }, [result, myCards]);
 
@@ -6229,9 +6229,9 @@ function LivePokerTable({
               body: JSON.stringify({ tableId, clubId: tableState?.clubId, stats: snap }),
             }).then(() => {
               try { eventBus.emit('DATA_MUTATED', 'session_stats_updated'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-            }).catch(() => {});
+            }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
           }
-        }).catch(() => {});
+        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }
   }, [result]);
@@ -6297,7 +6297,7 @@ function LivePokerTable({
 
     return () => {
       isMounted = false;
-      if (channel) supabase.removeChannel(channel).catch(() => {});
+      if (channel) supabase.removeChannel(channel).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     };
   }, [tableState?.clubId, userId, supabase]);
 
@@ -6537,7 +6537,7 @@ function LivePokerTable({
       max_seats: maxSeats,
       preferred_seat: seatIdx,
       updated_at: new Date().toISOString(),
-    }, { onConflict: 'user_id,max_seats' }).then(() => {}).catch(() => {});
+    }, { onConflict: 'user_id,max_seats' }).then(() => {}).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
   }, [mySeat, maxSeats, tableState?.seats, supabase, userId]);
 
   // J2: Load seat preference FROM Supabase on table join — suggest preferred seat
@@ -6573,7 +6573,7 @@ function LivePokerTable({
         sound_enabled: soundEnabled,
         sound_volume: soundVolume,
         updated_at: new Date().toISOString(),
-      }, { onConflict: 'user_id,max_seats' }).then(() => {}).catch(() => {});
+      }, { onConflict: 'user_id,max_seats' }).then(() => {}).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     }
   }, [handleFeltChange, supabase, userId, soundEnabled, soundVolume]);
 
@@ -6638,7 +6638,7 @@ function LivePokerTable({
       .update({ sound_volume: soundVolume, updated_at: new Date().toISOString() })
       .eq('user_id', userId)
       .eq('max_seats', 0)
-      .then(() => {}).catch(() => {});
+      .then(() => {}).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
   }, [soundVolume, supabase, userId]);
 
   // ═══ WAVE I6: WIN FLY-UP CHA-CHING SOUND ═══
@@ -7289,7 +7289,7 @@ function LivePokerTable({
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
           body: JSON.stringify({ message, displayName: tableState?.playerName || 'Player', clubId: tableState.clubId }),
-        }).catch(() => {});
+        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }
   }, [send, tableState?.clubId, tableState?.playerName]);
@@ -8944,9 +8944,9 @@ function LivePokerTable({
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                       body: JSON.stringify({ tableId, clubId: tableState?.clubId, stats: snap }),
-                    }).catch(() => {});
+                    }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                   }
-                }).catch(() => {});
+                }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                 // Clear localStorage session
                 try { localStorage.removeItem(`poker-session-${tableId}`); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
               } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
@@ -9228,8 +9228,8 @@ function LivePokerTable({
                     ...(noteSession?.access_token ? { Authorization: `Bearer ${noteSession.access_token}` } : {}),
                   },
                   body: JSON.stringify({ action: 'get_bulk', targetUserIds: opIds }),
-                }).then(r => r.json()).then(r => { if (r.notes) setPlayerNotes(r.notes); }).catch(() => { });
-              }).catch(() => { });
+                }).then(r => r.json()).then(r => { if (r.notes) setPlayerNotes(r.notes); }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+              }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
             }
           }
         }}

@@ -35,14 +35,14 @@ export default function CommanderAnnouncementsPage() {
   useEffect(() => {
     const storedStaff = getStaffSession();
     if (!storedStaff) {
-      router.push('/commander/login').catch(() => { });
+      router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       return;
     }
 
     try {
       const staffData = JSON.parse(storedStaff);
       if (!staffData.venue_id) {
-        router.push('/commander/login').catch(() => { });
+        router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         return;
       }
       setStaff(staffData);
@@ -51,7 +51,7 @@ export default function CommanderAnnouncementsPage() {
         setVenue({ id: staffData.venue_id, name: staffData.venue_name });
       }
     } catch (err) {
-      router.push('/commander/login').catch(() => { });
+      router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     }
   }, [router]);
 

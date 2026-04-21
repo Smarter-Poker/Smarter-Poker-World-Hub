@@ -138,7 +138,7 @@ function TokeCalendar({ userId }) {
                     if (Notification.permission === 'default') {
                         const req = Notification.requestPermission();
                         if (req && typeof req.then === 'function') {
-                            req.catch(() => { }); // prevent unhandled rejections
+                            req.catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); // prevent unhandled rejections
                         }
                     }
                 } catch (e) {

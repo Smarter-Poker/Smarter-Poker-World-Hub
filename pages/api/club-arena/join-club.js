@@ -223,7 +223,7 @@ export default async function handler(req, res) {
             message: `A new player has joined ${club.name}.`,
             data: { clubName: club.name, newUserId: user.id },
             excludeUserId: user.id,
-          }).catch(() => {});
+          }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 
           return res.status(200).json({
               success: true,

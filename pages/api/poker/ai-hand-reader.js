@@ -128,7 +128,7 @@ export default async function handler(req, res) {
             transaction_type: 'feature_unlock',
             description: 'AI Hand Scanner Use',
             balance_after: (profile.diamonds || 0) - 5
-        }).catch(() => {});
+        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     }
 
     try {

@@ -97,7 +97,7 @@ export default function StudyGroupRoom() {
             handsReviewed: activeHandInfo ? 1 : 0,
           },
         }),
-      }).catch((e) => console.error(e)).catch(() => {});
+      }).catch((e) => console.error(e)).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     }
   }, [messages.length, activeHandInfo]);
 

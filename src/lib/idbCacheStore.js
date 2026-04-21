@@ -54,7 +54,7 @@ export async function idbGet(key) {
                 // TTL check
                 if (result.expiresAt && Date.now() > result.expiresAt) {
                     // Expired — clean up async (fire-and-forget)
-                    idbDelete(key).catch(() => { });
+                    idbDelete(key).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                     resolve(undefined);
                     return;
                 }

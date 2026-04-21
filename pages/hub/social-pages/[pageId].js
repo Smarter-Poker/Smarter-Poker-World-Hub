@@ -443,7 +443,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                     onComment={() => { setFullScreenVideo(null); fetchComments(); }}
                     onShare={() => {
                         const url = typeof window !== 'undefined' ? `${window.location.origin}/hub/social-pages/${page?.slug || page?.id}` : '';
-                        navigator.clipboard.writeText(url).catch(() => {});
+                        navigator.clipboard.writeText(url).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                         toast.success('Link copied!');
                     }}
                 />
@@ -613,7 +613,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                     Share to My Feed
                                 </button>
                             )}
-                            <button onClick={() => { navigator.clipboard.writeText(shareUrl).catch(() => {}); setShowShareModal(false); }} style={{
+                            <button onClick={() => { navigator.clipboard.writeText(shareUrl).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); setShowShareModal(false); }} style={{
                                 display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 8,
                                 border: `1px solid ${C.border}`, background: C.bg, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: C.text, fontFamily: 'inherit', width: '100%', textAlign: 'left',
                             }}>
@@ -741,7 +741,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                                             setComments(prev => prev.map(x => x.id === c.id ? { ...x, user_liked_comment: j.liked, comment_like_count: j.liked ? ((x.comment_like_count || 0) + 1) : Math.max(0, (x.comment_like_count || 1) - 1) } : x));
                                                             busEmit.dataMutated('social-pages');
                                                         }
-                                                    }).catch(() => {});
+                                                    }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                                                 }} style={{ border: 'none', background: 'none', cursor: 'pointer', fontWeight: 600, color: c.user_liked_comment ? C.blue : C.textSec, fontSize: 11, padding: 0, fontFamily: 'inherit' }}>
                                                     {c.user_liked_comment ? 'Liked' : 'Like'}{c.comment_like_count > 0 ? ` (${c.comment_like_count})` : ''}
                                                 </button>}
@@ -1382,7 +1382,7 @@ export default function SocialPageDetail() {
         LiveStreamService.getLiveStreams().then(streams => {
             // Filter to streams relevant to this page (if applicable)
             setLiveStreams(streams || []);
-        }).catch(() => {});
+        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     }, [page]);
 
     // Phase 9: Cross-tab broadcastSync listener
@@ -1877,7 +1877,7 @@ export default function SocialPageDetail() {
                                         <button onClick={(e) => {
                                             e.stopPropagation();
                                             const url = `${window.location.origin}/hub/social-pages/${page.slug || page.id}`;
-                                            navigator.clipboard.writeText(url).then(() => toast.success('Link copied!')).catch(() => {});
+                                            navigator.clipboard.writeText(url).then(() => toast.success('Link copied!')).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                                         }} title="Copy page URL" style={{
                                             border: 'none', background: 'none', cursor: 'pointer', padding: '2px 4px',
                                             display: 'inline-flex', alignItems: 'center', borderRadius: 4,
@@ -2023,7 +2023,7 @@ export default function SocialPageDetail() {
                         }}>
                             <button onClick={() => {
                                 const url = `${window.location.origin}/hub/social-pages/${page.slug || page.id}`;
-                                navigator.clipboard.writeText(url).then(() => toast.success('Link copied!')).catch(() => {});
+                                navigator.clipboard.writeText(url).then(() => toast.success('Link copied!')).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                             }} style={{
                                 flex: 1, padding: '8px 0', borderRadius: 8, border: `1px solid ${C.border}`,
                                 background: C.bg, fontSize: 12, fontWeight: 600,
@@ -3046,7 +3046,7 @@ export default function SocialPageDetail() {
                                 </div>
                                 <button onClick={() => {
                                     const url = `${window.location.origin}/hub/social-pages/${page.slug || page.id}`;
-                                    navigator.clipboard.writeText(url).then(() => toast.success('Link copied!')).catch(() => {});
+                                    navigator.clipboard.writeText(url).then(() => toast.success('Link copied!')).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                                 }} id="copy-feedback" style={{
                                     width: '100%', padding: '8px 0', borderRadius: 8, border: 'none',
                                     background: C.blue, color: '#fff', fontSize: 13, fontWeight: 600,
@@ -3346,7 +3346,7 @@ export default function SocialPageDetail() {
                                                   disabled={invitedIds.has(friend.id)}
                                                   onClick={() => {
                                                       const url = `${window.location.origin}/hub/social-pages/${page.slug || page.id}`;
-                                                      navigator.clipboard.writeText(url).catch(() => {});
+                                                      navigator.clipboard.writeText(url).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                                                       setInvitedIds(prev => new Set([...prev, friend.id]));
                                                       toast.success(`Invite link copied for ${friend.display_name || friend.username}!`);
                                                   }}
@@ -3370,7 +3370,7 @@ export default function SocialPageDetail() {
                           }}>
                               <button onClick={() => {
                                   const url = `${window.location.origin}/hub/social-pages/${page.slug || page.id}`;
-                                  navigator.clipboard.writeText(url).catch(() => {});
+                                  navigator.clipboard.writeText(url).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                                   toast.success('Page link copied!');
                               }} style={{
                                   flex: 1, padding: '10px 0', borderRadius: 8, border: 'none',
@@ -3503,7 +3503,7 @@ export default function SocialPageDetail() {
                 isOpen={showGoLiveModal}
                 onClose={() => {
                     setShowGoLiveModal(false);
-                    LiveStreamService.getLiveStreams().then(setLiveStreams).catch(() => {});
+                    LiveStreamService.getLiveStreams().then(setLiveStreams).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                 }}
                 user={user}
             />
@@ -3515,7 +3515,7 @@ export default function SocialPageDetail() {
                     userId={user?.id}
                     onClose={() => {
                         setWatchingStream(null);
-                        LiveStreamService.getLiveStreams().then(setLiveStreams).catch(() => {});
+                        LiveStreamService.getLiveStreams().then(setLiveStreams).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                     }}
                 />
             )}

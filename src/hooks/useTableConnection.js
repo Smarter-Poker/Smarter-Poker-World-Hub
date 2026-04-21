@@ -572,9 +572,9 @@ export function useTableConnection({ supabase, tableId, userId }) {
               tableId, playerId: userId, type: 'heartbeat',
               latitude: gps?.lat || null,
               longitude: gps?.lng || null,
-            }).catch(() => { });
+            }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
           }).catch(() => {
-            _post('connect', { tableId, playerId: userId, type: 'heartbeat' }).catch(() => { });
+            _post('connect', { tableId, playerId: userId, type: 'heartbeat' }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
           });
         }, HEARTBEAT_MS);
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
@@ -597,8 +597,8 @@ export function useTableConnection({ supabase, tableId, userId }) {
       if (heartbeatRef.current) clearInterval(heartbeatRef.current);
       if (resultTimeoutRef.current) clearTimeout(resultTimeoutRef.current);
       if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
-      _post('connect', { tableId, playerId: userId, type: 'disconnect' }).catch(() => { });
-      channel.untrack().catch(() => { });
+      _post('connect', { tableId, playerId: userId, type: 'disconnect' }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+      channel.untrack().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       supabase.removeChannel(channel);
       channelRef.current = null;
     };

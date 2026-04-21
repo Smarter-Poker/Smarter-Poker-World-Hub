@@ -257,7 +257,7 @@ export default function EVTrainer() {
             total_questions: next.total,
             best_streak: bestStreakRef.current,
           }),
-        }).catch(() => {});
+        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       }
 
       return next;

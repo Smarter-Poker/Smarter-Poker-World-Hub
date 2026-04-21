@@ -74,12 +74,12 @@ export default function FloorMap() {
   useEffect(() => {
     try {
       const staff = getStaffSession();
-      if (!staff) { router.push('/commander/login').catch(() => { }); return; }
+      if (!staff) { router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); return; }
       const parsed = JSON.parse(staff);
-      if (!parsed.venue_id) { router.push('/commander/login').catch(() => { }); return; }
+      if (!parsed.venue_id) { router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); return; }
       setVenueId(parsed.venue_id);
       setVenueName(parsed.venue_name || '');
-    } catch { router.push('/commander/login').catch(() => { }); }
+    } catch { router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); }
   }, [router]);
 
   const getHeaders = () => {

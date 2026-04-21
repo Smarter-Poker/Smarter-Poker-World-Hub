@@ -323,7 +323,7 @@ export default function FamousFinalsPage() {
                 accuracy: Math.round((correct / total) * 100),
                 trainerConfig: { eventId: activeEvent.id, series: activeEvent.series },
               }),
-            }).catch(() => {});
+            }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
           }
           eventBus?.emit?.(
             EventType?.SESSION_END || 'session:end',

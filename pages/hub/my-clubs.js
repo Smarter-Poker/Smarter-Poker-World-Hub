@@ -622,10 +622,10 @@ export default function MyClubsPage() {
                                 if (vIds.length > 0) {
                                     fetch(`/api/poker/venues?ids=${vIds.join(',')}`).then(r2 => r2.json()).then(vjson => {
                                         if (vjson.success) setFollowedVenues(vjson.data || []);
-                                    }).catch(() => {});
+                                    }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                                 }
                             }
-                        }).catch(() => {});
+                        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                     }
                 }, 2000);
             }

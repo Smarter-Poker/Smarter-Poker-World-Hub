@@ -47,7 +47,7 @@ export async function getCachedResponse(endpoint, params) {
             })
             .eq('id', data.id)
             .then(() => { })
-            .catch(() => { }); // Fire and forget
+            .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); // Fire and forget
 
         console.log(`[JarvisCache] HIT for ${endpoint}`);
         return data.response_data;

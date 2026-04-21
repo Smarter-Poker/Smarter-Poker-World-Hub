@@ -64,5 +64,5 @@ export function claimReward(endpoint, body, reasonLabel) {
                 busEmit.diamondsEarned(data.diamondsAwarded, reasonLabel);
             }
         })
-        .catch(() => { }); // Non-blocking, silent fail
+        .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); // Non-blocking, silent fail
 }

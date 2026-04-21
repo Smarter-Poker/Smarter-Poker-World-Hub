@@ -74,7 +74,7 @@ export default function MyPlaybookPage() {
           level: 1,
           handHistory: [],
         }),
-      }).catch(() => {});
+      }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       eventBus?.emit?.(
         EventType?.SESSION_END || 'session:end',
         { gameId: 'my-playbook', plays: next.length, newPlay: title },

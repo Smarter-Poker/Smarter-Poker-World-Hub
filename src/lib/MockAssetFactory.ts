@@ -141,7 +141,7 @@ class MockAssetFactory {
 
         audio.addEventListener('canplaythrough', () => {
             this.audioCache.set(soundName, audio);
-            audio.play().catch(() => { });
+            audio.play().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         }, { once: true });
 
         audio.addEventListener('error', () => {

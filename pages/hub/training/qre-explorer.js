@@ -144,7 +144,7 @@ export default function QREExplorerPage() {
               questionsCorrect: 1,
               accuracy: 100,
             }),
-          }).catch(() => {});
+          }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         }
         eventBus?.emit?.(
           EventType?.SESSION_END || 'session:end',

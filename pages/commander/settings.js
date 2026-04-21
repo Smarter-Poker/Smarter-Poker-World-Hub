@@ -46,14 +46,14 @@ export default function CommanderSettingsPage() {
   useEffect(() => {
     const storedStaff = getStaffSession();
     if (!storedStaff) {
-      router.push('/commander/login').catch(() => { });
+      router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       return;
     }
 
     try {
       const staffData = JSON.parse(storedStaff);
       if (!staffData.venue_id) {
-        router.push('/commander/login').catch(() => { });
+        router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         return;
       }
       setStaff(staffData);
@@ -63,7 +63,7 @@ export default function CommanderSettingsPage() {
       }
       setLoading(false);
     } catch (err) {
-      router.push('/commander/login').catch(() => { });
+      router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     }
   }, [router]);
 
@@ -103,7 +103,7 @@ export default function CommanderSettingsPage() {
             }
           }
         })
-        .catch(() => { });
+        .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     } catch (e) { /* silent */ }
     return () => controller.abort();
   }, [venueId]);
@@ -135,7 +135,7 @@ export default function CommanderSettingsPage() {
           if (data.data.club_logo_url !== undefined) setLogoUrl(data.data.club_logo_url || null);
         }
       })
-      .catch(() => { });
+      .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
   }, [venueId]);
 
   useCommanderSync(venueId, syncSettings, { entities: ['settings'] });

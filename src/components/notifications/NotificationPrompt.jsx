@@ -41,7 +41,7 @@ function recordOnServer(action, userId) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action, user_id: userId }),
-        }).catch(() => { }); // Silently ignore errors
+        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); // Silently ignore errors
     } catch {
         // Silently ignore
     }

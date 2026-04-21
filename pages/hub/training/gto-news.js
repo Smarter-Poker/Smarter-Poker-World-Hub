@@ -249,7 +249,7 @@ export default function GtoNewsPage() {
             level: 1,
             handHistory: [],
           }),
-        }).catch(() => {});
+        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         eventBus?.emit?.(
           EventType?.SESSION_END || 'session:end',
           { gameId: 'gto-news', articlesRead: next.size },

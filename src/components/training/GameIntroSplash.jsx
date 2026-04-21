@@ -35,7 +35,7 @@ export default function GameIntroSplash({ isVisible, game, onComplete }) {
             // Fetch the first question in the background to warm up the API
             fetch(`/api/training/get-question?gameId=${game.id}&engineType=PIO&level=1`)
                 .then(() => console.log('✅ Question API warmed up'))
-                .catch(() => { }); // Silently fail
+                .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); // Silently fail
         }
     }, [isVisible, game?.id, router]);
 

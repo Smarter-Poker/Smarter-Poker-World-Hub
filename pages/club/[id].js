@@ -622,7 +622,7 @@ export default function ClubPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ post_id: postId, user_id: user.id, interaction_type: 'share' }),
-      }).catch(() => { });
+      }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     }
   }
 
@@ -976,9 +976,9 @@ export default function ClubPage() {
                     onClick={() => {
                       const shareUrl = window.location.href;
                       if (navigator.share) {
-                        navigator.share({ url: shareUrl, title: venue?.name || 'Poker Club' }).catch(() => { });
+                        navigator.share({ url: shareUrl, title: venue?.name || 'Poker Club' }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                       } else {
-                        navigator.clipboard.writeText(shareUrl).then(() => alert('Link copied!')).catch(() => { });
+                        navigator.clipboard.writeText(shareUrl).then(() => alert('Link copied!')).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                       }
                     }}
                     className="p-2 border border-[#E5E7EB] rounded-lg hover:bg-[#F3F4F6]"

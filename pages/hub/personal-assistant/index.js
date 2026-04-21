@@ -81,7 +81,7 @@ export default function PersonalAssistantPage() {
       .then(json => {
         if (json?.hand) setDailyHand(json.hand);
       })
-      .catch(() => { });
+      .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
   }, []);
 
   const loadHandInSandbox = (hand) => {

@@ -217,7 +217,7 @@ export default function TableChatHUD({ tableId, userId, isMuted = false }) {
                                         method: 'POST',
                                         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
                                         body: JSON.stringify({ action: 'send', tableId, message: phrase }),
-                                    }).catch(() => {});
+                                    }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                                     // Optimistic insert
                                     setMessages(prev => [...prev.slice(-49), {
                                         id: `temp-${Date.now()}`, table_id: tableId, sender_id: userId,

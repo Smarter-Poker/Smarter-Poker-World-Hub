@@ -36,7 +36,7 @@ export default function PilotVenuesPage() {
 
   useEffect(() => {
     const token = getToken();
-    if (!token) { router.push('/commander/login').catch(() => { }); }
+    if (!token) { router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); }
   }, []);
   const [pilots, setPilots] = useState([]);
   const [loading, setLoading] = useState(true);

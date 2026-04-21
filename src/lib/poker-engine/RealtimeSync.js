@@ -208,7 +208,7 @@ class RealtimeSync {
           .then(({ error }) => {
             if (error) console.error(`[RealtimeSync] hole cards cleanup failed:`, error.message);
           })
-          .catch(() => {});
+          .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       }
     });
 

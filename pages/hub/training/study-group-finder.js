@@ -190,7 +190,7 @@ export default function StudyGroupFinderPage() {
             level: 1,
             handHistory: [],
           }),
-        }).catch(() => {});
+        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         eventBus?.emit?.(
           EventType?.SESSION_END || 'session:end',
           { gameId: 'study-group', groupId: gId, totalApplied: next.length },

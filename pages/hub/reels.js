@@ -1844,7 +1844,7 @@ export default function ReelsPage() {
                                     navigator.clipboard.writeText(url).then(() => {
                                         setCopyToast(true);
                                         setTimeout(() => setCopyToast(false), 2000);
-                                    }).catch(() => {});
+                                    }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                                     setShowMoreMenu(false);
                                 }} style={{
                                     display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '10px 16px',

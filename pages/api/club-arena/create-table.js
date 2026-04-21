@@ -272,7 +272,7 @@ export default async function handler(req, res) {
               data: { tableId: table?.id, variant: gv, stakes: `${sb}/${bb}` },
               pushUrl: `/hub/club-arena?club=${clubId}`,
               excludeUserId: user.id,
-          }).catch(() => { });
+          }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 
           const responseBody = { success: true, table };
           cacheResponse(req, 200, responseBody);

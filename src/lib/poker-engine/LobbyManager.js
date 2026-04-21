@@ -247,7 +247,7 @@ class LobbyManager {
             timer.initPlayer(data.playerId, VIP_LIFETIME_TIMEBANK_SECONDS);
             console.log(`[LobbyManager] 👑 Lifetime VIP Timebank granted to Horse ${String(data.playerId).substring(0, 8)}: ${VIP_LIFETIME_TIMEBANK_SECONDS}s`);
           }
-        }).catch(() => { });
+        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       }
     });
     table.on('player_left', (data) => {
@@ -654,7 +654,7 @@ class LobbyManager {
               p_action_type: 'bbj_loser_pool',
               p_amount: awardResult.loser_payout,
               p_details: { handNumber: bbjData.handNumber, hand: bbjData.loserHand }
-            }).catch(()=>{});
+            }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 
             sbAudit.rpc('record_arena_audit_log', {
               p_club_id: clubId,
@@ -663,7 +663,7 @@ class LobbyManager {
               p_action_type: 'bbj_winner_pool',
               p_amount: awardResult.winner_payout,
               p_details: { handNumber: bbjData.handNumber, hand: bbjData.winnerHand }
-            }).catch(()=>{});
+            }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
             
             // NOTE: We could theoretically loop the tableSharePayout to all players, 
             // but tracking the two massive chip movements provides the primary BBJ absolute trace.
@@ -708,7 +708,7 @@ class LobbyManager {
             p_action_type: 'insurance_premium',
             p_amount: -(data.premium),
             p_details: { coverage: data.amount, equity: data.trailerEquity }
-          }).catch(()=>{});
+          }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
       }
     });
@@ -742,7 +742,7 @@ class LobbyManager {
             p_action_type: 'insurance_payout',
             p_amount: data.payout,
             p_details: { premium: data.premium, netGain: data.netGain }
-          }).catch(()=>{});
+          }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
       }
     });
@@ -1208,7 +1208,7 @@ class LobbyManager {
           p_action_type: 'sit_down',
           p_amount: data.stack || 0,
           p_details: { seatIndex: data.seatIndex }
-        }).catch(() => {});
+        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     });
 
@@ -1222,7 +1222,7 @@ class LobbyManager {
           p_action_type: 'stand_up',
           p_amount: data.stack || 0,
           p_details: { reason: data.reason }
-        }).catch(() => {});
+        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     });
 
@@ -1236,7 +1236,7 @@ class LobbyManager {
           p_action_type: 'add_chips',
           p_amount: data.amount || 0,
           p_details: { reason: 'rebuy' }
-        }).catch(() => {});
+        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     });
 
@@ -1252,7 +1252,7 @@ class LobbyManager {
           p_action_type: `action_${data.action.type}`, // e.g. action_fold, action_bet
           p_amount: data.action.amount || 0,
           p_details: { street: data.street, handNumber: table.handCount || 0 }
-        }).catch(() => {});
+        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     });
   }

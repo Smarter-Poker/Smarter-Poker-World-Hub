@@ -342,8 +342,8 @@ function NavigationGuard({ children }) {
       // are restored from profiles.app_settings JSONB.
       // ═══════════════════════════════════════════════════════════════════
       import('../src/lib/appSettingsSync').then(({ seedLocalStorageFromDB }) => {
-        seedLocalStorageFromDB().catch(() => {});
-      }).catch(() => {});
+        seedLocalStorageFromDB().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+      }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     }
 
     // Initialize SoundEngine for audio playback

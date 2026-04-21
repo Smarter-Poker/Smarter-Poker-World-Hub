@@ -1108,7 +1108,7 @@ ${messages.map(m =>
         try {
             const audio = new Audio(sound.url);
             audio.volume = 0.5;
-            audio.play().catch(() => {});
+            audio.play().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }, [getConversationSoundPref]);
 

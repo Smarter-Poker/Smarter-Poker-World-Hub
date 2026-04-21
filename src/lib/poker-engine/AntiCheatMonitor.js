@@ -180,7 +180,7 @@ class AntiCheatMonitor {
       // 3. Clean up anti-cheat tracking
       this.antiCheat.removePlayerFromTable(playerId, tableId);
       this.antiCheat.closeSession(tableId, playerId, `auto-boot: ${reason}`)
-        .catch(() => {});
+        .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 
       // 4. Log flag to database
       if (this.supabase) {

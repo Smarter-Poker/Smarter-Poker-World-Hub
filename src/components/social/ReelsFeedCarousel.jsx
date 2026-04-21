@@ -934,11 +934,11 @@ function ReelViewer({ reels, startIndex, onClose }) {
         if (!video) return;
         const onCanPlay = () => {
             const p = video.play();
-            if (p !== undefined) p.catch(() => {}); // suppress AbortError
+            if (p !== undefined) p.catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); // suppress AbortError
         };
         if (video.readyState >= 3) {
             const p = video.play();
-            if (p !== undefined) p.catch(() => {});
+            if (p !== undefined) p.catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         } else {
             video.addEventListener('canplay', onCanPlay, { once: true });
         }
@@ -1409,7 +1409,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                                     const url = `${window.location.origin}/hub/reels?id=${currentReel?.id || ''}`;
                                     navigator.clipboard.writeText(url).then(() => {
                                         setCopyToast(true); setTimeout(() => setCopyToast(false), 2000);
-                                    }).catch(() => {});
+                                    }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                                     setShowMoreMenu(false);
                                 }} style={{
                                     display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '10px 16px',

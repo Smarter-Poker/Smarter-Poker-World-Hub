@@ -43,7 +43,7 @@ function recordOnServer(action) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action }),
-    }).catch(() => { });
+    }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
   } catch {
     // Silently ignore
   }

@@ -314,7 +314,7 @@ export default async function handler(req, res) {
             { title: 'File', value: latestMsg.match(/in (.+?) \(/)?.[1] || 'unknown', short: true },
             { title: 'SHA', value: latestActionable.meta?.githubCommitSha?.substring(0, 9) || '', short: true },
           ],
-        }).catch(() => {});
+        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       }
 
       return res.status(200).json({
@@ -353,8 +353,8 @@ export default async function handler(req, res) {
           { title: 'Deploy', value: deployId.substring(0, 12), short: true },
           { title: 'SHA', value: commitSha.substring(0, 9), short: true },
         ],
-      }).catch(() => {});
-      sendErrorSMS('Autofix Rebuild Failed', `The autofix commit ${commitSha.substring(0, 9)} itself failed to build. Manual intervention may be needed.`).catch(() => {});
+      }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+      sendErrorSMS('Autofix Rebuild Failed', `The autofix commit ${commitSha.substring(0, 9)} itself failed to build. Manual intervention may be needed.`).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 
       return res.status(200).json({ action: 'skipped', deployId, reason: 'is an [autofix] commit — skipping to prevent loops' });
     }
@@ -392,15 +392,15 @@ export default async function handler(req, res) {
               deployId, commitSha, strategy: 'generic', confidence: 'low',
               status: 'skipped_unfixable',
               metadata: { reason: 'circuit_breaker', attempts: autofixCount },
-            }).catch(() => {});
+            }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 
             sendNotification({
               title: '🛑 Autofix Circuit Breaker',
               message: `Reached ${MAX_FIX_ATTEMPTS} fix attempts for \`${commitSha.substring(0, 9)}\`. Stopping. Manual fix required.`,
               color: 'danger',
               fields: [{ title: 'Attempts', value: String(autofixCount), short: true }],
-            }).catch(() => {});
-            sendErrorSMS('Autofix Circuit Breaker', `Reached ${MAX_FIX_ATTEMPTS} fix attempts for ${commitSha.substring(0, 9)}. Stopping. Manual fix required.`).catch(() => {});
+            }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+            sendErrorSMS('Autofix Circuit Breaker', `Reached ${MAX_FIX_ATTEMPTS} fix attempts for ${commitSha.substring(0, 9)}. Stopping. Manual fix required.`).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 
             return res.status(200).json({ action: 'circuit_breaker', deployId, commitSha: commitSha.substring(0, 8), attempts: autofixCount });
           }
@@ -482,7 +482,7 @@ export default async function handler(req, res) {
               deployId, commitSha, strategy: 'oom', confidence: 'high',
               status: 'skipped_unfixable',
               metadata: { reason: 'SIGKILL_SIGABRT_OOM_detected_by_openclaw' },
-            }).catch(() => {});
+            }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 
             // Fire-and-forget — don't block response for webhook delivery
             sendNotification({
@@ -490,8 +490,8 @@ export default async function handler(req, res) {
               message: `Deploy \`${commitSha.substring(0, 9)}\` killed by OOM signal (infrastructure issue). DO NOT bump heap — cpus:1 is the fix.`,
               color: 'danger',
               fields: [{ title: 'SHA', value: commitSha.substring(0, 9), short: true }],
-            }).catch(() => {});
-            sendErrorSMS('Build OOM/SIGABRT', `Deploy ${commitSha.substring(0, 9)} killed by OOM. Infrastructure issue — NOT fixable by bumping heap. cpus:1 is the fix.`).catch(() => {});
+            }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+            sendErrorSMS('Build OOM/SIGABRT', `Deploy ${commitSha.substring(0, 9)} killed by OOM. Infrastructure issue — NOT fixable by bumping heap. cpus:1 is the fix.`).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 
             return res.status(200).json({
               action: 'skipped', deployId, commitSha: commitSha.substring(0, 8),
@@ -622,7 +622,7 @@ export default async function handler(req, res) {
             { title: 'Attempt', value: `${attempt}/${MAX_FIX_ATTEMPTS}`, short: true },
             { title: 'SHA', value: autofixResult.newCommitSha?.substring(0, 9) || commitSha.substring(0, 9), short: true },
           ],
-        }).catch(() => {});
+        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       } else if (autofixResult.action === 'pr_opened') {
         // PR mode — notify so humans know to review
         sendNotification({
@@ -633,8 +633,8 @@ export default async function handler(req, res) {
             { title: 'PR', value: autofixResult.prUrl || 'unknown', short: true },
             { title: 'Attempt', value: `${attempt}/${MAX_FIX_ATTEMPTS}`, short: true },
           ],
-        }).catch(() => {});
-        sendErrorSMS('Autofix PR Opened', `Fix for ${autofixResult.filePath || 'unknown'} staged in PR #${autofixResult.prNumber}. Review and merge to unblock deploy.`).catch(() => {});
+        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+        sendErrorSMS('Autofix PR Opened', `Fix for ${autofixResult.filePath || 'unknown'} staged in PR #${autofixResult.prNumber}. Review and merge to unblock deploy.`).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       } else if (autofixResult.action === 'skipped') {
         // Track 'skipped' results — if a deploy is skipped twice in a row (e.g. OOM with
         // no code to fix), permanently dedup it so we don't hammer the API every 2min.
@@ -651,11 +651,11 @@ export default async function handler(req, res) {
           console.log(`[deploy-error-poll] Autofix skipped (attempt ${attemptTracker[skipKey]}/2) — will retry once more`);
         }
         // Release Hetzner — our skip doesn't mean Hetzner can't do better
-        updateAttemptStatus(attemptId, 'failed').catch(() => {});
+        updateAttemptStatus(attemptId, 'failed').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       } else {
         console.log(`[deploy-error-poll] Autofix returned: ${autofixResult.action} — will retry`);
         // Release Hetzner — our failure doesn't mean Hetzner can't succeed
-        updateAttemptStatus(attemptId, 'failed').catch(() => {});
+        updateAttemptStatus(attemptId, 'failed').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       }
 
       return res.status(200).json({

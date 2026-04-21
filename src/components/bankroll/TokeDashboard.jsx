@@ -443,7 +443,7 @@ function TokeDashboard({ userId, refreshTrigger }) {
                                             }
                                             navigator.clipboard.writeText(lines.join('\n'))
                                                 .then(() => { /* silent success toast handled by parent */ })
-                                                .catch(() => { });
+                                                .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                                         }}
                                     >
                                         📋 Copy Summary

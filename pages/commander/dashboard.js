@@ -163,19 +163,19 @@ export default function CommanderDashboard() {
     async function validateSession() {
       const stored = getStaffSession();
       if (!stored) {
-        if (router.asPath !== '/commander/login') router.push('/commander/login').catch(() => { });
+        if (router.asPath !== '/commander/login') router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         return;
       }
       try {
         const data = JSON.parse(stored);
         // Require at minimum an id or user_id — venue_id can be null for new owners without a venue
         if (!data.id && !data.user_id) {
-          if (router.asPath !== '/commander/login') router.push('/commander/login').catch(() => { });
+          if (router.asPath !== '/commander/login') router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
           return;
         }
         setStaff(data);
       } catch {
-        if (router.asPath !== '/commander/login') router.push('/commander/login').catch(() => { });
+        if (router.asPath !== '/commander/login') router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         return;
       }
 
@@ -193,10 +193,10 @@ export default function CommanderDashboard() {
             if (!remembered) {
               // Not remembered — clear everything
               localStorage.removeItem('commander_staff');
-              if (router.asPath !== '/commander/login') router.push('/commander/login').catch(() => { });
+              if (router.asPath !== '/commander/login') router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
             } else {
               // Remembered — keep staff email for pre-fill, redirect with expired flag
-              if (router.asPath !== '/commander/login') router.push('/commander/login?expired=1').catch(() => { });
+              if (router.asPath !== '/commander/login') router.push('/commander/login?expired=1').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
             }
           }
         }
@@ -242,7 +242,7 @@ const venueId = staff?.venue_id;
             localStorage.setItem('commander_security_gate', data.data.security_gate_enabled === false ? 'off' : 'on');
           }
         })
-        .catch(() => { })
+        .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e))
     } catch (e) { /* silent */ }
   }, [staff]);
 
@@ -261,7 +261,7 @@ const venueId = staff?.venue_id;
     localStorage.removeItem('commander_venue');
     localStorage.removeItem('commander_subscription');
     localStorage.removeItem('commander_remember');
-    if (router.asPath !== '/commander/login') router.push('/commander/login').catch(() => { });
+    if (router.asPath !== '/commander/login') router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
   };
 
   const handleFeatureClick = (feat) => {

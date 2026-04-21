@@ -68,7 +68,7 @@ export default function TokeTrackerLanding() {
                     setTokePrefs(prev => ({ ...prev, ...data.settings.tokeTracker }));
                 }
             })
-            .catch(() => { });
+            .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     }, [userId]);
 
     // Save preference to Supabase + emit bus event

@@ -175,7 +175,7 @@ export default function FloorCalls() {
         audioRef.current = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAAD+/wIA+/8EAPz/AwD+/wEA//8BAAAA//8AAAEA//8BAAAA/v8CAAEA/v8DAAEA/f8EAAIA/P8GAAQA+v8IAAgA9/8MAA4A8/8SABgA7f8bACMA5f8nADEA2v81AEEA0P9GAE8Axf9eAGMAuf92AHsAr/+SAJEAo/+sAKoAmf/EAMMAlP/dAN0AkP/2APYA');
       }
       audioRef.current.currentTime = 0;
-      audioRef.current.play().catch(() => { });
+      audioRef.current.play().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
     } catch (e) { /* silent */ }
   };

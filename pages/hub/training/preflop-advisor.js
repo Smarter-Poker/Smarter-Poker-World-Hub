@@ -18,7 +18,7 @@ function saveSession(payload) {
   authedFetch('/api/training/save-session', {
     method: 'POST',
     body: JSON.stringify(payload),
-  }).catch(() => {});
+  }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 }
 
 // ── GTO Canonical Ranges (100BB Cash, 6-max) ──────────────────────

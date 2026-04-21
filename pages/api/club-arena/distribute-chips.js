@@ -203,7 +203,7 @@ export default async function handler(req, res) {
         message: `You received ${amount.toLocaleString()} chips${notes ? ` — ${notes}` : ''}.`,
         data: { clubId, amount },
         pushUrl: `/hub/club-arena/cashier?club=${clubId}`,
-      }).catch(() => { });
+      }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 
       logAudit(supabaseAdmin, { actionType: 'chip_distribution', userId: user.id, targetUserId: toUserId, clubId, amount, ip: extractIP(req), details: { source: 'treasury', notes, treasuryBefore: result.treasury_before, treasuryAfter: result.treasury_after, memberBefore: result.member_before, memberAfter: result.member_after } });
       return res.status(200).json({

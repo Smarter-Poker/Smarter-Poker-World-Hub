@@ -198,6 +198,9 @@ export default async function handler(req, res) {
               size: "1024x1024",
           });
 
+          if (!imageResponse?.data?.[0]?.url) {
+              throw new Error('Image generation returned no URL');
+          }
           const imageUrl = imageResponse.data[0].url;
 
           const imgResponse = await fetch(imageUrl);

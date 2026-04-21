@@ -396,7 +396,7 @@ export default function DealerTablet() {
       // Also remove from table session if applicable
       if (player.session_id) {
         const res = await commanderFetch(`/api/commander/dealer/sessions/${player.session_id}/end`, {
-          method: 'POST'}).catch(() => { });
+          method: 'POST'}).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         if (!res.ok) throw new Error('Request failed');
       }
       await fetchTable();
@@ -443,7 +443,7 @@ export default function DealerTablet() {
         seatedPlayers.map(player =>
           commanderFetch(`/api/commander/dealer/sessions/${player.session_id}/end`, {
             method: 'POST', headers
-          }).catch(() => { })
+          }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e))
         )
       );
       if (results.some(r => r && r.ok)) {

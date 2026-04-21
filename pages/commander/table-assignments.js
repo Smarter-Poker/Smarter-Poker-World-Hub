@@ -79,7 +79,7 @@ return {
   useEffect(() => {    const _c = new AbortController();
 
     const stored = getStaffSession();
-    if (!stored) { router.push('/commander/login').catch(() => { }); return; }
+    if (!stored) { router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); return; }
     fetchData();
     return () => _c.abort();
   }, [fetchData, router]);

@@ -20,7 +20,7 @@ function getAudioContext() {
     }
     // Resume if suspended (e.g. autoplay policy)
     if (audioCtx.state === 'suspended') {
-        audioCtx.resume().catch(() => {});
+        audioCtx.resume().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     }
     return audioCtx;
 }

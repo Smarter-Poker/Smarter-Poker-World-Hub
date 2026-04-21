@@ -173,7 +173,7 @@ export default async function handler(req, res) {
                           .update({ view_count: (data.view_count || 0) + 1 })
                           .eq('id', data.id)
                           .then(() => {})
-                          .catch(() => {});
+                          .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                   });
 
               // Enrich with owner profile (same as ID lookup)
@@ -422,7 +422,7 @@ export default async function handler(req, res) {
                                   tags: { api: 'social-pages', stage: 'geocoding' },
                                   extra: { page_id: data.id, location: locStr, http_status: r.status },
                               });
-                          }).catch(() => { });
+                          }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                       } else {
                           console.debug(`[geocode] Success for page ${data.id}`);
                       }
@@ -433,7 +433,7 @@ export default async function handler(req, res) {
                               tags: { api: 'social-pages', stage: 'geocoding' },
                               extra: { page_id: data.id, location: locStr },
                           });
-                      }).catch(() => { });
+                      }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                   });
               } catch (e) { /* non-critical */ }
           }

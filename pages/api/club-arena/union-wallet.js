@@ -175,7 +175,7 @@ export default async function handler(req, res) {
         club_id: clubId,
         notes: txNote,
         created_by: auth.user.id,
-      }).catch(() => { });
+      }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 
       await supabaseAdmin.from('chip_transactions').insert({
         club_id: clubId,
@@ -183,7 +183,7 @@ export default async function handler(req, res) {
         transaction_type: 'union_transfer',
         notes: txNote,
         metadata: { union_id: unionId },
-      }).catch(() => { });
+      }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 
       return res.json({
         success: true,
@@ -228,7 +228,7 @@ export default async function handler(req, res) {
       await supabaseAdmin.from('union_wallet_transactions').insert([
         { union_id: unionId, wallet: 'rake_wallet', direction: 'debit', amount: amt, tx_type: 'manual_transfer', notes: txNote, created_by: auth.user.id },
         { union_id: unionId, wallet: 'chip_balance', direction: 'credit', amount: amt, tx_type: 'manual_transfer', notes: txNote, created_by: auth.user.id },
-      ]).catch(() => { });
+      ]).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 
       return res.json({ success: true, message: txNote });
     }
@@ -284,7 +284,7 @@ export default async function handler(req, res) {
         // Reverse loser credit + return to pool
         await supabaseAdmin.rpc('fn_debit_chips', {
           p_club_id: payoutClubId, p_user_id: loserId, p_amount: loserShare,
-        }).catch(() => { });
+        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         await supabaseAdmin.rpc('fn_union_credit_wallet', {
           p_union_id: unionId, p_wallet: 'bbj_wallet', p_amount: payout,
         }).catch(rb => console.error('[union-wallet] CRITICAL BBJ rollback failed:', rb.message));
@@ -309,7 +309,7 @@ export default async function handler(req, res) {
         amount: payout, tx_type: 'bbj_payout', club_id: payoutClubId,
         notes: `BBJ payout: ${payout.toLocaleString()} chips (Loser: ${loserShare}, Winner: ${winnerShare}, Table: ${tblShare})`,
         created_by: auth.user.id,
-      }).catch(() => { });
+      }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 
       return res.json({
         success: true,

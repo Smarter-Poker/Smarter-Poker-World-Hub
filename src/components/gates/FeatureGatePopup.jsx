@@ -256,7 +256,7 @@ export default function FeatureGatePopup({ userId, featureKey, diamonds: initial
             } else {
                 checkFeatureAccess(userId, featureKey).then(result => {
                     setDiamonds(result.diamonds || 0);
-                }).catch(() => { });
+                }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
             }
         };
         const unsubEarned = eventBus.on(EventType.DIAMONDS_EARNED, refreshBalance);

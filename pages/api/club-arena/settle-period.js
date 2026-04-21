@@ -732,7 +732,7 @@ export default async function handler(req, res) {
             message: `Your commission of ${cr.commission_amount.toLocaleString()} chips has been paid.`,
             data: { clubId, amount: cr.commission_amount },
             pushUrl: `/hub/club-arena/agent-dashboard?club=${clubId}`,
-          }).catch(() => { });
+          }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         }
       }
 

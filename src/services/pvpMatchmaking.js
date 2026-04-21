@@ -325,7 +325,7 @@ export async function processMatchReward(winnerId, loserId, stakeAmount) {
             transaction_type: 'pvp_match_win',
             description: `PvP Match Win vs ${loserId}`,
             balance_after: (rpcResult?.balance || 0)
-        }).catch(() => { }); // Non-critical, ignore errors
+        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); // Non-critical, ignore errors
 
         // Loser already had their stake deducted when joining — nothing to do
         busEmit.diamondsEarned(winnerPayout, 'PvP Match Win');

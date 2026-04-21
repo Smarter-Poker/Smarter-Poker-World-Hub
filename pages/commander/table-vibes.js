@@ -49,12 +49,12 @@ const json = await commanderFetchJSON(`/api/commander/table-ratings?venue_id=${s
 useEffect(() => {    const _c = new AbortController();
 
     const stored = getStaffSession();
-    if (!stored) { router.push('/commander/login').catch(() => { }); return; }
+    if (!stored) { router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); return; }
     try {
       const s = JSON.parse(stored);
-      if (!s.venue_id) { router.push('/commander/login').catch(() => { }); return; }
+      if (!s.venue_id) { router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); return; }
       setStaff(s);
-    } catch { router.push('/commander/login').catch(() => { }); }
+    } catch { router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); }
     setLoading(false);
     return () => _c.abort();
   }, []);

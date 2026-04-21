@@ -105,14 +105,14 @@ export default function CommanderTablesPage() {
   // Check staff session
   useEffect(() => {
     const storedStaff = getStaffSession();
-    if (!storedStaff) { router.push('/commander/login').catch(() => { }); return; }
+    if (!storedStaff) { router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); return; }
     try {
       const staffData = JSON.parse(storedStaff);
-      if (!staffData.venue_id) { router.push('/commander/login').catch(() => { }); return; }
+      if (!staffData.venue_id) { router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); return; }
       setStaff(staffData);
       setVenueId(staffData.venue_id);
       if (staffData.venue_name) setVenue({ id: staffData.venue_id, name: staffData.venue_name });
-    } catch { router.push('/commander/login').catch(() => { }); }
+    } catch { router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); }
   }, [router]);
 
   // Fetch tables + games + sessions

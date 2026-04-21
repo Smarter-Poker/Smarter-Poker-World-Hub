@@ -129,7 +129,7 @@ try {
                     seat_index: -1, // -1 = observer
                     is_active: true,
                   })
-                  .catch(() => {}); // Ignore duplicates
+                  .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); // Ignore duplicates
 
                 result.observerTimeLimit = {
                   enabled: true,

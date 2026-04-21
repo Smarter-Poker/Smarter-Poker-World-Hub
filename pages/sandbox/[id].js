@@ -62,7 +62,7 @@ export async function getServerSideProps(context) {
         }
 
         // Background metric
-        supabase.rpc('increment_share_view', { share_id: id }).catch(() => { });
+        supabase.rpc('increment_share_view', { share_id: id }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 
         return {
             props: {

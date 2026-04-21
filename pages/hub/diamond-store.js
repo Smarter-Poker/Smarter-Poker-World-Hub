@@ -521,7 +521,7 @@ export default function DiamondStorePage() {
 
             showStoreToast('success', `Purchase complete! ${totalDiamondCost.toLocaleString()} diamonds deducted.`);
             // Play success sound
-            try { new Audio('/sounds/purchase-success.mp3').play().catch(() => {}); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+            try { new Audio('/sounds/purchase-success.mp3').play().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
             // Clear cart after successful purchase
             const { clearCart } = useCartStore.getState();
             clearCart();

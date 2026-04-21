@@ -557,7 +557,7 @@ export default function VirtualSandbox() {
         fetch('/api/assistant/sandbox/sandbox-quiz', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId: user.id, scenarioHash: hash, userAction: guess, correctAction: correctLabel, isCorrect }),
-        }).catch(() => { });
+        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       }
     } catch (e) { /* silent */ }
   };
@@ -568,7 +568,7 @@ export default function VirtualSandbox() {
     fetch('/api/assistant/sandbox/weekly-spot')
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data?.spot) setWeeklySpot(data.spot); })
-      .catch(() => { });
+      .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
   }, []);
 
   const loadWeeklySpot = (spot) => {
@@ -1009,7 +1009,7 @@ export default function VirtualSandbox() {
           isCorrect: quizRevealed ? (userGuess?.toLowerCase().includes(results?.optimalAction?.label?.toLowerCase()?.split(' ')[0] || '')) : null,
           handStrength: getHandStrength(heroHand)?.label || null,
         }),
-      }).catch(() => { }).catch(() => {});
+      }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     } catch (e) { /* silent */ }
   }, [heroPosition, currentStreet, gameType, results, heroHand, quizRevealed, userGuess]);
 

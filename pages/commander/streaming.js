@@ -286,20 +286,20 @@ export default function StreamingPage() {
   useEffect(() => {
     const storedStaff = getStaffSession();
     if (!storedStaff) {
-      router.push('/commander/login').catch(() => { });
+      router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       return;
     }
 
     try {
       const staffData = JSON.parse(storedStaff);
       if (!staffData.venue_id) {
-        router.push('/commander/login').catch(() => { });
+        router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         return;
       }
       setStaff(staffData);
       setVenueId(staffData.venue_id);
     } catch {
-      router.push('/commander/login').catch(() => { });
+      router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     }
   }, [router]);
 

@@ -57,7 +57,7 @@ export default async function handler(req, res) {
         member_id,
         venue_id: member?.venue_id,
         checked_in_at: new Date().toISOString()
-      }).catch(() => {}); // Non-fatal if table doesn't exist
+      }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); // Non-fatal if table doesn't exist
 
       return res.status(200).json({
         success: true,

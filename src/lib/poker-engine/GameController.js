@@ -244,7 +244,7 @@ class GameController {
       for (const session of activeSessions) {
         const stats = performanceTracker.endSession(session.horseId, session.tableId);
         if (stats && this.supabase) {
-          await performanceTracker.persistSessionStats(this.supabase, stats).catch(() => {});
+          await performanceTracker.persistSessionStats(this.supabase, stats).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         }
       }
     } catch (_) { /* don't block shutdown */ }
@@ -308,7 +308,7 @@ class GameController {
                 // Phase 48f: End session + persist stats on ALL exit paths
                 const zombieStats = performanceTracker.endSession(playerId, tableId);
                 if (zombieStats && this.supabase) {
-                  performanceTracker.persistSessionStats(this.supabase, zombieStats).catch(() => {});
+                  performanceTracker.persistSessionStats(this.supabase, zombieStats).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                 }
                 this.standUp(tableId, playerId);
                 requiresHeal = true;
@@ -323,7 +323,7 @@ class GameController {
               // Phase 48f: End session + persist stats on ALL exit paths
               const bustedStats = performanceTracker.endSession(playerId, tableId);
               if (bustedStats && this.supabase) {
-                performanceTracker.persistSessionStats(this.supabase, bustedStats).catch(() => {});
+                performanceTracker.persistSessionStats(this.supabase, bustedStats).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
               }
               this.standUp(tableId, playerId);
               requiresHeal = true;
@@ -355,7 +355,7 @@ class GameController {
                 console.log(`[HorseAI Session] 🚪 ${playerId.substring(0, 8)} leaving ${tableId}: ${leaveCheck.reason}`);
                 const sessionStats = performanceTracker.endSession(playerId, tableId);
                 if (sessionStats && this.supabase) {
-                  performanceTracker.persistSessionStats(this.supabase, sessionStats).catch(() => {});
+                  performanceTracker.persistSessionStats(this.supabase, sessionStats).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                 }
                 this.standUp(tableId, playerId);
                 requiresHeal = true;
@@ -715,7 +715,7 @@ class GameController {
                 if (currPlayer) {
                   HorsePokerBrain.isHorse(String(currPlayer.id)).then(isAI => {
                     if (isAI) this._triggerHorseAction(clubTableId, currPlayer.id);
-                  }).catch(() => { });
+                  }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                 }
               }
             }
@@ -795,7 +795,7 @@ class GameController {
           if (sess.tableId === tableId) {
             const stats = performanceTracker.endSession(sess.horseId, sess.tableId);
             if (stats && this.supabase) {
-              await performanceTracker.persistSessionStats(this.supabase, stats).catch(() => {});
+              await performanceTracker.persistSessionStats(this.supabase, stats).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
             }
           }
         }
@@ -872,7 +872,7 @@ class GameController {
       // Track AI sessions ONLY for horses (Phase 2 feature)
       HorsePokerBrain.isHorse(String(playerId)).then(isAI => {
         if (isAI) HorsePokerBrain.recordSitDown(tableId, String(playerId), buyIn);
-      }).catch(() => { });
+      }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 
       // Broadcast via RealtimeSync
       this._broadcastTableState(tableId);
@@ -898,7 +898,7 @@ class GameController {
       if (existingSession) {
         const stats = performanceTracker.endSession(playerId, tableId);
         if (stats && this.supabase) {
-          performanceTracker.persistSessionStats(this.supabase, stats).catch(() => {});
+          performanceTracker.persistSessionStats(this.supabase, stats).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         }
       }
     } catch (_) { /* never block standUp */ }
@@ -1053,7 +1053,7 @@ class GameController {
       // Track AI rebuy/add-on stats ONLY for horses (Phase 2 feature)
       HorsePokerBrain.isHorse(String(playerId)).then(isAI => {
         if (isAI) HorsePokerBrain.recordRebuy(tableId, String(playerId), amount);
-      }).catch(() => { });
+      }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     }
     return result;
   }
@@ -1365,7 +1365,7 @@ class GameController {
               console.error(`[HorseAI] action_required trigger failed:`, err.message);
             });
           }
-        }).catch(() => { });
+        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       }
     });
 
@@ -2288,7 +2288,7 @@ class GameController {
                         console.log(`[HorseAI] Resuming interrupted turn for ${currPlayer.id.substring(0, 8)} on ${row.id}`);
                         this._triggerHorseAction(row.id, currPlayer.id);
                       }
-                    }).catch(() => { });
+                    }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                   }
                 }
 

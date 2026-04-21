@@ -72,9 +72,9 @@ class StateSerializer {
 
     // Keep seat snapshot current whenever players join/leave.
     // No need to await — fire-and-forget is fine for snapshots.
-    table.on('player_seated', () => this._writeSeatSnapshot().catch(() => {}));
-    table.on('player_left', () => this._writeSeatSnapshot().catch(() => {}));
-    table.on('chips_added', () => this._writeSeatSnapshot().catch(() => {}));
+    table.on('player_seated', () => this._writeSeatSnapshot().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)));
+    table.on('player_left', () => this._writeSeatSnapshot().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)));
+    table.on('chips_added', () => this._writeSeatSnapshot().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)));
   }
 
   /**
@@ -430,7 +430,7 @@ class StateSerializer {
    */
   async _clearStateAndSnapshot() {
     await this._clearState();
-    await this._writeSeatSnapshot().catch(() => {});
+    await this._writeSeatSnapshot().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
   }
 
   /**

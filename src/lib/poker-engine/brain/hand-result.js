@@ -120,7 +120,7 @@ async function processHandResult(handData, bb = 2) {
 
         // --- Save key hands (#41) ---
         if (Math.abs(chipDelta) > bb * 10) {
-            saveKeyHand(handData, bb).catch(() => { });
+            saveKeyHand(handData, bb).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         }
 
         // --- Evolve horse skill (#42) ---
@@ -135,7 +135,7 @@ async function processHandResult(handData, bb = 2) {
             for (const opp of opponents.slice(0, 2)) {
                 const read = adv.getOpponentRead(pid, String(opp.id));
                 if (read && read.handsObserved >= 10) {
-                    saveOpponentRead(pid, String(opp.id), read).catch(() => { });
+                    saveOpponentRead(pid, String(opp.id), read).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                 }
             }
         }

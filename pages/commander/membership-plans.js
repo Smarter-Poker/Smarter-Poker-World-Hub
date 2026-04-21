@@ -62,12 +62,12 @@ export default function MembershipPlansPage() {
 
   useEffect(() => {
     const s = getStaffSession();
-    if (!s) return router.push('/commander/login').catch(() => { });
+    if (!s) return router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     try {
       const sd = JSON.parse(s);
-      if (!sd.venue_id) return router.push('/commander/login').catch(() => { });
+      if (!sd.venue_id) return router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       setVenueId(sd.venue_id);
-    } catch { router.push('/commander/login').catch(() => { }); }
+    } catch { router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); }
   }, [router]);
 
   useEffect(() => { if (venueId) { const _c = new AbortController(); fetchPlans(_c.signal); return () => _c.abort(); } }, [venueId]);

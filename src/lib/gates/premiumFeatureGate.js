@@ -289,7 +289,7 @@ export async function purchaseFeatureAccess(userId, featureKey, cost, durationHo
                 p_type: 'feature_unlock_refund',
                 p_description: `${featureKey} refund (access grant failed)`,
                 p_reference_id: null
-            }).catch(() => { });
+            }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         });
         return { success: false, error: 'Failed to grant access' };
     }
@@ -423,7 +423,7 @@ export async function purchaseVipWithDiamonds(userId) {
                 p_type: 'vip_membership_refund',
                 p_description: 'VIP membership refund (activation failed)',
                 p_reference_id: null
-            }).catch(() => { });
+            }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         });
         return { success: false, error: 'Failed to activate VIP' };
     }
@@ -438,7 +438,7 @@ export async function purchaseVipWithDiamonds(userId) {
         current_period_end: expiresAt.toISOString(),
         stripe_subscription_id: `diamond_${userId}_${Date.now()}`,
         updated_at: new Date().toISOString()
-    }, { onConflict: 'user_id' }).catch(() => { });
+    }, { onConflict: 'user_id' }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 
     // 🚌 BUS EVENT: Notify the EventBus of VIP diamond purchase
     busEmit.diamondsSpent(VIP_DIAMOND_COST, 'VIP Diamond Membership');

@@ -66,7 +66,7 @@ export class PokerSoundManager {
       }
     }
     if (this._ctx.state === 'suspended') {
-      this._ctx.resume().catch(() => {});
+      this._ctx.resume().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     }
     return this._ctx;
   }
@@ -508,7 +508,7 @@ export class PokerSoundManager {
 
   dispose() {
     if (this._ctx) {
-      this._ctx.close().catch(() => {});
+      this._ctx.close().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       this._ctx = null;
     }
   }

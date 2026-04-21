@@ -78,7 +78,7 @@ import { SharedPostCreator } from '../../../src/components/social/SharedPostCrea
 // Shared utilities — single source of truth (extracted from this file)
 import { SOCIAL_COLORS, SOCIAL_COLORS as C, timeAgo, decodeHtmlEntities, isYouTubeUrl, getYouTubeVideoId, getYouTubeEmbedUrl, getYouTubeThumbnail, validateYouTubeVideo } from '../../../src/lib/socialHelpers';
 import { SharedAvatar as Avatar } from '../../../src/components/social/SharedAvatar';
-import { VideoThumbnail, VideoPostWrapper, FullScreenVideoViewer } from '../../../src/components/social/SharedVideoComponents';
+import { VideoThumbnail, VideoPostWrapper } from '../../../src/components/social/SharedVideoComponents';
 
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -660,7 +660,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
             supabase.channel('social-feed').send({ type: 'broadcast', event: 'typing', payload: {
                 post_id: post.id, user_id: currentUserId,
                 name: currentUserName, avatar_url: currentUserAvatar, isTyping: false
-            }}).catch(() => {});
+            }}).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         } catch (e) { console.warn('[App] Handled exception:', e); }
 
         // Capture values and clear input immediately for snappy UX
@@ -1118,7 +1118,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                 title: 'Check out this post on Smarter.Poker',
                                 text: post.content?.slice(0, 100) || 'A post from Smarter.Poker',
                                 url: shareUrl,
-                            }).catch(() => { });
+                            }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                         } else {
                             navigator.clipboard.writeText(shareUrl).then(() => {
                                 toast.success('Link copied to clipboard!');
@@ -1430,14 +1430,14 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                         ch.send({ type: 'broadcast', event: 'typing', payload: {
                                             post_id: post.id, user_id: currentUserId,
                                             name: currentUserName, avatar_url: currentUserAvatar, isTyping: true
-                                        }}).catch(() => {});
+                                        }}).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                                     } catch (e) { console.warn('[App] Handled exception:', e); }
                                     typingDebounceRef.current = setTimeout(() => {
                                         try {
                                             supabase.channel('social-feed').send({ type: 'broadcast', event: 'typing', payload: {
                                                 post_id: post.id, user_id: currentUserId,
                                                 name: currentUserName, avatar_url: currentUserAvatar, isTyping: false
-                                            }}).catch(() => {});
+                                            }}).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                                         } catch (e) { console.warn('[App] Handled exception:', e); }
                                     }, 3000);
                                 }}
@@ -2101,7 +2101,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                 ...(token ? { 'Authorization': `Bearer ${token}` } : {})
                             },
                             body: JSON.stringify({ page_id: page.id, locations: unique }),
-                        }).catch(() => { });
+                        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                     }
                 } catch (geoErr) {
                     console.warn('[ClubPage] Background geocoding failed:', geoErr);
@@ -3988,7 +3988,7 @@ function SocialMediaPage() {
         if (!user?.id) return;
         getBlockedUsers(user.id).then(blocked => {
             setBlockedUserIds(new Set((blocked || []).map(b => b.blocked_id)));
-        }).catch(() => {});
+        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     }, [user?.id]);
 
     // Phase 2: Block/hide a user's posts
@@ -4569,7 +4569,7 @@ function SocialMediaPage() {
                                                 setMyClubPage(json2.data[0]);
                                             }
                                         })
-                                        .catch(() => { });
+                                        .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                                 }
                             }
                         })
@@ -6584,7 +6584,7 @@ function SocialMediaPage() {
                     onClose={() => {
                         setShowGoLiveModal(false);
                         // Refresh live streams after closing
-                        LiveStreamService.getLiveStreams().then(setLiveStreams).catch(() => { });
+                        LiveStreamService.getLiveStreams().then(setLiveStreams).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                     }}
                     user={user}
                 />
@@ -6597,7 +6597,7 @@ function SocialMediaPage() {
                         onClose={() => {
                             setWatchingStream(null);
                             // Refresh live streams
-                            LiveStreamService.getLiveStreams().then(setLiveStreams).catch(() => { });
+                            LiveStreamService.getLiveStreams().then(setLiveStreams).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                         }}
                     />
                 )}

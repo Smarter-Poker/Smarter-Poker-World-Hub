@@ -192,7 +192,7 @@ export default async function handler(req, res) {
                     p_type: 'referral_bonus',
                     p_description: `Referral Bonus — New Player Joined`,
                     p_reference_id: user.id,
-                }).catch(() => {});
+                }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 
                 // Award diamonds to referee
                 await supabase.rpc('add_diamonds_to_balance', {
@@ -201,7 +201,7 @@ export default async function handler(req, res) {
                     p_type: 'referral_bonus',
                     p_description: `Welcome Bonus — Referred By ${referrer.username || 'A Friend'}`,
                     p_reference_id: referrer.id,
-                }).catch(() => {});
+                }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 
                 return res.status(200).json({
                     success: true,

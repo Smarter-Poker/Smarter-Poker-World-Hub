@@ -283,7 +283,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
           } : {}),
         }));
       }
-    }).catch(() => { });
+    }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
   }, [userId, isEditMode]);
 
   // Fallback: check for active series if no active trip
@@ -300,7 +300,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
           } : {}),
         }));
       }
-    }).catch(() => { });
+    }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
   }, [userId, isEditMode, activeTrip]);
 
   const handleCategorySelect = (cat) => {

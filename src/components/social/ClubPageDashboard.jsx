@@ -450,7 +450,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ page_id: page.id, locations: unique }),
-                        }).catch(() => { });
+                        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                     }
                 } catch (geoErr) { console.warn('[App] Handled exception:', geoErr?.message || geoErr); }
             }

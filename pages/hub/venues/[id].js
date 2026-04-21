@@ -381,7 +381,7 @@ export default function VenueDetailPage() {
     fetch('/api/poker/follow?page_type=venue&page_id=' + id + '&check_user=' + encodeURIComponent(checkUid))
       .then(function (r) { return r.json(); })
       .then(function (d) { if (d.is_following !== undefined) setIsFollowed(d.is_following); })
-      .catch(function () { });
+      .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
   }, [id]);
 
   // SWR — parallel fetch venue + follow count + social page
@@ -522,17 +522,17 @@ export default function VenueDetailPage() {
     fetch('/api/poker/checkins/leaderboard?venue_id=' + id + '&period=month')
       .then(function(r) { return r.json(); })
       .then(function(j) { if (j.success && j.leaders) setVenueLeaderboard(j.leaders); })
-      .catch(function() { });
+      .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     // 7-day activity
     fetch('/api/poker/checkins/activity?venue_id=' + id)
       .then(function(r) { return r.json(); })
       .then(function(j) { if (j.success) setVenueActivity({ days: j.days || [], maxCount: j.maxCount || 1 }); })
-      .catch(function() { });
+      .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     // Popular hours
     fetch('/api/poker/checkins/popular-hours?venue_id=' + id)
       .then(function(r) { return r.json(); })
       .then(function(j) { if (j.success) setPopularHours({ hours: j.hours || [], maxCount: j.maxCount || 1, peakHour: j.peakHour || '' }); })
-      .catch(function() { });
+      .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
   }, [id]);
 
   // Fetch reviews
@@ -698,7 +698,7 @@ export default function VenueDetailPage() {
           setPromotions(json.promotions || []);
         }
       })
-      .catch(function () { });
+      .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
   }, [id]);
 
   // Fetch nearby venues (once we have venue lat/lng)
@@ -714,7 +714,7 @@ export default function VenueDetailPage() {
           setNearbyVenues(nearby);
         }
       })
-      .catch(function () { });
+      .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
   }, [venue, id]);
 
   // Fetch related series (match by venue name)
@@ -734,7 +734,7 @@ export default function VenueDetailPage() {
           setRelatedSeries(matched.slice(0, 5));
         }
       })
-      .catch(function () { });
+      .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
   }, [venue]);
 
   // Handle ?action= and ?tab= query parameters from external navigation
@@ -824,21 +824,21 @@ export default function VenueDetailPage() {
         fetch('/api/poker/checkins/whos-here?venue_id=' + id)
           .then(function(r) { return r.json(); })
           .then(function(j) { if (j.success) setWhosHere({ total: j.total || 0, people: j.people || [], friends: j.friends || [] }); })
-          .catch(function() { });
+          .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         // Delayed refresh — let DB write settle
         setTimeout(function () {
           fetch('/api/poker/checkins/leaderboard?venue_id=' + id + '&period=month')
             .then(function(r) { return r.json(); })
             .then(function(j) { if (j.success && j.leaders) setVenueLeaderboard(j.leaders); })
-            .catch(function() { });
+            .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
           fetch('/api/poker/checkins/activity?venue_id=' + id)
             .then(function(r) { return r.json(); })
             .then(function(j) { if (j.success) setVenueActivity({ days: j.days || [], maxCount: j.maxCount || 1 }); })
-            .catch(function() { });
+            .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
           fetch('/api/poker/checkins/popular-hours?venue_id=' + id)
             .then(function(r) { return r.json(); })
             .then(function(j) { if (j.success) setPopularHours({ hours: j.hours || [], maxCount: j.maxCount || 1, peakHour: j.peakHour || '' }); })
-            .catch(function() { });
+            .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         }, 500);
       })
       .subscribe();
@@ -1061,22 +1061,22 @@ export default function VenueDetailPage() {
         fetch('/api/poker/checkins/whos-here?venue_id=' + id)
           .then(function(r) { return r.json(); })
           .then(function(j) { if (j.success) setWhosHere({ total: j.total || 0, people: j.people || [], friends: j.friends || [] }); })
-          .catch(function() { });
+          .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         try { busEmit.venueCheckinCreated(id, venue?.name || '', userId); } catch (_e) { console.warn('[App] Handled exception:', _e?.message || _e); }
         // Refresh enhancement data (leaderboard, activity) after check-in
         setTimeout(function () {
           fetch('/api/poker/checkins/leaderboard?venue_id=' + id + '&period=month')
             .then(function(r) { return r.json(); })
             .then(function(j) { if (j.success && j.leaders) setVenueLeaderboard(j.leaders); })
-            .catch(function() { });
+            .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
           fetch('/api/poker/checkins/activity?venue_id=' + id)
             .then(function(r) { return r.json(); })
             .then(function(j) { if (j.success) setVenueActivity({ days: j.days || [], maxCount: j.maxCount || 1 }); })
-            .catch(function() { });
+            .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
           fetch('/api/poker/checkins/popular-hours?venue_id=' + id)
             .then(function(r) { return r.json(); })
             .then(function(j) { if (j.success) setPopularHours({ hours: j.hours || [], maxCount: j.maxCount || 1, peakHour: j.peakHour || '' }); })
-            .catch(function() { });
+            .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         }, 500);
         setTimeout(function () { setCheckinConfirm(false); }, 3000);
       } else {

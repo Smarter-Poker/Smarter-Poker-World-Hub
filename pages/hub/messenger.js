@@ -88,7 +88,7 @@ function playMessageSound() {
     try {
         const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleR0tRXFuYz0mFTNNaWxofmh+YKStoJd/aGtbL09OYUFRYWOHeoKK');
         audio.volume = 0.3;
-        audio.play().catch(() => { });
+        audio.play().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     } catch (e) { console.error("[messenger.js]", e); }
 }
 
@@ -1187,7 +1187,7 @@ function AudioMessage({ src, isOwn, duration: durationProp }) {
             setPlaying(false);
             cancelAnimationFrame(animFrameRef.current);
         } else {
-            audioRef.current.play().catch(() => {});
+            audioRef.current.play().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
             setPlaying(true);
             const tick = () => {
                 if (audioRef.current) {
@@ -1505,7 +1505,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                                     const text = message.content || message.text || '';
                                     navigator.clipboard?.writeText(text).then(() => {
                                         if (navigator.vibrate) navigator.vibrate(10);
-                                    }).catch(() => {});
+                                    }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                                     setShowMenu(false);
                                 }}
                                 style={{
@@ -2634,7 +2634,7 @@ function MessengerPage() {
                     // Play incoming call sound
                     if (incomingCallAudioRef.current) {
                         incomingCallAudioRef.current.loop = true;
-                        incomingCallAudioRef.current.play().catch(() => { });
+                        incomingCallAudioRef.current.play().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                     }
                 }
             } catch (e) {
@@ -2793,7 +2793,7 @@ function MessengerPage() {
                         type: 'broadcast',
                         event: 'delivered',
                         payload: { messageId: newMsg.id, receiverId: user.id },
-                    }).catch(() => {});
+                    }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                 } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
                 // Update conversation preview and re-sort to move to top
@@ -2923,7 +2923,7 @@ function MessengerPage() {
                 // Play ringing sound
                 if (incomingCallAudioRef.current) {
                     incomingCallAudioRef.current.loop = true;
-                    incomingCallAudioRef.current.play().catch(() => { });
+                    incomingCallAudioRef.current.play().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                 }
 
                 // Auto-decline after 30 seconds
@@ -2952,7 +2952,7 @@ function MessengerPage() {
                             p_conversation_id: currentConvo.id,
                             p_sender_id: user.id,
                             p_content: `[CALL_RECEIPT]${receiptPayload}`,
-                        }).catch(() => {});
+                        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                     }
 
                     // ── MISSED CALL NOTIFICATION: Only for timeout (not for active decline) ──
@@ -2970,7 +2970,7 @@ function MessengerPage() {
                                 callType: currentCallType,
                                 reason: receiptStatus,
                             }),
-                        }).catch(() => {});
+                        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                     }
 
                     setCallingUser(null);
@@ -3067,7 +3067,7 @@ function MessengerPage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccessToken()}` },
                 body: JSON.stringify({ callId: incomingCall.pendingCallId }),
-            }).catch(() => { });
+            }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         }
 
         setIncomingCall(null);
@@ -3118,7 +3118,7 @@ function MessengerPage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccessToken()}` },
                 body: JSON.stringify({ callId: incomingCall.pendingCallId }),
-            }).catch(() => { });
+            }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         }
 
         setIncomingCall(null);
@@ -3362,7 +3362,7 @@ function MessengerPage() {
                         type: 'broadcast',
                         event: 'read_receipt',
                         payload: { readerId: user.id, conversationId },
-                    }).catch(() => {});
+                    }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                 } catch { /* non-critical */ }
             }
 
@@ -4593,7 +4593,7 @@ function MessengerPage() {
                     callerId: user.id,
                     calleeId: activeConversation.otherUser.id
                 }),
-            }).catch(() => { });
+            }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         }
 
         setShowCall(false);

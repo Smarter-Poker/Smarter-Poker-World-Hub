@@ -108,7 +108,7 @@ export default async function handler(req, res) {
 
               if (cached) {
                   // Increment served counter
-                  await getSupabase().rpc('increment_cache_served', { cache_uuid: cached.id }).catch(() => { });
+                  await getSupabase().rpc('increment_cache_served', { cache_uuid: cached.id }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 
                   return res.status(200).json({
                       response: cached.answer,

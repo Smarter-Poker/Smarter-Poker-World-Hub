@@ -80,7 +80,7 @@ export default function useLocationPermission(options = {}) {
           requestLocation();
         }
       };
-    }).catch(() => {});
+    }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 
     return () => {
       mountedRef.current = false;

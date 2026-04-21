@@ -17,7 +17,7 @@ export const SoundEngine = {
             } catch (_) { /* audio unavailable */ }
         }
         if (this._ctx && this._ctx.state === 'suspended') {
-            this._ctx.resume().catch(() => {});
+            this._ctx.resume().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         }
         return this._ctx;
     },

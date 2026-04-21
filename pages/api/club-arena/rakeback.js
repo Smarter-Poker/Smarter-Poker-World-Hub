@@ -288,7 +288,7 @@ export default async function handler(req, res) {
               message: `You have ${ins.rakeback_amount.toLocaleString()} chips in unclaimed rakeback. Claim now in the cashier!`,
               data: { clubId, amount: ins.rakeback_amount },
               pushUrl: `/hub/club-arena/cashier?club=${clubId}`,
-            }).catch(() => { });
+            }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
           }
 
           const responseObj = {

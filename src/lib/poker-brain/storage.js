@@ -148,7 +148,7 @@ export class PokerBrainStorage {
     // Store bound listener refs so destroy() can actually remove them.
     // Anonymous arrow listeners can't be removed, so the old code leaked
     // one set of window listeners per instance.
-    this._onOnline = () => { this.online = true; this.flushQueue().catch(() => {}); };
+    this._onOnline = () => { this.online = true; this.flushQueue().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); };
     this._onOffline = () => { this.online = false; };
     if (typeof window !== 'undefined') {
       window.addEventListener('online', this._onOnline);
@@ -440,8 +440,8 @@ export function usePokerBrainStorage(supabase) {
     if (!supabase) return;
     storageRef.current = new PokerBrainStorage(supabase);
     setReady(true);
-    storageRef.current.flushQueue().catch(() => {});
-    storageRef.current.getStats().then(setStats).catch(() => {});
+    storageRef.current.flushQueue().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+    storageRef.current.getStats().then(setStats).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 
     const onOn = () => setOnline(true);
     const onOff = () => setOnline(false);
@@ -470,7 +470,7 @@ export function usePokerBrainStorage(supabase) {
 
   const endSession = useCallback(async (opts) => {
     const r = await storageRef.current?.endSession(opts);
-    storageRef.current?.getStats().then(setStats).catch(() => {});
+    storageRef.current?.getStats().then(setStats).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     return r;
   }, []);
 

@@ -634,7 +634,7 @@ function AdaptiveQuality({ quality, setQuality, setDpr }) {
     let cancelled = false;
     import('@react-three/drei').then(m => {
       if (!cancelled) setPerfMon(() => m.PerformanceMonitor);
-    }).catch(() => {});
+    }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     return () => { cancelled = true; };
   }, []);
 

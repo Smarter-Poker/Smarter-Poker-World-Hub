@@ -26,7 +26,7 @@ function saveSession(payload) {
   authedFetch('/api/training/save-session', {
     method: 'POST',
     body: JSON.stringify(payload),
-  }).catch(() => { });
+  }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

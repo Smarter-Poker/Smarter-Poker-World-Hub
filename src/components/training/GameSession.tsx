@@ -146,7 +146,7 @@ function playChipSound() {
     try {
         const audio = new Audio('/sounds/chip-slide.mp3');
         audio.volume = 0.3;
-        audio.play().catch(() => { }); // Ignore autoplay restrictions
+        audio.play().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); // Ignore autoplay restrictions
     } catch (e) {
         // Audio not available
     }

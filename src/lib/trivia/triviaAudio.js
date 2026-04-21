@@ -11,7 +11,7 @@ function getCtx() {
         try { _ctx = new (window.AudioContext || window.webkitAudioContext)(); }
         catch { return null; }
     }
-    if (_ctx.state === 'suspended') _ctx.resume().catch(() => { });
+    if (_ctx.state === 'suspended') _ctx.resume().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     return _ctx;
 }
 

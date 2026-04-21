@@ -55,6 +55,10 @@ Photorealistic, high quality, 4K, professional photography.`;
             quality: "standard"
         });
 
+        if (!response?.data?.[0]?.url) {
+            console.error('Image generation returned no URL for horse:', horse.name);
+            return null;
+        }
         return response.data[0].url;
     } catch (error) {
         console.error(`Failed to generate avatar for ${horse.name}:`, error.message);

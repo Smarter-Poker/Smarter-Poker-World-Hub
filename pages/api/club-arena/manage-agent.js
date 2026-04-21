@@ -1288,7 +1288,7 @@ export default async function handler(req, res) {
         });
         if (creditErr) {
           // Rollback: re-credit sender
-          await getSupabase().rpc('fn_credit_chips', { p_club_id: clubId, p_user_id: user.id, p_amount: amount }).catch(() => {});
+          await getSupabase().rpc('fn_credit_chips', { p_club_id: clubId, p_user_id: user.id, p_amount: amount }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
           return res.status(500).json({ success: false, error: 'Credit failed, transfer rolled back' });
         }
 
@@ -1356,7 +1356,7 @@ export default async function handler(req, res) {
           title: '👑 Club Ownership Transferred',
           message: `You are now the owner of this club. The previous owner has been moved to admin role.`,
           data: { clubId },
-        }).catch(() => {});
+        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 
         return res.status(200).json({ success: true, action: 'ownership_transferred', newOwner: targetUserId, oldOwner: user.id });
       }

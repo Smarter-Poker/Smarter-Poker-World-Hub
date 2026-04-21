@@ -125,7 +125,7 @@ export default function LivesPage() {
         Object.entries(videoRefs.current).forEach(([idx, video]) => {
             if (video) {
                 if (parseInt(idx) === currentIndex) {
-                    video.play().catch(() => { });
+                    video.play().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                 } else {
                     video.pause();
                 }
@@ -209,7 +209,7 @@ export default function LivesPage() {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ post_id: currentStream.id, user_id: userId, interaction_type: 'share' })
-                }).catch(() => { }).finally(() => setShareBusy(false));
+                }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)).finally(() => setShareBusy(false));
             } else {
                 setShareBusy(false);
             }

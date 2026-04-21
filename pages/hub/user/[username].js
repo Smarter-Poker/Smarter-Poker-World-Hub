@@ -293,7 +293,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
                     setCurrentReaction(myReaction.interaction_type);
                 }
             })
-            .catch(() => { });
+            .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     }, [currentUserId, post.id]);
 
     const handleComment = async () => {
@@ -356,7 +356,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
                     ...(token ? { 'Authorization': `Bearer ${token}` } : {})
                 },
                 body: JSON.stringify({ post_id: post.id, user_id: currentUserId, interaction_type: 'share' })
-            }).catch(() => { });
+            }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
             fetch('/api/social/share-count', {
                 method: 'POST',
                 headers: { 
@@ -364,7 +364,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
                     ...(token ? { 'Authorization': `Bearer ${token}` } : {})
                 },
                 body: JSON.stringify({ post_id: post.id })
-            }).catch(() => { });
+            }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         }
     };
 
@@ -1162,31 +1162,31 @@ export default function UserProfilePage() {
                     fetch('/api/poker/checkins?user_id=' + encodeURIComponent(pokerUid), { headers })
                         .then(function (r) { return r.json(); })
                         .then(function (j) { if (j.success) setPokerCheckins(j.checkins || j.data || []); })
-                        .catch(function () { });
+                        .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                     fetch('/api/poker/follow?user_id=' + encodeURIComponent(pokerUid), { headers })
                         .then(function (r) { return r.json(); })
                         .then(function (j) { if (j.success) setPokerFollowing(j.data || []); })
-                        .catch(function () { });
+                        .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                     // Fetch check-in streak data
                     fetch('/api/poker/checkins/streak?user_id=' + encodeURIComponent(pokerUid), { headers })
                         .then(function (r) { return r.json(); })
                         .then(function (j) { if (j.success) setCheckinStreak({ currentStreak: j.currentStreak || 0, longestStreak: j.longestStreak || 0, totalCheckins: j.totalCheckins || 0 }); })
-                        .catch(function () { });
+                        .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                     // Fetch check-in badges
                     fetch('/api/poker/checkins/badges?user_id=' + encodeURIComponent(pokerUid), { headers })
                         .then(function (r) { return r.json(); })
                         .then(function (j) { if (j.success && j.badges) { var b = j.badges; b._nextBadge = j.nextBadge || null; setCheckinBadges(b); } })
-                        .catch(function () { });
+                        .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                     // Fetch check-in aggregate stats
                     fetch('/api/poker/checkins/stats?user_id=' + encodeURIComponent(pokerUid), { headers })
                         .then(function (r) { return r.json(); })
                         .then(function (j) { if (j.success) setCheckinStats(j); })
-                        .catch(function () { });
+                        .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                     // Fetch check-in heatmap data
                     fetch('/api/poker/checkins/heatmap?user_id=' + encodeURIComponent(pokerUid), { headers })
                         .then(function (r) { return r.json(); })
                         .then(function (j) { if (j.success) setCheckinHeatmap(j); })
-                        .catch(function () { });
+                        .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                 }
 
                 // --- SWR CACHE SAVE (with TTL timestamp) ---

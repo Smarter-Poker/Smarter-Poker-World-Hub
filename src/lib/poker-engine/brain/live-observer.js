@@ -215,7 +215,7 @@ function observeNewHand(tableId, handId, players, horseIds, bb = 2) {
     // On the FIRST hand at a table, load journals for all opponents.
     // This gives horses an instant head-start with historical reads.
     const allPlayerIds = players.map(p => String(p.id || p.playerId || p));
-    loadTableJournals(tableId, allPlayerIds, horseIds).catch(() => {});
+    loadTableJournals(tableId, allPlayerIds, horseIds).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 }
 
 /**
@@ -542,7 +542,7 @@ function observeAction(tableId, actorId, street, action, context = {}, horseIds 
         // Every JOURNAL_PERSIST_INTERVAL hands, persist opponent data to Supabase.
         // Fire-and-forget — non-blocking, won't slow down the game.
         if (profile.handsObserved > 0 && profile.handsObserved % JOURNAL_PERSIST_INTERVAL === 0) {
-            persistOpponentJournal(horseId, actorStr, profile).catch(() => {});
+            persistOpponentJournal(horseId, actorStr, profile).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         }
     }
 }
@@ -781,7 +781,7 @@ function clearTableLiveObservers(tableId) {
     // ═══ PERSISTENT JOURNAL: Save all opponent data before clearing ═══
     for (const [horseId, horseTables] of liveObserver) {
         if (horseTables.has(tableId)) {
-            persistTableJournals(horseId, tableId).catch(() => {});
+            persistTableJournals(horseId, tableId).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         }
     }
     // Now clear the observers

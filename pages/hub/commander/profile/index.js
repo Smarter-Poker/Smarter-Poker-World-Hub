@@ -93,7 +93,7 @@ export default function PlayerProfilePage() {
       fetch(`/api/commander/ai/recommendations/${profileData.data.profile.id}`, { headers: h })
         .then(r => r.json())
         .then(rec => { if (rec.success) setRecommendations(rec.data?.recommendations || []); })
-        .catch(() => { });
+        .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     }
     return {
       profile: profileData.success ? profileData.data?.profile : null,

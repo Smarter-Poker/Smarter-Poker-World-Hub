@@ -93,7 +93,7 @@ export default async function handler(req, res) {
                                   url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker'}/hub/social-pages/${postData.page_id}`,
                                   data: { type: 'page_like', page_id: postData.page_id, post_id },
                               }),
-                          }).catch(() => {});
+                          }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                       }
                   } catch (ne) { console.error('Like notification error:', ne); }
 
@@ -170,7 +170,7 @@ export default async function handler(req, res) {
                           fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker'}/api/notifications/send`, {
                               method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-secret': process.env.ADMIN_ROUTE_SECRET || '' },
                               body: JSON.stringify({ title: 'New Comment', message: `${cn} commented on a post in "${pg.name}"`, externalUserIds: [pg.owner_id], url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker'}/hub/social-pages/${pd.page_id}`, data: { type: 'page_comment', page_id: pd.page_id, post_id } }),
-                          }).catch(() => {});
+                          }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                       }
 
                       // Phase 3: @Mention notifications — detect @username and push
@@ -189,7 +189,7 @@ export default async function handler(req, res) {
                                           fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker'}/api/notifications/send`, {
                                               method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-secret': process.env.ADMIN_ROUTE_SECRET || '' },
                                               body: JSON.stringify({ title: 'You Were Mentioned', message: `${cn2} mentioned you in a comment on "${pageName}"`, externalUserIds: mentionIds, url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker'}/hub/social-pages/${pd.page_id}`, data: { type: 'page_mention', page_id: pd.page_id, post_id } }),
-                                          }).catch(() => {});
+                                          }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                                       }
                                   }
                               }

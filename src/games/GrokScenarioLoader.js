@@ -60,7 +60,7 @@ export async function preFetchScenarios(currentLevel, count = 2) {
     for (const level of levelsToFetch) {
         for (let i = 0; i < count; i++) {
             // Fire and forget - don't await
-            fetchGrokScenario(level).catch(() => { });
+            fetchGrokScenario(level).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         }
     }
 }

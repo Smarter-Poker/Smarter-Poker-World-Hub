@@ -93,7 +93,7 @@ export default function TournamentDetailPage() {
     const storedStaff = getStaffSession();
 
     if (!storedStaff) {
-      router.push('/commander/login').catch(() => { });
+      router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       return;
     }
 
@@ -101,7 +101,7 @@ export default function TournamentDetailPage() {
       const staffData = JSON.parse(storedStaff);
       setStaff(staffData);
     } catch (err) {
-      router.push('/commander/login').catch(() => { });
+      router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     }
   }, [router]);
 

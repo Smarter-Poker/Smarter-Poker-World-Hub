@@ -796,7 +796,7 @@ export default function PokerNearMeLobby() {
     fetch('/api/poker/checkins/global-leaderboard?period=month')
       .then(r => r.json())
       .then(j => { if (j.success && j.leaders) setGlobalLeaders(j.leaders.slice(0, 5)); })
-      .catch(() => {});
+      .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
   }, []);
 
   // ─── Fetch live game count + build live data map for VenueCards ───
@@ -1071,7 +1071,7 @@ export default function PokerNearMeLobby() {
       import('../../../src/lib/pushAlerts').then(function (pushMod) {
         pushMod.requestPermission().then(function (permission) {
           if (permission === 'denied') setGeofenceStatus('denied');
-        }).catch(function () {});
+        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 
         gfService.start(venues, function (venue) {
           pushMod.showVenueAlert(venue, 'checkin');
@@ -1155,7 +1155,7 @@ export default function PokerNearMeLobby() {
         lastLocationState: geo?.state || '',
         locationEnabledAt: new Date().toISOString(),
         locationPromptDismissed: true,
-      }).catch(() => {});
+      }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     }
     // Fetch ALL venues with GPS coordinates for distance sorting
     const gpsUrl = `/api/poker/venues?limit=200&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=50&sort=distance`;
@@ -1194,7 +1194,7 @@ export default function PokerNearMeLobby() {
       try { localStorage.removeItem('pnm_last_state'); } catch { /* */ }
       // Keep pnm_location_prompt_dismissed so we don't re-prompt
       if (userId) {
-        updatePokerNearMePreferences(userId, { locationEnabled: false }).catch(() => {});
+        updatePokerNearMePreferences(userId, { locationEnabled: false }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       }
       // Re-fetch venues to clear GPS radius filter
       fetchVenues(searchQuery);
@@ -1230,7 +1230,7 @@ export default function PokerNearMeLobby() {
           setShowEnablePopup(true);
           setShowManualLocation(false); // Don't show manual — show smart popup instead
           if (userId) {
-            updatePokerNearMePreferences(userId, { locationEnabled: false }).catch(() => {});
+            updatePokerNearMePreferences(userId, { locationEnabled: false }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
           }
           return;
         }
@@ -1258,7 +1258,7 @@ export default function PokerNearMeLobby() {
               setShowManualLocation(true);
             }
             if (userId) {
-              updatePokerNearMePreferences(userId, { locationEnabled: false }).catch(() => {});
+              updatePokerNearMePreferences(userId, { locationEnabled: false }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
             }
           },
           { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
@@ -1276,7 +1276,7 @@ export default function PokerNearMeLobby() {
       updatePokerNearMePreferences(userId, {
         locationEnabled: false,
         locationPromptDismissed: true,
-      }).catch(() => {});
+      }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     }
   }, [userId]);
 
@@ -1343,7 +1343,7 @@ export default function PokerNearMeLobby() {
         setVenues(newVenues);
         setHasMore(newVenues.length >= PAGE_SIZE);
         setPage(0);
-      }).catch(() => {});
+      }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       // Silently refresh GPS in background for accuracy (no error if it fails)
       if (typeof navigator !== 'undefined' && navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
@@ -1358,7 +1358,7 @@ export default function PokerNearMeLobby() {
                 setVenues(newVenues);
                 setHasMore(newVenues.length >= PAGE_SIZE);
                 setPage(0);
-              }).catch(() => {});
+              }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
               if (userId) {
                 reverseGeocode(loc.lat, loc.lng).then(geo => {
                   if (geo?.city) {
@@ -1368,9 +1368,9 @@ export default function PokerNearMeLobby() {
                       lastLocation: loc,
                       lastLocationCity: geo.city,
                       lastLocationState: geo.state || '',
-                    }).catch(() => {});
+                    }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                   }
-                }).catch(() => {});
+                }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
               }
             }
           },
@@ -1388,7 +1388,7 @@ export default function PokerNearMeLobby() {
                     setVenues(newVenues);
                     setHasMore(newVenues.length >= PAGE_SIZE);
                     setPage(0);
-                  }).catch(() => {});
+                  }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                   if (userId) {
                     reverseGeocode(loc.lat, loc.lng).then(geo => {
                       if (geo?.city) {
@@ -1398,9 +1398,9 @@ export default function PokerNearMeLobby() {
                           lastLocation: loc,
                           lastLocationCity: geo.city,
                           lastLocationState: geo.state || '',
-                        }).catch(() => {});
+                        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                       }
-                    }).catch(() => {});
+                    }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                   }
                 }
               },
@@ -1482,7 +1482,7 @@ export default function PokerNearMeLobby() {
             locationEnabledAt: new Date().toISOString(),
             manualLocation: true,
             locationPromptDismissed: true,
-          }).catch(() => {});
+          }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         }
         // Fetch venues near this location
         const gpsUrl = `/api/poker/venues?limit=200&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=50&sort=distance`;
@@ -2242,7 +2242,7 @@ export default function PokerNearMeLobby() {
                 setVenues(newVenues);
                 setHasMore(newVenues.length >= PAGE_SIZE);
                 setPage(0);
-              }).catch(() => {});
+              }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
             }
           }}
           venueCount={totalVenueCount}
@@ -2300,7 +2300,7 @@ export default function PokerNearMeLobby() {
                     onClick={() => {
                       const shareUrl = window.location.href;
                       if (navigator.share) {
-                        navigator.share({ title: `Smarter.Poker — ${panelContent.title}`, url: shareUrl }).catch(() => {});
+                        navigator.share({ title: `Smarter.Poker — ${panelContent.title}`, url: shareUrl }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                       } else {
                         navigator.clipboard?.writeText(shareUrl);
                         const btn = document.getElementById('pnm-share-btn');
@@ -2886,7 +2886,7 @@ export default function PokerNearMeLobby() {
         onHistorySelect={(q) => {
           setSearchQuery(q);
           if (typeof addSearchHistoryToDb === 'function' && userId) {
-            addSearchHistoryToDb(userId, q).catch(() => {});
+            addSearchHistoryToDb(userId, q).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
           }
         }}
         cachedFetch={cachedFetch}

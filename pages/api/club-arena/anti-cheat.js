@@ -408,7 +408,7 @@ try {
                       kicked_by: userId,
                     },
                     triggered_by: 'system',
-                  }).catch(() => { }); // Best-effort logging
+                  }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); // Best-effort logging
                 }
               } else {
                 kickOp.step = 3; // No chips to unlock
@@ -471,7 +471,7 @@ try {
                 kicked_by: userId,
               },
               triggered_by: 'system',
-            }).catch(() => { }); // Best-effort
+            }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); // Best-effort
 
             return res.status(500).json({
               error: 'Kick operation failed mid-execution',

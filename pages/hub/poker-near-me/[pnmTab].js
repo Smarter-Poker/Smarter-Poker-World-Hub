@@ -537,7 +537,7 @@ export default function PokerNearMePage({ initialTab }) {
                     setCheckinCounts(counts);
                 }
             })
-            .catch(() => {});
+            .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     }, []);
 
     // ─── Listen for review submissions to refresh review stats for that venue ───
@@ -1423,7 +1423,7 @@ export default function PokerNearMePage({ initialTab }) {
                 (json.promotions || json.data || []).forEach(p => { if (p.page_id) ids.add(String(p.page_id)); });
                 setPromotionVenueIds(ids);
             })
-            .catch(() => { });
+            .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     }, []);
 
     // --- Auto-refresh live games when venue is selected ---

@@ -621,8 +621,7 @@ export default function MemoryGamesPage() {
                     timeTaken,
                     null // sessionId
                 ).then(res => {
-                }).catch(err => {
-                });
+                }).catch(err => console.warn('[App] Handled promise rejection:', err?.message || err));
             }
 
             // 2. Update ELO rating
@@ -631,8 +630,7 @@ export default function MemoryGamesPage() {
                     if (eloResult?.rank) {
                         setEloRank && setEloRank(eloResult.rank);
                     }
-                }).catch(err => {
-                });
+                }).catch(err => console.warn('[App] Handled promise rejection:', err?.message || err));
 
             // 3. Check and complete daily challenge
             dailyChallengeService.getTodaysChallenge().then(challengeData => {
@@ -656,8 +654,7 @@ export default function MemoryGamesPage() {
                                 // Award daily trivia diamonds via server-validated API (15💎, with toast)
                                 claimReward('/api/rewards/daily-trivia', { userId: user.id }, 'Daily Trivia Challenge');
                             }
-                        }).catch(err => {
-                        });
+                        }).catch(err => console.warn('[App] Handled promise rejection:', err?.message || err));
                     }
                 }
             });
@@ -678,8 +675,7 @@ export default function MemoryGamesPage() {
                 diamondsEarned: passed ? totalReward : 0,
                 completed: true
             }).then(sessionResult => {
-            }).catch(err => {
-            });
+            }).catch(err => console.warn('[App] Handled promise rejection:', err?.message || err));
 
             // 6. Check and unlock achievements
             achievementService.checkAndUnlock(user.id, {
@@ -695,8 +691,7 @@ export default function MemoryGamesPage() {
             }).then(unlocked => {
                 if (unlocked.length > 0) {
                 }
-            }).catch(err => {
-            });
+            }).catch(err => console.warn('[App] Handled promise rejection:', err?.message || err));
 
             // 7. Push to Jarvis Personal Assistant for leak detection
             const answersData = [];
@@ -757,8 +752,7 @@ export default function MemoryGamesPage() {
                     leaksDetected: []
                 })
             }).then(res => res.json()).then(jarvisResult => {
-            }).catch(err => {
-            }).catch(() => {});
+            }).catch(err => console.warn('[App] Handled promise rejection:', err?.message || err)).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         }
 
         setMode('result');
@@ -830,7 +824,7 @@ export default function MemoryGamesPage() {
                         userAction,
                         scenario: currentScenario
                     })
-                }).catch(() => {}),
+                }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)),
                 fetch('/api/gto/render-analysis-card', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

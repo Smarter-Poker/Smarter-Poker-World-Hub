@@ -260,7 +260,7 @@ class TournamentBridge {
               type: 'broadcast',
               event: 'chat_message',
               payload: { type: 'system', message: chatMsg }
-            }).catch(()=>{});
+            }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 
             // PHASE 3 EXPANSION: Trigger Table-Wide Confetti for everyone seated at any tournament table
             // The frontend table/[tableId].js listens to this channel and renders MysteryBountyReveal overlay
@@ -269,7 +269,7 @@ class TournamentBridge {
               type: 'broadcast',
               event: 'mystery_bounty_awarded',
               payload: data
-            }).catch(()=>{});
+            }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
             
             // Clean up ephemeral channels
             setTimeout(() => {
@@ -490,7 +490,7 @@ class TournamentBridge {
         type: 'broadcast',
         event,
         payload,
-      }).catch(() => { }); // Non-blocking, non-critical
+      }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); // Non-blocking, non-critical
     }
 
     // 2. Also broadcast to each active table channel (players in-game see it too)
@@ -501,7 +501,7 @@ class TournamentBridge {
           type: 'broadcast',
           event: `tournament:${event}`,
           payload,
-        }).catch(() => { });
+        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       }
     }
   }
@@ -869,7 +869,7 @@ class TournamentBridge {
     this._cleanupAll();
     // Clean up persistent broadcast channel
     if (this._tournamentChannel && this.supabase) {
-      this.supabase.removeChannel(this._tournamentChannel).catch(() => { });
+      this.supabase.removeChannel(this._tournamentChannel).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       this._tournamentChannel = null;
     }
     this._wired = false;

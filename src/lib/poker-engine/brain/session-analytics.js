@@ -57,7 +57,7 @@ function recordSitDown(tableId, playerId, buyInAmount) {
         });
         getAdvancedModule().then(adv => {
             if (adv?.recordSessionStart) adv.recordSessionStart(playerId);
-        }).catch(() => { });
+        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         if (!multiTableTracker.has(playerId)) multiTableTracker.set(playerId, new Set());
         multiTableTracker.get(playerId).add(tableId);
         console.log(`[HorseBrain] Session started for ${playerId.substring(0, 8)} at ${tableId} (Buy-in: ${buyInAmount})`);
@@ -331,7 +331,7 @@ function evolveHorseSkill(profileId, sessionWinRate) {
                 recorded_at: new Date().toISOString()
             }, { onConflict: 'profile_id,table_id' })
             .then(() => console.log(`[HorseBrain] Skill drift persisted for ${profileId.substring(0, 8)}: ${current.drift > 0 ? '+' : ''}${current.drift}`))
-            .catch(() => { });
+            .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     }
     return {
         skillDrift: current.drift,
@@ -501,7 +501,7 @@ async function evaluateSessions(gameController, tableManager) {
             );
             if (shouldLeave) {
                 console.log(`[HorseBrain] Cashout triggered for ${playerId.substring(0, 8)}. Reason: ${reason}`);
-                saveSessionAnalytics(playerId, tableId).catch(() => { });
+                saveSessionAnalytics(playerId, tableId).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                 tableSessions.delete(playerId);
                 await gameController.standUp(tableId, playerId);
             } else {
@@ -627,7 +627,7 @@ async function persistOpponentJournal(horseId, opponentId, profile) {
                 .update({ session_count: (existing.session_count || 1) + 1 })
                 .eq('horse_id', horseId)
                 .eq('opponent_id', opponentId)
-                .catch(() => {});
+                .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         }
         if (!error) {
             console.log(`[HorseBrain] JOURNAL SAVED: ${horseId.substring(0, 8)} -> ${opponentId.substring(0, 8)} (${profile.handsObserved} hands, type=${detectedType})`);

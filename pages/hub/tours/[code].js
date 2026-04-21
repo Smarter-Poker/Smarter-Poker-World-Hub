@@ -193,7 +193,7 @@ export default function TourDetailPage() {
     fetch('/api/poker/follow?page_type=tour&page_id=' + encodeURIComponent(code) + '&check_user=' + encodeURIComponent(userId), { headers })
       .then(r => r.json())
       .then(d => { if (d.is_following !== undefined) setIsFollowed(d.is_following); })
-      .catch(() => {});
+      .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
   }, [code]);
 
   // Listen to cross-tab Follow events
@@ -341,7 +341,7 @@ export default function TourDetailPage() {
     if (typeof window === 'undefined' || !('Notification' in window)) return;
     Notification.requestPermission().then(function (permission) {
       setNotifPermission(permission);
-    }).catch(() => { });
+    }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
   }
 
   const tourColor = TOUR_COLORS[code] || TOUR_COLORS['default'];

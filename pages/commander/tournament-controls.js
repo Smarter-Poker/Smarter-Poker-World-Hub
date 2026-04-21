@@ -48,7 +48,7 @@ const data = await commanderFetchJSON('/api/commander/tournaments', { });
         const _c = new AbortController();
 
         const staff = getStaffSession();
-        if (!staff) { router.push('/commander/login').catch(() => { }); return; }
+        if (!staff) { router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); return; }
         fetchTournaments();
         return () => _c.abort();
     }, [router, fetchTournaments]);

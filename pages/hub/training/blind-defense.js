@@ -112,7 +112,7 @@ export default function BlindDefensePage() {
               total_questions: score.total + 1,
             },
           }),
-        }).catch(() => {});
+        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       }
     }, 1500);
   };

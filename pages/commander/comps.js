@@ -130,7 +130,7 @@ export default function CompSystem() {
           setAutoCompRate(data.data.auto_comp_rate);
         }
       })
-      .catch(() => { });
+      .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 
     // Fetch membership plans for auto-populating comp costs
     const venueId = getVenueId();
@@ -142,7 +142,7 @@ export default function CompSystem() {
             setMembershipPlans(data.data.plans);
           }
         })
-        .catch(() => { });
+        .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     }
   }, []);
 

@@ -252,7 +252,7 @@ export function useMultiTable({ supabase, userId }) {
           notifSoundRef.current = new Audio('/sounds/action-needed.mp3');
           notifSoundRef.current.volume = 0.3;
         }
-        notifSoundRef.current.play().catch(() => {});
+        notifSoundRef.current.play().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       }
     } catch (_) { /* no sound available */ }
 

@@ -53,13 +53,13 @@ export default function MembersPage() {
     // Auth
     useEffect(() => {
         const stored = getStaffSession();
-        if (!stored) { router.push('/commander/login').catch(() => { }); return; }
+        if (!stored) { router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); return; }
         try {
             const data = JSON.parse(stored);
             setStaff(data);
             setVenueId(data.venue_id);
             setVenueName(data.venue_name || '');
-        } catch { router.push('/commander/login').catch(() => { }); }
+        } catch { router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); }
     }, [router]);
 
     // SWR-backed members list — auto-revalidates on focus/interval

@@ -233,7 +233,7 @@ export default function AnalyticsPage() {
   useEffect(() => {
     const storedStaff = getStaffSession();
     if (!storedStaff) {
-      router.push('/commander/login').catch(() => { });
+      router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       return;
     }
     try {
@@ -241,7 +241,7 @@ export default function AnalyticsPage() {
       setStaff(staffData);
       setVenueId(staffData.venue_id);
     } catch (err) {
-      router.push('/commander/login').catch(() => { });
+      router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     }
   }, [router]);
 

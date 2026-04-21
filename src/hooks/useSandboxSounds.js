@@ -44,7 +44,7 @@ export default function useSandboxSounds() {
             }
             const audio = audioCache.current[soundKey];
             audio.currentTime = 0;
-            audio.play().catch(() => { }); // Ignore autoplay restrictions
+            audio.play().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); // Ignore autoplay restrictions
         } catch (e) { /* silent */ }
     }, [soundEnabled]);
 

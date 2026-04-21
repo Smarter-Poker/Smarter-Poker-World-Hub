@@ -138,7 +138,7 @@ export default function ShoppingCart() {
                 user_id: user.id,
                 preferences: { diamond_cart: [] },
                 updated_at: new Date().toISOString(),
-            }, { onConflict: 'user_id' }).catch(() => { });
+            }, { onConflict: 'user_id' }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         } else {
             localStorage.removeItem('diamond-store-cart');
         }

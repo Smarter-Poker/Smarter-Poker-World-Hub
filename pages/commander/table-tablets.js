@@ -193,11 +193,11 @@ export default function TableTabletsPage() {
     useEffect(() => {
         try {
             const staff = getStaffSession();
-            if (!staff) { router.push('/commander/login').catch(() => { }); return; }
+            if (!staff) { router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); return; }
             const parsed = JSON.parse(staff);
             setVenueId(parsed.venue_id);
             if (parsed.venue_name) setVenueName(parsed.venue_name);
-        } catch { router.push('/commander/login').catch(() => { }); }
+        } catch { router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); }
 
         // Restore locked table from localStorage
         try {
@@ -518,7 +518,7 @@ const json = await commanderFetchJSON(`/api/commander/displays/status?venue_id=$
         navigator.clipboard.writeText(url).then(() => {
             setCopiedTable(tableNum);
             setTimeout(() => setCopiedTable(null), 2000);
-        }).catch(() => { });
+        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     };
 
     // Auto-refresh every 10s
@@ -591,7 +591,7 @@ const json = await commanderFetchJSON(`/api/commander/displays/status?venue_id=$
             const waitForVideo = () => {
                 if (videoRef.current) {
                     videoRef.current.srcObject = stream;
-                    videoRef.current.play().catch(() => { });
+                    videoRef.current.play().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                 } else if (attempts < 20) {
                     attempts++;
                     setTimeout(waitForVideo, 100);
@@ -821,7 +821,7 @@ const res = await commanderFetch('/api/commander/dealer/player-scan-in', {
                 const waitForVideo = () => {
                     if (seatScannerVideoRef.current) {
                         seatScannerVideoRef.current.srcObject = stream;
-                        seatScannerVideoRef.current.play().catch(() => { });
+                        seatScannerVideoRef.current.play().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                     } else if (attempts < 20) {
                         attempts++;
                         setTimeout(waitForVideo, 100);

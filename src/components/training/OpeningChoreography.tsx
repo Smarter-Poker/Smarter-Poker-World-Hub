@@ -205,7 +205,7 @@ export function useOpeningChoreography({
         const audio = soundsRef.current[soundKey];
         if (audio && soundEnabled) {
             audio.currentTime = 0;
-            audio.play().catch(() => { }); // Ignore autoplay restrictions
+            audio.play().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); // Ignore autoplay restrictions
         }
     }, [soundEnabled]);
 

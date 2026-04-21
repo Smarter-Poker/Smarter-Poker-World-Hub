@@ -46,15 +46,15 @@ export default function TournamentSettingsPage() {
     useEffect(() => {    const _c = new AbortController();
 
         const storedStaff = getStaffSession();
-        if (!storedStaff) { router.push('/commander/login').catch(() => { }); return; }
+        if (!storedStaff) { router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); return; }
         try {
             const staffData = JSON.parse(storedStaff);
-            if (!staffData.venue_id) { router.push('/commander/login').catch(() => { }); return; }
+            if (!staffData.venue_id) { router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); return; }
             setStaff(staffData);
             setVenue({ id: staffData.venue_id, name: staffData.venue_name });
             // Fetch clock presets
             fetchClockPresets(storedStaff);
-        } catch { router.push('/commander/login').catch(() => { }); }
+        } catch { router.push('/commander/login').catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); }
     return () => _c.abort();
   }, [router]);
 

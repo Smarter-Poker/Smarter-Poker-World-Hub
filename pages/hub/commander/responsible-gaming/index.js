@@ -110,7 +110,7 @@ export default function ResponsibleGamingPage() {
       if (limData.data?.player_id) {
         fetch(`/api/commander/responsible-gaming/check/${limData.data.player_id}`, { headers: h })
           .then(r => r.json()).then(cd => { if (cd.success) setRiskStatus(cd.data?.risk_level || null); })
-          .catch(() => {});
+          .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       }
       return limData;
     }

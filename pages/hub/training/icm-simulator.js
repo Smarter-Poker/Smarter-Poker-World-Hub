@@ -101,7 +101,7 @@ export default function IcmSimulatorPage() {
         authedFetch('/api/training/save-session', {
           method: 'POST',
           body: JSON.stringify({ game_id: 'icm-simulator', hands_played: 1, accuracy: 100 }),
-        }).catch(() => {});
+        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       }
     }, 500);
   };

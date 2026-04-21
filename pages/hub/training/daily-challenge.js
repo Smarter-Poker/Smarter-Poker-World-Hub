@@ -275,7 +275,7 @@ export default function DailyChallengePage() {
               score: isCorrect ? 100 : 0,
               evLoss: isCorrect ? 0 : 1,
             }),
-          }).catch(() => {});
+          }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         }
       } catch (_) {
         /* ignore */

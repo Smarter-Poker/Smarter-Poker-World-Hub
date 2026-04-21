@@ -149,7 +149,7 @@ export default async function handler(req, res) {
                                       title: `❌ Cancelled: ${tourn.name}`,
                                       message: `${tourn.name} was cancelled (not enough players). Chips refunded.`,
                                       data: { tournamentId: tourn.id, clubId: tourn.club_id },
-                                  }).catch(() => { });
+                                  }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 
                               } catch (refErr) {
                                   console.error(`[TournCron] Refund FAILED for user ${reg.user_id}:`, refErr.message);
@@ -203,7 +203,7 @@ export default async function handler(req, res) {
                           message: `Get ready! ${tourn.name} begins shortly.`,
                           data: { tournamentId: tourn.id, clubId: tourn.club_id },
                           pushUrl: `/hub/club-arena/tournaments?club=${tourn.club_id}`,
-                      }).catch(() => { });
+                      }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                       results.reminders++;
                   }
 

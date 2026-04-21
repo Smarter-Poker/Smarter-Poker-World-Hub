@@ -329,7 +329,7 @@ export default async function handler(req, res) {
           'x-admin-secret': process.env.ADMIN_ROUTE_SECRET || '',
         },
         body: JSON.stringify({ ...pushPayload, userId: club.owner_id }),
-      }).catch(() => { });
+      }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 
       // Push to agent
       if (member.agent_id && member.agent_id !== club.owner_id) {
@@ -340,7 +340,7 @@ export default async function handler(req, res) {
             'x-admin-secret': process.env.ADMIN_ROUTE_SECRET || '',
           },
           body: JSON.stringify({ ...pushPayload, userId: member.agent_id }),
-        }).catch(() => { });
+        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       }
     }
 

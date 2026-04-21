@@ -170,7 +170,7 @@ export default function TabletDisplay() {
         document.addEventListener('visibilitychange', handleVisibility);
         return () => {
             document.removeEventListener('visibilitychange', handleVisibility);
-            if (wakeLock) wakeLock.release().catch(() => { });
+            if (wakeLock) wakeLock.release().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         };
     }, []);
 
@@ -182,7 +182,7 @@ export default function TabletDisplay() {
             commanderFetch('/api/commander/displays/heartbeat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ table_number: parseInt(tableNumber), venue_id: venueId, device_type: 'tablet' }) }).then(res => { if (!res.ok) console.warn('Heartbeat failed'); }).catch(() => { });
+                body: JSON.stringify({ table_number: parseInt(tableNumber), venue_id: venueId, device_type: 'tablet' }) }).then(res => { if (!res.ok) console.warn('Heartbeat failed'); }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         };
         sendHeartbeat();
         const hb = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);

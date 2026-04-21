@@ -530,7 +530,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                     // Safe call: older embedded WebKit might not return a Promise
                     const req = Notification.requestPermission();
                     if (req && typeof req.then === 'function') {
-                        req.catch(() => { });
+                        req.catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                     }
                 }
             }

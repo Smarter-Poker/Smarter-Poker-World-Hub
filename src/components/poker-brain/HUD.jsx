@@ -972,7 +972,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
           live.endSession({
             finalStack: heroStackRef.current || null,
             notes: null,
-          }).catch(() => {});
+          }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         }
         sessionIdRef.current = null;
       }
@@ -986,7 +986,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
   useEffect(() => {
     if (preAcquiredStream && videoRef.current) {
       videoRef.current.srcObject = preAcquiredStream;
-      videoRef.current.play().catch(() => {});
+      videoRef.current.play().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       streamRef.current = preAcquiredStream;
       setStreamReady(true);
     }
@@ -1053,7 +1053,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
         live.endSession({
           finalStack: heroStackRef.current || null,
           notes: null,
-        }).catch(() => {});
+        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       }
       sessionIdRef.current = null;
     }
