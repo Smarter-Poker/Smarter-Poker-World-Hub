@@ -21,6 +21,13 @@ const { BETTING_STRUCTURES } = require('./ActionValidator');
 const HorsePokerBrain = require('./brain');
 const { resilientMutation, resilientQuery } = require('./SupabaseResilience');
 
+// Lazy Sentry import for financial error reporting (must not crash engine if Sentry unavailable)
+let _Sentry = null;
+function getSentry() {
+  if (!_Sentry) try { _Sentry = require('@sentry/nextjs'); } catch { _Sentry = { captureException: () => {} }; }
+  return _Sentry;
+}
+
 // ── Phase mapping: engine phases → display phases ──
 const DISPLAY_PHASE = {
   idle: 'idle',
@@ -654,7 +661,7 @@ class LobbyManager {
               p_action_type: 'bbj_loser_pool',
               p_amount: awardResult.loser_payout,
               p_details: { handNumber: bbjData.handNumber, hand: bbjData.loserHand }
-            }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+            }).catch(e => { console.warn('[LobbyManager] BBJ loser payout audit FAILED:', e?.message || e); getSentry().captureException(e, { tags: { area: 'bbj', type: 'loser_payout' } }); });
 
             sbAudit.rpc('record_arena_audit_log', {
               p_club_id: clubId,
@@ -663,11 +670,11 @@ class LobbyManager {
               p_action_type: 'bbj_winner_pool',
               p_amount: awardResult.winner_payout,
               p_details: { handNumber: bbjData.handNumber, hand: bbjData.winnerHand }
-            }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+            }).catch(e => { console.warn('[LobbyManager] BBJ winner payout audit FAILED:', e?.message || e); getSentry().captureException(e, { tags: { area: 'bbj', type: 'winner_payout' } }); });
             
             // NOTE: We could theoretically loop the tableSharePayout to all players, 
             // but tracking the two massive chip movements provides the primary BBJ absolute trace.
-          } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+          } catch (e) { console.warn('[LobbyManager] BBJ audit log error:', e?.message || e); getSentry().captureException(e, { tags: { area: 'bbj' } }); }
         }
       } catch (err) {
         console.warn('[BBJ] Trigger error:', err.message);
@@ -708,8 +715,8 @@ class LobbyManager {
             p_action_type: 'insurance_premium',
             p_amount: -(data.premium),
             p_details: { coverage: data.amount, equity: data.trailerEquity }
-          }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+          }).catch(e => { console.warn('[LobbyManager] Insurance premium audit FAILED:', e?.message || e); getSentry().captureException(e, { tags: { area: 'insurance', type: 'premium' } }); });
+        } catch (e) { console.warn('[LobbyManager] Insurance premium error:', e?.message || e); getSentry().captureException(e, { tags: { area: 'insurance' } }); }
       }
     });
 
@@ -742,8 +749,8 @@ class LobbyManager {
             p_action_type: 'insurance_payout',
             p_amount: data.payout,
             p_details: { premium: data.premium, netGain: data.netGain }
-          }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+          }).catch(e => { console.warn('[LobbyManager] Insurance payout audit FAILED:', e?.message || e); getSentry().captureException(e, { tags: { area: 'insurance', type: 'payout' } }); });
+        } catch (e) { console.warn('[LobbyManager] Insurance payout error:', e?.message || e); getSentry().captureException(e, { tags: { area: 'insurance' } }); }
       }
     });
 
@@ -922,7 +929,7 @@ class LobbyManager {
                 p_club_id: clubId,
                 p_player_user_id: player.id,
                 p_amount_wagered: invested,
-              }).catch(err => { console.warn('[App] Handled promise rejection:', err?.message || err); });
+              }).catch(err => { console.warn('[LobbyManager] Promo wagering RPC failed:', err?.message || err); getSentry().captureException(err, { tags: { area: 'promo_wagering' } }); });
             }
           }
         } catch (promoErr) {
