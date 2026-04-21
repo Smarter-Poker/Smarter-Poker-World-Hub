@@ -305,6 +305,8 @@ export default function ReelsPage() {
     const loadReels = async(signal) => {
         setLoading(true);
         try {
+            const initialId = router.query.id;
+
             // Load from social_reels (YouTube shorts posted by SmarterPokerOfficial)
             const { data: reelsData } = await supabase
                 .from('social_reels')
@@ -396,6 +398,43 @@ export default function ReelsPage() {
                 // #4 Not Interested — move disliked reels to end of feed
                 const fresh = shuffled.filter(r => !notInterestedIds.has(r.id));
                 const stale = shuffled.filter(r => notInterestedIds.has(r.id));
+
+                if (initialId) {
+                    const targetIdx = fresh.findIndex(r => r.id === initialId);
+                    if (targetIdx > 0) {
+                        const target = fresh.splice(targetIdx, 1)[0];
+                        fresh.unshift(target);
+                    } else if (targetIdx === -1) {
+                        const staleIdx = stale.findIndex(r => r.id === initialId);
+                        if (staleIdx !== -1) {
+                            const target = stale.splice(staleIdx, 1)[0];
+                            fresh.unshift(target);
+                        } else {
+                            // Video wasn't in the first 150 items. Query directly.
+                            let directReel = null;
+                            const { data: pData } = await supabase.from('social_posts').select('id, author_id, content, media_urls, like_count, comment_count, created_at').eq('id', initialId).maybeSingle();
+                            if (pData) {
+                                directReel = { id: pData.id, author_id: pData.author_id, video_url: pData.media_urls?.[0], caption: pData.content, like_count: pData.like_count || 0, comment_count: pData.comment_count || 0, view_count: 0, created_at: pData.created_at, source: 'posts' };
+                            } else {
+                                const { data: rData } = await supabase.from('social_reels').select('*').eq('id', initialId).maybeSingle();
+                                if (rData) {
+                                    directReel = { id: rData.id, author_id: rData.author_id, video_url: rData.video_url, caption: rData.caption, like_count: rData.like_count || 0, comment_count: rData.comment_count || 0, view_count: rData.view_count || 0, created_at: rData.created_at, source: 'reels' };
+                                }
+                            }
+                            if (directReel) {
+                                let pMap = profileMap[directReel.author_id];
+                                if (!pMap) {
+                                    const { data: dProfile } = await supabase.from('profiles').select('id, username, avatar_url, full_name').eq('id', directReel.author_id).maybeSingle();
+                                    pMap = dProfile || { username: 'Anonymous' };
+                                }
+                                directReel.profiles = pMap;
+                                fresh.unshift(directReel);
+                            }
+                        }
+                    }
+                    setCurrentIndex(0);
+                }
+
                 setReels([...fresh, ...stale]);
 
                 // Initialize like/comment/view counts from loaded data
@@ -416,11 +455,29 @@ export default function ReelsPage() {
         setLoading(false);
     };
 
+    // Helper to safely increment counts for reels OR posts
+    const incrementMetric = async (reel, field, amount) => {
+        if (!reel?.id) return;
+        try {
+            if (reel.source === 'reels') {
+                const { data } = await supabase.from('social_reels').select(field).eq('id', reel.id).maybeSingle();
+                if (data) {
+                    await supabase.from('social_reels').update({ [field]: Math.max(0, (data[field] || 0) + amount) }).eq('id', reel.id);
+                }
+            } else {
+                const rpc = amount > 0 ? 'increment_post_count' : 'decrement_post_count';
+                await supabase.rpc(rpc, { p_post_id: reel.id, p_field: field });
+            }
+        } catch (e) {
+            console.warn('[Engagement] Update failed:', e);
+        }
+    };
+
     // Deep-link: if ?id= is in URL, scroll to that reel after load
     useEffect(() => {
         if (reels.length > 0 && router.query.id) {
             const targetIdx = reels.findIndex(r => r.id === router.query.id);
-            if (targetIdx >= 0 && targetIdx !== currentIndex) {
+            if (targetIdx > 0 && targetIdx !== currentIndex) {
                 setCurrentIndex(targetIdx);
             }
         }
@@ -565,7 +622,7 @@ export default function ReelsPage() {
                 // Increment in DB AND update local state so UI reflects the view
                 const reelId = currentReel.id;
                 setViewCounts(prev => ({ ...prev, [reelId]: (prev[reelId] || currentReel.view_count || 0) + 1 }));
-                (async () => { try { await supabase.rpc('increment_post_count', { p_post_id: reelId, p_field: 'view_count' }); } catch (e) { console.warn('[App] Handled exception:', e); } })();
+                incrementMetric(currentReel, 'view_count', 1);
             }
         }
     }, [currentReel?.id]);
@@ -594,11 +651,11 @@ export default function ReelsPage() {
             if (wasLiked) {
                 await supabase.from('social_likes').delete().eq('post_id', postId).eq('user_id', user.id).eq('reaction_type', 'like');
                 busEmit.socialPostLiked(postId, user.id, { added: false, reactionType: 'like' });
-                try { await supabase.rpc('decrement_post_count', { p_post_id: postId, p_field: 'like_count' }); } catch (e) { console.warn('[App] Handled exception:', e); }
+                incrementMetric(currentReel, 'like_count', -1);
             } else {
                 await supabase.from('social_likes').insert({ post_id: postId, user_id: user.id, reaction_type: 'like' });
                 busEmit.socialPostLiked(postId, user.id, { added: true, reactionType: 'like' });
-                try { await supabase.rpc('increment_post_count', { p_post_id: postId, p_field: 'like_count' }); } catch (e) { console.warn('[App] Handled exception:', e); }
+                incrementMetric(currentReel, 'like_count', 1);
             }
         } catch (err) {
             setLiked(prev => ({ ...prev, [postId]: wasLiked }));
@@ -623,7 +680,7 @@ export default function ReelsPage() {
             setLikeCounts(prev => ({ ...prev, [postId]: Math.max(0, (prev[postId] || 0) - 1) }));
             try {
                 await supabase.from('social_likes').delete().eq('post_id', postId).eq('user_id', user.id).eq('reaction_type', 'like');
-                try { await supabase.rpc('decrement_post_count', { p_post_id: postId, p_field: 'like_count' }); } catch (e) { console.warn('[App] Handled exception:', e); }
+                incrementMetric(currentReel, 'like_count', -1);
             } catch (e) { console.warn('[App] Handled exception:', e); }
         }
         try {
@@ -795,12 +852,16 @@ export default function ReelsPage() {
             const payload = { post_id: currentReel.id, author_id: user.id, content: text || '' };
             if (mediaUrl) { payload.media_url = mediaUrl; payload.media_type = mediaType; }
             if (parentId) { payload.parent_id = parentId; }
+            if (currentReel.source === 'reels') {
+                // If it's a social_reel, we might hit FK issues on social_comments if it enforces posts. Assume it works or is unconstrained here.
+            }
             const { error } = await supabase.from('social_comments').insert(payload);
             if (error) throw error;
             busEmit.socialCommentAdded(currentReel.id, user.id);
-            try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'comment_count' }); } catch (e) { console.warn('[App] Handled exception:', e); }
+            incrementMetric(currentReel, 'comment_count', 1);
             setCommentCounts(prev => ({ ...prev, [currentReel.id]: (prev[currentReel.id] || 0) + 1 }));
-        } catch {
+        } catch (err) {
+            console.error('[CommentInsert] Failed:', err);
             setComments(prev => prev.filter(c => c.id !== tempId));
         }
         setSubmittingComment(false);
@@ -838,7 +899,7 @@ export default function ReelsPage() {
             const { error } = await supabase.from('social_comments').delete()
                 .eq('id', commentId).eq('author_id', user.id);
             if (error) throw error;
-            try { await supabase.rpc('decrement_post_count', { p_post_id: currentReel.id, p_field: 'comment_count' }); } catch (e) { console.warn('[App] Handled exception:', e); }
+            incrementMetric(currentReel, 'comment_count', -1);
             setCommentCounts(p => ({ ...p, [currentReel.id]: Math.max(0, (p[currentReel.id] || 1) - 1) }));
             busEmit.socialCommentAdded && busEmit.socialCommentAdded(currentReel.id, user.id, { removed: true });
         } catch { setComments(prev); }

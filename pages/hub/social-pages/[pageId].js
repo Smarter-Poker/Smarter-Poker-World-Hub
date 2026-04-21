@@ -3166,7 +3166,7 @@ export default function SocialPageDetail() {
                                     <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: '0 0 10px' }}>Suggested Pages</h3>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                                         {suggestedSidebarPages.map(sp => (
-                                            <div key={sp.id} onClick={() => window.location.href = `/hub/social-pages/${sp.slug || sp.id}`} style={{
+                                            <div key={sp.id} onClick={() => router.push(`/hub/social-pages/${sp.slug || sp.id}`)} style={{
                                                 display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
                                                 borderRadius: 8, background: C.bg, cursor: 'pointer',
                                                 transition: 'background 0.15s',

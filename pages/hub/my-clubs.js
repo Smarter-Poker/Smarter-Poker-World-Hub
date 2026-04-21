@@ -898,7 +898,7 @@ export default function MyClubsPage() {
                                                 <ClubArenaCard
                                                     key={`arena-${club.id}`}
                                                     club={club}
-                                                    onNavigate={(clubId) => { window.location.href = `/hub/club-arena?club=${clubId}`; }}
+                                                    onNavigate={(clubId) => { router.push(`/hub/club-arena?club=${clubId}`); }}
                                                 />
                                             ))}
                                         </>

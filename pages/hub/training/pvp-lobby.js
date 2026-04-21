@@ -447,8 +447,9 @@ export default function PvPLobbyPage() {
   useEffect(() => {
     try {
       const user = getAuthUser();
-      if (user?.user?.user_metadata?.display_name) {
-        setCurrentUser({ name: user.user.user_metadata.display_name, rating: 1200 });
+      const displayName = user?.user?.user_metadata?.display_name || user?.user_metadata?.display_name;
+      if (displayName) {
+        setCurrentUser({ name: displayName, rating: 1200 });
       }
     } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     // Set online count client-side only to avoid hydration mismatch
