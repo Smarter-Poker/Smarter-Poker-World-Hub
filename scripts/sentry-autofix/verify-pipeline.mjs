@@ -4,6 +4,10 @@
 // Everything else runs for real: source file resolution, prompt build, Claude
 // API call, response parse, patch apply (to a disposable scratch branch in
 // /tmp), policy assessment. Does NOT push or open a PR.
+//
+// Contract v2 (2026-04-20): the apply step uses parsed.filesUpdated (JSON
+// file-replace) instead of parsed.patch (unified diff). The old code was
+// coded against the v1 contract and couldn't run against current patch.mjs.
 
 import fs from 'node:fs';
 import os from 'node:os';
@@ -61,7 +65,6 @@ log({ level: 'info', msg: 'pipeline verify start', target: targetFile, synthetic
 
 const files = [{ path: targetFile, content }];
 
-// Pre-gate check
 const preAssess = assessPaths([targetFile]);
 if (!preAssess.ok) {
   log({ level: 'error', msg: 'target file is denylisted', denied: preAssess.denied });
@@ -69,11 +72,9 @@ if (!preAssess.ok) {
 }
 log({ level: 'info', msg: 'pre-gate ok', allowMerge: preAssess.allowMerge });
 
-// Build messages
 const messages = buildMessages({ issue, stack, files, repoName: 'Smarter-Poker/Smarter-Poker-World-Hub' });
 log({ level: 'info', msg: 'messages built', chars: messages[0].content.length });
 
-// Call Claude for real
 const model = process.env.ANTHROPIC_MODEL || 'claude-opus-4-6';
 log({ level: 'info', msg: 'calling Claude', model });
 const t0 = Date.now();
@@ -86,7 +87,6 @@ log({
   tokens_out: reply.usage?.output_tokens,
 });
 
-// Parse
 let parsed;
 try { parsed = parseClaudeResponse(reply.text); }
 catch (err) {
@@ -101,16 +101,14 @@ if (parsed.cannotFix) {
 }
 
 log({
-  level: 'info', msg: 'patch received',
+  level: 'info', msg: 'files_updated received',
   confidence: parsed.confidence,
   test_note: parsed.testNote,
-  explanation_head: parsed.explanation.slice(0, 200),
-  patch_head: parsed.patch.slice(0, 300),
+  explanation_head: (parsed.explanation || '').slice(0, 200),
+  files_updated: (parsed.filesUpdated || []).map(f => ({ path: f.path, bytes: (f.content || '').length })),
 });
 
 // Apply to disposable scratch repo: init fresh + copy only the target file.
-// We don't need the full repo to prove the patch parses + applies; git apply
-// just needs the file at its claimed path to match the "---" side of the hunk.
 const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'autofix-verify-'));
 log({ level: 'info', msg: 'seeding scratch repo', scratch });
 execFileSync('git', ['init', '-q', '-b', 'main'], { cwd: scratch });
@@ -122,21 +120,25 @@ execFileSync('git', ['add', '-A'], { cwd: scratch });
 execFileSync('git', ['commit', '-q', '-m', 'seed'], { cwd: scratch });
 
 try {
-  const changed = applyPatch(scratch, parsed.patch);
-  log({ level: 'info', msg: 'patch applied cleanly', changed });
+  // Contract v2: applyPatch takes the filesUpdated array, not a diff string.
+  const changed = applyPatch(scratch, parsed.filesUpdated);
+  log({ level: 'info', msg: 'files written to scratch repo', changed });
 
-  // Post-apply denylist check
   const postAssess = assessPaths(changed);
   log({ level: 'info', msg: 'post-apply policy', ok: postAssess.ok, denied: postAssess.denied, allowMerge: postAssess.allowMerge });
 
-  // Show what changed
   const diff = execFileSync('git', ['diff', '--stat'], { cwd: scratch, encoding: 'utf8' });
   log({ level: 'info', msg: 'diff stat', diff: diff.trim() });
 
-  log({ level: 'info', msg: 'PIPELINE VERIFY PASS — full path: fetch→prompt→claude→parse→apply→policy works' });
+  log({ level: 'info', msg: 'PIPELINE VERIFY PASS — full path: prompt→claude→parse→apply→policy works' });
   process.exit(0);
 } catch (err) {
-  log({ level: 'error', msg: 'apply failed (patch malformed or doesn\'t match)', err: String(err).slice(0, 800), patch: parsed.patch });
+  log({
+    level: 'error',
+    msg: 'apply failed (files_updated malformed or unreachable path)',
+    err: String(err).slice(0, 800),
+    files_updated_paths: (parsed.filesUpdated || []).map(f => f?.path),
+  });
   process.exit(5);
 } finally {
   fs.rmSync(scratch, { recursive: true, force: true });
