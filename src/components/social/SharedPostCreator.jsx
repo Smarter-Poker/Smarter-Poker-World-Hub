@@ -69,7 +69,8 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
     // Paste image handler — feeds into existing upload pipeline
     const handlePaste = async (e) => {
         const items = e.clipboardData?.items;
-        if (!items || !user?.id) return;
+        if (!items) return;
+        if (!user?.id) { setError('Please log in to upload media.'); return; }
         const imageFiles = [];
         for (const item of items) {
             if (item.type.startsWith('image/')) {
@@ -86,14 +87,22 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         for (const file of imageFiles.slice(0, remaining)) {
             try {
                 const compressedFile = await compressImage(file);
+                if (compressedFile.size > 4.5 * 1024 * 1024) {
+                    setError('Pasted image is too large (max 4.5MB). Please copy a smaller image.');
+                    continue;
+                }
                 const formData = new FormData();
                 formData.append('file', compressedFile);
                 formData.append('folder', 'photos');
                 formData.append('prefix', user.id);
                 const token = getAccessToken();
+                if (!token) {
+                    setError('Authentication required — please refresh the page and try again.');
+                    continue;
+                }
                 const res = await fetch('/api/social/upload', {
                     method: 'POST',
-                    headers: token ? { Authorization: `Bearer ${token}` } : {},
+                    headers: { Authorization: `Bearer ${token}` },
                     body: formData,
                 });
                 if (!res.ok) throw new Error(`Upload failed (${res.status})`);
@@ -187,14 +196,22 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                 } else {
                     // Compress image before upload (skip GIFs, small files)
                     const compressedFile = await compressImage(file);
+                    if (compressedFile.size > 4.5 * 1024 * 1024) {
+                        setError(`Image ${file.name.substring(0,20)}... is too large (max 4.5MB). Please choose a smaller image.`);
+                        continue;
+                    }
                     const formData = new FormData();
                     formData.append('file', compressedFile);
                     formData.append('folder', folder);
                     formData.append('prefix', user.id);
                     const _imgToken = getAccessToken();
+                    if (!_imgToken) {
+                        setError('Authentication required — please refresh the page and try again.');
+                        continue;
+                    }
                     const res = await fetch('/api/social/upload', {
                         method: 'POST',
-                        headers: _imgToken ? { Authorization: `Bearer ${_imgToken}` } : {},
+                        headers: { Authorization: `Bearer ${_imgToken}` },
                         body: formData,
                     });
                     if (!res.ok) throw new Error(`Request failed (${res.status})`);

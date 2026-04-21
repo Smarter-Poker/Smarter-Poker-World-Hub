@@ -197,7 +197,7 @@ function NotificationsPage() {
                     title: pn.title || 'Page Update',
                     message: pn.message || pn.content || '',
                     type: pn.notification_type || 'page_update',
-                    read: pn.read || false,
+                    read: pn.is_read || false,
                     created_at: pn.created_at,
                     data: { page_type: pn.page_type, page_id: pn.page_id },
                     _source: 'poker',
@@ -370,6 +370,16 @@ function NotificationsPage() {
         if (!isPoker && user?.id) {
             // [Pass3-Fix] Include user_id for defense-in-depth (RLS also enforces this)
             await supabase.from('notifications').update({ read: true }).eq('id', id).eq('user_id', user.id);
+        } else if (isPoker && user?.id) {
+            // [Audit#16] Properly hit poker API to mark read
+            const realId = id.replace('poker-', '');
+            getAccessToken().then(token => 
+                fetch('/api/poker/notifications', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                    body: JSON.stringify({ notification_id: realId })
+                }).catch(console.error)
+            );
         }
         if (mounted.current) {
             setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
@@ -385,7 +395,28 @@ function NotificationsPage() {
         if (!user) return;
         const unreadCount = notifications.filter(n => !n.read).length;
         if (unreadCount === 0) return; // Nothing to do
-        await supabase.from('notifications').update({ read: true }).eq('user_id', user.id).eq('read', false);
+        
+        const hasSocial = notifications.some(n => !n.read && n._source === 'social');
+        const hasPoker = notifications.some(n => !n.read && n._source === 'poker');
+
+        const promises = [];
+        if (hasSocial) {
+            promises.push(supabase.from('notifications').update({ read: true }).eq('user_id', user.id).eq('read', false));
+        }
+        if (hasPoker) {
+            // [Audit#15] Also mark poker notifications as read
+            promises.push(
+                getAccessToken().then(token => 
+                    fetch('/api/poker/notifications', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                        body: JSON.stringify({ mark_all: true })
+                    }).catch(console.error)
+                )
+            );
+        }
+        await Promise.all(promises);
+
         if (mounted.current) {
             setNotifications(prev => prev.map(n => ({ ...n, read: true })));
             // Update cache so badge stays clear on next load

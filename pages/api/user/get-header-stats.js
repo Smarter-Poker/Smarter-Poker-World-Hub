@@ -51,12 +51,47 @@ export default async function handler(req, res) {
 
           // Level system removed - no longer using XP
 
-          // Count unread notifications
-          const { count: notificationCount } = await getSupabase()
+          // Count unread social notifications
+          const socialCountPromise = getSupabase()
               .from('notifications')
               .select('*', { count: 'exact', head: true })
               .eq('user_id', userId)
               .eq('read', false);
+
+          // Count unread poker notifications
+          const followPromise = getSupabase()
+              .from('page_followers')
+              .select('page_type, page_id')
+              .eq('user_id', userId)
+              .limit(100);
+
+          const [socialRes, followRes] = await Promise.all([socialCountPromise, followPromise]);
+          let notificationCount = socialRes.count || 0;
+
+          if (followRes.data && followRes.data.length > 0) {
+              const orConditions = followRes.data.map(
+                 (f) => `and(page_type.eq.${f.page_type},page_id.eq.${f.page_id})`
+              ).join(',');
+              
+              const { data: pageNotifs } = await getSupabase()
+                 .from('page_notifications')
+                 .select('id')
+                 .or(orConditions)
+                 .limit(100);
+                 
+              if (pageNotifs && pageNotifs.length > 0) {
+                   const allIds = pageNotifs.map(n => n.id);
+                   const { data: existingReads } = await getSupabase()
+                       .from('notification_reads')
+                       .select('notification_id')
+                       .eq('user_id', userId)
+                       .in('notification_id', allIds);
+                       
+                   const readSet = new Set((existingReads || []).map(r => r.notification_id));
+                   const unreadPoker = allIds.filter(id => !readSet.has(id)).length;
+                   notificationCount += unreadPoker;
+              }
+          }
 
           // Count unread messages - using social messaging schema
           // Get user's conversations with their last_read_at timestamp

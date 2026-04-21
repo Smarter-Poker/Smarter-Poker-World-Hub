@@ -81,8 +81,11 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
                 xhr.addEventListener('error', () => reject(new Error('Network error during upload')));
                 xhr.addEventListener('abort', () => reject(new Error('Upload cancelled')));
                 xhr.open('PUT', meta.signedUrl);
-                xhr.setRequestHeader('Content-Type', videoFile.type);
-                xhr.send(videoFile);
+                xhr.setRequestHeader('x-upsert', 'false');
+                const uploadBody = new FormData();
+                uploadBody.append('cacheControl', '3600');
+                uploadBody.append('', videoFile);
+                xhr.send(uploadBody);
             });
 
             setUploadProgress(92);

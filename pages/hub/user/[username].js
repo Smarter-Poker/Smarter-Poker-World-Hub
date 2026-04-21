@@ -889,12 +889,15 @@ export default function UserProfilePage() {
         const cleanupFriends = listenBroadcast('smarter_poker_friends_sync', (msg) => {
             if (msg?.tabId === BROADCAST_TAB_ID) return;
             if (!profile?.id) return;
-            // Re-fetch friend count
-            supabase.from('friendships').select('*', { count: 'exact', head: true })
+            // Re-fetch friend count and deduplicate bidirectional rows
+            supabase.from('friendships').select('user_id, friend_id')
                 .eq('status', 'accepted')
                 .or(`user_id.eq.${profile.id},friend_id.eq.${profile.id}`)
-                .then(({ count }) => {
-                    if (count != null) setStats(prev => ({ ...prev, friends: count }));
+                .then(({ data }) => {
+                    if (data) {
+                        const uniqueFriends = new Set(data.map(f => f.user_id === profile.id ? f.friend_id : f.user_id));
+                        setStats(prev => ({ ...prev, friends: uniqueFriends.size }));
+                    }
                 });
         });
 
@@ -1028,8 +1031,8 @@ export default function UserProfilePage() {
                 // PARALLEL BATCH 1: Friendship + Stats (all independent)
                 // ═══════════════════════════════════════════════════════════
                 const batch1Promises = [
-                    // Stats (4 count queries)
-                    supabase.from('friendships').select('*', { count: 'exact', head: true }).eq('status', 'accepted').or(`user_id.eq.${data.id},friend_id.eq.${data.id}`),
+                    // Stats (4 queries for counts, friendships needs unique deduplication)
+                    supabase.from('friendships').select('user_id, friend_id').eq('status', 'accepted').or(`user_id.eq.${data.id},friend_id.eq.${data.id}`),
                     supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', data.id),
                     supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', data.id),
                     supabase.from('social_posts').select('*', { count: 'exact', head: true }).eq('author_id', data.id),
@@ -1052,8 +1055,11 @@ export default function UserProfilePage() {
 
                 const [friendsRes, followingRes, followersRes, postsRes, userFriendshipsRes, ...authResults] = batch1Results;
 
+                // Deduplicate bidirectional friendship rows to get true friend count
+                const uniqueFriendIds = new Set((friendsRes.data || []).map(f => f.user_id === data.id ? f.friend_id : f.user_id));
+
                 finalStats = {
-                    friends: friendsRes.count || 0,
+                    friends: uniqueFriendIds.size,
                     following: followingRes.count || 0,
                     followers: followersRes.count || 0,
                     posts: postsRes.count || 0
@@ -1227,14 +1233,17 @@ export default function UserProfilePage() {
                         supabase.from('social_posts').select('*', { count: 'exact', head: true }).eq('author_id', profile.id),
                         supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', profile.id),
                         supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', profile.id),
-                        supabase.from('friendships').select('*', { count: 'exact', head: true }).eq('status', 'accepted').or(`user_id.eq.${profile.id},friend_id.eq.${profile.id}`),
+                        supabase.from('friendships').select('user_id, friend_id').eq('status', 'accepted').or(`user_id.eq.${profile.id},friend_id.eq.${profile.id}`),
                     ]);
                     if (postsData.data) setPosts(postsData.data);
+                    
+                    const uniqueFriendIds = new Set((friendsRes.data || []).map(f => f.user_id === profile.id ? f.friend_id : f.user_id));
+                    
                     setStats(prev => ({
                         ...prev,
                         following: followingRes.count || prev.following,
                         followers: followersRes.count || prev.followers,
-                        friends: friendsRes.count ?? prev.friends,
+                        friends: friendsRes.data ? uniqueFriendIds.size : prev.friends,
                         posts: postsCountRes.count ?? prev.posts,
                     }));
                 } catch (e) {

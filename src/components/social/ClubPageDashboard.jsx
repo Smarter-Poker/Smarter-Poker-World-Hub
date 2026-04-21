@@ -200,6 +200,10 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
     const handleCoverUpload = async (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
+        if (file.size > 4.5 * 1024 * 1024) {
+            alert('Cover photo is too large (max 4.5MB). Please choose a smaller image.');
+            return;
+        }
         setCoverUploading(true);
         try {
             const formData = new FormData();
@@ -243,6 +247,10 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
     const handleLogoUpload = async (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
+        if (file.size > 4.5 * 1024 * 1024) {
+            alert('Logo is too large (max 4.5MB). Please choose a smaller image.');
+            return;
+        }
         setLogoUploading(true);
         try {
             const formData = new FormData();
@@ -317,10 +325,13 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                         alert('Upload failed: ' + (meta.error || 'Unknown error'));
                         continue;
                     }
+                    const uploadBody = new FormData();
+                    uploadBody.append('cacheControl', '3600');
+                    uploadBody.append('', file);
                     const uploadRes = await fetch(meta.signedUrl, {
                         method: 'PUT',
-                        headers: { 'Content-Type': file.type },
-                        body: file,
+                        headers: { 'x-upsert': 'false' },
+                        body: uploadBody,
                     });
                     if (!uploadRes.ok) {
                         alert('Video upload failed — please try again');
@@ -328,6 +339,10 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                     }
                     uploaded.push({ type: 'video', url: meta.publicUrl });
                 } else {
+                    if (file.size > 4.5 * 1024 * 1024) {
+                        alert(`Image ${file.name.substring(0,20)}... is too large (max 4.5MB).`);
+                        continue;
+                    }
                     // Keep existing API for images (small files)
                     const formData = new FormData();
                     formData.append('file', file);

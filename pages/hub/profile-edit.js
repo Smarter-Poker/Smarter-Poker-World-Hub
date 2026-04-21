@@ -902,8 +902,11 @@ export default function ProfilePage() {
                         const followingData = followingRes.ok ? await followingRes.json() : [];
                         const postsData = postsRes.ok ? await postsRes.json() : [];
 
+                        // Deduplicate bidirectional friendship rows to get the true friend count
+                        const uniqueFriendIds = new Set(friendsData.map(f => f.user_id === authUser.id ? f.friend_id : f.user_id));
+
                         setSocialStats({
-                            friends: friendsData.length,
+                            friends: uniqueFriendIds.size,
                             followers: followersData.length,
                             following: followingData.length,
                             posts: postsData.length
