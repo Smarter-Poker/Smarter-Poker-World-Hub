@@ -182,12 +182,19 @@ const nextConfig = {
   // condition where vendor chunks get deleted mid-request, triggering
   // "Cannot find module './chunks/vendor-chunks/next.js'" 500 errors.
   experimental: {
-    // [OOM FIX] cpus:1 forces webpack to compile pages serially (no parallel workers).
-    // With 1,150+ pages, parallel workers each hold a full copy of shared modules —
-    // multiplying RAM 4-8x. Serial compilation cuts peak memory ~40% at the cost of
-    // slightly longer build time. REQUIRED to stay within Vercel's 8GB build container.
-    // Previously disabled because of PageNotFoundError in Next.js 14.0-14.1; fixed in 14.2.
-    cpus: process.env.NODE_ENV === 'production' ? 1 : undefined,
+    // [Phase 1.4, 2026-04-21] cpus: 1→2. Phases 1.1–1.3 removed ~49MB of
+    // unused deps, excluded puppeteer/phaser/canvas/pdf-parse from the
+    // file tracer, moved puppeteer+canvas to devDeps (Vercel skips them
+    // on npm ci), and de-transpiled three. Serial compilation is no
+    // longer the memory bottleneck. Two parallel workers splits the 950
+    // pages in half and roughly halves wall-clock compile time while
+    // keeping total webpack RAM inside the 8GB container (observed per-
+    // worker heap ~3.5–4GB at cpus:1 — two workers at ~half the pages
+    // each should stay near the same aggregate).
+    //
+    // If this deploy OOMs, revert to cpus: 1. The autofix bot is tagged
+    // off this commit via [DO NOT AUTOFIX] so it won't race heap bumps.
+    cpus: process.env.NODE_ENV === 'production' ? 2 : undefined,
     // [OOM FIX] Disable worker threads — with cpus:1 they add spawn overhead for no gain.
     workerThreads: false,
     // [Phase 6.1.18] Enable instrumentation hook (src/instrumentation.js) so
