@@ -285,10 +285,9 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                     }
                 }
             }
-        } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }, 2000);
-                } else {
-                    if (isMountedRef.current) setIsLoading(false);
-                }
+        } catch (err) {
+            if (isAbortError(err)) {
+                if (isMountedRef.current) setIsLoading(false);
                 return;
             }
             // Non-abort errors: auto-retry once silently, then show error
@@ -583,7 +582,9 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             await requestNotificationPermission();
             await loadData();
             window.dispatchEvent(new CustomEvent('toke-data-updated'));
-        } catch (err) { console.warn('[App] Handled exception:', err?.message || err); } else if (err?.message?.includes('Insert failed')) {
+        } catch (err) {
+            console.warn('[App] Handled exception:', err?.message || err);
+            if (err?.message?.includes('Insert failed')) {
                 // Direct fetch insert failure — show the actual error
                 console.warn('[TokeTracker] createGig insert failed:', err);
                 setCreateError(err.message);

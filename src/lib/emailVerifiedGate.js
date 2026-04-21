@@ -82,8 +82,9 @@ async function requireEmailVerifiedByUserId(supabase, userId) {
         }
         if (data.user.email_confirmed_at) return { ok: true };
         return UNVERIFIED_RESPONSE;
-    } catch (err) { console.warn('[App] Handled exception:', err?.message || err); },
-        };
+    } catch (err) {
+        console.warn('[App] Handled exception:', err?.message || err);
+        return UNVERIFIED_RESPONSE;
     }
 }
 

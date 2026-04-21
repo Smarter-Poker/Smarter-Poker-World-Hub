@@ -221,7 +221,12 @@ export function getMultiwayStrategy(params) {
             },
             explanation: generateMultiwayExplanation(players, betMotivation, handClass, position, street, isPFR),
         };
-    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); },
+    } catch (e) {
+        console.warn('[App] Handled exception:', e?.message || e);
+        return {
+            action: 'check',
+            sizing: null,
+            frequencies: { check: 1.0 },
             betFrequency: 0,
             checkFrequency: 1.0,
             motivation: 'fallback',

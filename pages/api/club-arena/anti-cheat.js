@@ -456,7 +456,20 @@ try {
 
             return res.status(200).json(kickResult);
 
-          } catch (fatalErr) { console.warn('[App] Handled exception:', fatalErr?.message || fatalErr); },
+          } catch (fatalErr) {
+            console.warn('[App] Handled exception:', fatalErr?.message || fatalErr);
+            // Best-effort: try to log the partial failure
+            await getSupabase().from('anti_cheat_events').insert({
+              event_type: 'kick_failed',
+              player_id: targetPlayerId,
+              club_id: clubId,
+              table_id: tableId,
+              details: {
+                reason: 'Fatal error during kick operation',
+                error: fatalErr?.message,
+                step_reached: kickOp.step,
+                kicked_by: userId,
+              },
               triggered_by: 'system',
             }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); // Best-effort
 

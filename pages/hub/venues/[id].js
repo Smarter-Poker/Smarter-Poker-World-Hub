@@ -1082,9 +1082,10 @@ export default function VenueDetailPage() {
       } else {
         throw new Error(json.error || 'Check-in failed');
       }
-    } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }, 5000);
+    } catch (err) {
+      console.warn('[App] Handled exception:', err?.message || err);
+      setCheckinError(err?.message || 'Check-in failed');
     }
-    finally { setCheckinSubmitting(false); }
   };
 
   var handleSubmitReview = async function (e) {

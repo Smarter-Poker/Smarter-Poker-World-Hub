@@ -820,23 +820,9 @@ export default function CustomSolvePage() {
           rangePercent: adjustedRange,
         });
       }
-    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); },
-          {
-            action: 'Call',
-            freq: Math.round(
-              typeof heroRange.openRange === 'number' ? heroRange.openRange * 0.35 : 10
-            ),
-          },
-          {
-            action: 'Fold',
-            freq: Math.round(
-              typeof heroRange.openRange === 'number' ? 100 - heroRange.openRange : 70
-            ),
-          },
-        ],
-        range: heroRange.hands,
-        rangePercent: heroRange.openRange,
-      });
+    } catch (e) {
+      console.warn('[App] Handled exception:', e?.message || e);
+      setError(e?.message || 'Solve failed. Please try again.');
     }
 
     setLoading(false);
