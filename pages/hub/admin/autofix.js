@@ -123,16 +123,36 @@ export default function AutofixDashboard() {
               display: 'inline-flex', alignItems: 'center', gap: 8,
               padding: '6px 14px', borderRadius: 20,
               background: data?.pipeline?.status === 'healthy'
-                ? 'rgba(0,200,83,0.15)' : 'rgba(255,171,0,0.15)',
-              border: `1px solid ${data?.pipeline?.status === 'healthy' ? 'rgba(0,200,83,0.3)' : 'rgba(255,171,0,0.3)'}`,
+                ? 'rgba(0,200,83,0.15)'
+                : data?.pipeline?.status === 'error'
+                ? 'rgba(255,23,68,0.15)'
+                : 'rgba(255,171,0,0.15)',
+              border: `1px solid ${
+                data?.pipeline?.status === 'healthy' ? 'rgba(0,200,83,0.3)'
+                : data?.pipeline?.status === 'error' ? 'rgba(255,23,68,0.3)'
+                : 'rgba(255,171,0,0.3)'
+              }`,
             }}>
               <span style={{
                 width: 8, height: 8, borderRadius: '50%',
-                background: data?.pipeline?.status === 'healthy' ? '#00c853' : '#ffab00',
-                boxShadow: `0 0 8px ${data?.pipeline?.status === 'healthy' ? '#00c853' : '#ffab00'}`,
+                background: data?.pipeline?.status === 'healthy' ? '#00c853'
+                  : data?.pipeline?.status === 'error' ? '#ff1744'
+                  : '#ffab00',
+                boxShadow: `0 0 8px ${
+                  data?.pipeline?.status === 'healthy' ? '#00c853'
+                  : data?.pipeline?.status === 'error' ? '#ff1744'
+                  : '#ffab00'
+                }`,
               }} />
-              <span style={{ fontSize: 12, fontWeight: 600, color: data?.pipeline?.status === 'healthy' ? '#00c853' : '#ffab00' }}>
-                {data?.pipeline?.status === 'healthy' ? 'All Clear' : 'Active'}
+              <span style={{
+                fontSize: 12, fontWeight: 600,
+                color: data?.pipeline?.status === 'healthy' ? '#00c853'
+                  : data?.pipeline?.status === 'error' ? '#ff1744'
+                  : '#ffab00',
+              }}>
+                {data?.pipeline?.status === 'healthy' ? 'All Clear'
+                  : data?.pipeline?.status === 'error' ? 'Build Errors'
+                  : 'Monitoring'}
               </span>
             </div>
             {lastRefresh && (

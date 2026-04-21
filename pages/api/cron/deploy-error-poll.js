@@ -230,7 +230,7 @@ export default async function handler(req, res) {
         if (commitsRes.ok) {
           const commits = await commitsRes.json();
           const autofixCount = commits.filter(
-            (c) => c.commit?.message?.includes('[autofix]') && c.commit?.message?.includes(commitSha.substring(0, 7))
+            (c) => c.commit?.message?.includes('[autofix]') && c.commit?.message?.includes(commitSha.substring(0, 9))
           ).length;
           if (autofixCount >= MAX_FIX_ATTEMPTS) {
             fixedDeployments.add(deployId);
@@ -270,7 +270,13 @@ export default async function handler(req, res) {
             .filter(Boolean);
 
           // ── SIGKILL/OOM detection ──
-          const isSigkill = allLines.some((l) => l.includes('SIGKILL') || l.includes('out of memory') || l.includes('OOM'));
+          // Use word-boundary anchored patterns to avoid false positives on words
+          // like 'bloom', 'gloom', 'BOOM' etc. that contain 'OOM' as a substring.
+          const isSigkill = allLines.some((l) =>
+            l.includes('SIGKILL') ||
+            l.includes('out of memory') ||
+            /\bOOM\b/.test(l)
+          );
           if (isSigkill) {
             console.log(`[deploy-error-poll] SIGKILL/OOM detected for ${deployId}`);
             fixedDeployments.add(deployId); // Prevent re-fetching logs every 2 min
@@ -300,12 +306,12 @@ export default async function handler(req, res) {
             'TS7006', 'TS2554', 'TS1005', 'TS1128', 'TS2741',
             'does not exist on type',
           ];
-          // Regex covers ALL source dirs — utils/ and hooks/ were previously missing
-          const srcDirPattern = /\.\/(?:pages|src|lib|components|services|data|utils|hooks|styles)\//.source;
+          // Hoist regex OUTSIDE forEach — avoids recompiling 500x for each log line
+          const srcDirRegex = /\.\/(?:pages|src|lib|components|services|data|utils|hooks|styles)\//;
           const includedIndices = new Set();
           allLines.forEach((line, idx) => {
             if (errorKeywords.some((kw) => line.includes(kw)) ||
-                new RegExp(srcDirPattern).test(line)) {
+                srcDirRegex.test(line)) {
               // ±3 lines of context
               for (let j = Math.max(0, idx - 3); j <= Math.min(allLines.length - 1, idx + 3); j++) {
                 includedIndices.add(j);
@@ -347,14 +353,26 @@ export default async function handler(req, res) {
         } : undefined,
       };
 
-      const autofixRes = await fetch('https://smarter.poker/api/deploy-autofix', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(internalSecret ? { 'x-internal-secret': internalSecret } : {}),
-        },
-        body: JSON.stringify(autofixPayload),
-      });
+      // AbortController prevents TCP-level hangs from zombifying the poller
+      // past its 60s maxDuration limit. Without this, a stalled deploy-autofix
+      // HTTP connection (not HTTP timeout) can hold the poller indefinitely.
+      const pollAbort = new AbortController();
+      const pollTimeout = setTimeout(() => pollAbort.abort(), 55000); // 55s — 5s before poller dies
+
+      let autofixRes;
+      try {
+        autofixRes = await fetch('https://smarter.poker/api/deploy-autofix', {
+          method: 'POST',
+          signal: pollAbort.signal,
+          headers: {
+            'Content-Type': 'application/json',
+            ...(internalSecret ? { 'x-internal-secret': internalSecret } : {}),
+          },
+          body: JSON.stringify(autofixPayload),
+        });
+      } finally {
+        clearTimeout(pollTimeout);
+      }
 
       const autofixResult = await autofixRes.json().catch(() => ({ action: 'parse_error' }));
 
@@ -374,6 +392,17 @@ export default async function handler(req, res) {
             { title: 'SHA', value: autofixResult.newCommitSha?.substring(0, 9) || commitSha.substring(0, 9), short: true },
           ],
         }).catch(() => {});
+      } else if (autofixResult.action === 'pr_opened') {
+        // PR mode — notify so humans know to review
+        sendNotification({
+          title: '📋 Autofix PR Opened',
+          message: `Fix for \`${autofixResult.filePath || 'unknown'}\` staged in PR #${autofixResult.prNumber}. Review and merge to unblock deploy.`,
+          color: 'warning',
+          fields: [
+            { title: 'PR', value: autofixResult.prUrl || 'unknown', short: true },
+            { title: 'Attempt', value: `${attempt}/${MAX_FIX_ATTEMPTS}`, short: true },
+          ],
+        }).catch(() => {});
       } else {
         console.log(`[deploy-error-poll] Autofix returned: ${autofixResult.action} — will retry`);
       }
@@ -387,6 +416,10 @@ export default async function handler(req, res) {
         autofixResult,
       });
     } catch (e) {
+      if (e.name === 'AbortError') {
+        console.error(`[deploy-error-poll] Autofix call timed out after 55s for ${deployId}`);
+        return res.status(200).json({ action: 'autofix_timeout', deployId, error: 'deploy-autofix fetch timed out' });
+      }
       console.error(`[deploy-error-poll] Autofix call failed: ${e.message}`);
       return res.status(200).json({ action: 'autofix_call_failed', deployId, error: e.message });
     }
