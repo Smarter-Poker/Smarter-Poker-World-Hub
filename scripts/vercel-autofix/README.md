@@ -90,6 +90,35 @@ journalctl -u vercel-autofix-poll.service -f
 | club-arena  | TBD — fill in before enabling              | `Smarter-Poker/club-arena`                       |
 | club-commander-desktop | TBD — fill in before enabling   | `Smarter-Poker/club-commander-desktop`           |
 
+## Ops tooling
+
+The `Makefile` in this directory wraps deploy + inspection. The
+`autofix-cli.mjs` talks to the Supabase control tables shared with the
+Sentry loop, so ops commands work against both pipelines.
+
+```
+make test                                     # run poll.test.mjs locally
+make deploy HOST=cron-01                      # rsync + npm ci + restart timer
+make deploy-units                             # refresh systemd units
+make apply-migration SUPABASE_DB_URL=postgres://...
+
+make status                                   # systemctl status (remote)
+make logs N=200                               # last 200 journalctl lines
+make logs-follow                              # tail -f
+
+# control plane — needs SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY in env
+make pause REASON="paid investigating"        # kill-switch on
+make unpause                                  # clear it
+make last N=20                                # last 20 autofix_attempts
+make attempts STATUS=errored                  # filter by status
+node autofix-cli.mjs status                   # kill-switch + budget snapshot
+node autofix-cli.mjs budget                   # today's spend per bucket
+```
+
+The kill-switch and budget CLI commands affect both loops because both
+pollers call the same `autofix_is_paused()` / `autofix_budget_exhausted()`
+RPCs before dispatching.
+
 ## Runbook
 
 **Poller hasn't dispatched in 10 minutes after a known failure:**
