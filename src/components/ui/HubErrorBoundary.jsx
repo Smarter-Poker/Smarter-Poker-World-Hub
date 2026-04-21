@@ -97,25 +97,9 @@ export class HubErrorBoundary extends React.Component {
 
                     <div style={{ display: 'flex', gap: 12 }}>
                         <button
-                            onClick={() => window.location.reload()}
-                            style={{
-                                background: '#1877f2',
-                                color: '#fff',
-                                border: 'none',
-                                borderRadius: 8,
-                                padding: '10px 24px',
-                                fontSize: 14,
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                fontFamily: 'inherit',
-                            }}
-                        >
-                            Refresh Page
-                        </button>
-                        <button
                             onClick={() => this.handleReset()}
                             style={{
-                                background: '#3a3b3c',
+                                background: '#1877f2',
                                 color: '#e4e6eb',
                                 border: 'none',
                                 borderRadius: 8,

@@ -136,22 +136,6 @@ export default class PageErrorBoundary extends React.Component {
                         >
                             Go to Hub
                         </button>
-                        <button
-                            onClick={() => window.location.reload()}
-                            style={{
-                                background: '#2d2d30',
-                                color: '#8a8d91',
-                                border: '1px solid #3a3b3c',
-                                borderRadius: 8,
-                                padding: '10px 24px',
-                                fontSize: 14,
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                fontFamily: 'inherit',
-                            }}
-                        >
-                            Refresh
-                        </button>
                     </div>
 
                     {/* Dev-only error details — visible in development mode only */}

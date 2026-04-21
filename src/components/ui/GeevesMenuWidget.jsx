@@ -32,6 +32,18 @@ export default function GeevesMenuWidget() {
     const [isTyping, setIsTyping] = useState(false);
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
+    const abortControllerRef = useRef(null);
+    const mountedRef = useRef(true);
+
+    useEffect(() => {
+        mountedRef.current = true;
+        return () => {
+            mountedRef.current = false;
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+        };
+    }, []);
 
     // Auto-scroll messages
     useEffect(() => {
@@ -55,6 +67,9 @@ export default function GeevesMenuWidget() {
         setIsTyping(true);
 
         try {
+            if (abortControllerRef.current) abortControllerRef.current.abort();
+            abortControllerRef.current = new AbortController();
+
             const token = getAuthToken();
             const headers = { 'Content-Type': 'application/json' };
             if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -62,11 +77,13 @@ export default function GeevesMenuWidget() {
             const response = await fetch('/api/geeves/chat', {
                 method: 'POST',
                 headers,
-                body: JSON.stringify({ message: text })
+                body: JSON.stringify({ message: text }),
+                signal: abortControllerRef.current.signal
             });
 
             if (!response.ok) throw new Error('Failed');
 
+            if (!mountedRef.current) return;
             const data = await response.json();
 
             if (data.missedQuestion) {
@@ -79,14 +96,15 @@ export default function GeevesMenuWidget() {
                 content: data.response || data.message || data.reply || data.answer || 'I had trouble with that. Try again!',
                 isUser: false
             }]);
-        } catch {
+        } catch (err) {
+            if (!mountedRef.current || err.name === 'AbortError') return;
             setMessages(prev => [...prev, {
                 id: Date.now() + 1,
                 content: "I'm having trouble connecting. Please try again in a moment.",
                 isUser: false
             }]);
         } finally {
-            setIsTyping(false);
+            if (mountedRef.current) setIsTyping(false);
         }
     }, [input]);
 
@@ -145,6 +163,9 @@ export default function GeevesMenuWidget() {
         setIsTyping(true);
 
         try {
+            if (abortControllerRef.current) abortControllerRef.current.abort();
+            abortControllerRef.current = new AbortController();
+
             const token = getAuthToken();
             const headers = { 'Content-Type': 'application/json' };
             if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -152,11 +173,13 @@ export default function GeevesMenuWidget() {
             const response = await fetch('/api/geeves/chat', {
                 method: 'POST',
                 headers,
-                body: JSON.stringify({ message: text })
+                body: JSON.stringify({ message: text }),
+                signal: abortControllerRef.current.signal
             });
 
             if (!response.ok) throw new Error('Failed');
 
+            if (!mountedRef.current) return;
             const data = await response.json();
 
             if (data.missedQuestion) {
@@ -169,14 +192,15 @@ export default function GeevesMenuWidget() {
                 content: data.response || data.message || 'I had trouble with that. Try again!',
                 isUser: false
             }]);
-        } catch {
+        } catch (err) {
+            if (!mountedRef.current || err.name === 'AbortError') return;
             setMessages(prev => [...prev, {
                 id: Date.now() + 1,
                 content: "I'm having trouble connecting. Please try again in a moment.",
                 isUser: false
             }]);
         } finally {
-            setIsTyping(false);
+            if (mountedRef.current) setIsTyping(false);
         }
     }, []);
 
