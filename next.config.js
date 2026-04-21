@@ -496,9 +496,10 @@ const sentryOptions = {
   autoInstrumentMiddleware: false,
 };
 
-// Only wrap with Sentry if DSN is configured AND auth token is present
-// TEMP FIX: Bypass Sentry wrapping to diagnose Vercel deployment Internal Error
+// [OOM FIX] Bypass Sentry webpack plugin entirely.
+// withSentryConfig instruments every route + uploads source maps at build time.
+// On a 950+ page repo this consumes 1-2GB of build RAM and tips us over the
+// Vercel 8GB container limit. Runtime Sentry.init() in sentry.client.config.js
+// still captures all thrown errors — only build-time auto-instrumentation is skipped.
 const pwaConfig = process.env.NODE_ENV === 'development' ? nextConfig : withPWA(nextConfig);
-module.exports = process.env.NEXT_PUBLIC_SENTRY_DSN && process.env.SENTRY_AUTH_TOKEN && process.env.NODE_ENV !== 'development'
-  ? withSentryConfig(pwaConfig, sentryWebpackPluginOptions, sentryOptions)
-  : pwaConfig;
+module.exports = pwaConfig;
