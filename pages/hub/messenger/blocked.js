@@ -42,19 +42,24 @@ export default function BlockedUsers() {
         }
     };
 
-    const handleUnblock = async (blockedId) => {
+    const handleUnblock = (blockedId) => {
         if (!user) return;
 
         setUnblocking(blockedId);
-        try {
-            await unblockUser(user.id, blockedId);
-            setBlockedUsers(prev => prev.filter(b => b.blocked_id !== blockedId));
-        } catch (error) {
-            console.error('Error unblocking user:', error);
-            alert('Failed to unblock user. Please try again.');
-        } finally {
-            setUnblocking(null);
-        }
+
+        // EAGER STATE SYNCHRONIZATION: Remove from list immediately (BFCache-safe)
+        const prevBlockedUsers = blockedUsers;
+        setBlockedUsers(prev => prev.filter(b => b.blocked_id !== blockedId));
+
+        // Fire-and-forget with rollback on failure
+        unblockUser(user.id, blockedId)
+            .catch((error) => {
+                // Rollback on failure
+                setBlockedUsers(prevBlockedUsers);
+                console.error('Error unblocking user:', error);
+                alert('Failed to unblock user. Please try again.');
+            })
+            .finally(() => setUnblocking(null));
     };
 
     return (

@@ -73,46 +73,50 @@ export default function MessageRequests() {
         }
     };
 
-    const handleAccept = async (requestId, senderId) => {
+    const handleAccept = (requestId, senderId) => {
         if (!user) return;
         setProcessing(requestId);
 
-        try {
-            // Mark conversation as accepted
-            await supabase
-                .from('conversations')
-                .update({ is_request: false })
-                .eq('id', requestId);
+        // EAGER STATE SYNCHRONIZATION: Remove from list immediately (BFCache-safe)
+        const prevRequests = requests;
+        setRequests(prev => prev.filter(r => r.id !== requestId));
 
-            // Remove from list
-            setRequests(prev => prev.filter(r => r.id !== requestId));
-        } catch (error) {
-            console.error('Error accepting request:', error);
-            alert('Failed to accept request');
-        } finally {
-            setProcessing(null);
-        }
+        // Fire-and-forget DB update with rollback on failure
+        supabase.from('conversations')
+            .update({ is_request: false })
+            .eq('id', requestId)
+            .then(({ error }) => {
+                if (error) {
+                    // Rollback on failure
+                    setRequests(prevRequests);
+                    console.error('Error accepting request:', error);
+                    alert('Failed to accept request');
+                }
+            })
+            .finally(() => setProcessing(null));
     };
 
-    const handleDecline = async (requestId) => {
+    const handleDecline = (requestId) => {
         if (!user) return;
         setProcessing(requestId);
 
-        try {
-            // Delete the conversation request
-            await supabase
-                .from('conversations')
-                .delete()
-                .eq('id', requestId);
+        // EAGER STATE SYNCHRONIZATION: Remove from list immediately (BFCache-safe)
+        const prevRequests = requests;
+        setRequests(prev => prev.filter(r => r.id !== requestId));
 
-            // Remove from list
-            setRequests(prev => prev.filter(r => r.id !== requestId));
-        } catch (error) {
-            console.error('Error declining request:', error);
-            alert('Failed to decline request');
-        } finally {
-            setProcessing(null);
-        }
+        // Fire-and-forget DB delete with rollback on failure
+        supabase.from('conversations')
+            .delete()
+            .eq('id', requestId)
+            .then(({ error }) => {
+                if (error) {
+                    // Rollback on failure
+                    setRequests(prevRequests);
+                    console.error('Error declining request:', error);
+                    alert('Failed to decline request');
+                }
+            })
+            .finally(() => setProcessing(null));
     };
 
     const timeAgo = (dateStr) => {
