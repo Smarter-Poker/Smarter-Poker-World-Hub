@@ -764,15 +764,11 @@ function ReelViewer({ reels, startIndex, onClose }) {
         setUploadingReelImage(false);
     };
 
-    // Share handler
-    // Phase 9: 1-Click Repost Architecture — open modal AND directly share to feed
+    // Share handler — opens share modal only; repost to feed requires explicit user tap
     const handleShare = () => {
         if (!currentReel?.id) return;
         haptic(10);
         setShowShareModal(true);
-        if (!sharedToFeed && !sharingToFeed) {
-            handleShareToFeed();
-        }
     };
 
     const shareReelUrl = currentReel ? `${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}/hub/social-media?reel=${currentReel.id}` : '';
