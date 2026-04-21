@@ -991,9 +991,9 @@ export default function ProfilePage() {
         if (socialFields[field]) {
             value = stripSocialHandle(value, socialFields[field]);
         }
-        // Username format enforcement: lowercase alphanumeric + underscores only
+        // Username format enforcement: alphanumeric + underscores only (mixed case allowed)
         if (field === 'username' && value) {
-            value = value.toLowerCase().replace(/[^a-z0-9_]/g, '');
+            value = value.replace(/[^a-zA-Z0-9_]/g, '');
         }
         setProfile(prev => ({ ...prev, [field]: value }));
 
@@ -1023,8 +1023,9 @@ export default function ProfilePage() {
                 try {
                     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
                     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+                    // Use ilike for case-insensitive duplicate check (KingFish conflicts with kingfish)
                     const res = await fetch(
-                        `${supabaseUrl}/rest/v1/profiles?username=eq.${encodeURIComponent(trimmed)}&select=id`,
+                        `${supabaseUrl}/rest/v1/profiles?username=ilike.${encodeURIComponent(trimmed)}&select=id`,
                         { headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${getProfileJwt()}` } }
                     );
                     const data = res.ok ? await res.json() : [];

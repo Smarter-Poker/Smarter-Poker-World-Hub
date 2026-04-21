@@ -48,6 +48,11 @@ function NotificationsPage() {
     const [confirmDeleteId, setConfirmDeleteId] = useState(null);
     const [deletingIds, setDeletingIds] = useState(new Set());
     const touchStartRef = useRef({ x: 0, y: 0, id: null });
+    // 🔲 Detect when rendered inside FullScreenPageOverlay iframe — hide chrome
+    const [isInIframe, setIsInIframe] = useState(false);
+    useEffect(() => {
+        try { setIsInIframe(window.self !== window.top); } catch (_) { setIsInIframe(true); }
+    }, []);
 
     // ── Delete notification ──────────────────────────────────────
     const handleDelete = useCallback(async (notifId, e) => {
@@ -506,7 +511,7 @@ function NotificationsPage() {
             <PageTransition>
                 <SEOHead title="Notifications" description="Loading notifications..." canonical="/hub/notifications" noindex={true} />
                 <div style={{ minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: C.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
-                    <UniversalHeader pageDepth={2} onMenuClick={() => {}} />
+                    {!isInIframe && <UniversalHeader pageDepth={2} onMenuClick={() => {}} />}
                     <div style={{ maxWidth: 680, margin: '0 auto', padding: 16 }}>
                         {[1,2,3,4,5].map(i => (
                             <div key={i} style={{ display: 'flex', gap: 12, padding: 16, background: C.card, borderBottom: `1px solid ${C.border}` }}>
@@ -535,9 +540,9 @@ function NotificationsPage() {
                 noindex={true}
             />
             <div className="notifications-page" style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
-                {/* Header - Universal Header */}
-                <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
-                <HamburgerMenu
+                {/* Header - Universal Header (hidden when inside overlay iframe) */}
+                {!isInIframe && <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />}
+                {!isInIframe && <HamburgerMenu
                     isOpen={menuOpen}
                     onClose={() => setMenuOpen(false)}
                     direction="right"
@@ -545,7 +550,7 @@ function NotificationsPage() {
                     user={user}
                     menuItems={menuConfig.menuItems}
                     bottomLinks={menuConfig.bottomLinks}
-                />
+                />}
                 <header style={{ background: C.card, padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.border}` }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: C.text }}>Notifications</h1>
@@ -878,9 +883,9 @@ function NotificationsPage() {
                 </div>
 
                 {/* Bottom padding for mobile nav */}
-                <div style={{ height: 80 }} />
+                <div style={{ height: isInIframe ? 20 : 80 }} />
             </div>
-              <BottomNavBar />
+              {!isInIframe && <BottomNavBar />}
     </PageTransition>
     );
 }

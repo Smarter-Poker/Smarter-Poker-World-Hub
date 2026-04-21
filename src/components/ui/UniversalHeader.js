@@ -984,7 +984,12 @@ export default function UniversalHeader({
                     </button>
 
                     {/* Notifications - Custom Metallic Bell icon */}
-                    <button onClick={() => openOverlay('notifications')} className="orb-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} title="Notifications">
+                    <button onClick={() => {
+                        // Optimistic: clear badge immediately so it disappears as soon as the user taps
+                        setNotificationCount(0);
+                        try { localStorage.setItem('sp-notif-count', '0'); } catch (_) {}
+                        openOverlay('notifications');
+                    }} className="orb-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} title="Notifications">
                             <img src="/images/header-notifications.png" alt="Notifications" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '60%', left: '50%', transform: 'translate(-50%, -50%)' }} />
                             {safeNotificationCount > 0 && (
                                 <span className="orb-badge">{safeNotificationCount > 99 ? '99+' : safeNotificationCount}</span>
