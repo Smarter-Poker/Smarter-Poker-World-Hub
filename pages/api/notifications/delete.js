@@ -31,10 +31,17 @@ export default async function handler(req, res) {
 
         // Support both single id and array of ids
         const { id, ids } = req.body || {};
-        const deleteIds = ids || (id ? [id] : []);
+        // [Audit#8] filter falsy/empty values — empty string "" has length=1 and bypasses check
+        const rawIds = ids || (id ? [id] : []);
+        const deleteIds = rawIds.filter(v => v && typeof v === 'string' && v.trim().length > 0);
 
         if (!deleteIds.length) {
             return res.status(400).json({ success: false, error: 'No notification id(s) provided' });
+        }
+
+        // Cap batch size to prevent abuse (max 100 per call)
+        if (deleteIds.length > 100) {
+            return res.status(400).json({ success: false, error: 'Too many IDs (max 100)' });
         }
 
         // Delete only notifications belonging to this user
