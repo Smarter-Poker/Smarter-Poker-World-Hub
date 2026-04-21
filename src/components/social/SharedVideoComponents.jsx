@@ -165,7 +165,11 @@ export function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLi
 
     useEffect(() => {
         document.body.style.overflow = 'hidden';
-        return () => { document.body.style.overflow = ''; };
+        return () => {
+            document.body.style.overflow = '';
+            // Cancel any running progress RAF to prevent memory leak
+            if (progressRAF.current) cancelAnimationFrame(progressRAF.current);
+        };
     }, []);
 
     useEffect(() => {
@@ -361,7 +365,7 @@ export function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLi
             )}
 
             {/* Heart burst animation CSS */}
-            <style jsx>{`
+            <style>{`
                 @keyframes heartBurstFS {
                     0% { opacity: 1; transform: translate(-50%, -50%) scale(0.3); }
                     50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }

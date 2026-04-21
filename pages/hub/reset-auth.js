@@ -128,7 +128,7 @@ export default function ResetAuthPage() {
                             onClick={() => window.location.reload()}
                             style={{
                                 padding: '12px 24px',
-                                borderRadius: 8,
+                                borderRadius: 20,
                                 border: 'none',
                                 background: 'linear-gradient(135deg, #0088ff, #00d4ff)',
                                 color: 'white',

@@ -105,6 +105,7 @@ export default async function handler(req, res) {
               result = result.sort(() => Math.random() - 0.5);
           }
 
+          res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
           return res.status(200).json({ success: true, data: result });
       } catch (error) {
           console.error('Reels API exception:', error.message);

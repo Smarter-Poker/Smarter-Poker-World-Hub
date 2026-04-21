@@ -177,6 +177,7 @@ export default async function handler(req, res) {
               ? questions
               : shuffleArray([...FALLBACK_QUESTIONS]).slice(0, 10);
 
+          res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');
           return res.status(200).json({
               success: true,
               date: today,

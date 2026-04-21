@@ -1578,7 +1578,7 @@ export default function DiamondStorePage() {
                                                                                     onClick={() => !owned && setClubShopBuyTarget(item)}
                                                                                     disabled={owned}
                                                                                     style={{
-                                                                                        padding: '7px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: owned ? 'default' : 'pointer',
+                                                                                        padding: '7px 16px', borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: owned ? 'default' : 'pointer',
                                                                                         background: owned ? 'rgba(0,255,136,0.15)' : 'linear-gradient(135deg, #1877F2, #4285F4)',
                                                                                         border: owned ? '1px solid rgba(0,255,136,0.3)' : 'none',
                                                                                         color: owned ? '#00ff88' : '#fff',
@@ -1767,7 +1767,7 @@ export default function DiamondStorePage() {
                                                                             loadClubShop(true);
                                                                         } catch (err) { showStoreToast('error', err.message); }
                                                                     }} style={{
-                                                                        padding: '6px 14px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                                                                        padding: '6px 14px', borderRadius: 20, fontSize: 11, fontWeight: 700, cursor: 'pointer',
                                                                         background: item.is_active ? 'rgba(0,255,136,0.1)' : 'rgba(255,255,255,0.05)',
                                                                         border: item.is_active ? '1px solid rgba(0,255,136,0.3)' : '1px solid rgba(255,255,255,0.1)',
                                                                         color: item.is_active ? '#00ff88' : 'rgba(255,255,255,0.4)',
@@ -1784,7 +1784,7 @@ export default function DiamondStorePage() {
                                                                             loadClubShop(true);
                                                                         } catch (err) { showStoreToast('error', err.message); }
                                                                     }} style={{
-                                                                        padding: '6px 14px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                                                                        padding: '6px 14px', borderRadius: 20, fontSize: 11, fontWeight: 700, cursor: 'pointer',
                                                                         background: 'rgba(255,59,48,0.1)', border: '1px solid rgba(255,59,48,0.3)', color: '#ff6b6b',
                                                                     }}>
                                                                         <Trash2 size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> Delete

@@ -273,7 +273,6 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     const [loadingComments, setLoadingComments] = useState(false);
     const [commentCount, setCommentCount] = useState(post.commentCount || 0);
     const [hasMoreComments, setHasMoreComments] = useState(false);
-    const [fullScreenVideo, setFullScreenVideo] = useState(null);
     const [typists, setTypists] = useState({}); // { [userId]: { name, avatar_url, timestamp } }
     const [displayContent, setDisplayContent] = useState(post.content);
     const [editingCommentId, setEditingCommentId] = useState(null);
@@ -1530,42 +1529,6 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                         <button onClick={handleSubmitComment} disabled={(!newComment.trim() && !commentMediaUrl) || submittingComment} style={{ background: 'none', border: 'none', cursor: 'pointer', color: (newComment.trim() || commentMediaUrl) && !submittingComment ? C.blue : C.textSec, fontWeight: 600, fontSize: 13, opacity: submittingComment ? 0.5 : 1, alignSelf: 'flex-end', paddingBottom: 4 }}>{submittingComment ? '...' : 'Post'}</button>
                     </div>
                 </div>
-            )}
-
-            {/* Full Screen Video Viewer Modal */}
-            {fullScreenVideo && (
-                <FullScreenVideoViewer
-                    videoUrl={fullScreenVideo}
-                    author={post.author}
-                    caption={post.content}
-                    onClose={() => setFullScreenVideo(null)}
-                    onLike={handleLike}
-                    onComment={() => { setFullScreenVideo(null); setShowComments(true); }}
-                    onShare={() => {
-                        const shareUrl = `${window.location.origin}/hub/post/${post.id}`;
-                        if (navigator.share) {
-                            navigator.share({ title: 'Check out this video on Smarter.Poker', url: shareUrl }).catch(() => { });
-                        } else {
-                            navigator.clipboard.writeText(shareUrl).then(() => {
-                                toast.success('Link copied to clipboard!');
-                            }).catch(() => {
-                                toast.error('Could not copy link');
-                            });
-                        }
-                        // Sync denormalized share_count (fire-and-forget with manual fallback)
-                        (async () => {
-                            try {
-                                const { error: rpcErr } = await supabase.rpc('increment_post_count', { p_post_id: post.id, p_field: 'share_count' });
-                                if (rpcErr) throw rpcErr;
-                            } catch {
-                                try {
-                                    const { data: p } = await supabase.from('social_posts').select('share_count').eq('id', post.id).maybeSingle();
-                                    if (p) await supabase.from('social_posts').update({ share_count: (p.share_count || 0) + 1 }).eq('id', post.id);
-                                } catch (e) { console.warn('[Social] share_count fallback failed:', e.message); }
-                            }
-                        })();
-                    }}
-                />
             )}
 
             {/* Image Lightbox Modal */}

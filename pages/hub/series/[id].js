@@ -560,13 +560,13 @@ export default function SeriesDetailPage() {
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
               <button
                 onClick={() => router.push('/hub/poker-series')}
-                style={{ padding: '12px 24px', background: 'linear-gradient(135deg, #d4a853, #b8860b)', color: '#000', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
+                style={{ padding: '12px 24px', background: 'linear-gradient(135deg, #d4a853, #b8860b)', color: '#000', border: 'none', borderRadius: 20, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
               >
                 Browse All Series
               </button>
               <button
                 onClick={() => router.back()}
-                style={{ padding: '12px 24px', background: 'rgba(255,255,255,0.08)', color: '#fff', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
+                style={{ padding: '12px 24px', background: 'rgba(255,255,255,0.08)', color: '#fff', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 20, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
               >
                 Go Back
               </button>

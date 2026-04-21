@@ -25,6 +25,9 @@ export default function PeakActivityHeatmap({ venueFilter, gameType }) {
   const [hoveredCell, setHoveredCell] = useState(null);
 
   useEffect(() => {
+    let mounted = true;
+    const controller = new AbortController();
+
     const fetchHeatmap = () => {
       setLoading(true);
       let url = '/api/poker/peak-activity';
@@ -33,10 +36,10 @@ export default function PeakActivityHeatmap({ venueFilter, gameType }) {
       if (gameType) params.push(`game_type=${encodeURIComponent(gameType)}`);
       if (params.length) url += '?' + params.join('&');
       
-      fetch(url)
+      fetch(url, { signal: controller.signal })
         .then(r => r.json())
-        .then(d => { setData(d); setLoading(false); })
-        .catch(e => { setError(e.message); setLoading(false); });
+        .then(d => { if (mounted) { setData(d); setLoading(false); } })
+        .catch(e => { if (mounted && e.name !== 'AbortError') { setError(e.message); setLoading(false); } });
     };
 
     fetchHeatmap();
@@ -49,6 +52,8 @@ export default function PeakActivityHeatmap({ venueFilter, gameType }) {
     });
 
     return () => {
+      mounted = false;
+      controller.abort();
       if (typeof unsub === 'function') unsub();
     };
   }, [venueFilter, gameType]);

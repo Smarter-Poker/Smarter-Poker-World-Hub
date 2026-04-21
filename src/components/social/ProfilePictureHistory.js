@@ -267,7 +267,7 @@ export function ProfilePictureHistory({
             </div>
 
             {/* Hide scrollbar CSS */}
-            <style jsx>{`
+            <style>{`
                 div::-webkit-scrollbar {
                     display: none;
                 }

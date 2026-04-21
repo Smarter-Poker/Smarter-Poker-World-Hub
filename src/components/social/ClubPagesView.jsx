@@ -324,7 +324,7 @@ export default function ClubPagesView({ C, pages, setPages, loading, setLoading,
                 </div>
             )}
 
-            <style jsx>{`
+            <style>{`
                 @keyframes spin {
                     to { transform: rotate(360deg); }
                 }

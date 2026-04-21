@@ -401,7 +401,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
                                 onClick={() => setShowDeleteConfirm(false)}
                                 style={{
                                     flex: 1, padding: '10px 16px', background: C.bg, color: C.text,
-                                    border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer'
+                                    border: 'none', borderRadius: 20, fontWeight: 600, cursor: 'pointer'
                                 }}
                             >Cancel</button>
                             <button
@@ -409,7 +409,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
                                 disabled={deleting}
                                 style={{
                                     flex: 1, padding: '10px 16px', background: '#F02849', color: 'white',
-                                    border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer',
+                                    border: 'none', borderRadius: 20, fontWeight: 600, cursor: 'pointer',
                                     opacity: deleting ? 0.6 : 1
                                 }}
                             >{deleting ? 'Deleting...' : 'Delete'}</button>
@@ -1843,7 +1843,7 @@ export default function UserProfilePage() {
                                 }} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.target.click(); }}} style={{
                                     padding: '10px 14px', background: shareCopied ? '#42B72A' : '#e4e6eb',
                                     color: shareCopied ? 'white' : C.text,
-                                    borderRadius: 8, border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: 14,
+                                    borderRadius: 20, border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: 14,
                                     transition: 'all 0.3s ease', outline: 'none',
                                     display: 'flex', alignItems: 'center', gap: 6,
                                 }}>{shareCopied ? '✓ Copied!' : <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg> Share</>}</button>

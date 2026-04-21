@@ -31,7 +31,26 @@ const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 const ALLOWED_TYPES = [
     'image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml',
     'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo',
+    'video/x-m4v', 'video/3gpp', 'video/3gpp2', 'video/hevc', 'video/x-matroska',
 ];
+
+// Extension fallback for iOS Photo Library (same as upload-url.js)
+const EXT_MIME_MAP = {
+    mp4: 'video/mp4', mov: 'video/quicktime', m4v: 'video/x-m4v',
+    avi: 'video/x-msvideo', webm: 'video/webm',
+    '3gp': 'video/3gpp', '3g2': 'video/3gpp2',
+    hevc: 'video/hevc', mkv: 'video/x-matroska',
+    jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
+    gif: 'image/gif', webp: 'image/webp',
+};
+function sniffMime(file) {
+    let mime = (file.mimetype || file.type || '').split(';')[0].trim();
+    if (!mime && file.originalFilename) {
+        const ext = file.originalFilename.split('.').pop().toLowerCase();
+        mime = EXT_MIME_MAP[ext] || '';
+    }
+    return mime;
+}
 
 
 let _supabase = null;
@@ -88,8 +107,8 @@ export default async function handler(req, res) {
               return res.status(400).json({ success: false, error: 'No file provided' });
           }
 
-          // Validate file type
-          const mimeType = file.mimetype || file.type || '';
+          // Validate file type — use sniffMime to handle iOS empty/codec-suffixed types
+          const mimeType = sniffMime(file);
           if (!ALLOWED_TYPES.includes(mimeType)) {
               return res.status(400).json({ success: false, error: `File type not allowed: ${mimeType}` });
           }

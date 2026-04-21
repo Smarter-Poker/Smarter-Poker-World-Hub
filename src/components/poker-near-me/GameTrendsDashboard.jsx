@@ -16,11 +16,14 @@ export default function GameTrendsDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
+    const controller = new AbortController();
+
     const fetchTrends = () => {
-      fetch('/api/poker/game-trends')
+      fetch('/api/poker/game-trends', { signal: controller.signal })
         .then(r => r.json())
-        .then(d => { setData(d); setLoading(false); })
-        .catch(() => setLoading(false));
+        .then(d => { if (mounted) { setData(d); setLoading(false); } })
+        .catch(e => { if (mounted && e.name !== 'AbortError') setLoading(false); });
     };
 
     fetchTrends();
@@ -32,6 +35,8 @@ export default function GameTrendsDashboard() {
     });
 
     return () => {
+      mounted = false;
+      controller.abort();
       if (typeof unsub === 'function') unsub();
     };
   }, []);

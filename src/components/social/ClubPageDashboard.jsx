@@ -1540,7 +1540,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                 );
             })()}
 
-            <style jsx>{`@keyframes spin { to { transform: rotate(360deg); } } @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }`}</style>
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } } @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }`}</style>
         </div >
     );
 }

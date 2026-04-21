@@ -92,7 +92,7 @@ class ArenaErrorBoundary extends React.Component {
                             onClick={() => window.location.reload()}
                             style={{
                                 background: '#00d4ff', color: '#000', border: 'none',
-                                padding: '10px 24px', borderRadius: 8, fontSize: 14,
+                                padding: '10px 24px', borderRadius: 20, fontSize: 14,
                                 fontWeight: 600, cursor: 'pointer',
                             }}
                         >

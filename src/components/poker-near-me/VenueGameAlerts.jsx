@@ -20,21 +20,28 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
 
   const GAME_TYPES = ['NLH 1/2', 'NLH 1/3', 'NLH 2/5', 'NLH 5/10', 'PLO 1/2', 'PLO 1/3', 'PLO 2/5', 'LHE 3/6', 'LHE 4/8', 'LHE 6/12', 'Mixed Game'];
 
-  const loadAlerts = useCallback(() => {
+  const loadAlerts = useCallback((signal) => {
     if (!userId) return;
-    fetch(`/api/poker/venue-alerts?user_id=${userId}`)
+    fetch(`/api/poker/venue-alerts?user_id=${userId}`, signal ? { signal } : undefined)
       .then(r => r.json())
       .then(d => { setAlerts(d.alerts || []); setLoading(false); })
-      .catch(() => setLoading(false));
+      .catch(e => { if (e.name !== 'AbortError') setLoading(false); });
   }, [userId]);
 
-  useEffect(() => { loadAlerts(); }, [loadAlerts]);
+  useEffect(() => {
+    const controller = new AbortController();
+    loadAlerts(controller.signal);
+    return () => controller.abort();
+  }, [loadAlerts]);
 
   // Fetch live game data for context
   useEffect(() => {
-    fetch('/api/poker/live-tables')
+    let mounted = true;
+    const controller = new AbortController();
+    fetch('/api/poker/live-tables', { signal: controller.signal })
       .then(r => r.json())
       .then(d => {
+        if (!mounted) return;
         const games = [];
         (d.venues || []).forEach(v => {
           (v.games || []).forEach(g => {
@@ -46,7 +53,8 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
         setLiveGames(games);
         setLiveLoading(false);
       })
-      .catch(() => setLiveLoading(false));
+      .catch(e => { if (mounted && e.name !== 'AbortError') setLiveLoading(false); });
+    return () => { mounted = false; controller.abort(); };
   }, []);
 
   // Count unique game types currently running for quick-add buttons

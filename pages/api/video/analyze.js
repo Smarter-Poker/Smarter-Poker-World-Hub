@@ -130,6 +130,9 @@ Focus on actual poker hands and strategy moments. If no specific hands are discu
 }
 
 export default async function handler(req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
+  }
   try {
       // BUG #267 FIX: Require JWT auth — calls paid Grok API for AI analysis
       const token = req.headers.authorization?.replace('Bearer ', '');

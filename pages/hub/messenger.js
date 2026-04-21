@@ -3052,6 +3052,7 @@ function MessengerPage() {
                 setTimeout(() => supabase.removeChannel(channel), 1000);
             }
         } catch (e) {
+            console.warn('[Messenger] Accept call signaling error (non-blocking):', e?.message || e);
         }
 
         // Join the call
@@ -3110,9 +3111,8 @@ function MessengerPage() {
                 setTimeout(() => supabase.removeChannel(channel), 1000);
             }
         } catch (e) {
+            console.warn('[Messenger] Decline call signaling error (non-blocking):', e?.message || e);
         }
-
-        // Cancel pending call in database
         if (incomingCall.pendingCallId) {
             fetch('/api/calls/cancel', {
                 method: 'POST',
@@ -3178,6 +3178,7 @@ function MessengerPage() {
                 return;
             }
         } catch (apiErr) {
+            console.warn('[Messenger] Conversation API fetch failed, falling back to Supabase direct query:', apiErr?.message || apiErr);
         }
 
         // FALLBACK 1: Try direct Supabase query with retry
@@ -4449,6 +4450,7 @@ function MessengerPage() {
                     }),
                 });
             } catch (e) {
+                console.warn('[Messenger] Call signal broadcast error (non-blocking):', e?.message || e);
             }
 
 
@@ -4475,6 +4477,7 @@ function MessengerPage() {
                 if (!pushRes.ok || pushResult.error) {
                 }
             } catch (pushError) {
+                console.warn('[Messenger] Push notification for call failed (non-blocking):', pushError?.message || pushError);
             }
         } catch (e) {
             console.error('Failed to send call signal:', e);
@@ -4576,6 +4579,7 @@ function MessengerPage() {
                     p_content: `[CALL_RECEIPT]${receiptPayload}`,
                 });
             } catch (e) {
+                console.warn('[Messenger] Call receipt save failed (non-blocking):', e?.message || e);
             }
         }
         callStartTimeRef.current = null;
