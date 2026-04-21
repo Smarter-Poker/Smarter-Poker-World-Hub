@@ -24,7 +24,10 @@
 // Optional env:   SLACK_ALERT_WEBHOOK, VERIFY_TIMEOUT_MIN=25, DRY_RUN=1
 // ═════════════════════════════════════════════════════════════════════════
 
-import { createClient } from '@supabase/supabase-js';
+// NOTE: @supabase/supabase-js is loaded lazily inside initRuntime() so that
+// pure-logic exports (PROJECTS, projectForRepo) can be imported by the unit
+// test suite without forcing the supabase dependency to resolve. The runtime
+// path (run() -> initRuntime()) still imports it before any DB call.
 
 // Mirror of poll.mjs PROJECTS — keep in sync or extract to shared config
 // (kept inline to avoid import cycles and to let the file run standalone).
@@ -56,7 +59,7 @@ function log(obj) {
   console.log(JSON.stringify({ ts: new Date().toISOString(), ...obj }));
 }
 
-function initRuntime() {
+async function initRuntime() {
   VERCEL_TOKEN = requireEnv('VERCEL_TOKEN');
   VERCEL_TEAM_ID = requireEnv('VERCEL_TEAM_ID');
   GITHUB_TOKEN = requireEnv('GITHUB_TOKEN');
@@ -65,6 +68,7 @@ function initRuntime() {
   SLACK_ALERT_WEBHOOK = process.env.SLACK_ALERT_WEBHOOK;
   VERIFY_TIMEOUT_MIN = Number(process.env.VERIFY_TIMEOUT_MIN ?? 25);
   FORCE_DRY_RUN = process.env.DRY_RUN === '1';
+  const { createClient } = await import('@supabase/supabase-js');
   sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 }
 
@@ -290,7 +294,7 @@ async function openAutoRevertPr({ repo, prNumber, originalCommitSha, failedDeplo
 // Main
 // ---------------------------------------------------------------------------
 async function run() {
-  initRuntime();
+  await initRuntime();
 
   const attempts = await listPendingVerify();
   if (attempts.length === 0) {

@@ -19,7 +19,9 @@
 //   LOOKBACK_MINUTES=60
 // ═════════════════════════════════════════════════════════════════════════
 
-import { createClient } from '@supabase/supabase-js';
+// NOTE: @supabase/supabase-js is loaded lazily inside initRuntime() so that
+// classifyBuildFailure() and other pure-logic exports can be imported by the
+// unit test suite without forcing the supabase dependency to resolve.
 
 const PROJECTS = [
   {
@@ -39,7 +41,7 @@ let SLACK_ALERT_WEBHOOK, FORCE_DRY_RUN;
 let STALE_QUEUED_MINUTES, LOG_TAIL_LINES, LOOKBACK_MINUTES;
 let sb;
 
-function initRuntime() {
+async function initRuntime() {
   VERCEL_TOKEN = requireEnv('VERCEL_TOKEN');
   VERCEL_TEAM_ID = requireEnv('VERCEL_TEAM_ID');
   GITHUB_TOKEN = requireEnv('GITHUB_TOKEN');
@@ -50,6 +52,7 @@ function initRuntime() {
   STALE_QUEUED_MINUTES = Number(process.env.STALE_QUEUED_MINUTES ?? 15);
   LOG_TAIL_LINES = Number(process.env.LOG_TAIL_LINES ?? 400);
   LOOKBACK_MINUTES = Number(process.env.LOOKBACK_MINUTES ?? 60);
+  const { createClient } = await import('@supabase/supabase-js');
   sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 }
 
@@ -302,7 +305,7 @@ async function slackAlert(text) {
 // Main
 // ---------------------------------------------------------------------------
 async function run() {
-  initRuntime();
+  await initRuntime();
   if (await isPaused()) {
     log({ level: 'info', msg: 'autofix globally paused — exiting' });
     return;
