@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import { getAuthorDisplayName } from '../../utils/displayName';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -181,6 +182,7 @@ export const SPPostCard = ({
     onDeletePost,
     currentUserId
 }) => {
+    const router = useRouter();
     const [liked, setLiked] = useState(post.userLiked || post.isLiked || false);
     const [reactionType, setReactionType] = useState(post.reactionType || 'like');
     const [showReactionPicker, setShowReactionPicker] = useState(false);
@@ -465,7 +467,16 @@ export const SPPostCard = ({
                                         mediaUrl?.match(/\.(mp4|webm|mov|avi)(\?|$)/i);
 
                                     return (
-                                        <div key={idx} className="media-item">
+                                        <div 
+                                            key={idx} 
+                                            className="media-item"
+                                            onClick={() => {
+                                                if (isVideo) {
+                                                    router.push(`/hub/reels?id=${post.id}`);
+                                                }
+                                            }}
+                                            style={isVideo ? { cursor: 'pointer' } : {}}
+                                        >
                                             {isVideo ? (
                                                 <>
                                                     <img
