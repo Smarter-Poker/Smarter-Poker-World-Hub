@@ -81,7 +81,7 @@ export default function SeatingDisplay() {
         description="Club Commander Poker Room Management Tool."
         noindex={true}
       />
-      <style jsx global>{`
+      <style>{`
         * { cursor: none !important; }
         body { overflow: hidden; }
       `}</style>

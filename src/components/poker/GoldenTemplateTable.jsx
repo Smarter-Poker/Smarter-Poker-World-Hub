@@ -616,7 +616,7 @@ export default function GoldenTemplateTable({
                 ALL IN
             </motion.button>
 
-            <style jsx global>{`
+            <style>{`
         @keyframes pulse {
           0%, 100% { transform: scale(1); }
           50% { transform: scale(1.05); }

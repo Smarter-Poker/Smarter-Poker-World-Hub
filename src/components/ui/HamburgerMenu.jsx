@@ -555,7 +555,7 @@ export default function HamburgerMenu({
             />
 
             {/* CSS for animations */}
-            <style jsx global>{`
+            <style>{`
                 @keyframes fadeIn {
                     from { opacity: 0; }
                     to { opacity: 1; }

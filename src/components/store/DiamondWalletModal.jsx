@@ -2356,7 +2356,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             </div>
 
             {/* Keyframe animations */}
-            <style jsx global>{`
+            <style>{`
                 @keyframes walletFadeScale {
                     from { opacity: 0; transform: scale(0.95); }
                     to { opacity: 1; transform: scale(1); }

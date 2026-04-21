@@ -597,7 +597,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
             </div>
 
             {/* Pulse animation for LIVE badge */}
-            <style jsx global>{`
+            <style>{`
         @keyframes pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.7; }

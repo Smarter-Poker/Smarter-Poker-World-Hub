@@ -167,7 +167,7 @@ export default function PromotionsDisplay() {
               description="Club Commander Poker Room Management Tool."
               noindex={true}
             />
-      <style jsx global>{`
+      <style>{`
         @keyframes shimmer { 0% { opacity: 0.7; } 50% { opacity: 1; } 100% { opacity: 0.7; } }
         .shimmer { animation: shimmer 3s ease-in-out infinite; }
         @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }

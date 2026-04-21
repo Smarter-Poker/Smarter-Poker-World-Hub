@@ -164,7 +164,7 @@ export default function ResultsMatrix() {
                 </div>
             </div>
 
-            <style jsx global>{`
+            <style>{`
         /* Desktop Sidebar */
         .results-matrix.desktop {
           position: fixed;

@@ -513,7 +513,7 @@ export default function PlayerTableDisplay() {
 
       <Script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" strategy="beforeInteractive" />
 
-      <style jsx global>{`
+      <style>{`
         body { overflow: hidden; }
         @keyframes pulse-expired { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
         .expired-pulse { animation: pulse-expired 1s ease-in-out infinite; }

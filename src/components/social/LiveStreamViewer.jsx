@@ -252,7 +252,7 @@ export function LiveStreamViewer({ stream, userId, onClose }) {
             </div>
 
             {/* Pulse animation */}
-            <style jsx global>{`
+            <style>{`
         @keyframes pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.5; }

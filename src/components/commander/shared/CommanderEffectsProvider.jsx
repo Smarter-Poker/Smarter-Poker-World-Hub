@@ -106,7 +106,7 @@ export default function CommanderEffectsProvider({ children }) {
     return (
         <>
             {/* ── Global Keyframe Styles ── */}
-            <style jsx global>{`
+            <style>{`
         @keyframes cmd-confetti-fall {
           0% { transform: translateY(0) rotate(0deg); opacity: 1; }
           100% { transform: translateY(100vh) rotate(540deg); opacity: 0; }

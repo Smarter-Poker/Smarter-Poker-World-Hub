@@ -516,7 +516,7 @@ export default function DealerTablet() {
         description="Club Commander Poker Room Management Tool."
         noindex={true}
       />
-      <style jsx global>{`
+      <style>{`
         @keyframes pulse-warn { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
         .time-warn { animation: pulse-warn 1.5s ease-in-out infinite; }
       `}</style>

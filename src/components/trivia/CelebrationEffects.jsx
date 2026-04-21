@@ -345,7 +345,7 @@ export function CorrectAnswerFlash() {
 export function WrongAnswerShake() {
     return (
         <div className="wrong-shake">
-            <style jsx global>{`
+            <style>{`
                 .wrong-shake ~ * {
                     animation: shake 0.4s ease-in-out;
                 }

@@ -393,7 +393,7 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
                 </div>
             )}
 
-            <style jsx global>{ANIMATIONS}</style>
+            <style>{ANIMATIONS}</style>
 
             {/* Document Cropper Overlay */}
             {showCropper && rawImage && (

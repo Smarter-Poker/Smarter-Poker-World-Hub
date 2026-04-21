@@ -524,7 +524,7 @@ export default function UniversalHeader({
             </Head>
 
             {/* Mobile-responsive CSS */}
-            <style jsx global>{`
+            <style>{`
                 .universal-header {
                     background: ${C.bg};
                     padding: 8px 12px;

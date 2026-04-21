@@ -872,7 +872,7 @@ export default function HomeGamesPage() {
                     onRetry={() => { setShowLocationModal(false); requestGpsLocation(); }}
                 />
 
-                <style jsx global>{`
+                <style>{`
                     .hg-page {
                         min-height: 100vh;
                         padding-bottom: 70px;

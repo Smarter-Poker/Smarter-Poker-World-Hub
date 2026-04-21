@@ -550,7 +550,7 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
                 </>
             )}
 
-            <style jsx global>{`
+            <style>{`
         @keyframes lcsSpinner { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
         </div>

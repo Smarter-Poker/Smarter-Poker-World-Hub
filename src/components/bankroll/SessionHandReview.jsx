@@ -82,7 +82,7 @@ export default function SessionHandReview({ userId }) {
             <div style={styles.loadingContainer}>
                 <Loader2 size={24} style={{ animation: 'spin 1s linear infinite', color: METAL.cyan }} />
                 <span>LOADING HANDS...</span>
-                <style jsx global>{ANIMATIONS}</style>
+                <style>{ANIMATIONS}</style>
             </div>
         );
     }
@@ -242,7 +242,7 @@ export default function SessionHandReview({ userId }) {
                 </div>
             )}
 
-            <style jsx global>{ANIMATIONS}</style>
+            <style>{ANIMATIONS}</style>
         </div>
     );
 }

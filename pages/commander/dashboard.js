@@ -301,7 +301,7 @@ const venueId = staff?.venue_id;
           noindex={true}
         />
 
-        <style jsx global>{`
+        <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;500;600;700&display=swap');
 
         .cmd-dashboard {

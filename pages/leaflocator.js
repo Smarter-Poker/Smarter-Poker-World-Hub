@@ -102,7 +102,7 @@ export default function LeafLocatorPitchDeck() {
             </Head>
 
             {/* GLOBAL STYLES */}
-            <style jsx global>{`
+            <style>{`
                 .ll-pitch-container {
                     font-family: 'Inter', sans-serif;
                     user-select: none;

@@ -261,7 +261,7 @@ export default function LeaderboardDisplay() {
               description="Club Commander Poker Room Management Tool."
               noindex={true}
             />
-      <style jsx global>{`
+      <style>{`
         @keyframes slideIn { from { opacity: 0; transform: translateX(-30px); } to { opacity: 1; transform: translateX(0); } }
         @keyframes crownPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.2); } }
         @keyframes barGrow { from { width: 0; } }

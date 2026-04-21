@@ -97,7 +97,7 @@ export default function InvestorPitchDeck() {
 
 
             {/* GLOBAL CAPITALIZATION STYLE */}
-            <style jsx global>{`
+            <style>{`
                 .pitch-deck-container * {
                     text-transform: capitalize !important;
                 }

@@ -236,7 +236,7 @@ export default function LandingPage() {
         </footer>
       </div>
 
-      <style jsx global>{`
+      <style>{`
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { background: #0a0e17; overflow-x: hidden; }
         ::-webkit-scrollbar { width: 6px; }

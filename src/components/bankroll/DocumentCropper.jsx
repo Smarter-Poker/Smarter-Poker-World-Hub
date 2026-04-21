@@ -516,7 +516,7 @@ export default function DocumentCropper({ imageSrc, onConfirm, onCancel }) {
                 </div>
             </div>
 
-            <style jsx global>{`
+            <style>{`
         @keyframes docCropSpin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }

@@ -660,7 +660,7 @@ export default function TaxReportPanel({ userId }) {
                 </div>
             )}
 
-            <style jsx global>{ANIMATIONS}</style>
+            <style>{ANIMATIONS}</style>
 
             {/* Document Cropper Overlay — for gallery image uploads */}
             {showCropper && rawImage && (

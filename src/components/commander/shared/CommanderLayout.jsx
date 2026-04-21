@@ -354,7 +354,7 @@ export default function CommanderLayout({ children, title, backHref = '/commande
         {title && <title>{title} | Club Commander</title>}
       </Head>
 
-      <style jsx global>{`
+      <style>{`
         /* Fonts self-hosted via next/font CSS vars: --font-orbitron, --font-inter */
 
         /* ── GLOBAL COMMANDER HEADER ── */

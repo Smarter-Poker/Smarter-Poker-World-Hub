@@ -96,7 +96,7 @@ return { 'x-staff-session': staff };
               description="Club Commander Poker Room Management Tool."
               noindex={true}
             />
-      <style jsx global>{`
+      <style>{`
         @keyframes pulse-break { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         .break-pulse { animation: pulse-break 2s ease-in-out infinite; }
       `}</style>

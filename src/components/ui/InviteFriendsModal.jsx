@@ -600,7 +600,7 @@ export default function InviteFriendsModal({
             </div>
 
             {/* Animations */}
-            <style jsx global>{`
+            <style>{`
                 @keyframes inviteBackdropIn {
                     from { opacity: 0; }
                     to { opacity: 1; }

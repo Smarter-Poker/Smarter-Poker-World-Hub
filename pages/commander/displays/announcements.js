@@ -262,7 +262,7 @@ export default function AnnouncementsDisplay() {
               description="Club Commander Poker Room Management Tool."
               noindex={true}
             />
-      <style jsx global>{`
+      <style>{`
         @keyframes pulse-urgent { 0%, 100% { opacity: 1; box-shadow: 0 0 20px rgba(239,68,68,0.3); } 50% { opacity: 0.85; box-shadow: 0 0 40px rgba(239,68,68,0.5); } }
         .urgent-pulse { animation: pulse-urgent 2s ease-in-out infinite; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }

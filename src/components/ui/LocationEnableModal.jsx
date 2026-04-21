@@ -325,7 +325,7 @@ export default function LocationEnableModal({
         </div>
       </div>
 
-      <style jsx global>{`
+      <style>{`
         @keyframes locModalFadeIn {
           from { opacity: 0; }
           to { opacity: 1; }

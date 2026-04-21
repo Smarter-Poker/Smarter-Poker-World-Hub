@@ -77,7 +77,7 @@ export default function TermsOfService() {
                 </main>
             </div>
 
-            <style jsx global>{`
+            <style>{`
         * {
           box-sizing: border-box;
           margin: 0;

@@ -81,7 +81,7 @@ export default function StructureDisplay() {
         description="Club Commander Poker Room Management Tool."
         noindex={true}
       />
-      <style jsx global>{`
+      <style>{`
         * { cursor: none !important; }
         body { overflow: hidden; }
         @keyframes pulse-current { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }

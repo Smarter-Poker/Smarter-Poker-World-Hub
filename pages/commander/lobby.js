@@ -110,7 +110,7 @@ const headers = { };
         description="Club Commander Poker Room Management Tool."
         noindex={true}
       />
-      <style jsx global>{`
+      <style>{`
         * { cursor: none !important; }
         body { overflow: hidden; }
         @keyframes scroll-left { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }

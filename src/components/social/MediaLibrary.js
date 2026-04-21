@@ -610,7 +610,7 @@ export function MediaLibrary({
                 </div>
             )}
 
-            <style jsx global>{`
+            <style>{`
                 @keyframes fadeIn {
                     from { opacity: 0; }
                     to { opacity: 1; }

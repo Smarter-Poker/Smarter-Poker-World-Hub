@@ -259,7 +259,7 @@ export default function ArenaLedger({ clubId }) {
           )}
         </div>
       </div>
-      <style jsx global>{`
+      <style>{`
         .thin-scrollbar::-webkit-scrollbar { width: 6px; }
         .thin-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .thin-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }

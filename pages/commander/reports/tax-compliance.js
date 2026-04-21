@@ -373,7 +373,7 @@ const res = await commanderFetch('/api/commander/tax/w2g', {
           )}
         </div>
       </div>
-      <style jsx global>{`
+      <style>{`
 .spin { animation: spin 1s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </>
   );
