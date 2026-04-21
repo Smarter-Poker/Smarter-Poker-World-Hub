@@ -207,7 +207,7 @@ export default function HomeGameDetailPage() {
           try {
             const payload = JSON.parse(atob(token.split('.')[1]));
             userId = payload.sub;
-          } catch (e) {}
+          } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         }
         const membership = (membersData.members || []).find(m => m.user_id === userId);
         setUserMembership(membership);

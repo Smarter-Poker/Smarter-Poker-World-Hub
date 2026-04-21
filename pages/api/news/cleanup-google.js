@@ -7,6 +7,12 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export default async function handler(req, res) {
+  // Admin-only route — require CRON_SECRET authorization
+  const authHeader = req.headers.authorization;
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+  }
   try {
       let _supabase = null;
 function getSupabase() {
@@ -36,7 +42,7 @@ function getSupabase() {
       });
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) {}
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }

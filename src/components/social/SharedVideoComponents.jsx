@@ -196,7 +196,7 @@ export function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLi
         const DOUBLE_TAP_WINDOW = 300;
         if (now - lastTapRef.current < DOUBLE_TAP_WINDOW) {
             onLike?.();
-            try { navigator?.vibrate?.(15); } catch(e) {}
+            try { navigator?.vibrate?.(15); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
             setShowHeart(true);
             setTimeout(() => setShowHeart(false), 800);
             lastTapRef.current = 0;

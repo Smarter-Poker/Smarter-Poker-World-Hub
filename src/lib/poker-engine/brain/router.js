@@ -54,7 +54,7 @@ function getLiveRead(horseId, tableId, opponentId) {
 
 // Module-scope personality reference
 let _personalityModule = null;
-try { _personalityModule = getPersonalityModule(); } catch (_) {}
+try { _personalityModule = getPersonalityModule(); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
 function shouldAutoSeat(tableInfo, availableHorses) {
     if (!tableInfo || !availableHorses || availableHorses.length === 0) {
@@ -710,7 +710,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
                         finalAmount = Math.round(finalAmount * mult);
                     }
                 }
-            } catch (_) { }
+            } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         }
 
         // Apply OPPONENT-AWARE BET SIZING (#7)
@@ -737,7 +737,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
                         }
                     }
                 }
-            } catch (_) { }
+            } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         }
 
         // Apply TOURNAMENT ICM ADJUSTMENTS (#4)
@@ -762,7 +762,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
                         finalAmount = Math.round(finalAmount * icm.rangeAdjustment);
                     }
                 }
-            } catch (_) { }
+            } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         }
     }
 
@@ -785,7 +785,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
                     flopAggression = sa[style.key] ?? flopAggression;
                 }
             }
-        } catch (_) { }
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
         let flopEnrichedRead = null;
         try {
@@ -793,7 +793,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             if (adv?.getOpponentRead && primaryOppId) {
                 flopEnrichedRead = adv.getOpponentRead(profileId, primaryOppId);
             }
-        } catch (_) { }
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
         // ═══ PHASE 15: JOURNAL → ENRICHED FALLBACK (Flop) ═══
         if (!flopEnrichedRead && primaryOppId) {
@@ -836,7 +836,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             finalAmount = flopDecision.amount;
             // ═══ Phase 38B FIX: wrap evaluatePostflopHand in try-catch to prevent crash in log ═══
             let flopLogStr = '?';
-            try { flopLogStr = evaluatePostflopHand(holeCardStrings, boardStrings).strength; } catch (_) { }
+            try { flopLogStr = evaluatePostflopHand(holeCardStrings, boardStrings).strength; } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
             console.log(`[HorseBrain]  Flop heuristic: ${finalAction}${finalAmount ? ` (${finalAmount})` : ''} [str=${flopLogStr}]`);
         }
     }
@@ -859,7 +859,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
                     fbAggressionBias = sa[style.key] ?? fbAggressionBias;
                 }
             }
-        } catch (_) { }
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
         // ═══ ENRICHED OPPONENT READ ═══
         // Pull full opponent read from Advanced module for richer turn/river decisions.
@@ -871,7 +871,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             if (adv?.getOpponentRead && primaryOppId) {
                 enrichedOpponentRead = adv.getOpponentRead(profileId, primaryOppId);
             }
-        } catch (_) { }
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
         // ═══ PHASE 15: JOURNAL → ENRICHED FALLBACK ═══
         // When the Advanced module has NO data for this opponent, synthesize
@@ -975,7 +975,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
                         donkOppCallFreq = oppRead.callFrequency ?? 0.50;
                     }
                 }
-            } catch (_) { }
+            } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
             // Estimate board wetness quickly
             const bCards = boardStrings || [];
@@ -999,14 +999,14 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
                     const sa = { TAG: 5, nit: -10, LAG: 12, maniac: 18, calling_station: -8 };
                     donkAggrBias = sa[style?.key] ?? 0;
                 }
-            } catch (_) { }
+            } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
             // ═══ LIVE-READ for donk bet response (Phase 17) ═══
             let donkLiveRead = null;
             if (primaryOppId && tableId) {
                 try {
                     donkLiveRead = getLiveRead(profileId, tableId, primaryOppId);
-                } catch (_) { }
+                } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
             }
 
             const donkResult = handleDonkBet({
@@ -1211,7 +1211,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
                     finalAction = fatigued;
                 }
             }
-        } catch (_) { }
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }
 
     // --- 5b. APPLY RIVALRY / GRUDGE / SOFTPLAY DYNAMICS (#11) ---
@@ -1307,7 +1307,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
                                     try {
                                         const softEval = evaluatePostflopHand(holeCardStrings, boardStrings);
                                         handStrengthForSoft = softEval.strength;
-                                    } catch (_) { }
+                                    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                                 } else {
                                     handStrengthForSoft = getPreflopStrength(handStr);
                                 }
@@ -1343,7 +1343,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
                     }
                 }
             }
-        } catch (_) { }
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }
 
     // ─── 5c. APPLY TILT DEGRADATION ───
@@ -1365,7 +1365,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
                         try {
                             const tiltEval = evaluatePostflopHand(holeCardStrings, boardStrings);
                             tiltHandStrength = tiltEval.strength;
-                        } catch (_) { }
+                        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                     } else {
                         tiltHandStrength = getPreflopStrength(handStr);
                     }
@@ -1378,7 +1378,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
                             const sa = { TAG: 5, nit: -10, LAG: 12, maniac: 18, calling_station: -8 };
                             tiltAggrBias = sa[style?.key] ?? 0;
                         }
-                    } catch (_) { }
+                    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
                     const tiltResult = applyTiltDegradation(
                         finalAction, finalAmount, tiltLevel,
@@ -1585,7 +1585,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             } else {
                 memStrength = getPreflopStrength(handStr);
             }
-        } catch (_) { }
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         recordStreetAction(profileId, handIdForMemory, street, validAction.type, validAction.amount || null, memStrength);
     }
 

@@ -189,8 +189,7 @@ export default function DrillBuilderPage() {
         .order('created_at', { ascending: false })
         .limit(20);
       if (data) setSavedDrills(data);
-    } catch (e) {
-    }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
   };
 
   useEffect(() => {

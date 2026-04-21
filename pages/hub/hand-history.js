@@ -188,7 +188,7 @@ export default function HandHistoryPage() {
 
       const { data } = await query;
       setHands(data || []);
-    } catch (_) {}
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     setLoading(false);
   }, [filterTable]);
 

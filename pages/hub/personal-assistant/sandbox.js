@@ -773,7 +773,7 @@ export default function VirtualSandbox() {
     return Math.round(pot * 10) / 10;
   }, [replayIndex, actionHistory, heroStack]);
   const onReplayTo = useCallback((i) => {
-    try { navigator.vibrate?.(i === null ? 20 : 10); } catch (e) { }
+    try { navigator.vibrate?.(i === null ? 20 : 10); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     setReplayIndex(i);
   }, []);
 
@@ -794,7 +794,7 @@ export default function VirtualSandbox() {
     if (typeof window === 'undefined') return;
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) { alert('Voice input not supported in this browser'); return; }
-    try { navigator.vibrate?.(10); } catch (e) { }
+    try { navigator.vibrate?.(10); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     const recognition = new SR();
     recognition.continuous = false;
     recognition.interimResults = false;
@@ -1015,7 +1015,7 @@ export default function VirtualSandbox() {
 
   // Deck card selection handler — dual-card hero mode + multi-card flop
   const handleDeckSelect = (card) => {
-    try { navigator.vibrate?.(10); } catch (e) { } // Haptic feedback
+    try { navigator.vibrate?.(10); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); } // Haptic feedback
     if (deckTarget === 'hero') {
       // Dual-card picker: pick both cards in sequence
       if (!heroHand.card1 || heroPickStep === 1) {
@@ -1140,11 +1140,11 @@ export default function VirtualSandbox() {
     if (!heroHand.card1 || !heroHand.card2) return;
     // Coach mode: show action picker first if mode is on and no pick yet
     if (coachMode && !skipCoach && !coachUserPick && !pickedAction) {
-      try { navigator.vibrate?.(20); } catch (e) { }
+      try { navigator.vibrate?.(20); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
       setShowCoachPicker(true);
       return;
     }
-    try { navigator.vibrate?.(10); } catch (e) { }
+    try { navigator.vibrate?.(10); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     // Use pickedAction (direct parameter) OR stored coachUserPick — avoids stale closure bug
     const resolvedPick = pickedAction || coachUserPick;
     // Get villain range string for most relevant villain (prefer pre-computed range on villain object)
@@ -1251,7 +1251,7 @@ export default function VirtualSandbox() {
         // Haptic milestones at 5, 10, 25
         const MILESTONES = [5, 10, 25];
         if (MILESTONES.includes(newStreak)) {
-          try { navigator.vibrate?.([50, 30, 50, 30, 100]); } catch (e) { }
+          try { navigator.vibrate?.([50, 30, 50, 30, 100]); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
           if (typeof window !== 'undefined') {
             window.dispatchEvent(new CustomEvent('sandbox-coach-streak-milestone', {
               detail: { streak: newStreak }
@@ -1410,7 +1410,7 @@ export default function VirtualSandbox() {
           setActionHistory([]);
           setPotSize(6);
           // Haptic
-          try { navigator.vibrate?.(20); } catch (e) { }
+          try { navigator.vibrate?.(20); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         }}
       />
       <CoachActionPicker
@@ -1647,12 +1647,12 @@ export default function VirtualSandbox() {
               onTapBoard={openBoardPicker}
               onReset={resetAll}
               onRemoveHeroCard={(idx) => {
-                try { navigator.vibrate?.(15); } catch (e) { }
+                try { navigator.vibrate?.(15); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
                 if (idx === 0) setHeroHand(h => ({ ...h, card1: h.card2, card2: null }));
                 else setHeroHand(h => ({ ...h, card2: null }));
               }}
               onRemoveBoardCard={(idx) => {
-                try { navigator.vibrate?.(15); } catch (e) { }
+                try { navigator.vibrate?.(15); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
                 const allCards = [...board.flop];
                 if (board.turn) allCards.push(board.turn);
                 if (board.river) allCards.push(board.river);
@@ -2028,7 +2028,7 @@ export default function VirtualSandbox() {
                         body: JSON.stringify({ id: t.id }),
                       });
                       loadTemplates();
-                    } catch (e) { }
+                    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
                   }} style={{ padding: '4px 8px', borderRadius: 6, fontSize: 10, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', cursor: 'pointer' }}>x</button>
                 </div>
               ))}
@@ -2329,7 +2329,7 @@ export default function VirtualSandbox() {
               {villains?.[0]?.range && (
                 <div style={{ marginBottom: 12 }}>
                   <button
-                    onClick={() => { setShowVillainRange(v => !v); try { navigator.vibrate?.(8); } catch (e) { } }}
+                    onClick={() => { setShowVillainRange(v => !v); try { navigator.vibrate?.(8); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); } }}
                     style={{ width: '100%', padding: '8px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: showVillainRange ? 'rgba(139,92,246,0.15)' : '#3A3B3C', border: `1px solid ${showVillainRange ? 'rgba(139,92,246,0.4)' : '#4E4F50'}`, color: showVillainRange ? '#a78bfa' : '#B0B3B8', cursor: 'pointer', textAlign: 'left' }}>
                     {showVillainRange ? '▲' : '▼'} Villain Opening Range ({villains[0].archetype?.name || 'Unknown'})
                   </button>

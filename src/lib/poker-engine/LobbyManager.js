@@ -667,7 +667,7 @@ class LobbyManager {
             
             // NOTE: We could theoretically loop the tableSharePayout to all players, 
             // but tracking the two massive chip movements provides the primary BBJ absolute trace.
-          } catch(e) {}
+          } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         }
       } catch (err) {
         console.error('[BBJ] Trigger error:', err.message);
@@ -709,7 +709,7 @@ class LobbyManager {
             p_amount: -(data.premium),
             p_details: { coverage: data.amount, equity: data.trailerEquity }
           }).catch(()=>{});
-        } catch (e) {}
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
       }
     });
 
@@ -743,7 +743,7 @@ class LobbyManager {
             p_amount: data.payout,
             p_details: { premium: data.premium, netGain: data.netGain }
           }).catch(()=>{});
-        } catch (e) {}
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
       }
     });
 
@@ -1193,7 +1193,7 @@ class LobbyManager {
           p_player_name: data.playerName || 'Player',
           p_message: String(data.message)
         }).catch(err => console.error('[Audit] Chat log error:', err.message));
-      } catch (e) {}
+      } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     });
 
     // 2. MACRO ACTIONS (Seating & Cashouts)
@@ -1209,7 +1209,7 @@ class LobbyManager {
           p_amount: data.stack || 0,
           p_details: { seatIndex: data.seatIndex }
         }).catch(() => {});
-      } catch (e) {}
+      } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     });
 
     table.on('player_left', (data) => {
@@ -1223,7 +1223,7 @@ class LobbyManager {
           p_amount: data.stack || 0,
           p_details: { reason: data.reason }
         }).catch(() => {});
-      } catch (e) {}
+      } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     });
 
     table.on('add_chips', (data) => {
@@ -1237,7 +1237,7 @@ class LobbyManager {
           p_amount: data.amount || 0,
           p_details: { reason: 'rebuy' }
         }).catch(() => {});
-       } catch (e) {}
+       } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     });
 
     // 3. MICRO ACTIONS (Hand progress)
@@ -1253,7 +1253,7 @@ class LobbyManager {
           p_amount: data.action.amount || 0,
           p_details: { street: data.street, handNumber: table.handCount || 0 }
         }).catch(() => {});
-      } catch (e) {}
+      } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     });
   }
 

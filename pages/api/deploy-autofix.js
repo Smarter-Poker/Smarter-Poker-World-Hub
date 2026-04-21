@@ -282,7 +282,7 @@ export default async function handler(req, res) {
     }
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) {}
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     // Handle AbortController timeout specifically
     if (err.name === 'AbortError') {
       console.error('[deploy-autofix] Anthropic API call timed out (45s limit)');

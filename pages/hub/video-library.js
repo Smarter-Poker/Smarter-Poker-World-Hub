@@ -1829,8 +1829,7 @@ export default function VideoLibraryPage() {
                                                                         args: [insight.seconds, true]
                                                                     }), '*');
                                                                 }
-                                                            } catch (e) {
-                                                            }
+                                                            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
                                                         }}
                                                         style={{
                                                             padding: '12px 14px',

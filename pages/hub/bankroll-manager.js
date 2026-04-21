@@ -566,8 +566,7 @@ export default function BankrollManagerPage() {
             toast.show(`📍 You're near ${venue.name}! Tap to log a session.`);
           });
         }
-      } catch (err) {
-      }
+      } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
     })();
 
     return () => gf.stop();

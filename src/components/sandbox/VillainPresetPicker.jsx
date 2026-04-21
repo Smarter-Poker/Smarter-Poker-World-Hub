@@ -56,7 +56,7 @@ export default function VillainPresetPicker({ onSelectPreset, onClose }) {
     const handleSelect = (preset) => {
         setSelected(preset.name);
         onSelectPreset?.(preset);
-        try { navigator.vibrate?.(10); } catch (e) { }
+        try { navigator.vibrate?.(10); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         // Auto-close after brief delay so user sees the selection
         setTimeout(() => onClose?.(), 300);
     };

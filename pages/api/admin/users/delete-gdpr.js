@@ -218,7 +218,7 @@ export default async function handler(req, res) {
             summary,
         });
     } catch (err) {
-        try { reportApiError(err, req); } catch (_sentryErr) {}
+        try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         console.error("[GDPR admin] unexpected:", err);
         if (!res.headersSent) {
             return res

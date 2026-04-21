@@ -102,7 +102,7 @@ export default async function handler(req, res) {
       message: `Flagged ${updated} hands for client-side equity recomputation.`
     });
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) {}
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.error('[poker-brain/migrate] error:', err);
     return res.status(500).json({ error: 'Internal server error' });
   }

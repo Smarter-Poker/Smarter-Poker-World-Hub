@@ -95,7 +95,7 @@ class DiamondEngineSupabase {
                     try {
                         const { data: { session } } = await this.supabase.auth.getSession();
                         if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
-                    } catch (_) { }
+                    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                     const resp = await fetch(`/api/vip/check-status?userId=${this.userId}`, { signal: controller.signal, headers });
                     clearTimeout(timeoutId);
                     if (resp.ok) {
@@ -130,7 +130,7 @@ class DiamondEngineSupabase {
         if (typeof window !== 'undefined') {
             try {
                 localStorage.setItem('sp-vip-status', String(isVip));
-            } catch (_) { }
+            } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         }
     }
 

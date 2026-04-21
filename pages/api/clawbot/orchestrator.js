@@ -84,7 +84,7 @@ export default async function handler(req, res) {
         summary: body?.data?.summary || body?.summary || (response.ok ? 'OK' : body?.error),
       });
     } catch (err) {
-        try { reportApiError(err, req); } catch (_sentryErr) {}
+        try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
       results.push({
         task_id: task.id,
         name: task.name,

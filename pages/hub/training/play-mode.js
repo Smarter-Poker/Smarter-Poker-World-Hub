@@ -725,7 +725,7 @@ function usePlayMode() {
           gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
           osc.start(ctx.currentTime);
           osc.stop(ctx.currentTime + 0.15);
-        } catch (e) { }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
       };
       const speed = Math.max(200, 600 - (8 - timeLeft) * 50);
       if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);

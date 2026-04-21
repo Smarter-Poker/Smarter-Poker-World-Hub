@@ -56,7 +56,7 @@ export default async function handler(req, res) {
 
             return res.status(200).json({ success: true, results });
         } catch (error) {
-            try { reportApiError(error, req); } catch (_sentryErr) {}
+            try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
             return res.status(500).json({ error: error.message });
         }
     }

@@ -594,8 +594,7 @@ export default function MyClubsPage() {
                             .filter(c => c && c.name);
                         setArenaClubs(clubs);
                     }
-                } catch (e) {
-                }
+                } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
             }
 
             setLoading(false);

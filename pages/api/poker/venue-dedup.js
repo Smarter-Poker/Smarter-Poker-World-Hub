@@ -120,7 +120,7 @@ export default async function handler(req, res) {
       alias_registry_size: Object.keys(VENUE_ALIASES).length,
     });
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) {}
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.error('Venue dedup error:', err);
     res.status(500).json({ error: err.message });
   }

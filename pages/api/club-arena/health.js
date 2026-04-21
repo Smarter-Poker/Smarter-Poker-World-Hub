@@ -38,7 +38,7 @@ export default async function handler(req, res) {
 
         return res.status(200).json(payload);
     } catch (err) {
-        try { reportApiError(err, req); } catch (_sentryErr) {}
+        try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         if (!res.headersSent) {
             return res.status(500).json({ status: 'error', error: err?.message || 'health check failed' });
         }

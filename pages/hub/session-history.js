@@ -45,7 +45,7 @@ export default function SessionHistoryPage() {
 
       const { data } = await query;
       setSessions(data || []);
-    } catch (_) {}
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     setLoading(false);
   }, [dateRange]);
 

@@ -696,7 +696,7 @@ export default function PokerNearMePage({ initialTab }) {
                     if (!parsed.radius) parsed.radius = 50;
                     parsed.gameType = parsed.gameType || 'all';
                     // Write sanitized filters BACK to localStorage to prevent stale 'any' from persisting
-                    try { localStorage.setItem('poker-near-me-search-filters', JSON.stringify(parsed)); } catch (e) {}
+                    try { localStorage.setItem('poker-near-me-search-filters', JSON.stringify(parsed)); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
                     return { ...parsed };
                 }
             } catch (e) { console.error(e); }
@@ -792,7 +792,7 @@ export default function PokerNearMePage({ initialTab }) {
                     if (currentStr !== e.newValue) {
                         setFilters(parsed);
                     }
-                } catch (err) {}
+                } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
             }
         };
         window.addEventListener('poker-near-me-filters-sync', handleSync);
@@ -1550,7 +1550,7 @@ export default function PokerNearMePage({ initialTab }) {
                     setFilters(prev => {
                         const updated = { ...prev, radius: nextTier };
                         // Persist to localStorage immediately
-                        try { localStorage.setItem('poker-near-me-search-filters', JSON.stringify(updated)); } catch (e) {}
+                        try { localStorage.setItem('poker-near-me-search-filters', JSON.stringify(updated)); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
                         return updated;
                     });
                     // Reset display count for fresh batch

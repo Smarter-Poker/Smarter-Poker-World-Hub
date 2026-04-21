@@ -52,7 +52,7 @@ export default async function handler(req, res) {
       run_at: new Date().toISOString()
     });
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) {}
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.error("[purge-idempotency-keys] unhandled:", err);
     return res
       .status(500)

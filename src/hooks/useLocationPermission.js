@@ -209,7 +209,7 @@ export default function useLocationPermission(options = {}) {
     setLocation(null);
     setLocationLabel(null);
     setError(null);
-    try { localStorage.removeItem(GPS_STORAGE_KEY); } catch (e) {}
+    try { localStorage.removeItem(GPS_STORAGE_KEY); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
   }, []);
 
   return {

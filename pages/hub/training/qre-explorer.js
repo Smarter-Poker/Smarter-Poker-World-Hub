@@ -151,7 +151,7 @@ export default function QREExplorerPage() {
           { accuracy: 100, questionsAnswered: 1, questionsCorrect: 1 },
           'qre-explorer'
         );
-      } catch (e) {}
+      } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     })();
   };
 

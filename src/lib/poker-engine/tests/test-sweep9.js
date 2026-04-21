@@ -168,7 +168,7 @@ function assert(condition, label) {
             );
 
             if (result.action.type === 'fold') trashFolds++;
-        } catch (err) { }
+        } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
     }
 
     console.log(`  📊 23o vs bet on AKT: ${trashFolds}/10 folds`);
@@ -205,7 +205,7 @@ function assert(condition, label) {
             );
 
             if (result.action.type === 'bet' || result.action.type === 'raise') riverBets++;
-        } catch (err) { }
+        } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
     }
 
     console.log(`  📊 AA on river (no bet facing): ${riverBets}/10 value bets`);
@@ -244,7 +244,7 @@ function assert(condition, label) {
 
             if (result.action.type === 'bet' || result.action.type === 'raise') turnBets++;
             else turnChecks++;
-        } catch (err) { }
+        } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
     }
 
     console.log(`  📊 AK (top pair) on turn: ${turnBets} bets, ${turnChecks} checks`);

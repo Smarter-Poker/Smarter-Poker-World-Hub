@@ -253,7 +253,7 @@ class OpponentStats {
    */
   reset() {
     this.opponents.clear();
-    try { localStorage.removeItem(this.persistKey); } catch (_) {}
+    try { localStorage.removeItem(this.persistKey); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }
 
   /**

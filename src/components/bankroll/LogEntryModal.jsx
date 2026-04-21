@@ -443,7 +443,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
             const updated = [...new Set([...prev, formData.swap_player])].sort();
             localStorage.setItem('bankroll_swap_names', JSON.stringify(updated));
             setSavedSwapNames(updated);
-          } catch (_) { }
+          } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         }
         if (formData.staker_name) {
           try {
@@ -451,7 +451,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
             const updated = [...new Set([...prev, formData.staker_name])].sort();
             localStorage.setItem('bankroll_staker_names', JSON.stringify(updated));
             setSavedStakerNames(updated);
-          } catch (_) { }
+          } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         }
       } else if (category === 'casino_table') {
         entry.casino_game = formData.casino_game || null;
@@ -464,7 +464,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
             const updated = [...new Set([...prev, formData.slot_machine])].sort();
             localStorage.setItem('bankroll_slot_games', JSON.stringify(updated));
             setSavedSlotGames(updated);
-          } catch (_) { }
+          } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         }
       } else if (category === 'sports') {
         // If custom sport, use the custom name; otherwise use the preset

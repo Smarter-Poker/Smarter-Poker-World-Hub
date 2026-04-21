@@ -28,7 +28,7 @@ export class HubErrorBoundary extends React.Component {
         console.error(`[HubErrorBoundary] "${name}" crashed at ${timestamp} —`, error, info?.componentStack);
 
         // Fire optional onError callback so parent can react
-        try { this.props.onError?.(error, name); } catch (_) { }
+        try { this.props.onError?.(error, name); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
         // Report to Sentry silently
         try {

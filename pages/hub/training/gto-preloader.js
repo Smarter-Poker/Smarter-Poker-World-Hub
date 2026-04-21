@@ -156,7 +156,7 @@ export default function GtoPreloaderPage() {
         { accuracy: 100, questionsAnswered: 1, questionsCorrect: 1 },
         'gto-preloader'
       );
-    } catch (e) {}
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
   };
 
   const getDiskUsage = () => {

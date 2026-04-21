@@ -69,7 +69,7 @@ export function createRingTone() {
             ringInterval = null;
         }
         if (audioContext) {
-            try { audioContext.close(); } catch (e) { }
+            try { audioContext.close(); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
             audioContext = null;
         }
     };

@@ -69,7 +69,7 @@ export default async function handler(req, res) {
 
         return res.status(200).json({ success: true });
     } catch (err) {
-        try { reportApiError(err, req); } catch (_sentryErr) {}
+        try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         console.error('Share count API error:', err);
         return res.status(200).json({ success: false }); // Don't fail the request
     }

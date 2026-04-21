@@ -352,7 +352,7 @@ export function autoCalibrateLive(videoElement, layout, matcher, options = {}) {
   // Without this, calibration data is lost on refresh and the matcher
   // reverts to stock template hashes (which have high distances).
   if (injected > 0) {
-    try { persistCalibratedHashes(matcher.templateHashes); } catch (_) {}
+    try { persistCalibratedHashes(matcher.templateHashes); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }
 
   return { injected, matches };

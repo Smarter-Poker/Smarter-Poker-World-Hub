@@ -545,7 +545,7 @@ export default function NewsHub() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: article.id })
             });
-        } catch (e) { }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
         markAsRead(article.id);
 

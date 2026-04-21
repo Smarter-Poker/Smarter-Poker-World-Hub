@@ -2239,7 +2239,7 @@ function MessengerPage() {
                     full_name: authUser.user_metadata?.full_name || null,
                 };
             }
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         return null;
     });
     const [loading, setLoading] = useState(!hasCachedConversations());
@@ -2794,7 +2794,7 @@ function MessengerPage() {
                         event: 'delivered',
                         payload: { messageId: newMsg.id, receiverId: user.id },
                     }).catch(() => {});
-                } catch (_) {}
+                } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
                 // Update conversation preview and re-sort to move to top
                 setConversations(prev => {

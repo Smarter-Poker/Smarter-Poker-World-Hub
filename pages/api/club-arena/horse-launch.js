@@ -690,7 +690,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: `Unknown action: ${action}` });
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) {}
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.error('[horse-launch]', err);
     return res.status(500).json({ error: err.message || 'Launch failed', log });
   }

@@ -115,7 +115,7 @@ export default async function handler(req, res) {
       }
 
   } catch (err) {
-    try { reportApiError(err, req); } catch (_sentryErr) {}
+    try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
@@ -165,7 +165,7 @@ Be encouraging but specific. Reference their actual performance.`;
             return JSON.parse(jsonMatch[0]);
         }
     } catch (err) {
-        try { reportApiError(err, req); } catch (_sentryErr) {}
+        try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         console.error('[WeeklyLeakReport] Grok error:', err.message);
     }
 

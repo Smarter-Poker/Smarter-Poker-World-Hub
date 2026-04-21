@@ -84,7 +84,7 @@ export function TiltJournal({ onAskJarvis, onClose }: TiltJournalProps) {
             if (saved) {
                 try {
                     setEntries(JSON.parse(saved));
-                } catch (e) { }
+                } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
             }
         };
         loadEntries();

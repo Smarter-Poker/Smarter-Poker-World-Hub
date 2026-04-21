@@ -368,7 +368,7 @@ export default function VenueDetailPage() {
     try {
       var followed = JSON.parse(localStorage.getItem('followed-venues') || '[]');
       if (followed.includes(String(id))) setIsFollowed(true);
-    } catch (_) { }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }, [id]);
 
   // Load follow state from Supabase API — requires a real user UUID
@@ -911,7 +911,7 @@ export default function VenueDetailPage() {
         followed = followed.filter(function (v) { return v !== venueId; });
       }
       localStorage.setItem('followed-venues', JSON.stringify(followed));
-    } catch (_) { }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
     // Require auth for server-side follow — anonymous users only get localStorage follows
     var fetchHeaders = { 'Content-Type': 'application/json' };
@@ -922,7 +922,7 @@ export default function VenueDetailPage() {
         var tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
         if (tokenData.access_token) { fetchHeaders['Authorization'] = 'Bearer ' + tokenData.access_token; hasToken = true; }
       }
-    } catch (_) { }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
     if (!hasToken) return; // Anonymous follow state saved to localStorage only (above)
 
@@ -947,7 +947,7 @@ export default function VenueDetailPage() {
           var rl = JSON.parse(localStorage.getItem('followed-venues') || '[]');
           var rolled = prevFollowed ? (rl.includes(venueId) ? rl : [...rl, venueId]) : rl.filter(function (v) { return v !== venueId; });
           localStorage.setItem('followed-venues', JSON.stringify(rolled));
-        } catch (_) { }
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
       }
     })
     .catch(function () {
@@ -1049,7 +1049,7 @@ export default function VenueDetailPage() {
 
       if (!res.ok) {
         var errBody = null;
-        try { errBody = await res.json(); } catch (_e2) {}
+        try { errBody = await res.json(); } catch (_e2) { console.warn('[App] Handled exception:', _e2?.message || _e2); }
         throw new Error((errBody && errBody.error) || 'Check-in failed (' + res.status + ')');
       }
       var json = await res.json();
@@ -1062,7 +1062,7 @@ export default function VenueDetailPage() {
           .then(function(r) { return r.json(); })
           .then(function(j) { if (j.success) setWhosHere({ total: j.total || 0, people: j.people || [], friends: j.friends || [] }); })
           .catch(function() { });
-        try { busEmit.venueCheckinCreated(id, venue?.name || '', userId); } catch (_e) { }
+        try { busEmit.venueCheckinCreated(id, venue?.name || '', userId); } catch (_e) { console.warn('[App] Handled exception:', _e?.message || _e); }
         // Refresh enhancement data (leaderboard, activity) after check-in
         setTimeout(function () {
           fetch('/api/poker/checkins/leaderboard?venue_id=' + id + '&period=month')

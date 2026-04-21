@@ -66,7 +66,7 @@ export function AvatarProvider({ children }) {
                 const vipStatus = data.isVip === true;
                 setIsVip(vipStatus);
                 // Sync to localStorage for optimistic rendering via useVIP hook
-                try { localStorage.setItem('sp-vip-status', String(vipStatus)); } catch (_) { }
+                try { localStorage.setItem('sp-vip-status', String(vipStatus)); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
             } else {
                 // 🛡️ BULLETPROOF: Fallback to localStorage instead of getUser()
                 const localUser = getAuthUser();
@@ -194,7 +194,7 @@ export function AvatarProvider({ children }) {
                             if (isPermanent) {
                                 console.error('[AvatarContext] Permanent auth failure:', error.message);
                                 setUser(null);
-                                try { localStorage.removeItem('smarter-poker-auth'); } catch (_) { }
+                                try { localStorage.removeItem('smarter-poker-auth'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                             }
                             // Transient errors (timeout, network) — keep existing session
                         }
@@ -221,7 +221,7 @@ export function AvatarProvider({ children }) {
                 setUser(null);
                 setIsVip(false);
                 // Clear VIP cache so next user doesn't get stale VIP status
-                try { localStorage.removeItem('sp-vip-status'); } catch (_) { }
+                try { localStorage.removeItem('sp-vip-status'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                 return;
             }
 
@@ -262,7 +262,7 @@ export function AvatarProvider({ children }) {
             console.log('[AvatarContext] VIP status change event received:', e.detail);
             const vipGranted = e.detail?.vipGranted !== false;
             setIsVip(vipGranted);
-            try { localStorage.setItem('sp-vip-status', String(vipGranted)); } catch (_) { }
+            try { localStorage.setItem('sp-vip-status', String(vipGranted)); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
             // Also re-fetch from server to confirm (non-blocking)
             if (user?.id) {
                 fetchVipStatus(user.id);
@@ -331,7 +331,7 @@ export function AvatarProvider({ children }) {
                 if (payload.new.is_vip !== undefined) {
                     const vipStatus = !!payload.new.is_vip;
                     setIsVip(vipStatus);
-                    try { localStorage.setItem('sp-vip-status', String(vipStatus)); } catch (_) { }
+                    try { localStorage.setItem('sp-vip-status', String(vipStatus)); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                 }
             })
             .subscribe();
@@ -484,7 +484,7 @@ export function AvatarProvider({ children }) {
         setShowWelcomeModal(false);
         // Persist so it never shows again for this user
         if (user?.id) {
-            try { localStorage.setItem(`sp-welcome-shown-${user.id}`, 'true'); } catch (_) { }
+            try { localStorage.setItem(`sp-welcome-shown-${user.id}`, 'true'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         }
     };
 

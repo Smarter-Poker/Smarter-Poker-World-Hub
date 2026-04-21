@@ -963,7 +963,7 @@ export function SessionLogModal({ isOpen, onClose, sessionLog, onLoadEntry, onCl
                     </h3>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                         {(sessionLog?.length > 0) && (
-                            <button onClick={() => { try { navigator.vibrate?.(30); } catch (e) { } onClearSession(); }}
+                            <button onClick={() => { try { navigator.vibrate?.(30); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); } onClearSession(); }}
                                 style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '600', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', cursor: 'pointer' }}>
                                 Clear
                             </button>
@@ -980,7 +980,7 @@ export function SessionLogModal({ isOpen, onClose, sessionLog, onLoadEntry, onCl
                         const actionKey = (entry.optimalAction || '').toLowerCase().split(' ')[0];
                         const badgeColor = ACTION_COLORS[actionKey] || '#4599FF';
                         return (
-                            <button key={entry.id || i} onClick={() => { try { navigator.vibrate?.(10); } catch (e) { } onLoadEntry(entry); onClose(); }}
+                            <button key={entry.id || i} onClick={() => { try { navigator.vibrate?.(10); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); } onLoadEntry(entry); onClose(); }}
                                 style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', marginBottom: '6px', borderRadius: '10px', background: '#242526', border: '1px solid #3A3B3C', cursor: 'pointer', textAlign: 'left', touchAction: 'manipulation' }}>
                                 <div style={{ width: 36, height: 36, borderRadius: '10px', background: `${badgeColor}22`, border: `1px solid ${badgeColor}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: '700', color: badgeColor, flexShrink: 0 }}>
                                     {(entry.optimalAction || '??').substring(0, 4)}
@@ -1024,7 +1024,7 @@ export function CoachActionPicker({ isOpen, onPick, onSkip }) {
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
                     {ACTIONS.map(a => (
-                        <button key={a.id} onClick={() => { try { navigator.vibrate?.(15); } catch (e) { } onPick(a.label); }}
+                        <button key={a.id} onClick={() => { try { navigator.vibrate?.(15); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); } onPick(a.label); }}
                             style={{ padding: '12px 8px', borderRadius: '12px', fontSize: '13px', fontWeight: '700', background: `${a.color}15`, border: `1px solid ${a.color}40`, color: a.color, cursor: 'pointer', touchAction: 'manipulation' }}>
                             {a.label}
                         </button>
@@ -1075,7 +1075,7 @@ export function ActionReplayBar({ actions, replayIndex, onReplayTo, onExitReplay
                     {replayIndex != null ? '▶ Replay Mode' : 'Action History'}
                 </h4>
                 {replayIndex != null && (
-                    <button onClick={() => { try { navigator.vibrate?.(20); } catch (e) { } onExitReplay(); }}
+                    <button onClick={() => { try { navigator.vibrate?.(20); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); } onExitReplay(); }}
                         style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: '600', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', cursor: 'pointer' }}>
                         Exit
                     </button>
@@ -1091,7 +1091,7 @@ export function ActionReplayBar({ actions, replayIndex, onReplayTo, onExitReplay
                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                             <div style={{ width: 14, height: 2, background: isPast ? color : '#3A3B3C', transition: 'background 0.2s' }} />
                             <button
-                                onClick={() => { try { navigator.vibrate?.(isActive ? 30 : 10); } catch (e) { } onReplayTo(isActive ? null : i); }}
+                                onClick={() => { try { navigator.vibrate?.(isActive ? 30 : 10); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); } onReplayTo(isActive ? null : i); }}
                                 style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '4px 6px', borderRadius: '8px', fontSize: '9px', fontWeight: '700', background: isActive ? `${color}30` : isPast ? `${color}15` : '#3A3B3C', border: `1px solid ${isActive ? color : isPast ? color + '55' : '#4E4F50'}`, color: isActive ? color : isPast ? color + 'cc' : '#B0B3B8', cursor: 'pointer', minWidth: 34, boxShadow: isActive ? `0 0 8px ${color}40` : 'none', touchAction: 'manipulation' }}>
                                 <span style={{ color: isPast ? '#4599FF' : '#65676B', fontSize: '8px' }}>{a.position}</span>
                                 <span>{a.label}</span>
@@ -1131,7 +1131,7 @@ export function ShareHandModal({ isOpen, onClose, results, scenario, heroHand, b
     };
 
     const handleDownload = async () => {
-        try { navigator.vibrate?.(20); } catch (e) { }
+        try { navigator.vibrate?.(20); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         const url = capturedUrl || await captureCanvas();
         if (!url) return;
         const link = document.createElement('a');
@@ -1141,7 +1141,7 @@ export function ShareHandModal({ isOpen, onClose, results, scenario, heroHand, b
     };
 
     const handlePostToProfile = async () => {
-        try { navigator.vibrate?.(15); } catch (e) { }
+        try { navigator.vibrate?.(15); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         setIsPosting(true);
         try {
             const user = getAuthUser();
@@ -1189,13 +1189,13 @@ export function ShareHandModal({ isOpen, onClose, results, scenario, heroHand, b
 
 
     const handleNativeShare = async () => {
-        try { navigator.vibrate?.(15); } catch (e) { }
+        try { navigator.vibrate?.(15); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         const shareUrl = `${window.location.origin}/hub/personal-assistant/sandbox`;
         const text = `I analyzed ${heroHand?.card1 || '??'}${heroHand?.card2 || '??'} on the GTO Sandbox — GTO line: ${results.optimalAction?.label}`;
         try {
             if (navigator.share) { await navigator.share({ title: 'GTO Hand Analysis — Smarter.Poker', text, url: shareUrl }); }
             else { navigator.clipboard?.writeText(`${text}\n${shareUrl}`); }
-        } catch (e) { }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     };
 
     const actions = [
@@ -1257,7 +1257,7 @@ export function VillainReadCard({ villain }) {
 
     return (
         <div style={{ margin: '12px 0', borderRadius: 10, border: '1px solid rgba(167,139,250,0.25)', background: 'rgba(139,92,246,0.06)', overflow: 'hidden' }}>
-            <button onClick={() => { setOpen(o => !o); try { navigator.vibrate?.(8); } catch (e) { } }}
+            <button onClick={() => { setOpen(o => !o); try { navigator.vibrate?.(8); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); } }}
                 style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer', color: '#a78bfa', fontSize: 13, fontWeight: 700 }}>
                 🃏 Villain Intel — {villain.archetype.name || archetypeId}
                 <span style={{ marginLeft: 'auto', fontSize: 10, color: '#65676B' }}>{open ? '▲' : '▼'}</span>

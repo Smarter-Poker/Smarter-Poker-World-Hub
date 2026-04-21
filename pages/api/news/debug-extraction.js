@@ -106,7 +106,7 @@ export default async function handler(req, res) {
                 ...extractImage(item)
             });
         } catch (error) {
-            try { reportApiError(error, req); } catch (_sentryErr) {}
+            try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
             results.push({ source: feed.name, error: error.message });
         }
     }

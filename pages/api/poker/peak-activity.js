@@ -203,7 +203,7 @@ export default async function handler(req, res) {
       analyzed_at: new Date().toISOString(),
     });
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) {}
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.error('Peak activity error:', err);
     res.status(500).json({ error: err.message });
   }

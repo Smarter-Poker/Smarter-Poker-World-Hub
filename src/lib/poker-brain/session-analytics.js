@@ -31,7 +31,7 @@ export default class SessionAnalytics {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) this._history = parsed;
       }
-    } catch (_) {}
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }
 
   _save() {
@@ -40,7 +40,7 @@ export default class SessionAnalytics {
       // Trim old sessions
       while (this._history.length > MAX_SESSIONS) this._history.shift();
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this._history));
-    } catch (_) {}
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }
 
   /**

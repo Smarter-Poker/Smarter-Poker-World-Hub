@@ -74,7 +74,7 @@ export default function ThreePillHeader({
             }
             // Use single-parse cache instead of re-parsing
             if (_cachedHeader?.username) return `/hub/user/${_cachedHeader.username}`;
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         return '/hub/profile';
     });
 
@@ -155,7 +155,7 @@ export default function ThreePillHeader({
                     try {
                         const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
                         accessToken = authData?.access_token || null;
-                    } catch (e) { }
+                    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
                     const response = await fetch('/api/user/get-header-stats', {
                         method: 'POST',
@@ -221,7 +221,7 @@ export default function ThreePillHeader({
                                 .eq('read', false);
                             if (mounted) {
                                 setNotificationCount(notifCount || 0);
-                                try { localStorage.setItem('sp-notif-count', String(notifCount || 0)); } catch (_) {}
+                                try { localStorage.setItem('sp-notif-count', String(notifCount || 0)); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                             }
                         };
 
@@ -246,7 +246,7 @@ export default function ThreePillHeader({
                                 is_vip: !!result.profile.is_vip,
                                 _ts: Date.now()
                             }));
-                        } catch (_) { }
+                        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
                         // Update direct profile link if we got the username
                         if (result.profile.username) {
@@ -303,7 +303,7 @@ export default function ThreePillHeader({
                 try {
                     const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
                     accessToken = authData?.access_token || null;
-                } catch (e) { }
+                } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
                 const response = await fetch('/api/user/get-header-stats', {
                     method: 'POST',
@@ -332,7 +332,7 @@ export default function ThreePillHeader({
                             is_vip: !!result.profile.is_vip,
                             _ts: Date.now()
                         }));
-                    } catch (_) { }
+                    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                     // Update direct profile link if username changed
                     if (result.profile.username) {
                         const directHref = `/hub/user/${result.profile.username}`;

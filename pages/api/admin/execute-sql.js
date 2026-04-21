@@ -259,10 +259,10 @@ export default async function handler(req, res) {
               });
           } finally {
               if (client) {
-                  try { client.release(); } catch (err) { }
+                  try { client.release(); } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
               }
               if (pool) {
-                  try { await pool.end(); } catch (err) { }
+                  try { await pool.end(); } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
               }
           }
       }
@@ -270,7 +270,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ success: false, error: 'Could not establish connection to the master Supabase pooler.' });
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) {}
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }

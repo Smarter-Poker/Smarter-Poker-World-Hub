@@ -718,7 +718,7 @@ export default async function handler(req, res) {
         return res.status(200).json(stats);
 
     } catch (err) {
-        try { reportApiError(err, req); } catch (_sentryErr) {}
+        try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         console.error('[Tour Schedule Scraper FATAL]', err);
 
         // Send critical SMS on unhandled error

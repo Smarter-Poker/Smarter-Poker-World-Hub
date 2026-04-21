@@ -437,7 +437,7 @@ export default function HomeGamesPage() {
                     return;
                 }
             }
-        } catch (e) { }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         // Request fresh GPS
         if (typeof navigator !== 'undefined' && navigator.geolocation) {
             setTimeout(() => requestGpsLocation(), 600);
@@ -463,7 +463,7 @@ export default function HomeGamesPage() {
                         setGpsLocationLabel(label);
                         try {
                             localStorage.setItem('sp-user-gps', JSON.stringify({ ...loc, time: Date.now(), label }));
-                        } catch (e) { }
+                        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
                     })
                     .catch(() => {
                         setGpsLocationLabel(`${loc.lat.toFixed(3)}, ${loc.lng.toFixed(3)}`);
@@ -504,10 +504,10 @@ export default function HomeGamesPage() {
         const isFav = !!favorites[key];
         if (isFav) {
             setFavorites(prev => { const n = { ...prev }; delete n[key]; return n; });
-            try { await removeVenueFavorite(userId, venueId); } catch (e) { }
+            try { await removeVenueFavorite(userId, venueId); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         } else {
             setFavorites(prev => ({ ...prev, [key]: Date.now() }));
-            try { await addVenueFavorite(userId, venueId, venueData); } catch (e) { }
+            try { await addVenueFavorite(userId, venueId, venueData); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         }
     };
 

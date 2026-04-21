@@ -91,7 +91,7 @@ export default async function handler(req, res) {
         updated_at: new Date().toISOString(),
       }, { onConflict: 'key' });
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) {}
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.error('Failed to log cleanup execution:', err.message);
   }
 

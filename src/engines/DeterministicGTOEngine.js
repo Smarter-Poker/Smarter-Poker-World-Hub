@@ -12817,7 +12817,7 @@ export class DeterministicGTOEngine {
                 parts.push(`Biggest leak: ${topLeak.title} (${topLeak.severity}).`);
                 tips.push(topLeak.fix);
             }
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         // Position insight
         try {
             const posLB = this.getPositionLeaderboard();
@@ -12825,7 +12825,7 @@ export class DeterministicGTOEngine {
                 parts.push(`Weakest position: ${posLB.worstPosition.position} at ${posLB.worstPosition.accuracy}%.`);
                 tips.push(`Focus on ${posLB.worstPosition.position} strategy — study solver ranges for this seat.`);
             }
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         // Bluff ratio
         try {
             const bvr = this.getBluffToValueRatio();
@@ -12834,7 +12834,7 @@ export class DeterministicGTOEngine {
                 if (bvr.assessment === 'over_bluffing') tips.push('Cut marginal bluffs — focus on hands with good blockers.');
                 else tips.push('Add more semi-bluffs with draws and backdoor equity.');
             }
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         // Improvement velocity
         try {
             const vel = this.getImprovementVelocity();
@@ -12842,7 +12842,7 @@ export class DeterministicGTOEngine {
                 if (vel.trend.includes('IMPROV')) parts.push('Your accuracy improved as the session went on — good mental stamina.');
                 else if (vel.trend.includes('DECLIN')) { parts.push('Accuracy declined later in the session — consider shorter sessions.'); tips.push('Try 15-hand sessions to stay sharp.'); }
             }
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         return { summary: parts.join(' '), tips: tips.slice(0, 5), accuracy, totalHands: stats.total };
     }
 
@@ -13790,7 +13790,7 @@ export class DeterministicGTOEngine {
             if (recovery && recovery.grade === 'A' && stats.total >= 10) {
                 milestones.push({ id: 'resilient', label: 'Resilient', description: 'Grade A mistake recovery', achieved: true, icon: '🛡' });
             }
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
         return milestones;
     }
@@ -13852,7 +13852,7 @@ export class DeterministicGTOEngine {
                     priority: topAdj.severity === 'critical' ? 'high' : 'medium',
                 });
             }
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
         // Check defense frequency
         try {
@@ -13868,7 +13868,7 @@ export class DeterministicGTOEngine {
                     });
                 }
             }
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
         recommendations.sort((a, b) => (a.priority === 'high' ? 0 : 1) - (b.priority === 'high' ? 0 : 1));
 
@@ -13959,43 +13959,43 @@ export class DeterministicGTOEngine {
         try {
             const sa = this.getStreakAnalysis();
             if (sa) report.sections.push({ title: 'Mental Game', data: { tiltResistance: sa.tiltResistance, longestWinStreak: sa.longestWinStreak, insight: sa.insight } });
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
         // Performance trend
         try {
             const pt = this.getPerformanceTrendAnalysis();
             if (pt) report.sections.push({ title: 'Trend', data: { trend: pt.trend, consistency: pt.consistencyScore, insight: pt.insight } });
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
         // Exploitable tendencies
         try {
             const ea = this.getExploitativeAdjustments();
             if (ea) report.sections.push({ title: 'Balance', data: { profile: ea.actionProfile, adjustments: ea.adjustments.length, summary: ea.summary } });
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
         // Critical hands
         try {
             const ch = this.getCriticalHandHighlights();
             if (ch) report.sections.push({ title: 'Key Hands', data: { mistakes: ch.biggestMistakes.length, greatPlays: ch.bestDecisions.length, evLost: ch.summaryEVLost } });
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
         // Drill recommendation
         try {
             const dr = this.getAdaptiveDrillRecommendation();
             if (dr && dr.topRecommendation) report.sections.push({ title: 'Next Focus', data: { drill: dr.topRecommendation.drill, reason: dr.topRecommendation.reason } });
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
         // Milestones
         try {
             const ms = this.getSessionMilestones();
             if (ms.length > 0) report.milestones = ms;
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
         // Coaching summary
         try {
             const cs = this.generateCoachingSummary();
             if (cs) report.coachingSummary = cs.summary;
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
         return report;
     }
@@ -14336,14 +14336,14 @@ export class DeterministicGTOEngine {
             if (posLB?.worstPosition && posLB.worstPosition.accuracy < 60) {
                 weaknesses.push({ area: 'position', detail: `${posLB.worstPosition.position} at ${posLB.worstPosition.accuracy}%`, priority: 1 });
             }
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
         try {
             const sta = this.getStreetTransitionAnalysis();
             if (sta?.weakestStreet && sta.weakestStreet.accuracy < 55) {
                 weaknesses.push({ area: 'street', detail: `${sta.weakestStreet.street} at ${sta.weakestStreet.accuracy}%`, priority: 1 });
             }
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
         try {
             const ea = this.getExploitativeAdjustments();
@@ -14352,21 +14352,21 @@ export class DeterministicGTOEngine {
                     weaknesses.push({ area: 'balance', detail: adj.title, priority: adj.severity === 'critical' ? 1 : 2 });
                 });
             }
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
         try {
             const df = this.getDefenseFrequencyCheck();
             if (df && !df.isBalanced) {
                 weaknesses.push({ area: 'defense', detail: 'Defense frequency imbalance', priority: 2 });
             }
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
         try {
             const mr = this.getMistakeRecoveryRate();
             if (mr && (mr.grade === 'C' || mr.grade === 'D')) {
                 weaknesses.push({ area: 'mental', detail: `Mistake recovery grade: ${mr.grade}`, priority: 2 });
             }
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
         // Generate 5-session plan
         weaknesses.sort((a, b) => a.priority - b.priority);
@@ -15323,9 +15323,9 @@ export class DeterministicGTOEngine {
         if (stats.bestStreak >= 5) report.highlights.push(`${stats.bestStreak}-hand winning streak!`);
 
         // Areas for improvement from various sources
-        try { const ea = this.getExploitativeAdjustments(); if (ea?.adjustments?.[0]) report.areasForImprovement.push(ea.adjustments[0].title); } catch (_) {}
-        try { const pfl = this.getPreFlopLeaks(); if (pfl?.leaks?.[0]) report.areasForImprovement.push(`Preflop: ${pfl.leaks[0].area}`); } catch (_) {}
-        try { const rdq = this.getRiverDecisionQuality(); if (rdq?.grade === 'D') report.areasForImprovement.push('River decisions'); } catch (_) {}
+        try { const ea = this.getExploitativeAdjustments(); if (ea?.adjustments?.[0]) report.areasForImprovement.push(ea.adjustments[0].title); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+        try { const pfl = this.getPreFlopLeaks(); if (pfl?.leaks?.[0]) report.areasForImprovement.push(`Preflop: ${pfl.leaks[0].area}`); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+        try { const rdq = this.getRiverDecisionQuality(); if (rdq?.grade === 'D') report.areasForImprovement.push('River decisions'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
         return report;
     }
@@ -15409,13 +15409,13 @@ export class DeterministicGTOEngine {
         try {
             const posLB = this.getPositionLeaderboard();
             if (posLB?.bestPosition) prep.warmup.push(`Start from your strongest position: ${posLB.bestPosition.position} (${posLB.bestPosition.accuracy}%)`);
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
         // Focus areas from weaknesses
         try {
             const dr = this.getAdaptiveDrillRecommendation();
             if (dr?.recommendations) dr.recommendations.slice(0, 2).forEach(r => prep.focus.push(r.drill));
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
         // Study topics
         try {
@@ -15425,12 +15425,12 @@ export class DeterministicGTOEngine {
                 if (gto.components.balance < 70) prep.studyTopics.push('Range balance — review your fold/call/raise distribution vs solver');
                 if (gto.components.accuracy < 70) prep.studyTopics.push('Core strategy — review opening ranges and postflop fundamentals');
             }
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
         try {
             const rdq = this.getRiverDecisionQuality();
             if (rdq && rdq.grade === 'C' || rdq?.grade === 'D') prep.studyTopics.push('River play — focus on bluff-catching and thin value betting');
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
         if (prep.warmup.length === 0) prep.warmup.push('Start with 5 hands of familiar spots to get warmed up');
         if (prep.focus.length === 0) prep.focus.push('General GTO practice');

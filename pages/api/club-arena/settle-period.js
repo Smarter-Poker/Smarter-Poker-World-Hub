@@ -751,7 +751,7 @@ export default async function handler(req, res) {
     }
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) {}
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.error('[settle-period]', err);
     return res.status(500).json({ success: false, error: 'Settlement action failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
   }

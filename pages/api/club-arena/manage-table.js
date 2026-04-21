@@ -146,7 +146,7 @@ export default async function handler(req, res) {
             const { getController } = require('../../../src/lib/poker-engine/GameController');
             const controller = await getController();
             await controller.closeTable(tableId);
-          } catch (_) { }
+          } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
           emitUnionEvent('union:table-closed', {});
 
@@ -279,7 +279,7 @@ export default async function handler(req, res) {
     }
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) {}
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }

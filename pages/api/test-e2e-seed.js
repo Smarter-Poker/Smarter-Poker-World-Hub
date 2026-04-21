@@ -32,7 +32,7 @@ export default async function handler(req, res) {
     
     res.status(200).json({ success: true, tableId, phase: entry.table.game?.phase });
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) {}
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     res.status(500).json({ error: err.message, stack: err.stack });
   }
 }

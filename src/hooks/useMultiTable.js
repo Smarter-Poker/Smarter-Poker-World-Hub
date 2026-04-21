@@ -51,7 +51,7 @@ function loadState() {
 }
 
 function clearSession() {
-  try { sessionStorage.removeItem(STORAGE_KEY); } catch (_) { }
+  try { sessionStorage.removeItem(STORAGE_KEY); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 }
 
 /**

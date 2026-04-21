@@ -187,7 +187,7 @@ async function createHighHand(req, res) {
 
     return res.status(201).json({ high_hand: highHand });
   } catch (error) {
-      try { reportApiError(error, req); } catch (_sentryErr) {}
+      try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.error('Create high hand error:', error?.message || error, error?.code || '', error?.details || '');
     return res.status(500).json({ error: error?.message || 'Internal server error' });
   }

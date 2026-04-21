@@ -207,7 +207,7 @@ export default function BountyTrainerPage() {
   useEffect(() => {
     try {
       setUser(getAuthUser());
-    } catch (_) {}
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }, []);
 
   const format = BOUNTY_FORMATS[activeFormat] || BOUNTY_FORMATS.pko;

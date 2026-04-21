@@ -101,7 +101,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
           const parsed = JSON.parse(localStorage.getItem(key) || '{}');
           if (parsed?.access_token) { tokenRef.current = parsed.access_token; break; }
         }
-      } catch (_) { }
+      } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }
     // Listen for refreshes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -259,7 +259,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
           }
         } catch (_) { /* non-fatal */ }
         // Bridge to platform EventBus so hand-histories/leaderboard react
-        try { busEmit.handComplete(tableId, data); } catch (_) { }
+        try { busEmit.handComplete(tableId, data); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         requestState();
         break;
       case 'payout':
@@ -438,7 +438,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
         break;
       case 'table_closed':
         setTableAlert({ type: 'removed', message: 'This table has been closed' });
-        try { busEmit.tableClosed(tableId); } catch (_) { }
+        try { busEmit.tableClosed(tableId); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         requestState();
         break;
       case 'seat_offered':
@@ -464,14 +464,14 @@ export function useTableConnection({ supabase, tableId, userId }) {
           setChatMessages(prev => [...prev.slice(-100), {
             type: 'system', message: `🎁 ${data.playerName} revealed a Mystery Bounty for ${data.amount.toLocaleString()} chips!`,
           }]);
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         break;
       case 'emoji_thrown':
         // PHASE 24: Emit incoming emojis to the rest of the table's components
-        try { eventBus.emit('INCOMING_EMOJI', data, 'TableSync'); } catch (_) {}
+        try { eventBus.emit('INCOMING_EMOJI', data, 'TableSync'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         break;
       case 'pong':
-        try { eventBus.emit('INCOMING_PONG', data, 'TableSync'); } catch (_) {}
+        try { eventBus.emit('INCOMING_PONG', data, 'TableSync'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         break;
       default:
         requestState();

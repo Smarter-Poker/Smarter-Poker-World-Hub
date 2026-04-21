@@ -472,7 +472,7 @@ export default function NodelockingPage() {
     setCustomTendencies(null);
     try {
       localStorage.setItem('sp_nodelock_profile', key);
-    } catch (e) {}
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     if (typeof eventBus !== 'undefined' && eventBus.emit) {
       eventBus?.emit?.(
         EventType?.SETTINGS_CHANGE || 'settings:change',

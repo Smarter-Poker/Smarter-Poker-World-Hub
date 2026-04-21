@@ -80,7 +80,7 @@ export default function GlobalErrorCatcher() {
                         extra: { url: window.location.href },
                     });
                 }
-            } catch (_) { }
+            } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
             showToast('Something went wrong. If the issue persists, try refreshing.', 'error');
         };
@@ -109,7 +109,7 @@ export default function GlobalErrorCatcher() {
                         extra: { url: window.location.href },
                     });
                 }
-            } catch (_) { }
+            } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
             // Don't show toast for every failed API call — only critical ones
             // We check if it's a TypeError or ReferenceError (code bugs, not network issues)

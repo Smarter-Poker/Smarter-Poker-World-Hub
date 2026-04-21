@@ -79,7 +79,7 @@ export default function PlayerNoteModal({ isOpen, onClose, player, initialNote, 
 
       // Dispatch a custom event so TableChatHUD can update immediately
       window.dispatchEvent(new CustomEvent('ca_mute_updated'));
-      try { eventBus.emit('DATA_MUTATED', `player_mute_${nextMuted ? 'added' : 'removed'}`); } catch (_e) {}
+      try { eventBus.emit('DATA_MUTATED', `player_mute_${nextMuted ? 'added' : 'removed'}`); } catch (_e) { console.warn('[App] Handled exception:', _e?.message || _e); }
     } catch (err) {
       console.error('Failed to update mute list:', err);
     }
@@ -107,7 +107,7 @@ export default function PlayerNoteModal({ isOpen, onClose, player, initialNote, 
         if (onSave) {
           onSave({ notes: noteText, player_type: playerType, color_label: colorLabel });
         }
-        try { eventBus.emit('DATA_MUTATED', 'player_note_saved'); } catch (_e) {}
+        try { eventBus.emit('DATA_MUTATED', 'player_note_saved'); } catch (_e) { console.warn('[App] Handled exception:', _e?.message || _e); }
         onClose();
       } else {
         alert(data.error || 'Failed to save note');

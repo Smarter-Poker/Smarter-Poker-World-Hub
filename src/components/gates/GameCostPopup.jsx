@@ -39,7 +39,7 @@ export default function GameCostPopup({ userId, pageKey, featureKey, isVip, cost
     }, [userId, key, isVip]);
 
     const handleDismiss = async () => {
-        try { navigator.vibrate?.(10); } catch (e) { }
+        try { navigator.vibrate?.(10); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         setShow(false);
         setDismissed(true);
         await dismissPopup(userId, key);
@@ -47,7 +47,7 @@ export default function GameCostPopup({ userId, pageKey, featureKey, isVip, cost
     };
 
     const handleUpgrade = () => {
-        try { navigator.vibrate?.(15); } catch (e) { }
+        try { navigator.vibrate?.(15); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         handleDismiss();
         window.location.href = '/hub/diamond-store#vip';
     };

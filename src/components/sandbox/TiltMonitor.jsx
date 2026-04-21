@@ -78,7 +78,7 @@ export default function TiltMonitor({ recentResults = [] }) {
             setLastState(tiltState);
             const state = TILT_STATES[tiltState];
             if (state?.vibrate) {
-                try { navigator.vibrate?.(state.vibrate); } catch (e) { }
+                try { navigator.vibrate?.(state.vibrate); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
             }
             // Dispatch bus event for tilt warnings
             if (tiltState === 'mild' || tiltState === 'moderate') {

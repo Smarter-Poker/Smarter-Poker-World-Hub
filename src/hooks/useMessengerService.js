@@ -544,7 +544,7 @@ export function useMessengerService({ conversationId, currentUser, messengerType
                     signal_data: {},
                     status: 'ended',
                 });
-            } catch (_) {}
+            } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         }
 
         // Clean up Realtime channel
@@ -1097,7 +1097,7 @@ ${messages.map(m =>
             const prefs = JSON.parse(localStorage.getItem('messenger_sound_prefs') || '{}');
             prefs[convId || conversationId] = soundId;
             localStorage.setItem('messenger_sound_prefs', JSON.stringify(prefs));
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }, [conversationId]);
 
     const playNotificationSound = useCallback((convId) => {
@@ -1109,7 +1109,7 @@ ${messages.map(m =>
             const audio = new Audio(sound.url);
             audio.volume = 0.5;
             audio.play().catch(() => {});
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }, [getConversationSoundPref]);
 
     // ═════════════════════════════════════════════════════════
@@ -1266,7 +1266,7 @@ ${messages.map(m =>
                 .select('blocked_id')
                 .eq('blocker_id', currentUser.id);
             setBlockedUsers((data || []).map(r => r.blocked_id));
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }, [currentUser]);
 
     useEffect(() => { loadBlockedUsers(); }, [loadBlockedUsers]);
@@ -1384,7 +1384,7 @@ ${messages.map(m =>
                     .eq('conversation_id', conversationId)
                     .eq('user_id', currentUser.id);
             }
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }, [conversationId, currentUser]);
 
     // Sync read state on mount
@@ -1451,7 +1451,7 @@ ${messages.map(m =>
                 else gallery.files.push(m);
             });
             setMediaGallery(gallery);
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }, [conversationId]);
 
     // ── P16-2: Message Edit History ──
@@ -1501,7 +1501,7 @@ ${messages.map(m =>
                 .eq('status', 'pending')
                 .order('scheduled_at', { ascending: true });
             setScheduledMessages(data || []);
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }, [conversationId, currentUser]);
 
     // Auto-load scheduled messages when conversation changes
@@ -1612,7 +1612,7 @@ ${messages.map(m =>
                 .select('favorite_user_id')
                 .eq('user_id', currentUser.id);
             setFavoriteContacts((data || []).map(r => r.favorite_user_id));
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }, [currentUser]);
 
     useEffect(() => { loadFavorites(); }, [loadFavorites]);
@@ -1705,7 +1705,7 @@ ${messages.map(m =>
                 const { translated } = await resp.json();
                 return translated;
             }
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         return `[${targetLang.toUpperCase()}] ${msg.text}`;
     }, [messages]);
 
@@ -1811,7 +1811,7 @@ ${messages.map(m =>
                 grouped[l.conversation_id].push({ label: l.label, color: l.color, id: l.id });
             });
             setConversationLabels(grouped);
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }, [currentUser]);
 
     useEffect(() => { loadConversationLabels(); }, [loadConversationLabels]);
@@ -1855,7 +1855,7 @@ ${messages.map(m =>
                 .eq('user_id', currentUser.id)
                 .order('usage_count', { ascending: false });
             setMessageTemplates(data || []);
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }, [currentUser]);
 
     useEffect(() => { loadTemplates(); }, [loadTemplates]);
@@ -1896,7 +1896,7 @@ ${messages.map(m =>
             await supabase.from('messenger_templates')
                 .update({ usage_count: (template.usage_count || 0) + 1 })
                 .eq('id', templateId);
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         return template.text;
     }, [messageTemplates]);
 

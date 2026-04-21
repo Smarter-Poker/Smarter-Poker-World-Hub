@@ -71,13 +71,13 @@ export default function RangeExplorer({ onSelectRange, onClose }) {
 
     const toggle = useCallback((i, j) => {
         setCells(prev => ({ ...prev, [`${i},${j}`]: !prev[`${i},${j}`] }));
-        try { navigator.vibrate?.(5); } catch (e) { }
+        try { navigator.vibrate?.(5); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     }, []);
 
     const loadPreset = (name) => {
         const str = PRESETS[name];
         setCells(str ? parseRange(str) : {});
-        try { navigator.vibrate?.(10); } catch (e) { }
+        try { navigator.vibrate?.(10); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     };
 
     const handleApply = () => {
@@ -156,7 +156,7 @@ export default function RangeExplorer({ onSelectRange, onClose }) {
                         const str = cellsToRange(cells);
                         if (typeof navigator?.clipboard?.writeText === 'function') {
                             navigator.clipboard.writeText(str);
-                            try { navigator.vibrate?.(15); } catch (e) { }
+                            try { navigator.vibrate?.(15); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
                         }
                     }} style={s.copyBtn}>
                         Copy

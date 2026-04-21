@@ -72,7 +72,7 @@ export default async function handler(req, res) {
 
         return res.status(200).json({ success: true, logoUrl });
     } catch (error) {
-        try { reportApiError(error, req); } catch (_sentryErr) {}
+        try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         console.error('[generate-logo] Failed:', error);
         return res.status(500).json({
             success: false,

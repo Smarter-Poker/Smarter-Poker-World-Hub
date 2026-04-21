@@ -455,10 +455,10 @@ function TableLayoutManager({ onClose }) {
             .map(d => ({ name: d.name, arrangement: d.arrangement?.arrangement || 'saved', createdAt: new Date(d.created_at).getTime() }));
           if (newLayouts.length === 0) return prev;
           const merged = [...prev, ...newLayouts];
-          try { localStorage.setItem('poker-table-layouts', JSON.stringify(merged)); } catch (_) {}
+          try { localStorage.setItem('poker-table-layouts', JSON.stringify(merged)); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
           return merged;
         });
-      } catch (_) {}
+      } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     })();
     return () => { cancelled = true; };
   }, []);
@@ -476,7 +476,7 @@ function TableLayoutManager({ onClose }) {
     try {
       localStorage.setItem('poker-table-layouts', JSON.stringify(updated));
       eventBus.emit('TABLE_LAYOUT_SAVED', layout);
-    } catch (_) {}
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     // I4: Save to Supabase
     if (typeof window !== 'undefined') {
       try {
@@ -489,7 +489,7 @@ function TableLayoutManager({ onClose }) {
             arrangement: { arrangement: layout.arrangement, createdAt: layout.createdAt },
           }).then(() => {}).catch(() => {});
         }
-      } catch (_) {}
+      } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }
   };
 
@@ -501,7 +501,7 @@ function TableLayoutManager({ onClose }) {
   const deleteLayout = (idx) => {
     const updated = layouts.filter((_, i) => i !== idx);
     setLayouts(updated);
-    try { localStorage.setItem('poker-table-layouts', JSON.stringify(updated)); } catch (_) {}
+    try { localStorage.setItem('poker-table-layouts', JSON.stringify(updated)); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     // I4: Delete from Supabase by name
     if (typeof window !== 'undefined') {
       try {
@@ -512,7 +512,7 @@ function TableLayoutManager({ onClose }) {
             .eq('user_id', uid).eq('name', layouts[idx].name)
             .then(() => {}).catch(() => {});
         }
-      } catch (_) {}
+      } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }
   };
 
@@ -907,7 +907,7 @@ function StackGraphModal({ history, startingStack, onClose, formatStack }) {
             e.stopPropagation();
             const text = `📈 Session Stack Graph\n📊 ${history.length} hands\n💰 Net: ${net >= 0 ? '+' : ''}${fmt(net)}\n🔝 Peak: ${fmt(max)} | Valley: ${fmt(min)}\n🎰 smarter.poker`;
             navigator.clipboard?.writeText(text)?.then(() => {
-              try { eventBus.emit('SOUND_PLAY', { id: 'notify' }); } catch (_) {}
+              try { eventBus.emit('SOUND_PLAY', { id: 'notify' }); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
             });
           }} style={{
             padding: '6px 18px', borderRadius: 8,
@@ -1420,7 +1420,7 @@ function ActionLogFeed({ entries = [], isOpen, onClose }) {
             e.stopPropagation();
             const text = filtered.map(e => `${ICON_MAP[e.type] || '•'} ${e.playerName} ${e.text}${e.amount > 0 ? ' ' + e.amount.toLocaleString() : ''}`).join('\n');
             navigator.clipboard?.writeText(`📝 Action Log (${filtered.length} entries)\n${text}\n🎰 smarter.poker`)?.then(() => {
-              try { eventBus.emit('SOUND_PLAY', { id: 'notify' }); } catch (_) {}
+              try { eventBus.emit('SOUND_PLAY', { id: 'notify' }); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
             });
           }} style={{ background: 'none', border: 'none', color: '#4fc3f7', fontSize: 11, cursor: 'pointer', padding: '0 2px' }} title="Copy log">📋</button>
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#65676B', fontSize: 14, cursor: 'pointer' }}>✕</button>
@@ -1798,7 +1798,7 @@ function EquityBar({ players, tableState }) {
 function haptic(type = 'light') {
   if (typeof navigator === 'undefined' || !navigator.vibrate) return;
   const patterns = { light: [10], medium: [30], heavy: [50], double: [20, 40, 20], allIn: [50, 30, 80] };
-  try { navigator.vibrate(patterns[type] || patterns.light); } catch (_) { }
+  try { navigator.vibrate(patterns[type] || patterns.light); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 }
 
 // Dynamic theme — updated when user changes theme, read by all sub-components
@@ -3164,7 +3164,7 @@ function ActionPanel({ actions, onAction, stack, currentBet, bigBlind, potTotal 
       if (next < minBet) next = minBet;
       if (next > maxBet) next = maxBet;
       if (next !== prev) {
-        try { if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(10); } catch(_){}
+        try { if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(10); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
       }
       return next;
     });
@@ -3290,7 +3290,7 @@ function ActionPanel({ actions, onAction, stack, currentBet, bigBlind, potTotal 
                 value={betAmount || minBet}
                 onChange={(e) => {
                    setBetAmount(parseInt(e.target.value));
-                   try { if (typeof navigator !== 'undefined' && navigator.vibrate && parseInt(e.target.value) % (bigBlind || 2) === 0) navigator.vibrate(2); } catch(_){}
+                   try { if (typeof navigator !== 'undefined' && navigator.vibrate && parseInt(e.target.value) % (bigBlind || 2) === 0) navigator.vibrate(2); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                 }}
                 style={{
                   flex: 1,
@@ -4349,7 +4349,7 @@ function TournamentHUD({ tournamentId, userId }) {
             setBreakCountdown(0);
           }
         }
-      } catch (_) { }
+      } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     };
     poll();
     const iv = setInterval(poll, 5000);
@@ -5240,7 +5240,7 @@ function ChipFlyAnimation({ winners, seatPositions, seats }) {
     if (!winners?.length || !seatPositions || !seats) return;
 
     // E8: Fire chip-clinking sound
-    try { eventBus.emit('SOUND_PLAY', { id: 'chip_stack' }); } catch (_) {}
+    try { eventBus.emit('SOUND_PLAY', { id: 'chip_stack' }); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
     const newChips = [];
     const chipPalettes = [
@@ -5818,7 +5818,7 @@ function LivePokerTable({
         } else if (payload === 'sound_changed') {
           setSoundEnabled(localStorage.getItem('poker-sound-enabled') !== 'false');
         } else if (payload === 'felt_changed') {
-          try { setFeltColor(localStorage.getItem('poker-felt-color') || 'classic-green'); } catch (_) {}
+          try { setFeltColor(localStorage.getItem('poker-felt-color') || 'classic-green'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         }
       }
     };
@@ -5833,13 +5833,13 @@ function LivePokerTable({
   const [themeId, setThemeId] = useState(() => getStoredThemeId());
   const handleThemeChange = useCallback((id) => {
     setThemeId(id);
-    try { eventBus.emit('DATA_MUTATED', 'theme_changed'); } catch (_) {}
+    try { eventBus.emit('DATA_MUTATED', 'theme_changed'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }, []);
 
   const [cardBack, setCardBack] = useState(() => getStoredCardBack());
   const handleCardBackChange = useCallback((path) => {
     setCardBack(path);
-    try { eventBus.emit('DATA_MUTATED', 'cardback_changed'); } catch (_) {}
+    try { eventBus.emit('DATA_MUTATED', 'cardback_changed'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }, []);
 
   // Admin role detection
@@ -5864,7 +5864,7 @@ function LivePokerTable({
   const handleToggleSound = useCallback(() => {
     setSoundEnabled(prev => {
       const next = !prev;
-      try { eventBus.emit('DATA_MUTATED', 'sound_changed'); } catch (_) {}
+      try { eventBus.emit('DATA_MUTATED', 'sound_changed'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
       return next;
     });
   }, []);
@@ -6019,7 +6019,7 @@ function LivePokerTable({
       setBuyInSeat(seatOffer.seatIndex);
       setSeatOpenFlash(true);
       setSeatCountdown(15);
-      try { soundRef.current?.play('notify'); } catch (_) {}
+      try { soundRef.current?.play('notify'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
       // Start countdown
       seatCountdownRef.current = setInterval(() => {
         setSeatCountdown(prev => {
@@ -6089,11 +6089,11 @@ function LivePokerTable({
             body: JSON.stringify({ tableId, hand: entry }),
           }).then(() => {
             // G6: Broadcast hand history update so HandHistoryBrowser auto-refreshes
-            try { eventBus.emit('DATA_MUTATED', 'hand_history_updated'); } catch (_) {}
+            try { eventBus.emit('DATA_MUTATED', 'hand_history_updated'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
           }).catch(() => {});
         }
       }).catch(() => {});
-    } catch (_) {}
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }, [result, myCards]);
 
   const [noteTarget, setNoteTarget] = useState(null); // { id, displayName } for notes modal
@@ -6172,7 +6172,7 @@ function LivePokerTable({
         Object.assign(sessionStatsRef.current, parsed);
         return parsed;
       }
-    } catch (_) {}
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     return sessionStatsRef.current;
   });
 
@@ -6215,7 +6215,7 @@ function LivePokerTable({
     setSessionStatsSnap(snap);
 
     // G4: Save session stats to localStorage for crash recovery
-    try { localStorage.setItem(`poker-session-${tableId}`, JSON.stringify(snap)); } catch (_) {}
+    try { localStorage.setItem(`poker-session-${tableId}`, JSON.stringify(snap)); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
     // I2: Auto-persist to Supabase every 5 hands
     if (s.handsPlayed > 0 && s.handsPlayed % 5 === 0) {
@@ -6228,11 +6228,11 @@ function LivePokerTable({
               headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
               body: JSON.stringify({ tableId, clubId: tableState?.clubId, stats: snap }),
             }).then(() => {
-              try { eventBus.emit('DATA_MUTATED', 'session_stats_updated'); } catch (_) {}
+              try { eventBus.emit('DATA_MUTATED', 'session_stats_updated'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
             }).catch(() => {});
           }
         }).catch(() => {});
-      } catch (_) {}
+      } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }
   }, [result]);
 
@@ -6242,12 +6242,12 @@ function LivePokerTable({
     const handleBeforeUnload = () => {
       const snap = sessionStatsRef.current;
       if (snap.handsPlayed > 0) {
-        try { localStorage.setItem(`poker-session-${tableId}`, JSON.stringify(snap)); } catch (_) {}
+        try { localStorage.setItem(`poker-session-${tableId}`, JSON.stringify(snap)); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         // Also attempt Supabase save via sendBeacon
         try {
           const payload = JSON.stringify({ tableId, clubId: tableState?.clubId, stats: snap });
           navigator.sendBeacon?.('/api/poker/engine/session-stats', new Blob([payload], { type: 'application/json' }));
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
       }
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -6360,7 +6360,7 @@ function LivePokerTable({
       prefs[maxSeats] = seatIdx;
       localStorage.setItem('poker-seat-prefs', JSON.stringify(prefs));
       saveAppSetting('poker_seat_prefs', prefs, 'poker-seat-prefs');
-    } catch (_) {}
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }, [mySeat, maxSeats, tableState?.seats]);
 
   // ═══ WAVE F: STACK HISTORY TRACKING ═══
@@ -6384,7 +6384,7 @@ function LivePokerTable({
       localStorage.setItem('poker-felt-color', feltId);
       saveAppSetting('poker_felt_color', feltId, 'poker-felt-color');
       eventBus.emit('DATA_MUTATED', 'felt_changed');
-    } catch (_) {}
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     setShowFeltPicker(false);
   }, []);
 
@@ -6457,7 +6457,7 @@ function LivePokerTable({
       });
       // Also notify session history page
       eventBus.emit('DATA_MUTATED', 'session_saved');
-    } catch (_) {}
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }, [supabase, userId, tableId, tableState?.clubId]);
 
   // Save session on page unload / disconnect
@@ -6516,7 +6516,7 @@ function LivePokerTable({
           setStackHistory(data.pl_history || []);
           sessionRowIdRef.current = data.id; // Track row for future UPDATEs
         }
-      } catch (_) {}
+      } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     })();
     return () => { cancelled = true; };
   }, [supabase, userId, tableId]);
@@ -6554,7 +6554,7 @@ function LivePokerTable({
         if (cancelled || !data || data.preferred_seat == null) return;
         // Emit suggestion via EventBus — UI can show "Your preferred seat is #X"
         eventBus.emit('SEAT_PREFERENCE_LOADED', { seat: data.preferred_seat, maxSeats });
-      } catch (_) {}
+      } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     })();
     return () => { cancelled = true; };
   }, [supabase, userId, maxSeats, isSitting]);
@@ -6592,19 +6592,19 @@ function LivePokerTable({
         // Apply felt color if valid
         if (data.felt_color && FELT_OPTIONS.some(f => f.id === data.felt_color)) {
           setFeltColor(data.felt_color);
-          try { localStorage.setItem('poker-felt-color', data.felt_color); } catch (_) {}
+          try { localStorage.setItem('poker-felt-color', data.felt_color); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         }
         // K2: Apply sound preference from Supabase
         if (data.sound_enabled != null) {
           setSoundEnabled(data.sound_enabled);
-          try { localStorage.setItem('poker-sound-enabled', String(data.sound_enabled)); } catch (_) {}
+          try { localStorage.setItem('poker-sound-enabled', String(data.sound_enabled)); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         }
         // K4: Apply sound volume from Supabase
         if (data.sound_volume != null && data.sound_volume >= 0 && data.sound_volume <= 1) {
           setSoundVolume(data.sound_volume);
-          try { localStorage.setItem('poker-sound-volume', String(data.sound_volume)); } catch (_) {}
+          try { localStorage.setItem('poker-sound-volume', String(data.sound_volume)); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         }
-      } catch (_) {}
+      } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     })();
     return () => { cancelled = true; };
   }, [supabase, userId]);
@@ -6760,7 +6760,7 @@ function LivePokerTable({
         const d = await res.json();
         setWaitlistState(prev => ({ ...prev, onWaitlist: d.onWaitlist, position: d.position }));
       }
-    } catch (_) {}
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }, [tableState?.tableId, userId, isSitting]);
 
   // Initial position check + re-check when seats change
@@ -6795,7 +6795,7 @@ function LivePokerTable({
       if (res.ok) {
         const d = await res.json();
         setWaitlistState({ onWaitlist: true, position: d.position, loading: false });
-        try { eventBus.emit('WAITLIST_PLAYER_ADDED', { tableId: tableState.tableId, position: d.position }); } catch (_e) {}
+        try { eventBus.emit('WAITLIST_PLAYER_ADDED', { tableId: tableState.tableId, position: d.position }); } catch (_e) { console.warn('[App] Handled exception:', _e?.message || _e); }
       } else {
         const d = await res.json().catch(() => ({}));
         if (d.error === 'Already on waitlist') setWaitlistState(prev => ({ ...prev, onWaitlist: true, loading: false }));
@@ -6815,7 +6815,7 @@ function LivePokerTable({
         body: JSON.stringify({ action: 'leave', tableId: tableState.tableId }),
       });
       setWaitlistState({ onWaitlist: false, position: null, loading: false });
-      try { eventBus.emit('DATA_MUTATED', 'waitlist_left'); } catch (_e) {}
+      try { eventBus.emit('DATA_MUTATED', 'waitlist_left'); } catch (_e) { console.warn('[App] Handled exception:', _e?.message || _e); }
     } catch (_) { setWaitlistState(prev => ({ ...prev, loading: false })); }
   }, [tableState?.tableId]);
 
@@ -6832,7 +6832,7 @@ function LivePokerTable({
 
   const handleRITResponse = useCallback((choice) => {
     send('respond_run_it', { choice });
-    try { eventBus.emit('DATA_MUTATED', `rit_response_${choice}`); } catch (_e) {}
+    try { eventBus.emit('DATA_MUTATED', `rit_response_${choice}`); } catch (_e) { console.warn('[App] Handled exception:', _e?.message || _e); }
   }, [send]);
 
   // ═══ RIT COUNTDOWN TIMER ═══
@@ -6919,7 +6919,7 @@ function LivePokerTable({
         const clearTimer = setTimeout(() => setPreActionFired(null), 2000);
         // Store so useEffect cleanup can cancel if component unmounts
         preActionCleanupRef.current = clearTimer;
-        try { eventBus.emit('DATA_MUTATED', `pre_action_fired_${autoAction.type}`); } catch (_e) {}
+        try { eventBus.emit('DATA_MUTATED', `pre_action_fired_${autoAction.type}`); } catch (_e) { console.warn('[App] Handled exception:', _e?.message || _e); }
       }, 300);
       return () => { clearTimeout(timer); if (preActionCleanupRef.current) clearTimeout(preActionCleanupRef.current); };
     } else {
@@ -7033,7 +7033,7 @@ function LivePokerTable({
       // Plain letter shortcuts (no shift)
       if (key === 's' && !e.shiftKey && isSitting) { e.preventDefault(); isSittingOut ? send('sit_in') : send('sit_out'); return; }
       if (key === 'm' && !e.shiftKey && isSitting) { e.preventDefault(); handleToggleAutoMuck(); return; }
-      if (key === 'h' && !e.shiftKey) { e.preventDefault(); setShowHUD(p => { const v = !p; try { localStorage.setItem('poker-show-hud', v); eventBus.emit('DATA_MUTATED', 'hud_toggled'); } catch(_){} return v; }); return; }
+      if (key === 'h' && !e.shiftKey) { e.preventDefault(); setShowHUD(p => { const v = !p; try { localStorage.setItem('poker-show-hud', v); eventBus.emit('DATA_MUTATED', 'hud_toggled'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); } return v; }); return; }
       if (key === 'l' && !e.shiftKey && lastHandResult) { e.preventDefault(); setShowLastHand(true); return; }
       if (key === '?' || key === '/') { e.preventDefault(); setShowKbHelp(p => !p); return; }
       // K13: Wave H/I/J shortcuts — sound, felt, session stats, layout
@@ -7143,7 +7143,7 @@ function LivePokerTable({
     setShowStackInBB(prev => {
       const next = !prev;
       if (typeof window !== 'undefined') localStorage.setItem('poker-stack-bb', String(next));
-      try { eventBus.emit('DATA_MUTATED', 'bb_display_toggled'); } catch (_) {}
+      try { eventBus.emit('DATA_MUTATED', 'bb_display_toggled'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
       return next;
     });
   }, []);
@@ -7163,7 +7163,7 @@ function LivePokerTable({
       const modes = ['dealt', 'rank', 'suit'];
       const next = modes[(modes.indexOf(prev) + 1) % modes.length];
       if (typeof window !== 'undefined') localStorage.setItem('poker-card-sort', next);
-      try { eventBus.emit('DATA_MUTATED', 'card_sort_changed'); } catch (_) {}
+      try { eventBus.emit('DATA_MUTATED', 'card_sort_changed'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
       return next;
     });
   }, []);
@@ -7177,7 +7177,7 @@ function LivePokerTable({
     setHapticEnabled(prev => {
       const next = !prev;
       if (typeof window !== 'undefined') localStorage.setItem('poker-haptic', String(next));
-      try { eventBus.emit('DATA_MUTATED', 'haptic_toggled'); } catch (_) {}
+      try { eventBus.emit('DATA_MUTATED', 'haptic_toggled'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
       return next;
     });
   }, []);
@@ -7193,7 +7193,7 @@ function LivePokerTable({
     setShowHUD(prev => {
       const next = !prev;
       if (typeof window !== 'undefined') localStorage.setItem('poker-show-hud', String(next));
-      try { eventBus.emit('DATA_MUTATED', 'hud_toggled'); } catch (_) {}
+      try { eventBus.emit('DATA_MUTATED', 'hud_toggled'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
       return next;
     });
   }, []);
@@ -7207,7 +7207,7 @@ function LivePokerTable({
     setFourColorDeck(prev => {
       const next = !prev;
       if (typeof window !== 'undefined') localStorage.setItem('poker-4color-deck', String(next));
-      try { eventBus.emit('DATA_MUTATED', 'four_color_deck_toggled'); } catch (_) {}
+      try { eventBus.emit('DATA_MUTATED', 'four_color_deck_toggled'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
       return next;
     });
   }, []);
@@ -7290,7 +7290,7 @@ function LivePokerTable({
           headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
           body: JSON.stringify({ message, displayName: tableState?.playerName || 'Player', clubId: tableState.clubId }),
         }).catch(() => {});
-      } catch (_) {}
+      } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }
   }, [send, tableState?.clubId, tableState?.playerName]);
   const handleAddChips = useCallback(() => {
@@ -7635,7 +7635,7 @@ function LivePokerTable({
         onToggleRabbitHunt={() => {
           const next = !rabbitHuntEnabled;
           setRabbitHuntEnabled(next);
-          try { localStorage.setItem('poker-rabbit-hunt', String(next)); } catch (_) {}
+          try { localStorage.setItem('poker-rabbit-hunt', String(next)); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         }}
         onShowKeyboard={() => setShowKbHelp(true)}
         onShowLayouts={() => setShowLayoutManager(true)}
@@ -7842,11 +7842,11 @@ function LivePokerTable({
             if (lastReactTimeRef.current && now - lastReactTimeRef.current < 2000) return;
             lastReactTimeRef.current = now;
             // G7: Play reaction sound
-            try { eventBus.emit('SOUND_PLAY', { id: 'notify' }); } catch (_) {}
+            try { eventBus.emit('SOUND_PLAY', { id: 'notify' }); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
             // G11: Haptic feedback
             if (hapticEnabled) haptic('light');
             // G2: Broadcast reaction to other players via WebSocket
-            try { send({ type: 'chat_reaction', msgIdx, emoji }); } catch (_) {}
+            try { send({ type: 'chat_reaction', msgIdx, emoji }); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
             // Update local state
             setChatReactions(prev => {
               const msgR = { ...(prev[msgIdx] || {}) };
@@ -8290,7 +8290,7 @@ function LivePokerTable({
             });
             localStorage.setItem('poker-theme-presets', JSON.stringify(presets));
             eventBus.emit('DATA_MUTATED', 'theme_preset_saved');
-          } catch (_) {}
+          } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         }}
         onLoad={(preset) => {
           if (preset.themeId) handleThemeChange(preset.themeId);
@@ -8308,7 +8308,7 @@ function LivePokerTable({
             const presets = JSON.parse(localStorage.getItem('poker-theme-presets') || '[]');
             presets.splice(idx, 1);
             localStorage.setItem('poker-theme-presets', JSON.stringify(presets));
-          } catch (_) {}
+          } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         }}
       />
 
@@ -8948,8 +8948,8 @@ function LivePokerTable({
                   }
                 }).catch(() => {});
                 // Clear localStorage session
-                try { localStorage.removeItem(`poker-session-${tableId}`); } catch (_) {}
-              } catch (_) {}
+                try { localStorage.removeItem(`poker-session-${tableId}`); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+              } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
               setShowSessionSummary(false);
               onLeave?.();
             }}

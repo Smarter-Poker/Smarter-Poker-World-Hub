@@ -832,7 +832,7 @@ export default function PokerToursPage({ initialTours = [] }) {
             try {
                 const stored = localStorage.getItem('pnm_tour_favorites');
                 if (stored) current = JSON.parse(stored);
-            } catch(error) {}
+            } catch (error) { console.warn('[App] Handled exception:', error?.message || error); }
             
             const next = { ...current };
             if (next[tourCode]) delete next[tourCode];

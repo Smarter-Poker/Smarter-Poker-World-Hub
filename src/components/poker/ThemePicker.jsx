@@ -301,9 +301,9 @@ export default function ThemePicker({ currentThemeId, onThemeChange, currentCard
                               key={pack.id}
                               onClick={() => {
                                 setSoundPack(pack.id);
-                                try { localStorage.setItem('poker-sound-pack', pack.id); } catch (_) {}
+                                try { localStorage.setItem('poker-sound-pack', pack.id); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                                 saveAppSetting('poker_sound_pack', pack.id, 'poker-sound-pack');
-                                try { window.dispatchEvent(new CustomEvent('poker-sound-pack-changed', { detail: pack.id })); } catch (_) {}
+                                try { window.dispatchEvent(new CustomEvent('poker-sound-pack-changed', { detail: pack.id })); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                               }}
                               style={{
                                 flex: 1, padding: '8px 4px', borderRadius: 8,
@@ -384,9 +384,9 @@ export default function ThemePicker({ currentThemeId, onThemeChange, currentCard
                         onClick={() => {
                           const next = !autoMuck;
                           setAutoMuck(next);
-                          try { localStorage.setItem('poker-auto-muck', String(next)); } catch (_) {}
+                          try { localStorage.setItem('poker-auto-muck', String(next)); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                           saveAppSetting('poker_auto_muck', next, 'poker-auto-muck');
-                          try { window.dispatchEvent(new CustomEvent('poker-auto-muck-changed', { detail: next })); } catch (_) {}
+                          try { window.dispatchEvent(new CustomEvent('poker-auto-muck-changed', { detail: next })); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                         }}
                         style={{
                           width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer',

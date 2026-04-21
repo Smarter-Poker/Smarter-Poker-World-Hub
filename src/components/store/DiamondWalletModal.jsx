@@ -436,7 +436,7 @@ function getCachedBalance() {
             const { diamonds } = JSON.parse(raw);
             return diamonds ?? 0;
         }
-    } catch (_) {}
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     return 0;
 }
 
@@ -706,7 +706,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                         localStorage.setItem('sp-first-purchase-celebrated', '1');
                         showConfettiAnimation();
                     }
-                } catch (_) {}
+                } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
             }
             // ENH-4: Also re-fetch transaction list so new transactions appear
             // BUG-R2: Skip if fetch already in-flight (race condition guard)
@@ -857,7 +857,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     // ── ENH-F: Persist filter selection ──
     const handleFilterChange = useCallback((value) => {
         setFilter(value);
-        try { localStorage.setItem(FILTER_CACHE_KEY, value); } catch (_) {}
+        try { localStorage.setItem(FILTER_CACHE_KEY, value); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }, []);
 
     // ── ENH-E: Pull-to-refresh on mobile ──
@@ -1493,7 +1493,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                         onChange={e => {
                             const v = e.target.value;
                             setDateRange(v);
-                            try { localStorage.setItem(DATE_RANGE_CACHE_KEY, v); } catch (_) {}
+                            try { localStorage.setItem(DATE_RANGE_CACHE_KEY, v); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                         }}
                         style={{
                             background: 'rgba(255, 255, 255, 0.06)',

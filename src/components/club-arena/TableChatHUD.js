@@ -19,7 +19,7 @@ export default function TableChatHUD({ tableId, userId, isMuted = false }) {
             try {
                 const mutedStr = localStorage.getItem('ca_muted_players');
                 setMutedPlayers(mutedStr ? JSON.parse(mutedStr) : []);
-            } catch (e) { }
+            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         };
         loadMutes();
         window.addEventListener('ca_mute_updated', loadMutes);
@@ -56,7 +56,7 @@ export default function TableChatHUD({ tableId, userId, isMuted = false }) {
                 setMessages(prev => [...prev.slice(-49), msg]);
 
                 // Phase 7: Broadcast to EventBus so Multi-Table tab badges react
-                try { eventBus.emit('chat_message_received', { tableId: msg.table_id || tableId }); } catch (_) {}
+                try { eventBus.emit('chat_message_received', { tableId: msg.table_id || tableId }); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
                 // Trigger haptic and show unread if closed
                 if (!isOpen) {

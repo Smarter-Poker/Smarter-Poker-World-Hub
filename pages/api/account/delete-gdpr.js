@@ -202,7 +202,7 @@ export default async function handler(req, res) {
             message: "Your account has been deleted in accordance with GDPR.",
         });
     } catch (err) {
-        try { reportApiError(err, req); } catch (_sentryErr) {}
+        try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         console.error("[GDPR delete] unexpected error:", err);
         if (!res.headersSent) {
             return res

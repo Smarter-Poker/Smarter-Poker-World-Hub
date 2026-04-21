@@ -43,7 +43,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ success: false, error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' } });
 
   } catch (err) {
-    try { reportApiError(err, req); } catch (_sentryErr) {}
+    try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
@@ -208,7 +208,7 @@ async function createTournament(req, res, staff) {
 
     return res.status(201).json({ success: true, data: { tournament } });
   } catch (error) {
-      try { reportApiError(error, req); } catch (_sentryErr) {}
+      try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     captureException(error, { action: 'create_tournament', endpoint: '/api/commander/tournaments', venue_id: req.body?.venue_id });
     return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Internal server error' } });
   }

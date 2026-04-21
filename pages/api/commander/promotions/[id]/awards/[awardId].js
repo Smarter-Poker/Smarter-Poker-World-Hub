@@ -41,7 +41,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
 
   } catch (err) {
-    try { reportApiError(err, req); } catch (_sentryErr) {}
+    try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
@@ -133,7 +133,7 @@ async function updateAward(req, res, promotionId, awardId) {
       message: `Award ${action}${action === 'pay' ? 'id' : action === 'void' ? 'ed' : 'd'}`
     });
   } catch (error) {
-      try { reportApiError(error, req); } catch (_sentryErr) {}
+      try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.error('Update award error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }

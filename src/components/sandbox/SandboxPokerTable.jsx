@@ -14,7 +14,7 @@ function useLongPress(callback, ms = 500) {
     const onStart = useCallback((e) => {
         e.preventDefault();
         timerRef.current = setTimeout(() => {
-            try { navigator.vibrate?.(20); } catch (e) { }
+            try { navigator.vibrate?.(20); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
             callback?.();
         }, ms);
     }, [callback, ms]);
@@ -172,7 +172,7 @@ export default function SandboxPokerTable({
         const dx = e.changedTouches[0].clientX - touchStartRef.current.x;
         const dy = e.changedTouches[0].clientY - touchStartRef.current.y;
         if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-            try { navigator.vibrate?.(10); } catch (e) { }
+            try { navigator.vibrate?.(10); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
             if (dx < 0) onSwipeLeft?.();
             else onSwipeRight?.();
         }
@@ -204,7 +204,7 @@ export default function SandboxPokerTable({
             {/* Quick Reset Button — top-right corner */}
             {onReset && (
                 <motion.button
-                    onClick={() => { try { navigator.vibrate?.(10); } catch (e) { } onReset(); }}
+                    onClick={() => { try { navigator.vibrate?.(10); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); } onReset(); }}
                     whileTap={{ scale: 0.85, rotate: -90 }}
                     style={{
                         position: 'absolute', top: 6, right: 6, zIndex: 20,

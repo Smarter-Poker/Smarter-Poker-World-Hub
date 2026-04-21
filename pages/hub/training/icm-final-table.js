@@ -151,7 +151,7 @@ export default function ICMFinalTableLibrary() {
   useEffect(() => {
     try {
       setUser(getAuthUser());
-    } catch (_) {}
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }, []);
 
   const scenarios = useMemo(

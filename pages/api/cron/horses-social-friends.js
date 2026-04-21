@@ -27,7 +27,7 @@ export default async function handler(req, res) {
             timestamp: new Date().toISOString()
         });
     } catch (error) {
-        try { reportApiError(error, req); } catch (_sentryErr) {}
+        try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         console.error('❌ Horses social friends error:', error);
         return res.status(500).json({
             success: false,

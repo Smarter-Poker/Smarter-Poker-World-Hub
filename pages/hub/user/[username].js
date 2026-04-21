@@ -854,7 +854,7 @@ export default function UserProfilePage() {
     useEffect(() => {
         if (!pullRefreshing || !username) return;
         // Invalidate cache and re-fetch
-        try { localStorage.removeItem(`sp-profile-cache-${username}`); } catch (_) {}
+        try { localStorage.removeItem(`sp-profile-cache-${username}`); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         setStatsAnimated(false);
         router.replace(router.asPath).finally(() => setPullRefreshing(false));
     }, [pullRefreshing, username]);
@@ -905,7 +905,7 @@ export default function UserProfilePage() {
         const handleProfileUpdated = () => {
             try {
                 localStorage.removeItem(`sp-profile-cache-${username}`);
-            } catch (_) {}
+            } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
             // Re-fetch profile from Supabase
             supabase.from('profiles').select('*')
                 .eq('username', username).maybeSingle()

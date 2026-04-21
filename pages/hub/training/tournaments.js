@@ -31,7 +31,7 @@ export default function TournamentsPage() {
 
     try {
       setUser(getAuthUser());
-    } catch (_) {}
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     return () => _c.abort();
   }, []);
   // SWR key includes tab + user so switching tabs is instant on revisit

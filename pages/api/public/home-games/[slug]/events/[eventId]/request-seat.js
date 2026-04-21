@@ -461,7 +461,7 @@ async function dispatchHostNotification(supabase, ctx) {
       messageType: 'text',
     });
   } catch (e) {
-      try { reportApiError(e, req); } catch (_sentryErr) {}
+      try { reportApiError(e, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.warn('[request-seat] DM dispatch threw:', e?.message || e);
   }
 }

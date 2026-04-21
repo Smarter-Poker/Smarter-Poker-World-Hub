@@ -119,7 +119,7 @@ export default function ClinicPlayPage() {
                 // Clear the leak after successful remediation
                 try {
                     localStorage.removeItem('pokeriq_detected_leaks');
-                } catch (e) { }
+                } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
             }
 
             // Record with clinic ID

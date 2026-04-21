@@ -60,7 +60,7 @@ export default function DailyBonusWidget({ userId, onBonusClaimed }) {
 
             // Play tick sound every few steps
             if (step % 5 === 0) {
-                try { trainingSounds.menuTick?.(); } catch (e) { }
+                try { trainingSounds.menuTick?.(); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
             }
 
             if (step >= steps) {
@@ -82,7 +82,7 @@ export default function DailyBonusWidget({ userId, onBonusClaimed }) {
             const data = await res.json();
             if (data.success && data.claimed) {
                 // Play success sound
-                try { trainingSounds.achievementUnlocked?.(); } catch (e) { }
+                try { trainingSounds.achievementUnlocked?.(); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
                 // Emit EventBus for header diamond counter + celebration
                 busEmit.diamondsEarned(data.totalAwarded, 'Daily Bonus');

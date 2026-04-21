@@ -68,7 +68,7 @@ function NotificationsPage() {
         // [Pass3-Fix] If deleting an unread notification, decrement header badge immediately
         if (wasUnread) {
             eventBus.emit(EventType.NOTIFICATIONS_READ, { count: 1 }, 'NotificationsPage');
-            try { localStorage.setItem('sp-notif-count', String(Math.max(0, parseInt(localStorage.getItem('sp-notif-count') || '0', 10) - 1))); } catch (_) {}
+            try { localStorage.setItem('sp-notif-count', String(Math.max(0, parseInt(localStorage.getItem('sp-notif-count') || '0', 10) - 1))); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         }
         // Optimistic removal with fade
         setDeletingIds(prev => new Set([...prev, notifId]));
@@ -82,7 +82,7 @@ function NotificationsPage() {
                     const parsed = JSON.parse(cached).filter(n => n.id !== notifId);
                     localStorage.setItem('sp-notif-cache', JSON.stringify(parsed));
                 }
-            } catch (_) {}
+            } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         }, 300);
         // [Audit#11] Broadcast delete to other tabs so they remove it too
         broadcastSync('smarter_poker_notif_sync', { action: 'delete', id: notifId, tabId: BROADCAST_TAB_ID });
@@ -148,7 +148,7 @@ function NotificationsPage() {
                     hasCacheRef.current = true;
                 }
             }
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }, []);
 
     const mounted = useRef(true);
@@ -276,7 +276,7 @@ function NotificationsPage() {
                         // Cache for instant load next time (keep last 30 for storage space)
                         try {
                             localStorage.setItem('sp-notif-cache', JSON.stringify(enriched.slice(0, 30)));
-                        } catch (_) {}
+                        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                     }
 
                     // Auto-mark social notifications as read (only social ones use supabase table)
@@ -289,10 +289,10 @@ function NotificationsPage() {
                             try {
                                 const updated = enriched.map(n => ({ ...n, read: true }));
                                 localStorage.setItem('sp-notif-cache', JSON.stringify(updated.slice(0, 30)));
-                            } catch (_) {}
+                            } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                         }
                         // [Pass1-Fix] Sync badge to 0 AND broadcast so header tab re-fetches immediately
-                        try { localStorage.setItem('sp-notif-count', '0'); } catch (_) {}
+                        try { localStorage.setItem('sp-notif-count', '0'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                         broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID });
                         // Also instant-update same-tab badge via EventBus
                         eventBus.emit(EventType.NOTIFICATIONS_READ, { count: unreadIds.length }, 'NotificationsPage');
@@ -341,7 +341,7 @@ function NotificationsPage() {
                             const parsed = JSON.parse(cached).filter(n => n.id !== payload.old.id);
                             localStorage.setItem('sp-notif-cache', JSON.stringify(parsed));
                         }
-                    } catch (_) {}
+                    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                 }
             })
             .subscribe();
@@ -375,7 +375,7 @@ function NotificationsPage() {
                     return prev;
                 }
                 const next = prev.map(n => n.id === id ? { ...n, read: true } : n);
-                try { localStorage.setItem('sp-notif-cache', JSON.stringify(next.slice(0, 30))); } catch (_) {}
+                try { localStorage.setItem('sp-notif-cache', JSON.stringify(next.slice(0, 30))); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                 return next;
             });
         }
@@ -383,7 +383,7 @@ function NotificationsPage() {
         if (isReadOptimistic) return; // already read
 
         // Sync badge localStorage and broadcast to header eagerly
-        try { localStorage.setItem('sp-notif-count', String(Math.max(0, parseInt(localStorage.getItem('sp-notif-count') || '0', 10) - 1))); } catch (_) {}
+        try { localStorage.setItem('sp-notif-count', String(Math.max(0, parseInt(localStorage.getItem('sp-notif-count') || '0', 10) - 1))); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID });
         eventBus.emit(EventType.NOTIFICATIONS_READ, { count: 1 }, 'NotificationsPage');
         busEmit.dataMutated('notifications');
@@ -413,11 +413,11 @@ function NotificationsPage() {
         if (mounted.current) {
             setNotifications(prev => {
                 const next = prev.map(n => ({ ...n, read: true }));
-                try { localStorage.setItem('sp-notif-cache', JSON.stringify(next.slice(0, 30))); } catch (_) {}
+                try { localStorage.setItem('sp-notif-cache', JSON.stringify(next.slice(0, 30))); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                 return next;
             });
         }
-        try { localStorage.setItem('sp-notif-count', '0'); } catch (_) {}
+        try { localStorage.setItem('sp-notif-count', '0'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID });
         eventBus.emit(EventType.NOTIFICATIONS_READ, { count: unreadCount }, 'NotificationsPage');
         busEmit.dataMutated('notifications');
@@ -480,7 +480,7 @@ function NotificationsPage() {
                                 ? { ...n, message: 'Is Now Your Friend!', type: 'friend_accepted', handled: true, read: true }
                                 : n
                         );
-                        try { localStorage.setItem('sp-notif-cache', JSON.stringify(next.slice(0, 30))); } catch (_) {}
+                        try { localStorage.setItem('sp-notif-cache', JSON.stringify(next.slice(0, 30))); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                         return next;
                     });
                     toast.success('Friend request accepted!');
@@ -526,7 +526,7 @@ function NotificationsPage() {
                             ? { ...n, message: 'Is Now Following You', type: 'new_follow', handled: true, read: true }
                             : n
                     );
-                    try { localStorage.setItem('sp-notif-cache', JSON.stringify(next.slice(0, 30))); } catch (_) {}
+                    try { localStorage.setItem('sp-notif-cache', JSON.stringify(next.slice(0, 30))); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                     return next;
                 });
                 toast.success('Request declined — they now follow you.');

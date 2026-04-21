@@ -20,7 +20,7 @@ function loadCachedConversations() {
         if (Array.isArray(conversations) && conversations.length > 0) {
             return conversations;
         }
-    } catch (_) {}
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     return [];
 }
 
@@ -30,7 +30,7 @@ function persistConversations(conversations) {
             conversations,
             timestamp: Date.now(),
         }));
-    } catch (_) {}
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 }
 
 function isCacheFresh() {
@@ -39,7 +39,7 @@ function isCacheFresh() {
         if (!raw) return false;
         const { timestamp } = JSON.parse(raw);
         return Date.now() - timestamp < CACHE_TTL;
-    } catch (_) {}
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     return false;
 }
 

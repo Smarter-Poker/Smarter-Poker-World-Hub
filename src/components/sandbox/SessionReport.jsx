@@ -62,7 +62,7 @@ export default function SessionReport({ sessionLog, resultsRaw, onClose }) {
             link.href = canvas.toDataURL('image/png');
             link.click();
 
-            try { navigator.vibrate?.(15); } catch (e) { }
+            try { navigator.vibrate?.(15); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
             if (typeof window !== 'undefined') {
                 window.dispatchEvent(new CustomEvent('sandbox-session-report-exported'));
@@ -123,7 +123,7 @@ export default function SessionReport({ sessionLog, resultsRaw, onClose }) {
             if (response.ok) {
                 setShareSuccess(true);
                 // Optionally, vibrate on success
-                try { navigator.vibrate?.(15); } catch (e) { }
+                try { navigator.vibrate?.(15); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
             } else {
                 console.error('Failed to post report to hub:', await response.text());
                 alert('Failed to post report. Please try again.');

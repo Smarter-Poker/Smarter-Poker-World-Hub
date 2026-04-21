@@ -1075,8 +1075,7 @@ export default function MemoryGamesPage() {
                             stackDepth: scenario.stackDepth,
                             scenario: scenario // Keep full scenario for gameplay
                         };
-                    } catch (e) {
-                    }
+                    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
                 }
                 setDailyChallenge(challenge);
                 setChallengeCompleted(result.completed);

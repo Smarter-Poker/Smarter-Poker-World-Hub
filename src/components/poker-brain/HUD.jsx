@@ -796,7 +796,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
           setActionSummary(null);
         }
         // Sound cue: new hand dealt
-        try { playCue('handStart'); } catch (_) {}
+        try { playCue('handStart'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
       },
       onStreetChange: (hand, prevStreet, nextStreet) => {
         // Notify ActionTracker of street transition so per-street
@@ -806,7 +806,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
           actionTrackerRef.current.onStreetChange(nextStreet);
         }
         // Sound cue: new street
-        try { playCue('streetChange'); } catch (_) {}
+        try { playCue('streetChange'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
       },
       onHandEnd: (hand) => {
         if (!hand) return;
@@ -1502,7 +1502,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               // OCR failed — mark stale if last success was > 10s ago
               if (lastOcrSuccessRef.current > 0 && Date.now() - lastOcrSuccessRef.current > 10000) {
                 setOcrStale(true);
-                try { playCue('warning'); } catch (_) {}
+                try { playCue('warning'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
               }
               return;
             }
@@ -1534,7 +1534,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                   // Sound cue: all-in detected
                   const hasAllIn = trackerResult.newActions.some(a => a.type === 'all_in');
                   if (hasAllIn) {
-                    try { playCue('allIn'); } catch (_) {}
+                    try { playCue('allIn'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                   }
                 }
               } catch (_atErr) { /* swallow action tracker errors */ }
@@ -1656,7 +1656,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
 
           // Sound cue: decision ready (only for confident, actionable decisions)
           if (bridged.ready && bridged.action && bridged.action !== 'WAIT') {
-            try { playCue('actionReady'); } catch (_) {}
+            try { playCue('actionReady'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
           }
 
           // Record the decision on the current street of the current hand
@@ -2331,7 +2331,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                           const injected = injectTemplateBundle(matcher, bundle);
                           // Also persist so hashes survive page reload
                           if (injected > 0 && matcher.templateHashes) {
-                            try { persistCalibratedHashes(matcher.templateHashes); } catch (_) {}
+                            try { persistCalibratedHashes(matcher.templateHashes); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                           }
                           alert(`Injected ${injected} template hashes (extractor pipeline). Detection should improve immediately.`);
                         }}

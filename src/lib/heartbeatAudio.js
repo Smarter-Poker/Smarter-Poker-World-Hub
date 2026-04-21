@@ -56,7 +56,7 @@ export function playHeartbeat(volume = 0.2) {
  */
 export function closeHeartbeatAudio() {
     if (audioCtx && audioCtx.state !== 'closed') {
-        try { audioCtx.close(); } catch (_) {}
+        try { audioCtx.close(); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }
     audioCtx = null;
 }

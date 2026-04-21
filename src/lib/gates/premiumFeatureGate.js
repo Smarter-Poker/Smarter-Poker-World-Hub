@@ -26,7 +26,7 @@ export async function checkFeatureAccess(userId, featureKey) {
                 console.log('[FeatureGate] VIP confirmed via localStorage cache — skipping network check');
                 return { hasAccess: true, isVip: true, expiresAt: null, diamonds: 0 };
             }
-        } catch (e) { }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     }
 
     // Ensure Supabase session is ready before querying
@@ -94,7 +94,7 @@ export async function checkFeatureAccess(userId, featureKey) {
             try {
                 const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
                 if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
-            } catch (_) { }
+            } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
             const resp = await fetch(`/api/vip/check-status?userId=${userId}`, { signal: controller.signal, headers });
             clearTimeout(timeoutId);
             if (resp.ok) {
@@ -116,7 +116,7 @@ export async function checkFeatureAccess(userId, featureKey) {
     if (profile.is_vip) {
         // Sync VIP status to localStorage for optimistic rendering
         if (typeof window !== 'undefined') {
-            try { localStorage.setItem('sp-vip-status', 'true'); } catch (_) { }
+            try { localStorage.setItem('sp-vip-status', 'true'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         }
         return { hasAccess: true, isVip: true, expiresAt: null, diamonds: profile.diamonds || 0 };
     }

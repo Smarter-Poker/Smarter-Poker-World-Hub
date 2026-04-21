@@ -162,7 +162,7 @@ export default function ThreeWayPostflopPage() {
   useEffect(() => {
     try {
       setUser(getAuthUser());
-    } catch (_) {}
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }, []);
 
   const safePlayerIdx = Math.max(0, Math.min(selectedPlayer, players.length - 1));

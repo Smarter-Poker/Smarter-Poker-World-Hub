@@ -370,7 +370,7 @@ export class PokerBrainStorage {
             if (item.tempId) {
               idMap.set(item.tempId, id);
               // Persist to IndexedDB so the mapping survives page reload
-              try { await idMapPut(item.tempId, id); } catch (_) {}
+              try { await idMapPut(item.tempId, id); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
               if (this.sessionId === item.tempId) this.sessionId = id;
             }
             break;

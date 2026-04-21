@@ -914,7 +914,7 @@ Manual intervention needed. Check the Vercel build: https://vercel.com/smarter-p
       authMethod,
     });
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) {}
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.error('[deploy-monitor] Error:', err);
     // Pipeline-level errors also deserve an alert
     await createAlertIssue(

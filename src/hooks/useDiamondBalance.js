@@ -46,7 +46,7 @@ function getCachedBalance() {
             const data = JSON.parse(cached);
             return data.diamonds ?? 0;
         }
-    } catch (_) {}
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     return 0;
 }
 

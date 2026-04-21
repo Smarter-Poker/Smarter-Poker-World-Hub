@@ -40,7 +40,7 @@ export default class TableManager {
           this._activeTableId = parsed.activeTableId || null;
         }
       }
-    } catch (_) {}
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }
 
   _save() {
@@ -57,7 +57,7 @@ export default class TableManager {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         tables, activeTableId: this._activeTableId,
       }));
-    } catch (_) {}
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }
 
   addTable(tableId, config = {}) {

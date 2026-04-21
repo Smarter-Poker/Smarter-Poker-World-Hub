@@ -196,7 +196,7 @@ export function isMuted() {
  */
 export function disposeSoundCues() {
   if (audioCtx) {
-    try { audioCtx.close(); } catch (_) {}
+    try { audioCtx.close(); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     audioCtx = null;
     masterGain = null;
   }

@@ -178,7 +178,7 @@ export default async function handler(req, res) {
       }
 
   } catch (err) {
-    try { reportApiError(err, req); } catch (_sentryErr) {}
+    try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
@@ -227,7 +227,7 @@ async function generateGrokScenario(level, position, stackDepth, scenarioType) {
         return validateScenario(scenario, level, position, stackDepth);
 
     } catch (error) {
-        try { reportApiError(error, req); } catch (_sentryErr) {}
+        try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         console.error('[DailyChallenge] Grok generation error:', error);
 
         // Fallback: Create a basic scenario

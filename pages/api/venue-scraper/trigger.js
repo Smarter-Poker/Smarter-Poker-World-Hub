@@ -252,7 +252,7 @@ POST body format:
         });
 
     } catch (err) {
-        try { reportApiError(err, req); } catch (_sentryErr) {}
+        try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         console.error('[Venue Scraper Trigger Error]', err);
         if (!res.headersSent) return res.status(500).json({ error: err.message });
     }

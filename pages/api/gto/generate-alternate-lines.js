@@ -57,7 +57,7 @@ export default async function handler(req, res) {
       }
 
   } catch (err) {
-    try { reportApiError(err, req); } catch (_sentryErr) {}
+    try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
@@ -175,7 +175,7 @@ Return JSON only.`;
         const jsonStr = jsonMatch ? jsonMatch[1] : content;
         parsed = JSON.parse(jsonStr.trim());
     } catch (e) {
-        try { reportApiError(e, req); } catch (_sentryErr) {}
+        try { reportApiError(e, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         console.error('Failed to parse Grok response:', content);
         throw new Error('Invalid JSON from Grok');
     }

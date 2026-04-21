@@ -164,7 +164,7 @@ export default function TourDetailPage() {
     try {
       const followed = JSON.parse(localStorage.getItem('followed-tours') || '[]');
       if (followed.includes(String(code))) setIsFollowed(true);
-    } catch (_) { }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }, [code]);
 
   // Load follow state from Supabase API (with JWT for authenticated users)
@@ -183,10 +183,10 @@ export default function TourDetailPage() {
           try {
             const sub = JSON.parse(atob(accessToken.split('.')[1]));
             userId = sub?.sub || null;
-          } catch (_) {}
+          } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         }
       }
-    } catch (_) { }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     // Only query follow state if we have a real authenticated UUID
     if (!userId) return;
     const headers = { 'Authorization': 'Bearer ' + accessToken };
@@ -262,7 +262,7 @@ export default function TourDetailPage() {
         ? (followed.includes(tourCode) ? followed : [...followed, tourCode])
         : followed.filter(t => t !== tourCode);
       localStorage.setItem('followed-tours', JSON.stringify(updated));
-    } catch (_) { }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
     // Persist follow state via API (JWT required)
     const fetchHeaders = { 'Content-Type': 'application/json' };
@@ -272,7 +272,7 @@ export default function TourDetailPage() {
         const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
         if (tokenData.access_token) fetchHeaders['Authorization'] = 'Bearer ' + tokenData.access_token;
       }
-    } catch (_) { }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     fetch('/api/poker/follow', {
       method: 'POST',
       headers: fetchHeaders,
@@ -296,7 +296,7 @@ export default function TourDetailPage() {
             ? (followed.includes(tourCode) ? followed : [...followed, tourCode])
             : followed.filter(t => t !== tourCode);
           localStorage.setItem('followed-tours', JSON.stringify(rolled));
-        } catch (_) { }
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
       }
     })
     .catch(() => {
@@ -305,7 +305,7 @@ export default function TourDetailPage() {
       setFollowerCount(prevCount);
     });
     // Emit EventBus event for cross-page reactivity
-    try { busEmit.socialFollowChanged(code, 'tour-detail', { added: newState }); } catch (_) { }
+    try { busEmit.socialFollowChanged(code, 'tour-detail', { added: newState }); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }
 
   function getAnonymousUserId() {

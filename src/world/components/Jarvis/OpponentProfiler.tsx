@@ -71,7 +71,7 @@ export function OpponentProfiler({ onAskJarvis, onClose }: OpponentProfilerProps
                     // Load from localStorage for unauthenticated users
                     const saved = localStorage.getItem('jarvis_opponent_profiles');
                     if (saved) {
-                        try { setProfiles(JSON.parse(saved)); } catch (e) { }
+                        try { setProfiles(JSON.parse(saved)); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
                     }
                     return;
                 }
@@ -90,7 +90,7 @@ export function OpponentProfiler({ onAskJarvis, onClose }: OpponentProfilerProps
                     // Fallback to localStorage
                     const saved = localStorage.getItem('jarvis_opponent_profiles');
                     if (saved) {
-                        try { setProfiles(JSON.parse(saved)); } catch (e) { }
+                        try { setProfiles(JSON.parse(saved)); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
                     }
                 } else if (data && data.length > 0) {
                     // Convert from DB format to local format

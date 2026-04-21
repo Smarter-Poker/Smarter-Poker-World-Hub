@@ -452,8 +452,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                             body: JSON.stringify({ page_id: page.id, locations: unique }),
                         }).catch(() => { });
                     }
-                } catch (geoErr) {
-                }
+                } catch (geoErr) { console.warn('[App] Handled exception:', geoErr?.message || geoErr); }
             }
         } catch (e) { console.error('Meta save error:', e); setMetaSaved('Error saving'); }
         setMetaSaving(false);

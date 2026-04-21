@@ -116,7 +116,7 @@ async function handler(req, res) {
         });
 
     } catch (e) {
-        try { reportApiError(e, req); } catch (_sentryErr) {}
+        try { reportApiError(e, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         console.error('[game-threshold-cron] FAILED', e);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }

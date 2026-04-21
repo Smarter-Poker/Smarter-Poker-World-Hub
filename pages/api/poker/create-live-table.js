@@ -48,7 +48,7 @@ if (req.method !== 'POST') return res.status(405).json({ success: false, error: 
       tableId: result.tableId,
     });
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) {}
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.error('[create-live-table]', err);
     return res.status(500).json({ success: false, error: 'Internal error' });
   }

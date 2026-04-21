@@ -159,7 +159,7 @@ const useMessengerPrefs = () => {
         try {
             const saved = localStorage.getItem('ca-messenger-prefs');
             if (saved) setPrefs(JSON.parse(saved));
-        } catch (e) { }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     }, []);
 
     // Phase 6 Deep Sweep: Background sync to SQL
@@ -208,7 +208,7 @@ const useMessengerPrefs = () => {
             const next = typeof updater === 'function' ? updater(prev) : { ...prev, ...updater };
             try {
                 localStorage.setItem('ca-messenger-prefs', JSON.stringify(next));
-            } catch (e) { }
+            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
             syncToSupabase(next);
             return next;
         });
@@ -2047,7 +2047,7 @@ export const ChatWindow = ({
                         <button onClick={() => setShowSoundPicker(false)} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 16 }}>✕</button>
                     </div>
                     {(svc.NOTIFICATION_SOUNDS || []).map(s => (
-                        <button key={s.id} onClick={() => { svc.setConversationSoundPref(s.id); if (s.url) { try { new Audio(s.url).play().catch(() => {}); } catch(_){} } }} style={{ display: 'block', width: '100%', padding: '6px 10px', marginBottom: 4, borderRadius: 6, border: 'none', background: svc.getConversationSoundPref?.() === s.id ? 'rgba(45,136,255,0.2)' : 'rgba(255,255,255,0.05)', color: svc.getConversationSoundPref?.() === s.id ? '#2D88FF' : '#ccc', cursor: 'pointer', textAlign: 'left', fontSize: 12 }}>
+                        <button key={s.id} onClick={() => { svc.setConversationSoundPref(s.id); if (s.url) { try { new Audio(s.url).play().catch(() => {}); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); } } }} style={{ display: 'block', width: '100%', padding: '6px 10px', marginBottom: 4, borderRadius: 6, border: 'none', background: svc.getConversationSoundPref?.() === s.id ? 'rgba(45,136,255,0.2)' : 'rgba(255,255,255,0.05)', color: svc.getConversationSoundPref?.() === s.id ? '#2D88FF' : '#ccc', cursor: 'pointer', textAlign: 'left', fontSize: 12 }}>
                             {s.id === 'silent' ? '🔇' : '🔊'} {s.label}
                         </button>
                     ))}

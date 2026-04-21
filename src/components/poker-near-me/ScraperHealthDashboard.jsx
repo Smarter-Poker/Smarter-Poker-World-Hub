@@ -125,7 +125,7 @@ export default function ScraperHealthDashboard() {
       if (!res.ok) return;
       const data = await res.json();
       setMetrics(data);
-    } catch (_) {}
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }, []);
 
   useEffect(() => { fetchHealth(); fetchMetrics(); }, [fetchHealth, fetchMetrics]);

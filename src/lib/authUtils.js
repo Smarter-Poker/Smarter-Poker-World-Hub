@@ -218,7 +218,7 @@ export function useRequireAuth(redirectPath) {
                     sessionStorage.setItem('sp_auth_confirmed', '1');
                 }
                 // Keep session backup fresh on every successful auth (#7)
-                try { backupSession(); } catch (_) {}
+                try { backupSession(); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
             }
             setChecking(false);
         })();
@@ -336,7 +336,7 @@ export async function authedFetch(url, options = {}) {
         } catch (_) { /* refresh failed — fall through */ }
 
         // Refresh didn't help — clear fast-path so next page does full auth
-        try { sessionStorage.removeItem('sp_auth_confirmed'); } catch (_) {}
+        try { sessionStorage.removeItem('sp_auth_confirmed'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         console.warn(`[authedFetch] 401 on ${url} — token refresh failed`);
     }
 
@@ -593,7 +593,7 @@ export function clearAuth(force = false) {
 
         localStorage.removeItem(AUTH_STORAGE_KEY);
         // Clear fast-path flag so useRequireAuth does full check after logout
-        try { sessionStorage.removeItem('sp_auth_confirmed'); } catch (_) {}
+        try { sessionStorage.removeItem('sp_auth_confirmed'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         const sbKeys = Object.keys(localStorage).filter(
             k => k.startsWith('sb-') && k.endsWith('-auth-token')
         );

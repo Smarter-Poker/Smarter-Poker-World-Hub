@@ -668,7 +668,7 @@ function FriendsPage() {
                     suggestions
                 }
             }));
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }, [friends, friendIds, friendRequests, pendingIds, following, followingIds, followers, followerIds, suggestions, loading]);
 
     const handleFollow = async (userId) => {

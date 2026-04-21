@@ -293,7 +293,7 @@ export default async function handler(req) {
             { width: 800, height: 420 }
         );
     } catch (err) {
-        try { reportApiError(err, req); } catch (_sentryErr) {}
+        try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         console.error('[OG Hand Card] Error:', err);
         return new Response('Error generating image', { status: 500 });
     }

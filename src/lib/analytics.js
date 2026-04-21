@@ -136,7 +136,7 @@ function loadPosthog() {
 function proxy(method, args) {
     if (!isEnabled()) return;
     if (_loaded && typeof window.posthog?.[method] === 'function') {
-        try { window.posthog[method](...args); } catch (_err) {}
+        try { window.posthog[method](...args); } catch (_err) { console.warn('[App] Handled exception:', _err?.message || _err); }
         return;
     }
     if (_queue.length < MAX_QUEUE) _queue.push([method, args]);

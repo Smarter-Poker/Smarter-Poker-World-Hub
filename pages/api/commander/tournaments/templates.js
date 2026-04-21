@@ -34,7 +34,7 @@ export default async function handler(req, res) {
       return res.status(405).json({ success: false, error: { code: 'METHOD_NOT_ALLOWED' } });
 
   } catch (err) {
-    try { reportApiError(err, req); } catch (_sentryErr) {}
+    try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
@@ -142,7 +142,7 @@ async function createTemplate(req, res, staff) {
 
         return res.status(201).json({ success: true, data: { template } });
     } catch (error) {
-        try { reportApiError(error, req); } catch (_sentryErr) {}
+        try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         console.error('Create template error:', error);
         return res.status(500).json({ success: false, error: { message: 'Internal server error' } });
     }

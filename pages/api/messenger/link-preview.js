@@ -96,7 +96,7 @@ export default async function handler(req, res) {
 
         return res.json({ success: true, preview });
     } catch (e) {
-        try { reportApiError(e, req); } catch (_sentryErr) {}
+        try { reportApiError(e, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         if (e.name === 'AbortError') {
             return res.json({ success: false, error: 'Request timeout' });
         }

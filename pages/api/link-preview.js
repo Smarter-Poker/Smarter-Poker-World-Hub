@@ -291,7 +291,7 @@ function extractFallbackMetadata(url) {
             siteName: domain,
         };
     } catch (e) {
-        try { reportApiError(e, req); } catch (_sentryErr) {}
+        try { reportApiError(e, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         return {
             url,
             title: 'Link',

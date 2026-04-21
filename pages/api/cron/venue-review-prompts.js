@@ -86,7 +86,7 @@ export default async function handler(req, res) {
 
         return res.status(200).json({ success: true, processed, message: `Sent ${processed} review prompts.` });
     } catch (err) {
-        try { reportApiError(err, req); } catch (_sentryErr) {}
+        try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         console.error('[Venue Review Cron] Error:', err);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }

@@ -83,7 +83,7 @@ const KEYFRAMES = `
 function haptic(type = 'light') {
   if (typeof navigator === 'undefined' || !navigator.vibrate) return;
   const patterns = { light: [10], medium: [30], heavy: [50] };
-  try { navigator.vibrate(patterns[type] || patterns.light); } catch (_) {}
+  try { navigator.vibrate(patterns[type] || patterns.light); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -691,7 +691,7 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
     if (initialTable) {
       openTable(initialTable);
       // Emit EventBus (ADV-2)
-      try { busEmit.dataMutated?.('multi_table_opened'); } catch (_) {}
+      try { busEmit.dataMutated?.('multi_table_opened'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }
   }, [initialTable, openTable]);
 
@@ -719,7 +719,7 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
   const handleSitOutAll = useCallback(() => {
     haptic('heavy');
     // We broadcast the intent. LivePokerTable will listen for this.
-    try { busEmit.dataMutated?.('global_sit_out_all'); } catch (_) {}
+    try { busEmit.dataMutated?.('global_sit_out_all'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }, []);
 
   // ═══ SWIPE NAVIGATION with visual feedback (GAP 5) ═══
@@ -809,7 +809,7 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
     switchTo(idx);
     haptic('light');
     // Emit EventBus (ADV-2)
-    try { busEmit.dataMutated?.('multi_table_switched'); } catch (_) {}
+    try { busEmit.dataMutated?.('multi_table_switched'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }, [switchTo]);
 
   // ── Handle table close (with confirmation) (GAP 4) ──
@@ -826,7 +826,7 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
     closeTable(closeConfirm.tableId);
     haptic('medium');
     // Emit EventBus (ADV-2)
-    try { busEmit.dataMutated?.('multi_table_closed'); } catch (_) {}
+    try { busEmit.dataMutated?.('multi_table_closed'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     // Check if this was the last table
     const remaining = slots.filter(s => s && s.tableId !== closeConfirm.tableId);
     if (remaining.length === 0) {

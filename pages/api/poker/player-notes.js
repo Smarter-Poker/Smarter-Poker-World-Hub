@@ -93,7 +93,7 @@ export default async function handler(req, res) {
             if (error) throw error;
             return res.status(200).json({ success: true, note: data });
         } catch (err) {
-            try { reportApiError(err, req); } catch (_sentryErr) {}
+            try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
             console.error('[PlayerNotes API] POST error:', err);
             return res.status(500).json({ error: 'Failed to save player note' });
         }

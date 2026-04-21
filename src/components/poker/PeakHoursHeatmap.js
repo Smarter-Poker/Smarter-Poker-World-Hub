@@ -34,11 +34,14 @@ export default function PeakHoursHeatmap({ venueId }) {
             setLoading(false);
             return;
         }
+        let mounted = true;
+        const controller = new AbortController();
         setLoading(true);
-        fetch(`/api/poker/venue-activity?venueId=${venueId}`)
+        fetch(`/api/poker/venue-activity?venueId=${venueId}`, { signal: controller.signal })
             .then(r => r.json())
-            .then(d => { setData(d); setLoading(false); })
-            .catch(e => { setError(e.message); setLoading(false); });
+            .then(d => { if (mounted) { setData(d); setLoading(false); } })
+            .catch(e => { if (mounted && e.name !== 'AbortError') { setError(e.message); setLoading(false); } });
+        return () => { mounted = false; controller.abort(); };
     }, [venueId, allowed]);
 
     if (loading) return <div style={{ color: T.textSec, fontSize: 13, padding: 12 }}>Loading activity data...</div>;

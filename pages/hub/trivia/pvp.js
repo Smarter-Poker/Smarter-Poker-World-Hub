@@ -248,7 +248,7 @@ export default function PvPPage() {
         try {
             sessionStorage.removeItem('trivia_paid');
             sessionStorage.removeItem('trivia_mode');
-        } catch (e) { }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
         // Fresh balance check from DB to avoid stale-state false negatives
         let freshBalance = userDiamonds;
@@ -329,8 +329,7 @@ export default function PvPPage() {
                     handleMatchFound(matchData);
                 }
             }
-        } catch (err) {
-        }
+        } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
         } finally {
             isStartingRef.current = false;
         }

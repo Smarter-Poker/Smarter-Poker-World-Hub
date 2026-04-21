@@ -187,7 +187,7 @@ export default function RakeSolutionsPage() {
         total_questions: 1,
         hands_played: 1,
       });
-    } catch (e) {}
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
   };
 
   return (

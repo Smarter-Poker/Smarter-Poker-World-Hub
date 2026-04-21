@@ -218,7 +218,7 @@ export default async function handler(req, res) {
         // Unreachable — guard above returns 405.
         return res.status(405).end();
     } catch (err) {
-        try { reportApiError(err, req); } catch (_sentryErr) {}
+        try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         // eslint-disable-next-line no-console
         console.error('[public/home-games/slug/follow]', err);
         if (!res.headersSent) {

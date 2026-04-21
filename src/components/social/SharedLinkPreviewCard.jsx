@@ -52,7 +52,7 @@ export function SharedLinkPreviewCard({ url }) {
                         image: null,
                         siteName: urlObj.hostname.replace(/^www\./, '')
                     });
-                } catch (e) { }
+                } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
             }
             setLoading(false);
         };

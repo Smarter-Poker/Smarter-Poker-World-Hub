@@ -31,21 +31,21 @@ export default function HandReplay({ sessionLog = [], onLoadScenario, onClose })
     const goNext = useCallback(() => {
         if (currentIdx < total - 1) {
             setCurrentIdx(prev => prev + 1);
-            try { navigator.vibrate?.(5); } catch (e) { }
+            try { navigator.vibrate?.(5); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         }
     }, [currentIdx, total]);
 
     const goPrev = useCallback(() => {
         if (currentIdx > 0) {
             setCurrentIdx(prev => prev - 1);
-            try { navigator.vibrate?.(5); } catch (e) { }
+            try { navigator.vibrate?.(5); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         }
     }, [currentIdx]);
 
     const handlePlayAgain = useCallback(() => {
         if (!entry) return;
         onLoadScenario?.(entry);
-        try { navigator.vibrate?.(15); } catch (e) { }
+        try { navigator.vibrate?.(15); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         onClose?.();
     }, [entry, onLoadScenario, onClose]);
 

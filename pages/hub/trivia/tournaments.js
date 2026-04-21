@@ -344,7 +344,7 @@ export default function TournamentsPage() {
         try {
             sessionStorage.removeItem('trivia_paid');
             sessionStorage.removeItem('trivia_mode');
-        } catch (e) { }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
         // Fresh balance check from DB to avoid stale-state false negatives
         let freshBalance = userDiamonds;

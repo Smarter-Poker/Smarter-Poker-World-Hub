@@ -71,7 +71,7 @@ export function HandHistoryLibrary({ onAskJarvis, onClose }: HandHistoryLibraryP
                                 ...h,
                                 createdAt: new Date(h.createdAt)
                             })));
-                        } catch (e) { }
+                        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
                     }
                     return;
                 }

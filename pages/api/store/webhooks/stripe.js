@@ -115,7 +115,7 @@ export default async function handler(req, res) {
       }
 
   } catch (err) {
-    try { reportApiError(err, req); } catch (_sentryErr) {}
+    try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.error('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
@@ -189,7 +189,7 @@ async function handleCheckoutCompleted(session) {
             // Create/update vip_subscriptions record
             await handleSubscriptionUpdate(subscription);
         } catch (subErr) {
-            try { reportApiError(subErr, req); } catch (_sentryErr) {}
+            try { reportApiError(subErr, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
             console.error('Error processing VIP subscription checkout:', subErr);
         }
     }

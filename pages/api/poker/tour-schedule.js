@@ -496,7 +496,7 @@ async function returnRegistryFallback(tour_code, stop, res) {
       events,
     });
   } catch (err) {
-      try { reportApiError(err, {}); } catch (_sentryErr) {}
+      try { reportApiError(err, {}); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     return res.status(500).json({ success: false, error: err.message, tour_code });
   }
 }

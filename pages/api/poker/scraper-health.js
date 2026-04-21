@@ -130,7 +130,7 @@ export default async function handler(req, res) {
       if (ahData && ahData.value) {
         alertHistory = typeof ahData.value === 'string' ? JSON.parse(ahData.value) : ahData.value;
       }
-    } catch (_) {}
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
     const overallStatus = issues.length === 0 ? 'healthy' : 
       issues.some(i => i.includes('DEAD') || i.includes('anomaly')) ? 'critical' : 'warning';
@@ -152,7 +152,7 @@ export default async function handler(req, res) {
       },
     });
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) {}
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.error('Scraper health check error:', err);
     return res.status(500).json({ error: 'Health check failed', details: err.message });
   }

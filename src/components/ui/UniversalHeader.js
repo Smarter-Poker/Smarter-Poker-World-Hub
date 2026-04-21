@@ -108,7 +108,7 @@ export default function UniversalHeader({
                 const { username } = JSON.parse(headerCache);
                 if (username) return `/hub/user/${username}`;
             }
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         return '/hub/profile';
     });
 
@@ -209,7 +209,7 @@ export default function UniversalHeader({
                             try {
                                 const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
                                 accessToken = authData?.access_token || null;
-                            } catch (e) { }
+                            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
                             const response = await fetch('/api/user/get-header-stats', {
                                 method: 'POST',
@@ -245,7 +245,7 @@ export default function UniversalHeader({
                                         is_vip: !!is_vip,
                                         _ts: Date.now()
                                     }));
-                                } catch (_) { }
+                                } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
                                 // Update direct profile link if we got the username
                                 if (username) {
@@ -283,7 +283,7 @@ export default function UniversalHeader({
                             try {
                                 const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
                                 if (authData.access_token) accessToken = authData.access_token;
-                            } catch (e) { }
+                            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
                             const response = await fetch(
                                 `${SUPABASE_URL}/rest/v1/profiles?id=eq.${authUser.id}&select=username,full_name,avatar_url,diamonds,is_vip`,
@@ -316,7 +316,7 @@ export default function UniversalHeader({
                                         is_vip: !!profile.is_vip,
                                         _ts: Date.now()
                                     }));
-                                } catch (_) { }
+                                } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                                 // Update direct profile link
                                 if (profile.username) {
                                     const directHref = `/hub/user/${profile.username}`;
@@ -339,7 +339,7 @@ export default function UniversalHeader({
                             .eq('read', false);
                         if (mounted) {
                             setNotificationCount(notifCount || 0);
-                            try { localStorage.setItem('sp-notif-count', String(notifCount || 0)); } catch (_) {}
+                            try { localStorage.setItem('sp-notif-count', String(notifCount || 0)); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                         }
                     };
                     await fetchUnreadCount();
@@ -441,7 +441,7 @@ export default function UniversalHeader({
                 try {
                     const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
                     accessToken = authData?.access_token || null;
-                } catch (e) { }
+                } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
                 const response = await fetch('/api/user/get-header-stats', {
                     method: 'POST',
@@ -470,7 +470,7 @@ export default function UniversalHeader({
                             is_vip: !!result.profile.is_vip,
                             _ts: Date.now()
                         }));
-                    } catch (_) { }
+                    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                     // Update direct profile link if username changed
                     if (result.profile.username) {
                         const directHref = `/hub/user/${result.profile.username}`;
@@ -970,7 +970,7 @@ export default function UniversalHeader({
                     <button onClick={() => {
                         // Optimistic: clear badge immediately so it disappears as soon as the user taps
                         setNotificationCount(0);
-                        try { localStorage.setItem('sp-notif-count', '0'); } catch (_) {}
+                        try { localStorage.setItem('sp-notif-count', '0'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                         openOverlay('notifications');
                     }} className="orb-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} title="Notifications">
                             <img src="/images/header-notifications.png" alt="Notifications" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '60%', left: '50%', transform: 'translate(-50%, -50%)' }} />

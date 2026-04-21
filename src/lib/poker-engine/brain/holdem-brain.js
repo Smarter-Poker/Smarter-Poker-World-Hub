@@ -35,9 +35,9 @@ function getLiveRead(horseId, tableId, opponentId) {
 
 // Module-scope variable aliases for personality/advanced modules
 let _personalityModule = null;
-try { _personalityModule = getPersonalityModule(); } catch (_) {}
+try { _personalityModule = getPersonalityModule(); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 let _advancedModule = null;
-try { _advancedModule = getAdvancedModule(); } catch (_) {}
+try { _advancedModule = getAdvancedModule(); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
 function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjustment = { callMod: 0, foldMod: 0 }) {
     if (!gameState || typeof gameState !== 'object') return { type: 'fold', amount: 0 }; // Bug #46: guard null/garbage gameState

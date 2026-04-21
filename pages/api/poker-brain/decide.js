@@ -385,7 +385,7 @@ export default async function handler(req, res) {
     });
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) {}
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     const isTimeout = err.message && err.message.includes('timed out');
     console.error('[poker-brain/decide] error:', isTimeout ? 'TIMEOUT' : err.message);
     return res.status(isTimeout ? 504 : 500).json({

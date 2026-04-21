@@ -37,7 +37,7 @@ function resolveAuthToken(authToken) {
             const parsed = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
             return parsed?.access_token || null;
         }
-    } catch (_) {}
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     return null;
 }
 

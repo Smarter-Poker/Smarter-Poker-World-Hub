@@ -44,7 +44,7 @@ export default function TrainingAchievements() {
   useEffect(() => {
     try {
       setUser(getAuthUser());
-    } catch (_) {}
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }, []);
 
   // SWR-backed achievements fetch — only fires when user is known

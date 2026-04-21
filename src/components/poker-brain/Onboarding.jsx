@@ -51,7 +51,7 @@ export default function Onboarding({ onComplete, onSelectCapture, onSelectVarian
   const handleNext = useCallback(() => {
     if (isLast) {
       // Mark onboarding complete in localStorage
-      try { localStorage.setItem('pokerBrain.onboarded', 'true'); } catch (_e) {}
+      try { localStorage.setItem('pokerBrain.onboarded', 'true'); } catch (_e) { console.warn('[App] Handled exception:', _e?.message || _e); }
       if (onComplete) onComplete({ captureMode, variant });
       return;
     }
@@ -144,7 +144,7 @@ export default function Onboarding({ onComplete, onSelectCapture, onSelectVarian
           ) : (
             <button
               onClick={() => {
-                try { localStorage.setItem('pokerBrain.onboarded', 'true'); } catch (_e) {}
+                try { localStorage.setItem('pokerBrain.onboarded', 'true'); } catch (_e) { console.warn('[App] Handled exception:', _e?.message || _e); }
                 if (onComplete) onComplete({});
               }}
               className="text-sm text-slate-500 hover:text-slate-300 transition-colors"

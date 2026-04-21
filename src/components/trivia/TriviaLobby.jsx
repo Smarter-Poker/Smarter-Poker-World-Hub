@@ -227,12 +227,12 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
         setIsDeducting(false);
         if (success) {
             // Mark as acknowledged — popup never shows again
-            try { localStorage.setItem(ACKNOWLEDGED_KEY, 'true'); } catch (e) { }
+            try { localStorage.setItem(ACKNOWLEDGED_KEY, 'true'); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
             // Signal downstream pages that payment was already made
             try {
                 sessionStorage.setItem('trivia_paid', 'true');
                 sessionStorage.setItem('trivia_mode', pendingMode);
-            } catch (e) { }
+            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
             setShowChargePopup(false);
             routeToMode(pendingMode);
             setPendingMode(null);
@@ -271,7 +271,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
         // === Non-VIP: All other modes cost 10 diamonds ===
         // Check if user has previously acknowledged the charge popup
         let acknowledged = false;
-        try { acknowledged = localStorage.getItem(ACKNOWLEDGED_KEY) === 'true'; } catch (e) { }
+        try { acknowledged = localStorage.getItem(ACKNOWLEDGED_KEY) === 'true'; } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
         if (!acknowledged) {
             // FIRST TIME: Show confirmation popup
@@ -298,7 +298,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
             try {
                 sessionStorage.setItem('trivia_paid', 'true');
                 sessionStorage.setItem('trivia_mode', modeId);
-            } catch (e) { }
+            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
             routeToMode(modeId);
         } else {
             setShowTopUpPopup(true);

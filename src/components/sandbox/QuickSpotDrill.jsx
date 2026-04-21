@@ -94,7 +94,7 @@ export default function QuickSpotDrill({ onClose, customParams }) {
         setRevealed(true);
         setStreak(0);
         setScore(prev => ({ ...prev, total: prev.total + 1 }));
-        try { navigator.vibrate?.(30); } catch (e) { }
+        try { navigator.vibrate?.(30); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     }, []);
 
     const handlePick = useCallback((option) => {
@@ -112,7 +112,7 @@ export default function QuickSpotDrill({ onClose, customParams }) {
         setStreak(prev => isCorrect ? prev + 1 : 0);
 
         // Haptic feedback
-        try { navigator.vibrate?.(isCorrect ? 10 : 30); } catch (e) { }
+        try { navigator.vibrate?.(isCorrect ? 10 : 30); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
         // Save result to coach results via bus event
         if (typeof window !== 'undefined') {
@@ -145,7 +145,7 @@ export default function QuickSpotDrill({ onClose, customParams }) {
                 if (typeof window !== 'undefined') {
                     localStorage.setItem('sandbox-drill-level', newLevel);
                     if (newLevel > level) {
-                        try { navigator.vibrate?.([20, 20, 20]); } catch (e) { }
+                        try { navigator.vibrate?.([20, 20, 20]); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
                         window.dispatchEvent(new CustomEvent('sandbox-drill-level-up', { detail: { level: newLevel } }));
                     }
                 }

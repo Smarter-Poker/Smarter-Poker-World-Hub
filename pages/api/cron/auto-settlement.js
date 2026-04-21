@@ -668,7 +668,7 @@ export default async function handler(req, res) {
         .update({ settlement_locked: false, settlement_locked_until: null })
         .eq('settlement_locked', true);
     } catch (unlockErr) {
-        try { reportApiError(unlockErr, req); } catch (_sentryErr) {}
+        try { reportApiError(unlockErr, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
       results.errors.push({ phase: 'emergency_unlock', error: unlockErr.message });
     }
 

@@ -53,7 +53,7 @@ export default async function handler(req, res) {
         try {
             const { data: { user } } = await getSupabase().auth.getUser(authHeader.split(' ')[1]);
             userId = user?.id;
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
@@ -141,7 +141,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) {}
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.error('[chat API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }

@@ -25,7 +25,7 @@ function getPostgrestConfig() {
             const token = parsed?.access_token || parsed?.session?.access_token;
             if (token) accessToken = token;
         }
-    } catch (_) { }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     return { url, anonKey, accessToken };
 }
 
@@ -291,7 +291,7 @@ export async function createGig(userId: string, gig: Partial<TokeGig>): Promise<
             const token = parsed?.access_token || parsed?.currentSession?.access_token || parsed?.session?.access_token;
             if (token) accessToken = token;
         }
-    } catch (_) { }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const safeLocationId = gig.location_id && uuidRegex.test(gig.location_id) ? gig.location_id : null;
@@ -473,7 +473,7 @@ export async function createDay(userId: string, gigId: string, dayNumber: number
             const token = parsed?.access_token || parsed?.session?.access_token;
             if (token) accessToken = token;
         }
-    } catch (_) { }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
     const body = {
         gig_id: gigId,

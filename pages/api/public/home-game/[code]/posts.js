@@ -116,7 +116,7 @@ export default async function handler(req, res) {
             }
         });
     } catch (err) {
-        try { reportApiError(err, req); } catch (_sentryErr) {}
+        try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         // eslint-disable-next-line no-console
         console.error('[public/home-game/[code]/posts]', err);
         if (!res.headersSent) {

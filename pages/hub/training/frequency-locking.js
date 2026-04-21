@@ -152,7 +152,7 @@ export default function FrequencyLockingPage() {
   useEffect(() => {
     try {
       setUser(getAuthUser());
-    } catch (_) {}
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }, []);
 
   const handleFreqChange = useCallback((nodeIdx, actionIdx, newFreq) => {

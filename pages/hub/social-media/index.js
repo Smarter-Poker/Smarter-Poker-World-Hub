@@ -137,7 +137,7 @@ function LinkPreviewCard({ url }) {
                         image: null,
                         siteName: urlObj.hostname.replace(/^www\./, '')
                     });
-                } catch (e) { }
+                } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
             }
             setLoading(false);
         };
@@ -3956,7 +3956,7 @@ function SocialMediaPage() {
                     hendon: null
                 };
             }
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         return null;
     });
     const [loading, setLoading] = useState(true);
@@ -5040,7 +5040,7 @@ function SocialMediaPage() {
 
         // Check if posting as Club Page
         let identityStoredRaw = null;
-        try { identityStoredRaw = localStorage.getItem('active-identity'); } catch (e) { }
+        try { identityStoredRaw = localStorage.getItem('active-identity'); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         let identityStored = null;
         try { identityStored = identityStoredRaw ? JSON.parse(identityStoredRaw) : null; } catch (e) { /* corrupted localStorage — treat as personal */ }
         const isClubPost = identityStored?.mode === 'club' && identityStored?.clubPage?.id;

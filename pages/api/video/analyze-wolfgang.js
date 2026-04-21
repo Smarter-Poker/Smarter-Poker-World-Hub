@@ -36,7 +36,7 @@ export default async function handler(req, res) {
                 summary: data.analysis?.summary?.substring(0, 100) || 'N/A'
             });
         } catch (error) {
-            try { reportApiError(error, req); } catch (_sentryErr) {}
+            try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
             results.push({
                 videoId: video.videoId,
                 title: video.title,

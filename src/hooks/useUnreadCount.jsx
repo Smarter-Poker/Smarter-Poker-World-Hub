@@ -151,7 +151,7 @@ export function UnreadProvider({ children }) {
             const interval = setInterval(refreshUnread, 30000);
 
             return () => {
-                if (channel) { try { supabase.removeChannel(channel); } catch (_) {} }
+                if (channel) { try { supabase.removeChannel(channel); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); } }
                 clearInterval(interval);
                 cleanupUnreadSync();
             };

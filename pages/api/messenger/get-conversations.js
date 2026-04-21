@@ -230,7 +230,7 @@ export default async function handler(req, res) {
 
         return res.status(200).json({ success: true, conversations: validConversations });
     } catch (err) {
-        try { reportApiError(err, req); } catch (_sentryErr) {}
+        try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         // eslint-disable-next-line no-console
         console.error('[get-conversations]', err);
         if (!res.headersSent) {

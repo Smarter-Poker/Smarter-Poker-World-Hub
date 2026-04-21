@@ -113,7 +113,7 @@ export default function SettingsPage() {
         try {
             const cached = localStorage.getItem('sp-cached-settings-profile');
             if (cached) return JSON.parse(cached);
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         return null;
     });
     const [localUser, setLocalUser] = useState(null); //  Fallback from localStorage
@@ -323,7 +323,7 @@ export default function SettingsPage() {
         try {
             const cached = localStorage.getItem('sp-user-settings');
             if (cached) return { ...SETTINGS_DEFAULTS, ...JSON.parse(cached) };
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         return SETTINGS_DEFAULTS;
     });
 
@@ -351,7 +351,7 @@ export default function SettingsPage() {
                 // Also update localStorage cache with DB values
                 try {
                     localStorage.setItem('sp-user-settings', JSON.stringify({ ...SETTINGS_DEFAULTS, ...dbSettings, display_name_preference: profile.display_name_preference || 'full_name' }));
-                } catch (_) {}
+                } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
             }
         };
 
@@ -427,7 +427,7 @@ export default function SettingsPage() {
                         // SWR: Cache for instant render on next visit
                         try {
                             localStorage.setItem('sp-cached-settings-profile', JSON.stringify(profile));
-                        } catch (_) {}
+                        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                     }
                 });
 
@@ -581,7 +581,7 @@ export default function SettingsPage() {
         // Persist all settings to localStorage (fast cache)
         try {
             localStorage.setItem('sp-user-settings', JSON.stringify(newSettings));
-        } catch (_) {}
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
         // Persist ALL settings to Supabase profiles.app_settings (cross-device)
         if (user?.id) {
@@ -3016,7 +3016,7 @@ export default function SettingsPage() {
                                             <h4 style={{ color: '#00D4FF', fontSize: 14, fontWeight: 700, margin: 0 }}>Backup Codes</h4>
                                             <button
                                                 onClick={() => {
-                                                    try { navigator.clipboard.writeText(backupCodes.join('\n')); } catch (_) {}
+                                                    try { navigator.clipboard.writeText(backupCodes.join('\n')); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                                                     setBackupCodesCopied(true);
                                                     setTimeout(() => setBackupCodesCopied(false), 2000);
                                                 }}

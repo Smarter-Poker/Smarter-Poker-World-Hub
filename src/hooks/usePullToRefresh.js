@@ -137,7 +137,7 @@ export function usePullToRefresh({ onRefresh, containerRef, disabled = false }) 
 
             try {
                 await onRefresh();
-            } catch (_) { }
+            } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
             isRefreshingRef.current = false;
             setRefreshing(false);

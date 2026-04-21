@@ -74,7 +74,7 @@ async function _flushPendingSettings() {
 export function saveAppSetting(key, value, localStorageKey) {
     // 1. Write to localStorage immediately (fast cache)
     if (localStorageKey && typeof window !== 'undefined') {
-        try { localStorage.setItem(localStorageKey, typeof value === 'object' ? JSON.stringify(value) : String(value)); } catch (_) {}
+        try { localStorage.setItem(localStorageKey, typeof value === 'object' ? JSON.stringify(value) : String(value)); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }
 
     // 2. Queue for coalesced DB write
@@ -188,7 +188,7 @@ export async function seedLocalStorageFromDB(userId) {
             if (settings[dbKey] !== undefined && settings[dbKey] !== null) {
                 const val = settings[dbKey];
                 const str = typeof val === 'object' ? JSON.stringify(val) : String(val);
-                try { localStorage.setItem(lsKey, str); } catch (_) {}
+                try { localStorage.setItem(lsKey, str); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
             }
         }
         console.log('[AppSettings] ✅ Seeded localStorage from DB —', Object.keys(settings).length, 'keys');

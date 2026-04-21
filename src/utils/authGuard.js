@@ -143,7 +143,7 @@ export function clearPersistedSession() {
     if (typeof localStorage === 'undefined') return;
     try {
         localStorage.removeItem(SESSION_KEY);
-    } catch (e) { }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -401,7 +401,7 @@ export function addToDeadLetterQueue(operation) {
         });
         // Keep only last 50 items
         localStorage.setItem(DLQ_KEY, JSON.stringify(queue.slice(-50)));
-    } catch (e) { }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 }
 
 export function getDeadLetterQueue() {
@@ -417,7 +417,7 @@ export function clearDeadLetterQueue() {
     if (typeof localStorage === 'undefined') return;
     try {
         localStorage.removeItem(DLQ_KEY);
-    } catch (e) { }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

@@ -337,7 +337,7 @@ export default function SolutionsBrowser() {
       <div style={{ padding: 40, textAlign: 'center', color: '#ff4444' }}>
         <h2>Error Loading Solutions Browser</h2>
         <p>{renderError.message}</p>
-        <button onClick={() => setRenderError(null)} style={{ padding: '8px 16px', background: '#333', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', marginTop: 10 }}>Retry</button>
+        <button onClick={() => setRenderError(null)} style={{ padding: '8px 16px', background: '#333', color: 'white', border: 'none', borderRadius: 20, cursor: 'pointer', marginTop: 10 }}>Retry</button>
       </div>
     );
   }

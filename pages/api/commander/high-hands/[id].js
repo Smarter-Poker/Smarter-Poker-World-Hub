@@ -225,7 +225,7 @@ async function deleteHighHand(req, res, id) {
 
     return res.status(200).json({ success: true, message: 'High hand deleted' });
   } catch (error) {
-      try { reportApiError(error, req); } catch (_sentryErr) {}
+      try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.error('Delete high hand error:', error);
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }

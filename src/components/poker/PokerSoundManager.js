@@ -54,7 +54,7 @@ export class PokerSoundManager {
       if (saved && PokerSoundManager.PACKS[saved]) this._pack = saved;
       const vols = typeof localStorage !== 'undefined' && localStorage.getItem('poker-sound-volumes');
       if (vols) Object.assign(this._categoryVolumes, JSON.parse(vols));
-    } catch (_) {}
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }
 
   _getCtx() {
@@ -83,14 +83,14 @@ export class PokerSoundManager {
   setSoundPack(packName) {
     if (PokerSoundManager.PACKS[packName]) {
       this._pack = packName;
-      try { localStorage.setItem('poker-sound-pack', packName); } catch (_) {}
+      try { localStorage.setItem('poker-sound-pack', packName); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }
   }
 
   get categoryVolumes() { return { ...this._categoryVolumes }; }
   setCategoryVolume(category, vol) {
     this._categoryVolumes[category] = Math.max(0, Math.min(1, vol));
-    try { localStorage.setItem('poker-sound-volumes', JSON.stringify(this._categoryVolumes)); } catch (_) {}
+    try { localStorage.setItem('poker-sound-volumes', JSON.stringify(this._categoryVolumes)); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }
 
   get packConfig() { return PokerSoundManager.PACKS[this._pack] || PokerSoundManager.PACKS.casino; }
@@ -118,7 +118,7 @@ export class PokerSoundManager {
         const panner = new StereoPannerNode(ctx, { pan: this._currentPan });
         panner.connect(ctx.destination);
         return panner;
-      } catch (_) {}
+      } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }
     return ctx.destination;
   }

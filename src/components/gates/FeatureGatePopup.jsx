@@ -90,7 +90,7 @@ export function useFeatureGate(featureKey) {
     const isVipTriple = useMemo(() => {
         if (contextIsVip) return true;
         if (typeof window !== 'undefined') {
-            try { if (localStorage.getItem('sp-vip-status') === 'true') return true; } catch (e) { }
+            try { if (localStorage.getItem('sp-vip-status') === 'true') return true; } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         }
         if (user?.user_metadata?.is_vip) return true;
         return false;
