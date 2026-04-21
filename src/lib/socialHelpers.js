@@ -129,3 +129,48 @@ export async function compressImage(file, maxDim = 1920, quality = 0.85) {
         img.src = URL.createObjectURL(file);
     });
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Video Upload Helpers (Direct-to-S3 signed URL uploads)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const sniffMimeType = (file) => {
+    if (file.type) return file.type;
+    const ext = (file.name || '').split('.').pop().toLowerCase();
+    const map = {
+        mp4: 'video/mp4', mov: 'video/quicktime', m4v: 'video/x-m4v',
+        avi: 'video/x-msvideo', webm: 'video/webm',
+        '3gp': 'video/3gpp', '3g2': 'video/3gpp2',
+        hevc: 'video/hevc', mkv: 'video/x-matroska',
+        jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
+        gif: 'image/gif', webp: 'image/webp',
+    };
+    return map[ext] || 'application/octet-stream';
+};
+
+export const uploadVideoWithProgress = (signedUrl, file, mimeType, onProgress, xhrCallback) => {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('PUT', signedUrl);
+        xhr.setRequestHeader('Content-Type', mimeType);
+        // Expose the XHR handle to the caller so it can be aborted on unmount
+        if (typeof xhrCallback === 'function') xhrCallback(xhr);
+        xhr.upload.onprogress = (evt) => {
+            if (evt.lengthComputable && onProgress) {
+                const pct = Math.round((evt.loaded / evt.total) * 100);
+                onProgress({ pct, label: `Uploading video… ${pct}%` });
+            }
+        };
+        xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                resolve(xhr);
+            } else {
+                reject(new Error(`PUT failed (${xhr.status}): ${xhr.responseText?.slice(0, 200) || ''}`.trim()));
+            }
+        };
+        xhr.onerror = () => reject(new Error('Network error during video upload'));
+        xhr.ontimeout = () => reject(new Error('Video upload timed out'));
+        xhr.timeout = 10 * 60 * 1000; // 10 minute timeout for large videos
+        xhr.send(file);
+    });
+};

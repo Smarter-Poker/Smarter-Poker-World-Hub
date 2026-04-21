@@ -8,7 +8,7 @@ import { useActiveIdentity } from '../../../src/contexts/ActiveIdentityContext';
 import CheckInModal from './CheckInModal';
 import TrendingVenues from './TrendingVenues';
 import { SharedAvatar as Avatar } from './SharedAvatar';
-import { MAX_MEDIA, compressImage, getYouTubeVideoId, validateYouTubeVideo, SOCIAL_COLORS as C } from '../../../src/lib/socialHelpers';
+import { MAX_MEDIA, compressImage, getYouTubeVideoId, validateYouTubeVideo, sniffMimeType, uploadVideoWithProgress, SOCIAL_COLORS as C } from '../../../src/lib/socialHelpers';
 
 export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages, authorOverride, context = 'social-media' }) {
     const [postVisibility, setPostVisibility] = useState('public');
@@ -119,48 +119,6 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         setUploading(false);
     };
 
-    // iOS Photo Library often returns an empty file.type for videos.
-    // Sniff the real MIME type from the file extension as a fallback.
-    const sniffMimeType = (file) => {
-        if (file.type) return file.type;
-        const ext = (file.name || '').split('.').pop().toLowerCase();
-        const map = {
-            mp4: 'video/mp4', mov: 'video/quicktime', m4v: 'video/x-m4v',
-            avi: 'video/x-msvideo', webm: 'video/webm',
-            '3gp': 'video/3gpp', '3g2': 'video/3gpp2',
-            hevc: 'video/hevc', mkv: 'video/x-matroska',
-            jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
-            gif: 'image/gif', webp: 'image/webp',
-        };
-        return map[ext] || 'application/octet-stream';
-    };
-
-    // Upload a video via XHR so we get real upload progress events.
-    const uploadVideoWithProgress = (signedUrl, file, mimeType) => {
-        return new Promise((resolve, reject) => {
-            const xhr = new XMLHttpRequest();
-            xhr.open('PUT', signedUrl);
-            xhr.setRequestHeader('Content-Type', mimeType);
-            xhr.upload.onprogress = (evt) => {
-                if (evt.lengthComputable) {
-                    const pct = Math.round((evt.loaded / evt.total) * 100);
-                    setUploadProgress({ pct, label: `Uploading video… ${pct}%` });
-                }
-            };
-            xhr.onload = () => {
-                if (xhr.status >= 200 && xhr.status < 300) {
-                    resolve(xhr);
-                } else {
-                    reject(new Error(`PUT failed (${xhr.status}): ${xhr.responseText?.slice(0, 200) || ''}`.trim()));
-                }
-            };
-            xhr.onerror = () => reject(new Error('Network error during video upload'));
-            xhr.ontimeout = () => reject(new Error('Video upload timed out'));
-            xhr.timeout = 10 * 60 * 1000; // 10 minute timeout for large videos
-            xhr.send(file);
-        });
-    };
-
     const handleFiles = async (e) => {
         const files = Array.from(e.target.files);
         if (!files.length) return;
@@ -225,7 +183,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         continue;
                     }
                     // Use XHR for real upload progress (fetch has no upload progress API)
-                    await uploadVideoWithProgress(meta.signedUrl, file, mimeType);
+                    await uploadVideoWithProgress(meta.signedUrl, file, mimeType, setUploadProgress);
                     setUploadProgress({ pct: 100, label: 'Processing video…' });
                     uploaded.push({ type: 'video', url: meta.publicUrl });
                     setUploadProgress(null);

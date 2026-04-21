@@ -7,33 +7,46 @@
  */
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import * as Sentry from '@sentry/nextjs';
 import { SocialService } from '../../services/SocialService';
 import { validatePostContent } from '../../services/social-types';
 import toast from '../../stores/toastStore';
 import { claimReward } from '../../lib/claimReward';
 import { busEmit } from '../../engine/EventBus';
 import { broadcastSync, BROADCAST_TAB_ID } from '../../lib/broadcastSync';
+import { getAccessToken } from '../../lib/authUtils';
+import { compressImage, sniffMimeType, uploadVideoWithProgress } from '../../lib/socialHelpers';
 
-// Simple file validation since MediaUploadService may not exist
-const validateFile = (file, mediaType) => {
-  const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
-  const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
-  const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-  const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm'];
+// File validation — uses sniffMimeType to correctly handle iOS Photo Library uploads.
+// Size constants are aligned with the upload API limits.
+const ALLOWED_IMAGE_TYPES = [
+  'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+];
+const ALLOWED_VIDEO_TYPES = [
+  'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo',
+  'video/x-m4v', 'video/3gpp', 'video/3gpp2', 'video/hevc', 'video/x-matroska',
+  'application/octet-stream', // iOS fallback when extension sniffing gives generic type
+];
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024;          // 10MB (pre-compression)
+const MAX_VIDEO_SIZE = 5 * 1024 * 1024 * 1024;    // 5GB (matches /api/social/upload-url)
 
-  if (mediaType === 'video') {
-    if (!ALLOWED_VIDEO_TYPES.includes(file.type)) {
-      return { valid: false, error: 'Invalid video format. Use MP4 or WebM.' };
+const validateFile = (file) => {
+  const mimeType = sniffMimeType(file);
+  const isVideo = mimeType.startsWith('video/');
+
+  if (isVideo) {
+    if (!ALLOWED_VIDEO_TYPES.includes(mimeType)) {
+      return { valid: false, error: `Unsupported video format (${mimeType}). Try MP4, MOV, or WebM.` };
     }
     if (file.size > MAX_VIDEO_SIZE) {
-      return { valid: false, error: 'Video too large. Max 100MB.' };
+      return { valid: false, error: 'Video too large. Max 5 GB.' };
     }
   } else {
-    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-      return { valid: false, error: 'Invalid image format. Use JPEG, PNG, GIF, or WebP.' };
+    if (!ALLOWED_IMAGE_TYPES.includes(mimeType)) {
+      return { valid: false, error: `Unsupported image format (${mimeType}). Use JPEG, PNG, GIF, or WebP.` };
     }
     if (file.size > MAX_IMAGE_SIZE) {
-      return { valid: false, error: 'Image too large. Max 10MB.' };
+      return { valid: false, error: 'Image too large (before compression). Max 10 MB.' };
     }
   }
   return { valid: true };
@@ -122,28 +135,45 @@ export const EnhancedPostCreator = ({
   const textareaRef = useRef(null);
   const modalRef = useRef(null);
   const fileInputRef = useRef(null);
+  const xhrRef = useRef(null);          // holds active video XHR so we can abort on unmount
+  const draftTimeout = useRef(null);    // debounce handle for draft auto-save
 
   // Character count
   const charCount = content.length;
   const charPercentage = (charCount / MAX_CHARS) * 100;
 
-  // Focus textarea when modal opens
+  // Focus textarea when modal opens + restore any saved draft
   useEffect(() => {
     if (isOpen && textareaRef.current) {
       setTimeout(() => textareaRef.current?.focus(), 100);
     }
+    if (isOpen) {
+      try {
+        const saved = localStorage.getItem('sp-enhanced-post-draft');
+        if (saved) setContent(saved);
+      } catch (e) { /* ignore */ }
+    }
   }, [isOpen]);
 
-  // Reset state when modal closes
+  // Reset state when modal closes — do NOT clear draft (user may reopen)
   useEffect(() => {
     if (!isOpen) {
-      setContent('');
+      // Abort any in-progress video upload when the modal closes
+      if (xhrRef.current) { try { xhrRef.current.abort(); } catch (_) {} xhrRef.current = null; }
       setMediaFiles([]);
       setUploadProgress({});
       setError(null);
       setShowSuccess(false);
     }
   }, [isOpen]);
+
+  // Abort XHR on component unmount (navigation away mid-upload)
+  useEffect(() => {
+    return () => {
+      if (xhrRef.current) { try { xhrRef.current.abort(); } catch (_) {} }
+      if (draftTimeout.current) clearTimeout(draftTimeout.current);
+    };
+  }, []);
 
   // Handle escape key
   useEffect(() => {
@@ -177,10 +207,9 @@ export const EnhancedPostCreator = ({
 
     const filesToAdd = files.slice(0, remainingSlots);
 
-    // Validate each file
+    // Validate each file using sniffMimeType-aware validator
     for (const file of filesToAdd) {
-      const mediaType = file.type.startsWith('video/') ? 'video' : 'image';
-      const validation = validateFile(file, mediaType);
+      const validation = validateFile(file);
       if (!validation.valid) {
         setError(validation.error);
         return;
@@ -246,41 +275,110 @@ export const EnhancedPostCreator = ({
 
       for (let i = 0; i < mediaFiles.length; i++) {
         const file = mediaFiles[i];
-        const isVideo = file.type.startsWith('video/');
-        const bucket = isVideo ? 'videos' : 'images';
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${user.id}/${Date.now()}_${i}.${fileExt}`;
+        const mimeType = sniffMimeType(file);
+        const isVideo = mimeType.startsWith('video/');
+        const folder = isVideo ? 'videos' : 'photos';
 
         try {
-          setUploadProgress(prev => ({ ...prev, [i]: 10 }));
-
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from(bucket)
-            .upload(fileName, file);
-
-          if (uploadError) throw uploadError;
-
-          setUploadProgress(prev => ({ ...prev, [i]: 80 }));
-
-          const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(fileName);
-
-          setUploadProgress(prev => ({ ...prev, [i]: 100 }));
-
-          uploadedMedia.push({
-            url: urlData.publicUrl,
-            type: file.type,
-            name: file.name
-          });
+          if (isVideo) {
+            // Direct-to-Supabase upload for videos (bypasses Vercel body limit)
+            setUploadProgress(prev => ({ ...prev, [i]: 0 }));
+            
+            const _uploadToken = getAccessToken();
+            if (!_uploadToken) {
+              throw new Error('Authentication required — please refresh the page and try again.');
+            }
+            
+            const metaRes = await fetch('/api/social/upload-url', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${_uploadToken}`,
+                },
+                body: JSON.stringify({
+                    fileName: file.name || `video_${Date.now()}.mp4`,
+                    fileSize: file.size,
+                    mimeType,
+                    folder,
+                    prefix: user.id,
+                }),
+            });
+            
+            if (!metaRes.ok) {
+                const errBody = await metaRes.json().catch(() => ({}));
+                throw new Error(errBody.error || `Request failed (${metaRes.status})`);
+            }
+            
+            const meta = await metaRes.json();
+            if (!meta.success) {
+                throw new Error(meta.error || 'Unknown error');
+            }
+            if (!meta.signedUrl || !meta.signedUrl.startsWith('http')) {
+                throw new Error('Video upload failed: invalid upload URL received');
+            }
+            
+            // Use XHR for real upload progress — expose handle for abort-on-unmount
+            await uploadVideoWithProgress(meta.signedUrl, file, mimeType, (progressObj) => {
+                setUploadProgress(prev => ({ ...prev, [i]: progressObj.pct }));
+            }, (xhr) => { xhrRef.current = xhr; });
+            
+            uploadedMedia.push({
+                url: meta.publicUrl,
+                type: 'video',
+                name: file.name
+            });
+            setUploadProgress(prev => ({ ...prev, [i]: 100 }));
+            
+          } else {
+            // Compress image before upload
+            setUploadProgress(prev => ({ ...prev, [i]: 10 }));
+            const compressedFile = await compressImage(file);
+            if (compressedFile.size > 4.5 * 1024 * 1024) {
+                throw new Error(`Image is too large (max 4.5MB). Please choose a smaller image.`);
+            }
+            
+            const formData = new FormData();
+            formData.append('file', compressedFile);
+            formData.append('folder', folder);
+            formData.append('prefix', user.id);
+            
+            const _imgToken = getAccessToken();
+            if (!_imgToken) {
+                throw new Error('Authentication required — please refresh the page and try again.');
+            }
+            
+            setUploadProgress(prev => ({ ...prev, [i]: 50 }));
+            const res = await fetch('/api/social/upload', {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${_imgToken}` },
+                body: formData,
+            });
+            
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
+            const json = await res.json();
+            
+            if (json.success && json.url) {
+                uploadedMedia.push({
+                    url: json.url,
+                    type: json.type || 'photo',
+                    name: file.name
+                });
+                setUploadProgress(prev => ({ ...prev, [i]: 100 }));
+            } else {
+                throw new Error(json.error || 'Unknown upload error');
+            }
+          }
         } catch (uploadErr) {
           console.warn('Media upload failed:', uploadErr);
-          setError(`Failed to upload ${file.name}`);
+          setError(`Upload failed: ${uploadErr.message}`);
           setIsSubmitting(false);
           return;
         }
       }
 
-      // Determine content type
-      const contentType = uploadedMedia.some(m => m.type?.startsWith('video/'))
+      // Determine content type — compare against normalized 'video'/'photo' strings set during upload,
+      // NOT against raw MIME types (which are no longer stored in uploadedMedia.type)
+      const contentType = uploadedMedia.some(m => m.type === 'video')
         ? 'video'
         : uploadedMedia.length > 0
           ? 'image'
@@ -317,12 +415,30 @@ export const EnhancedPostCreator = ({
         setMediaFiles([]);
         setUploadProgress({});
         setShowSuccess(false);
+        xhrRef.current = null;
+        // Clear the saved draft on successful post
+        try { localStorage.removeItem('sp-enhanced-post-draft'); } catch (_) {}
         onPostCreated?.(newPost);
         if (onClose) onClose();
       }, 1500);
 
     } catch (err) {
-      console.warn('Post creation error details:', err);
+      // Log full error to Sentry for post-mortem visibility before sanitizing for users
+      try {
+        Sentry.captureException(err, {
+          tags: { area: 'social', action: 'create_post' },
+          extra: {
+            contentLength: content?.length,
+            mediaCount: mediaFiles?.length,
+            userId: user?.id,
+            errorCode: err?.code,
+            errorDetails: err?.details,
+            errorHint: err?.hint,
+          },
+        });
+      } catch (_sentryErr) { /* never let Sentry itself crash the UI */ }
+
+      console.warn('[EnhancedPostCreator] Post creation error:', err);
 
       // SAFETY: Robust error message extraction
       let errorMessage = 'Failed to create post';
@@ -334,7 +450,7 @@ export const EnhancedPostCreator = ({
         errorMessage = err.error_description;
       }
 
-      // Hide technical database errors
+      // Sanitize technical DB errors from the user-facing message (still captured in Sentry above)
       const lowerMsg = errorMessage.toLowerCase();
       const isDatabaseError =
         lowerMsg.includes('ambiguous') ||
@@ -349,11 +465,18 @@ export const EnhancedPostCreator = ({
         lowerMsg.includes('policy') ||
         lowerMsg.includes('rls');
 
+      const isNetworkError =
+        lowerMsg.includes('network') ||
+        lowerMsg.includes('timed out') ||
+        lowerMsg.includes('failed to fetch');
+
       const userFriendlyMessage = isDatabaseError
-        ? 'Unable to post at this time. Please try again later.'
+        ? 'Unable to post right now. Our team has been notified — please try again shortly.'
         : isAuthError
           ? 'You do not have permission to post. Please log in.'
-          : errorMessage;
+          : isNetworkError
+            ? 'Upload failed due to a network issue. Please check your connection and try again.'
+            : errorMessage;
 
       setError(userFriendlyMessage);
     } finally {
@@ -418,8 +541,17 @@ export const EnhancedPostCreator = ({
             placeholder={`What's on your mind, ${user?.name?.split(' ')[0] || user?.email?.split('@')[0] || 'there'}?`}
             value={content}
             onChange={(e) => {
-              setContent(e.target.value);
+              const val = e.target.value;
+              setContent(val);
               setError(null);
+              // Debounced draft auto-save (restores text if user reopens or refreshes)
+              if (draftTimeout.current) clearTimeout(draftTimeout.current);
+              draftTimeout.current = setTimeout(() => {
+                try {
+                  if (val.trim()) localStorage.setItem('sp-enhanced-post-draft', val);
+                  else localStorage.removeItem('sp-enhanced-post-draft');
+                } catch (_) {}
+              }, 2000);
             }}
             maxLength={MAX_CHARS}
             disabled={isSubmitting}
@@ -707,8 +839,17 @@ export const EnhancedPostCreator = ({
             placeholder="Share Your Poker Journey, Achievements, Or Insights..."
             value={content}
             onChange={(e) => {
-              setContent(e.target.value);
+              const val = e.target.value;
+              setContent(val);
               setError(null);
+              // Debounced draft auto-save (restores text if user reopens or refreshes)
+              if (draftTimeout.current) clearTimeout(draftTimeout.current);
+              draftTimeout.current = setTimeout(() => {
+                try {
+                  if (val.trim()) localStorage.setItem('sp-enhanced-post-draft', val);
+                  else localStorage.removeItem('sp-enhanced-post-draft');
+                } catch (_) {}
+              }, 2000);
             }}
             maxLength={MAX_CHARS}
             disabled={isSubmitting}
