@@ -125,7 +125,7 @@ export default async function handler(req, res) {
                       bio: userProfile.bio?.substring(0, 50),
                       hendon_url: userProfile.hendon_url ? 'EXISTS' : 'MISSING'
                   } : null,
-                  friendsCount: userFriends.length,
+                  friendsCount: new Set(userFriends.map(f => f.user_id === userProfile.id ? f.friend_id : f.user_id)).size,
                   postsCount: userPosts.length,
                   samplePost: userPosts[0] || null
               },

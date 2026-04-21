@@ -64,16 +64,15 @@ export function warmCache(user) {
         // Fire-and-forget parallel prefetch
         Promise.all([
             supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
-            supabase.from('friendships').select('*', { count: 'exact', head: true }).eq('status', 'accepted').or(`user_id.eq.${userId},friend_id.eq.${userId}`),
             supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', userId),
             supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', userId),
             supabase.from('social_posts').select('*', { count: 'exact', head: true }).eq('author_id', userId),
-            supabase.from('friendships').select('user_id, friend_id').eq('status', 'accepted').or(`user_id.eq.${userId},friend_id.eq.${userId}`).limit(20),
-        ]).then(([profileRes, friendsCount, followingCount, followersCount, postsCount, friendshipsRes]) => {
+            supabase.from('friendships').select('user_id, friend_id').eq('status', 'accepted').or(`user_id.eq.${userId},friend_id.eq.${userId}`).limit(200),
+        ]).then(([profileRes, followingCount, followersCount, postsCount, friendshipsRes]) => {
             if (!profileRes.data || !CACHE_KEY) return;
 
-            // Build friend profiles
-            const friendIds = (friendshipsRes.data || []).map(f => f.user_id === userId ? f.friend_id : f.user_id);
+            // Build friend profiles (deduplicated bidirectional rows)
+            const friendIds = [...new Set((friendshipsRes.data || []).map(f => f.user_id === userId ? f.friend_id : f.user_id))];
 
             const saveCachePayload = (friends = []) => {
                 try {
@@ -81,7 +80,7 @@ export function warmCache(user) {
                         _cachedAt: Date.now(),
                         profile: profileRes.data,
                         stats: {
-                            friends: friendsCount.count || 0,
+                            friends: friendIds.length,
                             following: followingCount.count || 0,
                             followers: followersCount.count || 0,
                             posts: postsCount.count || 0,
