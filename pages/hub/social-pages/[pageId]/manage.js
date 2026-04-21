@@ -170,7 +170,7 @@ export default function ManageSocialPage() {
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) setMembers(json.data || []);
-        } catch (e) { console.error("[manage.js]", e); }
+        } catch (e) { console.warn('[manage.js] fetchMembers error:', e?.message || e); }
     };
 
     const fetchPosts = async () => {
