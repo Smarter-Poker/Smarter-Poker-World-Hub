@@ -34,6 +34,8 @@ export default async function handler(req, res) {
     const userId = localUser.id;
 
     if (req.method === 'GET') {
+      // Friends data is private per-user — safe to cache briefly in browser only
+      res.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=30');
       const { action = 'list' } = req.query;
 
       try {

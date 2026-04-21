@@ -38,6 +38,8 @@ export default async function handler(req, res) {
 
 
       if (req.method === 'GET') {
+          // Page post feeds are public — safe to cache 30s at the CDN edge
+          res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=120');
           const safeP = (v) => Array.isArray(v) ? v[0] : v;
           const page_id = safeP(req.query.page_id);
           const author_id = safeP(req.query.author_id);
