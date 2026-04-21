@@ -214,6 +214,7 @@ export default function HomeGamesByState({ stateCode, stateName, stateSlug, game
       <Head>
         <script
           type="application/ld+json"
+          // F119: g.name is user-authored. See [slug].js for threat model.
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
               '@context': 'https://schema.org',
@@ -228,7 +229,7 @@ export default function HomeGamesByState({ stateCode, stateName, stateSlug, game
                 url: `https://smarter.poker/hub/home-games/${g.slug}`,
                 name: g.name,
               })),
-            }),
+            }).replace(/</g, '\\u003c'),
           }}
         />
         <script
