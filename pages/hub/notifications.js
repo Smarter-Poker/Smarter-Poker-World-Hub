@@ -4,10 +4,10 @@
  */
 
 import SEOHead from '../../src/components/seo/SEOHead';
-import { ThumbsUp, Heart, MessageCircle, AtSign, UserPlus, UserCheck, Eye, Radio, Spade, Bell, Share2, Star, Trophy, Banknote, ShieldCheck, Users, Megaphone, Gift, TrendingUp, Zap } from 'lucide-react';
+import { ThumbsUp, Heart, MessageCircle, AtSign, UserPlus, UserCheck, Eye, Radio, Spade, Bell, Share2, Star, Trophy, Banknote, ShieldCheck, Users, Megaphone, Gift, TrendingUp, Zap, Trash2, X } from 'lucide-react';
 import { useRouter } from 'next/router';
 import toast from '../../src/stores/toastStore';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../../src/lib/supabase';
 import { getAuthUser } from '../../src/lib/authUtils';
 import { eventBus, EventType, busEmit } from '../../src/engine/EventBus';
@@ -44,6 +44,50 @@ function NotificationsPage() {
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState(null);
     const hasCacheRef = useRef(false);
+    const [swipedId, setSwipedId] = useState(null);
+    const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+    const [deletingIds, setDeletingIds] = useState(new Set());
+    const touchStartRef = useRef({ x: 0, y: 0, id: null });
+
+    // ── Delete notification ──────────────────────────────────────
+    const handleDelete = useCallback(async (notifId, e) => {
+        if (e) { e.stopPropagation(); e.preventDefault(); }
+        setConfirmDeleteId(null);
+        setSwipedId(null);
+        // Optimistic removal
+        setDeletingIds(prev => new Set([...prev, notifId]));
+        setTimeout(() => {
+            setNotifications(prev => prev.filter(n => n.id !== notifId));
+            setDeletingIds(prev => { const s = new Set(prev); s.delete(notifId); return s; });
+        }, 300);
+        try {
+            const token = await getAccessToken();
+            await fetch('/api/notifications/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                body: JSON.stringify({ id: notifId })
+            });
+        } catch (err) { console.error('[Delete Notif]', err); }
+    }, []);
+
+    // ── Swipe handlers (mobile) ──────────────────────────────────
+    const onTouchStart = useCallback((notifId, e) => {
+        const touch = e.touches[0];
+        touchStartRef.current = { x: touch.clientX, y: touch.clientY, id: notifId };
+    }, []);
+    const onTouchEnd = useCallback((e) => {
+        const touch = e.changedTouches[0];
+        const { x: startX, y: startY, id } = touchStartRef.current;
+        const dx = touch.clientX - startX;
+        const dy = Math.abs(touch.clientY - startY);
+        // Require >60px horizontal, <30px vertical
+        if (dx < -60 && dy < 30 && id) {
+            setSwipedId(id);
+        } else if (dx > 40 && id) {
+            setSwipedId(null);
+        }
+        touchStartRef.current = { x: 0, y: 0, id: null };
+    }, []);
 
     // 🛡️ INSTANT UI: Hydrate from localStorage AFTER mount (prevents SSR mismatch)
     useEffect(() => {
@@ -587,82 +631,172 @@ function NotificationsPage() {
                             };
                             const isClickable = !!(n.data?.page_type && n.data?.page_id) || !!n.actor_username;
 
+                            const isSwiped = swipedId === n.id;
+                            const isDeleting = deletingIds.has(n.id);
+                            const isConfirming = confirmDeleteId === n.id;
+
                             return (
                                 <div
                                     key={n.id}
-                                    onClick={handleClick}
                                     style={{
-                                        padding: 16, display: 'flex', gap: 12, alignItems: 'flex-start',
-                                        background: n.read ? C.card : 'rgba(24, 119, 242, 0.08)',
-                                        borderBottom: `1px solid ${C.border}`, cursor: isClickable ? 'pointer' : 'default'
+                                        position: 'relative', overflow: 'hidden',
+                                        borderBottom: `1px solid ${C.border}`,
+                                        opacity: isDeleting ? 0 : 1,
+                                        maxHeight: isDeleting ? 0 : 200,
+                                        transition: 'opacity 0.3s ease, max-height 0.3s ease',
                                     }}
                                 >
-                                    {/* Avatar with Lucide action badge */}
-                                    <div style={{ position: 'relative', flexShrink: 0 }}>
-                                        <img
-                                            src={n.actor_avatar_url || '/default-avatar.png'}
+                                    {/* Delete backdrop (mobile swipe reveal) */}
+                                    <div style={{
+                                        position: 'absolute', right: 0, top: 0, bottom: 0,
+                                        width: 80, background: '#FA383E',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        zIndex: 1
+                                    }}>
+                                        <button
+                                            onClick={(e) => handleDelete(n.id, e)}
                                             style={{
-                                                width: 56, height: 56, borderRadius: '50%',
-                                                objectFit: 'cover', border: '2px solid #ddd'
+                                                background: 'none', border: 'none', color: '#fff',
+                                                display: 'flex', flexDirection: 'column', alignItems: 'center',
+                                                gap: 4, cursor: 'pointer', padding: 8
                                             }}
-                                            loading="lazy" />
-                                        <div style={{
-                                            position: 'absolute', bottom: -2, right: -2,
-                                            width: 24, height: 24, borderRadius: '50%',
-                                            background: iconBg, border: '2px solid white',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                        }}>{ActionIcon}</div>
+                                        >
+                                            <Trash2 size={20} />
+                                            <span style={{ fontSize: 11, fontWeight: 600 }}>Delete</span>
+                                        </button>
                                     </div>
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ fontSize: 15, color: C.text, lineHeight: 1.4 }}>
-                                            <span style={{ fontWeight: 700 }}>{n.actor_name || n.title}</span>
-                                            {' '}{n.message}
-                                        </div>
-                                        <div style={{ fontSize: 12, color: n.read ? C.textSec : C.blue, marginTop: 4, fontWeight: n.read ? 400 : 600 }}>
-                                            {timeAgo(n.created_at)}
-                                        </div>
 
-                                        {/* Accept/Decline buttons for friend requests */}
-                                        {n.type === 'friend_request' && !n.handled && (
-                                            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-                                                <button
-                                                    onClick={(e) => handleAcceptFriendRequest(n, e)}
-                                                    style={{
-                                                        padding: '8px 20px',
-                                                        borderRadius: 8,
-                                                        border: 'none',
-                                                        background: C.blue,
-                                                        color: 'white',
-                                                        fontWeight: 600,
-                                                        fontSize: 14,
-                                                        cursor: 'pointer',
-                                                        transition: 'all 0.2s'
-                                                    }}
-                                                >
-                                                    Confirm
-                                                </button>
-                                                <button
-                                                    onClick={(e) => handleDeclineFriendRequest(n, e)}
-                                                    style={{
-                                                        padding: '8px 20px',
-                                                        borderRadius: 8,
-                                                        border: 'none',
-                                                        background: '#E4E6EB',
-                                                        color: C.text,
-                                                        fontWeight: 600,
-                                                        fontSize: 14,
-                                                        cursor: 'pointer',
-                                                        transition: 'all 0.2s'
-                                                    }}
-                                                    title="They'll Become Your Follower"
-                                                >
-                                                    Delete
-                                                </button>
+                                    {/* Main notification row (slides on swipe) */}
+                                    <div
+                                        onClick={handleClick}
+                                        onTouchStart={(e) => onTouchStart(n.id, e)}
+                                        onTouchEnd={onTouchEnd}
+                                        style={{
+                                            padding: 16, display: 'flex', gap: 12, alignItems: 'flex-start',
+                                            background: n.read ? C.card : 'rgba(24, 119, 242, 0.08)',
+                                            cursor: isClickable ? 'pointer' : 'default',
+                                            position: 'relative', zIndex: 2,
+                                            transform: isSwiped ? 'translateX(-80px)' : 'translateX(0)',
+                                            transition: 'transform 0.25s ease-out',
+                                        }}
+                                    >
+                                        {/* Avatar with Lucide action badge */}
+                                        <div style={{ position: 'relative', flexShrink: 0 }}>
+                                            <img
+                                                src={n.actor_avatar_url || '/default-avatar.png'}
+                                                style={{
+                                                    width: 56, height: 56, borderRadius: '50%',
+                                                    objectFit: 'cover', border: '2px solid #ddd'
+                                                }}
+                                                loading="lazy" />
+                                            <div style={{
+                                                position: 'absolute', bottom: -2, right: -2,
+                                                width: 24, height: 24, borderRadius: '50%',
+                                                background: iconBg, border: '2px solid white',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                            }}>{ActionIcon}</div>
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ fontSize: 15, color: C.text, lineHeight: 1.4 }}>
+                                                <span style={{ fontWeight: 700 }}>{n.actor_name || n.title}</span>
+                                                {' '}{n.message}
                                             </div>
-                                        )}
+                                            <div style={{ fontSize: 12, color: n.read ? C.textSec : C.blue, marginTop: 4, fontWeight: n.read ? 400 : 600 }}>
+                                                {timeAgo(n.created_at)}
+                                            </div>
+
+                                            {/* Accept/Decline buttons for friend requests */}
+                                            {n.type === 'friend_request' && !n.handled && (
+                                                <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                                                    <button
+                                                        onClick={(e) => handleAcceptFriendRequest(n, e)}
+                                                        style={{
+                                                            padding: '8px 20px',
+                                                            borderRadius: 8,
+                                                            border: 'none',
+                                                            background: C.blue,
+                                                            color: 'white',
+                                                            fontWeight: 600,
+                                                            fontSize: 14,
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.2s'
+                                                        }}
+                                                    >
+                                                        Confirm
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => handleDeclineFriendRequest(n, e)}
+                                                        style={{
+                                                            padding: '8px 20px',
+                                                            borderRadius: 8,
+                                                            border: 'none',
+                                                            background: '#E4E6EB',
+                                                            color: C.text,
+                                                            fontWeight: 600,
+                                                            fontSize: 14,
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.2s'
+                                                        }}
+                                                        title="They'll Become Your Follower"
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                        {/* Unread dot + delete button */}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, marginTop: 4 }}>
+                                            {!n.read && (
+                                                <div style={{ width: 12, height: 12, borderRadius: '50%', background: C.blue }} />
+                                            )}
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(isConfirming ? null : n.id); setSwipedId(null); }}
+                                                style={{
+                                                    background: 'none', border: 'none', cursor: 'pointer',
+                                                    padding: 4, borderRadius: '50%', display: 'flex',
+                                                    opacity: 0.4, transition: 'opacity 0.2s'
+                                                }}
+                                                onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                                                onMouseLeave={(e) => e.currentTarget.style.opacity = '0.4'}
+                                                title="Delete notification"
+                                            >
+                                                <X size={16} color={C.textSec} />
+                                            </button>
+                                        </div>
                                     </div>
-                                    {!n.read && (
-                                        <div style={{ width: 12, height: 12, borderRadius: '50%', background: C.blue, flexShrink: 0, marginTop: 8 }} />
+
+                                    {/* Confirm delete overlay */}
+                                    {isConfirming && (
+                                        <div
+                                            style={{
+                                                position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                                                background: 'rgba(0,0,0,0.75)', zIndex: 10,
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12
+                                            }}
+                                            onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null); }}
+                                        >
+                                            <button
+                                                onClick={(e) => handleDelete(n.id, e)}
+                                                style={{
+                                                    background: '#FA383E', color: '#fff', border: 'none',
+                                                    padding: '10px 24px', borderRadius: 8, fontWeight: 700,
+                                                    fontSize: 14, cursor: 'pointer', display: 'flex',
+                                                    alignItems: 'center', gap: 6
+                                                }}
+                                            >
+                                                <Trash2 size={16} /> Delete
+                                            </button>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null); }}
+                                                style={{
+                                                    background: '#E4E6EB', color: C.text, border: 'none',
+                                                    padding: '10px 24px', borderRadius: 8, fontWeight: 700,
+                                                    fontSize: 14, cursor: 'pointer'
+                                                }}
+                                            >
+                                                Cancel
+                                            </button>
+                                        </div>
                                     )}
                                 </div>
                             );
