@@ -122,9 +122,12 @@ const nextConfig = {
   // condition where vendor chunks get deleted mid-request, triggering
   // "Cannot find module './chunks/vendor-chunks/next.js'" 500 errors.
   experimental: {
-    // Disabled workerThreads and cpus: In Next.js 14, these can cause workers to
-    // crash silently (OOM), resulting in random `PageNotFoundError` during build.
-    // workerThreads: false,
+    // [OOM FIX] cpus:1 forces webpack to compile pages serially (no parallel workers).
+    // With 1,150+ pages, parallel workers each hold a full copy of shared modules —
+    // multiplying RAM 4-8x. Serial compilation cuts peak memory ~40% at the cost of
+    // slightly longer build time. REQUIRED to stay within Vercel's 8GB build container.
+    // Previously disabled because of PageNotFoundError in Next.js 14.0-14.1; fixed in 14.2.
+    cpus: process.env.NODE_ENV === 'production' ? 1 : undefined,
     // [Phase 6.1.18] Enable instrumentation hook (src/instrumentation.js) so
     // production env guardrails run once at server boot and fail fast if any
     // critical webhook/DB secret is missing.

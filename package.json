@@ -7,7 +7,7 @@
     "clean:dev": "npx kill-port 3000 && rm -rf .next node_modules/.cache && NODE_OPTIONS='--max-old-space-size=16384' next dev -p 3000",
     "nuke:dev": "npx kill-port 3000 && rm -rf .next node_modules/.cache && NODE_OPTIONS='--max-old-space-size=16384' next dev -p 3000",
     "dev:watch": "bash scripts/dev-watchdog.sh",
-    "build": "NODE_OPTIONS='--max-old-space-size=7168' next build",
+    "build": "NODE_OPTIONS='--max-old-space-size=4096' next build",
     "start": "next start",
     "ingest:us-events": "npx ts-node --esm src/ingest_us_events/run.ts",
     "warm-geeves": "node scripts/warmGeevesCache.js",
