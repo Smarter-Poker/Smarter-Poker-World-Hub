@@ -114,6 +114,26 @@ const nextConfig = {
   // ESM-only packages need transpilation for proper Next.js compatibility.
   transpilePackages: ['three', '@react-three/fiber', '@react-three/drei', '@react-three/postprocessing'],
 
+  // ─── Server External Packages (OOM FIX) ────────────────────────────────────
+  // Tell Next.js NOT to bundle these in the server bundle. They are native,
+  // browser-only, or too large to webpack. Dramatically reduces build RAM by
+  // preventing standalone mode from deep-tracing their entire dependency subtrees.
+  serverExternalPackages: [
+    'puppeteer', 'puppeteer-extra', 'puppeteer-extra-plugin-stealth',
+    'canvas', 'phaser', 'phaser3-rex-plugins',
+    'pg', 'pg-protocol',
+    'sharp',
+    'pdf-parse',
+    'twilio',
+    'jspdf', 'jspdf-autotable',
+    'docx',
+    'livekit-server-sdk',
+    'replicate',
+    'posthog-node',
+    '@pinecone-database/pinecone',
+    '@sentry/node',
+  ],
+
   // ─── Build Memory Optimization ──────────────────────────────────────────────
   // With 950+ pages, the build needs memory-efficient compilation.
   // workerThreads offloads page compilation to separate workers (lower per-worker memory).
@@ -128,6 +148,8 @@ const nextConfig = {
     // slightly longer build time. REQUIRED to stay within Vercel's 8GB build container.
     // Previously disabled because of PageNotFoundError in Next.js 14.0-14.1; fixed in 14.2.
     cpus: process.env.NODE_ENV === 'production' ? 1 : undefined,
+    // [OOM FIX] Disable worker threads — with cpus:1 they add spawn overhead for no gain.
+    workerThreads: false,
     // [Phase 6.1.18] Enable instrumentation hook (src/instrumentation.js) so
     // production env guardrails run once at server boot and fail fast if any
     // critical webhook/DB secret is missing.
