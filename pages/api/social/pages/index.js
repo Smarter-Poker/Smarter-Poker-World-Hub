@@ -166,11 +166,7 @@ export default async function handler(req, res) {
               getSupabase()
                   .rpc('increment_page_views', { page_uuid: data.id })
                   .then(() => {})
-                  .catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); })
-                          .eq('id', data.id)
-                          .then(() => {})
-                          .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-                  });
+                  .catch(e => console.warn('[SocialPages] View increment failed:', e?.message || e));
 
               // Enrich with owner profile (same as ID lookup)
               let owner = null;

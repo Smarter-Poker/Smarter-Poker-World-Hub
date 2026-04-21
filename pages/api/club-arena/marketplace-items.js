@@ -96,7 +96,10 @@ export default async function handler(req, res) {
                   item_name: p.club_shop_items?.name || null,
                   item_category: p.club_shop_items?.category || null,
               }));
-          } catch (_joinErr) { console.warn('[App] Handled exception:', _joinErr?.message || _joinErr); } = await getSupabase()
+          } catch (_joinErr) {
+              console.warn('[marketplace-items] FK join failed, falling back:', _joinErr?.message || _joinErr);
+              // Fallback: basic query without FK join
+              const { data: purchases, error: purErr } = await getSupabase()
                   .from('club_shop_purchases')
                   .select('id, item_id, price_paid, created_at')
                   .eq('club_id', clubId)

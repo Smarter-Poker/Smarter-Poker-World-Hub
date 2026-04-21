@@ -189,13 +189,16 @@ export default async function handler(req, res) {
                   p_page: currentPage || null,
                   p_grok_answer: answer,
               });
-          } catch (_rpcErr) { console.warn('[App] Handled exception:', _rpcErr?.message || _rpcErr); } = await getSupabase()
+          } catch (_rpcErr) {
+              console.warn('[Geeves Chat] RPC upsert failed, falling back to insert:', _rpcErr?.message || _rpcErr);
+              try {
+                  const { error: insErr } = await getSupabase()
                       .from('geeves_missed_questions')
                       .insert({
                           question: message,
                           question_hash: questionHash,
                           page: currentPage || null,
-                          grok_answer: answer.slice(0, 2000), // Cap Grok answer size
+                          grok_answer: answer.slice(0, 2000),
                           asked_count: 1,
                           first_asked: new Date().toISOString(),
                           last_asked: new Date().toISOString(),
@@ -208,7 +211,7 @@ export default async function handler(req, res) {
                           p_grok_answer: answer.slice(0, 2000),
                           p_page: currentPage || null,
                       }).catch(async () => {
-                          // Final fallback: direct update (no increment, still more correct than resetting to 1)
+                          // Final fallback: direct update
                           await getSupabase()
                               .from('geeves_missed_questions')
                               .update({ last_asked: new Date().toISOString(), grok_answer: answer.slice(0, 2000) })
