@@ -256,27 +256,45 @@ export function ReelsViewer({ onClose }) {
     }, [currentUserId]);
 
     // Reset paused state when changing reels + track view
+    // dep: currentIndex ONLY — we do NOT add `reels` because setReels() alone
+    // should NOT trigger a play() call (the video key changes, element remounts)
     useEffect(() => {
         setPaused(false);
         setShowOverlay(false);
         setProgress(0);
+
+        // Cancel any running RAF from the previous reel immediately
+        if (progressRAF.current) {
+            cancelAnimationFrame(progressRAF.current);
+            progressRAF.current = null;
+        }
+
         // Deduplicated view count
         const reelId = reels[currentIndex]?.id;
         if (reelId && currentUserId && !viewedReelsRef.current.has(reelId)) {
             viewedReelsRef.current.add(reelId);
-            // Optimistic UI update + DB increment
             setViewCounts(prev => ({ ...prev, [reelId]: (prev[reelId] || reels[currentIndex]?.view_count || 0) + 1 }));
             (async () => { try { await supabase.rpc('increment_post_count', { p_post_id: reelId, p_field: 'view_count' }); } catch {} })();
         }
 
-        // Force explicit autoplay since React autoPlay property is unreliable across tabs
-        if (videoRef.current) {
-            const playPromise = videoRef.current.play();
-            if (playPromise !== undefined) {
-                playPromise.catch(error => console.warn('Autoplay blocked initially:', error));
-            }
+        // Play via canplay event — video element may be remounting due to key change,
+        // calling play() immediately on a src-less element causes AbortError on mobile.
+        const video = videoRef.current;
+        if (!video) return;
+        const onCanPlay = () => {
+            const p = video.play();
+            if (p !== undefined) p.catch(() => {}); // suppress AbortError
+        };
+        // If already loaded (readyState >= 3), play immediately
+        if (video.readyState >= 3) {
+            const p = video.play();
+            if (p !== undefined) p.catch(() => {});
+        } else {
+            video.addEventListener('canplay', onCanPlay, { once: true });
         }
-    }, [currentIndex, reels]);
+        return () => video.removeEventListener('canplay', onCanPlay);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentIndex]);
 
     // Haptic helper
     const haptic = (ms = 10) => { try { navigator?.vibrate?.(ms); } catch {} };
@@ -655,8 +673,8 @@ export function ReelsViewer({ onClose }) {
         const nextIdx = (speeds.indexOf(playbackSpeed) + 1) % speeds.length;
         const newSpeed = speeds[nextIdx];
         setPlaybackSpeed(newSpeed);
-        const video = document.querySelector('video');
-        if (video) video.playbackRate = newSpeed;
+        // Use videoRef instead of document.querySelector to avoid grabbing wrong element
+        if (videoRef.current) videoRef.current.playbackRate = newSpeed;
     };
 
     // Handle image upload for reel comments

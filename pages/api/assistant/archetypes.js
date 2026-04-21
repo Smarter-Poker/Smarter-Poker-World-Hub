@@ -35,6 +35,9 @@ export default async function handler(req, res) {
       return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
+    // Villain archetypes are static reference data — safe to cache 1 hour at edge
+    res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');
+
     try {
       const { data: archetypes, error } = await getSupabase()
         .from('villain_archetypes')

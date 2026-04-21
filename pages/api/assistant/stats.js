@@ -22,6 +22,9 @@ export default async function handler(req, res) {
       return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
+    // Per-user training stats — private cache only, 60s browser TTL
+    res.setHeader('Cache-Control', 'private, max-age=60, stale-while-revalidate=120');
+
     // JWT Authentication
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {

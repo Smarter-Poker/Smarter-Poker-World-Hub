@@ -2187,15 +2187,21 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
     };
 
     const handleDeletePost = async (postId) => {
-        try { 
+        // EAGER STATE SYNCHRONIZATION: Remove post immediately (BFCache-safe)
+        const prevPosts = posts;
+        setPosts(prev => prev.filter(p => p.id !== postId));
+        try {
             const token = getAccessToken();
-            await fetch(`/api/social/pages/posts?id=${postId}&author_id=${userId}`, { 
+            await fetch(`/api/social/pages/posts?id=${postId}&author_id=${userId}`, {
                 method: 'DELETE',
                 headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-            }); 
-            setPosts(prev => prev.filter(p => p.id !== postId)); 
-        } catch (e) { console.error('Delete error:', e); }
+            });
+        } catch (e) {
+            console.error('Delete error:', e);
+            setPosts(prevPosts); // Rollback on failure
+        }
     };
+
 
     const handleSavePage = async () => {
         setSaving(true);
