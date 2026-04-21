@@ -3730,28 +3730,33 @@ function MessengerPage() {
 
         try {
             if (deleteType === 'for_everyone') {
-                // Delete for everyone (only if you sent it)
-                const { data: success, error } = await supabase.rpc('fn_delete_message', {
+                // EAGER STATE SYNCHRONIZATION: Mark as deleted immediately (BFCache-safe)
+                const prevMessages = messages;
+                setMessages(prev => prev.map(m =>
+                    m.id === messageId
+                        ? { ...m, content: '[Message deleted]', is_deleted: true }
+                        : m
+                ));
+                setToast({ type: 'success', message: 'Message Deleted For Everyone' });
+                busEmit.dataMutated('messenger');
+                if (refreshUnread) refreshUnread();
+                broadcastSync('smarter_poker_unread_sync', 'refresh_unread');
+
+                // Fire-and-forget RPC with rollback on failure
+                supabase.rpc('fn_delete_message', {
                     p_message_id: messageId,
                     p_user_id: user.id,
+                }).then(({ data: success, error }) => {
+                    if (error || !success) {
+                        // Rollback on failure
+                        setMessages(prevMessages);
+                        setToast({ type: 'error', message: 'Could Not Delete Message' });
+                    }
+                }).catch(() => {
+                    setMessages(prevMessages);
+                    setToast({ type: 'error', message: 'Could Not Delete Message' });
                 });
 
-                if (error) throw error;
-
-                if (success) {
-                    setMessages(prev => prev.map(m =>
-                        m.id === messageId
-                            ? { ...m, content: '[Message deleted]', is_deleted: true }
-                            : m
-                    ));
-                    setToast({ type: 'success', message: 'Message Deleted For Everyone' });
-                    // DEEP SWEEP FIX: Data mutated
-                    busEmit.dataMutated('messenger');
-                    if (refreshUnread) refreshUnread();
-                    broadcastSync('smarter_poker_unread_sync', 'refresh_unread');
-                } else {
-                    setToast({ type: 'error', message: 'Could Not Delete Message' });
-                }
             } else {
                 // Delete for me only — persist to localStorage so it survives refresh
                 const hiddenKey = 'sp-hidden-messages';

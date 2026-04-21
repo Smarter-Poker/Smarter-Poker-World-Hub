@@ -830,14 +830,16 @@ function NotificationsPage() {
                                                         onClick={(e) => handleAcceptFriendRequest(n, e)}
                                                         style={{
                                                             padding: '8px 20px',
-                                                            borderRadius: 8,
+                                                            borderRadius: 20,
                                                             border: 'none',
                                                             background: C.blue,
                                                             color: 'white',
                                                             fontWeight: 600,
                                                             fontSize: 14,
                                                             cursor: 'pointer',
-                                                            transition: 'all 0.2s'
+                                                            transition: 'all 0.2s',
+                                                            minWidth: 90,
+                                                            boxSizing: 'border-box'
                                                         }}
                                                     >
                                                         Confirm
@@ -846,14 +848,16 @@ function NotificationsPage() {
                                                         onClick={(e) => handleDeclineFriendRequest(n, e)}
                                                         style={{
                                                             padding: '8px 20px',
-                                                            borderRadius: 8,
+                                                            borderRadius: 20,
                                                             border: 'none',
                                                             background: '#E4E6EB',
                                                             color: C.text,
                                                             fontWeight: 600,
                                                             fontSize: 14,
                                                             cursor: 'pointer',
-                                                            transition: 'all 0.2s'
+                                                            transition: 'all 0.2s',
+                                                            minWidth: 90,
+                                                            boxSizing: 'border-box'
                                                         }}
                                                         title="They'll Become Your Follower"
                                                     >
@@ -904,9 +908,9 @@ function NotificationsPage() {
                                                 onClick={(e) => handleDelete(n.id, e)}
                                                 style={{
                                                     background: '#FA383E', color: '#fff', border: 'none',
-                                                    padding: '10px 24px', borderRadius: 8, fontWeight: 700,
+                                                    padding: '10px 24px', borderRadius: 20, fontWeight: 700,
                                                     fontSize: 14, cursor: 'pointer', display: 'flex',
-                                                    alignItems: 'center', gap: 6
+                                                    alignItems: 'center', gap: 6, boxSizing: 'border-box'
                                                 }}
                                             >
                                                 <Trash2 size={16} /> Delete
@@ -915,8 +919,8 @@ function NotificationsPage() {
                                                 onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null); }}
                                                 style={{
                                                     background: '#E4E6EB', color: C.text, border: 'none',
-                                                    padding: '10px 24px', borderRadius: 8, fontWeight: 700,
-                                                    fontSize: 14, cursor: 'pointer'
+                                                    padding: '10px 24px', borderRadius: 20, fontWeight: 700,
+                                                    fontSize: 14, cursor: 'pointer', boxSizing: 'border-box'
                                                 }}
                                             >
                                                 Cancel

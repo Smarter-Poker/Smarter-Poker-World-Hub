@@ -397,14 +397,20 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
         }
     }, [activeTab, page.id]);
 
-    const handleApproveFollower = async (followerId, action) => {
-        try {
-            await fetch('/api/social/pages/follow', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ page_id: page.id, user_id: userId, action, follower_id: followerId }),
-            });
-            setPendingFollowers(prev => prev.filter(f => f.user_id !== followerId));
-        } catch (e) { console.error('Approve/reject error:', e); }
+    const handleApproveFollower = (followerId, action) => {
+        // EAGER STATE SYNCHRONIZATION: Remove from pending list immediately (BFCache-safe)
+        const prevPending = pendingFollowers;
+        setPendingFollowers(prev => prev.filter(f => f.user_id !== followerId));
+
+        // Fire-and-forget API call with rollback on failure
+        fetch('/api/social/pages/follow', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ page_id: page.id, user_id: userId, action, follower_id: followerId }),
+        }).catch(e => {
+            console.error('Approve/reject error:', e);
+            // Rollback on failure
+            setPendingFollowers(prevPending);
+        });
     };
 
     // Save metadata helper
@@ -495,8 +501,17 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
         setPosting(false);
     };
 
-    const handleDeletePost = async (postId) => {
-        try { await fetch(`/api/social/pages/posts?id=${postId}&author_id=${userId}`, { method: 'DELETE' }); setPosts(prev => prev.filter(p => p.id !== postId)); } catch (e) { console.error('Delete error:', e); }
+    const handleDeletePost = (postId) => {
+        // EAGER STATE SYNCHRONIZATION: Remove from list immediately (BFCache-safe)
+        const prevPosts = posts;
+        setPosts(prev => prev.filter(p => p.id !== postId));
+
+        // Fire-and-forget with rollback on failure
+        fetch(`/api/social/pages/posts?id=${postId}&author_id=${userId}`, { method: 'DELETE' })
+            .catch(e => {
+                console.error('Delete error:', e);
+                setPosts(prevPosts);
+            });
     };
 
     const handleSavePage = async () => {
@@ -573,11 +588,19 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
         if (page.is_public && !page.metadata?.needs_setup) fetchQrCode();
     }, [page.is_public]);
 
-    const handleTogglePin = async (post) => {
-        try {
-            await fetch('/api/social/pages/posts', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: post.id, author_id: userId, is_pinned: !post.is_pinned }) });
-            setPosts(prev => prev.map(p => p.id === post.id ? { ...p, is_pinned: !p.is_pinned } : p));
-        } catch (e) { console.error('Pin error:', e); }
+    const handleTogglePin = (post) => {
+        // EAGER STATE SYNCHRONIZATION: Toggle pin state immediately (BFCache-safe)
+        const prevPosts = posts;
+        setPosts(prev => prev.map(p => p.id === post.id ? { ...p, is_pinned: !p.is_pinned } : p));
+
+        // Fire-and-forget with rollback on failure
+        fetch('/api/social/pages/posts', {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: post.id, author_id: userId, is_pinned: !post.is_pinned })
+        }).catch(e => {
+            console.error('Pin error:', e);
+            setPosts(prevPosts);
+        });
     };
 
     const inputSt = { width: '100%', padding: '8px 12px', border: '1px solid #3A3B3C', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit', background: '#18191A', color: '#E4E6EB' };

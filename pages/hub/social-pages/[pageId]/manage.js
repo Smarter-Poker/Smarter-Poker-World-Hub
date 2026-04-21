@@ -228,33 +228,40 @@ export default function ManageSocialPage() {
         setSaving(false);
     };
 
-    const handleDeletePost = async (postId) => {
+    const handleDeletePost = (postId) => {
         if (!confirm('Delete this post?')) return;
-        try {
-            const token = getAccessToken();
-            await fetch(`/api/social/pages/posts?id=${postId}&author_id=${user.id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            busEmit.dataMutated('social-pages');
-            setPosts(prev => prev.filter(p => p.id !== postId));
-        } catch (e) { console.error("[manage.js]", e); }
+        // EAGER STATE SYNCHRONIZATION: Remove from list immediately (BFCache-safe)
+        const prevPosts = posts;
+        setPosts(prev => prev.filter(p => p.id !== postId));
+        busEmit.dataMutated('social-pages');
+
+        // Fire-and-forget with rollback on failure
+        const token = getAccessToken();
+        fetch(`/api/social/pages/posts?id=${postId}&author_id=${user.id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        }).catch(e => {
+            console.error("[manage.js]", e);
+            setPosts(prevPosts);
+        });
     };
 
-    const handlePinPost = async (postId, pinned) => {
-        try {
-            const token = getAccessToken();
-            await fetch('/api/social/pages/posts', {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ id: postId, author_id: user.id, is_pinned: !pinned }),
-            });
-            busEmit.dataMutated('social-pages');
-            setPosts(prev => prev.map(p => p.id === postId ? { ...p, is_pinned: !pinned } : p));
-        } catch (e) { console.error("[manage.js]", e); }
+    const handlePinPost = (postId, pinned) => {
+        // EAGER STATE SYNCHRONIZATION: Toggle pin state immediately (BFCache-safe)
+        const prevPosts = posts;
+        setPosts(prev => prev.map(p => p.id === postId ? { ...p, is_pinned: !pinned } : p));
+        busEmit.dataMutated('social-pages');
+
+        // Fire-and-forget with rollback on failure
+        const token = getAccessToken();
+        fetch('/api/social/pages/posts', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ id: postId, author_id: user.id, is_pinned: !pinned }),
+        }).catch(e => {
+            console.error("[manage.js]", e);
+            setPosts(prevPosts);
+        });
     };
 
     // #9: Delete Page handler
@@ -280,25 +287,31 @@ export default function ManageSocialPage() {
     };
 
     // #10: Remove member handler
-    const handleRemoveMember = async (followerId) => {
+    const handleRemoveMember = (followerId) => {
         setRemovingMember(prev => { const next = new Set(prev); next.add(followerId); return next; });
-        try {
-            const token = getAccessToken();
-            const res = await fetch(`/api/social/pages/follow?page_id=${page.id}&follower_id=${followerId}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` },
-            });
-            if (res.ok) {
-                setMembers(prev => prev.filter(m => m.user_id !== followerId));
-                setMessage('Member removed');
-                busEmit.dataMutated('social-pages');
-            } else {
+
+        // EAGER STATE SYNCHRONIZATION: Remove from list immediately (BFCache-safe)
+        const prevMembers = members;
+        setMembers(prev => prev.filter(m => m.user_id !== followerId));
+        setMessage('Member removed');
+        busEmit.dataMutated('social-pages');
+
+        // Fire-and-forget with rollback on failure
+        const token = getAccessToken();
+        fetch(`/api/social/pages/follow?page_id=${page.id}&follower_id=${followerId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` },
+        }).then(res => {
+            if (!res.ok) {
+                setMembers(prevMembers);
                 setMessage('Error: Failed to remove member');
             }
-        } catch {
+        }).catch(() => {
+            setMembers(prevMembers);
             setMessage('Error: Network error');
-        }
-        setRemovingMember(prev => { const next = new Set(prev); next.delete(followerId); return next; });
+        }).finally(() => {
+            setRemovingMember(prev => { const next = new Set(prev); next.delete(followerId); return next; });
+        });
     };
 
     const inputStyle = {

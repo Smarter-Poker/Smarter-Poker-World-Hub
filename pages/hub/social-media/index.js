@@ -836,7 +836,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                         style={{ width: '100%', minHeight: 60, padding: 8, borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, color: C.text, fontSize: 15, fontFamily: 'inherit', resize: 'vertical', outline: 'none', boxSizing: 'border-box' }}
                     />
                     <div style={{ display: 'flex', gap: 8, marginTop: 6, justifyContent: 'flex-end' }}>
-                        <button onClick={() => setEditing(false)} style={{ padding: '6px 16px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent', color: C.textSec, cursor: 'pointer', fontSize: 13, fontWeight: 500 }}>Cancel</button>
+                        <button onClick={() => setEditing(false)} style={{ padding: '6px 16px', borderRadius: 20, border: `1px solid ${C.border}`, background: 'transparent', color: C.textSec, cursor: 'pointer', fontSize: 13, fontWeight: 500 }}>Cancel</button>
                         <button onClick={async () => {
                             try {
                                 const { error } = await supabase.from('social_posts').update({ content: editContent.trim() }).eq('id', post.id).eq('author_id', currentUserId);
@@ -848,7 +848,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                 busEmit.dataMutated?.('social_posts');
                                 broadcastSync('smarter_poker_social_sync', { action: 'refresh_feed', tabId: BROADCAST_TAB_ID });
                             } catch (e) { toast.error('Could not update post'); console.error('[Social] Edit error:', e); }
-                        }} disabled={!editContent.trim()} style={{ padding: '6px 16px', borderRadius: 6, border: 'none', background: C.blue, color: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 600, opacity: editContent.trim() ? 1 : 0.5 }}>Save</button>
+                        }} disabled={!editContent.trim()} style={{ padding: '6px 16px', borderRadius: 20, border: 'none', background: C.blue, color: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 600, opacity: editContent.trim() ? 1 : 0.5 }}>Save</button>
                     </div>
                     <style>{`@keyframes sp-fade-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }`}</style>
                 </div>
@@ -1210,7 +1210,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                                 </div>
                                             )}
                                             <div style={{ display: 'flex', gap: 8, marginTop: 6, justifyContent: 'flex-end' }}>
-                                                <button onClick={() => setEditingCommentId(null)} style={{ padding: '4px 12px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent', color: C.textSec, cursor: 'pointer', fontSize: 12, fontWeight: 500 }}>Cancel</button>
+                                                <button onClick={() => setEditingCommentId(null)} style={{ padding: '4px 12px', borderRadius: 20, border: `1px solid ${C.border}`, background: 'transparent', color: C.textSec, cursor: 'pointer', fontSize: 12, fontWeight: 500 }}>Cancel</button>
                                                 <button onClick={async () => {
                                                     if (!editCommentText.trim() && !c.mediaUrl) return;
                                                     const { error } = await supabase.from('social_comments').update({ content: editCommentText.trim() }).eq('id', c.id).eq('author_id', currentUserId);
@@ -1220,7 +1220,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                                     } else {
                                                         toast.error('Could not update comment');
                                                     }
-                                                }} disabled={!editCommentText.trim() && !c.mediaUrl} style={{ padding: '4px 12px', borderRadius: 6, border: 'none', background: C.blue, color: 'white', cursor: 'pointer', fontSize: 12, fontWeight: 600, opacity: (editCommentText.trim() || c.mediaUrl) ? 1 : 0.5 }}>Save</button>
+                                                }} disabled={!editCommentText.trim() && !c.mediaUrl} style={{ padding: '4px 12px', borderRadius: 20, border: 'none', background: C.blue, color: 'white', cursor: 'pointer', fontSize: 12, fontWeight: 600, opacity: (editCommentText.trim() || c.mediaUrl) ? 1 : 0.5 }}>Save</button>
                                             </div>
                                         </div>
                                     ) : (
@@ -2066,18 +2066,24 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
         }
     }, [activeTab, page.id]);
 
-    const handleApproveFollower = async (followerId, action) => {
-        try {
-            const token = getAccessToken();
-            await fetch('/api/social/pages/follow', {
-                method: 'POST', headers: { 
-                    'Content-Type': 'application/json',
-                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-                },
-                body: JSON.stringify({ page_id: page.id, user_id: userId, action, follower_id: followerId }),
-            });
-            setPendingFollowers(prev => prev.filter(f => f.user_id !== followerId));
-        } catch (e) { console.error('Approve/reject error:', e); }
+    const handleApproveFollower = (followerId, action) => {
+        // EAGER STATE SYNCHRONIZATION: Remove from pending list immediately (BFCache-safe)
+        const prevPending = pendingFollowers;
+        setPendingFollowers(prev => prev.filter(f => f.user_id !== followerId));
+
+        // Fire-and-forget API call with rollback on failure
+        const token = getAccessToken();
+        fetch('/api/social/pages/follow', {
+            method: 'POST', headers: { 
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            },
+            body: JSON.stringify({ page_id: page.id, user_id: userId, action, follower_id: followerId }),
+        }).catch(e => {
+            console.error('Approve/reject error:', e);
+            // Rollback on failure
+            setPendingFollowers(prevPending);
+        });
     };
 
     // Save metadata helper
@@ -2227,8 +2233,8 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
 
     const inputSt = { width: '100%', padding: '8px 12px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' };
     const labelSt = { display: 'block', fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4 };
-    const btnPrimary = { padding: '8px 20px', borderRadius: 8, border: 'none', background: C.blue, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' };
-    const btnSec = { padding: '8px 16px', borderRadius: 8, border: 'none', background: '#E4E6EB', color: C.text, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' };
+    const btnPrimary = { padding: '8px 20px', borderRadius: 20, border: 'none', background: C.blue, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' };
+    const btnSec = { padding: '8px 16px', borderRadius: 20, border: 'none', background: '#E4E6EB', color: C.text, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' };
     const cardSt = { background: C.card, borderRadius: 12, padding: 16, marginBottom: 8 };
     const savedBadge = metaSaved ? <span style={{ fontSize: 12, color: metaSaved === 'Error saving' ? '#F02849' : '#42B72A', fontWeight: 600, marginLeft: 8 }}>{metaSaved}</span> : null;
 
@@ -2380,9 +2386,9 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                         </div>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
-                        <button onClick={() => setEditingPage(false)} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#E4E6EB', color: C.text, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+                        <button onClick={() => setEditingPage(false)} style={{ padding: '8px 16px', borderRadius: 20, border: 'none', background: '#E4E6EB', color: C.text, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
                         <button onClick={handleSavePage} disabled={saving} style={{
-                            padding: '8px 20px', borderRadius: 8, border: 'none', background: C.blue, color: '#fff',
+                            padding: '8px 20px', borderRadius: 20, border: 'none', background: C.blue, color: '#fff',
                             fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: saving ? 0.5 : 1
                         }}>{saving ? 'Saving...' : 'Save Changes'}</button>
                     </div>
@@ -2724,8 +2730,8 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                     </div>
                                 </div>
                                 <div style={{ display: 'flex', gap: 6 }}>
-                                    <button onClick={() => handleApproveFollower(f.user_id, 'approve')} style={{ padding: '4px 14px', borderRadius: 6, border: 'none', background: '#22c55e', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Approve</button>
-                                    <button onClick={() => handleApproveFollower(f.user_id, 'reject')} style={{ padding: '4px 14px', borderRadius: 6, border: 'none', background: '#ef4444', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Reject</button>
+                                    <button onClick={() => handleApproveFollower(f.user_id, 'approve')} style={{ padding: '6px 16px', borderRadius: 20, border: 'none', background: '#22c55e', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', minWidth: 80, textAlign: 'center', boxSizing: 'border-box' }}>Approve</button>
+                                    <button onClick={() => handleApproveFollower(f.user_id, 'reject')} style={{ padding: '6px 16px', borderRadius: 20, border: 'none', background: '#ef4444', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', minWidth: 70, textAlign: 'center', boxSizing: 'border-box' }}>Reject</button>
                                 </div>
                             </div>
                         ))}
@@ -3222,7 +3228,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                 <div style={{ fontSize: 14, fontWeight: 700 }}>Follow To Play</div>
                                 <div style={{ fontSize: 12, opacity: 0.8 }}>You Must Follow This Page Before You Can Sign Up For Games.</div>
                             </div>
-                            <button onClick={handleFollow} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#1877F2', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+                            <button onClick={handleFollow} style={{ padding: '8px 20px', borderRadius: 20, border: 'none', background: '#1877F2', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
                                 {!userId ? '🔒 Sign In' : '➕ Follow Page'}
                             </button>
                         </div>
@@ -3343,7 +3349,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                                     ? `📋 You're #${myReservation.waitlist_position} on the waitlist`
                                                     : `✅ You have Seat ${myReservation.seat_number}`}
                                             </span>
-                                            <button onClick={() => handleLeave(game.id)} style={{ padding: '4px 12px', borderRadius: 6, border: 'none', background: '#F02849', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Leave</button>
+                                            <button onClick={() => handleLeave(game.id)} style={{ padding: '4px 12px', borderRadius: 20, border: 'none', background: '#F02849', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Leave</button>
                                         </div>
                                     )}
                                 </div>
@@ -3884,7 +3890,7 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
                                     {/* Actions */}
                                     <div style={{ display: 'flex', gap: 8 }}>
                                         <button onClick={() => handlePageFollow(page.page_type, page.page_id)} style={{
-                                            flex: 1, padding: '8px 12px', borderRadius: 8, border: 'none',
+                                            flex: 1, padding: '8px 12px', borderRadius: 20, border: 'none',
                                             background: isFollowing ? '#E4E6EB' : '#1877F2',
                                             color: isFollowing ? C.text : '#fff',
                                             fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
@@ -3899,7 +3905,7 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
                                                 router.push(page.detail_url);
                                             }
                                         }} style={{
-                                            flex: 1, padding: '8px 12px', borderRadius: 8, border: 'none',
+                                            flex: 1, padding: '8px 12px', borderRadius: 20, border: 'none',
                                             background: '#E4E6EB', color: C.text,
                                             fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
                                         }}>{page.is_social_page ? 'Live Games' : 'View Page'}</button>
@@ -3909,11 +3915,10 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
                         );
                     })}
 
-                    {/* Link to full pages page */}
                     <div style={{ textAlign: 'center', padding: '16px 0' }}>
                         <button onClick={() => router.push('/hub/pages')} style={{
                             padding: '10px 24px', background: '#E4E6EB', border: 'none',
-                            borderRadius: 8, color: C.text, fontSize: 14, fontWeight: 600,
+                            borderRadius: 20, color: C.text, fontSize: 14, fontWeight: 600,
                             cursor: 'pointer', fontFamily: 'inherit'
                         }}>View All Pages</button>
                     </div>
@@ -5538,8 +5543,56 @@ function SocialMediaPage() {
         } catch (e) { console.error(e); }
     };
 
-    // Only show loading spinner if intro is done and still loading
-    if (loading && !showIntro) return <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div>Loading...</div></div>;
+    // Only show loading skeleton if intro is done and still loading
+    if (loading && !showIntro) return (
+        <div style={{ minHeight: '100vh', background: C.bg, paddingBottom: 70 }}>
+            <style>{`
+                @keyframes sf-shimmer {
+                    0%   { background-position: -800px 0; }
+                    100% { background-position: 800px 0; }
+                }
+                .sf-skel {
+                    background-image: linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.10) 50%, rgba(255,255,255,0.04) 100%);
+                    background-size: 800px 100%;
+                    animation: sf-shimmer 1.4s ease-in-out infinite;
+                    border-radius: 6px;
+                }
+            `}</style>
+            {/* Header skeleton */}
+            <div style={{ height: 56, background: C.card, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', padding: '0 16px', gap: 12 }}>
+                <div className="sf-skel" style={{ width: 32, height: 32, borderRadius: '50%' }} />
+                <div className="sf-skel" style={{ flex: 1, height: 14, maxWidth: 140 }} />
+                <div className="sf-skel" style={{ width: 32, height: 32, borderRadius: '50%' }} />
+            </div>
+            {/* Stories row skeleton */}
+            <div style={{ display: 'flex', gap: 12, padding: '16px 16px 8px', overflowX: 'hidden' }}>
+                {[1,2,3,4,5].map(i => (
+                    <div key={i} style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                        <div className="sf-skel" style={{ width: 60, height: 60, borderRadius: '50%' }} />
+                        <div className="sf-skel" style={{ width: 48, height: 10 }} />
+                    </div>
+                ))}
+            </div>
+            {/* Post card skeletons */}
+            {[1,2,3].map(i => (
+                <div key={i} style={{ background: C.card, borderRadius: 12, margin: '8px 0', padding: 16, border: `1px solid ${C.border}` }}>
+                    <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+                        <div className="sf-skel" style={{ width: 44, height: 44, borderRadius: '50%', flexShrink: 0 }} />
+                        <div style={{ flex: 1 }}>
+                            <div className="sf-skel" style={{ width: '55%', height: 13, marginBottom: 8 }} />
+                            <div className="sf-skel" style={{ width: '35%', height: 11 }} />
+                        </div>
+                    </div>
+                    <div className="sf-skel" style={{ width: '90%', height: 14, marginBottom: 10 }} />
+                    <div className="sf-skel" style={{ width: '75%', height: 14, marginBottom: 14 }} />
+                    {i === 1 && <div className="sf-skel" style={{ width: '100%', height: 200, borderRadius: 10, marginBottom: 14 }} />}
+                    <div style={{ display: 'flex', gap: 16 }}>
+                        {[60, 70, 60].map((w, j) => <div key={j} className="sf-skel" style={{ width: w, height: 12 }} />)}
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
 
     return (
         <PageTransition>
