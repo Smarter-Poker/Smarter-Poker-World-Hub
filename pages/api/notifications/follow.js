@@ -61,14 +61,14 @@ export default async function handler(req, res) {
         });
 
         if (error) {
-            console.error('[Follow Notification] Insert error:', error);
+            console.warn('[Follow Notification] Insert error:', error);
             return res.status(500).json({ success: false, error: 'Failed to create notification' });
         }
 
         return res.status(200).json({ success: true });
     } catch (e) {
         try { reportApiError(e, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('[Follow Notification] Error:', e);
+        console.warn('[Follow Notification] Error:', e);
         return res.status(500).json({ success: false, error: 'Internal error' });
     }
 }

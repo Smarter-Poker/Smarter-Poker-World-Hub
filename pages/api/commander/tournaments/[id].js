@@ -54,7 +54,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -90,7 +90,7 @@ async function getTournament(req, res, id) {
 
     return res.status(200).json({ success: true, data: { tournament } });
   } catch (error) {
-    console.error('Get tournament error:', error);
+    console.warn('Get tournament error:', error);
     return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Internal server error' } });
   }
 }
@@ -148,7 +148,7 @@ async function updateTournament(req, res, id, staff) {
 
     return res.status(200).json({ success: true, data: { tournament } });
   } catch (error) {
-    console.error('Update tournament error:', error);
+    console.warn('Update tournament error:', error);
     return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Internal server error' } });
   }
 }
@@ -211,7 +211,7 @@ async function cancelTournament(req, res, id, staff) {
     return res.status(200).json({ success: true, data: { tournament, message: 'Tournament cancelled' } });
   } catch (error) {
       try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('Cancel tournament error:', error);
+    console.warn('Cancel tournament error:', error);
     return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Internal server error' } });
   }
 }

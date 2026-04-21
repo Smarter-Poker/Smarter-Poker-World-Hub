@@ -90,7 +90,7 @@ export class SocialService {
 
             return { posts, hasMore };
         } catch (error) {
-            console.error('Feed fetch error:', error);
+            console.warn('Feed fetch error:', error);
             throw error;
         }
     }
@@ -125,7 +125,7 @@ export class SocialService {
 
             return createPost(data, createAuthor(data.author));
         } catch (error) {
-            console.error('Post fetch error:', error);
+            console.warn('Post fetch error:', error);
             throw error;
         }
     }
@@ -142,7 +142,7 @@ export class SocialService {
      */
     async createPost({ authorId, content, contentType = 'text', mediaUrls = [], visibility = 'public', achievementData = null, autoStory = true }) {
         try {
-            console.log('📝 Creating post:', { authorId, content: content?.substring(0, 50), contentType, autoStory });
+            console.debug('📝 Creating post:', { authorId, content: content?.substring(0, 50), contentType, autoStory });
 
             let postId = null;
             let postResult = null;
@@ -158,7 +158,7 @@ export class SocialService {
             });
 
             if (!rpcError && rpcData) {
-                console.log('✅ Post created via RPC:', rpcData.id);
+                console.debug('✅ Post created via RPC:', rpcData.id);
                 postId = rpcData.id;
                 postResult = createPost({
                     ...rpcData,
@@ -188,7 +188,7 @@ export class SocialService {
                     .maybeSingle();
 
                 if (error) {
-                    console.error('❌ Post insert error:', error);
+                    console.warn('❌ Post insert error:', error);
                     throw error;
                 }
 
@@ -196,7 +196,7 @@ export class SocialService {
                     throw new Error('Post created but data not returned');
                 }
 
-                console.log('✅ Post created (Direct):', data.id);
+                console.debug('✅ Post created (Direct):', data.id);
                 postId = data.id;
 
                 // Return simplified post object
@@ -229,7 +229,7 @@ export class SocialService {
                     if (storyError) {
                         console.warn('⚠️ Auto-story creation failed:', storyError.message);
                     } else {
-                        console.log('✅ Auto-story created for post');
+                        console.debug('✅ Auto-story created for post');
                     }
                 } catch (storyErr) {
                     console.warn('⚠️ Auto-story error:', storyErr.message);
@@ -239,7 +239,7 @@ export class SocialService {
 
             return postResult;
         } catch (error) {
-            console.error('Post creation error:', error);
+            console.warn('Post creation error:', error);
             throw error;
         }
     }
@@ -267,7 +267,7 @@ export class SocialService {
 
             return createPost(data);
         } catch (error) {
-            console.error('Post update error:', error);
+            console.warn('Post update error:', error);
             throw error;
         }
     }
@@ -288,7 +288,7 @@ export class SocialService {
 
             return true;
         } catch (error) {
-            console.error('Post deletion error:', error);
+            console.warn('Post deletion error:', error);
             throw error;
         }
     }
@@ -365,7 +365,7 @@ export class SocialService {
                 return { added: true, type: interactionType };
             }
         } catch (error) {
-            console.error('Reaction toggle error:', error);
+            console.warn('Reaction toggle error:', error);
             throw error;
         }
     }
@@ -389,7 +389,7 @@ export class SocialService {
 
             return data?.interaction_type || null;
         } catch (error) {
-            console.error('Get reaction error:', error);
+            console.warn('Get reaction error:', error);
             return null;
         }
     }
@@ -433,7 +433,7 @@ export class SocialService {
                 author_level: row.author?.current_level
             }));
         } catch (error) {
-            console.error('Comments fetch error:', error);
+            console.warn('Comments fetch error:', error);
             throw error;
         }
     }
@@ -483,7 +483,7 @@ export class SocialService {
                 author_level: data.author?.current_level
             }) : null;
         } catch (error) {
-            console.error('Comment creation error:', error);
+            console.warn('Comment creation error:', error);
             throw error;
         }
     }
@@ -517,7 +517,7 @@ export class SocialService {
 
             return true;
         } catch (error) {
-            console.error('Follow error:', error);
+            console.warn('Follow error:', error);
             throw error;
         }
     }
@@ -539,7 +539,7 @@ export class SocialService {
             if (error) throw error;
             return true;
         } catch (error) {
-            console.error('Unfollow error:', error);
+            console.warn('Unfollow error:', error);
             throw error;
         }
     }
@@ -563,7 +563,7 @@ export class SocialService {
             if (error && error.code !== 'PGRST116') throw error;
             return !!data;
         } catch (error) {
-            console.error('Is following check error:', error);
+            console.warn('Is following check error:', error);
             return false;
         }
     }
@@ -628,7 +628,7 @@ export class SocialService {
             if (error) throw error;
             return data || null;
         } catch (error) {
-            console.error('Profile fetch error', error);
+            console.warn('Profile fetch error', error);
             // Return mock if needed or null
             return {
                 user_id: userId,

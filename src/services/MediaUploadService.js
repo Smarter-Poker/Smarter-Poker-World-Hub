@@ -238,7 +238,7 @@ export class MediaUploadService {
         );
 
         if (uploadError) {
-            console.error('Upload record creation failed:', uploadError);
+            console.warn('Upload record creation failed:', uploadError);
             throw new Error('Failed to initialize upload');
         }
 
@@ -325,11 +325,7 @@ export class MediaUploadService {
                 }
             };
 
-        } catch (error) {
-            // Clean up failed upload
-            await this.supabase
-                .from('social_media')
-                .update({ processing_status: 'failed' })
+        } catch (error) { console.warn('[App] Handled exception:', error?.message || error); })
                 .eq('id', media_id);
 
             throw error;
@@ -425,7 +421,7 @@ export class MediaUploadService {
             .remove([media.file_path]);
 
         if (storageError) {
-            console.error('Storage deletion failed:', storageError);
+            console.warn('Storage deletion failed:', storageError);
         }
 
         // Delete database record

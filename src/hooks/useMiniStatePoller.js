@@ -94,7 +94,7 @@ export default function useMiniStatePoller() {
       if (fallbackInterval) {
         clearInterval(fallbackInterval);
         fallbackInterval = null;
-        console.log('[useMiniStatePoller] 🔌 WebSocket restored — stopping HTTP fallback');
+        console.debug('[useMiniStatePoller] 🔌 WebSocket restored — stopping HTTP fallback');
       }
     };
 
@@ -170,7 +170,7 @@ export default function useMiniStatePoller() {
       if (status === 'SUBSCRIBED') {
         channelHealthy.current = true;
         stopFallbackPolling();
-        console.log('[useMiniStatePoller] 🔌 Connected to zero-latency WebSocket stream');
+        console.debug('[useMiniStatePoller] 🔌 Connected to zero-latency WebSocket stream');
 
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
         channelHealthy.current = false;

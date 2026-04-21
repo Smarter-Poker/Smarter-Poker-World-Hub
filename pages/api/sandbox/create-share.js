@@ -26,7 +26,7 @@ export default async function handler(req, res) {
           try {
               supabase = getSupabase();
           } catch (err) {
-              console.error('[create-share] Intialization error:', err);
+              console.warn('[create-share] Intialization error:', err);
               return res.status(500).json({ success: false, error: 'Database initialization failed' });
           }
 
@@ -62,20 +62,20 @@ export default async function handler(req, res) {
           if (error) {
               // Table should always exist — if 42P01, log warning and return error
               if (error.code === '42P01') {
-                  console.error('[create-share] sandbox_shared_scenarios table missing — run migration to restore');
+                  console.warn('[create-share] sandbox_shared_scenarios table missing — run migration to restore');
               }
               throw error;
           }
 
           return res.status(200).json({ success: true, shareId: data.id });
       } catch (err) {
-          console.error('[create-share] Error:', err);
+          console.warn('[create-share] Error:', err);
           return res.status(500).json({ success: false, error: 'Internal Server Error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

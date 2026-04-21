@@ -127,7 +127,7 @@ export default async function handler(req, res) {
                   roundNumber = (sessionData.hands_played || 0) + 1;
               }
           } catch (sessionError) {
-              console.error('Could not fetch session data:', sessionError.message);
+              console.warn('Could not fetch session data:', sessionError.message);
           }
 
           // 3. Record in hand history
@@ -167,7 +167,7 @@ export default async function handler(req, res) {
               } else {
               }
           } catch (dbError) {
-              console.error('Failed to record hand history:', dbError.message);
+              console.warn('Failed to record hand history:', dbError.message);
               // Continue even if recording fails
           }
 
@@ -183,13 +183,13 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('Submit action error:', error);
+          console.warn('Submit action error:', error);
           return res.status(500).json({ error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

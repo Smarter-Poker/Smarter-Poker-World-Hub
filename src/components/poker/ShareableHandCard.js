@@ -86,7 +86,7 @@ export default function ShareableHandCard({ hand, onClose }) {
             a.click();
             URL.revokeObjectURL(url);
         } catch (err) {
-            console.error('[ShareCard] Download failed:', err);
+            console.warn('[ShareCard] Download failed:', err);
         }
     }, [imageUrl]);
 

@@ -167,7 +167,7 @@ export default async function handler(req, res) {
 
             console.log(`[ReportBug] Bug report sent to admin@smarter.poker: ${ticketRef}`);
         } catch (emailErr) {
-            console.error('[ReportBug] Email send failed:', emailErr.message);
+            console.warn('[ReportBug] Email send failed:', emailErr.message);
             // Still return success if DB insert worked
         }
 
@@ -179,7 +179,7 @@ export default async function handler(req, res) {
 
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('[ReportBug] Error:', err);
+        console.warn('[ReportBug] Error:', err);
         if (!res.headersSent) {
             return res.status(500).json({ success: false, error: 'Internal server error' });
         }

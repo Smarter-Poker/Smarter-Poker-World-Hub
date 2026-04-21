@@ -110,7 +110,7 @@ const res = await commanderFetch(`/api/commander/staff/venue/${venueId}`, { ...(
         setStaffList(data.data.staff || []);
       }
     } catch (err) {
-      console.error('Failed to fetch staff:', err);
+      console.warn('Failed to fetch staff:', err);
     } finally {
       setLoading(false);
     }
@@ -147,7 +147,7 @@ const res = await commanderFetch('/api/commander/staff', {
       }
       return { success: false, error: data.error?.message || 'Failed to add staff' };
     } catch (err) {
-      console.error('Failed to add staff:', err);
+      console.warn('Failed to add staff:', err);
       return { success: false, error: 'Network error' };
     }
   }
@@ -254,7 +254,7 @@ const res = await commanderFetch(`/api/commander/staff/${staffId}`, {
       }
       return { success: false, error: data.error?.message || 'Failed to update staff' };
     } catch (err) {
-      console.error('Failed to update staff:', err);
+      console.warn('Failed to update staff:', err);
       return { success: false, error: 'Network error' };
     }
   }
@@ -276,7 +276,7 @@ const data = await commanderFetchJSON(`/api/commander/staff/${staffId}`, {
         broadcastChange('staff');
       }
     } catch (err) {
-      console.error('Failed to delete staff:', err);
+      console.warn('Failed to delete staff:', err);
       setError('Failed to delete staff member. Please try again.');
     }
   }

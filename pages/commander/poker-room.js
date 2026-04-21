@@ -44,7 +44,7 @@ export default function PokerRoomFunctions() {
     try {
       const s = getStaffData();
       if (s.venue_id) setVenueId(s.venue_id);
-    } catch (e) { /* silent */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
   }, []);
 
   const fetchData = useCallback(async (signal) => {
@@ -108,7 +108,7 @@ const headers = { };
           }
         }
       }
-    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
+    } catch (err) { console.warn(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
     finally { setLoading(false); }
   }, [venueId]);
 
@@ -129,7 +129,7 @@ const res = await commanderFetch('/api/commander/settings', {
         setRoomOpen(!roomOpen);
         broadcastChange('settings');
       }
-    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
+    } catch (err) { console.warn(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
     finally { setToggling(false); }
   };
 

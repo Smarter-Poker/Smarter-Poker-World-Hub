@@ -66,7 +66,7 @@ export default async function handler(req, res) {
               .maybeSingle();
 
           if (insertError) {
-              console.error('Failed to log pipeline run:', insertError);
+              console.warn('Failed to log pipeline run:', insertError);
           }
 
           return res.status(200).json({
@@ -75,13 +75,13 @@ export default async function handler(req, res) {
               details: cronData
           });
       } catch (e) {
-          console.error('Pipeline Trigger Error:', e);
+          console.warn('Pipeline Trigger Error:', e);
           return res.status(500).json({ error: e.message });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

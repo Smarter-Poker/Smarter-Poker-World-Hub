@@ -69,7 +69,7 @@ export default function TournamentRegisterPage() {
         setRegistered(true);
       }
     } catch (err) {
-      console.error('Failed to fetch tournament:', err);
+      console.warn('Failed to fetch tournament:', err);
       setError('Failed to load tournament');
     } finally {
       setLoading(false);

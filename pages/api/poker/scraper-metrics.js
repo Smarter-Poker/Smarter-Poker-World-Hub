@@ -85,7 +85,7 @@ export default async function handler(req, res) {
     });
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('Scraper metrics error:', err);
+    console.warn('Scraper metrics error:', err);
     return res.status(500).json({ error: err.message });
   }
 }

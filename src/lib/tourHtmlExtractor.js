@@ -419,7 +419,7 @@ function getParser(tourCode) {
 // ─── LLM Extraction (Grok / xAI) ────────────────────────────────────────────
 async function extractWithLLM(text, tourCode, sourceName, apiKey) {
     if (!apiKey) {
-        console.log(`  [LLM:${tourCode}] No XAI_API_KEY — skipping LLM extraction`);
+        console.debug(`  [LLM:${tourCode}] No XAI_API_KEY — skipping LLM extraction`);
         return [];
     }
 
@@ -501,10 +501,10 @@ ${trimmedText}`;
                             llm_model: LLM_MODEL,
                         }));
 
-                    console.log(`  [LLM:${tourCode}] ✓ Extracted ${normalized.length} events`);
+                    console.debug(`  [LLM:${tourCode}] ✓ Extracted ${normalized.length} events`);
                     resolve(normalized);
                 } catch (e) {
-                    console.log(`  [LLM:${tourCode}] Parse error: ${e.message}`);
+                    console.debug(`  [LLM:${tourCode}] Parse error: ${e.message}`);
                     resolve([]);
                 }
             });
@@ -512,7 +512,7 @@ ${trimmedText}`;
 
         req.setTimeout(30000, () => { req.destroy(); resolve([]); });
         req.on('error', (e) => {
-            console.log(`  [LLM:${tourCode}] API error: ${e.message}`);
+            console.debug(`  [LLM:${tourCode}] API error: ${e.message}`);
             resolve([]);
         });
         req.write(body);
@@ -552,13 +552,13 @@ export async function extractScheduleFromHtml(html, tourCode, sourceName = '', o
     const parser = getParser(tourCode);
     let events = parser(html);
 
-    console.log(`  [HTML:${tourCode}] Bespoke parser → ${events.length} events from ${sourceName}`);
+    console.debug(`  [HTML:${tourCode}] Bespoke parser → ${events.length} events from ${sourceName}`);
 
     let llmUsed = false;
 
     // LLM fallback if bespoke parser got too few results
     if (events.length < minExpected && apiKey) {
-        console.log(`  [HTML:${tourCode}] Below threshold (${events.length} < ${minExpected}) — trying LLM...`);
+        console.debug(`  [HTML:${tourCode}] Below threshold (${events.length} < ${minExpected}) — trying LLM...`);
         const text = htmlToText(html);
         const llmEvents = await extractWithLLM(text, tourCode, sourceName, apiKey);
 
@@ -587,11 +587,11 @@ export async function extractScheduleFromHtml(html, tourCode, sourceName = '', o
  */
 export async function fetchAndExtract(url, tourCode, sourceName = '', options = {}) {
     try {
-        console.log(`  [HTML:${tourCode}] Fetching: ${url}`);
+        console.debug(`  [HTML:${tourCode}] Fetching: ${url}`);
         const html = await fetchHtml(url);
         return extractScheduleFromHtml(html, tourCode, sourceName, options);
     } catch (err) {
-        console.log(`  [HTML:${tourCode}] Fetch error: ${err.message} — ${url}`);
+        console.debug(`  [HTML:${tourCode}] Fetch error: ${err.message} — ${url}`);
         return { events: [], source: sourceName, llm_used: false, error: err.message };
     }
 }

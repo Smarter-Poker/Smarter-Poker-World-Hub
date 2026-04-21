@@ -174,7 +174,7 @@ export default function HandHistoryPage() {
         setSessions(data.data?.sessions || []);
       }
     } catch (err) {
-      console.error('Fetch failed:', err);
+      console.warn('Fetch failed:', err);
       setSessions([]);
     } finally {
       setLoading(false);
@@ -195,7 +195,7 @@ export default function HandHistoryPage() {
       }
     } catch (err) {
       setLoading(false);
-      console.error('Fetch hands failed:', err);
+      console.warn('Fetch hands failed:', err);
       setHands([]);
     } finally {
       setHandsLoading(false);

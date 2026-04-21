@@ -87,7 +87,7 @@ export default async function handler(req, res) {
       });
 
     if (uploadErr) {
-      console.error('[CommentUpload] Storage error:', uploadErr);
+      console.warn('[CommentUpload] Storage error:', uploadErr);
       return res.status(500).json({ error: 'Upload failed' });
     }
 
@@ -101,7 +101,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true, url: publicUrl });
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[CommentUpload] Error:', err);
+    console.warn('[CommentUpload] Error:', err);
     return res.status(500).json({ error: 'Upload failed' });
   }
 }

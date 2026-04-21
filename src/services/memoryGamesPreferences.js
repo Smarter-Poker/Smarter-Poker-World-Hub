@@ -26,7 +26,7 @@ export async function getMemoryGamesPreferences(userId) {
 
         return data?.memory_games_preferences || { soundEffects: true, keyboardShortcuts: true, showTimer: true, visualHints: false };
     } catch (error) {
-        console.error('Error fetching memory games preferences:', error);
+        console.warn('Error fetching memory games preferences:', error);
         return { soundEffects: true, keyboardShortcuts: true, showTimer: true, visualHints: false };
     }
 }
@@ -53,7 +53,7 @@ export async function updateMemoryGamesPreferences(userId, preferences) {
 
         return data;
     } catch (error) {
-        console.error('Error updating memory games preferences:', error);
+        console.warn('Error updating memory games preferences:', error);
         throw error;
     }
 }

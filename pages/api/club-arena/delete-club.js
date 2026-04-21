@@ -94,9 +94,7 @@ export default async function handler(req, res) {
       for (const table of tables) {
         try {
           await getSupabase().from(table).delete().eq('club_id', clubId);
-        } catch (e) {
-          // Table may not exist or have no matching rows — continue
-        }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
       }
 
       // 4. Delete members
@@ -111,13 +109,13 @@ export default async function handler(req, res) {
         message: `Club "${club.name}" has been permanently deleted`,
       });
     } catch (err) {
-      console.error('[delete-club]', err);
+      console.warn('[delete-club]', err);
       return res.status(500).json({ success: false, error: 'Club deletion failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

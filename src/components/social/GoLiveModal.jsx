@@ -97,7 +97,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
             setStage('preview');
             setError('');
         } catch (err) {
-            console.error('Camera access denied:', err);
+            console.warn('Camera access denied:', err);
             setError('Camera access denied. Please allow camera and microphone permissions.');
         }
     };
@@ -160,12 +160,12 @@ export function GoLiveModal({ isOpen, onClose, user }) {
         mediaRecorder.onstop = () => {
             const blob = new Blob(recordedChunksRef.current, { type: selectedMimeType });
             setRecordedBlob(blob);
-            if (process.env.NODE_ENV === 'development') console.log('Recording complete, size:', (blob.size / 1024 / 1024).toFixed(2), 'MB');
+            if (process.env.NODE_ENV === 'development') console.debug('Recording complete, size:', (blob.size / 1024 / 1024).toFixed(2), 'MB');
         };
 
         mediaRecorder.start(1000); // Capture in 1-second chunks
         mediaRecorderRef.current = mediaRecorder;
-        if (process.env.NODE_ENV === 'development') console.log('Recording started with:', selectedMimeType);
+        if (process.env.NODE_ENV === 'development') console.debug('Recording started with:', selectedMimeType);
     };
 
     const handleGoLive = async () => {
@@ -204,7 +204,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
             }, 1000);
 
         } catch (err) {
-            console.error('Failed to start broadcast:', err);
+            console.warn('Failed to start broadcast:', err);
             setError(err.message || 'Failed to start broadcast.');
         }
     };
@@ -231,7 +231,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
             setStage('ended');
 
         } catch (err) {
-            console.error('Failed to end broadcast:', err);
+            console.warn('Failed to end broadcast:', err);
             setError(err.message);
         }
     };

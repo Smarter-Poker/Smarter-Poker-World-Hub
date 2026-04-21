@@ -103,7 +103,7 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
       });
       loadAlerts();
     } catch (err) {
-      console.error('Delete alert failed:', err);
+      console.warn('Delete alert failed:', err);
     }
   };
 

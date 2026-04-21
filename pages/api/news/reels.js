@@ -61,7 +61,7 @@ export default async function handler(req, res) {
           const { data, error } = await query;
 
           if (error) {
-              console.error('Reels API error:', error.message);
+              console.warn('Reels API error:', error.message);
               return res.status(200).json({ success: true, data: FALLBACK_REELS.slice(0, parseInt(limit)) });
           }
 
@@ -108,13 +108,13 @@ export default async function handler(req, res) {
           res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
           return res.status(200).json({ success: true, data: result });
       } catch (error) {
-          console.error('Reels API exception:', error.message);
+          console.warn('Reels API exception:', error.message);
           return res.status(200).json({ success: true, data: FALLBACK_REELS });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

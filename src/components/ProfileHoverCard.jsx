@@ -54,7 +54,7 @@ export function ProfileHoverCard({ userId, username, children, position = 'botto
                 setProfile(data);
             }
         } catch (e) {
-            console.error('Profile hover load error:', e);
+            console.warn('Profile hover load error:', e);
         }
         setLoading(false);
     };

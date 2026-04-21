@@ -23,14 +23,14 @@ let failed = 0;
 const failures = [];
 
 function assert(condition, label) {
-    if (condition) { passed++; console.log(`  ✅ ${label}`); }
-    else { failed++; failures.push(label); console.log(`  ❌ FAIL: ${label}`); }
+    if (condition) { passed++; console.debug(`  ✅ ${label}`); }
+    else { failed++; failures.push(label); console.debug(`  ❌ FAIL: ${label}`); }
 }
 
 (async () => {
-    console.log('\n═══════════════════════════════════════════════════');
-    console.log('  🔬 SWEEP 9: INTENSE DEEP AUDIT');
-    console.log('═══════════════════════════════════════════════════\n');
+    console.debug('\n═══════════════════════════════════════════════════');
+    console.debug('  🔬 SWEEP 9: INTENSE DEEP AUDIT');
+    console.debug('═══════════════════════════════════════════════════\n');
 
     const HORSE = '00000000-0000-0000-0000-000000000028';
     await Brain.loadHorseIds();
@@ -38,7 +38,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════
     // TEST 1: POSTFLOP BETTING — Is the AI actually betting strong hands?
     // ═══════════════════════════════════════════
-    console.log('--- TEST 1: Postflop Bet Frequency (Strong Hands) ---');
+    console.debug('--- TEST 1: Postflop Bet Frequency (Strong Hands) ---');
 
     let betCount = 0;
     let checkCount = 0;
@@ -88,19 +88,19 @@ function assert(condition, label) {
                     checkCount++;
                 }
             } catch (err) {
-                console.log(`  ⚠️ Error: ${err.message}`);
+                console.debug(`  ⚠️ Error: ${err.message}`);
             }
         }
     }
 
-    console.log(`  📊 Strong hand betting: ${betCount}/${totalPostflop} bets (${Math.round(betCount / totalPostflop * 100)}%), ${checkCount} checks`);
+    console.debug(`  📊 Strong hand betting: ${betCount}/${totalPostflop} bets (${Math.round(betCount / totalPostflop * 100)}%), ${checkCount} checks`);
     assert(betCount > 0, `Strong hands produce SOME bets (got ${betCount}/${totalPostflop})`);
     assert(betCount / totalPostflop >= 0.3, `Strong hands bet rate >= 30% (got ${Math.round(betCount / totalPostflop * 100)}%)`);
 
     // ═══════════════════════════════════════════
     // TEST 2: FACING-A-BET DECISIONS
     // ═══════════════════════════════════════════
-    console.log('\n--- TEST 2: Facing a Bet (Call/Raise/Fold) ---');
+    console.debug('\n--- TEST 2: Facing a Bet (Call/Raise/Fold) ---');
 
     let facingBetCalls = 0;
     let facingBetRaises = 0;
@@ -135,11 +135,11 @@ function assert(condition, label) {
             if (result.action.type === 'raise') facingBetRaises++;
             if (result.action.type === 'fold') facingBetFolds++;
         } catch (err) {
-            console.log(`  ⚠️ Error: ${err.message}`);
+            console.debug(`  ⚠️ Error: ${err.message}`);
         }
     }
 
-    console.log(`  📊 AA vs bet: ${facingBetCalls} calls, ${facingBetRaises} raises, ${facingBetFolds} folds`);
+    console.debug(`  📊 AA vs bet: ${facingBetCalls} calls, ${facingBetRaises} raises, ${facingBetFolds} folds`);
     assert(facingBetFolds === 0, `AA never folds vs bet (folds: ${facingBetFolds})`);
     assert(facingBetCalls + facingBetRaises === facingTotal, `AA always continues (${facingBetCalls + facingBetRaises}/${facingTotal})`);
 
@@ -171,13 +171,13 @@ function assert(condition, label) {
         } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
     }
 
-    console.log(`  📊 23o vs bet on AKT: ${trashFolds}/10 folds`);
+    console.debug(`  📊 23o vs bet on AKT: ${trashFolds}/10 folds`);
     assert(trashFolds >= 7, `Trash hand folds most of the time (folds: ${trashFolds}/10)`);
 
     // ═══════════════════════════════════════════
     // TEST 3: RIVER BETTING
     // ═══════════════════════════════════════════
-    console.log('\n--- TEST 3: River Value Betting ---');
+    console.debug('\n--- TEST 3: River Value Betting ---');
 
     let riverBets = 0;
     for (let trial = 0; trial < 10; trial++) {
@@ -208,13 +208,13 @@ function assert(condition, label) {
         } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
     }
 
-    console.log(`  📊 AA on river (no bet facing): ${riverBets}/10 value bets`);
+    console.debug(`  📊 AA on river (no bet facing): ${riverBets}/10 value bets`);
     assert(riverBets >= 5, `AA value bets the river often (bets: ${riverBets}/10)`);
 
     // ═══════════════════════════════════════════
     // TEST 4: TURN CONTINUATION
     // ═══════════════════════════════════════════
-    console.log('\n--- TEST 4: Turn Action Variety ---');
+    console.debug('\n--- TEST 4: Turn Action Variety ---');
 
     let turnBets = 0;
     let turnChecks = 0;
@@ -247,13 +247,13 @@ function assert(condition, label) {
         } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
     }
 
-    console.log(`  📊 AK (top pair) on turn: ${turnBets} bets, ${turnChecks} checks`);
+    console.debug(`  📊 AK (top pair) on turn: ${turnBets} bets, ${turnChecks} checks`);
     assert(turnBets >= 0, `Top pair checks/bets the turn (bets: ${turnBets}/10, checks: ${turnChecks}/10)`);
 
     // ═══════════════════════════════════════════
     // TEST 5: SUPABASE saveOpponentRead E2E
     // ═══════════════════════════════════════════
-    console.log('\n--- TEST 5: saveOpponentRead Supabase E2E ---');
+    console.debug('\n--- TEST 5: saveOpponentRead Supabase E2E ---');
 
     const readResult = await Brain.saveOpponentRead(HORSE, 'test-opponent-e2e', {
         bluffFrequency: 0.25,
@@ -287,7 +287,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════
     // TEST 6: SUPABASE saveKeyHand E2E
     // ═══════════════════════════════════════════
-    console.log('\n--- TEST 6: saveKeyHand Supabase E2E ---');
+    console.debug('\n--- TEST 6: saveKeyHand Supabase E2E ---');
 
     const handResult = await Brain.saveKeyHand({
         handId: 'test-hand-e2e-' + Date.now(),
@@ -327,7 +327,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════
     // TEST 7: processHandResult PIPELINE
     // ═══════════════════════════════════════════
-    console.log('\n--- TEST 7: processHandResult Pipeline ---');
+    console.debug('\n--- TEST 7: processHandResult Pipeline ---');
 
     // Initialize performance stats for this horse first
     Brain.recordPerformanceAction(HORSE, 'preflop', 'call', true);
@@ -360,7 +360,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════
     // TEST 8: BET SIZING VARIETY ACROSS STREETS
     // ═══════════════════════════════════════════
-    console.log('\n--- TEST 8: Bet Sizing Variety ---');
+    console.debug('\n--- TEST 8: Bet Sizing Variety ---');
 
     const sizes = new Set();
     for (const cat of ['quads', 'full_house', 'flush', 'straight', 'set', 'top_pair', 'overpair', 'middle_pair', 'high_card']) {
@@ -369,7 +369,7 @@ function assert(condition, label) {
             sizes.add(Math.round(size * 100));
         }
     }
-    console.log(`  📊 Unique bet sizes across all categories/streets: ${sizes.size}`);
+    console.debug(`  📊 Unique bet sizes across all categories/streets: ${sizes.size}`);
     assert(sizes.size >= 5, `At least 5 unique sizes (got ${sizes.size})`);
 
     // Bluff vs value size difference
@@ -380,11 +380,11 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════
     // TEST 9: MULTIWAY POT ADJUSTMENTS DEPTH
     // ═══════════════════════════════════════════
-    console.log('\n--- TEST 9: Multiway Pot Depth ---');
+    console.debug('\n--- TEST 9: Multiway Pot Depth ---');
 
     for (let n = 2; n <= 9; n++) {
         const adj = Brain.getMultiwayAdjustment(n);
-        console.log(`  ${n} players: penalty=${adj.strengthPenalty}, bluff=${adj.bluffReduction.toFixed(2)}`);
+        console.debug(`  ${n} players: penalty=${adj.strengthPenalty}, bluff=${adj.bluffReduction.toFixed(2)}`);
     }
     const adj2 = Brain.getMultiwayAdjustment(2);
     const adj4 = Brain.getMultiwayAdjustment(4);
@@ -396,15 +396,15 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════
     // TEST 10: CHECK-RAISE ACROSS STRENGTHS
     // ═══════════════════════════════════════════
-    console.log('\n--- TEST 10: Check-Raise Strategy Sweep ---');
+    console.debug('\n--- TEST 10: Check-Raise Strategy Sweep ---');
 
     const crResults = [];
     for (let str = 0; str <= 100; str += 10) {
         const cr = Brain.getCheckRaiseStrategy(str, false, false, 0);
         crResults.push({ strength: str, shouldCR: cr.shouldCheckRaise, freq: cr.frequency });
     }
-    console.log('  Strength → Check-Raise:');
-    crResults.forEach(r => console.log(`    ${r.strength}%: ${r.shouldCR ? '✓ CR' : '✗ No'} (freq=${(r.freq * 100).toFixed(0)}%)`));
+    console.debug('  Strength → Check-Raise:');
+    crResults.forEach(r => console.debug(`    ${r.strength}%: ${r.shouldCR ? '✓ CR' : '✗ No'} (freq=${(r.freq * 100).toFixed(0)}%)`));
 
     const weakCR = Brain.getCheckRaiseStrategy(20, false, false, 0);
     const strongCR = Brain.getCheckRaiseStrategy(80, false, false, 0);
@@ -414,20 +414,20 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════
     // TEST 11: C-BET FREQUENCY vs BOARD TEXTURE
     // ═══════════════════════════════════════════
-    console.log('\n--- TEST 11: C-Bet vs Board Texture ---');
+    console.debug('\n--- TEST 11: C-Bet vs Board Texture ---');
 
     const cbDry = Brain.getCBetStrategy(true, true, 'dry', 2);
     const cbWet = Brain.getCBetStrategy(true, true, 'wet', 2);
     const cbMulti = Brain.getCBetStrategy(true, true, 'dry', 5);
 
-    console.log(`  Dry/HU: freq=${cbDry.frequency.toFixed(2)}, Wet/HU: freq=${cbWet.frequency.toFixed(2)}, Dry/5-way: freq=${cbMulti.frequency.toFixed(2)}`);
+    console.debug(`  Dry/HU: freq=${cbDry.frequency.toFixed(2)}, Wet/HU: freq=${cbWet.frequency.toFixed(2)}, Dry/5-way: freq=${cbMulti.frequency.toFixed(2)}`);
     assert(cbDry.frequency > cbWet.frequency, `C-bet more on dry boards (${cbDry.frequency} > ${cbWet.frequency})`);
     assert(cbDry.frequency > cbMulti.frequency, `C-bet less multiway (${cbDry.frequency} > ${cbMulti.frequency})`);
 
     // ═══════════════════════════════════════════
     // TEST 12: PREFLOP HAND STRENGTH RANKING
     // ═══════════════════════════════════════════
-    console.log('\n--- TEST 12: Preflop Strength Verification ---');
+    console.debug('\n--- TEST 12: Preflop Strength Verification ---');
 
     const hands = [
         { hand: 'AA', expected: 95 }, { hand: 'KK', expected: 90 },
@@ -437,7 +437,7 @@ function assert(condition, label) {
 
     for (const h of hands) {
         const str = Brain.getPreflopStrength(h.hand);
-        console.log(`  ${h.hand}: strength=${str} (expected ~${h.expected})`);
+        console.debug(`  ${h.hand}: strength=${str} (expected ~${h.expected})`);
         assert(Math.abs(str - h.expected) <= 15, `${h.hand} in expected range (~${h.expected}±15, got ${str})`);
     }
 
@@ -456,17 +456,17 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════
     // RESULTS
     // ═══════════════════════════════════════════
-    console.log('\n═══════════════════════════════════════════════════');
-    console.log(`  RESULTS: ${passed} passed, ${failed} failed`);
-    console.log('═══════════════════════════════════════════════════');
+    console.debug('\n═══════════════════════════════════════════════════');
+    console.debug(`  RESULTS: ${passed} passed, ${failed} failed`);
+    console.debug('═══════════════════════════════════════════════════');
 
     if (failed > 0) {
-        console.log('\n❌ FAILURES:');
-        failures.forEach(f => console.log(`  - ${f}`));
+        console.debug('\n❌ FAILURES:');
+        failures.forEach(f => console.debug(`  - ${f}`));
     } else {
-        console.log('\n✅ ALL TESTS PASSED');
+        console.debug('\n✅ ALL TESTS PASSED');
     }
 
-    console.log('');
+    console.debug('');
     process.exit(failed > 0 ? 1 : 0);
 })();

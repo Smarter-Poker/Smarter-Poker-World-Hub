@@ -98,7 +98,7 @@ export default function MentalJournalPage() {
         setEntries(parsed);
       }
     } catch (e) {
-      console.error('Failed to fetch journal history:', e);
+      console.warn('Failed to fetch journal history:', e);
       setFetchError('Unable to load journal history. Please try again.');
     } finally {
       setLoadingHistory(false);
@@ -150,7 +150,7 @@ export default function MentalJournalPage() {
       setNotes('');
       setView('history'); // Switch to history to see the new entry
     } catch (e) {
-      console.error(e);
+      console.warn(e);
     } finally {
       setIsSaving(false);
     }

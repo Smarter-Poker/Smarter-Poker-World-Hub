@@ -84,7 +84,7 @@ export default async function handler(req, res) {
         );
 
         if (error) {
-            console.error("[rg/session/reality-check:rpc]", error);
+            console.warn("[rg/session/reality-check:rpc]", error);
             return res.status(500).json({
                 error: error.message,
                 code: "rg_reality_check_failed"
@@ -97,7 +97,7 @@ export default async function handler(req, res) {
         return res.status(200).json(data);
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error("[rg/session/reality-check] unhandled:", err);
+        console.warn("[rg/session/reality-check] unhandled:", err);
         return res
             .status(500)
             .json({ error: err?.message || "unhandled failure" });

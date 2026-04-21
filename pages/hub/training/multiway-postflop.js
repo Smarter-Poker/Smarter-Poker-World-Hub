@@ -360,7 +360,7 @@ export default function MultiwayPostflop() {
         gameId: 'multiway_postflop',
         scenario: selectedScenario,
       }, 'MultiwayPostflop');
-    } catch (e) { /* non-critical */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
   }, [selectedScenario]);
 
   return (

@@ -3073,7 +3073,7 @@ function ActionPanel({ actions, onAction, stack, currentBet, bigBlind, potTotal 
         const saved = localStorage.getItem('smarter-poker-bet-presets');
         if (saved) setCustomPresets(JSON.parse(saved));
       } catch (e) {
-        console.error('Failed to parse bet presets', e);
+        console.warn('Failed to parse bet presets', e);
       }
     };
     loadPresets();
@@ -4708,7 +4708,7 @@ function HandHistoryBrowser({ tableId, userId, onClose }) {
         setTotal(json.total || 0);
         setPage(json.page || 0);
       }
-    } catch (err) { console.error('Error fetching hand history:', err); }
+    } catch (err) { console.warn('Error fetching hand history:', err); }
     finally { setLoading(false); }
   }, [tableId]);
 
@@ -5453,7 +5453,7 @@ function ResultOverlay({ result, send, userId }) {
         await navigator.clipboard.writeText(text);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
-      } catch (_e) { /* silent */ }
+      } catch (_e) { console.warn('[App] Handled exception:', _e?.message || _e); }
     }
   };
 

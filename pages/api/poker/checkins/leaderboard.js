@@ -49,7 +49,7 @@ export default async function handler(req, res) {
         const { data: checkins, error } = await query.limit(2000);
 
         if (error) {
-            console.error('[Leaderboard API] Query error:', error);
+            console.warn('[Leaderboard API] Query error:', error);
             return res.status(500).json({ success: false, error: 'Database query failed' });
         }
 
@@ -104,7 +104,7 @@ export default async function handler(req, res) {
 
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('[Leaderboard Error]', err);
+        console.warn('[Leaderboard Error]', err);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

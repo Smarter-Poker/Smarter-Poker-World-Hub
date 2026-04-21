@@ -81,7 +81,7 @@ function useUserProfile() {
                     });
                 }
             } catch (err) {
-                console.error('Profile fetch error:', err);
+                console.warn('Profile fetch error:', err);
                 if (isMounted) {
                     setProfile(prev => ({
                         ...prev,

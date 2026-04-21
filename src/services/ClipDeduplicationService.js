@@ -29,7 +29,7 @@ export async function isClipAlreadyPosted(videoId) {
         .maybeSingle();
 
     if (error && error.code !== 'PGRST116') {
-        console.error('Error checking clip:', error);
+        console.warn('Error checking clip:', error);
         return false;
     }
 
@@ -54,20 +54,20 @@ export async function markClipAsPosted(clipData) {
         });
 
         if (error) {
-            console.error('Error calling reserve_clip RPC:', error);
+            console.warn('Error calling reserve_clip RPC:', error);
             return false;
         }
 
         // RPC returns array with single row: { success: boolean, clip_id: uuid }
         if (!data || data.length === 0 || !data[0].success) {
-            console.log(`   🔒 Clip ${videoId} already reserved by another horse`);
+            console.debug(`   🔒 Clip ${videoId} already reserved by another horse`);
             return false;
         }
 
-        console.log(`   ✅ Clip ${videoId} successfully reserved (ID: ${data[0].clip_id})`);
+        console.debug(`   ✅ Clip ${videoId} successfully reserved (ID: ${data[0].clip_id})`);
         return { id: data[0].clip_id };
     } catch (error) {
-        console.error('Exception calling reserve_clip RPC:', error);
+        console.warn('Exception calling reserve_clip RPC:', error);
         return false;
     }
 }
@@ -86,7 +86,7 @@ export async function getRecentlyPostedClips(days = 30) {
         .order('posted_at', { ascending: false });
 
     if (error) {
-        console.error('Error fetching recent clips:', error);
+        console.warn('Error fetching recent clips:', error);
         return [];
     }
 
@@ -103,7 +103,7 @@ export async function getHorseAssignedSources(horseProfileId) {
         .eq('horse_profile_id', horseProfileId);
 
     if (error) {
-        console.error('Error fetching horse sources:', error);
+        console.warn('Error fetching horse sources:', error);
         return [];
     }
 
@@ -127,7 +127,7 @@ export async function assignSourcesToHorse(horseProfileId, sourceKeys, sourceTyp
         .select();
 
     if (error) {
-        console.error('Error assigning sources:', error);
+        console.warn('Error assigning sources:', error);
         return [];
     }
 
@@ -144,7 +144,7 @@ export async function getHorsesForSource(sourceKey) {
         .eq('source_key', sourceKey);
 
     if (error) {
-        console.error('Error fetching horses for source:', error);
+        console.warn('Error fetching horses for source:', error);
         return [];
     }
 
@@ -164,11 +164,11 @@ export async function initializeHorseSourceAssignments(allSources, sourceType = 
         .not('profile_id', 'is', null);
 
     if (horsesError || !horses?.length) {
-        console.error('Error fetching horses:', horsesError);
+        console.warn('Error fetching horses:', horsesError);
         return;
     }
 
-    console.log(`\n🐴 Initializing source assignments for ${horses.length} horses...`);
+    console.debug(`\n🐴 Initializing source assignments for ${horses.length} horses...`);
 
     const sourceKeys = Object.keys(allSources);
     const horsesPerSource = 2; // Each source assigned to exactly 2 horses
@@ -185,10 +185,10 @@ export async function initializeHorseSourceAssignments(allSources, sourceType = 
         }
 
         await assignSourcesToHorse(horse.profile_id, assignedSources, sourceType);
-        console.log(`   ✅ ${horse.alias}: ${assignedSources.join(', ')}`);
+        console.debug(`   ✅ ${horse.alias}: ${assignedSources.join(', ')}`);
     }
 
-    console.log(`\n✅ Source assignments complete!`);
+    console.debug(`\n✅ Source assignments complete!`);
 }
 
 /**
@@ -225,7 +225,7 @@ export async function getAvailableClipsForHorse(horseProfileId, allClips) {
     // Filter out already posted clips
     const availableClips = sourceFilteredClips.filter(clip => !postedVideoIds.has(clip.video_id));
 
-    console.log(`   📊 Horse has ${availableClips.length} available clips from ${horseSources.length} sources`);
+    console.debug(`   📊 Horse has ${availableClips.length} available clips from ${horseSources.length} sources`);
 
     return availableClips;
 }

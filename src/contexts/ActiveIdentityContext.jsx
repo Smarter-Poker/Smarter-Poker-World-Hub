@@ -81,12 +81,12 @@ export function ActiveIdentityProvider({ children }) {
                                         page_type: page.page_type || 'club',
                                     });
                                 }
-                                console.log('[ActiveIdentity] Club page found (by venue):', page.name);
+                                console.debug('[ActiveIdentity] Club page found (by venue):', page.name);
                                 return; // Found — done
                             }
                         }
                     }
-                } catch (e) { /* commander_staff parse failed, try fallback */ }
+                } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
                 // ── Step 3: Always fallback to owner_id lookup ──
                 // This catches freshly registered Commanders who haven't logged into
@@ -104,7 +104,7 @@ export function ActiveIdentityProvider({ children }) {
                             page_type: page.page_type || 'club',
                         });
                     }
-                    console.log('[ActiveIdentity] Club page found (by owner):', page.name);
+                    console.debug('[ActiveIdentity] Club page found (by owner):', page.name);
                 }
             } catch (e) {
                 console.warn('[ActiveIdentity] Club page detection failed:', e);
@@ -133,16 +133,16 @@ export function ActiveIdentityProvider({ children }) {
                 const parsed = JSON.parse(e.newValue);
                 if (parsed && parsed.mode) {
                     setActiveIdentity(parsed);
-                    console.log('[ActiveIdentity] Synced from another tab:', parsed.mode);
+                    console.debug('[ActiveIdentity] Synced from another tab:', parsed.mode);
                 }
-            } catch (_) { /* ignore parse errors */ }
+            } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         };
         window.addEventListener('storage', handleStorageChange);
         return () => window.removeEventListener('storage', handleStorageChange);
     }, []);
 
     const switchToPersonal = useCallback(() => {
-        console.log('[ActiveIdentity] Switching to personal');
+        console.debug('[ActiveIdentity] Switching to personal');
         setActiveIdentity({ mode: 'personal', clubPage: null });
     }, []);
 
@@ -165,7 +165,7 @@ export function ActiveIdentityProvider({ children }) {
         // 100ms debounce to prevent rapid switching race conditions
         if (switchDebounceRef.current) clearTimeout(switchDebounceRef.current);
         switchDebounceRef.current = setTimeout(() => {
-            console.log('[ActiveIdentity] Switching to club:', page.name);
+            console.debug('[ActiveIdentity] Switching to club:', page.name);
             setActiveIdentity({ mode: 'club', clubPage: page });
         }, 100);
     }, [availableClubPage]);
@@ -194,7 +194,7 @@ export function ActiveIdentityProvider({ children }) {
                     setActiveIdentity({ mode: 'personal', clubPage: null });
                     setAvailableClubPage(null);
                 }
-            } catch (e) { /* network error — keep existing identity */ }
+            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         };
         validateClubPage();
         return () => { mounted = false; }; // Cleanup: mark as unmounted
@@ -224,9 +224,9 @@ export function ActiveIdentityProvider({ children }) {
                         if (prev.mode !== 'club' || prev.clubPage?.id !== fresh.id) return prev;
                         return { ...prev, clubPage: updated };
                     });
-                    console.log('[ActiveIdentity] Club data refreshed:', fresh.name);
+                    console.debug('[ActiveIdentity] Club data refreshed:', fresh.name);
                 }
-            } catch (e) { /* silent — non-critical refresh */ }
+            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         };
 
         // Refresh on tab focus

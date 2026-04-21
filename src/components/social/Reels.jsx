@@ -421,7 +421,7 @@ export function ReelsViewer({ onClose }) {
             setViewCounts(vc);
             setCommentCounts(cc);
         } catch (e) {
-            console.error('Load reels error:', e);
+            console.warn('Load reels error:', e);
             setLoadError(true);
         }
         setLoading(false);
@@ -710,7 +710,7 @@ export function ReelsViewer({ onClose }) {
                 setReelCommentMediaUrl(result.url);
                 setReelCommentMediaType('image');
             }
-        } catch (err) { console.error('[ReelComment] Upload error:', err); }
+        } catch (err) { console.warn('[ReelComment] Upload error:', err); }
         setUploadingReelImage(false);
     };
 
@@ -1748,7 +1748,7 @@ export async function saveVideoToReels(userId, videoUrl, caption, sourceStoryId 
         if (error) throw error;
         return data;
     } catch (e) {
-        console.error('Save to reels error:', e);
+        console.warn('Save to reels error:', e);
         return null;
     }
 }

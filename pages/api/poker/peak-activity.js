@@ -204,7 +204,7 @@ export default async function handler(req, res) {
     });
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('Peak activity error:', err);
+    console.warn('Peak activity error:', err);
     res.status(500).json({ error: err.message });
   }
 }

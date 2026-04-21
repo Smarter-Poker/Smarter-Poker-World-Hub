@@ -207,9 +207,7 @@ export default async function handler(req, res) {
               : undefined,
           });
         }
-      } catch (_) {
-        // Engine not running — settings will apply on next connect
-      }
+      } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
       try {
           const { getBus } = require('../../../src/engine/EventBus');
@@ -225,20 +223,20 @@ export default async function handler(req, res) {
               });
           }
       } catch (e) {
-          console.error('[update-table-settings] EventBus error:', e.message);
+          console.warn('[update-table-settings] EventBus error:', e.message);
       }
 
       const responseBody = { success: true, table: updated };
       cacheResponse(req, 200, responseBody);
       return res.status(200).json(responseBody);
     } catch (err) {
-      console.error('[update-table-settings]', err);
+      console.warn('[update-table-settings]', err);
       return res.status(500).json({ success: false, error: 'Failed to update table settings' });
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

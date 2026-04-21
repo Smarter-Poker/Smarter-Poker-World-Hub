@@ -709,7 +709,7 @@ function ClickDetector({ propsRef }) {
       for (const hit of intersects) {
         const podId = findPodId(hit.object);
         if (podId) {
-          console.log('[ClickDetector] Pod clicked:', podId);
+          console.debug('[ClickDetector] Pod clicked:', podId);
           propsRef.current?.onPodClick?.(podId);
           return;
         }
@@ -733,7 +733,7 @@ function ClickDetector({ propsRef }) {
 
     canvas.addEventListener('click', handleClick);
     canvas.addEventListener('pointermove', handlePointerMove);
-    console.log('[ClickDetector] Native click detection attached to canvas');
+    console.debug('[ClickDetector] Native click detection attached to canvas');
 
     return () => {
       canvas.removeEventListener('click', handleClick);
@@ -766,7 +766,7 @@ function SceneContent({ propsRef, quality, setQuality, setDpr }) {
 
   useEffect(() => {
     mountedRef.current = true;
-    console.log('[R3FScene] SceneContent mounting, loading sub-components...');
+    console.debug('[R3FScene] SceneContent mounting, loading sub-components...');
 
     import('./RadarDisc').then(m => { if (mountedRef.current) setRadarDisc(() => m.RadarDisc); }).catch(err => console.warn('[R3FScene] RadarDisc failed:', err.message));
     // FeaturePod disabled — 2D overlay provides the icon UI; no need to load this chunk
@@ -914,8 +914,8 @@ export function R3FScene({ propsRef, initialQuality, initialDpr, isMobile }) {
   const [dpr, setDpr] = useState(initialDpr);
 
   const handleCreated = useCallback((state) => {
-    console.log('[R3FScene] Canvas created, renderer:', state.gl.constructor.name);
-    console.log('[R3FScene] Scene children:', state.scene.children.length);
+    console.debug('[R3FScene] Canvas created, renderer:', state.gl.constructor.name);
+    console.debug('[R3FScene] Scene children:', state.scene.children.length);
     state.gl.setClearColor(0x030818, 1);
     state.gl.toneMapping = 4; // ACESFilmicToneMapping
     state.gl.toneMappingExposure = 1.2; // Cinematic 4K exposure

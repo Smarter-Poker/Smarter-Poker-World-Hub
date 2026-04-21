@@ -341,7 +341,7 @@ const headers = { };
         gameTypeBreakdown
       });
     } catch (error) {
-      console.error('Fetch analytics failed:', error);
+      console.warn('Fetch analytics failed:', error);
       setAnalytics([]);
       setSummary({});
       setStats({

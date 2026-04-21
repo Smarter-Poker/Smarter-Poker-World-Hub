@@ -63,7 +63,7 @@ export default async function handler(req, res) {
 
               return res.status(200).json({ success: true, stats: mockStats });
           } catch (error) {
-              console.error('Grinder Stats GET Error:', error);
+              console.warn('Grinder Stats GET Error:', error);
               return res.status(500).json({ success: false, error: 'Failed to fetch grinder stats' });
           }
       }
@@ -99,7 +99,7 @@ export default async function handler(req, res) {
 
               return res.status(400).json({ success: false, error: 'Unknown action' });
           } catch (error) {
-              console.error('Grinder Action Error:', error);
+              console.warn('Grinder Action Error:', error);
               return res.status(500).json({ success: false, error: 'Failed to execute action' });
           }
       }
@@ -109,7 +109,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

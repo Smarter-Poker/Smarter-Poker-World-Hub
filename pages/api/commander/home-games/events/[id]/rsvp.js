@@ -51,7 +51,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -123,7 +123,7 @@ async function getRsvps(req, res, eventId) {
       is_host: event.host_id === user.id
     });
   } catch (error) {
-    console.error('Get RSVPs error:', error);
+    console.warn('Get RSVPs error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
@@ -281,7 +281,7 @@ async function submitRsvp(req, res, eventId) {
         : 'RSVP submitted'
     });
   } catch (error) {
-    console.error('Submit RSVP error:', error);
+    console.warn('Submit RSVP error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
@@ -400,7 +400,7 @@ async function updateRsvp(req, res, eventId) {
     return res.status(200).json({ rsvp: updated });
   } catch (error) {
       try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('Update RSVP error:', error);
+    console.warn('Update RSVP error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

@@ -223,7 +223,7 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                 }
                 setAllSeries(merged);
             })
-            .catch(err => console.error('[RT] Hard refresh exception:', err));
+            .catch(err => console.warn('[RT] Hard refresh exception:', err));
             return;
         }
 
@@ -2064,7 +2064,7 @@ export async function getStaticProps() {
             revalidate: 60, // 60 second Edge caching
         };
     } catch (e) {
-        console.error('ISR Build Failed:', e.message);
+        console.warn('ISR Build Failed:', e.message);
         return { props: { initialSeries: [] }, revalidate: 60 };
     }
 }

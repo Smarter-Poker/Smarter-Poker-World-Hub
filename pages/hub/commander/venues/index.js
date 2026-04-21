@@ -131,7 +131,7 @@ export default function VenueDiscoveryPage() {
         setVenues(data.data?.venues || []);
       }
     } catch (err) {
-      console.error('Fetch venues failed:', err);
+      console.warn('Fetch venues failed:', err);
       setVenues([]);
     } finally {
       setLoading(false);

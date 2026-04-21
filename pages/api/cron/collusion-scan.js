@@ -339,7 +339,7 @@ export default async function handler(req, res) {
       .limit(50000);
 
     if (handErr) {
-      console.error("[collusion-scan] hand_history read error:", handErr);
+      console.warn("[collusion-scan] hand_history read error:", handErr);
       return res.status(500).json({ error: handErr.message });
     }
 
@@ -383,7 +383,7 @@ export default async function handler(req, res) {
         .from("collusion_tracking")
         .insert(rows, { count: "exact" });
       if (insErr) {
-        console.error("[collusion-scan] insert error:", insErr);
+        console.warn("[collusion-scan] insert error:", insErr);
         return res.status(500).json({ error: insErr.message, findings: rows.length });
       }
       inserted = count || rows.length;
@@ -404,7 +404,7 @@ export default async function handler(req, res) {
     });
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error("[collusion-scan] fatal:", err);
+    console.warn("[collusion-scan] fatal:", err);
     return res.status(500).json({ error: err.message || "scan failed" });
   }
 }

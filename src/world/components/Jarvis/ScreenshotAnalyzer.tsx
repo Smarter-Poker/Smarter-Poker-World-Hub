@@ -68,7 +68,7 @@ export function ScreenshotAnalyzer({ onAnalysis, onClose }: ScreenshotAnalyzerPr
             onAnalysis(data.analysis);
             onClose?.();
         } catch (error) {
-            console.error('[ScreenshotAnalyzer] Error:', error);
+            console.warn('[ScreenshotAnalyzer] Error:', error);
             onAnalysis("I couldn't analyze that screenshot. Please try again with a clearer image of a poker table.");
         } finally {
             setIsAnalyzing(false);
@@ -233,7 +233,7 @@ export function ScreenshotAnalyzer({ onAnalysis, onClose }: ScreenshotAnalyzerPr
                 </button>
             </div>
 
-            <style jsx>{`
+            <style>{`
                 .spinner {
                     width: 14px;
                     height: 14px;

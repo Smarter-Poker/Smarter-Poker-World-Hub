@@ -68,7 +68,7 @@ export function useTrainingRealtime(userId) {
 
         // ── Achievement handler ─────────────────────────────────
         const handleAchievement = async (payload) => {
-            console.log('[TrainingRealtime] New achievement:', payload?.new?.achievement_id);
+            console.debug('[TrainingRealtime] New achievement:', payload?.new?.achievement_id);
             try {
                 const { data: achievementDef } = await client
                     .from('training_achievement_definitions')
@@ -83,13 +83,13 @@ export function useTrainingRealtime(userId) {
                     });
                 }
             } catch (err) {
-                console.error('[TrainingRealtime] Achievement fetch error:', err);
+                console.warn('[TrainingRealtime] Achievement fetch error:', err);
             }
         };
 
         // ── Leaderboard handler ─────────────────────────────────
         const handleLeaderboard = (payload) => {
-            console.log('[TrainingRealtime] Leaderboard update');
+            console.debug('[TrainingRealtime] Leaderboard update');
             const oldRank = payload.old?.rank || 999;
             const newRank = payload.new?.rank || 999;
 
@@ -106,7 +106,7 @@ export function useTrainingRealtime(userId) {
         // ── Challenge handler ───────────────────────────────────
         const handleChallenge = async (payload) => {
             if (payload.new.completed && !payload.old?.completed) {
-                console.log('[TrainingRealtime] Challenge completed:', payload?.new?.challenge_id);
+                console.debug('[TrainingRealtime] Challenge completed:', payload?.new?.challenge_id);
                 try {
                     const { data: challengeDef } = await client
                         .from('training_challenge_definitions')
@@ -121,7 +121,7 @@ export function useTrainingRealtime(userId) {
                         });
                     }
                 } catch (err) {
-                    console.error('[TrainingRealtime] Challenge fetch error:', err);
+                    console.warn('[TrainingRealtime] Challenge fetch error:', err);
                 }
             }
         };
@@ -131,14 +131,14 @@ export function useTrainingRealtime(userId) {
             if (!document.hidden && pendingWhileHiddenRef.current) {
                 pendingWhileHiddenRef.current = false;
                 // Force reconnect check on visibility restore
-                console.log('[TrainingRealtime] Tab visible — checking channels');
+                console.debug('[TrainingRealtime] Tab visible — checking channels');
                 connectChannels();
             }
         };
 
         // ── Online recovery — reconnect when network returns ──
         const handleOnline = () => {
-            console.log('[TrainingRealtime] Online — reconnecting channels');
+            console.debug('[TrainingRealtime] Online — reconnecting channels');
             reconnectCountRef.current = 0; // Reset so we get fresh attempts
             connectChannels();
         };
@@ -161,7 +161,7 @@ export function useTrainingRealtime(userId) {
                 if (status === 'SUBSCRIBED') {
                     reconnectCountRef.current = 0;
                     if (mountedRef.current) setIsConnected(true);
-                    console.log(`[TrainingRealtime] ✅ Connected: ${name}`);
+                    console.debug(`[TrainingRealtime] ✅ Connected: ${name}`);
                 } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
                     console.warn(`[TrainingRealtime] ⚠️ ${name} error — status: ${status}`);
                     if (mountedRef.current) setIsConnected(false);
@@ -169,13 +169,13 @@ export function useTrainingRealtime(userId) {
                     if (reconnectCountRef.current < MAX_RECONNECT) {
                         reconnectCountRef.current++;
                         const delay = RECONNECT_DELAY * reconnectCountRef.current;
-                        console.log(`[TrainingRealtime] Reconnect attempt ${reconnectCountRef.current}/${MAX_RECONNECT} in ${delay}ms`);
+                        console.debug(`[TrainingRealtime] Reconnect attempt ${reconnectCountRef.current}/${MAX_RECONNECT} in ${delay}ms`);
                         if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
                         reconnectTimerRef.current = setTimeout(() => {
                             if (mountedRef.current) connectChannels();
                         }, delay);
                     } else {
-                        console.error(`[TrainingRealtime] Max reconnect attempts (${MAX_RECONNECT}) reached`);
+                        console.warn(`[TrainingRealtime] Max reconnect attempts (${MAX_RECONNECT}) reached`);
                     }
                 }
             };
@@ -231,7 +231,7 @@ export function useTrainingRealtime(userId) {
         // ── Cleanup ──────────────────────────────────────────────
         return () => {
             mountedRef.current = false;
-            console.log('[TrainingRealtime] Cleaning up subscriptions');
+            console.debug('[TrainingRealtime] Cleaning up subscriptions');
 
             Object.values(debounceTimersRef.current).forEach(t => { if (t) clearTimeout(t); });
             debounceTimersRef.current = {};

@@ -86,7 +86,7 @@ export default function SharePostModal({ post, authorUsername, onClose, onShared
             }
             onShared?.(platform.id);
         } catch (err) {
-            console.error('Share error:', err);
+            console.warn('Share error:', err);
         }
     };
 

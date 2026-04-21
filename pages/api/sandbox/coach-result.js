@@ -31,7 +31,7 @@ export default async function handler(req, res) {
                   const { data: authData } = await supabase.auth.getUser(token);
                   const user = authData?.user;
                   if (user) userId = user.id;
-              } catch (e) { /* non-fatal */ }
+              } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
           }
 
           // Guest submissions are allowed but not stored
@@ -66,19 +66,19 @@ export default async function handler(req, res) {
               .maybeSingle();
 
           if (error) {
-              console.error('[coach-result] Insert error:', error.message);
+              console.warn('[coach-result] Insert error:', error.message);
               return res.status(500).json({ success: false, error: 'Internal server error' });
           }
 
           return res.status(200).json({ success: true, id: data?.id });
       } catch (err) {
-          console.error('[coach-result] Handler error:', err);
+          console.warn('[coach-result] Handler error:', err);
           return res.status(500).json({ success: false, error: err.message });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

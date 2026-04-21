@@ -38,9 +38,7 @@ function CompletedEventsList({
         try {
             await onSaveEdit(gigId, completedEditForm);
             setEditingCompletedGig(null);
-        } catch (err) {
-            // Keep form open on failure — parent shows toast
-        }
+        } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
     };
 
     return (

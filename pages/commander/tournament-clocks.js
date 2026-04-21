@@ -39,7 +39,7 @@ export default function TournamentClocks() {
                 const active = all.filter(t => ['running', 'paused', 'registering', 'final_table', 'scheduled'].includes(t.status));
                 setTournaments(active);
             }
-        } catch (err) { console.error(err); }
+        } catch (err) { console.warn(err); }
         finally { setLoading(false); }
     }, []);
 

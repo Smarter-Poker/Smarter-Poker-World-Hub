@@ -49,7 +49,7 @@ export default function MustMoveManager() {
     try {
       const s = getStaffData();
       if (s.venue_id) setVenueId(s.venue_id);
-    } catch (e) { /* silent */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
   }, []);
 
   const fetchData = useCallback(async (signal) => {
@@ -60,7 +60,7 @@ export default function MustMoveManager() {
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setData(json.data);
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
     finally { setLoading(false); }
   }, [venueId]);
 

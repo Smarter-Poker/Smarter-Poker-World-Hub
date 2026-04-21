@@ -60,13 +60,13 @@ export async function logAudit({
     });
 
     if (error) {
-      console.error('Audit log error:', error);
+      console.warn('Audit log error:', error);
       return null;
     }
 
     return data;
   } catch (err) {
-    console.error('Audit log error:', err);
+    console.warn('Audit log error:', err);
     return null;
   }
 }

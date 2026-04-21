@@ -102,7 +102,7 @@ export default async function handler(req, res) {
 
         if (error) {
             // eslint-disable-next-line no-console
-            console.error('[dm-player] RPC error:', error);
+            console.warn('[dm-player] RPC error:', error);
             return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
@@ -131,7 +131,7 @@ export default async function handler(req, res) {
     } catch (err) {
         try { reportApiError(err, req); } catch (_e) { console.warn('[App] Handled exception:', _e?.message || _e); }
         // eslint-disable-next-line no-console
-        console.error('[dm-player]', err);
+        console.warn('[dm-player]', err);
         if (!res.headersSent) {
             return res.status(500).json({ success: false, error: 'Internal server error' });
         }

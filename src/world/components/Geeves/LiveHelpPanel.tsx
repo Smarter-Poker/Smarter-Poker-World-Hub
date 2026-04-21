@@ -310,7 +310,7 @@ export function LiveHelpPanel({
                             onTranscript={(text) => {
                                 handleInputChange(inputValue + (inputValue ? ' ' : '') + text);
                             }}
-                            onError={(error) => console.error('Voice input error:', error)}
+                            onError={(error) => console.warn('Voice input error:', error)}
                         />
                         <ScreenshotUpload
                             onAnalyze={async (base64) => {
@@ -323,7 +323,7 @@ export function LiveHelpPanel({
                                     });
                                     const d = await r.json();
                                     if (d.analysis) onSendMessage(`[Screenshot Analysis]\n\n${d.analysis}`);
-                                } catch { console.error('Screenshot analysis failed'); }
+                                } catch { console.warn('Screenshot analysis failed'); }
                             }}
                         />
                         <button

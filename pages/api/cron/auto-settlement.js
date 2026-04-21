@@ -247,7 +247,7 @@ export default async function handler(req, res) {
           });
 
           if (holdDebitErr) {
-            console.error(`[auto-settlement] Union hold debit failed for club ${club.name}:`, holdDebitErr.message);
+            console.warn(`[auto-settlement] Union hold debit failed for club ${club.name}:`, holdDebitErr.message);
             results.errors.push({ club: club.name, phase: 'union_hold_debit', error: holdDebitErr.message });
             // Skip chip transaction record — debit didn't happen
           } else {
@@ -397,7 +397,7 @@ export default async function handler(req, res) {
               });
 
               if (debitErr) {
-                console.error(`[auto-settlement] Treasury debit failed for agent ${agent.user_id}:`, debitErr.message);
+                console.warn(`[auto-settlement] Treasury debit failed for agent ${agent.user_id}:`, debitErr.message);
                 results.errors.push({ club: club.name, agent: agent.user_id, phase: 'commission_debit', error: debitErr.message });
                 // Skip this agent — don't credit chips without debiting treasury
               } else {
@@ -410,14 +410,14 @@ export default async function handler(req, res) {
 
                 if (creditErr) {
                   // BUG #238 FIX: Roll back treasury debit if credit fails
-                  console.error(`[auto-settlement] Credit failed for agent ${agent.user_id}, rolling back treasury:`, creditErr.message);
+                  console.warn(`[auto-settlement] Credit failed for agent ${agent.user_id}, rolling back treasury:`, creditErr.message);
                   try {
                     await supabaseAdmin.rpc('fn_credit_treasury', {
                       p_club_id: club.id,
                       p_amount: netCommission,
                     });
                   } catch (rbErr) {
-                    console.error('[auto-settlement] Treasury rollback failed:', rbErr.message);
+                    console.warn('[auto-settlement] Treasury rollback failed:', rbErr.message);
                   }
                   results.errors.push({ club: club.name, agent: agent.user_id, phase: 'commission_credit', error: creditErr.message });
                 } else {
@@ -652,7 +652,7 @@ export default async function handler(req, res) {
     });
 
   } catch (err) {
-    console.error('[auto-settlement] Fatal error:', err);
+    console.warn('[auto-settlement] Fatal error:', err);
     results.phase = 'failed';
     results.fatal_error = err.message;
     results.duration_ms = Date.now() - startTime;
@@ -705,7 +705,7 @@ async function sendSettlementMessages(club, period, agents, totalRake, unionHold
       pinned: false,
     });
   } catch (announceErr) {
-    console.error('[settlement-msg] Announcement error:', announceErr.message);
+    console.warn('[settlement-msg] Announcement error:', announceErr.message);
   }
 
   // 2. Individual agent notifications via notifications table
@@ -731,7 +731,7 @@ async function sendSettlementMessages(club, period, agents, totalRake, unionHold
         read: false,
       });
     } catch (agentNotifErr) {
-      console.error(`[settlement-msg] Agent ${agent.user_id} notification error:`, agentNotifErr.message);
+      console.warn(`[settlement-msg] Agent ${agent.user_id} notification error:`, agentNotifErr.message);
     }
   }
 
@@ -753,6 +753,6 @@ async function sendSettlementMessages(club, period, agents, totalRake, unionHold
       read: false,
     });
   } catch (ownerNotifErr) {
-    console.error('[settlement-msg] Owner notification error:', ownerNotifErr.message);
+    console.warn('[settlement-msg] Owner notification error:', ownerNotifErr.message);
   }
 }

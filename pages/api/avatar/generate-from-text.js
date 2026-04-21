@@ -177,13 +177,13 @@ export default async function handler(req, res) {
                   // Note: xAI API doesn't support size/quality params
               });
           } catch (apiError) {
-              console.error('❌ Grok API call failed:', apiError.message);
-              console.error('❌ Full error:', JSON.stringify(apiError, null, 2));
+              console.warn('❌ Grok API call failed:', apiError.message);
+              console.warn('❌ Full error:', JSON.stringify(apiError, null, 2));
               throw new Error(`Grok API error: ${apiError.message}`);
           }
 
           if (!response?.data?.[0]?.url) {
-              console.error('❌ Grok API returned no image URL:', JSON.stringify(response));
+              console.warn('❌ Grok API returned no image URL:', JSON.stringify(response));
               throw new Error('Grok API returned no image URL');
           }
 
@@ -215,7 +215,7 @@ export default async function handler(req, res) {
               });
 
           if (uploadError) {
-              console.error('❌ Supabase upload error:', uploadError);
+              console.warn('❌ Supabase upload error:', uploadError);
               throw new Error('Failed to upload avatar to storage');
           }
 
@@ -231,7 +231,7 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('❌ Avatar generation error:', error);
+          console.warn('❌ Avatar generation error:', error);
           return res.status(500).json({
               success: false,
               error: error.message || 'Failed to generate avatar'
@@ -240,7 +240,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

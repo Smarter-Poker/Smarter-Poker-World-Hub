@@ -74,7 +74,7 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
             setFriendsList(data.friends || data.data || []);
         } catch (err) {
             if (!isMounted.current) return;
-            console.error('Failed to fetch friends:', err);
+            console.warn('Failed to fetch friends:', err);
             setLoading(false);
         }
     }, [userId, authToken]);
@@ -131,7 +131,7 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
             setFriendCheckins(Object.values(venueMap));
         } catch (err) {
             if (!isMounted.current) return;
-            console.error('Failed to fetch friend checkins:', err);
+            console.warn('Failed to fetch friend checkins:', err);
         } finally {
             if (isMounted.current) setLoading(false);
         }

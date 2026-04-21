@@ -45,9 +45,7 @@ export function playHeartbeat(volume = 0.2) {
         osc.start(ctx.currentTime);
         osc.stop(ctx.currentTime + 0.15);
         // Oscillator self-cleans after stop — no leak
-    } catch (e) {
-        // Ignore individual pulse failures
-    }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 }
 
 /**

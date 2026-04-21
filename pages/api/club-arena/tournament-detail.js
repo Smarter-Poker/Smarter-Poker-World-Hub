@@ -137,7 +137,7 @@ export default async function handler(req, res) {
           }
         }
       } catch (bountyErr) {
-        console.error('[tournament-detail] bounty state error (non-fatal):', bountyErr.message);
+        console.warn('[tournament-detail] bounty state error (non-fatal):', bountyErr.message);
         // Non-fatal — respond without bounty state
       }
 
@@ -152,7 +152,7 @@ export default async function handler(req, res) {
           if (tourn2?.settings?.bounty_results) {
             bountyState = { ...tourn2.settings.bounty_results, isHistorical: true };
           }
-        } catch (_) { /* non-fatal */ }
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
       }
 
       return res.status(200).json({
@@ -163,13 +163,13 @@ export default async function handler(req, res) {
         bountyState,
       });
     } catch (err) {
-      console.error('[tournament-detail] error:', err);
+      console.warn('[tournament-detail] error:', err);
       return res.status(500).json({ success: false, error: 'Internal error' });
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

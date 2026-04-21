@@ -51,7 +51,7 @@ const res = await commanderFetch(`/api/commander/time-clock?venue_id=${venueId}`
                 setSummary(data.data.summary || {});
             }
         } catch (err) {
-            console.error('Fetch entries error:', err);
+            console.warn('Fetch entries error:', err);
         } finally {
             setLoading(false);
         }
@@ -86,7 +86,7 @@ const res = await commanderFetch(`/api/commander/time-clock?venue_id=${venueId}`
                             stopCamera();
                             handleScan(code);
                         }
-                    } catch (e) { /* silent */ }
+                    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
                 }, 300);
             }
         } catch (err) {

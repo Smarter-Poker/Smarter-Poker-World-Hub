@@ -47,7 +47,7 @@ export default function ExternalSolverImport({ onClose, onImport }) {
             onImport?.(parsedState);
             onClose?.();
         } catch (err) {
-            console.error('[ExternalSolverImport] Parsing error:', err);
+            console.warn('[ExternalSolverImport] Parsing error:', err);
             setError(err.message || 'An unknown error occurred while parsing');
         }
     };

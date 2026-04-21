@@ -365,7 +365,7 @@ export class GameContentFactory {
         // STEP A: Lookup
         const game = getGameDefinition(gameId);
         if (!game) {
-            console.error(`[GameContentFactory] Unknown game ID: ${gameId}`);
+            console.warn(`[GameContentFactory] Unknown game ID: ${gameId}`);
             return null;
         }
 

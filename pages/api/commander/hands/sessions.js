@@ -71,7 +71,7 @@ export default async function handler(req, res) {
         .limit(20);
 
       if (error) {
-        console.error('Sessions error:', error);
+        console.warn('Sessions error:', error);
         throw error;
       }
 
@@ -115,7 +115,7 @@ export default async function handler(req, res) {
       });
 
     } catch (error) {
-      console.error('Sessions API error:', error);
+      console.warn('Sessions API error:', error);
       return res.status(500).json({
         success: false,
         error: { code: 'SERVER_ERROR', message: 'Failed to fetch sessions' }
@@ -124,7 +124,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

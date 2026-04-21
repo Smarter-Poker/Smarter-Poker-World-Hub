@@ -124,7 +124,7 @@ export default async function handler(req, res) {
     });
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('Venue dedup error:', err);
+    console.warn('Venue dedup error:', err);
     res.status(500).json({ error: err.message });
   }
 }

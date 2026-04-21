@@ -55,7 +55,7 @@ export default function RateTable() {
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setDone(true);
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
     finally { setSubmitting(false); }
   };
 

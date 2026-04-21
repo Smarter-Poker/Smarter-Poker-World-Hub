@@ -232,7 +232,7 @@ export default function CommanderLanding() {
         router.push('/commander/onboarding');
       }
     } catch (err) {
-      console.error('Submit error:', err);
+      console.warn('Submit error:', err);
       router.push('/commander/onboarding');
     } finally {
       setSubmitting(false);

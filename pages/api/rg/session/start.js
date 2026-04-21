@@ -67,7 +67,7 @@ export default async function handler(req, res) {
         });
 
         if (error) {
-            console.error("[rg/session/start:rpc]", error);
+            console.warn("[rg/session/start:rpc]", error);
             // Self-exclusion blocks session start
             const status = /self[- _]?excluded/i.test(error.message) ? 403 : 500;
             return res
@@ -78,7 +78,7 @@ export default async function handler(req, res) {
         return res.status(200).json(data);
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error("[rg/session/start] unhandled:", err);
+        console.warn("[rg/session/start] unhandled:", err);
         return res
             .status(500)
             .json({ error: err?.message || "unhandled failure" });

@@ -92,7 +92,7 @@ export default function LeaderboardDisplay() {
       const mJson = await mRes.json();
       const members = (mJson?.data?.members || mJson?.members || []).filter(m => m.membership_status === 'active');
       setTotalMembers(members.length);
-      if (!venueName) { try { setVenueName(getStaffData().venue_name || ''); } catch (e) { console.error("[leaderboard.js]", e); } }
+      if (!venueName) { try { setVenueName(getStaffData().venue_name || ''); } catch (e) { console.warn("[leaderboard.js]", e); } }
 
       const built = [];
 
@@ -131,7 +131,7 @@ export default function LeaderboardDisplay() {
             }
           });
         }
-      } catch (e) { console.error("[leaderboard.js]", e); }
+      } catch (e) { console.warn("[leaderboard.js]", e); }
 
       // ════════════════════════════════════════════════════════════
       // SECTION B: LEAGUE STANDINGS
@@ -160,10 +160,10 @@ export default function LeaderboardDisplay() {
                     detail: [s.events_played ? `${s.events_played} events` : null, s.wins ? `${s.wins} wins` : null, s.cashes ? `${s.cashes} cashes` : null, s.earnings ? `$${Number(s.earnings).toLocaleString()}` : null].filter(Boolean).join(' • '),
                     barPct: Math.round(((s.points || 0) / maxPts) * 100) })) });
               }
-            } catch (e) { console.error("[leaderboard.js]", e); }
+            } catch (e) { console.warn("[leaderboard.js]", e); }
           }
         }
-      } catch (e) { console.error("[leaderboard.js]", e); }
+      } catch (e) { console.warn("[leaderboard.js]", e); }
 
       // ════════════════════════════════════════════════════════════
       // SECTION C: AUTO-GENERATED BOARDS
@@ -189,7 +189,7 @@ export default function LeaderboardDisplay() {
               barPct: Math.round((p.total_hours / maxH) * 100),
               tier: p.membership_tier })) });
         }
-      } catch (e) { console.error("[leaderboard.js]", e); }
+      } catch (e) { console.warn("[leaderboard.js]", e); }
 
       // ── C2: Most Visits (All Time) ──
       const byVisits = [...members].filter(m => (m.visit_count || 0) > 0).sort((a, b) => (b.visit_count || 0) - (a.visit_count || 0)).slice(0, 15);
@@ -240,7 +240,7 @@ export default function LeaderboardDisplay() {
       }
 
       setBoards(built);
-    } catch (err) { if (err.name !== 'AbortError') console.error('[LeaderboardDisplay]', err); }
+    } catch (err) { if (err.name !== 'AbortError') console.warn('[LeaderboardDisplay]', err); }
   }, [venueId]);
 
   // ── TIMERS ──

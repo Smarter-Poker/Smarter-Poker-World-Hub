@@ -53,7 +53,7 @@ export default function WaitlistDisplay() {
     try {
       const staff = getStaffData();
       if (staff.venue_name) setVenueName(staff.venue_name);
-    } catch (e) { /* silent */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
   }, []);
 
   // Fetch customization settings — periodic re-fetch so desk changes sync
@@ -94,7 +94,7 @@ const staffData = getStaffData();
         const entries = wlJson.data || [];
         setWaitlists(entries);
       }
-    } catch (err) { if (err.name !== 'AbortError') console.error(err); }
+    } catch (err) { if (err.name !== 'AbortError') console.warn(err); }
     finally { setLoading(false); }
   }, []);
 

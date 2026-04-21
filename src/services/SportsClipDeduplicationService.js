@@ -29,13 +29,13 @@ export async function isSportsClipAlreadyPosted(videoId) {
             .maybeSingle();
 
         if (error && error.code !== 'PGRST116') {
-            console.error('Error checking sports clip:', error);
+            console.warn('Error checking sports clip:', error);
             return false;
         }
 
         return !!data;
     } catch (error) {
-        console.error('Exception checking sports clip:', error);
+        console.warn('Exception checking sports clip:', error);
         return false;
     }
 }
@@ -65,20 +65,20 @@ export async function markSportsClipAsPosted(clipData) {
         });
 
         if (error) {
-            console.error('Error calling reserve_sports_clip RPC:', error);
+            console.warn('Error calling reserve_sports_clip RPC:', error);
             return false;
         }
 
         // RPC returns array with single row: { success: boolean, clip_id: uuid }
         if (!data || data.length === 0 || !data[0].success) {
-            console.log(`   🔒 Sports clip ${videoId} already reserved by another horse`);
+            console.debug(`   🔒 Sports clip ${videoId} already reserved by another horse`);
             return false;
         }
 
-        console.log(`   ✅ Sports clip ${videoId} successfully reserved (ID: ${data[0].clip_id})`);
+        console.debug(`   ✅ Sports clip ${videoId} successfully reserved (ID: ${data[0].clip_id})`);
         return { id: data[0].clip_id };
     } catch (error) {
-        console.error('Exception calling reserve_sports_clip RPC:', error);
+        console.warn('Exception calling reserve_sports_clip RPC:', error);
         return false;
     }
 }
@@ -99,7 +99,7 @@ export async function getRecentlyPostedSportsClips(days = 30) {
         .order('posted_at', { ascending: false });
 
     if (error) {
-        console.error('Error fetching recent sports clips:', error);
+        console.warn('Error fetching recent sports clips:', error);
         return [];
     }
 
@@ -120,13 +120,13 @@ export async function getHorseSportsSources(horseId) {
             .order('is_primary', { ascending: false });
 
         if (error) {
-            console.error('Error fetching horse sports sources:', error);
+            console.warn('Error fetching horse sports sources:', error);
             return [];
         }
 
         return data || [];
     } catch (error) {
-        console.error('Exception fetching horse sports sources:', error);
+        console.warn('Exception fetching horse sports sources:', error);
         return [];
     }
 }
@@ -143,12 +143,12 @@ export async function getAvailableSportsClipsForHorse(horseId, excludeIds = []) 
         const sources = await getHorseSportsSources(horseId);
 
         if (!sources || sources.length === 0) {
-            console.log(`   ⚠️ No sports sources assigned to horse ${horseId}`);
+            console.debug(`   ⚠️ No sports sources assigned to horse ${horseId}`);
             return [];
         }
 
         const sourceNames = sources.map(s => s.source_name);
-        console.log(`   📺 Horse assigned to sports sources: ${sourceNames.join(', ')}`);
+        console.debug(`   📺 Horse assigned to sports sources: ${sourceNames.join(', ')}`);
 
         // Get clips from assigned sources
         let query = supabase
@@ -165,7 +165,7 @@ export async function getAvailableSportsClipsForHorse(horseId, excludeIds = []) 
             .limit(100);
 
         if (error) {
-            console.error('Error fetching sports clips:', error);
+            console.warn('Error fetching sports clips:', error);
             return [];
         }
 
@@ -175,11 +175,11 @@ export async function getAvailableSportsClipsForHorse(horseId, excludeIds = []) 
 
         const availableClips = clips.filter(clip => !postedVideoIds.has(clip.video_id));
 
-        console.log(`   📊 Found ${availableClips.length} available sports clips (${clips.length} total, ${postedVideoIds.size} already posted)`);
+        console.debug(`   📊 Found ${availableClips.length} available sports clips (${clips.length} total, ${postedVideoIds.size} already posted)`);
 
         return availableClips;
     } catch (error) {
-        console.error('Exception getting available sports clips:', error);
+        console.warn('Exception getting available sports clips:', error);
         return [];
     }
 }

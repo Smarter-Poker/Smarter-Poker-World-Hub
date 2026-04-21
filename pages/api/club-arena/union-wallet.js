@@ -146,7 +146,7 @@ export default async function handler(req, res) {
         p_amount: amt,
       });
       if (debitErr) {
-        console.error('[union-wallet] send_to_club debit failed:', debitErr.message);
+        console.warn('[union-wallet] send_to_club debit failed:', debitErr.message);
         return res.status(400).json({ success: false, error: 'Insufficient union balance' });
       }
 
@@ -156,12 +156,12 @@ export default async function handler(req, res) {
         p_amount: amt,
       });
       if (creditErr) {
-        console.error('[union-wallet] send_to_club credit failed, rolling back debit:', creditErr.message);
+        console.warn('[union-wallet] send_to_club credit failed, rolling back debit:', creditErr.message);
         await supabaseAdmin.rpc('fn_union_credit_wallet', {
           p_union_id: unionId,
           p_wallet: 'chip_balance',
           p_amount: amt,
-        }).catch(rbErr => console.error('[union-wallet] CRITICAL: rollback failed:', rbErr.message));
+        }).catch(rbErr => console.warn('[union-wallet] CRITICAL: rollback failed:', rbErr.message));
         return res.status(500).json({ success: false, error: 'Transfer failed (rolled back)' });
       }
 
@@ -206,7 +206,7 @@ export default async function handler(req, res) {
         p_amount: amt,
       });
       if (debitErr) {
-        console.error('[union-wallet] move_rake_to_chips debit failed:', debitErr.message);
+        console.warn('[union-wallet] move_rake_to_chips debit failed:', debitErr.message);
         return res.status(400).json({ success: false, error: 'Insufficient rake wallet balance' });
       }
 
@@ -216,12 +216,12 @@ export default async function handler(req, res) {
         p_amount: amt,
       });
       if (creditErr) {
-        console.error('[union-wallet] move_rake_to_chips credit failed, rolling back:', creditErr.message);
+        console.warn('[union-wallet] move_rake_to_chips credit failed, rolling back:', creditErr.message);
         await supabaseAdmin.rpc('fn_union_credit_wallet', {
           p_union_id: unionId,
           p_wallet: 'rake_wallet',
           p_amount: amt,
-        }).catch(rbErr => console.error('[union-wallet] CRITICAL: rollback failed:', rbErr.message));
+        }).catch(rbErr => console.warn('[union-wallet] CRITICAL: rollback failed:', rbErr.message));
         return res.status(500).json({ success: false, error: 'Move failed (rolled back)' });
       }
 
@@ -253,7 +253,7 @@ export default async function handler(req, res) {
         p_amount: payout,
       });
       if (bbjDebitErr) {
-        console.error('[union-wallet] BBJ payout debit failed:', bbjDebitErr.message);
+        console.warn('[union-wallet] BBJ payout debit failed:', bbjDebitErr.message);
         return res.status(400).json({ success: false, error: 'Insufficient BBJ pool balance' });
       }
 
@@ -268,10 +268,10 @@ export default async function handler(req, res) {
         p_club_id: payoutClubId, p_user_id: loserId, p_amount: loserShare,
       });
       if (loserErr) {
-        console.error('[union-wallet] BBJ loser credit failed, rolling back:', loserErr.message);
+        console.warn('[union-wallet] BBJ loser credit failed, rolling back:', loserErr.message);
         await supabaseAdmin.rpc('fn_union_credit_wallet', {
           p_union_id: unionId, p_wallet: 'bbj_wallet', p_amount: payout,
-        }).catch(rb => console.error('[union-wallet] CRITICAL BBJ rollback failed:', rb.message));
+        }).catch(rb => console.warn('[union-wallet] CRITICAL BBJ rollback failed:', rb.message));
         return res.status(500).json({ success: false, error: 'BBJ payout failed (rolled back)' });
       }
       credited += loserShare;
@@ -281,14 +281,14 @@ export default async function handler(req, res) {
         p_club_id: payoutClubId, p_user_id: winnerId, p_amount: winnerShare,
       });
       if (winnerErr) {
-        console.error('[union-wallet] BBJ winner credit failed, partial rollback:', winnerErr.message);
+        console.warn('[union-wallet] BBJ winner credit failed, partial rollback:', winnerErr.message);
         // Reverse loser credit + return to pool
         await supabaseAdmin.rpc('fn_debit_chips', {
           p_club_id: payoutClubId, p_user_id: loserId, p_amount: loserShare,
         }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         await supabaseAdmin.rpc('fn_union_credit_wallet', {
           p_union_id: unionId, p_wallet: 'bbj_wallet', p_amount: payout,
-        }).catch(rb => console.error('[union-wallet] CRITICAL BBJ rollback failed:', rb.message));
+        }).catch(rb => console.warn('[union-wallet] CRITICAL BBJ rollback failed:', rb.message));
         return res.status(500).json({ success: false, error: 'BBJ payout failed (rolled back)' });
       }
       credited += winnerShare;
@@ -298,7 +298,7 @@ export default async function handler(req, res) {
         p_club_id: payoutClubId, p_amount: tblShare,
       });
       if (tableErr) {
-        console.error('[union-wallet] BBJ table share failed (non-fatal):', tableErr.message);
+        console.warn('[union-wallet] BBJ table share failed (non-fatal):', tableErr.message);
         // Table share failure is logged but not rolled back — players already paid
       } else {
         credited += tblShare;
@@ -338,7 +338,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[union-wallet]', err);
+    console.warn('[union-wallet]', err);
     return res.status(500).json({ success: false, error: 'Server error' });
   }
 }

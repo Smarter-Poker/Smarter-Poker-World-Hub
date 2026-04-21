@@ -42,7 +42,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -108,7 +108,7 @@ async function listTaxEvents(req, res) {
 
     return res.status(200).json({ success: true, data: { events: enriched, summary, year: targetYear } });
   } catch (error) {
-    console.error('List tax events error:', error);
+    console.warn('List tax events error:', error);
     return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message } });
   }
 }
@@ -216,7 +216,7 @@ async function generateW2G(req, res) {
       }
     });
   } catch (error) {
-    console.error('Generate W2G error:', error);
+    console.warn('Generate W2G error:', error);
     return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message } });
   }
 }
@@ -249,7 +249,7 @@ async function updateTaxEvent(req, res) {
     return res.status(200).json({ success: true, data: { event } });
   } catch (error) {
       try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('Update tax event error:', error);
+    console.warn('Update tax event error:', error);
     return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message } });
   }
 }

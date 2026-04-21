@@ -87,7 +87,7 @@ export default async function handler(req, res) {
 
               return res.status(200).json({ codes: data || [] });
           } catch (err) {
-              console.error('List promo codes error:', err);
+              console.warn('List promo codes error:', err);
               return res.status(500).json({ success: false, error: 'Failed to fetch promo codes' });
           }
       }
@@ -132,7 +132,7 @@ export default async function handler(req, res) {
 
               return res.status(201).json({ code: data });
           } catch (err) {
-              console.error('Create promo code error:', err);
+              console.warn('Create promo code error:', err);
               return res.status(500).json({ success: false, error: 'Failed to create promo code' });
           }
       }
@@ -163,7 +163,7 @@ export default async function handler(req, res) {
 
               return res.status(200).json({ success: true });
           } catch (err) {
-              console.error('Deactivate promo code error:', err);
+              console.warn('Deactivate promo code error:', err);
               return res.status(500).json({ success: false, error: 'Failed to deactivate promo code' });
           }
       }
@@ -214,7 +214,7 @@ export default async function handler(req, res) {
 
               return res.status(200).json({ success: true, code: data });
           } catch (err) {
-              console.error('Update promo code error:', err);
+              console.warn('Update promo code error:', err);
               return res.status(500).json({ success: false, error: 'Failed to update promo code' });
           }
       }
@@ -223,7 +223,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

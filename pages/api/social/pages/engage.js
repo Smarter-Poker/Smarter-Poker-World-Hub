@@ -95,7 +95,7 @@ export default async function handler(req, res) {
                               }),
                           }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                       }
-                  } catch (ne) { console.error('Like notification error:', ne); }
+                  } catch (ne) { console.warn('Like notification error:', ne); }
 
                   return res.status(201).json({ success: true, liked: true, reaction_type });
               }
@@ -193,10 +193,10 @@ export default async function handler(req, res) {
                                       }
                                   }
                               }
-                          } catch (mentionErr) { console.error('Mention notification error:', mentionErr); }
+                          } catch (mentionErr) { console.warn('Mention notification error:', mentionErr); }
                       }
                   }
-              } catch (ne) { console.error('Comment notification error:', ne); }
+              } catch (ne) { console.warn('Comment notification error:', ne); }
 
               return res.status(201).json({
                   success: true,
@@ -380,7 +380,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

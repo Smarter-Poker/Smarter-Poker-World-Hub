@@ -132,7 +132,7 @@ const headers = { };
             : [];
         setTables(tablesArr);
       }
-    } catch (err) { console.error('Failed to fetch tables:', err); setLoadError('Failed to load tables. Tap to retry.'); }
+    } catch (err) { console.warn('Failed to fetch tables:', err); setLoadError('Failed to load tables. Tap to retry.'); }
 
     // Fetch games
     try {
@@ -145,7 +145,7 @@ const headers = { };
             : [];
         setGames(gamesArr);
       }
-    } catch (err) { console.error('Failed to fetch games:', err); }
+    } catch (err) { console.warn('Failed to fetch games:', err); }
 
     // Fetch sessions per in-use table (reuse fetched tablesArr)
     try {
@@ -156,10 +156,10 @@ const headers = { };
           const tNum = t.table_number || t.number;
           const json = await commanderFetchJSON(`/api/commander/dealer/sessions?table=${tNum}`, { headers });
           if (json.success) sessionData[tNum] = json.data || [];
-        } catch (e) { console.error("[tables.js]", e); }
+        } catch (e) { console.warn("[tables.js]", e); }
       }));
       setSessions(sessionData);
-    } catch (e) { console.error("[tables.js]", e); }
+    } catch (e) { console.warn("[tables.js]", e); }
 
     setLoading(false);
 
@@ -178,7 +178,7 @@ const headers = { };
         });
         setDealerMap(map);
       }
-    } catch (err) { console.error('Failed to fetch dealer rotations:', err); }
+    } catch (err) { console.warn('Failed to fetch dealer rotations:', err); }
   }, [venueId]);
 
   useEffect(() => {
@@ -237,7 +237,7 @@ const res = await commanderFetch('/api/commander/games', {
         broadcastChange('games');
         busEmit.celebration('confetti');
       }
-    } catch (err) { console.error('Start game error:', err); setToast({ type: 'error', text: 'Action failed: Start game. Please try again.' }); }
+    } catch (err) { console.warn('Start game error:', err); setToast({ type: 'error', text: 'Action failed: Start game. Please try again.' }); }
     finally { setActionLoading(false); }
   };
 
@@ -261,7 +261,7 @@ const res = await commanderFetch('/api/commander/games', {
         }
         await fetchTables();
         broadcastChange('games');
-      } catch (err) { console.error('Close game error:', err); setToast({ type: 'error', text: 'Action failed: Close game. Please try again.' }); }
+      } catch (err) { console.warn('Close game error:', err); setToast({ type: 'error', text: 'Action failed: Close game. Please try again.' }); }
       finally { setActionLoading(false); }
     }, { confirmLabel: 'Close Game', variant: 'danger' });
   };
@@ -284,7 +284,7 @@ const updates = { status };
         await fetchTables();
         broadcastChange('tables');
       }
-    } catch (err) { console.error('Set status error:', err); setToast({ type: 'error', text: 'Action failed: Set status. Please try again.' }); }
+    } catch (err) { console.warn('Set status error:', err); setToast({ type: 'error', text: 'Action failed: Set status. Please try again.' }); }
     finally { setActionLoading(false); }
   };
 
@@ -300,7 +300,7 @@ const updates = { status };
           await fetchTables();
           broadcastChange('tables');
         }
-      } catch (err) { console.error('Delete table error:', err); setToast({ type: 'error', text: 'Action failed: Delete table. Please try again.' }); }
+      } catch (err) { console.warn('Delete table error:', err); setToast({ type: 'error', text: 'Action failed: Delete table. Please try again.' }); }
       finally { setActionLoading(false); }
     }, { confirmLabel: 'Delete Table', variant: 'danger' });
   };
@@ -319,7 +319,7 @@ const res = await commanderFetch('/api/commander/tables', {
         await fetchTables();
         broadcastChange('tables');
       }
-    } catch (err) { console.error('Add table error:', err); setToast({ type: 'error', text: 'Action failed: Add table. Please try again.' }); }
+    } catch (err) { console.warn('Add table error:', err); setToast({ type: 'error', text: 'Action failed: Add table. Please try again.' }); }
   setActionLoading(false);
   };
 
@@ -339,7 +339,7 @@ const res = await commanderFetch('/api/commander/tables', {
         await fetchTables();
         broadcastChange('tables');
       }
-    } catch (err) { console.error('Set purpose error:', err); setToast({ type: 'error', text: 'Action failed: Set purpose. Please try again.' }); }
+    } catch (err) { console.warn('Set purpose error:', err); setToast({ type: 'error', text: 'Action failed: Set purpose. Please try again.' }); }
     finally { setActionLoading(false); }
   };
 

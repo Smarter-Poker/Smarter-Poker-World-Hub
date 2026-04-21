@@ -26,14 +26,14 @@ let failed = 0;
 const failures = [];
 
 function assert(condition, label) {
-    if (condition) { passed++; console.log(`  ✅ ${label}`); }
-    else { failed++; failures.push(label); console.log(`  ❌ FAIL: ${label}`); }
+    if (condition) { passed++; console.debug(`  ✅ ${label}`); }
+    else { failed++; failures.push(label); console.debug(`  ❌ FAIL: ${label}`); }
 }
 
 (async () => {
-    console.log('\n═══════════════════════════════════════════════════');
-    console.log('  🔬 SWEEP 10: COMPREHENSIVE HORSE AUDIT');
-    console.log('═══════════════════════════════════════════════════\n');
+    console.debug('\n═══════════════════════════════════════════════════');
+    console.debug('  🔬 SWEEP 10: COMPREHENSIVE HORSE AUDIT');
+    console.debug('═══════════════════════════════════════════════════\n');
 
     const HORSE = '00000000-0000-0000-0000-000000000028';
     await Brain.loadHorseIds();
@@ -42,7 +42,7 @@ function assert(condition, label) {
     // TEST 1: CARD CONVERSION ROBUSTNESS
     // All 3 card formats must work correctly
     // ═══════════════════════════════════════════════════
-    console.log('--- TEST 1: Card Conversion Robustness ---');
+    console.debug('--- TEST 1: Card Conversion Robustness ---');
 
     // Object format (game engine standard)
     const objCards = Brain.cardsToStrings([{ rank: 14, suit: 0 }, { rank: 13, suit: 1 }]);
@@ -73,7 +73,7 @@ function assert(condition, label) {
     // TEST 2: GTO NO-DATA FALLBACK (was defaulting to 'Call')
     // When PioSolver has no data, should fall through to heuristic engine
     // ═══════════════════════════════════════════════════
-    console.log('\n--- TEST 2: GTO No-Data Fallback ---');
+    console.debug('\n--- TEST 2: GTO No-Data Fallback ---');
 
     // Test garbage hand facing a bet — should fold via fallback, not call via GTO default
     let trashFolds = 0;
@@ -97,14 +97,14 @@ function assert(condition, label) {
         else if (result.action.type === 'call') trashCalls++;
         else trashRaises++;
     }
-    console.log(`  📊 23o facing bet on AKT (20 trials): ${trashFolds} folds, ${trashCalls} calls, ${trashRaises} raises`);
+    console.debug(`  📊 23o facing bet on AKT (20 trials): ${trashFolds} folds, ${trashCalls} calls, ${trashRaises} raises`);
     assert(trashFolds >= 14, `Garbage hand folds most of the time (${trashFolds}/20 folds)`);
     assert(trashCalls <= 6, `Garbage hand rarely calls (${trashCalls}/20 calls)`);
 
     // ═══════════════════════════════════════════════════
     // TEST 3: STRONG HAND VALUE BETTING
     // ═══════════════════════════════════════════════════
-    console.log('\n--- TEST 3: Strong Hand Value Betting ---');
+    console.debug('\n--- TEST 3: Strong Hand Value Betting ---');
 
     let strongBets = 0;
     for (let i = 0; i < 20; i++) {
@@ -123,13 +123,13 @@ function assert(condition, label) {
         );
         if (result.action.type === 'bet' || result.action.type === 'raise') strongBets++;
     }
-    console.log(`  📊 AA on 732 flop (no bet facing): ${strongBets}/20 bets`);
+    console.debug(`  📊 AA on 732 flop (no bet facing): ${strongBets}/20 bets`);
     assert(strongBets >= 8, `AA bets the flop often (${strongBets}/20)`);
 
     // ═══════════════════════════════════════════════════
     // TEST 4: RIVER VALUE BETTING
     // ═══════════════════════════════════════════════════
-    console.log('\n--- TEST 4: River Value Betting ---');
+    console.debug('\n--- TEST 4: River Value Betting ---');
 
     let riverBets = 0;
     for (let i = 0; i < 20; i++) {
@@ -151,13 +151,13 @@ function assert(condition, label) {
         );
         if (result.action.type === 'bet' || result.action.type === 'raise') riverBets++;
     }
-    console.log(`  📊 AA on river (no bet facing): ${riverBets}/20 value bets`);
+    console.debug(`  📊 AA on river (no bet facing): ${riverBets}/20 value bets`);
     assert(riverBets >= 8, `AA value bets the river often (${riverBets}/20)`);
 
     // ═══════════════════════════════════════════════════
     // TEST 5: HAND EVALUATOR ACCURACY
     // ═══════════════════════════════════════════════════
-    console.log('\n--- TEST 5: Hand Evaluator Accuracy ---');
+    console.debug('\n--- TEST 5: Hand Evaluator Accuracy ---');
 
     const evalTests = [
         { hole: ['Ac', 'Ah'], board: ['7c', '3d', '2s'], expect: 'overpair', minStr: 55 },
@@ -176,7 +176,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════
     // TEST 6: PREFLOP HAND RANKING CORRECTNESS
     // ═══════════════════════════════════════════════════
-    console.log('\n--- TEST 6: Preflop Rankings ---');
+    console.debug('\n--- TEST 6: Preflop Rankings ---');
 
     const rankings = [
         ['AA', 'KK'], ['KK', 'QQ'], ['AKs', 'AKo'], ['AKo', 'AQs'],
@@ -191,7 +191,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════
     // TEST 7: POSTFLOP FUNCTION EXPORTS
     // ═══════════════════════════════════════════════════
-    console.log('\n--- TEST 7: All Functions Exported ---');
+    console.debug('\n--- TEST 7: All Functions Exported ---');
 
     const requiredExports = [
         'getDecision', 'loadHorseIds', 'processHandResult',
@@ -211,7 +211,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════
     // TEST 8: SUPABASE PERSISTENCE — ALL 3 TABLES
     // ═══════════════════════════════════════════════════
-    console.log('\n--- TEST 8: Supabase Persistence ---');
+    console.debug('\n--- TEST 8: Supabase Persistence ---');
 
     // 8a. Session Analytics
     Brain.recordPerformanceAction(HORSE, 'preflop', 'raise', true);
@@ -256,7 +256,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════
     // TEST 9: processHandResult FULL PIPELINE
     // ═══════════════════════════════════════════════════
-    console.log('\n--- TEST 9: processHandResult Pipeline ---');
+    console.debug('\n--- TEST 9: processHandResult Pipeline ---');
 
     Brain.recordPerformanceAction(HORSE, 'preflop', 'call', true);
     const psBefore = Brain.getPerformanceStats(HORSE);
@@ -292,7 +292,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════
     // TEST 10: FACING-BET STRONG vs WEAK
     // ═══════════════════════════════════════════════════
-    console.log('\n--- TEST 10: Facing Bet Logic ---');
+    console.debug('\n--- TEST 10: Facing Bet Logic ---');
 
     // AA facing a bet = never fold
     let aaFoldCount = 0;
@@ -316,7 +316,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════
     // TEST 11: TIMING DELAYS ARE HUMAN-LIKE
     // ═══════════════════════════════════════════════════
-    console.log('\n--- TEST 11: Timing Delay Ranges ---');
+    console.debug('\n--- TEST 11: Timing Delay Ranges ---');
 
     const delays = [];
     for (let i = 0; i < 10; i++) {
@@ -337,7 +337,7 @@ function assert(condition, label) {
     const avgDelay = delays.reduce((a, b) => a + b, 0) / delays.length;
     const minDelay = Math.min(...delays);
     const maxDelay = Math.max(...delays);
-    console.log(`  📊 Delays: min=${minDelay}ms, avg=${Math.round(avgDelay)}ms, max=${maxDelay}ms`);
+    console.debug(`  📊 Delays: min=${minDelay}ms, avg=${Math.round(avgDelay)}ms, max=${maxDelay}ms`);
     assert(minDelay >= 800, `Min delay >= 800ms (got ${minDelay})`);
     assert(maxDelay <= 7000, `Max delay <= 7000ms (got ${maxDelay})`);
     assert(avgDelay >= 1000 && avgDelay <= 5000, `Avg delay is human-like (got ${Math.round(avgDelay)}ms)`);
@@ -345,7 +345,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════
     // TEST 12: BET SIZING SANITY
     // ═══════════════════════════════════════════════════
-    console.log('\n--- TEST 12: Bet Sizing Sanity ---');
+    console.debug('\n--- TEST 12: Bet Sizing Sanity ---');
 
     const betResults = [];
     for (let i = 0; i < 10; i++) {
@@ -365,29 +365,29 @@ function assert(condition, label) {
     }
     if (betResults.length > 0) {
         const avgBet = betResults.reduce((a, b) => a + b, 0) / betResults.length;
-        console.log(`  📊 Avg bet: ${Math.round(avgBet)} into pot of 12`);
+        console.debug(`  📊 Avg bet: ${Math.round(avgBet)} into pot of 12`);
         assert(avgBet >= 2, `Bets are above minimum (avg=${Math.round(avgBet)})`);
         assert(avgBet <= 200, `Bets are below max stack (avg=${Math.round(avgBet)})`);
         assert(avgBet >= 4 && avgBet <= 100, `Bets are reasonable size (avg=${Math.round(avgBet)})`);
     } else {
-        console.log('  📊 No bets in 10 trials (all checks)');
+        console.debug('  📊 No bets in 10 trials (all checks)');
         assert(true, 'No bets to validate (all checks is valid)');
     }
 
     // ═══════════════════════════════════════════════════
     // RESULTS
     // ═══════════════════════════════════════════════════
-    console.log('\n═══════════════════════════════════════════════════');
-    console.log(`  RESULTS: ${passed} passed, ${failed} failed`);
-    console.log('═══════════════════════════════════════════════════');
+    console.debug('\n═══════════════════════════════════════════════════');
+    console.debug(`  RESULTS: ${passed} passed, ${failed} failed`);
+    console.debug('═══════════════════════════════════════════════════');
 
     if (failed > 0) {
-        console.log('\n❌ FAILURES:');
-        failures.forEach(f => console.log(`  - ${f}`));
+        console.debug('\n❌ FAILURES:');
+        failures.forEach(f => console.debug(`  - ${f}`));
     } else {
-        console.log('\n✅ ALL TESTS PASSED — SWEEP 10 CLEAN');
+        console.debug('\n✅ ALL TESTS PASSED — SWEEP 10 CLEAN');
     }
 
-    console.log('');
+    console.debug('');
     process.exit(failed > 0 ? 1 : 0);
 })();

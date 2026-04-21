@@ -75,7 +75,7 @@ export default async function handler(req, res) {
               .maybeSingle();
 
           if (userMsgError) {
-              console.error('Failed to save user message:', userMsgError);
+              console.warn('Failed to save user message:', userMsgError);
               return res.status(500).json({ error: 'Failed to save message' });
           }
 
@@ -149,7 +149,7 @@ export default async function handler(req, res) {
               .maybeSingle();
 
           if (agentMsgError) {
-              console.error('Failed to save agent message:', agentMsgError);
+              console.warn('Failed to save agent message:', agentMsgError);
               return res.status(500).json({ error: 'Failed to save response' });
           }
 
@@ -166,7 +166,7 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('Send message error:', error);
+          console.warn('Send message error:', error);
           return res.status(500).json({
               error: 'Failed to process message',
               details: error.message
@@ -175,7 +175,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

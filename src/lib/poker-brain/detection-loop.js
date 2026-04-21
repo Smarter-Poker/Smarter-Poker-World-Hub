@@ -149,7 +149,7 @@ export function detectCards(videoElement, layout, matcher, options = {}) {
         }
       }
       output.cropPreviews = cropPreviews;
-    } catch (_) { /* swallow */ }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }
 
   return output;

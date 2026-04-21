@@ -56,7 +56,7 @@ export function ExportConversation({ messages, onClose }: ExportConversationProp
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
         } catch (error) {
-            console.error('[Export] Copy failed:', error);
+            console.warn('[Export] Copy failed:', error);
         } finally {
             setCopying(false);
         }

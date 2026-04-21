@@ -169,7 +169,7 @@ export default function PlayerTournamentsHub() {
         setTimeout(() => setMessage(null), 4000);
       }
     } catch (err) {
-      console.error('Register error:', err);
+      console.warn('Register error:', err);
       setMessage({ type: 'error', text: 'Registration Failed' });
       setTimeout(() => setMessage(null), 4000);
     }

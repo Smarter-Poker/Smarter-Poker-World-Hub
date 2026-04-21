@@ -55,7 +55,7 @@ class LeaderboardService {
                 leaderboard: data || []
             };
         } catch (error) {
-            console.error('[LeaderboardService] Error getting leaderboard:', error);
+            console.warn('[LeaderboardService] Error getting leaderboard:', error);
             return {
                 success: false,
                 error: error.message,
@@ -101,7 +101,7 @@ class LeaderboardService {
                 score: userEntry.score
             };
         } catch (error) {
-            console.error('[LeaderboardService] Error getting user rank:', error);
+            console.warn('[LeaderboardService] Error getting user rank:', error);
             return {
                 success: false,
                 error: error.message,
@@ -129,7 +129,7 @@ class LeaderboardService {
 
             return data;
         } catch (error) {
-            console.error('[LeaderboardService] Error updating leaderboard:', error);
+            console.warn('[LeaderboardService] Error updating leaderboard:', error);
             return {
                 success: false,
                 error: error.message
@@ -163,7 +163,7 @@ class LeaderboardService {
                 scores: data || []
             };
         } catch (error) {
-            console.error('[LeaderboardService] Error getting user best scores:', error);
+            console.warn('[LeaderboardService] Error getting user best scores:', error);
             return {
                 success: false,
                 error: error.message,

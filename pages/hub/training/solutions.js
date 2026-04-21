@@ -455,9 +455,7 @@ function SolutionsBrowserInner({ setError }) {
         if (engineResult.highCard) tags.push(engineResult.highCard >= 12 ? 'High' : 'Low');
         return tags;
       }
-    } catch (e) {
-      // Fallback to inline
-    }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
     // Inline fallback
     const suits = boardCards.slice(0, 3).map((c) => (typeof c === 'string' ? c[c.length - 1] : ''));
@@ -552,7 +550,7 @@ function SolutionsBrowserInner({ setError }) {
         const groups = groupByClassification(classified, spotDetail.gridData);
         setClassificationGroups(groups);
       } catch (e) {
-        console.error('[Solutions] Classification error:', e);
+        console.warn('[Solutions] Classification error:', e);
         // Do not crash the app, just fallback to empty classification
         setClassificationData({});
         setClassificationGroups([]);
@@ -590,7 +588,7 @@ function SolutionsBrowserInner({ setError }) {
         setTotalPages(0);
       }
     } catch (err) {
-      console.error('[Solutions] Fetch error:', err);
+      console.warn('[Solutions] Fetch error:', err);
       setFetchError('Failed to load solutions. Please try again.');
     } finally {
       setLoading(false);
@@ -623,7 +621,7 @@ function SolutionsBrowserInner({ setError }) {
         ]);
       }
     } catch (err) {
-      console.error('[Solutions] Detail fetch error:', err);
+      console.warn('[Solutions] Detail fetch error:', err);
     } finally {
       setLoadingDetail(false);
     }
@@ -661,7 +659,7 @@ function SolutionsBrowserInner({ setError }) {
           console.warn('[Solutions] No child node found for', nextCard);
         }
       } catch (err) {
-        console.error('[Solutions] Tree navigate error:', err);
+        console.warn('[Solutions] Tree navigate error:', err);
       } finally {
         setLoadingDetail(false);
       }
@@ -699,7 +697,7 @@ function SolutionsBrowserInner({ setError }) {
         setRunoutData(data.runouts || {});
       }
     } catch (err) {
-      console.error('[Solutions] Runout fetch error:', err);
+      console.warn('[Solutions] Runout fetch error:', err);
     } finally {
       setLoadingRunout(false);
     }

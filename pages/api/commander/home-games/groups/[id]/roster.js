@@ -58,7 +58,7 @@ export default async function handler(req, res) {
                 return res.status(403).json({ success: false, error: 'NOT_AUTHORIZED' });
             }
             // eslint-disable-next-line no-console
-            console.error('[roster] RPC error:', error);
+            console.warn('[roster] RPC error:', error);
             return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
@@ -66,7 +66,7 @@ export default async function handler(req, res) {
     } catch (err) {
         try { reportApiError(err, req); } catch (_e) { console.warn('[App] Handled exception:', _e?.message || _e); }
         // eslint-disable-next-line no-console
-        console.error('[roster]', err);
+        console.warn('[roster]', err);
         if (!res.headersSent) {
             return res.status(500).json({ success: false, error: 'Internal server error' });
         }

@@ -44,7 +44,7 @@ export default function useVenueRealtime(onUpdate) {
             .on('postgres_changes', { event: '*', schema: 'public', table: 'tour_source_registry' }, handlePayload)
             .subscribe((status, err) => {
                 if (status === 'SUBSCRIBED') {
-                    console.log(`[Realtime] ✅ Connected: ${channelName}`);
+                    console.debug(`[Realtime] ✅ Connected: ${channelName}`);
                     if (firstSubscribeRef.current) {
                         // First connection: SWR already fetching — skip double-fetch
                         firstSubscribeRef.current = false;
@@ -55,7 +55,7 @@ export default function useVenueRealtime(onUpdate) {
                 } else if (status === 'CLOSED') {
                     console.warn(`[Realtime] ⚠️ Channel Closed: ${channelName}`);
                 } else if (status === 'CHANNEL_ERROR') {
-                    console.error(`[Realtime] ❌ Channel Error: ${channelName}`, err);
+                    console.warn(`[Realtime] ❌ Channel Error: ${channelName}`, err);
                 }
             });
 
@@ -64,7 +64,7 @@ export default function useVenueRealtime(onUpdate) {
         // [HARDENING] Tab visibility sync: fetch lost updates
         const handleVisibilityChange = () => {
             if (!document.hidden && missedUpdateRef.current) {
-                console.log(`[Realtime] 🔄 Recovering missed updates from background state...`);
+                console.debug(`[Realtime] 🔄 Recovering missed updates from background state...`);
                 missedUpdateRef.current = false;
                 onUpdateRef.current?.(null); // Hard refresh
             }

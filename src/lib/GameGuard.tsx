@@ -44,8 +44,8 @@ export class GameGuard extends Component<GameGuardProps, GameGuardState> {
 
     componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
         // 📝 Silent logging - don't alert the user
-        console.error('🛡️ GameGuard caught error:', error.message);
-        console.error('Component stack:', errorInfo.componentStack);
+        console.warn('🛡️ GameGuard caught error:', error.message);
+        console.warn('Component stack:', errorInfo.componentStack);
 
         // Track error count for circuit breaker
         this.setState(prev => ({ errorCount: prev.errorCount + 1 }));
@@ -68,7 +68,7 @@ export class GameGuard extends Component<GameGuardProps, GameGuardState> {
 
         // Circuit breaker: if we've crashed 5+ times, show fallback instead
         if (errorCount >= 5) {
-            console.error('🛡️ Circuit breaker triggered - too many errors');
+            console.warn('🛡️ Circuit breaker triggered - too many errors');
             return;
         }
 

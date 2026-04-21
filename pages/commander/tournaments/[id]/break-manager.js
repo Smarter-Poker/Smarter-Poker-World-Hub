@@ -52,7 +52,7 @@ export default function BreakManager() {
         setBreakData(json.data);
         if (json.data.assignments) setAssignments(json.data.assignments);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
     finally {
       setLoading(false);
       checkingRef.current = false;
@@ -101,7 +101,7 @@ export default function BreakManager() {
       } else {
         setToast({ type: 'error', text: json.error || 'Break failed — please try again.' });
       }
-    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Break failed. Check console.' }); }
+    } catch (err) { console.warn(err); setToast({ type: 'error', text: 'Break failed. Check console.' }); }
     finally { setExecuting(false); }
   };
 

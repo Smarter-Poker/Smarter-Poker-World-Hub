@@ -54,7 +54,7 @@ export default function PlayerNoteModal({ isOpen, onClose, player, initialNote, 
         const mutedArr = mutedStr ? JSON.parse(mutedStr) : [];
         setIsMuted(mutedArr.includes(player.id));
       } catch (err) {
-        console.error('Failed to read mute list:', err);
+        console.warn('Failed to read mute list:', err);
       }
     }
   }, [isOpen, player, initialNote]);
@@ -81,7 +81,7 @@ export default function PlayerNoteModal({ isOpen, onClose, player, initialNote, 
       window.dispatchEvent(new CustomEvent('ca_mute_updated'));
       try { eventBus.emit('DATA_MUTATED', `player_mute_${nextMuted ? 'added' : 'removed'}`); } catch (_e) { console.warn('[App] Handled exception:', _e?.message || _e); }
     } catch (err) {
-      console.error('Failed to update mute list:', err);
+      console.warn('Failed to update mute list:', err);
     }
   };
 
@@ -113,7 +113,7 @@ export default function PlayerNoteModal({ isOpen, onClose, player, initialNote, 
         alert(data.error || 'Failed to save note');
       }
     } catch (err) {
-      console.error('Note save error:', err);
+      console.warn('Note save error:', err);
     } finally {
       setSaving(false);
     }

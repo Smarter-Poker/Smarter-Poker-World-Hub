@@ -116,7 +116,7 @@ export default function VenueOnboardingPage() {
         setError(data.message || 'Failed to submit. Please try again.');
       }
     } catch (err) {
-      console.error('Submit failed:', err);
+      console.warn('Submit failed:', err);
       setError('Failed to submit. Please try again.');
       setSubmitted(false);
     } finally {

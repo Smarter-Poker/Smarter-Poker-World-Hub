@@ -158,7 +158,7 @@ export default async function handler(req, res) {
           .maybeSingle();
 
         if (error) {
-          console.error(`Commander notification insert error (${channel}):`, error);
+          console.warn(`Commander notification insert error (${channel}):`, error);
           errors.push({ channel, error: error.message });
         } else {
           notifications.push(notification);
@@ -176,7 +176,7 @@ export default async function handler(req, res) {
         }
       });
     } catch (error) {
-      console.error('Commander send notification error:', error);
+      console.warn('Commander send notification error:', error);
       return res.status(500).json({
         success: false,
         error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }
@@ -185,7 +185,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -228,7 +228,7 @@ async function processNotification(notification, channel, phone) {
         break;
     }
   } catch (error) {
-    console.error(`Error processing ${channel} notification:`, error);
+    console.warn(`Error processing ${channel} notification:`, error);
     await getSupabase()
       .from('commander_notifications')
       .update({
@@ -319,7 +319,7 @@ async function sendSmsNotification(notification, phone) {
         .eq('id', notification.id);
     }
   } catch (error) {
-    console.error('Twilio SMS error:', error);
+    console.warn('Twilio SMS error:', error);
     await getSupabase()
       .from('commander_notifications')
       .update({
@@ -417,7 +417,7 @@ async function sendEmailNotification(notification) {
         .eq('id', notification.id);
     }
   } catch (error) {
-    console.error('Resend email error:', error);
+    console.warn('Resend email error:', error);
     await getSupabase()
       .from('commander_notifications')
       .update({
@@ -493,7 +493,7 @@ async function sendPushNotification(notification) {
           .eq('id', notification.id);
       }
     } catch (error) {
-      console.error('OneSignal push error:', error);
+      console.warn('OneSignal push error:', error);
       await getSupabase()
         .from('commander_notifications')
         .update({
@@ -588,7 +588,7 @@ async function sendPushNotification(notification) {
       .eq('id', notification.id);
   } catch (error) {
       try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('OneSignal push error:', error);
+    console.warn('OneSignal push error:', error);
     await getSupabase()
       .from('commander_notifications')
       .update({

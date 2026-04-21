@@ -70,7 +70,7 @@ export default async function handler(req, res) {
                     .maybeSingle();
 
                 if (createErr) {
-                    console.error('[Crews API] Create error:', createErr);
+                    console.warn('[Crews API] Create error:', createErr);
                     return res.status(500).json({ error: 'Failed to create crew.', details: createErr.message });
                 }
 
@@ -84,7 +84,7 @@ export default async function handler(req, res) {
                     });
 
                 if (memberErr) {
-                    console.error('[Crews API] Add member error:', memberErr);
+                    console.warn('[Crews API] Add member error:', memberErr);
                 }
 
                 return res.status(200).json({ success: true, crew });
@@ -147,7 +147,7 @@ export default async function handler(req, res) {
                     .maybeSingle();
 
                 if (joinErr) {
-                    console.error('[Crews API] Join error:', joinErr);
+                    console.warn('[Crews API] Join error:', joinErr);
                     return res.status(500).json({ error: 'Failed to join crew.' });
                 }
 
@@ -166,7 +166,7 @@ export default async function handler(req, res) {
                     .match({ crew_id: crew_id, user_id: userId });
 
                 if (leaveErr) {
-                    console.error('[Crews API] Leave error:', leaveErr);
+                    console.warn('[Crews API] Leave error:', leaveErr);
                     return res.status(500).json({ error: 'Failed to leave crew.' });
                 }
 
@@ -179,7 +179,7 @@ export default async function handler(req, res) {
 
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('[Crews API Error]', err);
+        console.warn('[Crews API Error]', err);
         if (!res.headersSent) return res.status(500).json({ error: 'Internal server error' });
     }
 }

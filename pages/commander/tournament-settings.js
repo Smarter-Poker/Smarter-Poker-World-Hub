@@ -66,7 +66,7 @@ export default function TournamentSettingsPage() {
                 const def = (json.data || []).find(p => p.is_default);
                 if (def) setSelectedPreset(def.id);
             }
-        } catch (err) { console.error(err); }
+        } catch (err) { console.warn(err); }
     }
 
     async function applyTemplate(template) {
@@ -134,12 +134,12 @@ export default function TournamentSettingsPage() {
                             'Content-Type': 'application/json' || '' },
                         body: JSON.stringify(syncPayload) });
                     if (!r.ok) console.warn('Club sync failed');
-                } catch (e) { /* silent */ }
+                } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
                 setTimeout(() => setCreateSuccess(null), 4000);
             }
         } catch (err) {
-            console.error('Failed to create tournament:', err);
+            console.warn('Failed to create tournament:', err);
             setToast({ type: 'error', text: 'Failed to create tournament. Please try again.' });
         } finally {
             setCreating(false);

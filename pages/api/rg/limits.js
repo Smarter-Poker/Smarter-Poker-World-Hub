@@ -84,7 +84,7 @@ export default async function handler(req, res) {
                 .eq("user_id", user.id)
                 .maybeSingle();
             if (error) {
-                console.error("[rg/limits:GET]", error);
+                console.warn("[rg/limits:GET]", error);
                 return res.status(500).json({ error: 'Internal server error' });
             }
             return res.status(200).json({ ok: true, limits: data || null });
@@ -105,7 +105,7 @@ export default async function handler(req, res) {
                 .eq("user_id", user.id)
                 .maybeSingle();
             if (existingErr) {
-                console.error("[rg/limits:POST:existing]", existingErr);
+                console.warn("[rg/limits:POST:existing]", existingErr);
                 return res.status(500).json({ error: existingErr.message });
             }
 
@@ -149,7 +149,7 @@ export default async function handler(req, res) {
             });
 
             if (error) {
-                console.error("[rg/limits:POST:rpc]", error);
+                console.warn("[rg/limits:POST:rpc]", error);
                 // Cooling-off violations come through as ordinary errors
                 const status = /cooling[-_ ]off/i.test(error.message) ? 403 : 500;
                 return res
@@ -163,7 +163,7 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: "Method not allowed" });
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error("[rg/limits] unhandled:", err);
+        console.warn("[rg/limits] unhandled:", err);
         return res
             .status(500)
             .json({ error: err?.message || "unhandled failure" });

@@ -51,7 +51,7 @@ export default function SeatPlayerModal({
         setSeats(data.data.game.seats || []);
       }
     } catch (err) {
-      console.error('Failed to fetch seats:', err);
+      console.warn('Failed to fetch seats:', err);
     } finally {
       setLoadingSeats(false);
     }

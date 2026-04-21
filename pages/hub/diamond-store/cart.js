@@ -67,11 +67,7 @@ export default function ShoppingCart() {
                             localStorage.removeItem('diamond-store-cart');
                         }
                     }
-                } catch (e) {
-                    // Fallback to localStorage if Supabase unavailable
-                    const savedCart = localStorage.getItem('diamond-store-cart');
-                    if (savedCart) setCart(JSON.parse(savedCart));
-                }
+                } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
             } else {
                 const savedCart = localStorage.getItem('diamond-store-cart');
                 if (savedCart) setCart(JSON.parse(savedCart));
@@ -94,7 +90,7 @@ export default function ShoppingCart() {
 
             setLoading(false);
         } catch (error) {
-            console.error('Error loading cart:', error);
+            console.warn('Error loading cart:', error);
             setLoading(false);
         }
     };

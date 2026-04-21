@@ -68,7 +68,7 @@ export default function PlayerReputation() {
     try {
 const json = await commanderFetchJSON(`/api/commander/reputation?venue_id=${staff.venue_id}`, {});
       if (json.success) setScores(json.data.scores || []);
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
     finally { setLoading(false); }
   };
 
@@ -78,7 +78,7 @@ const json = await commanderFetchJSON(`/api/commander/reputation?player_id=${pla
       if (json.success) {
         setExpandedReviews(prev => ({ ...prev, [playerId]: json.data.recent_reviews || [] }));
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
   setLoading(false);
   };
 
@@ -115,7 +115,7 @@ const res = await commanderFetch('/api/commander/reputation', {
         if (expandedId) fetchReviews(expandedId);
         broadcastChange('reputation');
       }
-    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
+    } catch (err) { console.warn(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
     finally { setSubmitting(false); }
   };
 

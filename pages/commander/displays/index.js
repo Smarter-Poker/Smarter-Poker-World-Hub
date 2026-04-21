@@ -37,7 +37,7 @@ const json = await commanderFetchJSON('/api/commander/tournaments', {
         const list = json.data?.tournaments || (Array.isArray(json.data) ? json.data : []);
         setTournaments(list);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
     finally { setLoading(false); }
   }, []);
 

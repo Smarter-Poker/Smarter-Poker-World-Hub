@@ -15,8 +15,8 @@ const supabase = createClient(
 const openai = getGrokClient();
 
 async function testVideoPost() {
-    console.log('\n🎬 TESTING VIDEO CLIP POSTING');
-    console.log('═'.repeat(50));
+    console.debug('\n🎬 TESTING VIDEO CLIP POSTING');
+    console.debug('═'.repeat(50));
 
     // Get a test horse
     const { data: horses, error: horseError } = await supabase
@@ -26,22 +26,22 @@ async function testVideoPost() {
         .limit(1);
 
     if (horseError || !horses?.length) {
-        console.log('❌ No active horses found:', horseError?.message);
+        console.debug('❌ No active horses found:', horseError?.message);
         return;
     }
 
     const horse = horses[0];
-    console.log(`\nHorse: ${horse.name}`);
+    console.debug(`\nHorse: ${horse.name}`);
 
     // Get a random clip
     const clip = getRandomClip();
-    console.log(`Clip: ${clip.id}`);
-    console.log(`URL: ${clip.source_url}`);
+    console.debug(`Clip: ${clip.id}`);
+    console.debug(`URL: ${clip.source_url}`);
 
     // Generate caption
     const templateCaption = getRandomCaption(clip.category || CLIP_CATEGORIES.FUNNY);
 
-    console.log(`\nGenerating caption from template: "${templateCaption}"`);
+    console.debug(`\nGenerating caption from template: "${templateCaption}"`);
 
     const response = await openai.chat.completions.create({
         model: 'gpt-4o',
@@ -57,10 +57,10 @@ async function testVideoPost() {
     });
 
     const caption = response.choices[0].message.content;
-    console.log(`Caption: ${caption}`);
+    console.debug(`Caption: ${caption}`);
 
     // Create post with YouTube URL
-    console.log('\nCreating post...');
+    console.debug('\nCreating post...');
     const { data: post, error: postError } = await supabase
         .from('social_posts')
         .insert({
@@ -80,15 +80,15 @@ async function testVideoPost() {
         .maybeSingle();
 
     if (postError) {
-        console.log(`\n❌ Post error: ${postError.message}`);
-        console.log('Error details:', postError);
+        console.debug(`\n❌ Post error: ${postError.message}`);
+        console.debug('Error details:', postError);
     } else {
-        console.log(`\n✅ Post created successfully!`);
-        console.log(`Post ID: ${post.id}`);
-        console.log(`Clip ID in metadata: ${post.metadata?.clip_id}`);
+        console.debug(`\n✅ Post created successfully!`);
+        console.debug(`Post ID: ${post.id}`);
+        console.debug(`Clip ID in metadata: ${post.metadata?.clip_id}`);
     }
 
-    console.log('\n' + '═'.repeat(50));
+    console.debug('\n' + '═'.repeat(50));
 }
 
-testVideoPost().catch(console.error);
+testVideoPost().catch(console.warn);

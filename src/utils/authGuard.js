@@ -54,7 +54,7 @@ class CircuitBreaker {
 
             if (this.failures >= this.failureThreshold) {
                 this.state = 'OPEN';
-                console.error(`[CIRCUIT:${this.name}] OPENED after ${this.failures} failures`);
+                console.warn(`[CIRCUIT:${this.name}] OPENED after ${this.failures} failures`);
             }
 
             if (fallback) {
@@ -218,7 +218,7 @@ export async function ensureAuth(supabase, maxWaitMs = 5000) {
     // FAST PATH: Check persisted session first
     const persisted = getPersistedSession();
     if (persisted?.id) {
-        console.log('[AUTH_GUARD] Found persisted session:', persisted.id.slice(0, 8));
+        console.debug('[AUTH_GUARD] Found persisted session:', persisted.id.slice(0, 8));
     }
 
     while (Date.now() - startTime < maxWaitMs) {
@@ -266,7 +266,7 @@ export async function withAuth(supabase, authenticatedFn, fallbackFn = null) {
             try {
                 return await authenticatedFn(user);
             } catch (fnError) {
-                console.error('[AUTH_GUARD] Authenticated function failed:', fnError);
+                console.warn('[AUTH_GUARD] Authenticated function failed:', fnError);
                 if (fallbackFn) return await fallbackFn();
                 return { error: fnError.message, success: false };
             }
@@ -278,7 +278,7 @@ export async function withAuth(supabase, authenticatedFn, fallbackFn = null) {
 
         return { error: 'Authentication required', success: false };
     } catch (e) {
-        console.error('[AUTH_GUARD] withAuth failed:', e);
+        console.warn('[AUTH_GUARD] withAuth failed:', e);
         return { error: e.message, success: false };
     }
 }
@@ -299,7 +299,7 @@ export function createMultiDeviceAuthListener(supabase, onAuthReady, debounceMs 
 
     const processAuthEvent = async (session, event) => {
         if (isProcessing) {
-            console.log('[AUTH_GUARD] Skipping - already processing');
+            console.debug('[AUTH_GUARD] Skipping - already processing');
             return;
         }
         isProcessing = true;
@@ -341,13 +341,13 @@ export function createMultiDeviceAuthListener(supabase, onAuthReady, debounceMs 
         try {
             await fn();
         } catch (e) {
-            console.error('[AUTH_GUARD] Callback error (isolated):', e);
+            console.warn('[AUTH_GUARD] Callback error (isolated):', e);
         }
     };
 
     try {
         const result = supabase.auth.onAuthStateChange((event, session) => {
-            console.log('[AUTH_GUARD] Auth event:', event, 'User:', session?.user?.id?.slice(0, 8) || 'none');
+            console.debug('[AUTH_GUARD] Auth event:', event, 'User:', session?.user?.id?.slice(0, 8) || 'none');
 
             // Clear any pending debounce
             if (debounceTimer) {
@@ -368,7 +368,7 @@ export function createMultiDeviceAuthListener(supabase, onAuthReady, debounceMs 
 
         subscription = result.data?.subscription;
     } catch (e) {
-        console.error('[AUTH_GUARD] Failed to create auth listener:', e);
+        console.warn('[AUTH_GUARD] Failed to create auth listener:', e);
     }
 
     // Return cleanup function
@@ -433,7 +433,7 @@ export async function safeAsync(fn, fallbackValue = null) {
         const result = await fn();
         return { data: result, error: null };
     } catch (e) {
-        console.error('[SAFE_ASYNC] Error isolated:', e);
+        console.warn('[SAFE_ASYNC] Error isolated:', e);
         return { data: fallbackValue, error: e.message };
     }
 }
@@ -446,7 +446,7 @@ export function makeSafe(fn, fallbackValue = null) {
         try {
             return await fn(...args);
         } catch (e) {
-            console.error('[MAKE_SAFE] Error isolated:', e);
+            console.warn('[MAKE_SAFE] Error isolated:', e);
             return fallbackValue;
         }
     };

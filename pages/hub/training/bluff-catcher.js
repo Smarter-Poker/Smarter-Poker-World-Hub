@@ -95,7 +95,7 @@ export default function BluffCatcherTrainer() {
         }),
       });
     } catch (e) {
-      console.error('Failed to save session:', e);
+      console.warn('Failed to save session:', e);
     }
   };
 

@@ -25,7 +25,7 @@ export function haptic(style = 'light') {
     if (typeof navigator === 'undefined' || !navigator.vibrate) return;
     try {
         navigator.vibrate(PATTERNS[style] || PATTERNS.light);
-    } catch (_) { /* silently ignore on restricted contexts */ }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 }
 
 export default haptic;

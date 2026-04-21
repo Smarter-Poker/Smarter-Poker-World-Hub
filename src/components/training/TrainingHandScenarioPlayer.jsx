@@ -88,7 +88,7 @@ export default function TrainingHandScenarioPlayer({
         autoPlay: true,
         onDecisionPoint: () => {
             // Hand has played to decision - ready for user input
-            console.log('[Scenario] Reached decision point');
+            console.debug('[Scenario] Reached decision point');
         },
     });
 
@@ -439,7 +439,5 @@ if (typeof document !== 'undefined') {
                 to { transform: rotate(360deg); }
             }
         `, styleSheet.cssRules.length);
-    } catch (e) {
-        // Ignore if already exists
-    }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 }

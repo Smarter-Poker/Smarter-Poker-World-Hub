@@ -135,7 +135,7 @@ export default async function handler(req, res) {
                   source = 'PIO_SOLVER';
               }
           } catch (pioError) {
-              console.error('[GTO-Analysis] PioSolver query failed:', pioError.message);
+              console.warn('[GTO-Analysis] PioSolver query failed:', pioError.message);
           }
 
           // Build analysis response
@@ -169,7 +169,7 @@ export default async function handler(req, res) {
           return res.status(200).json(response);
 
       } catch (error) {
-          console.error('[GTO-Analysis] Error:', error);
+          console.warn('[GTO-Analysis] Error:', error);
           return res.status(500).json({
               success: false,
               error: error.message,
@@ -185,7 +185,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -405,7 +405,7 @@ IMPORTANT:
             };
         }
     } catch (error) {
-        console.error('[GTO-Analysis] Grok generation error:', error.message);
+        console.warn('[GTO-Analysis] Grok generation error:', error.message);
     }
 
     // Ultimate fallback
@@ -462,7 +462,7 @@ Return ONLY JSON (no markdown):
         }
     } catch (error) {
         try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('[GTO-Analysis] Grok explanation error:', error.message);
+        console.warn('[GTO-Analysis] Grok explanation error:', error.message);
     }
 
     return { explanation: null, gtoApproach: null };

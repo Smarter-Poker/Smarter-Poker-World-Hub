@@ -126,7 +126,7 @@ function LinkPreviewCard({ url }) {
                 linkPreviewCache.set(url, data);
                 setMetadata(data);
             } catch (error) {
-                console.error('Failed to fetch link metadata:', error);
+                console.warn('Failed to fetch link metadata:', error);
                 linkPreviewInflight.delete(url);
                 // Fallback to basic info
                 try {
@@ -450,7 +450,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                 if (error) throw error;
                 toast.success('Removed from saved');
             }
-        } catch (e) { console.error('Bookmark error:', e); setBookmarked(!newBookmarked); setBookmarkCount(prev => newBookmarked ? Math.max(0, prev - 1) : prev + 1); toast.error('Could not save post'); }
+        } catch (e) { console.warn('Bookmark error:', e); setBookmarked(!newBookmarked); setBookmarkCount(prev => newBookmarked ? Math.max(0, prev - 1) : prev + 1); toast.error('Could not save post'); }
     };
 
     const likeDebounceRef = useRef(false);
@@ -493,13 +493,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
         }
         try {
             await onLike(post.id, reactionType || null);
-        } catch (e) {
-            // Revert optimistic update on failure
-            console.error('[PostCard] Like failed, reverting:', e);
-            setLiked(prevLiked);
-            setLikeCount(prevLikeCount);
-            setReactions(prevReactions);
-        }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     };
 
     const loadComments = async (offset = 0) => {
@@ -516,7 +510,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                 .range(offset, offset + COMMENT_PAGE_SIZE - 1);
 
             if (commentsError) {
-                console.error('[Comments] Error fetching comments:', commentsError);
+                console.warn('[Comments] Error fetching comments:', commentsError);
                 setLoadingComments(false);
                 return;
             }
@@ -566,7 +560,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
             });
             setComments(prev => offset === 0 ? newComments : [...prev, ...newComments]);
         } catch (e) {
-            console.error('[Comments] Error loading comments:', e);
+            console.warn('[Comments] Error loading comments:', e);
         }
         setLoadingComments(false);
     };
@@ -626,7 +620,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                 if (error) throw error;
             }
         } catch (e) {
-            console.error('[Comments] Error liking comment:', e);
+            console.warn('[Comments] Error liking comment:', e);
             // Revert optimistic update on failure
             setComments(prev => prev.map(c => {
                 if (c.id === commentId) {
@@ -755,22 +749,14 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                             }
                         }
                     }
-                } catch (notifErr) {
-                    // Notification failures are non-critical — comment was already saved
-                    console.warn('[Social] Notification insert failed (comment was saved):', notifErr.message);
-                }
+                } catch (notifErr) { console.warn('[App] Handled exception:', notifErr?.message || notifErr); }
             } else {
                 // DB insert returned error — rollback optimistic entry
                 setComments(prev => prev.filter(c => c.id !== tempId));
                 setCommentCount(prev => Math.max(0, prev - 1));
-                console.error('[Social] Comment insert error:', error);
+                console.warn('[Social] Comment insert error:', error);
             }
-        } catch (e) {
-            // Network or unexpected error — rollback optimistic entry
-            setComments(prev => prev.filter(c => c.id !== tempId));
-            setCommentCount(prev => Math.max(0, prev - 1));
-            console.error('[Social] Comment submit failed:', e);
-        }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         setSubmittingComment(false);
     };
 
@@ -810,7 +796,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                             const { error } = await supabase.from('social_interactions').insert({ post_id: post.id, user_id: currentUserId, interaction_type: 'report' });
                             if (error) throw error;
                             toast.success('Post reported. We will review it shortly.');
-                        } catch (e) { console.error('[Social] Report failed:', e.message || e); toast.error('Could not report post'); }
+                        } catch (e) { console.warn('[Social] Report failed:', e.message || e); toast.error('Could not report post'); }
                         setIsReporting(false);
                     }} disabled={isReporting} style={{ background: 'none', border: 'none', cursor: isReporting ? 'wait' : 'pointer', color: C.textSec, fontSize: 12, opacity: isReporting ? 0.3 : 0.6 }} title="Report this post">{isReporting ? '...' : '⚠'}</button>
                     {onBlock && (
@@ -846,7 +832,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                 // Notify other tabs/components of the edit
                                 busEmit.dataMutated?.('social_posts');
                                 broadcastSync('smarter_poker_social_sync', { action: 'refresh_feed', tabId: BROADCAST_TAB_ID });
-                            } catch (e) { toast.error('Could not update post'); console.error('[Social] Edit error:', e); }
+                            } catch (e) { toast.error('Could not update post'); console.warn('[Social] Edit error:', e); }
                         }} disabled={!editContent.trim()} style={{ padding: '6px 16px', borderRadius: 20, border: 'none', background: C.blue, color: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 600, opacity: editContent.trim() ? 1 : 0.5 }}>Save</button>
                     </div>
                     <style>{`@keyframes sp-fade-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }`}</style>
@@ -1398,14 +1384,14 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                 const result = await resp.json();
                                 if (!resp.ok || !result.success) {
                                     toast.error(result.error || 'Image upload failed');
-                                    console.error('[Comment] Upload error:', result.error);
+                                    console.warn('[Comment] Upload error:', result.error);
                                     setUploadingCommentImage(false);
                                     return;
                                 }
                                 setCommentMediaUrl(result.url);
                                 setCommentMediaType('image');
                             } catch (err) {
-                                console.error('[Comment] Upload exception:', err);
+                                console.warn('[Comment] Upload exception:', err);
                                 toast.error('Could not upload image');
                             }
                             setUploadingCommentImage(false);
@@ -1497,7 +1483,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                                             setCommentMediaUrl(result.url);
                                                             setCommentMediaType('image');
                                                         }
-                                                    } catch (err) { console.error('[Comment] Paste upload error:', err); }
+                                                    } catch (err) { console.warn('[Comment] Paste upload error:', err); }
                                                     setUploadingCommentImage(false);
                                                 })();
                                             }
@@ -1813,7 +1799,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                 if (!cancelled && data.success) {
                     setTournaments(data.data.upcoming_tournaments || []);
                 }
-            } catch (err) { console.error('Failed to load tournaments:', err); }
+            } catch (err) { console.warn('Failed to load tournaments:', err); }
         })();
         return () => { cancelled = true; };
     }, [page.id]);
@@ -1879,12 +1865,12 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                         setMetaSaved('Cover photo updated!');
                         setTimeout(() => setMetaSaved(''), 2000);
                     }
-                } catch (saveErr) { console.error('Cover save error:', saveErr); }
+                } catch (saveErr) { console.warn('Cover save error:', saveErr); }
                 setMetaSaving(false);
             } else {
                 toast.error('Cover upload failed: ' + (uploadJson.error || 'Unknown error'));
             }
-        } catch (err) { console.error('Cover upload error:', err); toast.error('Cover upload error: ' + err.message); }
+        } catch (err) { console.warn('Cover upload error:', err); toast.error('Cover upload error: ' + err.message); }
         setCoverUploading(false);
     };
 
@@ -1923,12 +1909,12 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                         setMetaSaved('Logo updated!');
                         setTimeout(() => setMetaSaved(''), 2000);
                     }
-                } catch (saveErr) { console.error('Logo save error:', saveErr); }
+                } catch (saveErr) { console.warn('Logo save error:', saveErr); }
                 setMetaSaving(false);
             } else {
                 toast.error('Logo upload failed: ' + (uploadJson.error || 'Unknown error'));
             }
-        } catch (err) { console.error('Logo upload error:', err); toast.error('Logo upload error: ' + err.message); }
+        } catch (err) { console.warn('Logo upload error:', err); toast.error('Logo upload error: ' + err.message); }
         setLogoUploading(false);
         if (logoInputRef.current) logoInputRef.current.value = '';
     };
@@ -1994,12 +1980,12 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                     if (json.success && json.url) {
                         uploaded.push({ type: json.type || 'photo', url: json.url });
                     } else {
-                        console.error('[ClubPage] Upload failed:', json.error);
+                        console.warn('[ClubPage] Upload failed:', json.error);
                         toast.error('Upload failed: ' + (json.error || 'Unknown error'));
                     }
                 }
             } catch (err) {
-                console.error('[ClubPage] Upload error:', err);
+                console.warn('[ClubPage] Upload error:', err);
                 toast.error('Upload failed: ' + err.message);
             }
         }
@@ -2018,7 +2004,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                     if (!res.ok) throw new Error(`Request failed (${res.status})`);
                     const json = await res.json();
                     if (json.success) { setLiveGames(json.data || []); setTimerTick(0); }
-                } catch (e) { console.error('Games fetch error:', e); }
+                } catch (e) { console.warn('Games fetch error:', e); }
                 setLoadingGames(false);
             };
             const fetchPending = async () => {
@@ -2027,7 +2013,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                     if (!res.ok) throw new Error(`Request failed (${res.status})`);
                     const json = await res.json();
                     if (json.success) setPendingFollowers((json.data || []).filter(f => f.status === 'pending'));
-                } catch (e) { console.error('Pending fetch error:', e); }
+                } catch (e) { console.warn('Pending fetch error:', e); }
             };
             fetchGames();
             fetchPending();
@@ -2050,7 +2036,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
             },
             body: JSON.stringify({ page_id: page.id, user_id: userId, action, follower_id: followerId }),
         }).catch(e => {
-            console.error('Approve/reject error:', e);
+            console.warn('Approve/reject error:', e);
             // Rollback on failure
             setPendingFollowers(prevPending);
         });
@@ -2107,7 +2093,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                     console.warn('[ClubPage] Background geocoding failed:', geoErr);
                 }
             }
-        } catch (e) { console.error('Meta save error:', e); setMetaSaved('Error saving'); }
+        } catch (e) { console.warn('Meta save error:', e); setMetaSaved('Error saving'); }
         setMetaSaving(false);
     };
 
@@ -2120,7 +2106,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                 if (!res.ok) throw new Error(`Request failed (${res.status})`);
                 const json = await res.json();
                 if (json.success) setPosts(json.data || []);
-            } catch (e) { console.error('Club page posts fetch error:', e); }
+            } catch (e) { console.warn('Club page posts fetch error:', e); }
             setLoadingPosts(false);
         };
         fetchPosts();
@@ -2150,7 +2136,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                 toast.error('Post failed: ' + json.error);
             }
         } catch (e) {
-            console.error('Post error:', e);
+            console.warn('Post error:', e);
             toast.error('Post failed: ' + e.message);
         }
         setPosting(false);
@@ -2167,7 +2153,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                 headers: token ? { 'Authorization': `Bearer ${token}` } : {}
             });
         } catch (e) {
-            console.error('Delete error:', e);
+            console.warn('Delete error:', e);
             setPosts(prevPosts); // Rollback on failure
         }
     };
@@ -2189,7 +2175,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success && json.data) { onPageUpdated(json.data); setEditingPage(false); }
-        } catch (e) { console.error('Save error:', e); }
+        } catch (e) { console.warn('Save error:', e); }
         setSaving(false);
     };
 
@@ -2204,7 +2190,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                 body: JSON.stringify({ id: post.id, author_id: userId, is_pinned: !post.is_pinned }) 
             });
             setPosts(prev => prev.map(p => p.id === post.id ? { ...p, is_pinned: !p.is_pinned } : p));
-        } catch (e) { console.error('Pin error:', e); }
+        } catch (e) { console.warn('Pin error:', e); }
     };
 
     const inputSt = { width: '100%', padding: '8px 12px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' };
@@ -3101,7 +3087,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                     setCommanderVenueId(json.venue_id);
                 }
             }
-        } catch (e) { console.error('Public games fetch error:', e); }
+        } catch (e) { console.warn('Public games fetch error:', e); }
         setLoading(false);
     };
 
@@ -3631,7 +3617,7 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
                 const fSet = new Set();
                 allPages.forEach(p => { if (p.is_following) fSet.add(`${p.page_type}:${p.page_id}`); });
                 setFollowingIds(fSet);
-            } catch (e) { console.error('Club pages fetch error:', e); }
+            } catch (e) { console.warn('Club pages fetch error:', e); }
             setLoading(false);
         };
         fetchClubPages();
@@ -4002,7 +3988,7 @@ function SocialMediaPage() {
             broadcastSync('smarter_poker_block_sync', { action: 'block', authorId });
             busEmit.dataMutated('social');
         } catch (e) {
-            console.error('[Social] Block failed:', e);
+            console.warn('[Social] Block failed:', e);
             // Revert on failure
             setBlockedUserIds(prev => { const s = new Set(prev); s.delete(authorId); return s; });
             toast.error('Could not hide user');
@@ -4461,12 +4447,12 @@ function SocialMediaPage() {
                         .update({ last_seen: new Date().toISOString() })
                         .eq('id', p?.id || authUser.id)
                         .then(() => { if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Updated last_seen timestamp'); })
-                        .catch(() => { /* non-critical — suppress unhandled rejection */ });
+                        .catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
 
                     // ⚡ PARALLEL LOADING: Fire contacts, notifications, feed, and streams ALL AT ONCE
                     const [, , ,] = await Promise.allSettled([
                         // 1. Load contacts (non-critical)
-                        loadContacts(authUser.id).catch(() => { /* non-critical */ }),
+                        loadContacts(authUser.id).catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); }),
 
                         // 2. Load & enrich notifications
                         (async () => {
@@ -4476,7 +4462,7 @@ function SocialMediaPage() {
                                     .eq('user_id', authUser.id)
                                     .order('created_at', { ascending: false })
                                     .limit(50);
-                                if (notifsError) { console.error('[Social] Failed to load notifications:', notifsError); return; }
+                                if (notifsError) { console.warn('[Social] Failed to load notifications:', notifsError); return; }
                                 if (notifs && notifs.length > 0) {
                                     const actorIds = [...new Set(notifs.map(n =>
                                         n.data?.commenter_id || n.data?.actor_id || n.data?.sender_id
@@ -4535,7 +4521,7 @@ function SocialMediaPage() {
                     // Still load the public feed even without auth
                     await loadFeed();
                 }
-            } catch (e) { console.error('[Social] Auth error:', e); }
+            } catch (e) { console.warn('[Social] Auth error:', e); }
             setLoading(false);
         })();
     }, []);
@@ -4573,13 +4559,13 @@ function SocialMediaPage() {
                                 }
                             }
                         })
-                        .catch(e => console.error('[Social] Club page fetch error:', e))
+                        .catch(e => console.warn('[Social] Club page fetch error:', e))
                         .finally(() => setMyPageLoading(false));
                 }
             }
         } catch (e) {
             setMyPageLoading(false);
-            console.error('[Social] Commander detection error:', e);
+            console.warn('[Social] Commander detection error:', e);
         }
 
         // Handle ?createPage=true query param (from Commander popup redirect)
@@ -4609,7 +4595,7 @@ function SocialMediaPage() {
                             setShowPageDashboard(true);
                         }
                     }
-                } catch (e) { console.error('viewPage error:', e); }
+                } catch (e) { console.warn('viewPage error:', e); }
                 // Clean up the URL but preserve club-pages view state
                 router.replace('/hub/social-media?view=club-pages', undefined, { shallow: true });
             })();
@@ -4637,7 +4623,7 @@ function SocialMediaPage() {
                         // Clean up the URL but preserve club-pages view state
                         router.replace('/hub/social-media?view=club-pages', undefined, { shallow: true });
                     }
-                } catch (e) { console.error('Referral follow error:', e); }
+                } catch (e) { console.warn('Referral follow error:', e); }
             })();
         }
     }, [user, router.query.createPage, router.query.ref, router.query.viewPage]);
@@ -4652,7 +4638,7 @@ function SocialMediaPage() {
                     .eq('user_id', user.id)
                     .order('created_at', { ascending: false })
                     .limit(50);
-                if (error) { console.error('[Social] Notification refresh error:', error); return; }
+                if (error) { console.warn('[Social] Notification refresh error:', error); return; }
                 if (!notifs || notifs.length === 0) { setNotifications([]); return; }
 
                 // Enrich with actor profiles
@@ -4678,7 +4664,7 @@ function SocialMediaPage() {
                     };
                 });
                 setNotifications(enriched);
-            } catch (e) { console.error('[Social] Notification refresh failed:', e); }
+            } catch (e) { console.warn('[Social] Notification refresh failed:', e); }
         })();
     }, [showNotifications, user]);
 
@@ -4699,7 +4685,7 @@ function SocialMediaPage() {
                 await supabase.from('notifications').update({ read: true }).in('id', unreadIds);
                 setNotifications(prev => prev.map(n => ({ ...n, read: true })));
             } catch (e) {
-                console.error('[Social] Notification mark-read failed:', e);
+                console.warn('[Social] Notification mark-read failed:', e);
             }
             // Sync: tell other tabs + header to update badge count
             broadcastSync('smarter_poker_notif_sync', 'refresh_notifications');
@@ -4730,7 +4716,7 @@ function SocialMediaPage() {
                         authUser = tokenData?.user || null;
                     }
                 }
-            } catch (e) { /* ignore parse errors */ }
+            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
             // Get friend IDs for prioritization
             let friendIds = [];
@@ -4786,7 +4772,7 @@ function SocialMediaPage() {
                 allPostsData = await response.json();
                 if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] ✅ Feed loaded via fetch - count:', allPostsData?.length);
             } catch (e) {
-                console.error('[Social] Feed fetch error:', e);
+                console.warn('[Social] Feed fetch error:', e);
                 error = { message: e.message };
             }
 
@@ -4873,12 +4859,12 @@ function SocialMediaPage() {
                                 headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
                             });
                             if (!profilesRes.ok) {
-                                console.error('[Social] Profile fetch failed:', profilesRes.status);
+                                console.warn('[Social] Profile fetch failed:', profilesRes.status);
                                 return {};
                             }
                             const profiles = await profilesRes.json();
                             return (profiles && profiles.length > 0) ? Object.fromEntries(profiles.map(p => [p.id, p])) : {};
-                        } catch (e) { console.error('[Social] Profile fetch error:', e); return {}; }
+                        } catch (e) { console.warn('[Social] Profile fetch error:', e); return {}; }
                     })(),
                     // 2. Fetch bookmarks
                     (async () => {
@@ -4967,7 +4953,7 @@ function SocialMediaPage() {
                     } catch { /* quota exceeded */ }
                 }
             }
-        } catch (e) { console.error('Feed error:', e); }
+        } catch (e) { console.warn('Feed error:', e); }
         finally {
             setLoadingMore(false);
         }
@@ -5032,7 +5018,7 @@ function SocialMediaPage() {
         if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social]  User state:', { id: user?.id, name: user?.name, hasUser: !!user });
 
         if (!user?.id) {
-            console.error('[Social] ❌ Cannot post: user.id is missing!', user);
+            console.warn('[Social] ❌ Cannot post: user.id is missing!', user);
             return false;
         }
 
@@ -5042,7 +5028,7 @@ function SocialMediaPage() {
         let identityStoredRaw = null;
         try { identityStoredRaw = localStorage.getItem('active-identity'); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         let identityStored = null;
-        try { identityStored = identityStoredRaw ? JSON.parse(identityStoredRaw) : null; } catch (e) { /* corrupted localStorage — treat as personal */ }
+        try { identityStored = identityStoredRaw ? JSON.parse(identityStoredRaw) : null; } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         const isClubPost = identityStored?.mode === 'club' && identityStored?.clubPage?.id;
 
         try {
@@ -5133,7 +5119,7 @@ function SocialMediaPage() {
             const { data, error } = await supabase.from('social_posts').insert(insertPayload).select().maybeSingle();
 
             if (error || !data) {
-                console.error('[Social] ❌ Supabase insert error:', error?.message, error?.details, error?.hint, error?.code);
+                console.warn('[Social] ❌ Supabase insert error:', error?.message, error?.details, error?.hint, error?.code);
                 throw error || new Error('Post creation returned no data');
             }
 
@@ -5201,13 +5187,10 @@ function SocialMediaPage() {
                         like_count: 0
                     });
                 }
-            } catch (secondaryErr) {
-                // Mention/Reel failures are non-critical — post was already saved and displayed
-                console.warn('[Social] Secondary operation failed (post was saved):', secondaryErr.message);
-            }
+            } catch (secondaryErr) { console.warn('[App] Handled exception:', secondaryErr?.message || secondaryErr); }
 
             return true;
-        } catch (e) { console.error('Post error:', e); return false; }
+        } catch (e) { console.warn('Post error:', e); return false; }
         finally { setIsPosting(false); }
     };
 
@@ -5280,7 +5263,7 @@ function SocialMediaPage() {
                 }
             }
         } catch (e) {
-            console.error('[Social] handleLike error:', e.message);
+            console.warn('[Social] handleLike error:', e.message);
             throw e; // Re-throw so PostCard can revert optimistic UI
         }
     };
@@ -5311,7 +5294,7 @@ function SocialMediaPage() {
             undoDeleteRef.current = null;
             try {
                 const token = getAccessToken();
-                if (!token) { console.error('[Delete] No auth token'); return; }
+                if (!token) { console.warn('[Delete] No auth token'); return; }
                 const response = await fetch('/api/posts/delete', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -5319,7 +5302,7 @@ function SocialMediaPage() {
                 });
                 const result = await response.json();
                 if (!response.ok || result.error) {
-                    console.error('[Delete] Server error:', result);
+                    console.warn('[Delete] Server error:', result);
                     // Restore on API failure
                     if (deletedPost) {
                         setPosts(prev => {
@@ -5334,7 +5317,7 @@ function SocialMediaPage() {
                 try { localStorage.removeItem('sp-feed-cache'); } catch (e) { console.warn('[App] Handled exception:', e); }
                 busEmit.dataMutated('social');
             } catch (e) {
-                console.error('[Delete] Error:', e);
+                console.warn('[Delete] Error:', e);
                 if (deletedPost) {
                     setPosts(prev => {
                         const updated = [...prev];
@@ -5398,7 +5381,7 @@ function SocialMediaPage() {
                 };
             });
             setContacts(list.filter(Boolean));
-        } catch (e) { console.error(e); }
+        } catch (e) { console.warn(e); }
     };
 
     const handleSearch = (q) => {
@@ -5408,7 +5391,7 @@ function SocialMediaPage() {
             try {
                 const { data } = await supabase.from('profiles').select('id, username').ilike('username', `%${q}%`).limit(10);
                 if (data) setSearchResults(data.map(u => ({ id: u.id, username: u.username })));
-            } catch (e) { console.error(e); }
+            } catch (e) { console.warn(e); }
         }, 300);
     };
 
@@ -5454,7 +5437,7 @@ function SocialMediaPage() {
                     posts: enrichedPosts
                 });
             } catch (e) {
-                console.error('Global search error:', e);
+                console.warn('Global search error:', e);
             }
             setGlobalSearchLoading(false);
         }, 300);
@@ -5467,7 +5450,7 @@ function SocialMediaPage() {
             try {
                 const { data } = await supabase.rpc('fn_get_or_create_conversation', { p_user_id: user.id, p_other_user_id: c.id, p_conversation_type: 'direct' });
                 convId = data?.conversation_id || data; // RPC returns { created, conversation_id }
-            } catch (e) { console.error(e); }
+            } catch (e) { console.warn(e); }
         }
         const chat = { id: c.id, name: c.name || c.username, avatar: null, online: false, conversationId: convId };
         setOpenChats(prev => [...prev.slice(-2), chat]);
@@ -5475,7 +5458,7 @@ function SocialMediaPage() {
             try {
                 const { data } = await supabase.from('social_messages').select('id, content, sender_id').eq('conversation_id', convId).eq('is_deleted', false).order('created_at', { ascending: true }).limit(50);
                 if (data) setChatMsgs(prev => ({ ...prev, [c.id]: data.map(m => ({ id: m.id, text: m.content, senderId: m.sender_id })) }));
-            } catch (e) { console.error(e); }
+            } catch (e) { console.warn(e); }
         }
     };
 
@@ -5527,7 +5510,7 @@ function SocialMediaPage() {
         try {
             await supabase.rpc('fn_send_message', { p_conversation_id: chat.conversationId, p_sender_id: user.id, p_content: txt });
             setChatMsgs(prev => ({ ...prev, [cid]: [...(prev[cid] || []), { id: Date.now(), text: txt, senderId: user.id }] }));
-        } catch (e) { console.error(e); }
+        } catch (e) { console.warn(e); }
     };
 
     // Only show loading skeleton if intro is done and still loading

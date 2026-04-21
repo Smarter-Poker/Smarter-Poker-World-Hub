@@ -155,9 +155,7 @@ export class PokerSoundManager {
         case 'jackpot_coins': return this._playJackpotCoins(ctx);
         default: break;
       }
-    } catch (e) {
-      // Fail silently
-    }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
   }
 
   // ── Sound generators (pure Web Audio synthesis) ──────

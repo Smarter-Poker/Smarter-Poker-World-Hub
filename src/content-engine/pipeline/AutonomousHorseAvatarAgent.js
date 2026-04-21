@@ -248,7 +248,7 @@ class AutonomousHorseAvatarAgent {
             .order('name');
 
         if (error) {
-            console.error('❌ Failed to fetch horses:', error.message);
+            console.warn('❌ Failed to fetch horses:', error.message);
             return [];
         }
 
@@ -271,7 +271,7 @@ class AutonomousHorseAvatarAgent {
             });
 
         if (uploadError) {
-            console.error(`❌ Upload failed for ${horse.name}:`, uploadError.message);
+            console.warn(`❌ Upload failed for ${horse.name}:`, uploadError.message);
             return null;
         }
 
@@ -294,7 +294,7 @@ class AutonomousHorseAvatarAgent {
             .update({ avatar_url: publicUrl })
             .eq('id', horse.profile_id);
 
-        console.log(`✅ ${horse.name} uploaded their avatar: ${publicUrl}`);
+        console.debug(`✅ ${horse.name} uploaded their avatar: ${publicUrl}`);
         return publicUrl;
     }
 
@@ -303,20 +303,20 @@ class AutonomousHorseAvatarAgent {
      * Returns array of { horse, prompt } for batch generation
      */
     async prepareAutonomousGeneration() {
-        console.log('\n🐴🐴🐴 AUTONOMOUS HORSE AVATAR GENERATION 🐴🐴🐴');
-        console.log('═'.repeat(60));
-        console.log('Each horse will generate their own Law-compliant avatar.\n');
+        console.debug('\n🐴🐴🐴 AUTONOMOUS HORSE AVATAR GENERATION 🐴🐴🐴');
+        console.debug('═'.repeat(60));
+        console.debug('Each horse will generate their own Law-compliant avatar.\n');
 
         const horses = await this.getHorsesNeedingAvatars();
-        console.log(`Found ${horses.length} horses needing avatars.\n`);
+        console.debug(`Found ${horses.length} horses needing avatars.\n`);
 
         const preparations = [];
         for (const horse of horses) {
             const promptData = this.generateSelfAwarePrompt(horse);
             preparations.push(promptData);
-            console.log(`🐴 ${horse.name} (${promptData.gender}, ${promptData.personality || 'balanced'})`);
-            console.log(`   Ethnicity: ${promptData.ethnicity || 'default'}`);
-            console.log(`   Prompt ready ✓\n`);
+            console.debug(`🐴 ${horse.name} (${promptData.gender}, ${promptData.personality || 'balanced'})`);
+            console.debug(`   Ethnicity: ${promptData.ethnicity || 'default'}`);
+            console.debug(`   Prompt ready ✓\n`);
         }
 
         return preparations;
@@ -331,8 +331,8 @@ class AutonomousHorseAvatarAgent {
         const filePath = outputPath || path.join(this.outputDir, 'horse_avatar_prompts.json');
         fs.writeFileSync(filePath, JSON.stringify(preparations, null, 2));
 
-        console.log(`\n📄 Exported ${preparations.length} avatar prompts to:`);
-        console.log(`   ${filePath}`);
+        console.debug(`\n📄 Exported ${preparations.length} avatar prompts to:`);
+        console.debug(`   ${filePath}`);
 
         return { filePath, count: preparations.length, preparations };
     }
@@ -353,10 +353,10 @@ if (process.argv[1]?.includes('AutonomousHorseAvatarAgent')) {
     const agent = new AutonomousHorseAvatarAgent();
 
     agent.exportPromptsForBatchGeneration().then(result => {
-        console.log('\n═'.repeat(60));
-        console.log(`✅ ${result.count} horses ready for autonomous avatar generation!`);
-        console.log('Each horse will generate their own profile picture.');
+        console.debug('\n═'.repeat(60));
+        console.debug(`✅ ${result.count} horses ready for autonomous avatar generation!`);
+        console.debug('Each horse will generate their own profile picture.');
     }).catch(err => {
-        console.error('Error:', err.message);
+        console.warn('Error:', err.message);
     });
 }

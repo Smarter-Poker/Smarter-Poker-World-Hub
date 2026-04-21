@@ -51,7 +51,7 @@ export default async function handler(req, res) {
               .limit(parseInt(limit));
 
           if (error) {
-              console.error('[Geeves Conversations] Query error:', error);
+              console.warn('[Geeves Conversations] Query error:', error);
               // Return empty array instead of crashing
               return res.status(200).json({ conversations: [] });
           }
@@ -70,13 +70,13 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('[Geeves Conversations] Error:', error);
+          console.warn('[Geeves Conversations] Error:', error);
           return res.status(500).json({ error: 'Failed to fetch conversations' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

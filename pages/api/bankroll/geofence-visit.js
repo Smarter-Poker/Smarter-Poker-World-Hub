@@ -81,7 +81,7 @@ export default async function handler(req, res) {
               .maybeSingle();
 
           if (error) {
-              console.error('[Geofence] Insert error:', error);
+              console.warn('[Geofence] Insert error:', error);
               return res.status(500).json({ success: false, error: 'Internal server error' });
           }
 
@@ -94,13 +94,13 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('[Geofence] Server error:', error);
+          console.warn('[Geofence] Server error:', error);
           return res.status(500).json({ success: false, error: 'Failed to record visit' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

@@ -33,10 +33,7 @@ function shouldShowWelcome(): boolean {
     let lastVisit: string | null = null;
     try {
         lastVisit = localStorage.getItem(LAST_VISIT_KEY);
-    } catch (e) {
-        // localStorage blocked in private mode - treat as first visit
-        return false;
-    }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
     if (!lastVisit) {
         // No last visit recorded - this could be:
@@ -56,9 +53,7 @@ function markWelcomeShown(): void {
     sessionStorage.setItem(WELCOME_SHOWN_KEY, 'true');
     try {
         localStorage.setItem(LAST_VISIT_KEY, Date.now().toString());
-    } catch (e) {
-        // localStorage blocked in private mode - that's okay, sessionStorage tracks this session
-    }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 }
 
 interface WelcomeBackProps {

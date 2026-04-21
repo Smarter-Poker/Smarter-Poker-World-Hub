@@ -26,7 +26,7 @@ export default function GameIntroSplash({ isVisible, game, onComplete }) {
         if (isVisible && game?.id) {
             // Prefetch the play page route during video playback
             const playRoute = `/hub/training/play/${game.id}`;
-            console.log('🎬 Prefetching arena page:', playRoute);
+            console.debug('🎬 Prefetching arena page:', playRoute);
             router.prefetch(playRoute);
 
             // Also prefetch the arena routes
@@ -34,7 +34,7 @@ export default function GameIntroSplash({ isVisible, game, onComplete }) {
 
             // Fetch the first question in the background to warm up the API
             fetch(`/api/training/get-question?gameId=${game.id}&engineType=PIO&level=1`)
-                .then(() => console.log('✅ Question API warmed up'))
+                .then(() => console.debug('✅ Question API warmed up'))
                 .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); // Silently fail
         }
     }, [isVisible, game?.id, router]);
@@ -50,7 +50,7 @@ export default function GameIntroSplash({ isVisible, game, onComplete }) {
                 videoRef.current.muted = true;
                 videoRef.current.play()
                     .then(() => {
-                        console.log('🎬 Video playing, attempting unmute...');
+                        console.debug('🎬 Video playing, attempting unmute...');
                         // Try to unmute after playback starts (user interaction may be needed)
                         setTimeout(() => {
                             if (videoRef.current) {

@@ -102,7 +102,7 @@ export default function SurvivalModePage() {
                 setPersonalBest(best.correct_count);
             }
         } catch (e) {
-            console.error('[Survival] Failed to load user data:', e);
+            console.warn('[Survival] Failed to load user data:', e);
         }
     }
 
@@ -192,7 +192,7 @@ export default function SurvivalModePage() {
                 }
                 // DiamondEngine.deduct auto-emits busEmit.diamondsSpent
             } catch (e) {
-                console.error('[Survival] Diamond deduction failed:', e);
+                console.warn('[Survival] Diamond deduction failed:', e);
                 setShowOutOfDiamonds(true);
                 return;
             }
@@ -261,7 +261,7 @@ export default function SurvivalModePage() {
                         .upsert(historyRecords, { onConflict: 'user_id,question_id', ignoreDuplicates: false });
                 }
             } catch (e) {
-                console.error('[Survival] Save/reward failed:', e);
+                console.warn('[Survival] Save/reward failed:', e);
             }
 
             // Check if new personal best

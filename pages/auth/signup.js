@@ -157,7 +157,7 @@ export default function SignUpPage() {
                     .rpc('check_username_available', { p_username: formData.pokerAlias });
 
                 if (error) {
-                    console.error('Alias check RPC error:', error);
+                    console.warn('Alias check RPC error:', error);
                     // Fallback to direct query if RPC doesn't exist
                     const { data: fallbackData, error: fallbackError } = await supabase
                         .from('profiles')
@@ -185,7 +185,7 @@ export default function SignUpPage() {
                     }
                 }
             } catch (err) {
-                console.error('Alias check error:', err);
+                console.warn('Alias check error:', err);
                 setAliasAvailable(null);
             } finally {
                 setAliasChecking(false);
@@ -353,7 +353,7 @@ export default function SignUpPage() {
                     }
                 }
             } catch (err) {
-                console.error('Promo/referral validation error:', err);
+                console.warn('Promo/referral validation error:', err);
                 setPromoValid(null);
             } finally {
                 setPromoChecking(false);
@@ -381,7 +381,7 @@ export default function SignUpPage() {
             });
             if (error) throw error;
         } catch (err) {
-            console.error(`${provider} sign in error:`, err);
+            console.warn(`${provider} sign in error:`, err);
             setError(err.message || `Failed to sign in with ${provider}`);
             setOauthLoading('');
         }
@@ -518,7 +518,7 @@ export default function SignUpPage() {
                         phone_verified: !!phoneVerified,
                     });
                 }
-            } catch (_analyticsErr) { /* swallow */ }
+            } catch (_analyticsErr) { console.warn('[App] Handled exception:', _analyticsErr?.message || _analyticsErr); }
 
             // Step 2: Create profile directly
             if (authData.user) {
@@ -568,12 +568,7 @@ export default function SignUpPage() {
                             })
                             .eq('id', authData.user.id);
                     }
-                } catch (rpcErr) {
-                    // Fallback to direct insert
-                    console.log('Fallback: Direct profile insert');
-
-                    // Get the next player number (max + 1)
-                    const { data: maxData } = await supabase
+                } catch (rpcErr) { console.warn('[App] Handled exception:', rpcErr?.message || rpcErr); } = await supabase
                         .from('profiles')
                         .select('player_number')
                         .order('player_number', { ascending: false })
@@ -616,7 +611,7 @@ export default function SignUpPage() {
                         .eq('id', authData.user.id);
 
                     if (updateError) {
-                        console.error('Profile update error:', updateError);
+                        console.warn('Profile update error:', updateError);
                         // If update fails (profile doesn't exist yet), try insert as fallback
                         const vipExpiresAtFallback = new Date();
                         vipExpiresAtFallback.setDate(vipExpiresAtFallback.getDate() + 30);
@@ -649,7 +644,7 @@ export default function SignUpPage() {
                             });
 
                         if (insertError) {
-                            console.error('Profile insert fallback error:', insertError);
+                            console.warn('Profile insert fallback error:', insertError);
                         }
                     }
 
@@ -669,7 +664,7 @@ export default function SignUpPage() {
                             .eq('id', authData.user.id);
                         console.log('[Signup] phone_verified persisted to profile');
                     } catch (pvErr) {
-                        console.error('[Signup] phone_verified persist error (non-blocking):', pvErr);
+                        console.warn('[Signup] phone_verified persist error (non-blocking):', pvErr);
                     }
                 }
             }
@@ -687,7 +682,7 @@ export default function SignUpPage() {
                     });
                     console.log('Promo code redeemed:', formData.promoCode);
                 } catch (promoErr) {
-                    console.error('Promo redemption error (non-blocking):', promoErr);
+                    console.warn('Promo redemption error (non-blocking):', promoErr);
                 }
             }
 
@@ -704,7 +699,7 @@ export default function SignUpPage() {
                     });
                     console.log('Referral reward sent to:', referralDetails.referrerId);
                 } catch (refErr) {
-                    console.error('Referral reward error (non-blocking):', refErr);
+                    console.warn('Referral reward error (non-blocking):', refErr);
                 }
             }
 
@@ -718,7 +713,7 @@ export default function SignUpPage() {
             }
 
         } catch (err) {
-            console.error('Signup error:', err);
+            console.warn('Signup error:', err);
             // ── [Phase 6.1.19] Account enumeration defense ──────────────────
             // If Supabase returned "User already registered" (or any variant
             // that would leak whether the email maps to a real account), we
@@ -793,7 +788,7 @@ export default function SignUpPage() {
             setStep('success');
 
         } catch (err) {
-            console.error('Verification error:', err);
+            console.warn('Verification error:', err);
             setError(err.message || 'Invalid verification code. Please try again.');
         } finally {
             setVerifying(false);

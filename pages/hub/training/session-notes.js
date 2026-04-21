@@ -110,7 +110,7 @@ export default function SessionNotesPage() {
         setRecentAccuracy(h > 0 ? Math.round((c / h) * 100) : null);
       }
     } catch (e) {
-      console.error('[SessionNotes]', e);
+      console.warn('[SessionNotes]', e);
       setFetchError('Failed to load session data. Please try again.');
     }
   }, []);

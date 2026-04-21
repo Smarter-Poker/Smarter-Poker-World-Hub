@@ -97,7 +97,7 @@ export async function saveSession(sessionData) {
         });
 
         if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
-        console.log('[saveSession] Session saved directly to database');
+        console.debug('[saveSession] Session saved directly to database');
 
         // H7: Hardened busEmit — bus failures must never crash the save flow
         try {

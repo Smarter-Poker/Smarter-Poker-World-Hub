@@ -167,13 +167,13 @@ export default async function handler(req, res) {
             .upsert(analytics, { onConflict: 'venue_id,date' });
 
           if (error) {
-            console.error(`Analytics error for ${venue.name}:`, error);
+            console.warn(`Analytics error for ${venue.name}:`, error);
             results.push({ venue: venue.name, status: 'error', error: error.message });
           } else {
             results.push({ venue: venue.name, status: 'ok', players: uniquePlayers.size, sessions: sessions.length });
           }
         } catch (venueErr) {
-          console.error(`Venue ${venue.name} error:`, venueErr);
+          console.warn(`Venue ${venue.name} error:`, venueErr);
           results.push({ venue: venue.name, status: 'error', error: venueErr.message });
         }
       }
@@ -185,13 +185,13 @@ export default async function handler(req, res) {
         results
       });
     } catch (error) {
-      console.error('Cron aggregate error:', error);
+      console.warn('Cron aggregate error:', error);
       return res.status(500).json({ error: error.message });
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

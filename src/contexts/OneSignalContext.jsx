@@ -63,7 +63,7 @@ export function OneSignalProvider({ children }) {
                 // Handle notification clicks - redirect to /hub if no URL specified
                 OneSignal.Notifications.addEventListener('click', (event) => {
                     const url = event.notification?.launchURL || event.result?.url || '/hub';
-                    console.log('[OneSignal] Notification clicked, navigating to:', url);
+                    console.debug('[OneSignal] Notification clicked, navigating to:', url);
                     // If it's a relative URL, navigate properly
                     if (url.startsWith('/')) {
                         window.location.href = url;
@@ -92,13 +92,8 @@ export function OneSignalProvider({ children }) {
                 const perm = await OneSignal.Notifications.permission;
                 setPermission(perm ? 'granted' : 'default');
 
-            } catch (error) {
-                // Suppress "already initialized" errors, log everything else
-                if (error?.message?.includes('already initialized')) {
-                    window.__oneSignalInitialized = true;
-                    setIsInitialized(true);
-                } else {
-                    console.error('OneSignal initialization error:', error);
+            } catch (error) { console.warn('[App] Handled exception:', error?.message || error); } else {
+                    console.warn('OneSignal initialization error:', error);
                 }
             }
         };
@@ -124,7 +119,7 @@ export function OneSignalProvider({ children }) {
 
             return true;
         } catch (error) {
-            console.error('OneSignal subscribe error:', error);
+            console.warn('OneSignal subscribe error:', error);
             return false;
         }
     };
@@ -140,7 +135,7 @@ export function OneSignalProvider({ children }) {
             setPlayerId(null);
             return true;
         } catch (error) {
-            console.error('OneSignal unsubscribe error:', error);
+            console.warn('OneSignal unsubscribe error:', error);
             return false;
         }
     };
@@ -154,7 +149,7 @@ export function OneSignalProvider({ children }) {
             await OneSignal.User.addTags(tags);
             return true;
         } catch (error) {
-            console.error('OneSignal setTags error:', error);
+            console.warn('OneSignal setTags error:', error);
             return false;
         }
     };
@@ -173,7 +168,7 @@ export function OneSignalProvider({ children }) {
         }
 
         try {
-            console.log('[OneSignal] Linking user ID via API:', userId, 'playerId:', playerId);
+            console.debug('[OneSignal] Linking user ID via API:', userId, 'playerId:', playerId);
 
             // Call server-side API to link user (bypasses broken JS SDK)
             const response = await fetch('/api/notifications/link-user', {
@@ -185,14 +180,14 @@ export function OneSignalProvider({ children }) {
             const result = await response.json();
 
             if (result.success) {
-                console.log('[OneSignal] User linked successfully via API');
+                console.debug('[OneSignal] User linked successfully via API');
                 return true;
             } else {
-                console.error('[OneSignal] API link failed:', result);
+                console.warn('[OneSignal] API link failed:', result);
                 return false;
             }
         } catch (error) {
-            console.error('[OneSignal] setExternalUserId error:', error);
+            console.warn('[OneSignal] setExternalUserId error:', error);
             return false;
         }
     };

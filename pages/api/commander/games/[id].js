@@ -51,7 +51,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -98,7 +98,7 @@ async function handleGet(req, res, gameId) {
       data: { game }
     });
   } catch (error) {
-    console.error('Commander game GET error:', error);
+    console.warn('Commander game GET error:', error);
     return res.status(500).json({
       success: false,
       error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }
@@ -188,7 +188,7 @@ async function handlePatch(req, res, gameId) {
       .maybeSingle();
 
     if (updateError) {
-      console.error('Commander game PATCH error:', updateError);
+      console.warn('Commander game PATCH error:', updateError);
       return res.status(500).json({
         success: false,
         error: { code: 'DATABASE_ERROR', message: 'Failed to update game' }
@@ -200,7 +200,7 @@ async function handlePatch(req, res, gameId) {
       data: { game }
     });
   } catch (error) {
-    console.error('Commander game PATCH error:', error);
+    console.warn('Commander game PATCH error:', error);
     return res.status(500).json({
       success: false,
       error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }
@@ -243,7 +243,7 @@ async function handleDelete(req, res, gameId) {
       .eq('id', gameId);
 
     if (updateError) {
-      console.error('Commander game DELETE error:', updateError);
+      console.warn('Commander game DELETE error:', updateError);
       return res.status(500).json({
         success: false,
         error: { code: 'DATABASE_ERROR', message: 'Failed to close game' }
@@ -267,7 +267,7 @@ async function handleDelete(req, res, gameId) {
     });
   } catch (error) {
       try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('Commander game DELETE error:', error);
+    console.warn('Commander game DELETE error:', error);
     return res.status(500).json({
       success: false,
       error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }

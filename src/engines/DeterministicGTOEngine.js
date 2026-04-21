@@ -508,7 +508,7 @@ export class DeterministicGTOEngine {
 
             return question;
         } catch (err) {
-            console.error('[DeterministicEngine] Postflop generation error:', err.message);
+            console.warn('[DeterministicEngine] Postflop generation error:', err.message);
             return null;
         }
     }
@@ -547,7 +547,7 @@ export class DeterministicGTOEngine {
             questions.push(q);
         }
 
-        console.log(`[DeterministicEngine] ✅ Generated ${questions.length} postflop questions for L${level}`);
+        console.debug(`[DeterministicEngine] ✅ Generated ${questions.length} postflop questions for L${level}`);
         return questions;
     }
 
@@ -676,7 +676,7 @@ export class DeterministicGTOEngine {
                 handCategory: this._classifyPreflopHand(hand),
             };
         } catch (err) {
-            console.error('[DeterministicEngine] Local solver ranges fallback error:', err.message);
+            console.warn('[DeterministicEngine] Local solver ranges fallback error:', err.message);
             return null;
         }
     }
@@ -949,7 +949,7 @@ export class DeterministicGTOEngine {
             });
             sortedScenarios = [...targeted, ...others];
             if (targeted.length > 0) {
-                console.log(`[DeterministicEngine] 🎯 Targeted ${targeted.length}/${scenarios.length} scenarios for positions: ${targetPositions.join(',')}`);
+                console.debug(`[DeterministicEngine] 🎯 Targeted ${targeted.length}/${scenarios.length} scenarios for positions: ${targetPositions.join(',')}`);
             }
         }
 
@@ -1052,7 +1052,7 @@ export class DeterministicGTOEngine {
                 .limit(5);
 
             if (exactErr) {
-                console.error('[DeterministicEngine] queryNextStreet exact match error:', exactErr.message);
+                console.warn('[DeterministicEngine] queryNextStreet exact match error:', exactErr.message);
             }
 
             if (exactMatches && exactMatches.length > 0) {
@@ -1061,7 +1061,7 @@ export class DeterministicGTOEngine {
                 const question = this.buildQuestionFromScenario(scenario, gameConfig, 5, 0);
 
                 if (question) {
-                    console.log(`[DeterministicEngine] ✅ Multi-street: found ${street} data for board ${boardStr}`);
+                    console.debug(`[DeterministicEngine] ✅ Multi-street: found ${street} data for board ${boardStr}`);
                     return question;
                 }
             }
@@ -1130,7 +1130,7 @@ export class DeterministicGTOEngine {
                     // Override board with our actual board (partial match may have different turn/river)
                     question.scenario.board = boardCards.join(' ');
                     question.boardCards = boardCards;
-                    console.log(`[DeterministicEngine] ✅ Multi-street: partial semantic match for ${street} (dist: ${minDistance})`);
+                    console.debug(`[DeterministicEngine] ✅ Multi-street: partial semantic match for ${street} (dist: ${minDistance})`);
                     return question;
                 }
             }
@@ -1138,10 +1138,10 @@ export class DeterministicGTOEngine {
             // BUG-G FIX: Removed 3rd-tier 'ANY scenario' fallback.
             // Grabbing solver data from a completely different board is misleading —
             // the frequencies don't apply to our board texture. Instead, end the hand cleanly.
-            console.log(`[DeterministicEngine] ❌ No ${street} solver data available for ${gameConfig.pioGameType} (no board match)`);
+            console.debug(`[DeterministicEngine] ❌ No ${street} solver data available for ${gameConfig.pioGameType} (no board match)`);
             return null;
         } catch (err) {
-            console.error('[DeterministicEngine] queryNextStreet error:', err.message);
+            console.warn('[DeterministicEngine] queryNextStreet error:', err.message);
             return null;
         }
     }
@@ -1201,7 +1201,7 @@ export class DeterministicGTOEngine {
             }
 
             if (allData.length === 0) {
-                console.log(`[DeterministicEngine] No solved spots for ${gameConfig.pioGameType} ${street} depths=[${effectiveStackDepths.join(',')}]bb`);
+                console.debug(`[DeterministicEngine] No solved spots for ${gameConfig.pioGameType} ${street} depths=[${effectiveStackDepths.join(',')}]bb`);
                 return null;
             }
 
@@ -1228,7 +1228,7 @@ export class DeterministicGTOEngine {
                     // Only apply filter if it returns results; otherwise fall through with full pool
                     if (filtered.length > 0) {
                         allData = filtered;
-                        console.log(`[DeterministicEngine] 🎯 SpotType filter: ${spotTypes.join(',')} → ${filtered.length} scenarios`);
+                        console.debug(`[DeterministicEngine] 🎯 SpotType filter: ${spotTypes.join(',')} → ${filtered.length} scenarios`);
                     }
                 }
             }
@@ -1243,7 +1243,7 @@ export class DeterministicGTOEngine {
             // Return only the requested number of scenarios
             return shuffled.slice(0, limit);
         } catch (err) {
-            console.error('[DeterministicEngine] fetchSolverPool error:', err.message);
+            console.warn('[DeterministicEngine] fetchSolverPool error:', err.message);
             return null;
         }
     }
@@ -1384,7 +1384,7 @@ export class DeterministicGTOEngine {
             }
 
             if (preFilterCount !== validActions.length) {
-                console.log(`[DeterministicEngine] Context filter: ${preFilterCount} → ${validActions.length} actions (nodeType=${nodeType}) for ${scenario.scenario_hash}`);
+                console.debug(`[DeterministicEngine] Context filter: ${preFilterCount} → ${validActions.length} actions (nodeType=${nodeType}) for ${scenario.scenario_hash}`);
             }
         }
 
@@ -1560,7 +1560,7 @@ export class DeterministicGTOEngine {
             const chart = charts[Math.floor(Math.random() * charts.length)];
             return this.buildChartQuestion(chart, level);
         } catch (err) {
-            console.error('[DeterministicEngine] Chart query error:', err.message);
+            console.warn('[DeterministicEngine] Chart query error:', err.message);
             return null;
         }
     }
@@ -4281,7 +4281,7 @@ export class DeterministicGTOEngine {
             // Phase 105: Position EV context
             const posEVCtx = this._getPositionEVContext(heroPosition);
             if (posEVCtx) notes.push(posEVCtx);
-        } catch (e) { /* non-critical */ }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
         if (notes.length === 0) return baseExplanation;
         // Apply depth mode — pick top 1-2 notes

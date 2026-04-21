@@ -103,7 +103,7 @@ export function EndStreamModal({
             setUploadProgress(100);
             onClose('posted');
         } catch (err) {
-            console.error('Post error:', err);
+            console.warn('Post error:', err);
             setError(err.message || 'Failed to post stream');
         } finally {
             setIsUploading(false);
@@ -135,7 +135,7 @@ export function EndStreamModal({
             setUploadProgress(100);
             onClose('saved');
         } catch (err) {
-            console.error('Save error:', err);
+            console.warn('Save error:', err);
             setError(err.message || 'Failed to save stream');
         } finally {
             setIsUploading(false);
@@ -154,7 +154,7 @@ export function EndStreamModal({
 
             onClose('deleted');
         } catch (err) {
-            console.error('Delete error:', err);
+            console.warn('Delete error:', err);
             setError(err.message || 'Failed to delete');
         }
     };

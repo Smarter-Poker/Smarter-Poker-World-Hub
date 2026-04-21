@@ -30,7 +30,7 @@ export default function ChallengesWidget({ userId, onChallengeClaimed }) {
                 });
             }
         } catch (e) {
-            console.error('[ChallengesWidget] Error:', e);
+            console.warn('[ChallengesWidget] Error:', e);
         } finally {
             setLoading(false);
         }
@@ -56,7 +56,7 @@ export default function ChallengesWidget({ userId, onChallengeClaimed }) {
                 fetchChallenges(); // Refresh
             }
         } catch (e) {
-            console.error('[ChallengesWidget] Claim error:', e);
+            console.warn('[ChallengesWidget] Claim error:', e);
         } finally {
             setClaiming(null);
         }

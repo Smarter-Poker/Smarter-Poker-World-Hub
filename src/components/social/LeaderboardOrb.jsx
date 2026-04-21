@@ -290,7 +290,7 @@ export const LeaderboardOrb = ({
             if (fetchError) throw fetchError;
             setEntries(data || []);
         } catch (err) {
-            console.error('Leaderboard fetch error:', err);
+            console.warn('Leaderboard fetch error:', err);
             setError('Failed to load leaderboard');
         } finally {
             setIsLoading(false);

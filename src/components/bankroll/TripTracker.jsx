@@ -85,7 +85,7 @@ export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEn
                 setTripEntries([]);
             }
         } catch (err) {
-            console.error('Error loading trip data:', err);
+            console.warn('Error loading trip data:', err);
         } finally {
             setIsLoading(false);
         }

@@ -36,7 +36,7 @@ export default function SavedReels() {
             setSavedReels(reels);
             setLoading(false);
         } catch (error) {
-            console.error('Error loading saved reels:', error);
+            console.warn('Error loading saved reels:', error);
             setLoading(false);
         }
     };
@@ -46,7 +46,7 @@ export default function SavedReels() {
             await savedReelsService.unsaveReel(user.id, reelId);
             setSavedReels(savedReels.filter(item => item.reel_id !== reelId));
         } catch (error) {
-            console.error('Error unsaving reel:', error);
+            console.warn('Error unsaving reel:', error);
         }
     };
 

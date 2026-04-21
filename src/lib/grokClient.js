@@ -55,7 +55,7 @@ function createGrokProxyClient() {
     const originalCreate = baseClient.chat.completions.create.bind(baseClient.chat.completions);
     baseClient.chat.completions.create = async function (params) {
         const mappedModel = mapModelToGrok(params.model);
-        console.log(`[GrokClient] Model mapping: ${params.model} → ${mappedModel}`);
+        console.debug(`[GrokClient] Model mapping: ${params.model} → ${mappedModel}`);
         return originalCreate({
             ...params,
             model: mappedModel,
@@ -66,7 +66,7 @@ function createGrokProxyClient() {
     const originalImagesGenerate = baseClient.images.generate.bind(baseClient.images);
     baseClient.images.generate = async function (params) {
         const mappedModel = mapModelToGrok(params.model);
-        console.log(`[GrokClient] Image model mapping: ${params.model} → ${mappedModel}`);
+        console.debug(`[GrokClient] Image model mapping: ${params.model} → ${mappedModel}`);
         return originalImagesGenerate({
             ...params,
             model: mappedModel,

@@ -103,7 +103,7 @@ export default function SpectatorView({ session, currentUser, onClose }) {
                 setShowVideo(true);
             }
         } catch (err) {
-            console.error('[Spectator] LiveKit error:', err);
+            console.warn('[Spectator] LiveKit error:', err);
         }
     }, [session.livekit_room, currentUser]);
 
@@ -119,7 +119,7 @@ export default function SpectatorView({ session, currentUser, onClose }) {
             });
             if (res.ok) setChatInput('');
         } catch (err) {
-            console.error('[Chat] Error:', err);
+            console.warn('[Chat] Error:', err);
         }
         setSending(false);
     };

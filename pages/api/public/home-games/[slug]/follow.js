@@ -71,7 +71,7 @@ async function readFollowerCount(pageId, fallback) {
             .eq('id', pageId)
             .maybeSingle();
         if (data && typeof data.follower_count === 'number') return data.follower_count;
-    } catch (_e) { /* ignore — fall through */ }
+    } catch (_e) { console.warn('[App] Handled exception:', _e?.message || _e); }
     return fallback;
 }
 
@@ -220,7 +220,7 @@ export default async function handler(req, res) {
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         // eslint-disable-next-line no-console
-        console.error('[public/home-games/slug/follow]', err);
+        console.warn('[public/home-games/slug/follow]', err);
         if (!res.headersSent) {
             return res.status(500).json({ success: false, error: err?.message || 'Internal server error' });
         }

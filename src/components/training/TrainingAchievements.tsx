@@ -32,7 +32,7 @@ export function TrainingAchievements({ userId, compact = false, onNewUnlock }) {
                 setStats({ unlocked: data.totalUnlocked, total: data.totalAchievements });
             }
         } catch (error) {
-            console.error('Failed to fetch achievements:', error);
+            console.warn('Failed to fetch achievements:', error);
         }
         setLoading(false);
     };

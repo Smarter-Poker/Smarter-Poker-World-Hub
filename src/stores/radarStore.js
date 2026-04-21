@@ -117,7 +117,7 @@ const useRadarStore = create(
                     get().executeSearch();
 
                 } catch (error) {
-                    console.error('GPS Error:', error);
+                    console.warn('GPS Error:', error);
                     set((state) => ({
                         results: {
                             ...state.results,
@@ -222,7 +222,7 @@ const useRadarStore = create(
                     });
 
                 } catch (error) {
-                    console.error('Search Error:', error);
+                    console.warn('Search Error:', error);
                     set((state) => ({
                         results: {
                             ...state.results,

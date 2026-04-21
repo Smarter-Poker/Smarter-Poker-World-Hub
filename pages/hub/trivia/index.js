@@ -50,7 +50,7 @@ export default function TriviaHubPage() {
             try {
                 await updateTriviaPreferences(userId, { [key]: value });
             } catch (error) {
-                console.error('Failed to save preference:', error);
+                console.warn('Failed to save preference:', error);
             }
         }
     }, [preferences, userId]);
@@ -103,7 +103,7 @@ export default function TriviaHubPage() {
                 setCurrentStreak(streakData.current_streak || 0);
             }
         } catch (error) {
-            console.error('Error loading user data:', error);
+            console.warn('Error loading user data:', error);
         }
         setIsLoading(false);
     }, [userId, authLoading]);

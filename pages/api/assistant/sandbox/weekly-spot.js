@@ -98,14 +98,14 @@ export default async function handler(req, res) {
 
           return res.status(200).json({ spot, source: 'curated' });
       } catch (err) {
-          console.error('Weekly spot error:', err);
+          console.warn('Weekly spot error:', err);
           // Always return a spot, even on error
           return res.status(200).json({ spot: CURATED_SPOTS[0], source: 'fallback' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

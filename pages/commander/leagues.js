@@ -111,7 +111,7 @@ export default function LeaguesAndFreerollsManagement() {
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setLeagues(json.data?.leagues || []);
-    } catch (err) { if (err.name !== 'AbortError') console.error(err); }
+    } catch (err) { if (err.name !== 'AbortError') console.warn(err); }
     finally { setLeaguesLoading(false); }
   }, []);
 
@@ -123,7 +123,7 @@ export default function LeaguesAndFreerollsManagement() {
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setFreerolls(json.data?.freerolls || []);
-    } catch (err) { if (err.name !== 'AbortError') console.error(err); }
+    } catch (err) { if (err.name !== 'AbortError') console.warn(err); }
     finally { setFreerollsLoading(false); }
   }, []);
 
@@ -151,7 +151,7 @@ export default function LeaguesAndFreerollsManagement() {
       if (json.success) {
         setStandings(prev => ({ ...prev, [leagueId]: json.data?.standings || [] }));
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
   setFreerollsLoading(false);
   };
 
@@ -203,7 +203,7 @@ export default function LeaguesAndFreerollsManagement() {
       if (json.success) {
         setQualifications(prev => ({ ...prev, [freerollId]: json.data?.qualifications || [] }));
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
   };
 
   const handleFreerollExpand = (id) => {

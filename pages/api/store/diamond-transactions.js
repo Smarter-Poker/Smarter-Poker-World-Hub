@@ -53,7 +53,7 @@ export default async function handler(req, res) {
           const { data, count, error } = await query;
 
           if (error) {
-              console.error('Transaction fetch error:', error);
+              console.warn('Transaction fetch error:', error);
               return res.status(500).json({ success: false, error: 'Failed to fetch transactions' });
           }
 
@@ -76,13 +76,13 @@ export default async function handler(req, res) {
               offset,
           });
       } catch (err) {
-          console.error('Diamond transactions error:', err);
+          console.warn('Diamond transactions error:', err);
           return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

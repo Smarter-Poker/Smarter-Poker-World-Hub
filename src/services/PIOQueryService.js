@@ -21,7 +21,7 @@ export class PIOQueryService {
         const gameConfig = this.getGameConfig(gameId);
 
         if (!gameConfig) {
-            console.log(`[PIO] No config found for game: ${gameId}`);
+            console.debug(`[PIO] No config found for game: ${gameId}`);
             return null;
         }
 
@@ -32,7 +32,7 @@ export class PIOQueryService {
             return await this.queryMemoryCharts(gameConfig, level, userId);
         } else {
             // Grok-only game, no PIO data
-            console.log(`[PIO] Game ${gameId} uses ${gameConfig.sourceOfTruth}, skipping PIO query`);
+            console.debug(`[PIO] Game ${gameId} uses ${gameConfig.sourceOfTruth}, skipping PIO query`);
             return null;
         }
     }
@@ -44,7 +44,7 @@ export class PIOQueryService {
         try {
             const street = this.getStreetForLevel(level);
 
-            console.log(`[PIO] Querying solved_spots_gold:`, {
+            console.debug(`[PIO] Querying solved_spots_gold:`, {
                 game_type: gameConfig.pioGameType,
                 stack_depth: gameConfig.pioStackDepth,
                 street: street
@@ -59,20 +59,20 @@ export class PIOQueryService {
                 .limit(25);
 
             if (error) {
-                console.error('[PIO] Query error:', error);
+                console.warn('[PIO] Query error:', error);
                 return null;
             }
 
             if (!data || data.length === 0) {
-                console.log('[PIO] No scenarios found for criteria');
+                console.debug('[PIO] No scenarios found for criteria');
                 return null;
             }
 
-            console.log(`[PIO] Found ${data.length} scenarios`);
+            console.debug(`[PIO] Found ${data.length} scenarios`);
             return this.transformPIOData(data);
 
         } catch (error) {
-            console.error('[PIO] Exception in querySolvedSpots:', error);
+            console.warn('[PIO] Exception in querySolvedSpots:', error);
             return null;
         }
     }
@@ -82,7 +82,7 @@ export class PIOQueryService {
      */
     async queryMemoryCharts(gameConfig, level, userId) {
         try {
-            console.log(`[PIO] Querying memory_charts_gold for ${gameConfig.id}`);
+            console.debug(`[PIO] Querying memory_charts_gold for ${gameConfig.id}`);
 
             const { data, error } = await supabase
                 .from('memory_charts_gold')
@@ -91,20 +91,20 @@ export class PIOQueryService {
                 .limit(5);
 
             if (error) {
-                console.error('[PIO] Chart query error:', error);
+                console.warn('[PIO] Chart query error:', error);
                 return null;
             }
 
             if (!data || data.length === 0) {
-                console.log('[PIO] No charts found');
+                console.debug('[PIO] No charts found');
                 return null;
             }
 
-            console.log(`[PIO] Found ${data.length} charts`);
+            console.debug(`[PIO] Found ${data.length} charts`);
             return this.transformChartData(data);
 
         } catch (error) {
-            console.error('[PIO] Exception in queryMemoryCharts:', error);
+            console.warn('[PIO] Exception in queryMemoryCharts:', error);
             return null;
         }
     }

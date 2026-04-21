@@ -226,7 +226,7 @@ export default function CommanderLayout({ children, title, backHref = '/commande
         // Show the popup
         setShowClubPagePopup(true);
       } catch (e) {
-        console.error('[Commander] Club page popup check error:', e);
+        console.warn('[Commander] Club page popup check error:', e);
       }
     };
 

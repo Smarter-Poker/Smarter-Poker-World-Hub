@@ -41,7 +41,7 @@ export default function TrainingPlayPage() {
                     }
                 }
             } catch (e) {
-                console.error('Error fetching user:', e);
+                console.warn('Error fetching user:', e);
                 setUserId(`anon-${Date.now()}`);
             }
             setLoading(false);

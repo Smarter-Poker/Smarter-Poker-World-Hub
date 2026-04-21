@@ -24,8 +24,8 @@ const supabase = createClient(
 const VIOLATORS = ['DesertDonk', 'TexasQueen92', 'LANitOwl', 'SeattleSolver'];
 
 async function suspendViolators() {
-    console.log('\n🛡️ CONTENT LAW ENFORCEMENT - SUSPENDING VIOLATORS');
-    console.log('═'.repeat(60));
+    console.debug('\n🛡️ CONTENT LAW ENFORCEMENT - SUSPENDING VIOLATORS');
+    console.debug('═'.repeat(60));
 
     // First check the current status of these horses
     const { data: currentStatus } = await supabase
@@ -33,9 +33,9 @@ async function suspendViolators() {
         .select('id, name, alias, profile_id, is_active')
         .in('alias', VIOLATORS);
 
-    console.log('\n📋 CURRENT STATUS:');
+    console.debug('\n📋 CURRENT STATUS:');
     currentStatus?.forEach(h => {
-        console.log(`   ${h.alias} (${h.name}): is_active = ${h.is_active}`);
+        console.debug(`   ${h.alias} (${h.name}): is_active = ${h.is_active}`);
     });
 
     // Get profile IDs for content deletion
@@ -50,9 +50,9 @@ async function suspendViolators() {
             .in('id', horseIds);
 
         if (updateErr) {
-            console.error('\n❌ Update error:', updateErr.message);
+            console.warn('\n❌ Update error:', updateErr.message);
         } else {
-            console.log(`\n✅ Force-suspended ${horseIds.length} horses`);
+            console.debug(`\n✅ Force-suspended ${horseIds.length} horses`);
         }
     }
 
@@ -64,7 +64,7 @@ async function suspendViolators() {
             .in('author_id', profileIds)
             .select('id');
 
-        console.log(`🗑️ Deleted ${deletedPosts?.length || 0} posts`);
+        console.debug(`🗑️ Deleted ${deletedPosts?.length || 0} posts`);
 
         const { data: deletedStories } = await supabase
             .from('stories')
@@ -72,7 +72,7 @@ async function suspendViolators() {
             .in('author_id', profileIds)
             .select('id');
 
-        console.log(`🗑️ Deleted ${deletedStories?.length || 0} stories`);
+        console.debug(`🗑️ Deleted ${deletedStories?.length || 0} stories`);
     }
 
     // Verify the update worked
@@ -81,14 +81,14 @@ async function suspendViolators() {
         .select('alias, is_active')
         .in('alias', VIOLATORS);
 
-    console.log('\n📋 AFTER SUSPENSION:');
+    console.debug('\n📋 AFTER SUSPENSION:');
     afterStatus?.forEach(h => {
-        console.log(`   ${h.alias}: is_active = ${h.is_active}`);
+        console.debug(`   ${h.alias}: is_active = ${h.is_active}`);
     });
 
-    console.log('\n═'.repeat(60));
-    console.log('🛡️ CONTENT LAW ENFORCED');
-    console.log('═'.repeat(60) + '\n');
+    console.debug('\n═'.repeat(60));
+    console.debug('🛡️ CONTENT LAW ENFORCED');
+    console.debug('═'.repeat(60) + '\n');
 }
 
 suspendViolators();

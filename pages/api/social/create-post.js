@@ -74,13 +74,13 @@ export default async function handler(req, res) {
                   .maybeSingle();
 
               if (directError || !directPost) {
-                  console.error('Create post error:', directError);
+                  console.warn('Create post error:', directError);
                   return res.status(500).json({ success: false, error: 'Failed to create post' });
               }
               post = directPost;
           } else {
               if (!rpcResult) {
-                  console.error('Create post error: RPC returned null');
+                  console.warn('Create post error: RPC returned null');
                   return res.status(500).json({ success: false, error: 'Failed to create post' });
               }
               post = rpcResult;
@@ -91,13 +91,13 @@ export default async function handler(req, res) {
               data: { post_id: post.id }
           });
       } catch (err) {
-          console.error('Create post error:', err);
+          console.warn('Create post error:', err);
           return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

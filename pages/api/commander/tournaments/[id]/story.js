@@ -131,7 +131,7 @@ export default async function handler(req, res) {
               .maybeSingle();
 
           if (storyErr) {
-              console.error('[story.js] Failed to create story:', storyErr);
+              console.warn('[story.js] Failed to create story:', storyErr);
               return res.status(500).json({ success: false, error: 'Failed to create story' });
           }
 
@@ -145,13 +145,13 @@ export default async function handler(req, res) {
               }
           });
       } catch (error) {
-          console.error('[story.js] Error:', error);
+          console.warn('[story.js] Error:', error);
           return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

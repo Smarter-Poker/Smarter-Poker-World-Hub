@@ -112,7 +112,7 @@ export default async function handler(req, res) {
               if (claimInsertErr.code === '23505') {
                   return res.status(200).json({ success: true, alreadyClaimed: true, message: 'Profile completion reward already claimed' });
               }
-              console.error('[ProfileComplete] Insert error:', claimInsertErr);
+              console.warn('[ProfileComplete] Insert error:', claimInsertErr);
               throw claimInsertErr;
           }
 
@@ -132,13 +132,13 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('[ProfileCompleteReward] Error:', error.message || error);
+          console.warn('[ProfileCompleteReward] Error:', error.message || error);
           return res.status(500).json({ success: false, error: 'Failed to claim profile completion reward' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

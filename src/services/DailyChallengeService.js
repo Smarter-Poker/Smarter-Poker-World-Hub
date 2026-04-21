@@ -34,7 +34,7 @@ class DailyChallengeService {
 
             return data;
         } catch (error) {
-            console.error('[DailyChallengeService] Error getting daily challenge:', error);
+            console.warn('[DailyChallengeService] Error getting daily challenge:', error);
             return {
                 success: false,
                 error: error.message
@@ -59,7 +59,7 @@ class DailyChallengeService {
 
             return data;
         } catch (error) {
-            console.error('[DailyChallengeService] Error completing challenge:', error);
+            console.warn('[DailyChallengeService] Error completing challenge:', error);
             return {
                 success: false,
                 error: error.message
@@ -95,7 +95,7 @@ class DailyChallengeService {
                 completions: data || []
             };
         } catch (error) {
-            console.error('[DailyChallengeService] Error getting user completions:', error);
+            console.warn('[DailyChallengeService] Error getting user completions:', error);
             return {
                 success: false,
                 error: error.message,
@@ -126,7 +126,7 @@ class DailyChallengeService {
                 }
             };
         } catch (error) {
-            console.error('[DailyChallengeService] Error getting user streak:', error);
+            console.warn('[DailyChallengeService] Error getting user streak:', error);
             return {
                 success: false,
                 error: error.message,
@@ -166,7 +166,7 @@ class DailyChallengeService {
                 challenge: data
             };
         } catch (error) {
-            console.error('[DailyChallengeService] Error creating daily challenge:', error);
+            console.warn('[DailyChallengeService] Error creating daily challenge:', error);
             return {
                 success: false,
                 error: error.message

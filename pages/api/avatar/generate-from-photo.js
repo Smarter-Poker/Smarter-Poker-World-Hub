@@ -226,7 +226,7 @@ export default async function handler(req, res) {
               });
 
           if (uploadError) {
-              console.error('❌ Supabase upload error:', uploadError);
+              console.warn('❌ Supabase upload error:', uploadError);
               throw new Error('Failed to upload avatar to storage');
           }
 
@@ -242,7 +242,7 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('❌ Photo avatar generation error:', error);
+          console.warn('❌ Photo avatar generation error:', error);
           return res.status(500).json({
               success: false,
               error: error.message || 'Failed to generate avatar from photo'
@@ -251,7 +251,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

@@ -93,7 +93,7 @@ export default async function handler(req, res) {
                       p_hashed_code: codeHash,
                   });
               if (rpcError) {
-                  console.error('[mfa/disable] consume RPC error:', rpcError);
+                  console.warn('[mfa/disable] consume RPC error:', rpcError);
                   return res.status(500).json({ error: 'Failed to verify backup code' });
               }
               const row = Array.isArray(rpcResult) ? rpcResult[0] : rpcResult;
@@ -114,7 +114,7 @@ export default async function handler(req, res) {
               .eq('user_id', user.id);
 
           if (updateError) {
-              console.error('Error disabling 2FA:', updateError);
+              console.warn('Error disabling 2FA:', updateError);
               return res.status(500).json({ error: 'Failed to disable 2FA' });
           }
 
@@ -124,13 +124,13 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('2FA disable error:', error);
+          console.warn('2FA disable error:', error);
           return res.status(500).json({ error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

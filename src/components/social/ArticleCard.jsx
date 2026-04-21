@@ -55,7 +55,7 @@ function prewarmProxy(url) {
         method: 'GET',
         priority: 'low',       // Don’t compete with the page’s own resources
         credentials: 'omit',
-    }).catch(() => { /* silently ignore — this is best-effort */ });
+    }).catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
 }
 
 
@@ -75,7 +75,7 @@ async function fetchLinkPreview(url) {
                 return data;
             }
         } catch (error) {
-            console.error('ArticleCard: Failed to fetch metadata', error);
+            console.warn('ArticleCard: Failed to fetch metadata', error);
         }
         return null;
     })();

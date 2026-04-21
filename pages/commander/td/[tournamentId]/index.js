@@ -134,7 +134,7 @@ export default function TDControlCenter() {
       setMessageText('');
       setMessageModal(false);
     } catch (err) {
-      console.error('Send message failed:', err);
+      console.warn('Send message failed:', err);
       setError('Failed to send tournament message. Please try again.');
     } finally {
       setSendingMessage(false);
@@ -155,7 +155,7 @@ export default function TDControlCenter() {
       await fetchFloor();
       broadcastChange('tournaments');
     } catch (err) {
-      console.error('H4H toggle failed:', err);
+      console.warn('H4H toggle failed:', err);
       setError('Hand-for-Hand toggle failed.');
     }
   };

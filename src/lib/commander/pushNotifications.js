@@ -36,7 +36,7 @@ export async function sendPushNotification({
   buttons = []
 }) {
   if (!isOneSignalConfigured()) {
-    console.log('[PUSH MOCK]', { title, message, playerIds: playerIds?.length || externalUserIds?.length });
+    console.debug('[PUSH MOCK]', { title, message, playerIds: playerIds?.length || externalUserIds?.length });
     return { success: false, reason: 'OneSignal not configured' };
   }
 
@@ -82,7 +82,7 @@ export async function sendPushNotification({
     const result = await response.json();
 
     if (result.errors) {
-      console.error('OneSignal error:', result.errors);
+      console.warn('OneSignal error:', result.errors);
       return { success: false, reason: result.errors.join(', ') };
     }
 
@@ -92,7 +92,7 @@ export async function sendPushNotification({
       recipients: result.recipients
     };
   } catch (err) {
-    console.error('Push notification error:', err.message);
+    console.warn('Push notification error:', err.message);
     return { success: false, reason: err.message };
   }
 }
@@ -108,7 +108,7 @@ export async function sendPushToSegment({
   data = {}
 }) {
   if (!isOneSignalConfigured()) {
-    console.log('[PUSH MOCK - SEGMENT]', { title, message, segments });
+    console.debug('[PUSH MOCK - SEGMENT]', { title, message, segments });
     return { success: false, reason: 'OneSignal not configured' };
   }
 
@@ -146,7 +146,7 @@ export async function sendPushToSegment({
       recipients: result.recipients
     };
   } catch (err) {
-    console.error('Push notification error:', err.message);
+    console.warn('Push notification error:', err.message);
     return { success: false, reason: err.message };
   }
 }

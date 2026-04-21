@@ -52,7 +52,7 @@ export async function getUserAvatar(userId) {
             };
         }
     } catch (error) {
-        console.error('Error fetching user avatar:', error);
+        console.warn('Error fetching user avatar:', error);
         return {
             type: 'preset',
             id: 'free_shark',
@@ -85,7 +85,7 @@ export async function setPresetAvatar(userId, avatarId) {
 
         return { success: true, avatarId };
     } catch (error) {
-        console.error('Error setting preset avatar:', error);
+        console.warn('Error setting preset avatar:', error);
         return { success: false, error: error.message };
     }
 }
@@ -96,7 +96,7 @@ export async function setPresetAvatar(userId, avatarId) {
  */
 export async function generateCustomAvatar(userId, prompt, isVip = false, photoFile = null) {
     try {
-        console.log('🎨 generateCustomAvatar called with:', {
+        console.debug('🎨 generateCustomAvatar called with:', {
             userId,
             prompt,
             isVip,
@@ -136,11 +136,11 @@ export async function generateCustomAvatar(userId, prompt, isVip = false, photoF
         let generatedImageUrl;
 
         if (photoFile) {
-            console.log('📸 Using PHOTO-based generation (likeness mode)');
+            console.debug('📸 Using PHOTO-based generation (likeness mode)');
             // Photo-based generation (likeness)
             generatedImageUrl = await generateAvatarFromPhoto(photoFile, prompt, userId);
         } else {
-            console.log('📝 Using TEXT-based generation (no photo)');
+            console.debug('📝 Using TEXT-based generation (no photo)');
             // Text-based generation
             generatedImageUrl = await generateAvatarFromText(prompt, userId);
         }
@@ -162,7 +162,7 @@ export async function generateCustomAvatar(userId, prompt, isVip = false, photoF
             .maybeSingle();
 
         if (galleryError) {
-            console.error('Gallery save error:', galleryError);
+            console.warn('Gallery save error:', galleryError);
             // Don't throw - avatar was still generated successfully
         }
 
@@ -175,7 +175,7 @@ export async function generateCustomAvatar(userId, prompt, isVip = false, photoF
         });
 
         if (setError) {
-            console.error('Set active avatar error:', setError);
+            console.warn('Set active avatar error:', setError);
             // Don't throw - avatar was still generated successfully
         }
         */
@@ -186,7 +186,7 @@ export async function generateCustomAvatar(userId, prompt, isVip = false, photoF
             prompt: prompt || 'Generated from photo'
         };
     } catch (error) {
-        console.error('Error generating custom avatar:', error);
+        console.warn('Error generating custom avatar:', error);
         return { success: false, error: error.message };
     }
 }
@@ -200,7 +200,7 @@ async function generateAvatarFromPhoto(photoFile, additionalPrompt = '', userId 
         let token = null;
         try {
             token = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token;
-        } catch (_) { /* no-op */ }
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
         if (!token) {
             throw new Error('Authentication required. Please sign in and try again.');
@@ -215,7 +215,7 @@ async function generateAvatarFromPhoto(photoFile, additionalPrompt = '', userId 
             reader.readAsDataURL(photoFile);
         });
 
-        console.log('📏 Photo base64 length:', photoBase64?.length || 0);
+        console.debug('📏 Photo base64 length:', photoBase64?.length || 0);
 
         // Call API for image-to-image generation with a 90 second timeout
         const controller = new AbortController();
@@ -253,7 +253,7 @@ async function generateAvatarFromPhoto(photoFile, additionalPrompt = '', userId 
             throw fetchError;
         }
     } catch (error) {
-        console.error('Photo generation error:', error);
+        console.warn('Photo generation error:', error);
         throw error;
     }
 }
@@ -267,7 +267,7 @@ async function generateAvatarFromText(prompt, userId = null) {
         let token = null;
         try {
             token = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token;
-        } catch (_) { /* no-op */ }
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
         if (!token) {
             throw new Error('Authentication required. Please sign in and try again.');
@@ -305,7 +305,7 @@ async function generateAvatarFromText(prompt, userId = null) {
             throw fetchError;
         }
     } catch (error) {
-        console.error('Text generation error:', error);
+        console.warn('Text generation error:', error);
         throw error;
     }
 }
@@ -332,7 +332,7 @@ export async function isAvatarUnlocked(userId, avatarId) {
 
         return !!data;
     } catch (error) {
-        console.error('Error checking avatar unlock:', error);
+        console.warn('Error checking avatar unlock:', error);
         return false;
     }
 }
@@ -363,7 +363,7 @@ export async function getAvailableAvatars(userId, tierFilter = 'all') {
             isLocked: avatar.tier === 'VIP' && !unlockedIds.has(avatar.id)
         }));
     } catch (error) {
-        console.error('Error fetching available avatars:', error);
+        console.warn('Error fetching available avatars:', error);
         return [];
     }
 }
@@ -387,7 +387,7 @@ export async function unlockAvatar(userId, avatarId, method = 'vip_purchase') {
 
         return { success: true, avatarId };
     } catch (error) {
-        console.error('Error unlocking avatar:', error);
+        console.warn('Error unlocking avatar:', error);
         return { success: false, error: error.message };
     }
 }
@@ -408,7 +408,7 @@ export async function getCustomAvatarGallery(userId) {
 
         return data || [];
     } catch (error) {
-        console.error('Error fetching custom avatar gallery:', error);
+        console.warn('Error fetching custom avatar gallery:', error);
         return [];
     }
 }
@@ -428,7 +428,7 @@ export async function deleteCustomAvatar(userId, avatarId) {
 
         return { success: true };
     } catch (error) {
-        console.error('Error deleting custom avatar:', error);
+        console.warn('Error deleting custom avatar:', error);
         return { success: false, error: error.message };
     }
 }
@@ -446,7 +446,7 @@ export async function initializeFreeAvatars(userId) {
 
         return { success: true };
     } catch (error) {
-        console.error('Error initializing free avatars:', error);
+        console.warn('Error initializing free avatars:', error);
         return { success: false, error: error.message };
     }
 }

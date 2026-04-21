@@ -152,7 +152,7 @@ export default function PlayerNotificationsPage() {
       });
       busEmit.dataMutated('notifications');
     } catch (err) {
-      console.error('Mark read failed:', err);
+      console.warn('Mark read failed:', err);
       // Revert on error
       setNotifications(prev =>
         prev.map(n => n.id === notification.id ? { ...n, read_at: null } : n)
@@ -175,7 +175,7 @@ export default function PlayerNotificationsPage() {
       });
       busEmit.dataMutated('notifications');
     } catch (err) {
-      console.error('Delete failed:', err);
+      console.warn('Delete failed:', err);
       // Revert on error
       setNotifications(prevNotifications);
     }
@@ -198,7 +198,7 @@ export default function PlayerNotificationsPage() {
       });
       busEmit.dataMutated('notifications');
     } catch (err) {
-      console.error('Mark all read failed:', err);
+      console.warn('Mark all read failed:', err);
       // Revert on error
       setNotifications(prevNotifications);
     }

@@ -23,7 +23,7 @@ export function TrainingStreak({ userId, compact = false, onStreakUpdate }) {
                 setStreak(data.streak);
             }
         } catch (error) {
-            console.error('Failed to fetch streak:', error);
+            console.warn('Failed to fetch streak:', error);
         }
         setLoading(false);
     };
@@ -42,7 +42,7 @@ export function TrainingStreak({ userId, compact = false, onStreakUpdate }) {
                 onStreakUpdate?.({ claimed: data.claimed, diamonds: data.diamondsAwarded });
             }
         } catch (error) {
-            console.error('Failed to claim:', error);
+            console.warn('Failed to claim:', error);
         }
         setClaiming(null);
     };

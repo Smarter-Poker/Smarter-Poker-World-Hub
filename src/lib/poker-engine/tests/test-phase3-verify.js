@@ -22,18 +22,18 @@ let failed = 0;
 
 function assert(condition, label) {
   if (condition) {
-    console.log(`  ✅ ${label}`);
+    console.debug(`  ✅ ${label}`);
     passed++;
   } else {
-    console.log(`  ❌ ${label}`);
+    console.debug(`  ❌ ${label}`);
     failed++;
   }
 }
 
 function section(title) {
-  console.log(`\n${'═'.repeat(60)}`);
-  console.log(`  ${title}`);
-  console.log('═'.repeat(60));
+  console.debug(`\n${'═'.repeat(60)}`);
+  console.debug(`  ${title}`);
+  console.debug('═'.repeat(60));
 }
 
 // ============ TEST 1: GameStateMachine event data completeness ============
@@ -302,7 +302,7 @@ section('Card Mapping — Engine ↔ UI Consistency');
     const assetPath = `/cards/${filename}`;
     
     if (uiPath !== assetPath) {
-      console.log(`  ❌ Card ${card}: UI="${uiPath}" vs Assets="${assetPath}"`);
+      console.debug(`  ❌ Card ${card}: UI="${uiPath}" vs Assets="${assetPath}"`);
       mappingErrors++;
     }
   }
@@ -354,14 +354,14 @@ section('Channel Events — Server ↔ Client Match');
   
   for (const evt of serverSet) {
     if (!clientSet.has(evt)) {
-      console.log(`  ⚠️ Server broadcasts "${evt}" but client doesn't listen`);
+      console.debug(`  ⚠️ Server broadcasts "${evt}" but client doesn't listen`);
       missingOnClient++;
     }
   }
   
   for (const evt of clientSet) {
     if (!serverSet.has(evt)) {
-      console.log(`  ⚠️ Client listens for "${evt}" but server doesn't broadcast`);
+      console.debug(`  ⚠️ Client listens for "${evt}" but server doesn't broadcast`);
       missingOnServer++;
     }
   }
@@ -392,9 +392,9 @@ section('Seat Layouts — All Player Counts');
 
 // ============ FINAL RESULTS ============
 
-console.log(`\n${'═'.repeat(60)}`);
-console.log(`  PHASE 3 VERIFICATION: ${passed} passed, ${failed} failed`);
-console.log('═'.repeat(60));
-console.log('');
+console.debug(`\n${'═'.repeat(60)}`);
+console.debug(`  PHASE 3 VERIFICATION: ${passed} passed, ${failed} failed`);
+console.debug('═'.repeat(60));
+console.debug('');
 
 process.exit(failed > 0 ? 1 : 0);

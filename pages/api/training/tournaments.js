@@ -129,7 +129,7 @@ export default async function handler(req, res) {
               });
 
           } catch (error) {
-              console.error('[Tournaments] Error:', error.message);
+              console.warn('[Tournaments] Error:', error.message);
               return res.status(500).json({ success: false, error: 'Failed to fetch tournaments' });
           }
       }
@@ -201,7 +201,7 @@ export default async function handler(req, res) {
                               p_reference_id: `tourney_entry_${tournamentId}_${userId}`
                           });
                       } catch (rpcErr) {
-                          console.error('[Tournaments] Diamond RPC failed:', rpcErr.message);
+                          console.warn('[Tournaments] Diamond RPC failed:', rpcErr.message);
                           return res.status(500).json({ success: false, error: 'Payment processing failed' });
                       }
                   }
@@ -273,7 +273,7 @@ export default async function handler(req, res) {
               return res.status(400).json({ success: false, error: 'Invalid action' });
 
           } catch (error) {
-              console.error('[Tournaments] Register error:', error.message);
+              console.warn('[Tournaments] Register error:', error.message);
               return res.status(500).json({ success: false, error: 'Failed to process tournament action' });
           }
       }
@@ -340,7 +340,7 @@ export default async function handler(req, res) {
               });
 
           } catch (error) {
-              console.error('[Tournaments] Submit error:', error.message);
+              console.warn('[Tournaments] Submit error:', error.message);
               return res.status(500).json({ success: false, error: 'Failed to submit results' });
           }
       }
@@ -349,7 +349,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

@@ -205,7 +205,7 @@ export function setHiddenCardIds(ids: string[], userId?: string): void {
             p_user_id: userId,
             p_preferences: { hiddenCardIds: ids }
         }).then(({ error }) => {
-            if (error) console.error('[UserPreferences] Failed to sync hidden cards to cloud:', error);
+            if (error) console.warn('[UserPreferences] Failed to sync hidden cards to cloud:', error);
         });
     }
 }
@@ -243,6 +243,6 @@ export async function hydrateHiddenCardIds(userId: string): Promise<void> {
             }
         }
     } catch (err) {
-        console.error('[UserPreferences] Failed to hydrate cloud preferences:', err);
+        console.warn('[UserPreferences] Failed to hydrate cloud preferences:', err);
     }
 }

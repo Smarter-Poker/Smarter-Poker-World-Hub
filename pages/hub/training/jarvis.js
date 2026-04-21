@@ -57,7 +57,7 @@ export default function JarvisDashboard() {
       }
       setLoading(false);
     } catch (error) {
-      console.error('Error loading insights:', error);
+      console.warn('Error loading insights:', error);
       setFetchError('Unable to load Jarvis insights. Please try again.');
       setLoading(false);
     }

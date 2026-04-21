@@ -60,7 +60,7 @@ function recordSitDown(tableId, playerId, buyInAmount) {
         }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         if (!multiTableTracker.has(playerId)) multiTableTracker.set(playerId, new Set());
         multiTableTracker.get(playerId).add(tableId);
-        console.log(`[HorseBrain] Session started for ${playerId.substring(0, 8)} at ${tableId} (Buy-in: ${buyInAmount})`);
+        console.debug(`[HorseBrain] Session started for ${playerId.substring(0, 8)} at ${tableId} (Buy-in: ${buyInAmount})`);
     }
 }
 
@@ -70,7 +70,7 @@ function recordRebuy(tableId, playerId, amount) {
     const session = tableSessions.get(playerId);
     if (session) {
         session.buyinsUsed += 1;
-        console.log(`[HorseBrain] Rebuy recorded for ${playerId.substring(0, 8)} at ${tableId} (Buyins used: ${session.buyinsUsed})`);
+        console.debug(`[HorseBrain] Rebuy recorded for ${playerId.substring(0, 8)} at ${tableId} (Buyins used: ${session.buyinsUsed})`);
     }
 }
 
@@ -207,7 +207,7 @@ async function saveSessionAnalytics(profileId, tableId) {
             console.warn(`[HorseBrain] Session save failed:`, error.message);
             return false;
         }
-        console.log(`[HorseBrain] Session analytics saved for ${profileId.substring(0, 8)}: ${stats.handsPlayed} hands, ${stats.vpip}% VPIP`);
+        console.debug(`[HorseBrain] Session analytics saved for ${profileId.substring(0, 8)}: ${stats.handsPlayed} hands, ${stats.vpip}% VPIP`);
         return true;
     } catch (err) {
         console.warn('[HorseBrain] Session analytics save error:', err.message);
@@ -271,7 +271,7 @@ async function saveOpponentRead(horseId, opponentId, read) {
             updated_at: new Date().toISOString()
         }, { onConflict: 'horse_id,opponent_id' });
         if (!error) {
-            console.log(`[HorseBrain] Opponent read saved: ${horseId.substring(0, 8)} on ${opponentId.substring(0, 8)}`);
+            console.debug(`[HorseBrain] Opponent read saved: ${horseId.substring(0, 8)} on ${opponentId.substring(0, 8)}`);
         }
         return !error;
     } catch (err) {
@@ -330,7 +330,7 @@ function evolveHorseSkill(profileId, sessionWinRate) {
                 session_minutes: 0,
                 recorded_at: new Date().toISOString()
             }, { onConflict: 'profile_id,table_id' })
-            .then(() => console.log(`[HorseBrain] Skill drift persisted for ${profileId.substring(0, 8)}: ${current.drift > 0 ? '+' : ''}${current.drift}`))
+            .then(() => console.debug(`[HorseBrain] Skill drift persisted for ${profileId.substring(0, 8)}: ${current.drift > 0 ? '+' : ''}${current.drift}`))
             .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
     }
     return {
@@ -373,7 +373,7 @@ async function canSitAtTable(playerId) {
     const tableLimits = { fish: 1, recreational: 2, grinder: 3, reg: 4, crusher: 4 };
     const maxTables = tableLimits[skill.key] || 2;
     if (currentTables >= maxTables) {
-        console.log(`[HorseBrain] Multi-table limit: ${playerId.substring(0, 8)} at ${currentTables}/${maxTables} tables`);
+        console.debug(`[HorseBrain] Multi-table limit: ${playerId.substring(0, 8)} at ${currentTables}/${maxTables} tables`);
         return false;
     }
     return true;
@@ -408,7 +408,7 @@ async function warmGTOCache() {
                 }
             }
         }
-        console.log(`[HorseBrain] GTO cache warmed: ${loaded} charts pre-loaded`);
+        console.debug(`[HorseBrain] GTO cache warmed: ${loaded} charts pre-loaded`);
     } catch (err) {
         console.warn('[HorseBrain] GTO cache warming failed:', err.message);
     }
@@ -423,7 +423,7 @@ async function canRebuy(tableId, playerId, minBuyIn = 0, clubId = null) {
     if (personality && typeof personality.getSessionProfile === 'function') {
         const sessionPref = personality.getSessionProfile(playerId);
         if (session.buyinsUsed >= sessionPref.maxBuyins) {
-            console.log(`[HorseBrain] Stop-Loss: ${playerId.substring(0, 8)} reached max buyins (${sessionPref.maxBuyins}). No rebuy allowed.`);
+            console.debug(`[HorseBrain] Stop-Loss: ${playerId.substring(0, 8)} reached max buyins (${sessionPref.maxBuyins}). No rebuy allowed.`);
             return false;
         }
     }
@@ -439,7 +439,7 @@ async function canRebuy(tableId, playerId, minBuyIn = 0, clubId = null) {
             if (error) throw error;
             const realBalance = data?.chip_balance || 0;
             if (realBalance <= 0 || realBalance < minBuyIn) {
-                console.log(`[HorseBrain] BANKRUPT: ${playerId.substring(0, 8)} has only ${realBalance} chips in club. Rebuy DENIED until 9AM reload.`);
+                console.debug(`[HorseBrain] BANKRUPT: ${playerId.substring(0, 8)} has only ${realBalance} chips in club. Rebuy DENIED until 9AM reload.`);
                 return false;
             }
         } catch (err) {
@@ -478,7 +478,7 @@ async function evaluateSessions(gameController, tableManager) {
         session.lastEvalMs = now;
         const SIXTEEN_HOURS_MS = 57600000;
         if (daily.totalMs >= SIXTEEN_HOURS_MS) {
-            console.log(`[HorseBrain] Daily 16-hour limit reached for ${playerId.substring(0, 8)}. Forcing standUp.`);
+            console.debug(`[HorseBrain] Daily 16-hour limit reached for ${playerId.substring(0, 8)}. Forcing standUp.`);
             tableSessions.delete(playerId);
             await gameController.standUp(tableId, playerId);
             continue;
@@ -500,7 +500,7 @@ async function evaluateSessions(gameController, tableManager) {
                 minutesPlayed, session.buyinsUsed, estimatedTilt
             );
             if (shouldLeave) {
-                console.log(`[HorseBrain] Cashout triggered for ${playerId.substring(0, 8)}. Reason: ${reason}`);
+                console.debug(`[HorseBrain] Cashout triggered for ${playerId.substring(0, 8)}. Reason: ${reason}`);
                 saveSessionAnalytics(playerId, tableId).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                 tableSessions.delete(playerId);
                 await gameController.standUp(tableId, playerId);
@@ -512,7 +512,7 @@ async function evaluateSessions(gameController, tableManager) {
                 const minBuyIn = bb * 20;
                 const rebuyInfo = getDynamicRebuyStrategy(playerId, currentStack, bb, session.buyinsUsed, avgStack);
                 if (rebuyInfo.shouldRebuy && await canRebuy(tableId, playerId, minBuyIn, tableManager.clubId)) {
-                    console.log(`[HorseBrain] Dynamic rebuy for ${playerId.substring(0, 8)}: ${rebuyInfo.reason}, amount: ${rebuyInfo.amount}`);
+                    console.debug(`[HorseBrain] Dynamic rebuy for ${playerId.substring(0, 8)}: ${rebuyInfo.reason}, amount: ${rebuyInfo.amount}`);
                     if (tableManager.clubId) {
                         const ChipBridge = require('../ChipBridge');
                         const lockResult = await ChipBridge.rebuyChips(tableManager.clubId, playerId, tableId, rebuyInfo.amount);
@@ -630,7 +630,7 @@ async function persistOpponentJournal(horseId, opponentId, profile) {
                 .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         }
         if (!error) {
-            console.log(`[HorseBrain] JOURNAL SAVED: ${horseId.substring(0, 8)} -> ${opponentId.substring(0, 8)} (${profile.handsObserved} hands, type=${detectedType})`);
+            console.debug(`[HorseBrain] JOURNAL SAVED: ${horseId.substring(0, 8)} -> ${opponentId.substring(0, 8)} (${profile.handsObserved} hands, type=${detectedType})`);
             _journalCache.set(`${horseId}:${opponentId}`, { loaded: true, persisted: Date.now(), timestamp: Date.now() });
         }
         return !error;
@@ -689,7 +689,7 @@ async function persistTableJournals(horseId, tableId) {
     try {
         // NOTE: Requires access to liveObserver from anti-exploit module
         // During migration, this is served from legacy monolith
-        console.log(`[HorseBrain] JOURNALS BATCH SAVE requested: ${horseId.substring(0, 8)} table=${tableId.substring(0, 8)}`);
+        console.debug(`[HorseBrain] JOURNALS BATCH SAVE requested: ${horseId.substring(0, 8)} table=${tableId.substring(0, 8)}`);
     } catch (err) {
         console.warn(`[HorseBrain] Batch journal error: ${err.message}`);
     }
@@ -781,7 +781,7 @@ function _applyJournalToProfile(profile, data) {
     const updatedAt = data.updated_at ? new Date(data.updated_at).getTime() : Date.now();
     const ageHours = (Date.now() - updatedAt) / (1000 * 60 * 60);
     profile._journalFreshness = Math.max(0.15, Math.exp(-ageHours / 120));
-    console.log(`[HorseBrain] JOURNAL APPLIED: ${data.opponent_id?.substring(0, 8)} (${data.hands_observed}h, ${data.session_count || 1} sessions, freshness=${Math.round(profile._journalFreshness * 100)}%)`);
+    console.debug(`[HorseBrain] JOURNAL APPLIED: ${data.opponent_id?.substring(0, 8)} (${data.hands_observed}h, ${data.session_count || 1} sessions, freshness=${Math.round(profile._journalFreshness * 100)}%)`);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

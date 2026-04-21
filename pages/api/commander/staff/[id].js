@@ -50,7 +50,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -141,7 +141,7 @@ async function handlePatch(req, res, id) {
       .maybeSingle();
 
     if (updateError) {
-      console.error('Commander staff update error:', updateError);
+      console.warn('Commander staff update error:', updateError);
       return res.status(500).json({
         success: false,
         error: { code: 'DATABASE_ERROR', message: 'Failed to update staff member' }
@@ -166,7 +166,7 @@ async function handlePatch(req, res, id) {
       data: { staff }
     });
   } catch (error) {
-    console.error('Commander staff PATCH error:', error);
+    console.warn('Commander staff PATCH error:', error);
     return res.status(500).json({
       success: false,
       error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }
@@ -204,7 +204,7 @@ async function handleDelete(req, res, id) {
       .maybeSingle();
 
     if (deleteError) {
-      console.error('Commander staff delete error:', deleteError);
+      console.warn('Commander staff delete error:', deleteError);
       return res.status(500).json({
         success: false,
         error: { code: 'DATABASE_ERROR', message: 'Failed to remove staff member' }
@@ -229,7 +229,7 @@ async function handleDelete(req, res, id) {
     });
   } catch (error) {
       try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('Commander staff DELETE error:', error);
+    console.warn('Commander staff DELETE error:', error);
     return res.status(500).json({
       success: false,
       error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }

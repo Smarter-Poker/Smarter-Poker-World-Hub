@@ -388,7 +388,7 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
             setCroppedImage(cropped);
             setPhase('preview');
         } catch (err) {
-            console.error('Crop failed:', err);
+            console.warn('Crop failed:', err);
             // Fallback to full frame
             setCroppedImage(fullCanvas.toDataURL('image/jpeg', 0.92));
             setPhase('preview');

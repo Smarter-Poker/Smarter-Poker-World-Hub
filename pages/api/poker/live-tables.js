@@ -81,7 +81,7 @@ export default async function handler(req, res) {
         .limit(10000);
 
       if (error) {
-        console.error('Live tables list error:', error);
+        console.warn('Live tables list error:', error);
         return res.status(500).json({ error: 'Database query failed' });
       }
 
@@ -116,7 +116,7 @@ export default async function handler(req, res) {
     const { data, error } = await query.limit(10000);
 
     if (error) {
-      console.error('Live tables query error:', error);
+      console.warn('Live tables query error:', error);
       return res.status(500).json({ error: 'Database query failed' });
     }
 
@@ -351,7 +351,7 @@ export default async function handler(req, res) {
     });
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('Live tables API error:', err);
+    console.warn('Live tables API error:', err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

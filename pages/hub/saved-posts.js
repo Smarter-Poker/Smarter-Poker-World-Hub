@@ -52,7 +52,7 @@ function SavedPostCard({ post, author, onUnsave, currentUserId }) {
                 .eq('interaction_type', 'bookmark');
             onUnsave?.(post.id);
         } catch (err) {
-            console.error('Unsave failed:', err);
+            console.warn('Unsave failed:', err);
         }
         setUnsaving(false);
     };
@@ -220,7 +220,7 @@ export default function SavedPostsPage() {
                 }
             }
         } catch (err) {
-            console.error('Load saved posts error:', err);
+            console.warn('Load saved posts error:', err);
         }
         setLoading(false);
     }, []);

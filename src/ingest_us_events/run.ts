@@ -56,7 +56,7 @@ async function main(): Promise<void> {
     allSources.push(...dirResult.sources);
 
     if (!dirResult.success || !dirResult.data) {
-        console.error('[LAYER A] FAILED:', dirResult.error);
+        console.warn('[LAYER A] FAILED:', dirResult.error);
         console.log(formatFinalLine(false, 'INCOMPLETE', { series: 0, events: 0, gaps: 0 }, ''));
         process.exit(1);
     }
@@ -217,7 +217,7 @@ async function main(): Promise<void> {
 }
 
 main().catch(err => {
-    console.error('Fatal error:', err);
+    console.warn('Fatal error:', err);
     console.log(JSON.stringify({ ok: false, status: 'FATAL_ERROR', error: err.message }));
     process.exit(1);
 });

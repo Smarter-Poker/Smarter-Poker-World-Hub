@@ -103,7 +103,7 @@ export default function RiskAnalyzerPage() {
         'risk-analyzer'
       );
     } catch (e) {
-      console.error(e);
+      console.warn(e);
     }
   };
 

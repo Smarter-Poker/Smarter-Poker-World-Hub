@@ -252,7 +252,7 @@ export default function HomeGamePage() {
           }
         }
       } catch (error) {
-        console.error('Fetch group data failed:', error);
+        console.warn('Fetch group data failed:', error);
       } finally {
         setLoading(false);
       }

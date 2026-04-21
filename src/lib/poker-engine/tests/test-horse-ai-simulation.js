@@ -4,15 +4,15 @@ const { getController } = require('../GameController');
 const HorsePokerBrain = require('../brain');
 
 async function runSimulation() {
-    console.log('--- HORSE AI GTO SIMULATION START ---');
-    console.log(`Connecting to Supabase at: ${process.env.NEXT_PUBLIC_SUPABASE_URL}`);
+    console.debug('--- HORSE AI GTO SIMULATION START ---');
+    console.debug(`Connecting to Supabase at: ${process.env.NEXT_PUBLIC_SUPABASE_URL}`);
 
     // 1. Initialize Engine
     const controller = await getController();
     await controller.initialize();
 
     // 2. Get Real Horses
-    console.log('Loading horse IDs from DB...');
+    console.debug('Loading horse IDs from DB...');
     const horseIdsSet = await HorsePokerBrain.loadHorseIds();
     const horseIds = Array.from(horseIdsSet).filter(id => id.length > 10);
 
@@ -22,7 +22,7 @@ async function runSimulation() {
 
     const h1 = horseIds[0];
     const h2 = horseIds[1];
-    console.log(`Selected Horses: ${h1}, ${h2}`);
+    console.debug(`Selected Horses: ${h1}, ${h2}`);
 
     // 3. Create Table
     const { success, tableId } = await controller.createTable({
@@ -38,7 +38,7 @@ async function runSimulation() {
     });
 
     if (!success) throw new Error('Failed to create table');
-    console.log(`Table Created: ${tableId}`);
+    console.debug(`Table Created: ${tableId}`);
 
     // 4. Listeners
     const entry = controller.lobby.tables.get(tableId);
@@ -48,18 +48,18 @@ async function runSimulation() {
 
     tableManager.on('hand_start', (d) => {
         handCount++;
-        console.log(`\n\n♠️ ♥️ ♣️ ♦️ HAND ${handCount} STARTED ♠️ ♥️ ♣️ ♦️`);
+        console.debug(`\n\n♠️ ♥️ ♣️ ♦️ HAND ${handCount} STARTED ♠️ ♥️ ♣️ ♦️`);
     });
 
     tableManager.on('street_start', (d) => {
-        console.log(`\n--- ${d.street.toUpperCase()} ---`);
+        console.debug(`\n--- ${d.street.toUpperCase()} ---`);
         if (d.cards && d.cards.length > 0) {
-            console.log(`Board: ${HorsePokerBrain.cardsToStrings(d.cards).join(' ')}`);
+            console.debug(`Board: ${HorsePokerBrain.cardsToStrings(d.cards).join(' ')}`);
         }
     });
 
     tableManager.on('action_required', (d) => {
-        console.log(`🎯 Action Required: Player ${d.playerId}`);
+        console.debug(`🎯 Action Required: Player ${d.playerId}`);
 
         // If it's a human, we auto-act immediately
         if (d.playerId === 'human1' || d.playerId === 'human2') {
@@ -70,21 +70,21 @@ async function runSimulation() {
                 // Human simple strat: always check or call
                 const hasCheck = actions.actions.find(a => a.type === 'check');
                 if (hasCheck) {
-                    console.log(`[Human Sim] ${d.playerId} CHECKS`);
+                    console.debug(`[Human Sim] ${d.playerId} CHECKS`);
                     controller.processAction(tableId, d.playerId, { type: 'check' });
                 } else {
                     const hasCall = actions.actions.find(a => a.type === 'call');
                     if (hasCall) {
-                        console.log(`[Human Sim] ${d.playerId} CALLS ${hasCall.amount}`);
+                        console.debug(`[Human Sim] ${d.playerId} CALLS ${hasCall.amount}`);
                         controller.processAction(tableId, d.playerId, { type: 'call' });
                     } else {
-                        console.log(`[Human Sim] ${d.playerId} FOLDS`);
+                        console.debug(`[Human Sim] ${d.playerId} FOLDS`);
                         controller.processAction(tableId, d.playerId, { type: 'fold' });
                     }
                 }
             }, 500);
         } else {
-            console.log(`[Horse AI] AI taking over for ${d.playerId}... waiting for processing delay`);
+            console.debug(`[Horse AI] AI taking over for ${d.playerId}... waiting for processing delay`);
             // The GameController handles horse actions automatically via `_triggerHorseAction`
             // which was wired when the table started.
             // Oh actually, GameController hooks into RealtimeSync. Wait, GameController listens to 'action_required'
@@ -97,25 +97,25 @@ async function runSimulation() {
         const name = isHorse ? '🐎 HORSE' : '🧑‍. HUMAN';
         let str = `✅ [${name}] Player ${d.playerId} action: ${d.action.type.toUpperCase()}`;
         if (d.action.amount) str += ` $${d.action.amount}`;
-        console.log(str);
+        console.debug(str);
 
         // Let's dump the hand of the horse if they acted to verify GTO decisions
         if (isHorse) {
             const state = tableManager.game.getState(d.playerId);
             const myPlayer = state.players.find(p => p.id === d.playerId);
             if (myPlayer.holeCards) {
-                console.log(`    Cards: ${HorsePokerBrain.cardsToStrings(myPlayer.holeCards).join(' ')}`);
+                console.debug(`    Cards: ${HorsePokerBrain.cardsToStrings(myPlayer.holeCards).join(' ')}`);
             }
         }
     });
 
     tableManager.on('hand_complete', (d) => {
-        console.log(`\n🏆 HAND COMPLETE 🏆`);
-        console.log(JSON.stringify(d.result, null, 2));
+        console.debug(`\n🏆 HAND COMPLETE 🏆`);
+        console.debug(JSON.stringify(d.result, null, 2));
     });
 
     // 5. Join Players
-    console.log('Sitting players...');
+    console.debug('Sitting players...');
     tableManager.sitDown('human1', 0, 200, { displayName: 'Human 1' });
     tableManager.sitDown('human2', 1, 200, { displayName: 'Human 2' });
     tableManager.sitDown(h1, 2, 200, { displayName: 'Horse 1' });
@@ -125,7 +125,7 @@ async function runSimulation() {
     // If it doesn't auto start, we force it.
     setTimeout(() => {
         if (tableManager.game.phase === 'idle') {
-            console.log('Forcing startNextHand()...');
+            console.debug('Forcing startNextHand()...');
             tableManager.startNextHand();
         }
     }, 2000);
@@ -133,11 +133,11 @@ async function runSimulation() {
     // Wait out 2 full minutes for hands to play out
     await new Promise(r => setTimeout(r, 60000));
 
-    console.log('--- SIMULATION DONE ---');
+    console.debug('--- SIMULATION DONE ---');
     process.exit(0);
 }
 
 runSimulation().catch(err => {
-    console.error(err);
+    console.warn(err);
     process.exit(1);
 });

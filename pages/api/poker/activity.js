@@ -79,7 +79,7 @@ try {
           .maybeSingle();
 
         if (error) {
-          console.error('Error creating activity:', error);
+          console.warn('Error creating activity:', error);
           return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
@@ -108,7 +108,7 @@ try {
                 .limit(100);
 
           if (followError) {
-            console.error('Error fetching follows:', followError);
+            console.warn('Error fetching follows:', followError);
             return res.status(500).json({ success: false, error: followError.message });
           }
 
@@ -129,7 +129,7 @@ try {
             .range(offsetNum, offsetNum + limitNum - 1);
 
           if (error) {
-            console.error('Error fetching feed:', error);
+            console.warn('Error fetching feed:', error);
             return res.status(500).json({ success: false, error: 'Internal server error' });
           }
 
@@ -147,7 +147,7 @@ try {
             .range(offsetNum, offsetNum + limitNum - 1);
 
           if (error) {
-            console.error('Error fetching activities:', error);
+            console.warn('Error fetching activities:', error);
             return res.status(500).json({ success: false, error: 'Internal server error' });
           }
 
@@ -159,13 +159,13 @@ try {
 
       return res.status(405).json({ success: false, error: `Method ${req.method} not allowed` });
     } catch (err) {
-      console.error('Activity API error:', err);
+      console.warn('Activity API error:', err);
       return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

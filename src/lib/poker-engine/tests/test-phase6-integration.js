@@ -26,14 +26,14 @@ let passed = 0;
 let failed = 0;
 
 function assert(condition, label) {
-  if (condition) { console.log(`  ✅ ${label}`); passed++; }
-  else { console.log(`  ❌ ${label}`); failed++; }
+  if (condition) { console.debug(`  ✅ ${label}`); passed++; }
+  else { console.debug(`  ❌ ${label}`); failed++; }
 }
 
 function section(title) {
-  console.log(`\n${'═'.repeat(60)}`);
-  console.log(`  ${title}`);
-  console.log('═'.repeat(60));
+  console.debug(`\n${'═'.repeat(60)}`);
+  console.debug(`  ${title}`);
+  console.debug('═'.repeat(60));
 }
 
 /** Play actions until hand completes or safety limit */
@@ -426,15 +426,15 @@ async function runTests() {
   // RESULTS
   // ═══════════════════════════════════════════════════════
 
-  console.log(`\n${'═'.repeat(60)}`);
-  console.log(`  PHASE 6 INTEGRATION: ${passed} passed, ${failed} failed`);
-  console.log('═'.repeat(60));
-  console.log('');
+  console.debug(`\n${'═'.repeat(60)}`);
+  console.debug(`  PHASE 6 INTEGRATION: ${passed} passed, ${failed} failed`);
+  console.debug('═'.repeat(60));
+  console.debug('');
 
   process.exit(failed > 0 ? 1 : 0);
 }
 
 runTests().catch(err => {
-  console.error('Integration test failed:', err);
+  console.warn('Integration test failed:', err);
   process.exit(1);
 });

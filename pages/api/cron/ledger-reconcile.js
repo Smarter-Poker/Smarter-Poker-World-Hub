@@ -50,7 +50,7 @@ export default async function handler(req, res) {
     const { data, error } = await supabase.rpc("reconcile_ledger_nightly");
 
     if (error) {
-      console.error("[ledger-reconcile] RPC error:", error);
+      console.warn("[ledger-reconcile] RPC error:", error);
       return res.status(500).json({ error: error.message });
     }
 
@@ -77,7 +77,7 @@ export default async function handler(req, res) {
     };
 
     if (criticalCount > 0) {
-      console.error(
+      console.warn(
         `[ledger-reconcile] CRITICAL: ${criticalCount} entities with drift > $1.00; worst = $${worstDrift.toFixed(2)}`
       );
     } else if (warnCount > 0) {
@@ -93,7 +93,7 @@ export default async function handler(req, res) {
     return res.status(200).json(payload);
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error("[ledger-reconcile] unhandled error:", err);
+    console.warn("[ledger-reconcile] unhandled error:", err);
     return res
       .status(500)
       .json({ error: err?.message || "unhandled reconcile failure" });

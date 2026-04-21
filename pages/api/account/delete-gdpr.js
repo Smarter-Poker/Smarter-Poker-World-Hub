@@ -119,7 +119,7 @@ export default async function handler(req, res) {
         );
 
         if (stage1Err) {
-            console.error("[GDPR] fn_delete_user_gdpr failed:", stage1Err);
+            console.warn("[GDPR] fn_delete_user_gdpr failed:", stage1Err);
             return res.status(500).json({
                 success: false,
                 error:
@@ -203,7 +203,7 @@ export default async function handler(req, res) {
         });
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error("[GDPR delete] unexpected error:", err);
+        console.warn("[GDPR delete] unexpected error:", err);
         if (!res.headersSent) {
             return res
                 .status(500)

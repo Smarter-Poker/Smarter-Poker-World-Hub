@@ -55,7 +55,7 @@ export default async function handler(req, res) {
               if (eErr) throw eErr;
               return res.status(200).json({ success: true, data: { action: 'tournament_chip_update', player_name: entry.player_name, entry_id: entry.id, chip_count: entry.current_chips } });
           } catch (err) {
-              console.error('Tournament chip update error:', err);
+              console.warn('Tournament chip update error:', err);
               return res.status(500).json({ success: false, error: err.message });
           }
       }
@@ -280,13 +280,13 @@ export default async function handler(req, res) {
                   return res.status(400).json({ success: false, error: `Unknown action: ${action}` });
           }
       } catch (err) {
-          console.error('Session action error:', err);
+          console.warn('Session action error:', err);
           return res.status(500).json({ success: false, error: err.message });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

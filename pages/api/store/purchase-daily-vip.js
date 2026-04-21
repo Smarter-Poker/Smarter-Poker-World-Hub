@@ -81,7 +81,7 @@ export default async function handler(req, res) {
           });
 
           if (deductError) {
-              console.error('[Purchase Daily VIP] Deduction failed:', deductError);
+              console.warn('[Purchase Daily VIP] Deduction failed:', deductError);
               return res.status(500).json({ success: false, error: 'Failed to process payment' });
           }
 
@@ -107,7 +107,7 @@ export default async function handler(req, res) {
               .eq('id', user.id);
 
           if (updateError) {
-              console.error('[Purchase Daily VIP] Profile update failed:', updateError);
+              console.warn('[Purchase Daily VIP] Profile update failed:', updateError);
               // Non-fatal, they were charged but VIP not toggled. Should be rare.
               return res.status(500).json({ success: false, error: 'Payment succeeded, but VIP activation failed. Contact support.' });
           }
@@ -120,13 +120,13 @@ export default async function handler(req, res) {
           });
 
       } catch (err) {
-          console.error('[Purchase Daily VIP] Fatal Error:', err);
+          console.warn('[Purchase Daily VIP] Fatal Error:', err);
           return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

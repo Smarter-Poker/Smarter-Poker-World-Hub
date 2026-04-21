@@ -149,7 +149,7 @@ export default async function handler(req, res) {
         .eq('id', existingSeat.id);
 
       if (seatUpdateError) {
-        console.error('Commander seat update error:', seatUpdateError);
+        console.warn('Commander seat update error:', seatUpdateError);
         return res.status(500).json({
           success: false,
           error: { code: 'DATABASE_ERROR', message: 'Failed to update seat' }
@@ -168,7 +168,7 @@ export default async function handler(req, res) {
         .maybeSingle();
 
       if (entryUpdateError) {
-        console.error('Commander waitlist update error:', entryUpdateError);
+        console.warn('Commander waitlist update error:', entryUpdateError);
         return res.status(500).json({
           success: false,
           error: { code: 'DATABASE_ERROR', message: 'Failed to update waitlist entry' }
@@ -189,7 +189,7 @@ export default async function handler(req, res) {
         .eq('id', game_id);
 
       if (gameUpdateError) {
-        console.error('Commander game update error:', gameUpdateError);
+        console.warn('Commander game update error:', gameUpdateError);
         return res.status(500).json({
           success: false,
           error: { code: 'DATABASE_ERROR', message: 'Failed to update game' }
@@ -279,7 +279,7 @@ export default async function handler(req, res) {
         }
       });
     } catch (error) {
-      console.error('Commander waitlist seat API error:', error);
+      console.warn('Commander waitlist seat API error:', error);
       return res.status(500).json({
         success: false,
         error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }
@@ -288,7 +288,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

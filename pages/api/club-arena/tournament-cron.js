@@ -111,7 +111,7 @@ export default async function handler(req, res) {
                               console.log(`[TournCron] Auto-started ${tourn.name} (${tourn.id}) with ${regs?.length || 0} players`);
                               results.autoStarted++;
                           } else {
-                              console.error(`[TournCron] Engine create failed for ${tourn.id}:`, createResult.error);
+                              console.warn(`[TournCron] Engine create failed for ${tourn.id}:`, createResult.error);
                               results.errors.push({ id: tourn.id, error: createResult.error });
                           }
                       } else {
@@ -152,7 +152,7 @@ export default async function handler(req, res) {
                                   }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
 
                               } catch (refErr) {
-                                  console.error(`[TournCron] Refund FAILED for user ${reg.user_id}:`, refErr.message);
+                                  console.warn(`[TournCron] Refund FAILED for user ${reg.user_id}:`, refErr.message);
                               }
                           }
 
@@ -164,7 +164,7 @@ export default async function handler(req, res) {
                       }
                   }
               } catch (err) {
-                  console.error(`[TournCron] Error processing ${tourn.id}:`, err.message);
+                  console.warn(`[TournCron] Error processing ${tourn.id}:`, err.message);
                   results.errors.push({ id: tourn.id, error: err.message });
               }
           }
@@ -215,14 +215,14 @@ export default async function handler(req, res) {
 
                   console.log(`[TournCron] Sent ${regs?.length || 0} reminders for ${tourn.name}`);
               } catch (err) {
-                  console.error(`[TournCron] Reminder error for ${tourn.id}:`, err.message);
+                  console.warn(`[TournCron] Reminder error for ${tourn.id}:`, err.message);
                   results.errors.push({ id: tourn.id, error: err.message });
               }
           }
 
           return res.json({ success: true, ...results });
       } catch (err) {
-          console.error('[TournCron] Fatal:', err.message);
+          console.warn('[TournCron] Fatal:', err.message);
           return res.status(500).json({ success: false, error: 'Tournament cron failed' });
       } finally {
           // ═══════════════════════════════════════════════════════
@@ -230,12 +230,12 @@ export default async function handler(req, res) {
           // ═══════════════════════════════════════════════════════
           await getSupabase().rpc('fn_release_cron_lock', {
               p_lock_name: 'tournament_cron_execution_lock'
-          }).catch(err => console.error('[TournCron] Failed to release lock:', err.message));
+          }).catch(err => console.warn('[TournCron] Failed to release lock:', err.message));
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

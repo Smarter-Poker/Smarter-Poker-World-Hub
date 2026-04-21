@@ -22,7 +22,7 @@ const initDB = () => {
         const request = indexedDB.open(DB_NAME, DB_VERSION);
 
         request.onerror = (event) => {
-            console.error('[OfflineQueue] DB Error:', event.target.error);
+            console.warn('[OfflineQueue] DB Error:', event.target.error);
             reject(event.target.error);
         };
 
@@ -69,10 +69,10 @@ export const enqueueMutation = async (endpoint, payload, headers = {}) => {
             req.onerror = () => reject(req.error);
         });
 
-        console.log(`[OfflineQueue] Mutation queued for ${endpoint}`);
+        console.debug(`[OfflineQueue] Mutation queued for ${endpoint}`);
         return true;
     } catch (e) {
-        console.error('[OfflineQueue] Failed to enqueue mutation:', e);
+        console.warn('[OfflineQueue] Failed to enqueue mutation:', e);
         return false;
     }
 };
@@ -97,7 +97,7 @@ export const triggerBackgroundSync = async () => {
         });
 
         if (mutations.length === 0) return;
-        console.log(`[OfflineQueue] Draining ${mutations.length} pending mutations...`);
+        console.debug(`[OfflineQueue] Draining ${mutations.length} pending mutations...`);
 
         for (const item of mutations) {
             try {
@@ -114,7 +114,7 @@ export const triggerBackgroundSync = async () => {
                         const delTx = db.transaction([STORE_NAME], 'readwrite');
                         delTx.objectStore(STORE_NAME).delete(item.id).onsuccess = resolve;
                     });
-                    console.log(`[OfflineQueue] ✓ Synced mutation ID:${item.id}`);
+                    console.debug(`[OfflineQueue] ✓ Synced mutation ID:${item.id}`);
                 } else {
                     // Retry logic: increment attempts, eventually drop if dead
                     if (item.attempts >= 5) {
@@ -122,7 +122,7 @@ export const triggerBackgroundSync = async () => {
                             const delTx = db.transaction([STORE_NAME], 'readwrite');
                             delTx.objectStore(STORE_NAME).delete(item.id).onsuccess = resolve;
                         });
-                        console.error(`[OfflineQueue] ✗ Dropped mutation ID:${item.id} after 5 failed attempts.`);
+                        console.warn(`[OfflineQueue] ✗ Dropped mutation ID:${item.id} after 5 failed attempts.`);
                     } else {
                         item.attempts += 1;
                         await new Promise((resolve) => {
@@ -131,13 +131,10 @@ export const triggerBackgroundSync = async () => {
                         });
                     }
                 }
-            } catch (networkErr) {
-                // Still offline or CORS failure — skip and leave in DB for next pass
-                break;
-            }
+            } catch (networkErr) { console.warn('[App] Handled exception:', networkErr?.message || networkErr); }
         }
     } catch (e) {
-        console.error('[OfflineQueue] Sync failure:', e);
+        console.warn('[OfflineQueue] Sync failure:', e);
     }
 };
 
@@ -148,7 +145,7 @@ if (typeof window !== 'undefined') {
 
     // Auto-fire whenever browser re-establishes connection
     window.addEventListener('online', () => {
-        console.log('[OfflineQueue] Connection restored. Triggering sync...');
+        console.debug('[OfflineQueue] Connection restored. Triggering sync...');
         triggerBackgroundSync();
     });
 }

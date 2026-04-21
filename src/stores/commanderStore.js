@@ -177,7 +177,7 @@ export const useCommanderStore = create(
           }
           return data.data?.games || [];
         } catch (err) {
-          console.error('Fetch games error:', err);
+          console.warn('Fetch games error:', err);
           return [];
         } finally {
           setGamesLoading(false);
@@ -197,7 +197,7 @@ export const useCommanderStore = create(
           }
           return data.data?.waitlist || [];
         } catch (err) {
-          console.error('Fetch waitlist error:', err);
+          console.warn('Fetch waitlist error:', err);
           return [];
         } finally {
           setWaitlistLoading(false);
@@ -215,7 +215,7 @@ export const useCommanderStore = create(
           }
           return data.data?.tables || [];
         } catch (err) {
-          console.error('Fetch tables error:', err);
+          console.warn('Fetch tables error:', err);
           return [];
         } finally {
           setTablesLoading(false);
@@ -348,7 +348,7 @@ export const usePlayerCommanderStore = create(
           }
           return data.data?.waitlists || [];
         } catch (err) {
-          console.error('Fetch my waitlists error:', err);
+          console.warn('Fetch my waitlists error:', err);
           return [];
         } finally {
           setMyWaitlistsLoading(false);

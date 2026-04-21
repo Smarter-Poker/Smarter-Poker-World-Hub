@@ -360,9 +360,7 @@ export async function getMergedToursData(excludeStationary = false) {
             tours = [...mergedFromDb, ...registryOnly];
             source = 'merged';
         }
-    } catch (e) {
-        // DB not available
-    }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
     if (tours.length === 0) tours = registryTours;
     return { tours, registryTours, source };
@@ -553,7 +551,7 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('Tours API error:', error);
+          console.warn('Tours API error:', error);
           const tours = getToursFromRegistry();
           return res.status(200).json({
               success: true,
@@ -565,7 +563,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

@@ -37,7 +37,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -207,7 +207,7 @@ async function handleGet(req, res) {
       }
     });
   } catch (err) {
-    console.error('Must-move status error:', err);
+    console.warn('Must-move status error:', err);
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -298,7 +298,7 @@ async function handlePost(req, res) {
     });
 
     if (insertError) {
-      console.error('Must-move insert error:', insertError);
+      console.warn('Must-move insert error:', insertError);
       return res.status(500).json({ success: false, error: 'Failed to seat player at target table' });
     }
 
@@ -343,7 +343,7 @@ async function handlePost(req, res) {
     });
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('Must-move transfer error:', err);
+    console.warn('Must-move transfer error:', err);
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

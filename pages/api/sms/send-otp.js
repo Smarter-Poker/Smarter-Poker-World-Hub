@@ -65,7 +65,7 @@ export default async function handler(req, res) {
 
       // ── Guard: environment variables ──────────────────────────────────────
       if (!accountSid || !authToken || !twilioPhone) {
-          console.error('[send-otp] Twilio credentials not configured');
+          console.warn('[send-otp] Twilio credentials not configured');
           return res.status(500).json({ success: false, error: 'SMS service not configured' });
       }
 
@@ -116,7 +116,7 @@ export default async function handler(req, res) {
               .gte('created_at', oneHourAgo);
 
           if (countError) {
-              console.error('[send-otp] Rate limit check error:', countError);
+              console.warn('[send-otp] Rate limit check error:', countError);
               // Non-blocking: continue even if count fails
           } else if (count >= MAX_CODES_PER_HOUR) {
               return res.status(429).json({
@@ -144,7 +144,7 @@ export default async function handler(req, res) {
               });
 
           if (insertError) {
-              console.error('[send-otp] DB insert error:', insertError);
+              console.warn('[send-otp] DB insert error:', insertError);
               return res.status(500).json({ success: false, error: 'Failed to store verification code' });
           }
 
@@ -164,7 +164,7 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('[send-otp] Error:', error);
+          console.warn('[send-otp] Error:', error);
 
           // ── Twilio-specific error codes ──────────────────────────────────
           if (error.code === 21211) return res.status(400).json({ success: false, error: 'Invalid phone number format' });
@@ -179,7 +179,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

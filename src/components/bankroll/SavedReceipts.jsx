@@ -48,7 +48,7 @@ export default function SavedReceipts({ userId }) {
             });
             setReceipts(flat);
         } catch (err) {
-            console.error('Failed to load receipts:', err);
+            console.warn('Failed to load receipts:', err);
         } finally {
             setLoading(false);
         }
@@ -76,7 +76,7 @@ export default function SavedReceipts({ userId }) {
 
             loadReceipts();
         } catch (err) {
-            console.error('Delete failed:', err);
+            console.warn('Delete failed:', err);
         }
     };
 

@@ -121,7 +121,7 @@ export default function TournamentPublic() {
       // Entries API returns { entries: [...] }
       if (eRes.entries) setEntries(eRes.entries);
       else if (eRes.data) setEntries(eRes.data);
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
     finally { setLoading(false); }
   }, [id]);
 
@@ -168,7 +168,7 @@ export default function TournamentPublic() {
       try {
         await navigator.share({ title, text, url });
       } catch (err) {
-        if (err.name !== 'AbortError') console.error(err);
+        if (err.name !== 'AbortError') console.warn(err);
       }
     } else {
       // Fallback: copy to clipboard
@@ -222,7 +222,7 @@ export default function TournamentPublic() {
         setPosted(true);
         setTimeout(() => setPosted(false), 3000);
       }
-    } catch (err) { console.error('Post error:', err); setToast({ type: 'error', text: 'Action failed: Post. Please try again.' }); }
+    } catch (err) { console.warn('Post error:', err); setToast({ type: 'error', text: 'Action failed: Post. Please try again.' }); }
     finally { setPosting(false); }
   };
 

@@ -183,7 +183,7 @@ export default async function handler(req, res) {
                        message: `${playerName} is requesting to join your club.`,
                        data: { userId: user.id, clubId: club.id },
                    });
-              } catch (_) { /* non-fatal */ }
+              } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
               return res.status(200).json({
                   success: true,
@@ -198,7 +198,7 @@ export default async function handler(req, res) {
               await getSupabase().rpc('fn_increment_agent_player_count', {
                   p_agent_user_id: resolvedAgentUserId,
                   p_club_id: club.id,
-              }).catch(() => { /* non-fatal — reconciled at settlement */ });
+              }).catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
           }
 
           // Atomically increment club member count
@@ -234,13 +234,13 @@ export default async function handler(req, res) {
               agentPlayerNumber: resolvedAgentPlayerNumber,
           });
       } catch (err) {
-          console.error('[join-club]', err);
+          console.warn('[join-club]', err);
           return res.status(500).json({ success: false, error: 'Failed to join club' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

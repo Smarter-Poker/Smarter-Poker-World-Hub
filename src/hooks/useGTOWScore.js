@@ -478,9 +478,7 @@ export default function useGTOWScore() {
                 gtoAction: handData?.correctAction || '',
                 evLoss: evLoss || 0,
             });
-        } catch (e) {
-            // Non-critical — main scoring still works without this
-        }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     }, []);
 
     /**

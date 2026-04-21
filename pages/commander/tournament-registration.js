@@ -34,7 +34,7 @@ export default function TournamentRegistration() {
         try {
             const s = getStaffData();
             if (s.venue_id) setVenueId(s.venue_id);
-        } catch (e) { /* silent */ }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     }, []);
 
     const fetchTournaments = useCallback(async () => {
@@ -45,7 +45,7 @@ const headers = { };
             const json = await commanderFetchJSON(`/api/commander/tournaments?venue_id=${venueId}&status=upcoming,active`, { headers });
             const list = json.data?.tournaments || json.tournaments || json.data || [];
             setTournaments(Array.isArray(list) ? list : []);
-        } catch (err) { console.error(err); }
+        } catch (err) { console.warn(err); }
         finally { setLoading(false); }
     }, [venueId]);
 
@@ -294,7 +294,7 @@ const headers = { 'Content-Type': 'application/json' };
             // 3. Auto-print registration receipts — use REAL data from API response + tournament record
             const registeredEntry = regJson.data?.entry || {};
             let staffName = '';
-            try { staffName = getStaffData().name || ''; } catch (e) { /* silent */ }
+            try { staffName = getStaffData().name || ''; } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
             const venue = selectedTournament.poker_venues || {};
             printTournamentReceipts({
                 playerName: selectedPlayer.player_name,
@@ -319,7 +319,7 @@ const headers = { 'Content-Type': 'application/json' };
             setSelectedPlayer(null);
             setSelectedTournament(null);
         } catch (err) {
-            console.error('Registration error:', err);
+            console.warn('Registration error:', err);
             setMessage({ type: 'error', text: 'Network error — try again' });
         } finally {
             setRegistering(false);

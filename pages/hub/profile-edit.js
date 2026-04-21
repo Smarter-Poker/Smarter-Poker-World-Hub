@@ -943,11 +943,11 @@ export default function ProfilePage() {
                         const livesData = livesRes.ok ? await livesRes.json() : [];
                         setUserLives(livesData);
                     } catch (e) {
-                        console.error('[Profile] Error fetching profile:', e);
+                        console.warn('[Profile] Error fetching profile:', e);
                     }
                 }
             } catch (e) {
-                console.error('[Profile] Auth error:', e);
+                console.warn('[Profile] Auth error:', e);
             }
             setLoading(false);
         };
@@ -1065,7 +1065,7 @@ export default function ProfilePage() {
         if (uploadError) {
             setAvatarUploadPhase(null);
             setMessage('Error uploading avatar: ' + uploadError.message);
-            console.error('Upload error:', uploadError);
+            console.warn('Upload error:', uploadError);
             return;
         }
 
@@ -1087,7 +1087,7 @@ export default function ProfilePage() {
                 const errText = await avatarRes.text();
                 setAvatarUploadPhase(null);
                 setMessage('Error saving avatar: ' + errText);
-                console.error('Save error:', errText);
+                console.warn('Save error:', errText);
                 return;
             }
         } catch (fetchErr) {
@@ -1179,7 +1179,7 @@ export default function ProfilePage() {
                 const errText = await coverSaveRes.text();
                 setCoverUploadPhase(null);
                 setMessage('Error saving cover photo: ' + errText);
-                console.error('Save error:', errText);
+                console.warn('Save error:', errText);
                 return;
             }
 
@@ -1207,7 +1207,7 @@ export default function ProfilePage() {
         } catch (error) {
             setCoverUploadPhase(null);
             setMessage('Error uploading cover photo: ' + error.message);
-            console.error('Upload error:', error);
+            console.warn('Upload error:', error);
         }
     };
 
@@ -1255,12 +1255,12 @@ export default function ProfilePage() {
             if (!rmRes.ok) {
                 const errText = await rmRes.text();
                 setMessage('Error removing cover photo: ' + errText);
-                console.error('Update error:', errText);
+                console.warn('Update error:', errText);
                 return;
             }
         } catch (fetchErr) {
             setMessage('Error removing cover photo: ' + fetchErr.message);
-            console.error('Cover remove fetch error:', fetchErr);
+            console.warn('Cover remove fetch error:', fetchErr);
             return;
         }
 
@@ -1387,7 +1387,7 @@ export default function ProfilePage() {
             setSaving(false);
             setSavePhase(null);
             setMessage(`Error saving profile: ${error.message || error.code || JSON.stringify(error)}`);
-            console.error('Profile save error:', error);
+            console.warn('Profile save error:', error);
         } else {
             setSavePhase('Syncing');
             // ── UNDO: Store snapshot before overwriting originalProfile ──
@@ -1627,7 +1627,7 @@ export default function ProfilePage() {
                                 }
                             } catch (fetchErr) {
                                 setMessage('Error saving position: ' + fetchErr.message);
-                                console.error('Reposition fetch error:', fetchErr);
+                                console.warn('Reposition fetch error:', fetchErr);
                                 return;
                             }
                             setProfile(prev => ({ ...prev, cover_photo_position: positionStr }));
@@ -2251,7 +2251,7 @@ export default function ProfilePage() {
                                         setMessage(`❌ ${postData.error || 'Could not save stats.'}`);
                                     }
                                 } catch (e) {
-                                    console.error('Sync error:', e);
+                                    console.warn('Sync error:', e);
                                     setMessage('❌ Error syncing stats. Please try again.');
                                 }
                                 setIsRefreshing(false);
@@ -2350,7 +2350,7 @@ export default function ProfilePage() {
                                         busEmit.dataMutated('profile');
                                         setMessage('Undo successful — previous profile restored.');
                                     } catch (e) {
-                                        console.error('Undo save error:', e);
+                                        console.warn('Undo save error:', e);
                                         setMessage('Error: Could not undo. Please try again.');
                                     }
                                 }}
@@ -2673,7 +2673,7 @@ export default function ProfilePage() {
                                                                     broadcastSync('smarter_poker_cache_sync', { type: 'cache_sync', cacheKey: 'social-feed', action: 'invalidate', ts: Date.now() });
                                                                 } catch { /* noop */ }
                                                             } catch (e) {
-                                                                console.error('Error posting live stream:', e);
+                                                                console.warn('Error posting live stream:', e);
                                                                 setMessage('Error posting live stream: ' + (e.message || 'Unknown error'));
                                                             }
                                                         }}
@@ -2703,7 +2703,7 @@ export default function ProfilePage() {
                                                                         broadcastSync('smarter_poker_cache_sync', { type: 'cache_sync', cacheKey: 'social-feed', action: 'invalidate', ts: Date.now() });
                                                                     } catch { /* noop */ }
                                                                 } catch (e) {
-                                                                    console.error('Error deleting live stream:', e);
+                                                                    console.warn('Error deleting live stream:', e);
                                                                     setMessage('Error deleting live stream: ' + (e.message || 'Unknown error'));
                                                                 }
                                                             }

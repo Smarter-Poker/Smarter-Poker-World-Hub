@@ -59,13 +59,13 @@ export default async function handler(req, res) {
 
               if (error) {
                   // If table doesn't exist, silently succeed (quiz works client-side)
-                  console.error('Quiz save error:', error);
+                  console.warn('Quiz save error:', error);
                   return res.status(200).json({ success: true, persisted: false });
               }
 
               return res.status(200).json({ success: true });
           } catch (err) {
-              console.error('Quiz API error:', err);
+              console.warn('Quiz API error:', err);
               return res.status(500).json({ error: 'Internal server error' });
           }
       }
@@ -82,7 +82,7 @@ export default async function handler(req, res) {
 
               if (error) {
                   // If table doesn't exist, return empty stats (quiz works client-side)
-                  console.error('Quiz fetch error:', error);
+                  console.warn('Quiz fetch error:', error);
                   return res.status(200).json({ total: 0, correct: 0, accuracy: 0, streak: 0 });
               }
 
@@ -99,7 +99,7 @@ export default async function handler(req, res) {
 
               return res.status(200).json({ total, correct, accuracy, streak });
           } catch (err) {
-              console.error('Quiz stats error:', err);
+              console.warn('Quiz stats error:', err);
               return res.status(500).json({ error: 'Internal server error' });
           }
       }
@@ -108,7 +108,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

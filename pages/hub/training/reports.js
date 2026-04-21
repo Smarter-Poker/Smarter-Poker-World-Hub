@@ -230,7 +230,7 @@ export default function GTOReports() {
         setReport(enrichedReport);
       }
     } catch (err) {
-      console.error('[Reports] Fetch error:', err);
+      console.warn('[Reports] Fetch error:', err);
       setFetchError('Unable to load GTO reports. Please try again.');
     } finally {
       setLoading(false);

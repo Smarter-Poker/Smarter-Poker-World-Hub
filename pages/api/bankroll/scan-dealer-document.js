@@ -69,13 +69,13 @@ export default async function handler(req, res) {
               data: extractedData
           });
       } catch (error) {
-          console.error('Document scan error:', error);
+          console.warn('Document scan error:', error);
           return res.status(500).json({ success: false, error: 'Failed to scan document' });
       }
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -149,7 +149,7 @@ If any field is not visible or not relevant to the document type, use null. Be s
             return JSON.parse(jsonMatch[0]);
         } catch (e) {
             try { reportApiError(e, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-            console.error('OCR Vault JSON Parse Error:', e);
+            console.warn('OCR Vault JSON Parse Error:', e);
             throw new Error('Failed to parse structured data from AI response.');
         }
     }

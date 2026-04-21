@@ -94,7 +94,7 @@ export default async function handler(req, res) {
               .upsert(sessionData, { onConflict: 'session_id' });
 
           if (insertError) {
-              console.error('[JarvisTraining] Insert error:', insertError);
+              console.warn('[JarvisTraining] Insert error:', insertError);
               // Continue anyway - we don't want to break training flow
           }
 
@@ -133,7 +133,7 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('[JarvisTraining] Error:', error);
+          console.warn('[JarvisTraining] Error:', error);
           return res.status(200).json({
               success: true,  // Don't fail the training session
               message: 'Session recorded (analysis deferred)',
@@ -143,7 +143,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

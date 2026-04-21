@@ -26,7 +26,7 @@ export async function getBankrollPreferences(userId) {
 
         return data?.bankroll_preferences || { autoSave: true, notifications: true };
     } catch (error) {
-        console.error('Error fetching bankroll preferences:', error);
+        console.warn('Error fetching bankroll preferences:', error);
         return { autoSave: true, notifications: true };
     }
 }
@@ -53,7 +53,7 @@ export async function updateBankrollPreferences(userId, preferences) {
 
         return data;
     } catch (error) {
-        console.error('Error updating bankroll preferences:', error);
+        console.warn('Error updating bankroll preferences:', error);
         throw error;
     }
 }

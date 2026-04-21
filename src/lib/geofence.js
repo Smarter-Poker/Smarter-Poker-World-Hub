@@ -6,7 +6,7 @@
  * 
  * Usage:
  *   const gf = new GeofenceService();
- *   gf.start(venues, (venue) => { console.log('Entered:', venue.name); });
+ *   gf.start(venues, (venue) => { console.debug('Entered:', venue.name); });
  *   gf.stop();
  */
 

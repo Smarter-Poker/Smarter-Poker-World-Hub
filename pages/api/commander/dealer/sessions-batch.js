@@ -127,13 +127,13 @@ export default async function handler(req, res) {
 
           return res.status(200).json({ success: true, data: result });
       } catch (err) {
-          console.error('Batch dealer sessions error:', err);
+          console.warn('Batch dealer sessions error:', err);
           return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

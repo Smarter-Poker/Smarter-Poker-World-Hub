@@ -108,7 +108,7 @@ function parsePokerStarsHand(text: string): ParsedHand | null {
             actions
         };
     } catch (e) {
-        console.error('[HandHistoryParser] Parse error:', e);
+        console.warn('[HandHistoryParser] Parse error:', e);
         return null;
     }
 }
@@ -143,10 +143,7 @@ export function HandHistoryParser({ onHandParsed, onClose }: HandHistoryParserPr
                 });
                 return;
             }
-        } catch (e) {
-            // Fall through to legacy parser
-            console.warn('[HandHistoryParser] Engine parse failed, using legacy:', e);
-        }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         const parsed = parsePokerStarsHand(text);
         setParsedHand(parsed);
     };

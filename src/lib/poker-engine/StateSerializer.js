@@ -297,7 +297,7 @@ class StateSerializer {
             br.actionIndex = 0;
           }
 
-          console.log(`[StateSerializer] Restored BettingRound: street=${brState.street}, currentPlayer=${currentId}, bet=${brState.currentBet}`);
+          console.debug(`[StateSerializer] Restored BettingRound: street=${brState.street}, currentPlayer=${currentId}, bet=${brState.currentBet}`);
         }
 
         // Sync stacks back to seats
@@ -306,14 +306,14 @@ class StateSerializer {
           if (seat) seat.stack = p.stack;
         }
 
-        console.log(`[StateSerializer] Recovered hand #${h.handNumber} at ${h.street} phase (${h.players.filter(p => !p.folded).length} active players)`);
+        console.debug(`[StateSerializer] Recovered hand #${h.handNumber} at ${h.street} phase (${h.players.filter(p => !p.folded).length} active players)`);
         return true;
       }
 
-      console.log(`[StateSerializer] Recovered ${state.seats.filter(s => s.player).length} seated players (no hand in progress)`);
+      console.debug(`[StateSerializer] Recovered ${state.seats.filter(s => s.player).length} seated players (no hand in progress)`);
       return true;
     } catch (err) {
-      console.error('[StateSerializer] Recovery failed:', err.message);
+      console.warn('[StateSerializer] Recovery failed:', err.message);
       return false;
     }
   }
@@ -392,7 +392,7 @@ class StateSerializer {
         );
       }
     } catch (err) {
-      console.error(`[StateSerializer] Save failed for ${this.tableId}:`, err.message);
+      console.warn(`[StateSerializer] Save failed for ${this.tableId}:`, err.message);
     }
   }
 
@@ -418,9 +418,7 @@ class StateSerializer {
         this.supabase.from('hand_private_state').delete().eq('table_id', this.tableId),
         { label: 'clear_hole_cards', idempotent: true }
       );
-    } catch (err) {
-      // Non-critical
-    }
+    } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
   }
 
   /**
@@ -478,9 +476,7 @@ class StateSerializer {
         }).eq('id', this.tableId),
         { label: 'seat_snapshot', idempotent: true }
       );
-    } catch (_err) {
-      // Snapshot writes are best-effort — not critical
-    }
+    } catch (_err) { console.warn('[App] Handled exception:', _err?.message || _err); }
   }
 
   /**
@@ -507,7 +503,7 @@ class StateSerializer {
       // Check staleness (don't recover states older than 5 minutes)
       const state = data.live_state;
       if (state.savedAt && Date.now() - state.savedAt > 300000) {
-        console.log(`[StateSerializer] Stale state for ${tableId} (${Math.round((Date.now() - state.savedAt) / 1000)}s old) — skipping recovery`);
+        console.debug(`[StateSerializer] Stale state for ${tableId} (${Math.round((Date.now() - state.savedAt) / 1000)}s old) — skipping recovery`);
         return null;
       }
 
@@ -531,7 +527,7 @@ class StateSerializer {
 
       return state;
     } catch (err) {
-      console.error(`[StateSerializer] Load failed for ${tableId}:`, err.message);
+      console.warn(`[StateSerializer] Load failed for ${tableId}:`, err.message);
       return null;
     }
   }

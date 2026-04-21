@@ -120,7 +120,7 @@ export default function MfaChallengePage() {
             sessionStorage.setItem('mfa_verified', 'true');
             router.replace(getNextUrl());
         } catch (err) {
-            console.error('[mfa] challenge error:', err);
+            console.warn('[mfa] challenge error:', err);
             setError('Unable to verify right now. Please try again in a moment.');
         } finally {
             setIsLoading(false);

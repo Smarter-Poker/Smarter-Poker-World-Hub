@@ -371,10 +371,7 @@ export const SmarterPokerWatchView = ({ onNavigate }) => {
                 } else {
                     throw new Error("No videos found");
                 }
-            } catch (e) {
-                // No videos available — show empty state
-                setVideos([]);
-            } finally {
+            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); } finally {
                 setLoading(false);
             }
         } else {

@@ -95,7 +95,7 @@ export function JarvisPanel({ isOpen, onClose }: JarvisPanelProps) {
                 }]);
             }
         } catch (error) {
-            console.error('[Jarvis] Failed to start conversation:', error);
+            console.warn('[Jarvis] Failed to start conversation:', error);
         }
     };
 
@@ -122,7 +122,7 @@ export function JarvisPanel({ isOpen, onClose }: JarvisPanelProps) {
                 setShowHistory(false);
             }
         } catch (error) {
-            console.error('[Jarvis] Failed to load conversation:', error);
+            console.warn('[Jarvis] Failed to load conversation:', error);
         }
     };
 
@@ -182,7 +182,7 @@ export function JarvisPanel({ isOpen, onClose }: JarvisPanelProps) {
             }));
 
         } catch (error) {
-            console.error('[Jarvis] Error:', error);
+            console.warn('[Jarvis] Error:', error);
             const errorMessage: Message = {
                 id: (Date.now() + 1).toString(),
                 content: 'I apologize, but I encountered an error. Please try again.',
@@ -213,7 +213,7 @@ export function JarvisPanel({ isOpen, onClose }: JarvisPanelProps) {
                 msg.id === messageId ? { ...msg, rating } : msg
             ));
         } catch (error) {
-            console.error('[Jarvis] Rating failed:', error);
+            console.warn('[Jarvis] Rating failed:', error);
         }
     };
 
@@ -574,7 +574,7 @@ export function JarvisPanel({ isOpen, onClose }: JarvisPanelProps) {
                 </div>
             </div>
 
-            <style jsx>{`
+            <style>{`
                 @keyframes slideInRight {
                     from {
                         transform: translateX(100%);

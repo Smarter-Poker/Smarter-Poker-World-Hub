@@ -21,9 +21,7 @@ export async function shareResult({ mode, score, total, diamonds }) {
         try {
             await navigator.share({ text });
             return 'shared';
-        } catch (e) {
-            // User cancelled or share failed — fall through to clipboard
-        }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     }
 
     // Clipboard fallback
@@ -31,9 +29,7 @@ export async function shareResult({ mode, score, total, diamonds }) {
         try {
             await navigator.clipboard.writeText(text);
             return 'copied';
-        } catch (e) {
-            // Clipboard blocked
-        }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     }
 
     return 'failed';

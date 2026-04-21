@@ -68,7 +68,7 @@ export default async function handler(req, res) {
           const result = await response.json();
 
           if (!response.ok) {
-              console.error('[OneSignal] Link failed:', result);
+              console.warn('[OneSignal] Link failed:', result);
               return res.status(response.status).json({
                   error: result.errors?.[0] || 'Failed to link user',
                   details: result
@@ -82,13 +82,13 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('[OneSignal] Link user error:', error);
+          console.warn('[OneSignal] Link user error:', error);
           return res.status(500).json({ success: false, error: 'Failed to link user' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

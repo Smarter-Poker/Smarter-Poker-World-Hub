@@ -22,17 +22,17 @@ const failures = [];
 function assert(condition, label) {
     if (condition) {
         passed++;
-        console.log(`  ✅ ${label}`);
+        console.debug(`  ✅ ${label}`);
     } else {
         failed++;
         failures.push(label);
-        console.log(`  ❌ FAIL: ${label}`);
+        console.debug(`  ❌ FAIL: ${label}`);
     }
 }
 
-console.log('\n═══════════════════════════════════════════');
-console.log('  🐴 HORSE AI — ALL 39 FEATURES TEST');
-console.log('═══════════════════════════════════════════\n');
+console.debug('\n═══════════════════════════════════════════');
+console.debug('  🐴 HORSE AI — ALL 39 FEATURES TEST');
+console.debug('═══════════════════════════════════════════\n');
 
 const HORSE_ID = '00000000-0000-0000-0000-000000000028';
 const HORSE_ID_2 = '06c09311-deea-4402-a759-e188148757a0';
@@ -40,7 +40,7 @@ const HORSE_ID_2 = '06c09311-deea-4402-a759-e188148757a0';
 // ═══════════════════════════════════════════
 // PHASE 3A: Wiring Dead Code
 // ═══════════════════════════════════════════
-console.log('\n--- PHASE 3A: Dead Code Wiring ---');
+console.debug('\n--- PHASE 3A: Dead Code Wiring ---');
 
 // #1 Real tilt tracking
 Adv.recordBadBeat(HORSE_ID, 5, false);
@@ -61,7 +61,7 @@ assert(typeof Brain.warmGTOCache === 'function', '#9 GTO cache warming exported'
 // ═══════════════════════════════════════════
 // PHASE 3B: Decision Quality
 // ═══════════════════════════════════════════
-console.log('\n--- PHASE 3B: Decision Quality ---');
+console.debug('\n--- PHASE 3B: Decision Quality ---');
 
 // #18 Postflop hand evaluator
 const eval1 = Brain.evaluatePostflopHand(['Ah', 'Kh'], ['Qh', 'Jh', '2c']);
@@ -98,7 +98,7 @@ assert(typeof Brain.getDecision === 'function', '#4 getDecision exported for ICM
 // ═══════════════════════════════════════════
 // PHASE 3C: Realism Polish
 // ═══════════════════════════════════════════
-console.log('\n--- PHASE 3C: Realism Polish ---');
+console.debug('\n--- PHASE 3C: Realism Polish ---');
 
 // #6 Escalating tilt
 Adv.recordBadBeat(HORSE_ID, 8, false);
@@ -132,7 +132,7 @@ assert(typeof Brain.canSitAtTable === 'function', '#5b canSitAtTable exported');
 // ═══════════════════════════════════════════
 // PHASE 3D: Infrastructure
 // ═══════════════════════════════════════════
-console.log('\n--- PHASE 3D: Infrastructure ---');
+console.debug('\n--- PHASE 3D: Infrastructure ---');
 
 // #19 GTO cache warming
 assert(typeof Brain.warmGTOCache === 'function', '#19 warmGTOCache exported');
@@ -147,7 +147,7 @@ assert(typeof Brain.canSitAtTable === 'function', '#23 canSitAtTable exported');
 // ═══════════════════════════════════════════
 // PHASE 4: Advanced Intelligence
 // ═══════════════════════════════════════════
-console.log('\n--- PHASE 4: Advanced Intelligence ---');
+console.debug('\n--- PHASE 4: Advanced Intelligence ---');
 
 // #24 SPR awareness
 const spr1 = Brain.getSPRStrategy(100, 50);
@@ -220,7 +220,7 @@ assert(as2.shouldSeat === false, '#33b No auto-seat when at min');
 // ═══════════════════════════════════════════
 // PHASE 5: Analytics & Meta-Game
 // ═══════════════════════════════════════════
-console.log('\n--- PHASE 5: Analytics & Meta-Game ---');
+console.debug('\n--- PHASE 5: Analytics & Meta-Game ---');
 
 // #34 Performance stats tracker
 Brain.recordPerformanceAction(HORSE_ID, 'preflop', 'raise', true);
@@ -295,7 +295,7 @@ assert(review.vpip, '#43c Session review has VPIP (vpip=' + review.vpip + ')');
 // ═══════════════════════════════════════════
 // INTEGRATION: Full Decision Pipeline
 // ═══════════════════════════════════════════
-console.log('\n--- INTEGRATION: Full Decision Pipeline ---');
+console.debug('\n--- INTEGRATION: Full Decision Pipeline ---');
 
 // Load horse IDs first
 await Brain.loadHorseIds();
@@ -347,16 +347,16 @@ assert(flopDecision.action, '#INT-3 Flop decision returned (action=' + flopDecis
 // ═══════════════════════════════════════════
 // RESULTS
 // ═══════════════════════════════════════════
-console.log('\n═══════════════════════════════════════════');
-console.log(`  RESULTS: ${passed} passed, ${failed} failed`);
-console.log('═══════════════════════════════════════════');
+console.debug('\n═══════════════════════════════════════════');
+console.debug(`  RESULTS: ${passed} passed, ${failed} failed`);
+console.debug('═══════════════════════════════════════════');
 
 if (failed > 0) {
-    console.log('\n❌ FAILURES:');
-    failures.forEach(f => console.log(`  - ${f}`));
+    console.debug('\n❌ FAILURES:');
+    failures.forEach(f => console.debug(`  - ${f}`));
 } else {
-    console.log('\n✅ ALL TESTS PASSED — 100% VERIFIED');
+    console.debug('\n✅ ALL TESTS PASSED — 100% VERIFIED');
 }
 
-console.log('');
+console.debug('');
 process.exit(failed > 0 ? 1 : 0);

@@ -61,7 +61,7 @@ export default function TDClock() {
         const cs = json.data.clock?.clock_state;
         if (cs?.remaining_seconds !== undefined) setClockSeconds(cs.remaining_seconds);
       }
-    } catch (err) { if (err.name !== 'AbortError') console.error(err); }
+    } catch (err) { if (err.name !== 'AbortError') console.warn(err); }
     finally { setLoading(false); }
   }, [tournamentId]);
 
@@ -98,7 +98,7 @@ export default function TDClock() {
                 osc2.start();
                 osc2.stop(ctx.currentTime + 0.5);
               }, 600);
-            } catch (e) { /* Audio not available */ }
+            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
           }
           return prev > 0 ? prev - 1 : 0;
         });
@@ -208,7 +208,7 @@ ${receipts.map(r => `<div class="card">
       } else {
         setToast({ type: 'error', text: 'Clock action failed.' });
       }
-    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Clock action failed. Check console.' }); }
+    } catch (err) { console.warn(err); setToast({ type: 'error', text: 'Clock action failed. Check console.' }); }
     finally { setActionLoading(null); }
   };
 
@@ -231,7 +231,7 @@ ${receipts.map(r => `<div class="card">
       } else {
         setToast({ type: 'error', text: 'Failed to toggle Hand-for-Hand.' });
       }
-    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Hand-for-Hand toggle failed.' }); }
+    } catch (err) { console.warn(err); setToast({ type: 'error', text: 'Hand-for-Hand toggle failed.' }); }
   };
 
   const triggerFinalTable = async () => {
@@ -253,7 +253,7 @@ ${receipts.map(r => `<div class="card">
       } else {
         setToast({ type: 'error', text: 'Final table action failed.' });
       }
-    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Final table action failed. Check console.' }); }
+    } catch (err) { console.warn(err); setToast({ type: 'error', text: 'Final table action failed. Check console.' }); }
     finally { setActionLoading(null); }
   };
 

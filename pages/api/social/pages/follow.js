@@ -193,7 +193,7 @@ export default async function handler(req, res) {
                       }),
                   });
               }
-          } catch (notifErr) { console.error('Follow notification error:', notifErr); }
+          } catch (notifErr) { console.warn('Follow notification error:', notifErr); }
 
           // Reverse bridge: sync follow to venue system
           syncToVenueFollowers(user_id, page_id, 'follow');
@@ -337,7 +337,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

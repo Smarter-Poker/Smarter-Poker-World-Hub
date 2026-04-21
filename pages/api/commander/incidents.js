@@ -57,7 +57,7 @@ export default async function handler(req, res) {
 
         const { data, error } = await query;
         if (error) {
-          console.error('[Incidents] Query error:', error.message);
+          console.warn('[Incidents] Query error:', error.message);
           return res.status(500).json({ success: false, error: 'Failed to fetch incidents' });
         }
         return res.status(200).json({ success: true, data: data || [] });
@@ -82,7 +82,7 @@ export default async function handler(req, res) {
           .maybeSingle();
 
         if (error) {
-          console.error('Incident create error:', error);
+          console.warn('Incident create error:', error);
           return res.status(500).json({ success: false, error: 'Internal server error' });
         }
         return res.status(201).json({ success: true, data });
@@ -90,13 +90,13 @@ export default async function handler(req, res) {
 
       return res.status(405).json({ success: false, error: 'Method not allowed' });
     } catch (err) {
-      console.error('Incidents error:', err);
+      console.warn('Incidents error:', err);
       return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

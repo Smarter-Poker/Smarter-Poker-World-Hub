@@ -86,7 +86,7 @@ function TokeDashboard({ userId, refreshTrigger }) {
             const data = await getTokeAnalytics(userId);
             setAnalytics(data);
         } catch (err) {
-            console.error('TokeDashboard analytics error:', err);
+            console.warn('TokeDashboard analytics error:', err);
         } finally {
             setLoading(false);
         }

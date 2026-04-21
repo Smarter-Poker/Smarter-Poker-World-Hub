@@ -170,10 +170,7 @@ export default async function handler(req, res) {
                       member_name: `${member.first_name} ${member.last_name}`.trim()
                   });
               }
-          } catch (e) {
-              // Table might not exist yet, continue
-              console.warn('Session check failed:', e.message);
-          }
+          } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
           // ── 5. Determine seat number ──
           let seatNum = seat_number ? parseInt(seat_number) : null;
@@ -198,7 +195,7 @@ export default async function handler(req, res) {
                       .eq('table_number', tableNum)
                       .in('status', ['active', 'paused', 'meal_break']);
                   occupiedSeats = (activeSessions || []).map(s => s.seat_number);
-              } catch (e) { /* table might not exist */ }
+              } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
               // Find first open seat
               for (let s = 1; s <= maxSeats; s++) {
@@ -228,7 +225,7 @@ export default async function handler(req, res) {
                           error: `Seat ${seatNum} is occupied by ${seatTaken[0].player_name}`
                       });
                   }
-              } catch (e) { /* table might not exist */ }
+              } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
           }
 
           // ── 6. Create session ──
@@ -325,13 +322,13 @@ export default async function handler(req, res) {
               }
           });
       } catch (err) {
-          console.error('Player scan-in error:', err);
+          console.warn('Player scan-in error:', err);
           return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

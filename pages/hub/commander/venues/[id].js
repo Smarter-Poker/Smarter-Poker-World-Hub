@@ -96,7 +96,7 @@ export default function VenueDetailPage() {
         setLiveGames(liveGamesData.data.games || []);
       }
     } catch (err) {
-      console.error('Fetch failed:', err);
+      console.warn('Fetch failed:', err);
       setVenue(null);
       setGames([]);
       setPromotions([]);

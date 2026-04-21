@@ -100,7 +100,7 @@ export default function NotificationCenter() {
         setNotifications(json.data?.notifications || []);
         setUnreadCount(json.data?.unread_count || 0);
       }
-    } catch (err) { if (err.name !== 'AbortError') console.error(err); }
+    } catch (err) { if (err.name !== 'AbortError') console.warn(err); }
     finally { setLoading(false); }
   }, [filter]);
 
@@ -120,7 +120,7 @@ export default function NotificationCenter() {
         setUnreadCount(prev => Math.max(0, prev - 1));
         broadcastChange('notifications');
       }
-    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
+    } catch (err) { console.warn(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
   };
 
   const markAllRead = async () => {
@@ -133,7 +133,7 @@ export default function NotificationCenter() {
         setUnreadCount(0);
         broadcastChange('notifications');
       }
-    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
+    } catch (err) { console.warn(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
     finally { setMarkingAll(false); }
   };
 
@@ -145,7 +145,7 @@ export default function NotificationCenter() {
         setNotifications(prev => prev.filter(n => n.id !== id));
         broadcastChange('notifications');
       }
-    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
+    } catch (err) { console.warn(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
   };
 
   // ─── Announcements ───
@@ -156,7 +156,7 @@ export default function NotificationCenter() {
       if (!venueId) return;
       const json = await commanderFetchJSON(`/api/commander/announcements?venue_id=${venueId}&include_scheduled=1`, {});
       if (json.success) setAnnouncements(json.data || []);
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
     finally { setAnnouncementsLoading(false); }
   }, []);
 
@@ -246,7 +246,7 @@ export default function NotificationCenter() {
       fetchAnnouncements();
       broadcastChange('announcements');
     } catch (err) {
-      console.error(err);
+      console.warn(err);
       setToast({ type: 'error', text: err.message || 'Failed to save' });
     }
     finally { setSavingAnnouncement(false); }
@@ -261,7 +261,7 @@ export default function NotificationCenter() {
         setAnnouncements(prev => prev.filter(a => a.id !== id));
         broadcastChange('announcements');
       }
-    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
+    } catch (err) { console.warn(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
   };
 
   const formatTime = (ts) => {

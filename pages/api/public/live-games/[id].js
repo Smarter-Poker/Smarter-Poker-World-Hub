@@ -51,7 +51,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -78,7 +78,7 @@ async function handleGet(req, res, id) {
         return res.status(200).json(game);
 
     } catch (error) {
-        console.error('Live game GET error:', error);
+        console.warn('Live game GET error:', error);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }
@@ -134,7 +134,7 @@ async function handlePost(req, res, id) {
             });
 
         if (confirmError) {
-            console.error('Error logging confirmation:', confirmError);
+            console.warn('Error logging confirmation:', confirmError);
             return res.status(500).json({ success: false, error: 'Failed to log confirmation' });
         }
 
@@ -172,7 +172,7 @@ async function handlePost(req, res, id) {
             .eq('id', id);
 
         if (updateError) {
-            console.error('Error updating game:', updateError);
+            console.warn('Error updating game:', updateError);
         }
 
         return res.status(200).json({
@@ -182,7 +182,7 @@ async function handlePost(req, res, id) {
         });
 
     } catch (error) {
-        console.error('Live game POST error:', error);
+        console.warn('Live game POST error:', error);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }
@@ -225,7 +225,7 @@ async function handleDelete(req, res, id) {
             .eq('id', id);
 
         if (updateError) {
-            console.error('Error deleting game:', updateError);
+            console.warn('Error deleting game:', updateError);
             return res.status(500).json({ success: false, error: 'Failed to delete game' });
         }
 
@@ -236,7 +236,7 @@ async function handleDelete(req, res, id) {
 
     } catch (error) {
         try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('Live game DELETE error:', error);
+        console.warn('Live game DELETE error:', error);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

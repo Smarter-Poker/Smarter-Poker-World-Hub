@@ -453,7 +453,7 @@ export default async function handler(req, res) {
             insertedHere++;
             stats.inserted++;
           } else {
-            console.error(`[scrape-charity-schedules] Upsert error for ${venue.name}:`, upsertError.message);
+            console.warn(`[scrape-charity-schedules] Upsert error for ${venue.name}:`, upsertError.message);
           }
         }
 
@@ -499,7 +499,7 @@ export default async function handler(req, res) {
           }),
         });
       } catch (auditErr) {
-        console.error('[scrape-charity-schedules] Audit log non-fatal:', auditErr.message);
+        console.warn('[scrape-charity-schedules] Audit log non-fatal:', auditErr.message);
       }
     }
 
@@ -521,7 +521,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[scrape-charity-schedules] Fatal:', err);
+    console.warn('[scrape-charity-schedules] Fatal:', err);
     if (!res.headersSent) {
       return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
     }

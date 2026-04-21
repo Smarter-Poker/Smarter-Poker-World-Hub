@@ -86,7 +86,7 @@ export function HandHistoryLibrary({ onAskJarvis, onClose }: HandHistoryLibraryP
                     .limit(100);
 
                 if (error) {
-                    console.error('Error loading hand history:', error);
+                    console.warn('Error loading hand history:', error);
                 } else if (data) {
                     setHands((data as any[]).map((row: any) => ({
                         id: row.id,
@@ -104,7 +104,7 @@ export function HandHistoryLibrary({ onAskJarvis, onClose }: HandHistoryLibraryP
                     })));
                 }
             } catch (err) {
-                console.error('Failed to load hands:', err);
+                console.warn('Failed to load hands:', err);
             } finally {
                 setLoading(false);
             }
@@ -136,7 +136,7 @@ export function HandHistoryLibrary({ onAskJarvis, onClose }: HandHistoryLibraryP
                 updated_at: new Date().toISOString()
             }, { onConflict: 'id' });
         } catch (err) {
-            console.error('Failed to save hand:', err);
+            console.warn('Failed to save hand:', err);
         }
     };
 

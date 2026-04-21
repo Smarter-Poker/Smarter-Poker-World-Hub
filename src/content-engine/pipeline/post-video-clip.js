@@ -25,8 +25,8 @@ const supabase = createClient(
 const openai = getGrokClient();
 
 async function postVideoClipToHorse() {
-    console.log('\n🎬 POSTING VIDEO CLIP TO HORSE');
-    console.log('═'.repeat(60));
+    console.debug('\n🎬 POSTING VIDEO CLIP TO HORSE');
+    console.debug('═'.repeat(60));
 
     // Get a random active horse
     const { data: horses, error: horseErr } = await supabase
@@ -37,12 +37,12 @@ async function postVideoClipToHorse() {
         .limit(10);
 
     if (horseErr || !horses?.length) {
-        console.error('No active horses found');
+        console.warn('No active horses found');
         return;
     }
 
     const horse = horses[Math.floor(Math.random() * horses.length)];
-    console.log(`\n🐴 Selected horse: ${horse.name} (${horse.alias})`);
+    console.debug(`\n🐴 Selected horse: ${horse.name} (${horse.alias})`);
 
     // Get a random clip - try up to 5 times if video unavailable
     let clip = null;
@@ -53,12 +53,12 @@ async function postVideoClipToHorse() {
         clip = getRandomClip({ excludeIds: triedClips });
         triedClips.push(clip.id);
 
-        console.log(`\n📼 Attempt ${attempt}: ${clip.id}`);
-        console.log(`   Title: ${clip.title}`);
-        console.log(`   URL: ${clip.source_url}`);
+        console.debug(`\n📼 Attempt ${attempt}: ${clip.id}`);
+        console.debug(`   Title: ${clip.title}`);
+        console.debug(`   URL: ${clip.source_url}`);
 
         // Process the video clip
-        console.log('\n⏳ Processing video...');
+        console.debug('\n⏳ Processing video...');
         result = await videoClipper.processVideo(clip.source_url, {
             startTime: clip.start_time,
             duration: Math.min(clip.duration, 45),
@@ -66,16 +66,16 @@ async function postVideoClipToHorse() {
         });
 
         if (result.success) {
-            console.log(`\n✅ Video uploaded: ${result.publicUrl}`);
+            console.debug(`\n✅ Video uploaded: ${result.publicUrl}`);
             break;
         } else {
-            console.log(`❌ Failed: ${result.error}`);
-            if (attempt < 5) console.log('   Trying another clip...');
+            console.debug(`❌ Failed: ${result.error}`);
+            if (attempt < 5) console.debug('   Trying another clip...');
         }
     }
 
     if (!result || !result.success) {
-        console.error('❌ All clip attempts failed');
+        console.warn('❌ All clip attempts failed');
         return;
     }
 
@@ -98,10 +98,10 @@ async function postVideoClipToHorse() {
         });
         caption = response.choices[0].message.content;
     } catch (e) {
-        console.log('Using template caption');
+        console.debug('Using template caption');
     }
 
-    console.log(`\n📝 Caption: ${caption}`);
+    console.debug(`\n📝 Caption: ${caption}`);
 
     // Create the post
     const { data: post, error: postErr } = await supabase
@@ -117,11 +117,11 @@ async function postVideoClipToHorse() {
         .maybeSingle();
 
     if (postErr) {
-        console.error('❌ Post creation failed:', postErr.message);
+        console.warn('❌ Post creation failed:', postErr.message);
         return;
     }
 
-    console.log(`\n✅ POST CREATED: ${post.id}`);
+    console.debug(`\n✅ POST CREATED: ${post.id}`);
 
     // Also add to stories
     const { error: storyErr } = await supabase
@@ -134,14 +134,14 @@ async function postVideoClipToHorse() {
         });
 
     if (storyErr) {
-        console.error('Story error:', storyErr.message);
+        console.warn('Story error:', storyErr.message);
     } else {
-        console.log('✅ Story created (24h)');
+        console.debug('✅ Story created (24h)');
     }
 
-    console.log('\n═'.repeat(60));
-    console.log(`🎉 ${horse.alias} posted a video clip!`);
-    console.log('═'.repeat(60) + '\n');
+    console.debug('\n═'.repeat(60));
+    console.debug(`🎉 ${horse.alias} posted a video clip!`);
+    console.debug('═'.repeat(60) + '\n');
 }
 
 postVideoClipToHorse();

@@ -165,7 +165,7 @@ export default function PreflopCharts() {
           }
         }
       } catch (err) {
-        console.error('[PreflopCharts] Fetch error:', err);
+        console.warn('[PreflopCharts] Fetch error:', err);
       } finally {
         if (isCompare) setLoadingCompare(false);
         else setLoading(false);

@@ -83,13 +83,13 @@ export default async function handler(req, res) {
               data: extractedData
           });
       } catch (error) {
-          console.error('Receipt scan error:', error);
+          console.warn('Receipt scan error:', error);
           return res.status(500).json({ success: false, error: 'Failed to scan receipt' });
       }
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -165,7 +165,7 @@ If any field is not visible, use null. For poker buy-ins, look for "buy-in", "en
             return JSON.parse(jsonMatch[0]);
         } catch (e) {
             try { reportApiError(e, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-            console.error('OCR Receipt JSON Parse Error:', e);
+            console.warn('OCR Receipt JSON Parse Error:', e);
             throw new Error('Failed to parse structured data from AI response.');
         }
     }

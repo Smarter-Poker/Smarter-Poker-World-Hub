@@ -63,7 +63,7 @@ export default function PersonalAssistantPage() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const handleSandboxUpdate = () => {
-      try { refetchSessions?.(); } catch (e) { /* non-fatal */ }
+      try { refetchSessions?.(); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     };
     window.addEventListener('pa-sandbox-updated', handleSandboxUpdate);
     window.addEventListener('pa-data-updated', handleSandboxUpdate);

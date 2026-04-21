@@ -45,7 +45,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -92,7 +92,7 @@ async function handleGet(req, res) {
     const { data, error } = await query;
 
     if (error) {
-      console.error('Commander services query error:', error);
+      console.warn('Commander services query error:', error);
       return res.status(500).json({
         success: false,
         error: { code: 'DATABASE_ERROR', message: 'Failed to fetch service requests' }
@@ -104,7 +104,7 @@ async function handleGet(req, res) {
       data: { requests: data || [] }
     });
   } catch (error) {
-    console.error('Commander services GET error:', error);
+    console.warn('Commander services GET error:', error);
     return res.status(500).json({
       success: false,
       error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }
@@ -156,7 +156,7 @@ async function handlePost(req, res) {
       .maybeSingle();
 
     if (error) {
-      console.error('Commander service create error:', error);
+      console.warn('Commander service create error:', error);
       return res.status(500).json({
         success: false,
         error: { code: 'DATABASE_ERROR', message: 'Failed to create service request' }
@@ -169,7 +169,7 @@ async function handlePost(req, res) {
     });
   } catch (error) {
       try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('Commander services POST error:', error);
+    console.warn('Commander services POST error:', error);
     return res.status(500).json({
       success: false,
       error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }

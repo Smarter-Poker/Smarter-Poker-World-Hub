@@ -277,7 +277,7 @@ export default function GTOScorecardPage() {
       }
       if (data.success && Array.isArray(data.sessions)) setSessions(data.sessions);
     } catch (e) {
-      console.error('[GTOScorecard] Error:', e);
+      console.warn('[GTOScorecard] Error:', e);
       setFetchError('Failed to load scorecard data. Please try again.');
     }
     setLoading(false);
@@ -435,7 +435,7 @@ export default function GTOScorecardPage() {
                     if (res.ok) alert('GTO Score shared to your feed!');
                     else alert('Share failed — please try again.');
                   } catch (e) {
-                    console.error('Share error:', e);
+                    console.warn('Share error:', e);
                     alert('Share failed — please try again.');
                   } finally {
                     setSharing(false);

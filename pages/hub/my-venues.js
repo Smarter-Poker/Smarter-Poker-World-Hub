@@ -153,7 +153,7 @@ function ScheduleTab({ staffId, venueId, token }) {
                     setTotalHours(json.data.total_hours);
                 }
             } catch (e) {
-                if (e.name !== 'AbortError') console.error("[my-venues.js]", e);
+                if (e.name !== 'AbortError') console.warn("[my-venues.js]", e);
             }
             if (!cancelled) setLoading(false);
         };
@@ -248,7 +248,7 @@ function DownsTab({ staffId, venueId, token }) {
                 if (!res.ok) throw new Error(`Request failed (${res.status})`);
                 const json = await res.json();
                 if (json.success) setData(json.data);
-            } catch (e) { console.error("[my-venues.js]", e); }
+            } catch (e) { console.warn("[my-venues.js]", e); }
             setLoading(false);
         };
         fetch_();
@@ -344,7 +344,7 @@ function TimeClockTab({ staffId, venueId, token }) {
                 if (!res.ok) throw new Error(`Request failed (${res.status})`);
                 const json = await res.json();
                 if (json.success) setData(json.data);
-            } catch (e) { console.error("[my-venues.js]", e); }
+            } catch (e) { console.warn("[my-venues.js]", e); }
             setLoading(false);
         };
         fetch_();
@@ -507,7 +507,7 @@ function EmailMatchBanner({ matches, token, onLinked }) {
             if (data.success) {
                 setTimeout(() => onLinked(), 1000);
             }
-        } catch (e) { console.error("[my-venues.js]", e); }
+        } catch (e) { console.warn("[my-venues.js]", e); }
         setLinking(null);
     };
 

@@ -46,13 +46,13 @@ export default async function handler(req, res) {
               return res.status(405).json({ success: false, error: 'Method not allowed' });
           }
       } catch (error) {
-          console.error('[Follow API] Execution error:', error);
+          console.warn('[Follow API] Execution error:', error);
           return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -78,7 +78,7 @@ async function handleGet(req, res) {
             .limit(100);
 
         if (error) {
-            console.error('Error fetching follows:', error);
+            console.warn('Error fetching follows:', error);
             return res.status(500).json({ success: false, error: 'Failed to fetch follows' });
         }
 
@@ -123,7 +123,7 @@ async function handleGet(req, res) {
             .limit(100);
 
         if (error) {
-            console.error('Error fetching follower count:', error);
+            console.warn('Error fetching follower count:', error);
             return res.status(500).json({ success: false, error: 'Failed to fetch follower count' });
         }
 
@@ -249,7 +249,7 @@ async function handlePost(req, res) {
                     page_id: pageIdStr,
                 });
             }
-            console.error('Error following page:', error);
+            console.warn('Error following page:', error);
             return res.status(500).json({ success: false, error: 'Failed to follow' });
         }
 
@@ -273,7 +273,7 @@ async function handlePost(req, res) {
             .eq('page_id', pageIdStr);
 
         if (error) {
-            console.error('Error unfollowing page:', error);
+            console.warn('Error unfollowing page:', error);
             return res.status(500).json({ success: false, error: 'Failed to unfollow' });
         }
 

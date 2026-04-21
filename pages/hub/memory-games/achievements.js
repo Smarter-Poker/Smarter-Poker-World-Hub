@@ -68,7 +68,7 @@ export default function MemoryGamesAchievements() {
                 });
 
                 if (error) {
-                    console.error('[Achievements] RPC error:', error);
+                    console.warn('[Achievements] RPC error:', error);
                     setAchievements(FALLBACK_ACHIEVEMENTS);
                 } else {
                     setAchievements(data || FALLBACK_ACHIEVEMENTS);
@@ -77,7 +77,7 @@ export default function MemoryGamesAchievements() {
                 setAchievements(FALLBACK_ACHIEVEMENTS);
             }
         } catch (err) {
-            console.error('[Achievements] Fetch error:', err);
+            console.warn('[Achievements] Fetch error:', err);
             setAchievements(FALLBACK_ACHIEVEMENTS);
         } finally {
             setLoading(false);

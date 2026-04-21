@@ -69,7 +69,7 @@ export default async function handler(req, res) {
             .maybeSingle();
 
         if (error) {
-            console.error("[kyc/status] select error:", error);
+            console.warn("[kyc/status] select error:", error);
             return res.status(500).json({ error: 'Internal server error' });
         }
 
@@ -80,7 +80,7 @@ export default async function handler(req, res) {
         });
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error("[kyc/status] unhandled:", err);
+        console.warn("[kyc/status] unhandled:", err);
         return res
             .status(500)
             .json({ error: err?.message || "unhandled failure" });

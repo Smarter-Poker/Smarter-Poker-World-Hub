@@ -161,7 +161,7 @@ const GameArena: React.FC<GameArenaProps> = ({
                 setScenarioFeedback(null);
             }
         } catch (error) {
-            console.error('Error fetching hand:', error);
+            console.warn('Error fetching hand:', error);
             // Generate demo hand on error
             const demoHand = generateDemoHand(engineType, handNumber + 1);
             setCurrentHand(demoHand);
@@ -261,7 +261,7 @@ const GameArena: React.FC<GameArenaProps> = ({
             }, currentHand.engineType === 'CHART' || currentHand.engineType === 'SCENARIO' ? 1500 : 500);
 
         } catch (error) {
-            console.error('Error submitting action:', error);
+            console.warn('Error submitting action:', error);
         }
     }, [currentHand, userId, gameId, sessionId, health, handNumber, level, fetchNextHand, healthBarControls]);
 

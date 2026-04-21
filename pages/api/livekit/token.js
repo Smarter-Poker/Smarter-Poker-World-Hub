@@ -49,7 +49,7 @@ export default async function handler(req, res) {
       const wsUrl = (process.env.NEXT_PUBLIC_LIVEKIT_URL || 'wss://smarter-poker-lovt9xq0.livekit.cloud').trim();
 
       if (!apiKey || !apiSecret) {
-          console.error('LiveKit API credentials not configured');
+          console.warn('LiveKit API credentials not configured');
           return res.status(500).json({
               error: 'Video calling not configured. Please set LIVEKIT_API_KEY and LIVEKIT_API_SECRET.'
           });
@@ -81,13 +81,13 @@ export default async function handler(req, res) {
               wsUrl: wsUrl,
           });
       } catch (error) {
-          console.error('Error generating LiveKit token:', error);
+          console.warn('Error generating LiveKit token:', error);
           return res.status(500).json({ error: 'Failed to generate video token' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

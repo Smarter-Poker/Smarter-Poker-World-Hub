@@ -60,7 +60,7 @@ export default function TaxReportPanel({ userId }) {
             if (fetchErr) throw fetchErr;
             setW2gForms(data || []);
         } catch (err) {
-            console.error('W-2G fetch error:', err);
+            console.warn('W-2G fetch error:', err);
         } finally {
             setW2gLoading(false);
         }
@@ -176,7 +176,7 @@ export default function TaxReportPanel({ userId }) {
             setShowUploadForm(false);
             fetchW2gForms();
         } catch (err) {
-            console.error('W-2G upload error:', err);
+            console.warn('W-2G upload error:', err);
             setError('UPLOAD FAILED: ' + (err.message || 'Unknown error'));
         } finally {
             setUploading(false);
@@ -199,7 +199,7 @@ export default function TaxReportPanel({ userId }) {
             if (delError) throw delError;
             setW2gForms(prev => prev.filter(f => f.id !== formId));
         } catch (err) {
-            console.error('Delete error:', err);
+            console.warn('Delete error:', err);
             setError('DELETE FAILED');
         }
     };
@@ -222,7 +222,7 @@ export default function TaxReportPanel({ userId }) {
             const data = await res.json();
             setReport(data);
         } catch (err) {
-            console.error('Tax report error:', err);
+            console.warn('Tax report error:', err);
             setError('FAILED TO GENERATE REPORT');
         } finally {
             setLoading(false);
@@ -252,7 +252,7 @@ export default function TaxReportPanel({ userId }) {
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
         } catch (err) {
-            console.error('Download error:', err);
+            console.warn('Download error:', err);
             setError('DOWNLOAD FAILED');
         } finally {
             setDownloading(false);

@@ -28,7 +28,7 @@ export default function JarvisRecommendations({ userId, onGameClick }) {
                 setMessage(data.message || '');
             }
         } catch (e) {
-            console.error('[JarvisRecommendations] Error:', e);
+            console.warn('[JarvisRecommendations] Error:', e);
         } finally {
             setLoading(false);
         }

@@ -46,14 +46,14 @@ async function sendPushNotification({ userId, title, message, url, data }) {
         const result = await response.json();
 
         if (!response.ok) {
-            console.error('[TrainingNotifications] OneSignal error:', result);
+            console.warn('[TrainingNotifications] OneSignal error:', result);
             return false;
         }
 
-        console.log('[TrainingNotifications] Sent:', title, 'to', userId);
+        console.debug('[TrainingNotifications] Sent:', title, 'to', userId);
         return true;
     } catch (error) {
-        console.error('[TrainingNotifications] Error:', error);
+        console.warn('[TrainingNotifications] Error:', error);
         return false;
     }
 }

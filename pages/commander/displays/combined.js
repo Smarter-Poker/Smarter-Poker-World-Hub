@@ -82,7 +82,7 @@ return { 'x-staff-session': staff };
         );
       }
       await Promise.allSettled(fetches);
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
     setNow(new Date());
   }, [panels, tournament]);
 
@@ -104,7 +104,7 @@ return { 'x-staff-session': staff };
     const requestWakeLock = async () => {
       try {
         if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen');
-      } catch (e) { /* silent */ }
+      } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     };
     requestWakeLock();
     document.addEventListener('visibilitychange', () => {

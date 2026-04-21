@@ -34,7 +34,7 @@ export default async function handler(req, res) {
                   const { data: authData } = await supabase.auth.getUser(token);
                   const user = authData?.user;
                   if (user) userId = user.id;
-              } catch (e) { /* non-fatal */ }
+              } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
           }
 
           if (!userId) {
@@ -143,13 +143,13 @@ export default async function handler(req, res) {
               weakestStreet,
           });
       } catch (err) {
-          console.error('[session-stats] Handler error:', err);
+          console.warn('[session-stats] Handler error:', err);
           return res.status(500).json({ success: false, error: err.message });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

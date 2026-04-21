@@ -410,7 +410,7 @@ export default function ReelsPage() {
                 setViewCounts(vc);
             }
         } catch (e) {
-            console.error('Load reels error:', e);
+            console.warn('Load reels error:', e);
             setLoadError(true);
         }
         setLoading(false);
@@ -547,7 +547,7 @@ export default function ReelsPage() {
                     setPage(nextPage);
                 }
             }
-        } catch (e) { console.error('Load more error:', e); }
+        } catch (e) { console.warn('Load more error:', e); }
         setLoadingMore(false);
     };
 
@@ -707,7 +707,7 @@ export default function ReelsPage() {
                 setCommentMediaUrl(result.url);
                 setCommentMediaType('image');
             }
-        } catch (err) { console.error('[ReelComment] Upload error:', err); }
+        } catch (err) { console.warn('[ReelComment] Upload error:', err); }
         setUploadingImage(false);
     };
 
@@ -742,7 +742,7 @@ export default function ReelsPage() {
                     (clData || []).forEach(row => { const cid = row.metadata?.comment_id; if (cid) clCounts[cid] = (clCounts[cid] || 0) + 1; });
                     setCommentLikeCounts(clCounts);
                 } catch (e) { console.warn('[App] Handled exception:', e); }
-            } catch (e) { console.error('Load comments:', e); }
+            } catch (e) { console.warn('Load comments:', e); }
         }
     };
 
@@ -989,11 +989,7 @@ export default function ReelsPage() {
                 await savedReelsService.saveReel(user.id, currentReel.id);
             }
             busEmit.socialPostBookmarked(currentReel.id, user.id, { added: !isSaved });
-        } catch (err) {
-            // Rollback on failure
-            if (isSaved) {
-                setSavedReels(prev => new Set([...prev, currentReel.id]));
-            } else {
+        } catch (err) { console.warn('[App] Handled exception:', err?.message || err); } else {
                 setSavedReels(prev => { const s = new Set(prev); s.delete(currentReel.id); return s; });
             }
             showErrorToast('Save failed — try again');

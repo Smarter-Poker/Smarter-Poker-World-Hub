@@ -31,7 +31,7 @@ export async function getUser(req, res) {
     const user = authData?.user;
     return user;
   } catch (error) {
-    console.error('Auth getUser error:', error);
+    console.warn('Auth getUser error:', error);
     return null;
   }
 }
@@ -157,7 +157,7 @@ export async function getStaffVenues(userId) {
     .eq('is_active', true);
 
   if (error) {
-    console.error('getStaffVenues error:', error);
+    console.warn('getStaffVenues error:', error);
     return [];
   }
 

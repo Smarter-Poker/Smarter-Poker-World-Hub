@@ -11,55 +11,55 @@ const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 async function debug() {
-    console.log('🔍 DEBUGGING HORSE SOCIAL ACCESS\n');
+    console.debug('🔍 DEBUGGING HORSE SOCIAL ACCESS\n');
 
     // Check horses
-    console.log('1. Checking content_authors...');
+    console.debug('1. Checking content_authors...');
     const { data: horses, error: horseErr } = await supabase
         .from('content_authors')
         .select('id, name, profile_id')
         .eq('is_active', true)
         .limit(5);
-    console.log('   Horses:', horses?.length || 0, horseErr?.message || '');
-    if (horses?.length) console.log('   Sample:', horses[0].name);
+    console.debug('   Horses:', horses?.length || 0, horseErr?.message || '');
+    if (horses?.length) console.debug('   Sample:', horses[0].name);
 
     // Check posts
-    console.log('\n2. Checking social_posts...');
+    console.debug('\n2. Checking social_posts...');
     const { data: posts, error: postErr } = await supabase
         .from('social_posts')
         .select('id, author_id, content_type')
         .order('created_at', { ascending: false })
         .limit(5);
-    console.log('   Posts:', posts?.length || 0, postErr?.message || '');
-    if (posts?.length) console.log('   Sample:', posts[0]);
+    console.debug('   Posts:', posts?.length || 0, postErr?.message || '');
+    if (posts?.length) console.debug('   Sample:', posts[0]);
 
     // Check comments table exists
-    console.log('\n3. Checking social_comments...');
+    console.debug('\n3. Checking social_comments...');
     const { data: comments, error: commentErr } = await supabase
         .from('social_comments')
         .select('id')
         .limit(1);
-    console.log('   Comments accessible:', !commentErr, commentErr?.message || '');
+    console.debug('   Comments accessible:', !commentErr, commentErr?.message || '');
 
     // Check likes table exists  
-    console.log('\n4. Checking social_likes...');
+    console.debug('\n4. Checking social_likes...');
     const { data: likes, error: likeErr } = await supabase
         .from('social_likes')
         .select('id')
         .limit(1);
-    console.log('   Likes accessible:', !likeErr, likeErr?.message || '');
+    console.debug('   Likes accessible:', !likeErr, likeErr?.message || '');
 
     // Check friendships
-    console.log('\n5. Checking friendships...');
+    console.debug('\n5. Checking friendships...');
     const { data: friends, error: friendErr } = await supabase
         .from('friendships')
         .select('id')
         .limit(1);
-    console.log('   Friendships accessible:', !friendErr, friendErr?.message || '');
+    console.debug('   Friendships accessible:', !friendErr, friendErr?.message || '');
 
     // Try inserting a comment
     if (posts?.length && horses?.length) {
-        console.log('\n6. Testing comment insert...');
+        console.debug('\n6. Testing comment insert...');
         const commenter = horses.find(h => h.profile_id !== posts[0].author_id);
         if (commenter) {
             const { data, error } = await supabase
@@ -70,13 +70,13 @@ async function debug() {
                     content: 'test comment from horse social engine 🔥'
                 })
                 .select();
-            console.log('   Insert result:', data, error?.message || 'SUCCESS');
+            console.debug('   Insert result:', data, error?.message || 'SUCCESS');
         }
     }
 
     // Try inserting a like
     if (posts?.length && horses?.length) {
-        console.log('\n7. Testing like insert...');
+        console.debug('\n7. Testing like insert...');
         const liker = horses.find(h => h.profile_id !== posts[0].author_id);
         if (liker) {
             const { data, error } = await supabase
@@ -86,7 +86,7 @@ async function debug() {
                     user_id: liker.profile_id
                 })
                 .select();
-            console.log('   Insert result:', data, error?.message || 'SUCCESS');
+            console.debug('   Insert result:', data, error?.message || 'SUCCESS');
         }
     }
 }

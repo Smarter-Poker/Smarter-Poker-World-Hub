@@ -47,7 +47,7 @@ export default function GodModePage() {
         generateDemoAnalysis();
       }
     } catch (err) {
-      console.error('Load hand error:', err);
+      console.warn('Load hand error:', err);
       generateDemoAnalysis();
     } finally {
       setLoading(false);

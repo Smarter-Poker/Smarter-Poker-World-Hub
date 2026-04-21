@@ -345,7 +345,7 @@ Return ONLY valid JSON:
                 last_used_at: null
             }));
     } catch (error) {
-        console.error(`[AG-1 Pool] Generation error for ${category.name}/${subcategory}:`, error.message);
+        console.warn(`[AG-1 Pool] Generation error for ${category.name}/${subcategory}:`, error.message);
         return [];
     }
 }
@@ -512,7 +512,7 @@ export default async function handler(req, res) {
                               .select();
 
                           if (error) {
-                              console.error('[Question Pool] Insert error:', error);
+                              console.warn('[Question Pool] Insert error:', error);
                           } else {
                               generated += data.length;
                               results.push({
@@ -548,13 +548,13 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('[Question Pool] Error:', error);
+          console.warn('[Question Pool] Error:', error);
           return res.status(500).json({ error: error.message });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

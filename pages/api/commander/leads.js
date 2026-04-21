@@ -91,7 +91,7 @@ export default async function handler(req, res) {
 
       if (error) {
         // Table might not exist, just log and continue
-        console.error('Lead capture error:', error);
+        console.warn('Lead capture error:', error);
         return res.status(200).json({
           success: true,
           message: 'Thanks for your interest!'
@@ -104,7 +104,7 @@ export default async function handler(req, res) {
         lead_id: lead?.id
       });
     } catch (error) {
-      console.error('Leads API error:', error);
+      console.warn('Leads API error:', error);
       // Don't fail the user experience if lead capture fails
       return res.status(200).json({
         success: true,
@@ -114,7 +114,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

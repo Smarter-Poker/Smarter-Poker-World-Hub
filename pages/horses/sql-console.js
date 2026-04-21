@@ -84,7 +84,7 @@ export default function OmnichannelSQLConsole() {
                 try {
                     eventBus.emit(EventType.DATA_MUTATED, { source: 'sql-console-execution' }, 'SQLConsole');
                 } catch (e) {
-                    console.error('Failed to emit mutation event:', e);
+                    console.warn('Failed to emit mutation event:', e);
                 }
             }
         } catch (err) {

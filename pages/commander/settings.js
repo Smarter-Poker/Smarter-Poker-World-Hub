@@ -104,7 +104,7 @@ export default function CommanderSettingsPage() {
           }
         })
         .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-    } catch (e) { /* silent */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     return () => controller.abort();
   }, [venueId]);
 
@@ -221,7 +221,7 @@ export default function CommanderSettingsPage() {
         setTimeout(() => setError(null), 3000);
       }
     } catch (err) {
-      console.error('Failed to auto-save toggle', err);
+      console.warn('Failed to auto-save toggle', err);
       // Rollback on network error
       setSettings(prev => ({ ...prev, [key]: !newValue }));
       setError('Network error saving toggle');

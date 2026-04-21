@@ -18,7 +18,7 @@ export async function getAllCharts() {
 
         return { data, error };
     } catch (err) {
-        console.error('Error fetching charts:', err);
+        console.warn('Error fetching charts:', err);
         return { data: null, error: err };
     }
 }
@@ -38,7 +38,7 @@ export async function getChartById(id) {
 
         return { data, error };
     } catch (err) {
-        console.error('Error fetching chart:', err);
+        console.warn('Error fetching chart:', err);
         return { data: null, error: err };
     }
 }
@@ -58,7 +58,7 @@ export async function getChartsByCategory(category) {
 
         return { data, error };
     } catch (err) {
-        console.error('Error fetching charts by category:', err);
+        console.warn('Error fetching charts by category:', err);
         return { data: null, error: err };
     }
 }
@@ -84,7 +84,7 @@ export async function createChart(chartData) {
 
         return { data, error };
     } catch (err) {
-        console.error('Error creating chart:', err);
+        console.warn('Error creating chart:', err);
         return { data: null, error: err };
     }
 }
@@ -112,7 +112,7 @@ export async function updateChart(id, chartData) {
 
         return { data, error };
     } catch (err) {
-        console.error('Error updating chart:', err);
+        console.warn('Error updating chart:', err);
         return { data: null, error: err };
     }
 }
@@ -133,7 +133,7 @@ export async function deleteChart(id) {
 
         return { data, error };
     } catch (err) {
-        console.error('Error deleting chart:', err);
+        console.warn('Error deleting chart:', err);
         return { data: null, error: err };
     }
 }
@@ -205,13 +205,13 @@ export async function chartNameExists(chartName, excludeId = null) {
         const { data, error } = await query;
 
         if (error) {
-            console.error('Error checking chart name:', error);
+            console.warn('Error checking chart name:', error);
             return false;
         }
 
         return data && data.length > 0;
     } catch (err) {
-        console.error('Error checking chart name:', err);
+        console.warn('Error checking chart name:', err);
         return false;
     }
 }

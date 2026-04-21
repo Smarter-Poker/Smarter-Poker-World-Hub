@@ -174,7 +174,7 @@ export default function PlayerRewardsPage() {
         setComingSoonMessage(data.error || 'Redemption failed');
       }
     } catch (err) {
-      console.error('Redeem failed:', err);
+      console.warn('Redeem failed:', err);
       setComingSoonMessage('Redemption failed. Please try again.');
     }
     handleRedeemCancel();

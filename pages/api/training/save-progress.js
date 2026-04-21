@@ -172,7 +172,7 @@ export default async function handler(req, res) {
           );
 
           if (historyError) {
-              console.error('Error saving level history:', historyError);
+              console.warn('Error saving level history:', historyError);
           }
 
           // 2. Update or create training_progress
@@ -205,7 +205,7 @@ export default async function handler(req, res) {
               );
 
               if (updateError) {
-                  console.error('Error updating progress:', updateError);
+                  console.warn('Error updating progress:', updateError);
                   return res.status(500).json({ success: false, error: 'Failed to update progress' });
               }
 
@@ -267,8 +267,8 @@ export default async function handler(req, res) {
               );
 
               if (insertError) {
-                  console.error('Error creating progress:', JSON.stringify(insertError, null, 2));
-                  console.error('Insert payload:', { userId, gameId, level, questionsAnswered, questionsCorrect });
+                  console.warn('Error creating progress:', JSON.stringify(insertError, null, 2));
+                  console.warn('Insert payload:', { userId, gameId, level, questionsAnswered, questionsCorrect });
                   return res.status(500).json({
                       success: false, error: 'Failed to create progress'
                   });
@@ -313,13 +313,13 @@ export default async function handler(req, res) {
           }
 
       } catch (error) {
-          console.error('Error in save-progress:', error);
+          console.warn('Error in save-progress:', error);
           return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

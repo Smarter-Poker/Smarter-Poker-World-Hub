@@ -467,7 +467,7 @@ export default function PokerLobby({ supabase, userId, onJoinTable }) {
         onJoinTable?.(data.tableId);
       }
     } catch (err) {
-      console.error('Create table failed:', err);
+      console.warn('Create table failed:', err);
     }
   }, [userId, onJoinTable]);
 

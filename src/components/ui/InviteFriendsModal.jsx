@@ -107,7 +107,7 @@ export default function InviteFriendsModal({
             });
         } catch (err) {
             if (err.name !== 'AbortError') {
-                console.error('Share failed:', err);
+                console.warn('Share failed:', err);
             }
         }
     }, [referralUrl]);

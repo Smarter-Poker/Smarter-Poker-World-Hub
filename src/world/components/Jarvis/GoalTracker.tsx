@@ -73,7 +73,7 @@ export function GoalTracker({ onAskJarvis, onClose }: GoalTrackerProps) {
                     }
                 }
             } catch (e) {
-                console.error('[GoalTracker] Supabase error:', e);
+                console.warn('[GoalTracker] Supabase error:', e);
             }
 
             // Fallback to localStorage
@@ -82,7 +82,7 @@ export function GoalTracker({ onAskJarvis, onClose }: GoalTrackerProps) {
                 try {
                     setGoals(JSON.parse(saved));
                 } catch (e) {
-                    console.error('Failed to parse goals:', e);
+                    console.warn('Failed to parse goals:', e);
                 }
             }
         };
@@ -115,7 +115,7 @@ export function GoalTracker({ onAskJarvis, onClose }: GoalTrackerProps) {
                 });
             }
         } catch (e) {
-            console.error('[GoalTracker] Save error:', e);
+            console.warn('[GoalTracker] Save error:', e);
         }
     }, [userId]);
 

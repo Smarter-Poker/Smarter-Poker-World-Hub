@@ -9,7 +9,7 @@
  *     analysis. @sentry/nextjs is now a first-class dependency, so we import
  *     it directly and keep the import synchronous on server-side.
  *   - Most of our API handlers already have a top-level
- *       } catch (err) { console.error('[API Error]', err); res.status(500)... }
+ *       } catch (err) { console.warn('[API Error]', err); res.status(500)... }
  *     block. The simplest drop-in is `reportApiError(err, req)` — one synchronous
  *     function call that Sentry fires-and-forgets.
  *   - New routes should prefer `withSentryRoute(handler)` which wraps the whole
@@ -45,7 +45,7 @@ function routeOf(req) {
  *
  *   try { ... } catch (err) {
  *     reportApiError(err, req);
- *     console.error('[API Error]', err);
+ *     console.warn('[API Error]', err);
  *     return res.status(500)...;
  *   }
  *
@@ -79,11 +79,7 @@ export function reportApiError(error, req, extra = {}) {
                 );
             }
         });
-    } catch (innerErr) {
-        // Never let a broken Sentry take down the route. Just log.
-        // eslint-disable-next-line no-console
-        console.error('[sentryWrap] report failed:', innerErr?.message || innerErr);
-    }
+    } catch (innerErr) { console.warn('[App] Handled exception:', innerErr?.message || innerErr); }
 }
 
 /**

@@ -68,7 +68,7 @@ export const friendPreferences = {
 
             return local;
         } catch (error) {
-            console.error('[Preferences] Error getting friend preferences:', error);
+            console.warn('[Preferences] Error getting friend preferences:', error);
             return {
                 allowRequests: true,
                 showOnlineStatus: true,
@@ -101,7 +101,7 @@ export const friendPreferences = {
 
             return preferences;
         } catch (error) {
-            console.error('[Preferences] Error updating friend preferences:', error);
+            console.warn('[Preferences] Error updating friend preferences:', error);
             throw error;
         }
     }
@@ -166,7 +166,7 @@ export const storePreferences = {
 
             return local;
         } catch (error) {
-            console.error('[Preferences] Error getting store preferences:', error);
+            console.warn('[Preferences] Error getting store preferences:', error);
             return {
                 emailReceipts: true,
                 promotionalEmails: false
@@ -195,7 +195,7 @@ export const storePreferences = {
 
             return preferences;
         } catch (error) {
-            console.error('[Preferences] Error updating store preferences:', error);
+            console.warn('[Preferences] Error updating store preferences:', error);
             throw error;
         }
     }
@@ -217,7 +217,7 @@ export const wishlistService = {
             if (error) throw error;
             return data || [];
         } catch (error) {
-            console.error('[Wishlist] Error getting wishlist:', error);
+            console.warn('[Wishlist] Error getting wishlist:', error);
             return [];
         }
     },
@@ -239,7 +239,7 @@ export const wishlistService = {
             if (error) throw error;
             return data || null;
         } catch (error) {
-            console.error('[Wishlist] Error adding to wishlist:', error);
+            console.warn('[Wishlist] Error adding to wishlist:', error);
             throw error;
         }
     },
@@ -254,7 +254,7 @@ export const wishlistService = {
 
             if (error) throw error;
         } catch (error) {
-            console.error('[Wishlist] Error removing from wishlist:', error);
+            console.warn('[Wishlist] Error removing from wishlist:', error);
             throw error;
         }
     },
@@ -271,7 +271,7 @@ export const wishlistService = {
             if (error && error.code !== 'PGRST116') throw error;
             return !!data;
         } catch (error) {
-            console.error('[Wishlist] Error checking wishlist:', error);
+            console.warn('[Wishlist] Error checking wishlist:', error);
             return false;
         }
     }
@@ -293,7 +293,7 @@ export const savedReelsService = {
             if (error) throw error;
             return data || [];
         } catch (error) {
-            console.error('[SavedReels] Error getting saved reels:', error);
+            console.warn('[SavedReels] Error getting saved reels:', error);
             return [];
         }
     },
@@ -312,7 +312,7 @@ export const savedReelsService = {
             if (error) throw error;
             return data || null;
         } catch (error) {
-            console.error('[SavedReels] Error saving reel:', error);
+            console.warn('[SavedReels] Error saving reel:', error);
             throw error;
         }
     },
@@ -327,7 +327,7 @@ export const savedReelsService = {
 
             if (error) throw error;
         } catch (error) {
-            console.error('[SavedReels] Error unsaving reel:', error);
+            console.warn('[SavedReels] Error unsaving reel:', error);
             throw error;
         }
     },
@@ -344,7 +344,7 @@ export const savedReelsService = {
             if (error && error.code !== 'PGRST116') throw error;
             return !!data;
         } catch (error) {
-            console.error('[SavedReels] Error checking saved status:', error);
+            console.warn('[SavedReels] Error checking saved status:', error);
             return false;
         }
     }

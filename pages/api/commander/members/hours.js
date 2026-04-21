@@ -127,7 +127,7 @@ export default async function handler(req, res) {
           });
 
       } catch (err) {
-          console.error('[Hours API] Error:', err);
+          console.warn('[Hours API] Error:', err);
           // If commander_player_sessions table doesn't exist, fall back to visit_count estimate
           try {
               const { data: members } = await getSupabase()
@@ -164,7 +164,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

@@ -134,7 +134,7 @@ class AchievementService {
 
             return unlocked;
         } catch (error) {
-            console.error('[AchievementService] Error checking achievements:', error);
+            console.warn('[AchievementService] Error checking achievements:', error);
             return [];
         }
     }
@@ -158,7 +158,7 @@ class AchievementService {
             if (error) {
                 // Table doesn't exist yet - silently fail
                 if (error.code === '42P01') {
-                    console.log('[AchievementService] Achievements table not created yet');
+                    console.debug('[AchievementService] Achievements table not created yet');
                     return { success: false };
                 }
                 throw error;
@@ -166,12 +166,12 @@ class AchievementService {
 
             if (data?.success) {
                 this.unlockedCache.add(cacheKey);
-                console.log(`[AchievementService] Unlocked: ${achievementId}`);
+                console.debug(`[AchievementService] Unlocked: ${achievementId}`);
             }
 
             return data;
         } catch (error) {
-            console.error('[AchievementService] Error unlocking:', error);
+            console.warn('[AchievementService] Error unlocking:', error);
             return { success: false, error: error.message };
         }
     }
@@ -188,7 +188,7 @@ class AchievementService {
             if (error) throw error;
             return data || [];
         } catch (error) {
-            console.error('[AchievementService] Error fetching:', error);
+            console.warn('[AchievementService] Error fetching:', error);
             return [];
         }
     }

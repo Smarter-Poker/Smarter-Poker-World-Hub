@@ -119,13 +119,13 @@ export default async function handler(req, res) {
               promos: data.map(p => ({ code: p.code, description: p.description })),
           });
       } catch (err) {
-          console.error('Seed promos error:', err);
+          console.warn('Seed promos error:', err);
           return res.status(500).json({ success: false, error: 'Failed to seed promotions' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

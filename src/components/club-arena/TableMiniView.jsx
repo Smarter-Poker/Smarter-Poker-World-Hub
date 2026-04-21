@@ -180,9 +180,7 @@ function playTransientSound(type = 'bubble') {
         osc.start(now);
         osc.stop(now + 0.4);
     }
-  } catch (e) {
-      // Audio failed / no user gesture
-  }
+  } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 }
 
 // ── Timer Box Wrapper with Sound ──

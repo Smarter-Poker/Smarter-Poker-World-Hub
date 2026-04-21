@@ -106,7 +106,7 @@ export default function TriviaStats() {
                     setCategoryMastery(mastery);
                 }
             } catch (error) {
-                console.error('Error loading stats:', error);
+                console.warn('Error loading stats:', error);
             }
             setIsLoading(false);
         }

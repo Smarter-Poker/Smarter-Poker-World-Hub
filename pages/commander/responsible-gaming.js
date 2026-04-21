@@ -29,7 +29,7 @@ export default function ResponsibleGaming() {
   const [venueId, setVenueId] = useState(null);
 
   useEffect(() => {
-    try { const s = getStaffData(); if (s.venue_id) setVenueId(s.venue_id); } catch (e) { /* silent */ }
+    try { const s = getStaffData(); if (s.venue_id) setVenueId(s.venue_id); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
   }, []);
 
   // Load members to check exclusion status
@@ -39,7 +39,7 @@ export default function ResponsibleGaming() {
     try {
       const json = await commanderFetchJSON(`/api/commander/members?venue_id=${venueId}&limit=200`);
       if (json.success) setMembers(json.data || []);
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
     finally { setLoading(false); }
   }, [venueId]);
 
@@ -84,7 +84,7 @@ export default function ResponsibleGaming() {
       }
       setSearchResult({ found: true, players: results });
     } catch (err) {
-      console.error(err);
+      console.warn(err);
       setSearchResult({ found: false, error: true });
     }
     finally { setSearching(false); }

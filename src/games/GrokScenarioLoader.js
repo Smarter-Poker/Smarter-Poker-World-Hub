@@ -37,14 +37,14 @@ export async function fetchGrokScenario(level, filters = {}) {
             const cacheKey = `grok-${level}-${Date.now()}`;
             scenarioCache.set(cacheKey, result.scenario);
 
-            console.log('[GrokLoader] Generated scenario:', result.scenario.title);
+            console.debug('[GrokLoader] Generated scenario:', result.scenario.title);
             return result.scenario;
         } else {
-            console.error('[GrokLoader] API error:', result.error);
+            console.warn('[GrokLoader] API error:', result.error);
             return null;
         }
     } catch (error) {
-        console.error('[GrokLoader] Fetch error:', error);
+        console.warn('[GrokLoader] Fetch error:', error);
         return null;
     }
 }

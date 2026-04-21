@@ -234,7 +234,7 @@ class CentralBusEngine {
 
             return { success: true };
         } catch (err) {
-            console.error('[CentralBus] Persist error:', err);
+            console.warn('[CentralBus] Persist error:', err);
             return { success: false, error: err.message };
         }
     }
@@ -274,7 +274,7 @@ class CentralBusEngine {
         if (!this.isOnline) {
             this.isOnline = true;
             eventBus.emit(TrainingEventType.CENTRAL_BUS_ONLINE, {}, 'CentralBus');
-            console.log('[CentralBus] 🟢 ONLINE — Authoritative mode active');
+            console.debug('[CentralBus] 🟢 ONLINE — Authoritative mode active');
             
             // Flush pending events
             this._flushPendingEvents();
@@ -292,7 +292,7 @@ class CentralBusEngine {
     async _flushPendingEvents() {
         if (this.pendingEvents.length === 0) return;
         
-        console.log(`[CentralBus] Flushing ${this.pendingEvents.length} pending events...`);
+        console.debug(`[CentralBus] Flushing ${this.pendingEvents.length} pending events...`);
         
         const events = [...this.pendingEvents];
         this.pendingEvents = [];

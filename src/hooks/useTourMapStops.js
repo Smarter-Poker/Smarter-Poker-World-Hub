@@ -377,7 +377,7 @@ export default function useTourMapStops({ tours, allVenuesForMap, userLocation, 
             return true;
         });
     } catch (err) {
-        console.error('[PNM] allVenuesWithTours crash — returning safe empty array:', err);
+        console.warn('[PNM] allVenuesWithTours crash — returning safe empty array:', err);
         return Array.isArray(allVenuesForMap) ? allVenuesForMap : [];
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

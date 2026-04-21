@@ -295,7 +295,7 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
             });
             setPosts(newPosts || []);
         } catch (error) {
-            console.error("Failed to load feed", error);
+            console.warn("Failed to load feed", error);
             setPosts([]);
         } finally {
             setLoading(false);
@@ -429,7 +429,7 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
                 busEmit.socialPostLiked(postId, currentUser.id, { added, reactionType: type });
             }
         } catch (error) {
-            console.error('Reaction failed:', error);
+            console.warn('Reaction failed:', error);
             // Revert optimistic update
             loadFeed();
         }
@@ -452,7 +452,7 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
             await socialService.deletePost(postId);
             setPosts(prev => prev.filter(p => p.id !== postId));
         } catch (err) {
-            console.error('Delete failed:', err);
+            console.warn('Delete failed:', err);
         }
     };
 

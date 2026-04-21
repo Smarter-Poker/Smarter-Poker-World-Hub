@@ -61,7 +61,7 @@ const headers = { };
       setTournaments(tournamentsArr.filter(t =>
         ['scheduled', 'registering', 'registration', 'running', 'break', 'final_table'].includes(t.status)
       ).slice(0, 4));
-    } catch (err) { if (err.name !== 'AbortError') console.error(err); }
+    } catch (err) { if (err.name !== 'AbortError') console.warn(err); }
     setNow(new Date());
   }, [venueId]);
 

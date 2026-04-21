@@ -205,7 +205,7 @@ async function querySolverData(params) {
         return { scenario, matchTier: 1, source: 'PIO Solver — Exact Match' };
       }
     }
-  } catch (e) { console.error('[Sandbox] Tier 1 query error:', e.message); }
+  } catch (e) { console.warn('[Sandbox] Tier 1 query error:', e.message); }
 
   // ━━━ TIER 2: Partial board match (flop portion) ━━━
   if (flopStr.length >= 6) {
@@ -225,7 +225,7 @@ async function querySolverData(params) {
           return { scenario, matchTier: 2, source: 'PIO Solver — Board Approximated' };
         }
       }
-    } catch (e) { console.error('[Sandbox] Tier 2 query error:', e.message); }
+    } catch (e) { console.warn('[Sandbox] Tier 2 query error:', e.message); }
   }
 
   // ━━━ TIER 3: Any scenario with same game_type/street/stack ━━━
@@ -244,7 +244,7 @@ async function querySolverData(params) {
         return { scenario, matchTier: 3, source: 'PIO Solver — Similar Spot' };
       }
     }
-  } catch (e) { console.error('[Sandbox] Tier 3 query error:', e.message); }
+  } catch (e) { console.warn('[Sandbox] Tier 3 query error:', e.message); }
 
   // ━━━ TIER 3b: Try nearby stack depths ━━━
   const nearbyStacks = [stackDepth - 20, stackDepth + 20, stackDepth - 40, stackDepth + 40].filter(s => s > 0);
@@ -263,7 +263,7 @@ async function querySolverData(params) {
         return { scenario, matchTier: 3, source: `PIO Solver — ${scenario.stack_depth}bb Approximated` };
       }
     }
-  } catch (e) { console.error('[Sandbox] Tier 3b query error:', e.message); }
+  } catch (e) { console.warn('[Sandbox] Tier 3b query error:', e.message); }
 
   return null; // No solver data — will fall back to Grok
 }
@@ -291,7 +291,7 @@ async function queryPreflopData(params) {
       const chart = posMatch || charts[0];
       return { chart, matchTier: 1, source: 'Nash Chart — Preflop', isPreflop: true };
     }
-  } catch (e) { console.error('[Sandbox] Preflop query error:', e.message); }
+  } catch (e) { console.warn('[Sandbox] Preflop query error:', e.message); }
 
   return null;
 }
@@ -601,7 +601,7 @@ RULES:
       confidence: parsed.confidence || 'Medium',
     };
   } catch (error) {
-    console.error('[Sandbox] Grok analysis failed:', error.message);
+    console.warn('[Sandbox] Grok analysis failed:', error.message);
     return null;
   }
 }
@@ -739,10 +739,7 @@ export default async function handler(req, res) {
               error: contextAccess.message,
             });
           }
-        } catch (accessErr) {
-          // Don't block analysis if context authority check fails
-          console.warn('[Sandbox] Context authority check failed (non-fatal):', accessErr.message);
-        }
+        } catch (accessErr) { console.warn('[App] Handled exception:', accessErr?.message || accessErr); }
       }
 
       // Rate limit — 30/min
@@ -909,7 +906,7 @@ export default async function handler(req, res) {
           }, { onConflict: 'user_id' });
         }
       } catch (dbErr) {
-        console.error('[Sandbox] Session save error (non-fatal):', dbErr.message);
+        console.warn('[Sandbox] Session save error (non-fatal):', dbErr.message);
       }
 
       return res.status(200).json({
@@ -919,13 +916,13 @@ export default async function handler(req, res) {
       });
 
     } catch (error) {
-      console.error('[Sandbox] Analysis error:', error);
+      console.warn('[Sandbox] Analysis error:', error);
       return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

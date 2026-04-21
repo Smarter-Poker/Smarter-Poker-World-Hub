@@ -116,7 +116,7 @@ function DealerVault({ userId, completedGigs = [] }) {
             if (error) throw error;
             setDocs(data || []);
         } catch (err) {
-            console.error('DealerVault load error:', err);
+            console.warn('DealerVault load error:', err);
             toast.error('Failed to load documents');
         } finally {
             setIsLoading(false);
@@ -270,7 +270,7 @@ function DealerVault({ userId, completedGigs = [] }) {
                 toast.success('Document data auto-extracted!');
             }
         } catch (err) {
-            console.error('OCR Error:', err);
+            console.warn('OCR Error:', err);
             toast.error('Could not auto-extract data. Please enter manually.');
         } finally {
             setIsAnalyzing(false);

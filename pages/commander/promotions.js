@@ -92,7 +92,7 @@ const res = await commanderFetch('/api/commander/high-hands', {
         });
       }
     } catch (error) {
-      console.error('Record high hand failed:', error);
+      console.warn('Record high hand failed:', error);
     } finally {
       setSubmitting(false);
     }
@@ -343,7 +343,7 @@ const data = await commanderFetchJSON(`/api/commander/promotions?venue_id=${venu
         setPromotions(data.data?.promotions || []);
       }
     } catch (error) {
-      console.error('Fetch promotions failed:', error);
+      console.warn('Fetch promotions failed:', error);
     } finally {
       setLoading(false);
     }
@@ -364,7 +364,7 @@ const data = await commanderFetchJSON(`/api/commander/high-hands?venue_id=${venu
       const hhPromo = promotions.find(p => p.promotion_type === 'high_hand' && (p.is_active || p.status === 'active'));
       if (hhPromo) setHighHandPromo(hhPromo);
     } catch (error) {
-      console.error('Fetch high hands failed:', error);
+      console.warn('Fetch high hands failed:', error);
     }
   }, [venueId, promotions]);
 
@@ -380,7 +380,7 @@ const res = await fetch('/api/promo/admin-promo-codes', {
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       setPromoCodes(data.codes || []);
-    } catch (err) { console.error('Fetch promo codes error:', err); }
+    } catch (err) { console.warn('Fetch promo codes error:', err); }
     finally { setPromoCodesLoading(false); }
   }, []);
 
@@ -400,7 +400,7 @@ const res = await fetch('/api/promo/seed-premade', {
       } else {
         setToast({ type: 'error', text: data.error || 'Failed to seed promos' });
       }
-    } catch (err) { console.error('Seed promos error:', err); setToast({ type: 'error', text: 'Failed to seed promos' }); }
+    } catch (err) { console.warn('Seed promos error:', err); setToast({ type: 'error', text: 'Failed to seed promos' }); }
     finally { setSeedingPromos(false); }
   };
 
@@ -413,7 +413,7 @@ const res = await fetch('/api/promo/admin-promo-codes', {
         body: JSON.stringify({ id: code.id, is_active: !code.is_active })
       });
       if (res.ok) fetchPromoCodes();
-    } catch (err) { console.error('Toggle promo code error:', err); setToast({ type: 'error', text: 'Action failed: Toggle promo code. Please try again.' }); }
+    } catch (err) { console.warn('Toggle promo code error:', err); setToast({ type: 'error', text: 'Action failed: Toggle promo code. Please try again.' }); }
   };
 
   const deletePromoCode = async (code) => {
@@ -425,7 +425,7 @@ const res = await fetch(`/api/promo/admin-promo-codes?id=${code.id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) fetchPromoCodes();
-    } catch (err) { console.error('Delete promo code error:', err); setToast({ type: 'error', text: 'Action failed: Delete promo code. Please try again.' }); }
+    } catch (err) { console.warn('Delete promo code error:', err); setToast({ type: 'error', text: 'Action failed: Delete promo code. Please try again.' }); }
   };
 
   const openEditPromoCode = (code) => {
@@ -454,7 +454,7 @@ const res = await fetch('/api/promo/admin-promo-codes', {
       } else {
         setToast({ type: 'error', text: data.error || 'Failed to save' });
       }
-    } catch (err) { console.error('Save promo code error:', err); setToast({ type: 'error', text: 'Failed to save' }); }
+    } catch (err) { console.warn('Save promo code error:', err); setToast({ type: 'error', text: 'Failed to save' }); }
   };
 
   useEffect(() => {
@@ -533,7 +533,7 @@ const results = await Promise.allSettled([...selectedIds].map(id =>
       broadcastChange('settings');
       fetchPromotions();
     } catch (error) {
-      console.error('Bulk toggle failed:', error);
+      console.warn('Bulk toggle failed:', error);
       setToast({ type: 'error', text: 'Bulk operation failed: ' + error.message });
     }
   }
@@ -551,7 +551,7 @@ const results = await Promise.allSettled([...selectedIds].map(id =>
       broadcastChange('settings');
       fetchPromotions();
     } catch (error) {
-      console.error('Bulk delete failed:', error);
+      console.warn('Bulk delete failed:', error);
       setToast({ type: 'error', text: 'Bulk delete failed: ' + error.message });
     }
   }
@@ -592,7 +592,7 @@ const results = await Promise.allSettled([...selectedIds].map(id =>
 const data = await commanderFetchJSON(`/api/commander/promotions/${promo.id}/awards?limit=50`, {});
       setPromoAwards(data.awards || []);
     } catch (error) {
-      console.error('Fetch awards failed:', error);
+      console.warn('Fetch awards failed:', error);
       setPromoAwards([]);
     } finally {
       setAwardsLoading(false);
@@ -616,7 +616,7 @@ const res = await commanderFetch(`/api/commander/high-hands/${highHand.id}`, {
       }
     } catch (error) {
       setAwardsLoading(false);
-      console.error('Verify high hand failed:', error);
+      console.warn('Verify high hand failed:', error);
       setToast({ type: 'error', text: 'Verify high hand failed. Please check your connection and try again.' });
     }
   }
@@ -634,7 +634,7 @@ const res = await commanderFetch(`/api/commander/promotions/${promo.id}`, {
         fetchPromotions();
       }
     } catch (error) {
-      console.error('Toggle failed:', error);
+      console.warn('Toggle failed:', error);
       setToast({ type: 'error', text: 'Failed to toggle promotion. Please try again.' });
     }
   }
@@ -649,7 +649,7 @@ const res = await commanderFetch(`/api/commander/promotions/${promo.id}`, { meth
         fetchPromotions();
       }
     } catch (error) {
-      console.error('Delete failed:', error);
+      console.warn('Delete failed:', error);
       setToast({ type: 'error', text: 'Failed to delete promotion. Please try again.' });
     }
   }
@@ -701,7 +701,7 @@ const cloneData = {
         setToast({ type: 'error', text: 'Duplicate failed: ' + (result.error || 'Unknown error') });
       }
     } catch (error) {
-      console.error('Duplicate promo failed:', error);
+      console.warn('Duplicate promo failed:', error);
       setToast({ type: 'error', text: 'Duplicate failed: ' + error.message });
     }
   }
@@ -755,7 +755,7 @@ try {
       ));
       broadcastChange('settings');
     } catch (err) {
-      console.error('Drag reorder save failed:', err);
+      console.warn('Drag reorder save failed:', err);
       setToast({ type: 'error', text: 'Failed to save reorder. Reverting...' });
       fetchPromotions(); // Revert on failure
     }
@@ -1068,7 +1068,7 @@ const res = await commanderFetch('/api/commander/high-hands', {
                         broadcastChange('settings');
                       }
                     } catch (error) {
-                      console.error('Submit high hand failed:', error);
+                      console.warn('Submit high hand failed:', error);
                       setToast({ type: 'error', text: 'Failed to submit high hand. Please try again.' });
                     }
                   }}
@@ -1448,7 +1448,7 @@ const res = await commanderFetch('/api/commander/promotions', {
                         setToast({ type: 'error', text: 'Create failed: ' + (result.error || 'Unknown error') });
                       }
                     } catch (error) {
-                      console.error('Create promo failed:', error);
+                      console.warn('Create promo failed:', error);
                       setToast({ type: 'error', text: 'Create failed: ' + error.message });
                     }
                   }}
@@ -1477,7 +1477,7 @@ const res = await commanderFetch('/api/commander/promotions', {
                     setToast({ type: 'error', text: 'Create failed: ' + (result.error || 'Unknown error') });
                   }
                 } catch (error) {
-                  console.error('Create promo failed:', error);
+                  console.warn('Create promo failed:', error);
                   setToast({ type: 'error', text: 'Create failed: ' + error.message });
                 }
               }}
@@ -1509,7 +1509,7 @@ const res = await commanderFetch(`/api/commander/promotions/${editingPromo.id}`,
                   setToast({ type: 'error', text: 'Update failed: ' + (result.error || 'Unknown error') });
                 }
               } catch (error) {
-                console.error('Update promo failed:', error);
+                console.warn('Update promo failed:', error);
                 setToast({ type: 'error', text: 'Update failed: ' + error.message });
               }
             }}
@@ -1524,7 +1524,7 @@ const res = await commanderFetch(`/api/commander/promotions/${id}`, { method: 'D
                   setEditingPromo(null);
                 }
               } catch (error) {
-                console.error('Delete failed:', error);
+                console.warn('Delete failed:', error);
                 setToast({ type: 'error', text: 'Failed to delete promotion. Please try again.' });
               }
             }}

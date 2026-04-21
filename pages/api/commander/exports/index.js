@@ -87,7 +87,7 @@ async function listExports(req, res) {
 
     return res.status(200).json({ exports: data });
   } catch (error) {
-    console.error('List exports error:', error);
+    console.warn('List exports error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
@@ -180,7 +180,7 @@ async function createExport(req, res) {
       message: 'Export job created'
     });
   } catch (error) {
-    console.error('Create export error:', error);
+    console.warn('Create export error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
@@ -298,7 +298,7 @@ async function processExport(exportId) {
       .eq('id', exportId);
 
   } catch (error) {
-    console.error('Process export error:', error);
+    console.warn('Process export error:', error);
     await getSupabase()
       .from('commander_export_jobs')
       .update({

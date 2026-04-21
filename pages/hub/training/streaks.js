@@ -146,7 +146,7 @@ export default function StreaksPage() {
         }
       }
     } catch (error) {
-      console.error('Claim error:', error);
+      console.warn('Claim error:', error);
     } finally {
       setClaiming(null);
     }
@@ -329,7 +329,7 @@ export default function StreaksPage() {
                       alert('Streak shared to your feed!');
                     }
                   } catch (e) {
-                    console.error('Share error:', e);
+                    console.warn('Share error:', e);
                     alert('Failed to share streak. Please try again.');
                   } finally {
                     setSharing(false);

@@ -97,7 +97,7 @@ export default function MemoryGamesStats() {
                 .limit(50) // game sessions
 
             if (error) {
-                console.error('[Stats] Error fetching sessions:', error);
+                console.warn('[Stats] Error fetching sessions:', error);
                 setStats(getPlaceholderStats());
                 setLevelAccuracy(getPlaceholderLevelAccuracy());
                 return;
@@ -180,7 +180,7 @@ export default function MemoryGamesStats() {
                 setLevelAccuracy(getPlaceholderLevelAccuracy());
             }
         } catch (err) {
-            console.error('[Stats] Fetch error:', err);
+            console.warn('[Stats] Fetch error:', err);
             setStats(getPlaceholderStats());
             setLevelAccuracy(getPlaceholderLevelAccuracy());
         } finally {
@@ -198,7 +198,7 @@ export default function MemoryGamesStats() {
                 });
             }
         } catch (err) {
-            console.error('[Stats] Daily challenge fetch error:', err);
+            console.warn('[Stats] Daily challenge fetch error:', err);
         }
     };
 

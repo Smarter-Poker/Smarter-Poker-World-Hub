@@ -263,10 +263,7 @@ class PokerBrainMatcher {
         const aHash = computeAHash(imageData);
 
         this.templateHashes.set(key, { dHash, aHash });
-      } catch (err) {
-        // Template not available yet — skip silently
-        // This is expected during development when not all 52 templates exist
-        console.warn(`[Matcher] Skipping template: ${key} (${err.message})`);
+      } catch (err) { console.warn('[App] Handled exception:', err?.message || err); } (${err.message})`);
       }
     });
 
@@ -274,7 +271,7 @@ class PokerBrainMatcher {
     this.loaded = true;
     this.loading = false;
 
-    console.log(`[Matcher] Loaded ${this.templateHashes.size} template hashes`);
+    console.debug(`[Matcher] Loaded ${this.templateHashes.size} template hashes`);
   }
 
   /**
@@ -835,15 +832,12 @@ class PokerBrainMatcher {
           });
         }
         // eslint-disable-next-line no-console
-        console.log(
+        console.debug(
           `[Matcher diag] video=${videoW}x${videoH} ref=${refW}x${refH} scale=${scaleX.toFixed(2)}x${scaleY.toFixed(2)} threshold=${MATCH_THRESHOLD}`
         );
         // eslint-disable-next-line no-console
         console.table(rows);
-      } catch (diagErr) {
-        // eslint-disable-next-line no-console
-        console.warn('[Matcher diag] dump failed', diagErr);
-      }
+      } catch (diagErr) { console.warn('[App] Handled exception:', diagErr?.message || diagErr); }
     }
 
     const out = { holeCards, boardCards, timingMs, polledHoleCount: layoutHole.length };
@@ -999,7 +993,7 @@ class PokerBrainMatcher {
 
     const elapsed = performance.now() - startTime;
     // eslint-disable-next-line no-console
-    console.log(`[AutoCalibrate] zone=${zone} scanned ${Math.ceil((scanX1-scanX0)/stepX) * Math.ceil((scanY1-scanY0)/stepY)} positions in ${elapsed.toFixed(0)}ms`);
+    console.debug(`[AutoCalibrate] zone=${zone} scanned ${Math.ceil((scanX1-scanX0)/stepX) * Math.ceil((scanY1-scanY0)/stepY)} positions in ${elapsed.toFixed(0)}ms`);
     // eslint-disable-next-line no-console
     console.table(results.slice(0, 10).map(r => ({
       pos: `${r.x},${r.y}`,

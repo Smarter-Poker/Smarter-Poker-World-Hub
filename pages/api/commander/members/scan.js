@@ -52,7 +52,7 @@ export default async function handler(req, res) {
     const { data: members, error } = await query.limit(1);
 
     if (error) {
-        console.error('QR scan error:', error);
+        console.warn('QR scan error:', error);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
@@ -84,7 +84,7 @@ export default async function handler(req, res) {
     });
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[pages/api/commander/members/scan.js]', err);
+    console.warn('[pages/api/commander/members/scan.js]', err);
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

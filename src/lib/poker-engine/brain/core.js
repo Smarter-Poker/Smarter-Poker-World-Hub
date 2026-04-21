@@ -124,12 +124,12 @@ async function loadHorseIds() {
     try {
         const { data, error } = await sb.from('profiles').select('id').eq('is_horse', true);
         if (error) {
-            console.error('[HorseBrain] Error loading horse IDs:', error.message);
+            console.warn('[HorseBrain] Error loading horse IDs:', error.message);
             return _horseIds || new Set();
         }
         _horseIds = new Set((data || []).map(p => p.id));
         _horseCacheTime = now;
-        console.log(`[HorseBrain] Cached ${_horseIds.size} horse profile IDs`);
+        console.debug(`[HorseBrain] Cached ${_horseIds.size} horse profile IDs`);
         // Load skill evolution
         const { data: driftData } = await sb
             .from('horse_session_stats')
@@ -146,11 +146,11 @@ async function loadHorseIds() {
                     loaded++;
                 }
             }
-            console.log(`[HorseBrain] Loaded previous skill evolution for ${loaded} horses`);
+            console.debug(`[HorseBrain] Loaded previous skill evolution for ${loaded} horses`);
         }
         return _horseIds;
     } catch (err) {
-        console.error('[HorseBrain] Cache load failed:', err.message);
+        console.warn('[HorseBrain] Cache load failed:', err.message);
         return _horseIds || new Set();
     }
 }
@@ -221,7 +221,7 @@ async function getGTOModule() {
             const raw = await import('../../../content-engine/services/HorsePokerGTO.js');
             _gtoModule = resolveESM(raw);
         } catch (err) {
-            console.error('[HorseBrain] Failed to load HorsePokerGTO:', err.message);
+            console.warn('[HorseBrain] Failed to load HorsePokerGTO:', err.message);
         }
     }
     return _gtoModule;
@@ -233,7 +233,7 @@ async function getPersonalityModule() {
             const raw = await import('../../../content-engine/services/HorsePokerPersonality.js');
             _personalityModule = resolveESM(raw);
         } catch (err) {
-            console.error('[HorseBrain] Failed to load HorsePokerPersonality:', err.message);
+            console.warn('[HorseBrain] Failed to load HorsePokerPersonality:', err.message);
         }
     }
     return _personalityModule;
@@ -245,7 +245,7 @@ async function getAdvancedModule() {
             const raw = await import('../../../content-engine/services/HorsePokerAdvanced.js');
             _advancedModule = resolveESM(raw);
         } catch (err) {
-            console.error('[HorseBrain] Failed to load HorsePokerAdvanced:', err.message);
+            console.warn('[HorseBrain] Failed to load HorsePokerAdvanced:', err.message);
         }
     }
     return _advancedModule;

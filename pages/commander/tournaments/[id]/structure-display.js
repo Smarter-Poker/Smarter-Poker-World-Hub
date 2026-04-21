@@ -46,7 +46,7 @@ export default function StructureDisplay() {
       ]);
       if (tRes.success) setTournament(tRes.data);
       if (cRes.success) setClockData(cRes.data);
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
     setNow(new Date());
   }, [id]);
 

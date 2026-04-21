@@ -57,7 +57,7 @@ Location: ${horse.location}. Specialty: ${horse.specialty?.replace('_', ' ')}. S
 Bio: ${horse.bio}.
 Style: Authentic poker player aesthetic, highly realistic, professional lighting, sharp focus, looking at camera. Neutral casino or studio background.`;
 
-    console.log(`🎨 Generating avatar for ${horse.name} (${horse.gender})...`);
+    console.debug(`🎨 Generating avatar for ${horse.name} (${horse.gender})...`);
 
     try {
         const response = await grok.images.generate({
@@ -71,7 +71,7 @@ Style: Authentic poker player aesthetic, highly realistic, professional lighting
         const imageUrl = response.data[0].url;
         return imageUrl;
     } catch (error) {
-        console.error(`   Failed to generate for ${horse.name}: ${error.message}`);
+        console.warn(`   Failed to generate for ${horse.name}: ${error.message}`);
         return null;
     }
 }
@@ -107,7 +107,7 @@ async function uploadToSupabase(imageUrl, horseName, profileId) {
 
         return urlData.publicUrl;
     } catch (error) {
-        console.error(`   Upload failed for ${horseName}: ${error.message}`);
+        console.warn(`   Upload failed for ${horseName}: ${error.message}`);
         return null;
     }
 }
@@ -120,7 +120,7 @@ async function updateProfileAvatar(horseId, profileId, avatarUrl) {
         .eq('id', horseId);
 
     if (authorError) {
-        console.error('Failed to update content_authors:', authorError.message);
+        console.warn('Failed to update content_authors:', authorError.message);
         return false;
     }
 
@@ -132,7 +132,7 @@ async function updateProfileAvatar(horseId, profileId, avatarUrl) {
             .eq('id', profileId);
 
         if (profileError) {
-            console.error('Failed to update profiles:', profileError.message);
+            console.warn('Failed to update profiles:', profileError.message);
             // We still consider it a success if content_authors was updated
         }
     }
@@ -141,8 +141,8 @@ async function updateProfileAvatar(horseId, profileId, avatarUrl) {
 }
 
 async function main() {
-    console.log('\n🖼️ HORSE AVATAR GENERATOR');
-    console.log('═'.repeat(50));
+    console.debug('\n🖼️ HORSE AVATAR GENERATOR');
+    console.debug('═'.repeat(50));
 
     // Get specific horses with issues
     const targetNames = [
@@ -161,11 +161,11 @@ async function main() {
         .in('name', targetNames);
 
     if (!horses?.length) {
-        console.log('No horses found');
+        console.debug('No horses found');
         return;
     }
 
-    console.log(`Found ${horses.length} horses to process\n`);
+    console.debug(`Found ${horses.length} horses to process\n`);
 
     let success = 0;
     let failed = 0;
@@ -177,7 +177,7 @@ async function main() {
     for (let i = 0; i < horses.length; i += BATCH_SIZE) {
         const batch = horses.slice(i, i + BATCH_SIZE);
 
-        console.log(`\nProcessing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(horses.length / BATCH_SIZE)}...`);
+        console.debug(`\nProcessing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(horses.length / BATCH_SIZE)}...`);
 
         for (const horse of batch) {
             try {
@@ -198,15 +198,15 @@ async function main() {
                 // Update profile
                 const updated = await updateProfileAvatar(horse.id, horse.profile_id, publicUrl);
                 if (updated) {
-                    console.log(`✅ ${horse.name}: Avatar set!`);
+                    console.debug(`✅ ${horse.name}: Avatar set!`);
                     success++;
                 } else {
-                    console.log(`❌ ${horse.name}: Profile update failed`);
+                    console.debug(`❌ ${horse.name}: Profile update failed`);
                     failed++;
                 }
 
             } catch (error) {
-                console.error(`❌ ${horse.name}: ${error.message}`);
+                console.warn(`❌ ${horse.name}: ${error.message}`);
                 failed++;
             }
 
@@ -216,13 +216,13 @@ async function main() {
 
         // Delay between batches
         if (i + BATCH_SIZE < horses.length) {
-            console.log(`   Waiting ${DELAY_BETWEEN_BATCHES / 1000}s before next batch...`);
+            console.debug(`   Waiting ${DELAY_BETWEEN_BATCHES / 1000}s before next batch...`);
             await new Promise(r => setTimeout(r, DELAY_BETWEEN_BATCHES));
         }
     }
 
-    console.log('\n' + '═'.repeat(50));
-    console.log(`COMPLETE: ${success} success, ${failed} failed`);
+    console.debug('\n' + '═'.repeat(50));
+    console.debug(`COMPLETE: ${success} success, ${failed} failed`);
 }
 
-main().catch(console.error);
+main().catch(console.warn);

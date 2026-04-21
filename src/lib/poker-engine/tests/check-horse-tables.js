@@ -8,7 +8,7 @@ const sb = createClient(
 );
 
 async function run() {
-    console.log('Checking horse tables on production Supabase...');
+    console.debug('Checking horse tables on production Supabase...');
 
     // Check which tables exist
     const tables = ['horse_session_stats', 'horse_opponent_reads', 'horse_hand_history', 'horse_threat_intel', 'horse_table_presence'];
@@ -16,9 +16,9 @@ async function run() {
     for (const table of tables) {
         const { data, error } = await sb.from(table).select('*').limit(1);
         if (error) {
-            console.log(`❌ ${table}: ${error.message}`);
+            console.debug(`❌ ${table}: ${error.message}`);
         } else {
-            console.log(`✅ ${table}: EXISTS (${data.length} rows sampled)`);
+            console.debug(`✅ ${table}: EXISTS (${data.length} rows sampled)`);
         }
     }
 
@@ -30,10 +30,10 @@ async function run() {
         .limit(5);
 
     if (horseErr) {
-        console.log(`❌ profiles.is_horse: ${horseErr.message}`);
+        console.debug(`❌ profiles.is_horse: ${horseErr.message}`);
     } else {
-        console.log(`✅ profiles.is_horse: ${horseCheck.length} horses found`);
-        horseCheck.forEach(h => console.log(`   🐴 ${h.alias || h.id.substring(0, 8)}`));
+        console.debug(`✅ profiles.is_horse: ${horseCheck.length} horses found`);
+        horseCheck.forEach(h => console.debug(`   🐴 ${h.alias || h.id.substring(0, 8)}`));
     }
 
     // Check memory_charts_gold (PioSolver)
@@ -43,9 +43,9 @@ async function run() {
         .limit(1);
 
     if (gtoErr) {
-        console.log(`❌ memory_charts_gold (PioSolver): ${gtoErr.message}`);
+        console.debug(`❌ memory_charts_gold (PioSolver): ${gtoErr.message}`);
     } else {
-        console.log(`✅ memory_charts_gold (PioSolver): EXISTS (has data: ${(gtoData || []).length > 0})`);
+        console.debug(`✅ memory_charts_gold (PioSolver): EXISTS (has data: ${(gtoData || []).length > 0})`);
     }
 
     // Check solved_spots_gold (PioSolver postflop)
@@ -55,10 +55,10 @@ async function run() {
         .limit(1);
 
     if (solvedErr) {
-        console.log(`❌ solved_spots_gold (PioSolver): ${solvedErr.message}`);
+        console.debug(`❌ solved_spots_gold (PioSolver): ${solvedErr.message}`);
     } else {
-        console.log(`✅ solved_spots_gold (PioSolver): EXISTS (has data: ${(solvedData || []).length > 0})`);
+        console.debug(`✅ solved_spots_gold (PioSolver): EXISTS (has data: ${(solvedData || []).length > 0})`);
     }
 }
 
-run().catch(e => console.error('FATAL:', e.message));
+run().catch(e => console.warn('FATAL:', e.message));

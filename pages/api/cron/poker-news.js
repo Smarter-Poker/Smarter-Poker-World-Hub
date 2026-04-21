@@ -116,7 +116,7 @@ async function fetchLatestNews() {
 
             allArticles.push(...articles);
         } catch (error) {
-            console.error(`   Error fetching ${source.name}: ${error.message}`);
+            console.warn(`   Error fetching ${source.name}: ${error.message}`);
         }
     }
 
@@ -178,7 +178,7 @@ async function saveToNewsArchive(article) {
         .maybeSingle();
 
     if (error || !newsRecord) {
-        console.error(`   Archive error: ${error?.message || 'No data returned'}`);
+        console.warn(`   Archive error: ${error?.message || 'No data returned'}`);
         return null;
     }
 
@@ -288,7 +288,7 @@ ${article.summary}
         return { post_id: post?.id || 'created', method: 'rpc', has_image: !!article.imageUrl, news_id: newsId };
 
     } catch (error) {
-        console.error(`   Post error: ${error.message}`);
+        console.warn(`   Post error: ${error.message}`);
         return null;
     }
 }
@@ -370,7 +370,7 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('Cron error:', error);
+          console.warn('Cron error:', error);
           return res.status(500).json({
               success: false,
               error: error.message
@@ -379,7 +379,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

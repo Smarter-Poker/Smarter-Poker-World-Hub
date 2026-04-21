@@ -151,10 +151,7 @@ export default async function handler(req, res) {
               diamonds_spent: diamondCost,
               payment_method: 'diamonds',
               status: 'completed'
-          }).catch(() => {
-              // Non-critical — table may not have these columns yet
-              console.error('[DiamondPurchase] merchandise_orders insert skipped');
-          });
+          }).catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
 
 
           return res.status(200).json({
@@ -168,13 +165,13 @@ export default async function handler(req, res) {
           });
 
       } catch (err) {
-          console.error('[DiamondPurchase] Error:', err);
+          console.warn('[DiamondPurchase] Error:', err);
           return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

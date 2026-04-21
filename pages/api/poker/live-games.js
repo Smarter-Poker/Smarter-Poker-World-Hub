@@ -83,7 +83,7 @@ try {
           .maybeSingle();
 
         if (error) {
-          console.error('Error creating live game:', error);
+          console.warn('Error creating live game:', error);
           return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
@@ -121,7 +121,7 @@ try {
           const { data, error } = await query;
 
           if (error) {
-            console.error('Error fetching live games:', error);
+            console.warn('Error fetching live games:', error);
             return res.status(500).json({ success: false, error: 'Internal server error' });
           }
 
@@ -145,7 +145,7 @@ try {
           const { data, error } = await query;
 
           if (error) {
-            console.error('Error fetching active games:', error);
+            console.warn('Error fetching active games:', error);
             return res.status(500).json({ success: false, error: 'Internal server error' });
           }
 
@@ -187,7 +187,7 @@ try {
           .select();
 
         if (error) {
-          console.error('Error deleting live game:', error);
+          console.warn('Error deleting live game:', error);
           return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
@@ -200,13 +200,13 @@ try {
 
       return res.status(405).json({ success: false, error: `Method ${req.method} not allowed` });
     } catch (err) {
-      console.error('Live games API error:', err);
+      console.warn('Live games API error:', err);
       return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

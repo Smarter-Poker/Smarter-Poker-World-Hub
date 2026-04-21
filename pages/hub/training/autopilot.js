@@ -216,7 +216,7 @@ export default function AutopilotPage() {
         setWeakSpots(spots);
       }
     } catch (e) {
-      console.error('[Autopilot] Fetch error:', e);
+      console.warn('[Autopilot] Fetch error:', e);
       setFetchError('Unable to load autopilot data. Please try again.');
     }
     setLoading(false);
@@ -490,7 +490,7 @@ export default function AutopilotPage() {
                       if (res.ok) alert('Autopilot results shared to your feed!');
                       else alert('Share failed — please try again.');
                     } catch (e) {
-                      console.error('Share error:', e);
+                      console.warn('Share error:', e);
                       alert('Share failed — please try again.');
                     } finally {
                       setSharing(false);

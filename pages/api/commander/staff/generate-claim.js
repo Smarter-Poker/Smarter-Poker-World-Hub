@@ -95,7 +95,7 @@ export default async function handler(req, res) {
               .maybeSingle();
 
           if (insertErr) {
-              console.error('Generate claim error:', insertErr);
+              console.warn('Generate claim error:', insertErr);
               return res.status(500).json({ success: false, error: 'Failed to generate claim code' });
           }
 
@@ -119,13 +119,13 @@ export default async function handler(req, res) {
 
           // Execute audit log after returning response if possible, or just before
       } catch (err) {
-          console.error('Generate claim code error:', err);
+          console.warn('Generate claim code error:', err);
           return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

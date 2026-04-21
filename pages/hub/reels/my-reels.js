@@ -43,7 +43,7 @@ export default function MyReels() {
             setReels(data || []);
             setLoading(false);
         } catch (error) {
-            console.error('Error loading reels:', error);
+            console.warn('Error loading reels:', error);
             setLoading(false);
         }
     };

@@ -32,7 +32,7 @@ export default function ClaimPage() {
                     return;
                 }
             } catch (e) {
-                console.error('Auth check error:', e);
+                console.warn('Auth check error:', e);
             }
             setLoading(false);
         };

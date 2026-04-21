@@ -40,13 +40,13 @@ export default async function handler(req, res) {
 
     return res.json({ success: true, data: { logs: data, total: count, page: Number(page), limit: Number(limit) } });
     } catch (err) {
-      console.error('[pages/api/commander/admin/audit-logs.js]', err);
+      console.warn('[pages/api/commander/admin/audit-logs.js]', err);
       return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

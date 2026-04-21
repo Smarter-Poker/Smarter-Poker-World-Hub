@@ -119,9 +119,7 @@ function loadPosthog() {
                 if (typeof window.posthog?.[method] === 'function') {
                     window.posthog[method](...args);
                 }
-            } catch (_err) {
-                // swallow
-            }
+            } catch (_err) { console.warn('[App] Handled exception:', _err?.message || _err); }
         }
         _queue.length = 0;
         resolve(window.posthog);

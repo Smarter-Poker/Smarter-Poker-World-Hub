@@ -52,7 +52,7 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, disabled }) 
                 setGifError(data.error || 'Failed to load GIFs');
             }
         } catch (e) {
-            console.error('GIF load error:', e);
+            console.warn('GIF load error:', e);
             setGifError('Unable to connect to GIF service');
         }
         setLoadingGifs(false);
@@ -77,7 +77,7 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, disabled }) 
                     setGifError(data.error || 'Search failed');
                 }
             } catch (e) {
-                console.error('GIF search error:', e);
+                console.warn('GIF search error:', e);
                 setGifError('Unable to search GIFs');
             }
             setLoadingGifs(false);

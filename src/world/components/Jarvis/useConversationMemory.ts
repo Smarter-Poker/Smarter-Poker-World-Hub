@@ -70,7 +70,7 @@ export function useConversationMemory() {
                                 }
                             }
                         } catch (e) {
-                            console.error('Failed to parse local storage:', e);
+                            console.warn('Failed to parse local storage:', e);
                         }
                     }
                     setLoading(false);
@@ -88,7 +88,7 @@ export function useConversationMemory() {
                     .limit(20);
 
                 if (error) {
-                    console.error('Error loading conversations:', error);
+                    console.warn('Error loading conversations:', error);
                 } else if (data) {
                     const loaded: ConversationSession[] = (data as any[]).map((row: any) => ({
                         id: row.id,
@@ -108,7 +108,7 @@ export function useConversationMemory() {
                     }
                 }
             } catch (err) {
-                console.error('Failed to load sessions:', err);
+                console.warn('Failed to load sessions:', err);
             } finally {
                 setLoading(false);
             }
@@ -141,7 +141,7 @@ export function useConversationMemory() {
                 updated_at: new Date().toISOString()
             }, { onConflict: 'id' });
         } catch (err) {
-            console.error('Failed to save conversation:', err);
+            console.warn('Failed to save conversation:', err);
         }
     }, [userId, sessions]);
 

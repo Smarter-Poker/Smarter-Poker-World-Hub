@@ -15,7 +15,7 @@ async function fireConfetti(opts) {
     try {
         if (!_confetti) { const m = await import('canvas-confetti'); _confetti = m.default || m; }
         _confetti(opts);
-    } catch (e) { /* confetti is cosmetic — swallow import/execution errors */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 }
 import { SoundEngine, EffectsEngine, LEVELS, MASTERY_THRESHOLD, GAME_COST } from '../../src/games/GameEngine';
 import { getScenariosByLevel, getRandomScenario, getLevelConfig, RANKS, getHandName, MIXED_SCENARIOS, LEVEL_1_SCENARIOS, LEVEL_2_SCENARIOS, LEVEL_3_SCENARIOS, LEVEL_4_SCENARIOS, LEVEL_5_SCENARIOS, LEVEL_6_SCENARIOS, LEVEL_7_SCENARIOS, LEVEL_8_SCENARIOS, LEVEL_9_SCENARIOS, LEVEL_10_SCENARIOS } from '../../src/games/ScenarioDatabase';
@@ -261,7 +261,7 @@ export default function MemoryGamesPage() {
             try {
                 await updateMemoryGamesPreferences(userId, { [key]: value });
             } catch (error) {
-                console.error('Failed to save preference:', error);
+                console.warn('Failed to save preference:', error);
             }
         }
     }, [preferences]);
@@ -330,7 +330,7 @@ export default function MemoryGamesPage() {
                     }
                 }
             } catch (e) {
-                console.error('[MemoryGames] Failed to initialize DiamondEngine:', e);
+                console.warn('[MemoryGames] Failed to initialize DiamondEngine:', e);
                 // Fallback to localStorage
                 await DiamondEngine.init(null);
                 const balance = await DiamondEngine.getBalance();
@@ -406,7 +406,7 @@ export default function MemoryGamesPage() {
                 }
             }
         } catch (e) {
-            console.error('[MemoryGames] Balance check failed:', e);
+            console.warn('[MemoryGames] Balance check failed:', e);
         }
         const result = await DiamondEngine.deduct(GAME_COST);
         if (!result.success) {
@@ -460,12 +460,12 @@ export default function MemoryGamesPage() {
                 if (result.success && result.scenario) {
                     scenario = result.scenario;
                 } else {
-                    console.error('[MemoryGames] AI generation failed:', result.error);
+                    console.warn('[MemoryGames] AI generation failed:', result.error);
                     // Fallback to static scenarios
                     scenario = null;
                 }
             } catch (error) {
-                console.error('[MemoryGames] AI generation error:', error);
+                console.warn('[MemoryGames] AI generation error:', error);
                 // Fallback to static scenarios
                 scenario = null;
             } finally {
@@ -849,7 +849,7 @@ export default function MemoryGamesPage() {
                 loading: false
             }));
         } catch (error) {
-            console.error('[MemoryGames] Explain error:', error);
+            console.warn('[MemoryGames] Explain error:', error);
             setExplainModal(prev => ({
                 ...prev,
                 explanation: 'Failed to get explanation. Please try again.',
@@ -916,7 +916,7 @@ export default function MemoryGamesPage() {
                 analysis: result.analysis
             });
         } catch (error) {
-            console.error('[MemoryGames] Coach analysis error:', error);
+            console.warn('[MemoryGames] Coach analysis error:', error);
             setCoachAnalysis({
                 show: true,
                 loading: false,
@@ -944,7 +944,7 @@ export default function MemoryGamesPage() {
                 setWeakSpots(result.weakSpots);
             }
         } catch (error) {
-            console.error('[MemoryGames] Fetch weak spots error:', error);
+            console.warn('[MemoryGames] Fetch weak spots error:', error);
         }
     };
 
@@ -975,7 +975,7 @@ export default function MemoryGamesPage() {
                 setCoachAnalysis({ show: false, loading: false, analysis: null });
             }
         } catch (error) {
-            console.error('[MemoryGames] Adaptive training error:', error);
+            console.warn('[MemoryGames] Adaptive training error:', error);
         } finally {
             setAdaptiveLoading(false);
         }
@@ -997,7 +997,7 @@ export default function MemoryGamesPage() {
             }
         } catch (error) {
             setAdaptiveLoading(false);
-            console.error('[MemoryGames] Lobby suggestions error:', error);
+            console.warn('[MemoryGames] Lobby suggestions error:', error);
         }
     };
 
@@ -1034,7 +1034,7 @@ export default function MemoryGamesPage() {
                 }
             }
         } catch (error) {
-            console.error('[MemoryGames] Failed to load leaderboard:', error);
+            console.warn('[MemoryGames] Failed to load leaderboard:', error);
         } finally {
             setLeaderboardLoading(false);
         }
@@ -1083,7 +1083,7 @@ export default function MemoryGamesPage() {
                 }
             }
         } catch (error) {
-            console.error('[MemoryGames] Failed to load daily challenge:', error);
+            console.warn('[MemoryGames] Failed to load daily challenge:', error);
         } finally {
             setChallengeLoading(false);
         }
@@ -1115,7 +1115,7 @@ export default function MemoryGamesPage() {
 
             return result;
         } catch (error) {
-            console.error('[MemoryGames] Failed to submit score:', error);
+            console.warn('[MemoryGames] Failed to submit score:', error);
         }
     }, [userId]);
 
@@ -1171,7 +1171,7 @@ export default function MemoryGamesPage() {
                 }
             }
         } catch (error) {
-            console.error('[MemoryGames] VIP upgrade error:', error);
+            console.warn('[MemoryGames] VIP upgrade error:', error);
             alert('Something went wrong. Please try again later.');
         }
     }, [userId]);

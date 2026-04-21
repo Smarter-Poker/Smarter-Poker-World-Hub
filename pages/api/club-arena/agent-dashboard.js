@@ -187,13 +187,13 @@ export default async function handler(req, res) {
         recentTransactions: recentTransactions || [],
       });
     } catch (err) {
-      console.error('[agent-dashboard]', err);
+      console.warn('[agent-dashboard]', err);
       return res.status(500).json({ success: false, error: 'Dashboard load failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

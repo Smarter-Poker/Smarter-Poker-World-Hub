@@ -329,7 +329,7 @@ export async function createLedgerEntry(
     const segment = categoryToSegment(entry.category || 'poker_cash');
     await recalculateSegmentBalance(userId, segment);
   } catch (segError) {
-    console.error('[Bankroll] Failed to update segment balance:', segError);
+    console.warn('[Bankroll] Failed to update segment balance:', segError);
   }
 
   return data;
@@ -393,7 +393,7 @@ export async function updateLedgerEntry(
     const segment = categoryToSegment(data.category || updates.category || 'poker_cash');
     await recalculateSegmentBalance(userId, segment);
   } catch (segError) {
-    console.error('[Bankroll] Failed to update segment balance:', segError);
+    console.warn('[Bankroll] Failed to update segment balance:', segError);
   }
 
   return data;
@@ -1138,7 +1138,7 @@ export async function adjustBankroll(
     .maybeSingle();
 
   if (fetchErr) {
-    console.error('[adjustBankroll] Failed to fetch segment:', fetchErr);
+    console.warn('[adjustBankroll] Failed to fetch segment:', fetchErr);
     throw new Error('Failed to read current balance');
   }
 
@@ -1154,7 +1154,7 @@ export async function adjustBankroll(
     .eq('segment_type', 'poker');
 
   if (updateErr) {
-    console.error('[adjustBankroll] Failed to update segment:', updateErr);
+    console.warn('[adjustBankroll] Failed to update segment:', updateErr);
     throw new Error('Failed to update balance');
   }
 
@@ -1173,7 +1173,7 @@ export async function adjustBankroll(
   });
 
   if (insertErr) {
-    console.error('[adjustBankroll] Failed to insert ledger entry:', insertErr);
+    console.warn('[adjustBankroll] Failed to insert ledger entry:', insertErr);
     // Try to rollback the segment update
     await supabase
       .from('bankroll_segments')

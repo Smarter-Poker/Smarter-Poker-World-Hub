@@ -52,7 +52,7 @@ export default async function handler(req, res) {
               .select('id');
 
           if (postError) {
-              console.error('Post delete error:', postError);
+              console.warn('Post delete error:', postError);
           }
 
           // Delete image stories
@@ -64,7 +64,7 @@ export default async function handler(req, res) {
               .select('id');
 
           if (storyError) {
-              console.error('Story delete error:', storyError);
+              console.warn('Story delete error:', storyError);
           }
 
           const result = {
@@ -77,13 +77,13 @@ export default async function handler(req, res) {
           return res.status(200).json(result);
 
       } catch (error) {
-          console.error('Cleanup error:', error);
+          console.warn('Cleanup error:', error);
           return res.status(500).json({ success: false, error: error.message });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

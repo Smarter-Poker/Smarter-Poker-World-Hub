@@ -79,7 +79,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -144,7 +144,7 @@ async function handleGet(req, res, venueId, user, manager) {
         });
 
     } catch (error) {
-        console.error('Venue manage GET error:', error);
+        console.warn('Venue manage GET error:', error);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }
@@ -202,7 +202,7 @@ async function handlePatch(req, res, venueId, user, manager) {
             .maybeSingle();
 
         if (updateError) {
-            console.error('Error updating venue:', updateError);
+            console.warn('Error updating venue:', updateError);
             return res.status(500).json({ success: false, error: 'Failed to update venue' });
         }
 
@@ -226,7 +226,7 @@ async function handlePatch(req, res, venueId, user, manager) {
 
     } catch (error) {
         try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('Venue manage PATCH error:', error);
+        console.warn('Venue manage PATCH error:', error);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

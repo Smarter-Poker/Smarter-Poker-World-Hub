@@ -54,7 +54,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -100,7 +100,7 @@ async function handleGet(req, res, requestId) {
       data: { request }
     });
   } catch (error) {
-    console.error('Commander service GET error:', error);
+    console.warn('Commander service GET error:', error);
     return res.status(500).json({
       success: false,
       error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }
@@ -197,7 +197,7 @@ async function handlePatch(req, res, requestId) {
       .maybeSingle();
 
     if (updateError) {
-      console.error('Commander service PATCH error:', updateError);
+      console.warn('Commander service PATCH error:', updateError);
       return res.status(500).json({
         success: false,
         error: { code: 'DATABASE_ERROR', message: 'Failed to update service request' }
@@ -210,7 +210,7 @@ async function handlePatch(req, res, requestId) {
     });
   } catch (error) {
       try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('Commander service PATCH error:', error);
+    console.warn('Commander service PATCH error:', error);
     return res.status(500).json({
       success: false,
       error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }

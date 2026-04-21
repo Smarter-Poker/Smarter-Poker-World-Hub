@@ -93,7 +93,7 @@ export default function TokeTrackerLanding() {
             settings.tokeTracker = newPrefs;
             await supabase.from('profiles').update({ settings }).eq('id', userId);
         } catch (err) {
-            console.error('[TokeTracker] Failed to save preference:', err);
+            console.warn('[TokeTracker] Failed to save preference:', err);
         }
     }, [userId]);
 

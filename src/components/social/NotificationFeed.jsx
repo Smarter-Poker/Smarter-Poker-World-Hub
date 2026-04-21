@@ -123,7 +123,7 @@ export default function NotificationFeed({ onClose, onNavigate }) {
             // Emit count for badge
             busEmit.notificationCountUpdated?.(notifs.length);
         } catch (err) {
-            console.error('Notification load error:', err);
+            console.warn('Notification load error:', err);
         }
         setLoading(false);
     }, []);
@@ -171,7 +171,7 @@ export default function NotificationFeed({ onClose, onNavigate }) {
                                             ));
                                         }
                                     })
-                                    .catch(() => { /* non-critical */ });
+                                    .catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
                             }
                         }
                     }

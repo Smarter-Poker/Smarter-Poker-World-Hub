@@ -131,7 +131,7 @@ export default function BankrollCoachPage() {
         setSessions(data.sessions);
       }
     } catch (e) {
-      console.error('[BankrollCoach] Fetch error:', e);
+      console.warn('[BankrollCoach] Fetch error:', e);
       setFetchError('Unable to load session data. Please try again.');
     }
     setLoading(false);

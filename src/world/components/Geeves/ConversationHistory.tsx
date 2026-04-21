@@ -39,7 +39,7 @@ export function ConversationHistory({ onSelect, onNewConversation }: Conversatio
                 setConversations(data.conversations || []);
             }
         } catch (error) {
-            console.error('Failed to load conversations:', error);
+            console.warn('Failed to load conversations:', error);
         } finally {
             setIsLoading(false);
         }

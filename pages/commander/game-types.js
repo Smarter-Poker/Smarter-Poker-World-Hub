@@ -66,7 +66,7 @@ export default function GameTypesPage() {
     try {
 const json = await commanderFetchJSON('/api/commander/game-types?include_inactive=true');
       if (json.success) setGameTypes(json.data || []);
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
     finally { setLoading(false); }
   }, [venueId]);
 
@@ -145,7 +145,7 @@ const res = await commanderFetch(`/api/commander/game-types/${gt.id}`, {
         fetchGameTypes();
         broadcastChange('games');
       }
-    } catch (err) { console.error(err); setError('Action failed. Please check your connection and try again.'); }
+    } catch (err) { console.warn(err); setError('Action failed. Please check your connection and try again.'); }
   }
 
   async function handleDelete(gt) {
@@ -157,7 +157,7 @@ const res = await commanderFetch(`/api/commander/game-types/${gt.id}?venue_id=${
         fetchGameTypes();
         broadcastChange('games');
       }
-    } catch (err) { console.error(err); setError('Action failed. Please check your connection and try again.'); }
+    } catch (err) { console.warn(err); setError('Action failed. Please check your connection and try again.'); }
   }
 
   const canManage = staff?.role === 'owner' || staff?.role === 'manager';

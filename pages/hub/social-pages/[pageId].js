@@ -193,7 +193,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) setComments(json.data || []);
-        } catch (e) { console.error("[[pageId].js]", e); }
+        } catch (e) { console.warn("[[pageId].js]", e); }
         setLoadingComments(false);
         setShowComments(true);
     };
@@ -213,7 +213,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                 onEdit(post.id, editContent.trim());
                 setEditing(false);
             }
-        } catch (e) { console.error(e); }
+        } catch (e) { console.warn(e); }
     };
 
     const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/hub/social-pages/${page?.slug || page?.id}` : '';
@@ -583,7 +583,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                         if (!shareRes.ok) throw new Error('Share failed');
                                         setShowShareModal(false);
                                         busEmit.dataMutated('social');
-                                    } catch (e) { console.error('Share to feed error:', e); setShowShareModal(false); }
+                                    } catch (e) { console.warn('Share to feed error:', e); setShowShareModal(false); }
                                 }} style={{
                                     display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 8,
                                     border: `1px solid ${C.border}`, background: '#E7F3FF', cursor: 'pointer', fontSize: 14, fontWeight: 600, color: C.blue, fontFamily: 'inherit', width: '100%', textAlign: 'left',
@@ -1068,7 +1068,7 @@ export default function SocialPageDetail() {
                 }
             }
         } catch (e) {
-            if (e.name !== 'AbortError') console.error('Failed to fetch page:', e);
+            if (e.name !== 'AbortError') console.warn('Failed to fetch page:', e);
         }
         setLoading(false);
     }, [pageId, user]);
@@ -1082,7 +1082,7 @@ export default function SocialPageDetail() {
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) setPosts(json.data || []);
-        } catch (e) { if (e.name !== 'AbortError') console.error("[[pageId].js]", e); }
+        } catch (e) { if (e.name !== 'AbortError') console.warn("[[pageId].js]", e); }
     }, [page, user]);
 
     const fetchFollowers = useCallback(async () => {
@@ -1093,7 +1093,7 @@ export default function SocialPageDetail() {
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) setFollowers(json.data || []);
-        } catch (e) { console.error("[[pageId].js]", e); }
+        } catch (e) { console.warn("[[pageId].js]", e); }
     }, [page, user]);
 
     useEffect(() => {
@@ -1124,7 +1124,7 @@ export default function SocialPageDetail() {
                     setAvgRating(Math.round((sum / revs.length) * 10) / 10);
                 } else setAvgRating(0);
             }
-        } catch (e) { console.error('Reviews fetch error:', e); }
+        } catch (e) { console.warn('Reviews fetch error:', e); }
         setReviewsLoading(false);
     }, [page]);
     useEffect(() => { if (page && activeTab === 'reviews') fetchReviews(); }, [fetchReviews, page, activeTab]);
@@ -1139,7 +1139,7 @@ export default function SocialPageDetail() {
             const res = await fetch(`/api/social/pages/games?page_id=${page.id}`);
             const json = await res.json();
             if (json.success) setGames(json.data || []);
-        } catch (e) { console.error('Games fetch error:', e); }
+        } catch (e) { console.warn('Games fetch error:', e); }
         setGamesLoading(false);
     }, [page]);
     useEffect(() => { if (page && activeTab === 'games') fetchGames(); }, [fetchGames, page, activeTab]);
@@ -1187,7 +1187,7 @@ export default function SocialPageDetail() {
                 throw new Error(json.error || 'Review submission failed');
             }
         } catch (e) {
-            console.error('Review submit error:', e);
+            console.warn('Review submit error:', e);
             toast.error('Failed to submit review. Please try again.');
         }
         setSubmittingReview(false);
@@ -1209,7 +1209,7 @@ export default function SocialPageDetail() {
                     setRecentTournaments(json.recent || []);
                 }
             }
-        } catch (e) { console.error('Fetch tournaments error:', e); }
+        } catch (e) { console.warn('Fetch tournaments error:', e); }
         setTournamentsLoading(false);
     }, [page?.id]);
     useEffect(() => { if (page && activeTab === 'schedule') fetchTournaments(); }, [fetchTournaments, page, activeTab]);
@@ -1248,7 +1248,7 @@ export default function SocialPageDetail() {
                 setVenueCheckins((checkinsData.checkins || []).slice(0, 5));
                 setCheckinCount(checkinsData.count || 0);
             }
-        } catch (e) { console.error('Venue checkins fetch error:', e); }
+        } catch (e) { console.warn('Venue checkins fetch error:', e); }
     }, [page]);
     useEffect(() => { if (page && activeTab === 'posts') fetchVenueCheckins(); }, [fetchVenueCheckins, page, activeTab]);
 
@@ -1271,7 +1271,7 @@ export default function SocialPageDetail() {
                 toast.error(json.error || 'Action failed');
             }
         } catch (e) {
-            console.error('Seat action error:', e);
+            console.warn('Seat action error:', e);
             toast.error('Failed to join. Please try again.');
         }
         setSeatAction(null);
@@ -1294,7 +1294,7 @@ export default function SocialPageDetail() {
             toast.success('Report submitted. Thank you.');
             setShowReportModal(false); setReportReason(''); setReportDetails('');
         } catch (e) {
-            console.error('Report error:', e);
+            console.warn('Report error:', e);
             toast.error('Failed to submit report. Please try again.');
         }
         setSubmittingReport(false);
@@ -1315,7 +1315,7 @@ export default function SocialPageDetail() {
             });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
         } catch (e) {
-            console.error('Notification toggle error:', e);
+            console.warn('Notification toggle error:', e);
             setNotifyEnabled(!newVal); // rollback on ANY error
             toast.error('Failed to update notification preference');
         }
@@ -1393,7 +1393,7 @@ export default function SocialPageDetail() {
                             setHasMorePosts(false);
                         }
                     })
-                    .catch(e => console.error(e))
+                    .catch(e => console.warn(e))
                     .finally(() => { setLoadingMore(false); loadMoreFetchRef.current = false; });
             }
         }, { rootMargin: '200px' });
@@ -1448,7 +1448,7 @@ export default function SocialPageDetail() {
                 }
             }
         } catch (e) {
-            console.error("[[pageId].js]", e);
+            console.warn("[[pageId].js]", e);
             // Rollback optimistic update
             setIsFollowing(!newState);
             setPage(prev => prev ? { ...prev, follower_count: prevCount } : prev);
@@ -1491,7 +1491,7 @@ export default function SocialPageDetail() {
                 return true;
             }
         } catch (e) {
-            console.error("[[pageId].js]", e);
+            console.warn("[[pageId].js]", e);
             toast.error('Post failed — try again');
         }
         setPosting(false);
@@ -1529,7 +1529,7 @@ export default function SocialPageDetail() {
                 detail: { postId, userId: user.id, action: wasLiked ? 'remove' : 'add', reactionType: reactionType || 'like' }
             }));
         } catch (e) {
-            console.error("[[pageId].js]", e);
+            console.warn("[[pageId].js]", e);
             // Rollback optimistic update
             setPosts(prevPosts);
         }
@@ -1550,7 +1550,7 @@ export default function SocialPageDetail() {
             // Phase 4: Broadcast real-time removal
             eventBus.dispatchEvent(new CustomEvent(EventType.SOCIAL_POST_DELETED, { detail: { id: postId } }));
         } catch (e) {
-            console.error(e);
+            console.warn(e);
             toast.error('Failed to delete post');
             setPosts(prevPosts);
         }
@@ -1578,7 +1578,7 @@ export default function SocialPageDetail() {
             }));
             
         } catch (e) {
-            console.error('Delete comment error:', e);
+            console.warn('Delete comment error:', e);
             toast.error('Failed to delete comment');
         }
     };
@@ -1606,7 +1606,7 @@ export default function SocialPageDetail() {
             busEmit.dataMutated('social-pages');
             toast.success(pinned ? 'Post pinned' : 'Post unpinned');
         } catch (e) {
-            console.error(e);
+            console.warn(e);
             toast.error('Failed to update pin');
             setPosts(prevPosts); // Rollback
         }
@@ -1641,7 +1641,7 @@ export default function SocialPageDetail() {
             });
             busEmit.dataMutated('friends');
         } catch (e) {
-            console.error('Follow user error:', e);
+            console.warn('Follow user error:', e);
             // Rollback optimistic UI on failure
             setFollowingUsers(prev => {
                 const next = new Set(prev);
@@ -1748,7 +1748,7 @@ export default function SocialPageDetail() {
                                     setPage(prev => ({ ...prev, cover_url: publicUrl }));
                                     toast.success('Cover photo updated!');
                                     busEmit.dataMutated('social-pages');
-                                } catch (err) { console.error(err); toast.error('Cover upload failed'); }
+                                } catch (err) { console.warn(err); toast.error('Cover upload failed'); }
                                 setUploadingCover(false);
                                 e.target.value = '';
                             }} />
@@ -1800,7 +1800,7 @@ export default function SocialPageDetail() {
                                             setPage(prev => ({ ...prev, avatar_url: publicUrl }));
                                             toast.success('Avatar updated!');
                                             busEmit.dataMutated('social-pages');
-                                        } catch (err) { console.error(err); toast.error('Avatar upload failed'); }
+                                        } catch (err) { console.warn(err); toast.error('Avatar upload failed'); }
                                         setUploadingAvatar(false);
                                         e.target.value = '';
                                     }} />
@@ -1906,7 +1906,7 @@ export default function SocialPageDetail() {
                                             body: JSON.stringify({ page_id: page.id, notify: !notifyEnabled }),
                                         });
                                         if (res.ok) { setNotifyEnabled(!notifyEnabled); toast.success(notifyEnabled ? 'Notifications off' : 'Notifications on'); }
-                                    } catch (e) { console.error(e); }
+                                    } catch (e) { console.warn(e); }
                                     setTogglingNotify(false);
                                 }} disabled={togglingNotify} title={notifyEnabled ? 'Notifications on' : 'Notifications off'} style={{
                                     padding: '10px 14px', borderRadius: 10, border: `1px solid ${C.border}`,
@@ -2025,7 +2025,7 @@ export default function SocialPageDetail() {
                                                 const followerIds = new Set(followers.map(f => f.user_id || f.profile?.id));
                                                 setInviteFriends(json.data.friends.filter(f => !followerIds.has(f.id)));
                                             }
-                                        } catch (e) { console.error(e); }
+                                        } catch (e) { console.warn(e); }
                                         setInviteLoading(false);
                                     }
                                 }} style={{
@@ -3213,7 +3213,7 @@ export default function SocialPageDetail() {
                                                     const filtered = json.data.friends.filter(f => !followerIds.has(f.id));
                                                     setInviteFriends(filtered);
                                                 }
-                                            } catch (e) { console.error('Failed to load friends:', e); }
+                                            } catch (e) { console.warn('Failed to load friends:', e); }
                                             setInviteLoading(false);
                                         }
                                     }} style={{
@@ -3548,7 +3548,7 @@ export default function SocialPageDetail() {
                                     toast.error('Check-in failed');
                                 }
                             } catch (e) {
-                                console.error('[CheckIn] Error:', e);
+                                console.warn('[CheckIn] Error:', e);
                                 setPosts(prev => prev.filter(p => p.id !== tempId));
                                 toast.error('Check-in failed');
                             }

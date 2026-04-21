@@ -149,7 +149,7 @@ export default function MemberDetailPanel({ member, venueName, onClose, onUpdate
             setEditing(false);
             setShowPinModal(false);
         } catch (err) {
-            console.error('Update error:', err);
+            console.warn('Update error:', err);
             setPinError('Network error — try again');
         } finally {
             setPinLoading(false);

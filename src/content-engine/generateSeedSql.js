@@ -95,5 +95,5 @@ const fullSql = sqlHeader + values + sqlFooter;
 const outputPath = join(__dirname, '../../supabase/migrations/013_ghost_fleet_complete.sql');
 writeFileSync(outputPath, fullSql);
 
-console.log(`\n✅ Generated SQL migration at: supabase/migrations/013_ghost_fleet_complete.sql`);
-console.log(`Contains ${personas.personas.length} personas and security policies.`);
+console.debug(`\n✅ Generated SQL migration at: supabase/migrations/013_ghost_fleet_complete.sql`);
+console.debug(`Contains ${personas.personas.length} personas and security policies.`);

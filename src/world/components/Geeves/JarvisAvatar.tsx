@@ -72,7 +72,7 @@ export function GeevesAvatar({ isTyping = false, size = 40 }: GeevesAvatarProps)
                 </>
             )}
 
-            <style jsx>{`
+            <style>{`
                 @keyframes geevesAvatarPulse {
                     0%, 100% { opacity: 0.6; transform: scale(1); }
                     50% { opacity: 1; transform: scale(1.1); }

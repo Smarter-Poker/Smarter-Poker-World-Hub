@@ -306,7 +306,7 @@ export class MapErrorBoundary extends React.Component {
     return { hasError: true, error };
   }
   componentDidCatch(error, info) {
-    console.error('Map rendering error:', error, info);
+    console.warn('Map rendering error:', error, info);
   }
   render() {
     if (this.state.hasError) {
@@ -721,7 +721,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
         };
         checkReady();
       } catch (err) {
-        console.error('Failed to load Leaflet scripts:', err);
+        console.warn('Failed to load Leaflet scripts:', err);
       }
     };
 

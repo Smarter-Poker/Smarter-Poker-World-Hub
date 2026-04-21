@@ -255,12 +255,12 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                     if (json.success && json.url) {
                         uploaded.push({ type: json.type || 'photo', url: json.url });
                     } else {
-                        console.error('[SharedPostCreator] Upload failed:', json.error);
+                        console.warn('[SharedPostCreator] Upload failed:', json.error);
                         setError('Upload failed: ' + (json.error || 'Unknown error'));
                     }
                 }
             } catch (err) {
-                console.error('[SharedPostCreator] Upload error:', err);
+                console.warn('[SharedPostCreator] Upload error:', err);
                 setError('Upload failed: ' + err.message);
                 setUploadProgress(null);
             }
@@ -333,7 +333,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                             });
                         } catch (apiError) {
                             setLinkLoading(false);
-                            console.error('Link preview API error:', apiError);
+                            console.warn('Link preview API error:', apiError);
                             const domain = new URL(detectedUrl).hostname.replace(/^www\./i, '');
                             setLinkPreview({
                                 url: detectedUrl,
@@ -346,7 +346,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         }
                     }
                 } catch (err) {
-                    console.error('Link preview error:', err);
+                    console.warn('Link preview error:', err);
                     setError('Could not load link preview');
                 }
                 setLinkLoading(false);
@@ -377,7 +377,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                             .ilike('username', `%${query}%`)
                             .limit(5);
                         if (data) setMentionResults(data);
-                    } catch (e) { console.error(e); }
+                    } catch (e) { console.warn(e); }
                 }, 200);
             }
         } else {

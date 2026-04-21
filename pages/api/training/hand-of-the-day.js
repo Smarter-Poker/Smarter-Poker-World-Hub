@@ -77,7 +77,7 @@ export default async function handler(req, res) {
                   .maybeSingle();
 
               if (error) {
-                  console.error('[HandOfTheDay] Query error:', error);
+                  console.warn('[HandOfTheDay] Query error:', error);
                   return res.status(500).json({ success: false, error: 'Failed to fetch daily hand' });
               }
 
@@ -177,7 +177,7 @@ export default async function handler(req, res) {
               });
 
           } catch (error) {
-              console.error('[HandOfTheDay] Error:', error.message);
+              console.warn('[HandOfTheDay] Error:', error.message);
               return res.status(500).json({ success: false, error: 'Internal server error' });
           }
 
@@ -213,7 +213,7 @@ export default async function handler(req, res) {
                   });
 
               if (error) {
-                  console.error('[HandOfTheDay] Insert error:', error);
+                  console.warn('[HandOfTheDay] Insert error:', error);
                   // Graceful fallback — table might not exist yet
                   return res.status(200).json({
                       success: true,
@@ -229,7 +229,7 @@ export default async function handler(req, res) {
               });
 
           } catch (error) {
-              console.error('[HandOfTheDay] Error:', error.message);
+              console.warn('[HandOfTheDay] Error:', error.message);
               return res.status(500).json({ success: false, error: 'Internal server error' });
           }
 
@@ -240,7 +240,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

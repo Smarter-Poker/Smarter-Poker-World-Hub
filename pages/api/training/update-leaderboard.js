@@ -146,13 +146,13 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('[UpdateLeaderboard] Error:', error.message);
+          console.warn('[UpdateLeaderboard] Error:', error.message);
           return res.status(500).json({ success: false, error: 'Failed to update leaderboard' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

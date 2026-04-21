@@ -49,11 +49,11 @@ export async function getCachedResponse(endpoint, params) {
             .then(() => { })
             .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); // Fire and forget
 
-        console.log(`[JarvisCache] HIT for ${endpoint}`);
+        console.debug(`[JarvisCache] HIT for ${endpoint}`);
         return data.response_data;
 
     } catch (error) {
-        console.error('[JarvisCache] Get error:', error);
+        console.warn('[JarvisCache] Get error:', error);
         return null;
     }
 }
@@ -80,10 +80,10 @@ export async function setCachedResponse(endpoint, params, response, ttlDays = 30
                 expires_at: expiresAt.toISOString()
             }, { onConflict: 'cache_key' });
 
-        console.log(`[JarvisCache] STORED for ${endpoint}`);
+        console.debug(`[JarvisCache] STORED for ${endpoint}`);
 
     } catch (error) {
-        console.error('[JarvisCache] Set error:', error);
+        console.warn('[JarvisCache] Set error:', error);
         // Don't throw - caching is non-critical
     }
 }
@@ -102,10 +102,10 @@ export async function clearCache(endpoint = null) {
         }
 
         await query;
-        console.log(`[JarvisCache] Cleared${endpoint ? ` for ${endpoint}` : ' expired entries'}`);
+        console.debug(`[JarvisCache] Cleared${endpoint ? ` for ${endpoint}` : ' expired entries'}`);
 
     } catch (error) {
-        console.error('[JarvisCache] Clear error:', error);
+        console.warn('[JarvisCache] Clear error:', error);
     }
 }
 
@@ -139,7 +139,7 @@ export async function getCacheStats() {
         return stats;
 
     } catch (error) {
-        console.error('[JarvisCache] Stats error:', error);
+        console.warn('[JarvisCache] Stats error:', error);
         return { totalEntries: 0, totalHits: 0, byEndpoint: {} };
     }
 }

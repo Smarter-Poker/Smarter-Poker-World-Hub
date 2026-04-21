@@ -92,9 +92,9 @@ class ContentModerationAgent {
      * 🔍 Find all posts from violating users
      */
     async findViolatingPosts() {
-        console.log('\n🛡️ CONTENT MODERATION AGENT');
-        console.log('═'.repeat(60));
-        console.log('Scanning for content law violations...\n');
+        console.debug('\n🛡️ CONTENT MODERATION AGENT');
+        console.debug('═'.repeat(60));
+        console.debug('Scanning for content law violations...\n');
 
         // Get all posts with images
         const { data: posts, error } = await this.supabase
@@ -103,7 +103,7 @@ class ContentModerationAgent {
             .not('media_urls', 'is', null);
 
         if (error) {
-            console.error('❌ Failed to fetch posts:', error.message);
+            console.warn('❌ Failed to fetch posts:', error.message);
             return [];
         }
 
@@ -128,13 +128,13 @@ class ContentModerationAgent {
             profile: profileMap.get(post.author_id)
         }));
 
-        console.log(`Found ${violatingPosts.length} posts from known violators:\n`);
+        console.debug(`Found ${violatingPosts.length} posts from known violators:\n`);
 
         for (const post of violatingPosts) {
             const username = post.profile?.username || post.profile?.display_name || 'Unknown';
-            console.log(`❌ ${username}: "${post.content?.substring(0, 50)}..."`);
-            console.log(`   Media: ${post.media_urls?.length || 0} files`);
-            console.log(`   Posted: ${new Date(post.created_at).toLocaleDateString()}\n`);
+            console.debug(`❌ ${username}: "${post.content?.substring(0, 50)}..."`);
+            console.debug(`   Media: ${post.media_urls?.length || 0} files`);
+            console.debug(`   Posted: ${new Date(post.created_at).toLocaleDateString()}\n`);
         }
 
         return violatingPosts;
@@ -147,17 +147,17 @@ class ContentModerationAgent {
         const violatingPosts = await this.findViolatingPosts();
 
         if (violatingPosts.length === 0) {
-            console.log('✅ No violating posts found!');
+            console.debug('✅ No violating posts found!');
             return { removed: 0, dryRun };
         }
 
         if (dryRun) {
-            console.log('\n⚠️  DRY RUN MODE - No posts will be deleted');
-            console.log(`Would remove ${violatingPosts.length} posts\n`);
+            console.debug('\n⚠️  DRY RUN MODE - No posts will be deleted');
+            console.debug(`Would remove ${violatingPosts.length} posts\n`);
             return { removed: 0, wouldRemove: violatingPosts.length, dryRun: true };
         }
 
-        console.log('\n🗑️ PURGING VIOLATING POSTS...\n');
+        console.debug('\n🗑️ PURGING VIOLATING POSTS...\n');
 
         let removed = 0;
         for (const post of violatingPosts) {
@@ -170,16 +170,16 @@ class ContentModerationAgent {
                 .eq('id', post.id);
 
             if (error) {
-                console.error(`❌ Failed to delete post ${post.id}:`, error.message);
+                console.warn(`❌ Failed to delete post ${post.id}:`, error.message);
             } else {
-                console.log(`✅ Removed post from ${username}: "${post.content?.substring(0, 30)}..."`);
+                console.debug(`✅ Removed post from ${username}: "${post.content?.substring(0, 30)}..."`);
                 removed++;
             }
         }
 
-        console.log(`\n═══════════════════════════════════════════════════════════`);
-        console.log(`🛡️ CONTENT LAW ENFORCED: ${removed} violating posts removed`);
-        console.log(`═══════════════════════════════════════════════════════════\n`);
+        console.debug(`\n═══════════════════════════════════════════════════════════`);
+        console.debug(`🛡️ CONTENT LAW ENFORCED: ${removed} violating posts removed`);
+        console.debug(`═══════════════════════════════════════════════════════════\n`);
 
         return { removed, dryRun: false };
     }
@@ -216,8 +216,8 @@ USING (auth.uid() IN (
 ));
 `;
 
-        console.log('\n📋 Content Violations Migration SQL:');
-        console.log(migrationSQL);
+        console.debug('\n📋 Content Violations Migration SQL:');
+        console.debug(migrationSQL);
 
         return migrationSQL;
     }
@@ -246,8 +246,8 @@ USING (auth.uid() IN (
             ]
         };
 
-        console.log('\n📊 MODERATION REPORT');
-        console.log(JSON.stringify(report, null, 2));
+        console.debug('\n📊 MODERATION REPORT');
+        console.debug(JSON.stringify(report, null, 2));
 
         return report;
     }
@@ -269,14 +269,14 @@ if (process.argv[1]?.includes('ContentModerationAgent')) {
     const dryRun = !process.argv.includes('--execute');
 
     if (dryRun) {
-        console.log('🛡️ Running in DRY RUN mode. Use --execute to actually delete posts.\n');
+        console.debug('🛡️ Running in DRY RUN mode. Use --execute to actually delete posts.\n');
     }
 
     agent.purgeViolatingPosts(dryRun).then(result => {
         if (result.dryRun) {
-            console.log(`\nTo execute removal, run: node ContentModerationAgent.js --execute`);
+            console.debug(`\nTo execute removal, run: node ContentModerationAgent.js --execute`);
         }
     }).catch(err => {
-        console.error('Error:', err.message);
+        console.warn('Error:', err.message);
     });
 }

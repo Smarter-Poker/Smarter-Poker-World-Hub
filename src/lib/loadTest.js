@@ -155,9 +155,9 @@ export async function runLoadTestSuite(tests) {
 
     for (const test of tests) {
         const name = test.name || test.url;
-        console.log(`[LoadTest] Running: ${name}`);
+        console.debug(`[LoadTest] Running: ${name}`);
         results[name] = await runLoadTest(test);
-        console.log(`[LoadTest] ${name}: ${results[name].requestsPerSecond} req/s, p95=${results[name].latency.p95}ms`);
+        console.debug(`[LoadTest] ${name}: ${results[name].requestsPerSecond} req/s, p95=${results[name].latency.p95}ms`);
     }
 
     return results;

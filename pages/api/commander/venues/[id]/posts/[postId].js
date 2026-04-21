@@ -126,7 +126,7 @@ export default async function handler(req, res) {
         error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' }
       });
     } catch (error) {
-      console.error('Venue post API error:', error);
+      console.warn('Venue post API error:', error);
       return res.status(500).json({
         success: false,
         error: { code: 'SERVER_ERROR', message: 'Failed to process request' }
@@ -135,7 +135,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

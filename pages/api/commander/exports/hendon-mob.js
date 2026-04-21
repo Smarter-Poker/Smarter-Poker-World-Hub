@@ -113,7 +113,7 @@ async function handler(req, res) {
     return res.status(200).send(csv);
 
   } catch (error) {
-    console.error('Hendon Mob export error:', error);
+    console.warn('Hendon Mob export error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

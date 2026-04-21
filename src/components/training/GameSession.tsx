@@ -147,9 +147,7 @@ function playChipSound() {
         const audio = new Audio('/sounds/chip-slide.mp3');
         audio.volume = 0.3;
         audio.play().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); // Ignore autoplay restrictions
-    } catch (e) {
-        // Audio not available
-    }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 }
 
 // ============================================================================
@@ -574,7 +572,7 @@ const GameSession: React.FC<GameSessionProps> = ({
             const data = await response.json();
 
             if (data?.error) {
-                console.error('Error fetching hand:', data.error);
+                console.warn('Error fetching hand:', data.error);
 
                 // Retry with exponential backoff
                 if (retryCount < maxRetries) {
@@ -585,7 +583,7 @@ const GameSession: React.FC<GameSessionProps> = ({
                 }
 
                 // All retries failed - show error state
-                console.error('[GameSession] All retries exhausted, cannot fetch hand');
+                console.warn('[GameSession] All retries exhausted, cannot fetch hand');
                 return;
             }
 
@@ -618,7 +616,7 @@ const GameSession: React.FC<GameSessionProps> = ({
                         setCurrentLineIndex(0);
                         setPhase('DIRECTOR_INTRO');
                     } catch (lineError) {
-                        console.error('[GameSession] Error building director lines:', lineError);
+                        console.warn('[GameSession] Error building director lines:', lineError);
                         // Skip director intro on error
                         setDirectorLines([]);
                         setPhase('USER_TURN');
@@ -642,11 +640,11 @@ const GameSession: React.FC<GameSessionProps> = ({
                             setScenarioFeedback(null);
                         }
                     } catch (stateError) {
-                        console.error('[GameSession] Error resetting engine state:', stateError);
+                        console.warn('[GameSession] Error resetting engine state:', stateError);
                     }
                 }
             } catch (transformError) {
-                console.error('[GameSession] Error transforming hand data:', transformError);
+                console.warn('[GameSession] Error transforming hand data:', transformError);
 
                 // Retry on transform error
                 if (retryCount < maxRetries) {
@@ -657,7 +655,7 @@ const GameSession: React.FC<GameSessionProps> = ({
             }
 
         } catch (error) {
-            console.error('[GameSession] Failed to fetch hand:', error);
+            console.warn('[GameSession] Failed to fetch hand:', error);
 
             // Retry with exponential backoff
             if (retryCount < maxRetries) {
@@ -665,7 +663,7 @@ const GameSession: React.FC<GameSessionProps> = ({
                 console.log(`[GameSession] Retrying fetch in ${backoffMs}ms (attempt ${retryCount + 1}/${maxRetries})`);
                 setTimeout(() => fetchNextHand(retryCount + 1, maxRetries), backoffMs);
             } else {
-                console.error('[GameSession] All retries exhausted, giving up');
+                console.warn('[GameSession] All retries exhausted, giving up');
             }
         }
     }, [userId, gameId, currentLevel]);
@@ -735,7 +733,7 @@ const GameSession: React.FC<GameSessionProps> = ({
                         });
                     }
                 } catch (feedbackError) {
-                    console.error('[GameSession] Error setting engine feedback:', feedbackError);
+                    console.warn('[GameSession] Error setting engine feedback:', feedbackError);
                 }
 
                 // Apply damage with error boundary
@@ -756,7 +754,7 @@ const GameSession: React.FC<GameSessionProps> = ({
                         setTimeout(() => setShowDamage(0), 1000);
                     }
                 } catch (damageError) {
-                    console.error('[GameSession] Error applying damage:', damageError);
+                    console.warn('[GameSession] Error applying damage:', damageError);
                 }
 
                 if (result?.isCorrect) {
@@ -773,7 +771,7 @@ const GameSession: React.FC<GameSessionProps> = ({
                         scenario: currentHand
                     }]);
                 } catch (trackingError) {
-                    console.error('[GameSession] Error tracking answer (non-critical):', trackingError);
+                    console.warn('[GameSession] Error tracking answer (non-critical):', trackingError);
                 }
 
                 // Show result overlay
@@ -801,12 +799,12 @@ const GameSession: React.FC<GameSessionProps> = ({
                                     setPhase('USER_TURN');
                                     setIsControlsLocked(false);
                                 } catch (continueError) {
-                                    console.error('[GameSession] Error continuing hand:', continueError);
+                                    console.warn('[GameSession] Error continuing hand:', continueError);
                                     setIsControlsLocked(false);
                                 }
                             }, VILLAIN_THINK_MS);
                         } catch (transitionError) {
-                            console.error('[GameSession] Error transitioning to villain thinking:', transitionError);
+                            console.warn('[GameSession] Error transitioning to villain thinking:', transitionError);
                             setIsControlsLocked(false);
                         }
 
@@ -824,17 +822,17 @@ const GameSession: React.FC<GameSessionProps> = ({
                                 fetchNextHand();
                             }
                         } catch (nextHandError) {
-                            console.error('[GameSession] Error moving to next hand:', nextHandError);
+                            console.warn('[GameSession] Error moving to next hand:', nextHandError);
                         }
                     }, RESULT_DISPLAY_MS);
                 }
             } catch (resultError) {
-                console.error('[GameSession] Error processing result:', resultError);
+                console.warn('[GameSession] Error processing result:', resultError);
                 setIsControlsLocked(false);
             }
 
         } catch (error) {
-            console.error('[GameSession] Failed to submit action:', error);
+            console.warn('[GameSession] Failed to submit action:', error);
 
             // Retry with exponential backoff
             if (retryCount < maxRetries) {
@@ -842,7 +840,7 @@ const GameSession: React.FC<GameSessionProps> = ({
                 console.log(`[GameSession] Retrying submit in ${backoffMs}ms (attempt ${retryCount + 1}/${maxRetries})`);
                 setTimeout(() => submitAction(action, sizingOrHand, retryCount + 1, maxRetries), backoffMs);
             } else {
-                console.error('[GameSession] All retries exhausted for submit action');
+                console.warn('[GameSession] All retries exhausted for submit action');
                 setIsControlsLocked(false);
             }
         }
@@ -897,7 +895,7 @@ const GameSession: React.FC<GameSessionProps> = ({
                 }
             }
         } catch (error) {
-            console.error('[GameSession] Error building director lines:', error);
+            console.warn('[GameSession] Error building director lines:', error);
         }
 
         return lines;
@@ -950,7 +948,7 @@ const GameSession: React.FC<GameSessionProps> = ({
 
                     console.log('[GameSession] Training data pushed to Jarvis');
                 } catch (error) {
-                    console.error('[GameSession] Failed to push to Jarvis:', error);
+                    console.warn('[GameSession] Failed to push to Jarvis:', error);
                     if (retryCount < maxRetries) {
                         const backoffMs = Math.pow(2, retryCount) * 500;
                         console.log(`[GameSession] Retrying Jarvis push in ${backoffMs}ms`);
@@ -974,7 +972,7 @@ const GameSession: React.FC<GameSessionProps> = ({
 
                     console.log('[GameSession] Streak updated');
                 } catch (error) {
-                    console.error('[GameSession] Failed to update streak:', error);
+                    console.warn('[GameSession] Failed to update streak:', error);
                     if (retryCount < maxRetries) {
                         const backoffMs = Math.pow(2, retryCount) * 500;
                         setTimeout(() => updateStreak(retryCount + 1, maxRetries), backoffMs);
@@ -1006,7 +1004,7 @@ const GameSession: React.FC<GameSessionProps> = ({
 
                     console.log('[GameSession] Achievements checked');
                 } catch (error) {
-                    console.error('[GameSession] Failed to check achievements:', error);
+                    console.warn('[GameSession] Failed to check achievements:', error);
                     if (retryCount < maxRetries) {
                         const backoffMs = Math.pow(2, retryCount) * 500;
                         setTimeout(() => checkAchievements(retryCount + 1, maxRetries), backoffMs);
@@ -1038,7 +1036,7 @@ const GameSession: React.FC<GameSessionProps> = ({
 
                     console.log('[GameSession] Leaderboard updated');
                 } catch (error) {
-                    console.error('[GameSession] Failed to update leaderboard:', error);
+                    console.warn('[GameSession] Failed to update leaderboard:', error);
                     if (retryCount < maxRetries) {
                         const backoffMs = Math.pow(2, retryCount) * 500;
                         setTimeout(() => updateLeaderboard(retryCount + 1, maxRetries), backoffMs);
@@ -1047,14 +1045,14 @@ const GameSession: React.FC<GameSessionProps> = ({
             };
 
             // Fire all API calls in parallel (non-blocking)
-            pushJarvis().catch(e => console.error('[GameSession] Jarvis push failed:', e));
-            updateStreak().catch(e => console.error('[GameSession] Streak update failed:', e));
-            checkAchievements().catch(e => console.error('[GameSession] Achievements check failed:', e));
-            updateLeaderboard().catch(e => console.error('[GameSession] Leaderboard update failed:', e));
+            pushJarvis().catch(e => console.warn('[GameSession] Jarvis push failed:', e));
+            updateStreak().catch(e => console.warn('[GameSession] Streak update failed:', e));
+            checkAchievements().catch(e => console.warn('[GameSession] Achievements check failed:', e));
+            updateLeaderboard().catch(e => console.warn('[GameSession] Leaderboard update failed:', e));
 
             onSessionComplete?.(stats);
         } catch (error) {
-            console.error('[GameSession] Critical error in completeSession:', error);
+            console.warn('[GameSession] Critical error in completeSession:', error);
         }
     }, [handNumber, correctCount, currentLevel, health, userId, gameId, gameName, engineType, sessionAnswers, sessionStartTime, onSessionComplete]);
 

@@ -19,7 +19,7 @@ async function fireConfetti(opts) {
     try {
         if (!_confetti) { const m = await import('canvas-confetti'); _confetti = m.default || m; }
         _confetti(opts);
-    } catch (e) { /* confetti is cosmetic — swallow import/execution errors */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 }
 
 // Supabase services for persistence
@@ -574,7 +574,7 @@ export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine, 
                         0, // timeTaken (not timed)
                         null // sessionId
                     ).then(res => {
-                        console.log('[SpotTrainer] Leaderboard updated:', res);
+                        console.debug('[SpotTrainer] Leaderboard updated:', res);
                     }).catch(err => {
                         console.warn('[SpotTrainer] Leaderboard update failed:', err);
                     });
@@ -583,7 +583,7 @@ export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine, 
                 // 2. Update ELO rating
                 processGameResult(userId, 1, accuracy, 0)
                     .then(eloResult => {
-                        console.log('[SpotTrainer] ELO updated:', eloResult);
+                        console.debug('[SpotTrainer] ELO updated:', eloResult);
                     }).catch(err => {
                         console.warn('[SpotTrainer] ELO update failed:', err);
                     });
@@ -600,7 +600,7 @@ export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine, 
                     diamondsEarned,
                     completed: true
                 }).then(sessionResult => {
-                    console.log('[SpotTrainer] Session recorded:', sessionResult);
+                    console.debug('[SpotTrainer] Session recorded:', sessionResult);
                 }).catch(err => {
                     console.warn('[SpotTrainer] Session recording failed:', err);
                 });
@@ -618,7 +618,7 @@ export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine, 
                     modesPlayed: [gameMode]
                 }).then(unlocked => {
                     if (unlocked.length > 0) {
-                        console.log('[SpotTrainer] Achievements unlocked:', unlocked);
+                        console.debug('[SpotTrainer] Achievements unlocked:', unlocked);
                     }
                 }).catch(err => {
                     console.warn('[SpotTrainer] Achievement check failed:', err);

@@ -114,7 +114,7 @@ export default async function handler(req, res) {
                     .maybeSingle();
 
                 if (insertErr) {
-                    console.error('[BookmarkSolution] Insert error:', insertErr);
+                    console.warn('[BookmarkSolution] Insert error:', insertErr);
                     // If table doesn't exist, fail gracefully
                     return res.status(200).json({ success: false, error: 'Bookmark save failed — table may not exist yet', fallback: true });
                 }
@@ -130,7 +130,7 @@ export default async function handler(req, res) {
                     .eq('scenario_hash', scenarioHash);
 
                 if (deleteErr) {
-                    console.error('[BookmarkSolution] Delete error:', deleteErr);
+                    console.warn('[BookmarkSolution] Delete error:', deleteErr);
                 }
 
                 return res.status(200).json({ success: true, action: 'deleted' });
@@ -143,7 +143,7 @@ export default async function handler(req, res) {
 
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('[BookmarkSolution] Error:', err);
+        console.warn('[BookmarkSolution] Error:', err);
         if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

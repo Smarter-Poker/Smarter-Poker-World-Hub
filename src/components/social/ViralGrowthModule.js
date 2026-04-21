@@ -46,7 +46,7 @@ export default function ViralGrowthModule({ currentUser }) {
 
                 if (refs) setReferrals(refs);
             } catch (e) {
-                console.error('Error loading referrals:', e);
+                console.warn('Error loading referrals:', e);
             } finally {
                 setLoading(false);
             }

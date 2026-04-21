@@ -69,7 +69,7 @@ const json = await commanderFetchJSON(`/api/commander/tables?venue_id=${venueId}
           : Array.isArray(json.data?.tables) ? json.data.tables : [];
         setTables(tablesArr.filter(t => t.status === 'available' || !t.status));
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
     finally { setLoading(false); }
   }, []);
 
@@ -97,7 +97,7 @@ const json = await commanderFetchJSON(`/api/commander/waitlist?venue_id=${venueI
           );
           setWaitlistPlayers(matching.slice(0, 10));
         }
-      } catch (err) { if (err.name !== 'AbortError') console.error(err); }
+      } catch (err) { if (err.name !== 'AbortError') console.warn(err); }
     setLoading(false);
     };
     fetchWaitlist();
@@ -129,7 +129,7 @@ const headers = { 'Content-Type': 'application/json' };
 
       const gameJson = await gameRes.json();
       if (!gameJson.success) {
-        console.error('Failed to create game:', gameJson.error);
+        console.warn('Failed to create game:', gameJson.error);
         // Fallback: still update table even if game creation fails
       }
 
@@ -154,7 +154,7 @@ const headers = { 'Content-Type': 'application/json' };
         // Navigate to dealer view for this table
         router.push(`/commander/dealer/${tNum}`);
       }
-    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
+    } catch (err) { console.warn(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
     finally { setOpening(false); }
   };
 

@@ -450,9 +450,7 @@ export default function PvPLobbyPage() {
       if (user?.user?.user_metadata?.display_name) {
         setCurrentUser({ name: user.user.user_metadata.display_name, rating: 1200 });
       }
-    } catch (e) {
-      /* SSG safety */
-    }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     // Set online count client-side only to avoid hydration mismatch
     setOnlineCount(237 + Math.floor(Math.random() * 50));
   }, []);

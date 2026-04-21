@@ -236,7 +236,7 @@ export default async function handler(req, res) {
               });
 
           } catch (error) {
-              console.error('[Challenges] Error:', error.message);
+              console.warn('[Challenges] Error:', error.message);
               return res.status(500).json({ success: false, error: 'Failed to fetch challenges' });
           }
       }
@@ -382,7 +382,7 @@ export default async function handler(req, res) {
               });
 
           } catch (error) {
-              console.error('[Challenges] Update error:', error.message);
+              console.warn('[Challenges] Update error:', error.message);
               return res.status(500).json({ success: false, error: 'Failed to update challenges' });
           }
       }
@@ -462,7 +462,7 @@ export default async function handler(req, res) {
               });
 
           } catch (error) {
-              console.error('[Challenges] Claim error:', error.message);
+              console.warn('[Challenges] Claim error:', error.message);
               return res.status(500).json({ success: false, error: 'Failed to claim challenge' });
           }
       }
@@ -471,7 +471,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

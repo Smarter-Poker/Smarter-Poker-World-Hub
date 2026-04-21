@@ -68,7 +68,7 @@ export async function fetchQuestionBatch(params) {
     try {
         data = JSON.parse(textResponse);
     } catch (e) {
-        console.error('[questionGenerator] Non-JSON response:', textResponse.substring(0, 100));
+        console.warn('[questionGenerator] Non-JSON response:', textResponse.substring(0, 100));
         if (response.status === 401) throw new Error('Auth required');
         throw new Error(`Server error (${response.status})`);
     }
@@ -224,8 +224,5 @@ export async function recordAnsweredQuestion(params) {
                 level,
             }),
         });
-    } catch (err) {
-        // Non-blocking - continue even if recording fails
-        console.warn('[questionGenerator] Record error:', err);
-    }
+    } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
 }

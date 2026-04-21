@@ -38,7 +38,7 @@ async function loadClipLibrary() {
         clipLibraryLoaded = true;
         return true;
     } catch (e) {
-        console.error('❌ Failed to load ClipLibrary:', e.message);
+        console.warn('❌ Failed to load ClipLibrary:', e.message);
         return false;
     }
 }
@@ -297,7 +297,7 @@ async function postVideoClip(horse, assignedSources, horseIndex, clipType = 'spo
     if (clipType === 'poker') {
         // Use ClipLibrary for poker clips
         if (!clipLibraryLoaded || typeof getRandomClip !== 'function') {
-            console.error(`   ClipLibrary not loaded for poker clips`);
+            console.warn(`   ClipLibrary not loaded for poker clips`);
             return { success: false, error: 'ClipLibrary not available' };
         }
 
@@ -572,13 +572,13 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('Horse cron error:', error);
+          console.warn('Horse cron error:', error);
           return res.status(500).json({ success: false, error: error.message });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

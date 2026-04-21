@@ -25,7 +25,7 @@ export class HubErrorBoundary extends React.Component {
     componentDidCatch(error, info) {
         const name = this.props.name || 'Unknown';
         const timestamp = new Date().toISOString();
-        console.error(`[HubErrorBoundary] "${name}" crashed at ${timestamp} —`, error, info?.componentStack);
+        console.warn(`[HubErrorBoundary] "${name}" crashed at ${timestamp} —`, error, info?.componentStack);
 
         // Fire optional onError callback so parent can react
         try { this.props.onError?.(error, name); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
@@ -44,7 +44,7 @@ export class HubErrorBoundary extends React.Component {
                     sectionName: name,
                 },
             });
-        } catch (_) { /* never let reporting crash the boundary */ }
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }
 
     handleReset() {

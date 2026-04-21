@@ -134,7 +134,7 @@ export function backupSession() {
                 timestamp: Date.now(),
             }));
         }
-    } catch (e) { /* silently fail */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 }
 
 /**

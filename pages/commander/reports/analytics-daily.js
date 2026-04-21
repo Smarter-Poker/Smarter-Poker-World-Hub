@@ -59,7 +59,7 @@ const endDate = new Date().toISOString().split('T')[0];
       } else {
         setData([]);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
     finally { setLoading(false); }
   };
 

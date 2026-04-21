@@ -74,7 +74,7 @@ export default async function handler(req, res) {
                 }).select().maybeSingle();
 
                 if (insertErr) {
-                    console.error('[Live Session API] Start session error:', insertErr);
+                    console.warn('[Live Session API] Start session error:', insertErr);
                     return res.status(500).json({ error: 'Failed to start session' });
                 }
                 return res.status(200).json({ session });
@@ -97,7 +97,7 @@ export default async function handler(req, res) {
                     .maybeSingle();
 
                 if (updErr) {
-                    console.error('[Live Session API] Update error:', updErr);
+                    console.warn('[Live Session API] Update error:', updErr);
                     return res.status(500).json({ error: 'Failed to update session' });
                 }
                 return res.status(200).json({ session: data });
@@ -115,7 +115,7 @@ export default async function handler(req, res) {
                     .maybeSingle();
 
                 if (endErr) {
-                    console.error('[Live Session API] End session error:', endErr);
+                    console.warn('[Live Session API] End session error:', endErr);
                     return res.status(500).json({ error: 'Failed to end session' });
                 }
                 return res.status(200).json({ session: data });
@@ -132,7 +132,7 @@ export default async function handler(req, res) {
                 }).select('*, profiles:user_id(username, avatar_url)').maybeSingle();
 
                 if (chatErr) {
-                    console.error('[Live Session API] Chat error:', chatErr);
+                    console.warn('[Live Session API] Chat error:', chatErr);
                     return res.status(500).json({ error: 'Failed to send chat message' });
                 }
                 return res.status(200).json({ message: msg });
@@ -206,7 +206,7 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('[Live Session API] Error:', err);
+        console.warn('[Live Session API] Error:', err);
         return res.status(500).json({ error: 'Internal server error' });
     }
 }

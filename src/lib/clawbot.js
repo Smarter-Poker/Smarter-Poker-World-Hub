@@ -80,11 +80,8 @@ export async function logAudit(taskId, action, details = {}, severity = 'info') 
       clawbot_version: CLAWBOT_VERSION,
       created_at: new Date().toISOString(),
     });
-    if (error) console.error('[ClawBot] Audit log write failed:', error.message);
-  } catch (err) {
-    // Never let audit logging crash the task
-    console.error('[ClawBot] Audit logging error:', err.message);
-  }
+    if (error) console.warn('[ClawBot] Audit log write failed:', error.message);
+  } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
 }
 
 // ─── Task State Management ──────────────────────────────────────────
@@ -103,7 +100,7 @@ export async function getTaskState(taskId) {
     if (error) throw error;
     return data || null;
   } catch (err) {
-    console.error(`[ClawBot] getTaskState(${taskId}) failed:`, err.message);
+    console.warn(`[ClawBot] getTaskState(${taskId}) failed:`, err.message);
     return null;
   }
 }
@@ -136,7 +133,7 @@ export async function updateTaskState(taskId, status, details = {}) {
 
     if (error) throw error;
   } catch (err) {
-    console.error(`[ClawBot] updateTaskState(${taskId}) failed:`, err.message);
+    console.warn(`[ClawBot] updateTaskState(${taskId}) failed:`, err.message);
   }
 }
 

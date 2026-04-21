@@ -144,7 +144,7 @@ export default function MixedModePage() {
                     const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
                     if (profile) setUserDiamonds(profile.diamonds || 0);
                 } catch (e) {
-                    console.error('[Mixed] Realtime refresh failed:', e);
+                    console.warn('[Mixed] Realtime refresh failed:', e);
                 }
             })
             .subscribe();
@@ -222,7 +222,7 @@ export default function MixedModePage() {
 
             setQuestions(shuffleOptions(interleaved));
         } catch (e) {
-            console.error('Failed to load mixed questions:', e);
+            console.warn('Failed to load mixed questions:', e);
         }
     }
 
@@ -266,7 +266,7 @@ export default function MixedModePage() {
                 if (result.balance !== undefined) setUserDiamonds(result.balance);
                 // DiamondEngine.deduct auto-emits busEmit.diamondsSpent
             } catch (e) {
-                console.error('[Mixed] Diamond deduction failed:', e);
+                console.warn('[Mixed] Diamond deduction failed:', e);
                 setShowOutOfDiamonds(true);
                 return;
             }
@@ -484,7 +484,7 @@ export default function MixedModePage() {
             setSaveErrorPayload(null);
             savePhaseRef.current = 0;
         } catch (e) {
-            console.error('[Mixed] Failed to save results:', e);
+            console.warn('[Mixed] Failed to save results:', e);
             // Save failed (network drop) -> Provide Retry UI (savePhaseRef preserves progress)
             setSaveErrorPayload({ actualCorrect, actualDiamonds });
             setGameState('saving_error');

@@ -178,7 +178,7 @@ export default async function handler(req, res) {
         }
       });
     } catch (error) {
-      console.error('Public home game API error:', error);
+      console.warn('Public home game API error:', error);
       return res.status(500).json({
         success: false,
         error: { code: 'SERVER_ERROR', message: 'Failed to fetch home game' }
@@ -187,7 +187,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

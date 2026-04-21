@@ -42,7 +42,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -115,7 +115,7 @@ async function registrationReport(req, res, tournamentId) {
             }
         });
     } catch (error) {
-        console.error('Registration report error:', error);
+        console.warn('Registration report error:', error);
         return res.status(500).json({ success: false, error: { message: 'Internal server error' } });
     }
 }
@@ -201,7 +201,7 @@ async function cashierReport(req, res, tournamentId) {
             }
         });
     } catch (error) {
-        console.error('Cashier report error:', error);
+        console.warn('Cashier report error:', error);
         return res.status(500).json({ success: false, error: { message: 'Internal server error' } });
     }
 }
@@ -288,7 +288,7 @@ async function activityReport(req, res, tournamentId) {
         });
     } catch (error) {
         try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('Activity report error:', error);
+        console.warn('Activity report error:', error);
         return res.status(500).json({ success: false, error: { message: 'Internal server error' } });
     }
 }

@@ -58,7 +58,7 @@ export default function ClubPagesView({ C, pages, setPages, loading, setLoading,
                 const fSet = new Set();
                 allPages.forEach(p => { if (p.is_following) fSet.add(`${p.page_type}:${p.page_id}`); });
                 setFollowingIds(fSet);
-            } catch (e) { console.error('Club pages fetch error:', e); }
+            } catch (e) { console.warn('Club pages fetch error:', e); }
             setLoading(false);
         };
         fetchClubPages();

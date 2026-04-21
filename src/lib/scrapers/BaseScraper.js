@@ -124,11 +124,11 @@ export class BaseScraper {
         const timestamp = new Date().toISOString();
 
         if (level === 'error') {
-            console.error(`${timestamp} ${prefix} ERROR: ${message}`);
+            console.warn(`${timestamp} ${prefix} ERROR: ${message}`);
         } else if (level === 'warn') {
             console.warn(`${timestamp} ${prefix} WARN: ${message}`);
         } else {
-            console.log(`${timestamp} ${prefix} ${message}`);
+            console.debug(`${timestamp} ${prefix} ${message}`);
         }
     }
 

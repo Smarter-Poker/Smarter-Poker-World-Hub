@@ -121,10 +121,7 @@ class MockAssetFactory {
             const audio = this.audioCache.get(soundName)!;
             audio.currentTime = 0;
             audio.volume = this.config.audioVolume;
-            audio.play().catch(() => {
-                // If playback fails, use synth
-                if (synthType) synthAudio.play(synthType);
-            });
+            audio.play().catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
             return;
         }
 

@@ -684,7 +684,7 @@ export function getPostflopStrategy(params) {
 
             try {
                 xrData = lookupCheckRaiseStrategy(textureKey, handClass);
-            } catch (e) { /* fallback below */ }
+            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
             const checkRaiseInfo = xrData
                 ? {
@@ -971,10 +971,7 @@ export function getEnhancedCbetStrategy(board, posContext, holeCards, opts = {})
             drawInfo: draws,
             isEnhanced: true,
         };
-    } catch (e) {
-        // Fallback to original heuristic
-        return getCbetStrategy(board, posContext, holeCards);
-    }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 }
 
 /**

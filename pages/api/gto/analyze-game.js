@@ -106,7 +106,7 @@ export default async function handler(req, res) {
                   .trim();
               analysis = JSON.parse(cleanedResponse);
           } catch (parseError) {
-              console.error('[AnalyzeGame] Parse error, using raw text');
+              console.warn('[AnalyzeGame] Parse error, using raw text');
               analysis = {
                   summary: responseText.slice(0, 200),
                   patternInsights: [],
@@ -130,7 +130,7 @@ export default async function handler(req, res) {
           return res.status(200).json(response);
 
       } catch (error) {
-          console.error('[AnalyzeGame] Error:', error);
+          console.warn('[AnalyzeGame] Error:', error);
 
           // Graceful fallback
           const mistakeCount = req.body?.mistakes?.length || 0;
@@ -157,7 +157,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

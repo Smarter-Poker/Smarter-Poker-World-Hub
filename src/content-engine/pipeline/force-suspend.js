@@ -16,11 +16,11 @@ config({ path: path.resolve(__dirname, '../../../.env.local') });
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-console.log('URL:', url ? 'Found' : 'MISSING');
-console.log('Key:', key ? 'Found (service role or anon)' : 'MISSING');
+console.debug('URL:', url ? 'Found' : 'MISSING');
+console.debug('Key:', key ? 'Found (service role or anon)' : 'MISSING');
 
 if (!url || !key) {
-    console.error('Missing credentials!');
+    console.warn('Missing credentials!');
     process.exit(1);
 }
 
@@ -29,7 +29,7 @@ const supabase = createClient(url, key);
 const VIOLATORS = ['DesertDonk', 'TexasQueen92', 'LANitOwl', 'SeattleSolver'];
 
 async function forceSuspend() {
-    console.log('\n🛡️ FORCE SUSPENDING VIOLATORS...\n');
+    console.debug('\n🛡️ FORCE SUSPENDING VIOLATORS...\n');
 
     // Use .or() filter properly
     const { data, error } = await supabase
@@ -39,10 +39,10 @@ async function forceSuspend() {
         .select('alias, is_active');
 
     if (error) {
-        console.error('Error:', error.message);
+        console.warn('Error:', error.message);
     } else {
-        console.log('Updated horses:');
-        data?.forEach(h => console.log(`  - ${h.alias}: is_active = ${h.is_active}`));
+        console.debug('Updated horses:');
+        data?.forEach(h => console.debug(`  - ${h.alias}: is_active = ${h.is_active}`));
     }
 
     // Verify
@@ -51,8 +51,8 @@ async function forceSuspend() {
         .select('alias, is_active')
         .in('alias', VIOLATORS);
 
-    console.log('\nVerification:');
-    verify?.forEach(h => console.log(`  ${h.alias}: is_active = ${h.is_active}`));
+    console.debug('\nVerification:');
+    verify?.forEach(h => console.debug(`  ${h.alias}: is_active = ${h.is_active}`));
 
     // Final purge of any remaining posts
     const { data: authors } = await supabase
@@ -69,10 +69,10 @@ async function forceSuspend() {
             .in('author_id', profileIds)
             .select('id');
 
-        console.log(`\n🗑️ Deleted ${deleted?.length || 0} remaining posts`);
+        console.debug(`\n🗑️ Deleted ${deleted?.length || 0} remaining posts`);
     }
 
-    console.log('\n✅ Done');
+    console.debug('\n✅ Done');
 }
 
 forceSuspend();

@@ -259,7 +259,7 @@ export async function postReply(postId, authorId, content) {
 
         return true;
     } catch (error) {
-        console.error('Error posting reply:', error);
+        console.warn('Error posting reply:', error);
         return false;
     }
 }

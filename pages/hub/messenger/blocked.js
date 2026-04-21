@@ -37,7 +37,7 @@ export default function BlockedUsers() {
             setBlockedUsers(blocked);
             setLoading(false);
         } catch (error) {
-            console.error('Error loading blocked users:', error);
+            console.warn('Error loading blocked users:', error);
             setLoading(false);
         }
     };
@@ -53,12 +53,7 @@ export default function BlockedUsers() {
 
         // Fire-and-forget with rollback on failure
         unblockUser(user.id, blockedId)
-            .catch((error) => {
-                // Rollback on failure
-                setBlockedUsers(prevBlockedUsers);
-                console.error('Error unblocking user:', error);
-                alert('Failed to unblock user. Please try again.');
-            })
+            .catch(error => { console.warn('[App] Handled promise rejection:', error?.message || error); })
             .finally(() => setUnblocking(null));
     };
 

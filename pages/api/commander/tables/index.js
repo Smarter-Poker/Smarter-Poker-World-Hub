@@ -44,7 +44,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -133,7 +133,7 @@ async function handleGet(req, res) {
     }
 
     if (error) {
-      console.error('Commander tables query error:', error);
+      console.warn('Commander tables query error:', error);
       return res.status(500).json({
         success: false,
         error: { code: 'DATABASE_ERROR', message: 'Failed to fetch tables' }
@@ -145,7 +145,7 @@ async function handleGet(req, res) {
       data: { tables: data || [] }
     });
   } catch (error) {
-    console.error('Commander tables GET error:', error);
+    console.warn('Commander tables GET error:', error);
     return res.status(500).json({
       success: false,
       error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }
@@ -212,7 +212,7 @@ async function handlePost(req, res) {
       .maybeSingle();
 
     if (error) {
-      console.error('Commander table create error:', error);
+      console.warn('Commander table create error:', error);
       return res.status(500).json({
         success: false,
         error: { code: 'DATABASE_ERROR', message: 'Failed to create table' }
@@ -240,7 +240,7 @@ async function handlePost(req, res) {
     });
   } catch (error) {
       try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('Commander tables POST error:', error);
+    console.warn('Commander tables POST error:', error);
     return res.status(500).json({
       success: false,
       error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }

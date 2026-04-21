@@ -33,7 +33,7 @@ class LeakService {
 
             if (fetchError && fetchError.code !== 'PGRST116') {
                 // PGRST116 = no rows returned, which is fine
-                console.error('[LeakService] Error checking existing leak:', fetchError);
+                console.warn('[LeakService] Error checking existing leak:', fetchError);
             }
 
             if (existingLeak) {
@@ -50,7 +50,7 @@ class LeakService {
                     .maybeSingle();
 
                 if (error || !data) throw error || new Error('Failed to update leak');
-                console.log(`[LeakService] Updated leak ${leakType.id}: count=${data.count}`);
+                console.debug(`[LeakService] Updated leak ${leakType.id}: count=${data.count}`);
                 return data;
             } else {
                 // Insert new leak
@@ -68,11 +68,11 @@ class LeakService {
                     .maybeSingle();
 
                 if (error || !data) throw error || new Error('Failed to record leak');
-                console.log(`[LeakService] Recorded new leak: ${leakType.id}`);
+                console.debug(`[LeakService] Recorded new leak: ${leakType.id}`);
                 return data;
             }
         } catch (err) {
-            console.error('[LeakService] Failed to record leak:', err);
+            console.warn('[LeakService] Failed to record leak:', err);
             return null;
         }
     }
@@ -90,7 +90,7 @@ class LeakService {
             if (error) throw error;
             return data || [];
         } catch (err) {
-            console.error('[LeakService] Failed to get active leaks:', err);
+            console.warn('[LeakService] Failed to get active leaks:', err);
             return [];
         }
     }
@@ -109,10 +109,10 @@ class LeakService {
                 .eq('user_id', userId);
 
             if (error) throw error;
-            console.log(`[LeakService] Marked leak ${leakId} as fixed`);
+            console.debug(`[LeakService] Marked leak ${leakId} as fixed`);
             return true;
         } catch (err) {
-            console.error('[LeakService] Failed to mark leak fixed:', err);
+            console.warn('[LeakService] Failed to mark leak fixed:', err);
             return false;
         }
     }
@@ -148,10 +148,10 @@ class LeakService {
                     .eq('id', leakId);
             }
 
-            console.log(`[LeakService] Pushed Jarvis alert for ${leakType.id}`);
+            console.debug(`[LeakService] Pushed Jarvis alert for ${leakType.id}`);
             return true;
         } catch (err) {
-            console.error('[LeakService] Failed to push to Jarvis:', err);
+            console.warn('[LeakService] Failed to push to Jarvis:', err);
             return false;
         }
     }
@@ -169,7 +169,7 @@ class LeakService {
             if (error) throw error;
             return data || [];
         } catch (err) {
-            console.error('[LeakService] Failed to get unread alerts:', err);
+            console.warn('[LeakService] Failed to get unread alerts:', err);
             return [];
         }
     }
@@ -190,7 +190,7 @@ class LeakService {
             if (error) throw error;
             return true;
         } catch (err) {
-            console.error('[LeakService] Failed to mark alert read:', err);
+            console.warn('[LeakService] Failed to mark alert read:', err);
             return false;
         }
     }

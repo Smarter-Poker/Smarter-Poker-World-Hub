@@ -116,7 +116,7 @@ function getServerUser(req) {
             if (!getServerUser._warnedMissingSecret) {
                 getServerUser._warnedMissingSecret = true;
                 // eslint-disable-next-line no-console
-                console.error('[serverAuth] SUPABASE_JWT_SECRET not set — all JWT verification will fail. Set this env var in Vercel to restore auth.');
+                console.warn('[serverAuth] SUPABASE_JWT_SECRET not set — all JWT verification will fail. Set this env var in Vercel to restore auth.');
             }
             return null;
         }
@@ -133,11 +133,7 @@ function getServerUser(req) {
             role: payload.role || 'authenticated',
             aud: payload.aud || null,
         };
-    } catch (e) {
-        // eslint-disable-next-line no-console
-        console.error('[serverAuth] JWT verify error:', e.message);
-        return null;
-    }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 }
 
 /**

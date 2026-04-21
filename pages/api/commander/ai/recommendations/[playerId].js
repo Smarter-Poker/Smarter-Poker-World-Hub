@@ -55,7 +55,7 @@ export default async function handler(req, res) {
         .limit(50);
 
       if (sessionsError) {
-        console.error('Sessions fetch error:', sessionsError);
+        console.warn('Sessions fetch error:', sessionsError);
       }
 
       // Get player's waitlist history
@@ -67,7 +67,7 @@ export default async function handler(req, res) {
         .limit(100);
 
       if (waitlistError) {
-        console.error('Waitlist history error:', waitlistError);
+        console.warn('Waitlist history error:', waitlistError);
       }
 
       // Get player preferences if they exist
@@ -227,7 +227,7 @@ export default async function handler(req, res) {
       });
 
     } catch (error) {
-      console.error('AI recommendations error:', error);
+      console.warn('AI recommendations error:', error);
       return res.status(500).json({
         success: false,
         error: { code: 'SERVER_ERROR', message: 'Failed to generate recommendations' }
@@ -236,7 +236,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

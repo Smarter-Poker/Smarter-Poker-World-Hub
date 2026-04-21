@@ -73,7 +73,7 @@ export function UnreadProvider({ children }) {
 
             setUnreadCount(total);
         } catch (e) {
-            console.error('Error fetching unread count:', e);
+            console.warn('Error fetching unread count:', e);
         }
     };
 
@@ -112,10 +112,7 @@ export function UnreadProvider({ children }) {
                             if (participation) {
                                 setUnreadCount(prev => prev + 1);
                             }
-                        } catch (_) {
-                            // Fallback: increment anyway — refreshUnread will correct it
-                            setUnreadCount(prev => prev + 1);
-                        }
+                        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                     })
                     .on('postgres_changes', {
                         event: 'UPDATE',

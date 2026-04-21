@@ -49,7 +49,7 @@ export default function PublicGameBoard({ C, pageId, pageName, userId, userName,
                     setCommanderVenueId(json.venue_id);
                 }
             }
-        } catch (e) { if (e.name !== 'AbortError') console.error('Public games fetch error:', e); }
+        } catch (e) { if (e.name !== 'AbortError') console.warn('Public games fetch error:', e); }
         setLoading(false);
     };
 

@@ -51,7 +51,7 @@ export function ConversationList({ onSelectConversation, onClose }: Conversation
                 setConversations(data.conversations);
             }
         } catch (error) {
-            console.error('[Jarvis] Failed to load conversations:', error);
+            console.warn('[Jarvis] Failed to load conversations:', error);
         } finally {
             setLoading(false);
         }

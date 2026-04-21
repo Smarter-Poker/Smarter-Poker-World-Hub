@@ -343,9 +343,9 @@ export function autoCalibrateLive(videoElement, layout, matcher, options = {}) {
     }
   }
 
-  console.log(`[AutoCal] Injected ${injected}/${crops.length} live hashes (variant=${variant})`);
+  console.debug(`[AutoCal] Injected ${injected}/${crops.length} live hashes (variant=${variant})`);
   matches.forEach(m => {
-    console.log(`  ${m.kind}[${m.slot}] -> ${m.bestKey} dist=${m.bestDist} ${m.accepted ? 'OK' : 'SKIP'}`);
+    console.debug(`  ${m.kind}[${m.slot}] -> ${m.bestKey} dist=${m.bestDist} ${m.accepted ? 'OK' : 'SKIP'}`);
   });
 
   // Persist injected hashes so they survive page reload.
@@ -509,9 +509,9 @@ export function verifiedAutoCalibrate(videoElement, layout, matcher, options = {
     }
   }
 
-  console.log(`[VerifiedCal] ${injected} injected, ${rejected} rejected (handStrength="${handStrength || 'none'}", ranks=[${[...hsRanks]}])`);
+  console.debug(`[VerifiedCal] ${injected} injected, ${rejected} rejected (handStrength="${handStrength || 'none'}", ranks=[${[...hsRanks]}])`);
   matches.forEach(m => {
-    console.log(`  ${m.kind}[${m.slot}] -> ${m.bestKey} dist=${m.bestDist} ${m.accepted ? 'OK' : 'SKIP'} (${m.reason})`);
+    console.debug(`  ${m.kind}[${m.slot}] -> ${m.bestKey} dist=${m.bestDist} ${m.accepted ? 'OK' : 'SKIP'} (${m.reason})`);
   });
 
   return { injected, rejected, matches };
@@ -544,7 +544,7 @@ export function persistCalibratedHashes(templateHashes) {
       );
       keys.push(label);
       saved++;
-    } catch (_) { /* quota exceeded — skip silently */ }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }
   try {
     localStorage.setItem(CAL_META_KEY, JSON.stringify({
@@ -552,8 +552,8 @@ export function persistCalibratedHashes(templateHashes) {
       savedAt: Date.now(),
       count: saved,
     }));
-  } catch (_) { /* ignore */ }
-  console.log(`[TemplateCal] Persisted ${saved} calibrated hashes to localStorage`);
+  } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+  console.debug(`[TemplateCal] Persisted ${saved} calibrated hashes to localStorage`);
   return saved;
 }
 
@@ -575,7 +575,7 @@ export function restoreCalibratedHashes(matcher, options = {}) {
     if (!metaStr) return 0;
     const meta = JSON.parse(metaStr);
     if (Date.now() - (meta.savedAt || 0) > maxAge) {
-      console.log('[TemplateCal] Cached hashes are stale (>24h), skipping restore');
+      console.debug('[TemplateCal] Cached hashes are stale (>24h), skipping restore');
       return 0;
     }
 
@@ -589,9 +589,9 @@ export function restoreCalibratedHashes(matcher, options = {}) {
           matcher.templateHashes.set(label, hash);
           restored++;
         }
-      } catch (_) { /* corrupt entry */ }
+      } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }
-    console.log(`[TemplateCal] Restored ${restored} calibrated hashes from localStorage`);
+    console.debug(`[TemplateCal] Restored ${restored} calibrated hashes from localStorage`);
     return restored;
   } catch (_) {
     return 0;
@@ -612,8 +612,8 @@ export function clearCalibratedHashes() {
       }
     }
     localStorage.removeItem(CAL_META_KEY);
-    console.log('[TemplateCal] Cleared all calibrated hashes from localStorage');
-  } catch (_) { /* ignore */ }
+    console.debug('[TemplateCal] Cleared all calibrated hashes from localStorage');
+  } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 }
 
 export default captureCardCrops;

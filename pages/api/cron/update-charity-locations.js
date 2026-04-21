@@ -86,7 +86,7 @@ export default async function handler(req, res) {
               .limit(100);
 
           if (error) {
-              console.error('Failed to fetch charity pages:', error);
+              console.warn('Failed to fetch charity pages:', error);
               return res.status(500).json({ error: 'Database error' });
           }
 
@@ -128,7 +128,7 @@ export default async function handler(req, res) {
                   .eq('id', page.id);
 
               if (updateError) {
-                  console.error(`Failed to update page ${page.id}:`, updateError);
+                  console.warn(`Failed to update page ${page.id}:`, updateError);
                   results.push({ id: page.id, name: page.name, status: 'error', error: updateError.message });
               } else {
                   updatedCount++;
@@ -157,7 +157,7 @@ export default async function handler(req, res) {
                           await new Promise(r => setTimeout(r, 1100));
                       }
                   } catch (geoErr) {
-                      console.error(`[update-charity-locations] Geocoding non-fatal error for ${page.id}:`, geoErr.message);
+                      console.warn(`[update-charity-locations] Geocoding non-fatal error for ${page.id}:`, geoErr.message);
                   }
 
                   results.push({
@@ -179,13 +179,13 @@ export default async function handler(req, res) {
               results
           });
       } catch (err) {
-          console.error('Cron update-charity-locations error:', err);
+          console.warn('Cron update-charity-locations error:', err);
           return res.status(500).json({ error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

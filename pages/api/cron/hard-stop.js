@@ -65,7 +65,7 @@ export default async function handler(req, res) {
                   .limit(100);
 
           if (fetchError) {
-              console.error('Hard stop fetch error:', fetchError);
+              console.warn('Hard stop fetch error:', fetchError);
               return res.status(500).json({ error: fetchError.message });
           }
 
@@ -182,7 +182,7 @@ export default async function handler(req, res) {
                                   compsAwarded += compEarned;
                               }
                           } catch (compErr) {
-                              console.error(`[HARD STOP] Auto-comp error for member ${ts.member_id}:`, compErr);
+                              console.warn(`[HARD STOP] Auto-comp error for member ${ts.member_id}:`, compErr);
                           }
                       }
                   }
@@ -280,13 +280,13 @@ export default async function handler(req, res) {
               results
           });
       } catch (err) {
-          console.error('Hard stop cron error:', err);
+          console.warn('Hard stop cron error:', err);
           return res.status(500).json({ error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

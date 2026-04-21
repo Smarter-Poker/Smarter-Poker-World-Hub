@@ -65,7 +65,7 @@ export default async function handler(req, res) {
             .eq('user_id', userId);
 
         if (deleteErr) {
-            console.error('[DELETE-CONVERSATION] Delete error:', deleteErr);
+            console.warn('[DELETE-CONVERSATION] Delete error:', deleteErr);
             return res.status(500).json({ success: false, error: deleteErr.message });
         }
 
@@ -92,13 +92,13 @@ export default async function handler(req, res) {
         return res.json({ success: true });
 
     } catch (error) {
-        console.error('[DELETE-CONVERSATION] Error:', error);
+        console.warn('[DELETE-CONVERSATION] Error:', error);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

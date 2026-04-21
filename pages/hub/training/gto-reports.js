@@ -323,7 +323,7 @@ export default function GTOReportsPage() {
         setSessions(data.sessions.filter((s) => (s.game_id || s.gameId) !== 'nodelocking_profile'));
       }
     } catch (err) {
-      console.error('[GTOReports] Fetch error:', err);
+      console.warn('[GTOReports] Fetch error:', err);
       setFetchError('Unable to load GTO report data. Please try again.');
     }
     setLoading(false);

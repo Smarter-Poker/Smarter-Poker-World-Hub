@@ -114,7 +114,7 @@ export default function PlayerWaitlistPage() {
         }
       }
     } catch (err) {
-      if (err.name !== 'AbortError') console.error('Failed to fetch data:', err);
+      if (err.name !== 'AbortError') console.warn('Failed to fetch data:', err);
     } finally {
       setLoading(false);
     }
@@ -158,7 +158,7 @@ export default function PlayerWaitlistPage() {
         const parsed = JSON.parse(cached);
         if (parsed?.access_token) return parsed.access_token;
       }
-    } catch (_) { /* localStorage unavailable */ }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
     // 2. Session path: supabase.auth.getSession (handles refresh, slower on first call)
     const _authToken = getAccessToken();
@@ -234,7 +234,7 @@ export default function PlayerWaitlistPage() {
       const data = await res.json();
       if (data.success) fetchData();
     } catch (err) {
-      console.error('Failed to leave waitlist:', err);
+      console.warn('Failed to leave waitlist:', err);
     }
   }
 
@@ -325,7 +325,7 @@ export default function PlayerWaitlistPage() {
         setTimeout(() => setError(null), 3000);
       }
     } catch (err) {
-      console.error('Arrival signal failed:', err);
+      console.warn('Arrival signal failed:', err);
       setError('Network error. Please try again.');
       setTimeout(() => setError(null), 3000);
     }

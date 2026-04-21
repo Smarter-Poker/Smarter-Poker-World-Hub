@@ -101,7 +101,7 @@ export default async function handler(req, res) {
                 .limit(200);
 
             if (error) {
-                console.error('[venue-schedules] GET error:', error);
+                console.warn('[venue-schedules] GET error:', error);
                 return res.status(500).json({ success: false, error: 'Internal server error' });
             }
 
@@ -178,7 +178,7 @@ export default async function handler(req, res) {
                     .maybeSingle();
 
                 if (error) {
-                    console.error('[venue-schedules] UPDATE error:', error);
+                    console.warn('[venue-schedules] UPDATE error:', error);
                     return res.status(500).json({ success: false, error: 'Internal server error' });
                 }
 
@@ -201,7 +201,7 @@ export default async function handler(req, res) {
                     .maybeSingle();
 
                 if (error) {
-                    console.error('[venue-schedules] INSERT error:', error);
+                    console.warn('[venue-schedules] INSERT error:', error);
                     return res.status(500).json({ success: false, error: 'Internal server error' });
                 }
 
@@ -244,7 +244,7 @@ export default async function handler(req, res) {
                 .eq('venue_id', venueId);
 
             if (error) {
-                console.error('[venue-schedules] DELETE error:', error);
+                console.warn('[venue-schedules] DELETE error:', error);
                 return res.status(500).json({ success: false, error: 'Internal server error' });
             }
 
@@ -254,7 +254,7 @@ export default async function handler(req, res) {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('[venue-schedules] Unhandled error:', err);
+        console.warn('[venue-schedules] Unhandled error:', err);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

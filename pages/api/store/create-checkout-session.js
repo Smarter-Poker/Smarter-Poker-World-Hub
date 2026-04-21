@@ -62,7 +62,7 @@ export default async function handler(req, res) {
       const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 
       if (!stripe || !stripePublishableKey) {
-          console.error('[Checkout] Missing Stripe keys:', {
+          console.warn('[Checkout] Missing Stripe keys:', {
               hasStripe: !!stripe,
               hasPublishable: !!stripePublishableKey
           });
@@ -137,7 +137,7 @@ export default async function handler(req, res) {
                       .update({ stripe_customer_id: customerId })
                       .eq('id', user.id);
               } catch (customerError) {
-                  console.error('[Checkout] Failed to create Stripe customer:', {
+                  console.warn('[Checkout] Failed to create Stripe customer:', {
                       type: customerError.type,
                       code: customerError.code,
                       statusCode: customerError.statusCode,
@@ -346,7 +346,7 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('[Checkout] FATAL ERROR:', {
+          console.warn('[Checkout] FATAL ERROR:', {
               type: error.type,
               code: error.code,
               statusCode: error.statusCode,
@@ -381,7 +381,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

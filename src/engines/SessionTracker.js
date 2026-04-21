@@ -119,7 +119,7 @@ export async function saveSession(supabase, sessionRecord, moveRecords = []) {
 
         return { success: true, sessionId };
     } catch (error) {
-        console.error('Failed to save session to Supabase:', error);
+        console.warn('Failed to save session to Supabase:', error);
         // Fallback to local storage
         return _saveToLocalStorage(sessionRecord, moveRecords);
     }
@@ -158,7 +158,7 @@ export async function loadSessionHistory(supabase, userId, options = {}) {
         if (error) throw error;
         return data || [];
     } catch (error) {
-        console.error('Failed to load sessions:', error);
+        console.warn('Failed to load sessions:', error);
         return _loadFromLocalStorage(userId);
     }
 }

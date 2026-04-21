@@ -40,7 +40,7 @@ export default function SystemInfoPage() {
     try {
 const json = await commanderFetchJSON('/api/commander/system-info');
       if (json.success) setInfo(json.data);
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
     finally { setLoading(false); setRefreshing(false); }
   }
 

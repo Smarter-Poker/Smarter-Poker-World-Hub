@@ -201,7 +201,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
             });
         } catch (err) {
             setError('Failed to calculate route. Please try again.');
-            console.error('Route calculation error:', err);
+            console.warn('Route calculation error:', err);
         } finally {
             setCalculating(false);
         }

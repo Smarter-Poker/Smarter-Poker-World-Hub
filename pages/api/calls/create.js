@@ -62,20 +62,20 @@ export default async function handler(req, res) {
               .maybeSingle();
 
           if (error) {
-              console.error('[calls/create] Error:', error);
+              console.warn('[calls/create] Error:', error);
               return res.status(500).json({ success: false, error: 'Internal server error' });
           }
 
           if (!data) return res.status(500).json({ success: false, error: 'Failed to create call' });
           return res.json({ success: true, call: data });
       } catch (e) {
-          console.error('[calls/create] Exception:', e);
+          console.warn('[calls/create] Exception:', e);
           return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

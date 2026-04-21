@@ -290,7 +290,7 @@ export default function PerformanceHeatmapPage() {
         processHeatmapData(data.sessions);
       }
     } catch (e) {
-      console.error('[Heatmap] Fetch error:', e);
+      console.warn('[Heatmap] Fetch error:', e);
       setFetchError('Unable to load heatmap data. Please check your connection.');
     }
     setLoading(false);

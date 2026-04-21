@@ -113,13 +113,13 @@ export async function updateUserELO(userId, newELO) {
             .eq('id', userId);
 
         if (error) {
-            console.error('[ELO] Update error:', error);
+            console.warn('[ELO] Update error:', error);
             return { success: false, error };
         }
 
         return { success: true, newELO };
     } catch (err) {
-        console.error('[ELO] Exception:', err);
+        console.warn('[ELO] Exception:', err);
         return { success: false, error: err };
     }
 }
@@ -141,7 +141,7 @@ export async function getUserELO(userId) {
 
         return data.memory_elo || DEFAULT_ELO;
     } catch (err) {
-        console.error('[ELO] Get error:', err);
+        console.warn('[ELO] Get error:', err);
         return DEFAULT_ELO;
     }
 }

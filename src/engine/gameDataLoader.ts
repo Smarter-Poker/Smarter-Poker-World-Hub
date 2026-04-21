@@ -75,7 +75,7 @@ export function loadGameData(gameId: string): LoadedGameData | null {
     const clinic = TRAINING_CLINICS.find(c => c.id === gameId);
 
     if (!clinic) {
-        console.error(`[GameDataLoader] Clinic not found: ${gameId}`);
+        console.warn(`[GameDataLoader] Clinic not found: ${gameId}`);
         return null;
     }
 

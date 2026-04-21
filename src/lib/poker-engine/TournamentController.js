@@ -501,7 +501,7 @@ class TournamentController extends EventEmitter {
         p_tournament_name: this.name || null,
       }).then(({ data: rakeResult, error: rakeErr }) => {
         if (rakeErr) {
-          console.error(`[TournamentController] Tournament rake recording failed for ${playerId}:`, rakeErr.message);
+          console.warn(`[TournamentController] Tournament rake recording failed for ${playerId}:`, rakeErr.message);
         } else {
           // Also run cascading commission for this player based on their fee
           return this.supabase.rpc('calculate_cascading_commission', {
@@ -512,7 +512,7 @@ class TournamentController extends EventEmitter {
           });
         }
       }).catch(err => {
-        console.error('[TournamentController] Tournament rake/commission error:', err.message);
+        console.warn('[TournamentController] Tournament rake/commission error:', err.message);
       });
     }
 
@@ -569,7 +569,7 @@ class TournamentController extends EventEmitter {
       this.ledger.creditWinnings(
         entry.clubId, playerId, this.buyinAmount + this.buyinFee,
         { tournamentId: this.tournamentId, type: 'tournament_refund' }
-      ).catch(err => console.error('[Tournament] Cancel refund failed:', playerId, err.message));
+      ).catch(err => console.warn('[Tournament] Cancel refund failed:', playerId, err.message));
     }
 
     this.emit('registration_cancelled', { playerId });
@@ -891,7 +891,7 @@ class TournamentController extends EventEmitter {
             if (elimEntry?.clubId) {
               this.ledger.creditWinnings(elimEntry.clubId, award.playerId, award.amount,
                 { tournamentId: this.tournamentId, type: award.type })
-                .catch(err => console.error('[Tournament] Bounty credit failed:', award.playerId, err.message));
+                .catch(err => console.warn('[Tournament] Bounty credit failed:', award.playerId, err.message));
             }
           }
 
@@ -1146,7 +1146,7 @@ class TournamentController extends EventEmitter {
         }
       }
       if (!seated) {
-        console.error(`[TournamentController] CRITICAL: Could not seat player ${player.id} during table break`);
+        console.warn(`[TournamentController] CRITICAL: Could not seat player ${player.id} during table break`);
       }
     }
 

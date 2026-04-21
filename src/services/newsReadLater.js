@@ -16,7 +16,7 @@ export async function getReadLater(userId) {
         .order('created_at', { ascending: false });
 
     if (error) {
-        console.error('Error fetching read later:', error);
+        console.warn('Error fetching read later:', error);
         throw error;
     }
 
@@ -41,7 +41,7 @@ export async function addToReadLater(userId, articleId, articleData = {}) {
         .maybeSingle();
 
     if (error) {
-        console.error('Error adding to read later:', error);
+        console.warn('Error adding to read later:', error);
         throw error;
     }
 
@@ -59,7 +59,7 @@ export async function removeFromReadLater(userId, articleId) {
         .eq('article_id', articleId);
 
     if (error) {
-        console.error('Error removing from read later:', error);
+        console.warn('Error removing from read later:', error);
         throw error;
     }
 
@@ -78,7 +78,7 @@ export async function isInReadLater(userId, articleId) {
         .maybeSingle();
 
     if (error && error.code !== 'PGRST116') {
-        console.error('Error checking read later:', error);
+        console.warn('Error checking read later:', error);
         throw error;
     }
 

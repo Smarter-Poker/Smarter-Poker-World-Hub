@@ -65,7 +65,7 @@ export default function ArenaLedger({ clubId }) {
 
       setLogs(combined.slice(0, 150));
     } catch (e) {
-      console.error('[ArenaLedger] Init Error:', e);
+      console.warn('[ArenaLedger] Init Error:', e);
     } finally {
       setLoading(false);
     }

@@ -43,7 +43,7 @@ export default function PlayerNotes({ userId }) {
                 setPlayers(data);
             }
         } catch (err) {
-            console.error('[PlayerNotes] Load error:', err);
+            console.warn('[PlayerNotes] Load error:', err);
         }
         setIsLoading(false);
     }
@@ -218,7 +218,7 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
                     if (venues.length > 0) setCustomVenue(false);
                 }
             } catch (err) {
-                console.error('[PlayerModal] Failed to load saved fields:', err);
+                console.warn('[PlayerModal] Failed to load saved fields:', err);
             }
         })();
     }, [userId]);
@@ -257,7 +257,7 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
 
             setFormData(prev => ({ ...prev, photo_url: urlData.publicUrl }));
         } catch (err) {
-            console.error('[PlayerModal] Upload error:', err);
+            console.warn('[PlayerModal] Upload error:', err);
             alert('Upload failed: ' + (err.message || 'Unknown error'));
         }
         setIsUploading(false);
@@ -288,7 +288,7 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
             }
             onSave();
         } catch (err) {
-            console.error('[PlayerModal] Save error:', err);
+            console.warn('[PlayerModal] Save error:', err);
         }
         setIsSaving(false);
     }
@@ -301,7 +301,7 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
             await supabase.from('player_notes').delete().eq('id', player.id);
             onDelete();
         } catch (err) {
-            console.error('[PlayerModal] Delete error:', err);
+            console.warn('[PlayerModal] Delete error:', err);
         }
     }
 

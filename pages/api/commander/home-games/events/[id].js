@@ -51,7 +51,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -143,7 +143,7 @@ async function getEvent(req, res, id) {
       is_host: isHost
     });
   } catch (error) {
-    console.error('Get event error:', error);
+    console.warn('Get event error:', error);
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -236,9 +236,7 @@ async function updateEvent(req, res, id) {
       // Update member stats
       await getSupabase().rpc('increment_home_game_stats', {
         p_game_id: id
-      }).catch(() => {
-        // Function may not exist, that's okay
-      });
+      }).catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
 
       return res.status(200).json({ event: updated, message: 'Game completed' });
     }
@@ -310,7 +308,7 @@ async function updateEvent(req, res, id) {
 
     return res.status(200).json({ event: updated });
   } catch (error) {
-    console.error('Update event error:', error);
+    console.warn('Update event error:', error);
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -368,7 +366,7 @@ async function cancelEvent(req, res, id) {
     return res.status(200).json({ success: true, message: 'Event cancelled' });
   } catch (error) {
       try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('Cancel event error:', error);
+    console.warn('Cancel event error:', error);
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

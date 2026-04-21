@@ -258,7 +258,7 @@ export default function DrillBuilderPage() {
         );
       }
     } catch (e) {
-      console.error('[DrillBuilder] Save error:', e);
+      console.warn('[DrillBuilder] Save error:', e);
     }
     setSaving(false);
   };

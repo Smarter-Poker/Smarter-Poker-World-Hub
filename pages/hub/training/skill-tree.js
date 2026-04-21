@@ -329,7 +329,7 @@ export default function SkillTreePage() {
         setStats(computeSkillData(data.sessions));
       }
     } catch (e) {
-      console.error('[SkillTree] Fetch error:', e);
+      console.warn('[SkillTree] Fetch error:', e);
       setFetchError('Unable to load skill tree data. Please try again.');
     }
     setLoading(false);

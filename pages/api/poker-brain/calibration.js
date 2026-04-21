@@ -40,7 +40,7 @@ export default async function handler(req, res) {
         .order('updated_at', { ascending: false });
 
       if (error) {
-        console.error('[poker-brain/calibration] list error:', error);
+        console.warn('[poker-brain/calibration] list error:', error);
         return res.status(500).json({ error: 'Failed to fetch profiles' });
       }
       return res.status(200).json({ profiles: profiles || [] });
@@ -65,7 +65,7 @@ export default async function handler(req, res) {
         .maybeSingle();
 
       if (error) {
-        console.error('[poker-brain/calibration] insert error:', error);
+        console.warn('[poker-brain/calibration] insert error:', error);
         return res.status(500).json({ error: 'Failed to save profile' });
       }
       return res.status(201).json({ profile });
@@ -93,7 +93,7 @@ export default async function handler(req, res) {
         .eq('id', id);
 
       if (error) {
-        console.error('[poker-brain/calibration] delete error:', error);
+        console.warn('[poker-brain/calibration] delete error:', error);
         return res.status(500).json({ error: 'Failed to delete profile' });
       }
       return res.status(200).json({ deleted: true });
@@ -102,7 +102,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[poker-brain/calibration] error:', err);
+    console.warn('[poker-brain/calibration] error:', err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

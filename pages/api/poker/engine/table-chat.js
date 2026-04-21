@@ -87,13 +87,13 @@ export default async function handler(req, res) {
 
       return res.status(200).json({ ok: true });
     } catch (err) {
-      console.error('[table-chat] Error:', err.message);
+      console.warn('[table-chat] Error:', err.message);
       return res.status(500).json({ error: 'Internal server error' });
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

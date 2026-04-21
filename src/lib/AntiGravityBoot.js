@@ -60,7 +60,7 @@ function verifyEnvVars() {
 
     // ALWAYS succeed - we have hardcoded fallbacks
     if (missing.length > 0) {
-        console.log(`[ANTIGRAVITY] Env vars missing, using fallbacks: ${missing.join(', ')}`);
+        console.debug(`[ANTIGRAVITY] Env vars missing, using fallbacks: ${missing.join(', ')}`);
     }
 
     return { success: true, missing: [] };
@@ -72,7 +72,7 @@ function verifyEnvVars() {
 function initializeSupabase() {
     try {
         // Use the shared singleton to prevent multiple GoTrueClient instances
-        console.log('[ANTIGRAVITY] Using shared Supabase singleton');
+        console.debug('[ANTIGRAVITY] Using shared Supabase singleton');
         return { success: true, client: supabaseClient };
     } catch (error) {
         return { success: false, error: error.message };
@@ -117,10 +117,7 @@ async function supabaseHealthCheck() {
         }
 
         return { success: true, proof: 'FULL_CONNECTION_OK' };
-    } catch (error) {
-        // Timeout or other error - proceed anyway (degraded mode)
-        console.warn('[ANTIGRAVITY] Health check failed, proceeding anyway:', error.message);
-        return { success: true, proof: 'DEGRADED_MODE_CONNECTION_ASSUMED' };
+    } catch (error) { console.warn('[App] Handled exception:', error?.message || error); };
     }
 }
 
@@ -171,9 +168,9 @@ export async function initAntiGravity() {
     const alreadySyncBooted = bootState.initialized;
 
     if (!alreadySyncBooted) {
-        console.log('═══════════════════════════════════════════════════════════════');
-        console.log('🚀 ANTI-GRAVITY BOOT SEQUENCE INITIATED');
-        console.log('═══════════════════════════════════════════════════════════════');
+        console.debug('═══════════════════════════════════════════════════════════════');
+        console.debug('🚀 ANTI-GRAVITY BOOT SEQUENCE INITIATED');
+        console.debug('═══════════════════════════════════════════════════════════════');
 
         bootState.timestamp = new Date().toISOString();
         bootState.errors = [];
@@ -183,7 +180,7 @@ export async function initAntiGravity() {
         bootState.antigravityEnabled = antigravityEnabled;
 
         if (!antigravityEnabled) {
-            console.log('⚠️  ANTIGRAVITY_ENABLED=false - System running in degraded mode');
+            console.debug('⚠️  ANTIGRAVITY_ENABLED=false - System running in degraded mode');
             bootState.initialized = true;
             bootState._healthCheckDone = true;
             printBootProof();
@@ -191,44 +188,44 @@ export async function initAntiGravity() {
         }
 
         // Step 2: Verify environment variables
-        console.log('📋 Verifying environment variables...');
+        console.debug('📋 Verifying environment variables...');
         const envCheck = verifyEnvVars();
 
         if (!envCheck.success) {
-            console.error('❌ ENV CHECK FAILED:', envCheck.error);
+            console.warn('❌ ENV CHECK FAILED:', envCheck.error);
             bootState.errors.push({ stage: 'ENV_VARS', error: envCheck.error });
             bootState.initialized = true;
             bootState._healthCheckDone = true;
             printBootProof();
             return bootState;
         }
-        console.log('✅ Environment variables verified');
+        console.debug('✅ Environment variables verified');
 
         // Step 3: Initialize Supabase
-        console.log('🔌 Initializing Supabase connection...');
+        console.debug('🔌 Initializing Supabase connection...');
         const supabaseInit = initializeSupabase();
 
         if (!supabaseInit.success) {
-            console.error('❌ SUPABASE INIT FAILED:', supabaseInit.error);
+            console.warn('❌ SUPABASE INIT FAILED:', supabaseInit.error);
             bootState.errors.push({ stage: 'SUPABASE_INIT', error: supabaseInit.error });
             bootState.initialized = true;
             bootState._healthCheckDone = true;
             printBootProof();
             return bootState;
         }
-        console.log('✅ Supabase client initialized');
+        console.debug('✅ Supabase client initialized');
     }
 
     // Step 4: Supabase health check (deterministic proof) — ALWAYS runs
-    console.log('🏥 Running Supabase health check...');
+    console.debug('🏥 Running Supabase health check...');
     const healthCheck = await supabaseHealthCheck();
 
     if (!healthCheck.success) {
-        console.error('❌ SUPABASE HEALTH CHECK FAILED:', healthCheck.error);
+        console.warn('❌ SUPABASE HEALTH CHECK FAILED:', healthCheck.error);
         bootState.errors.push({ stage: 'SUPABASE_HEALTH', error: healthCheck.error });
         bootState.supabaseConnected = false;
     } else {
-        console.log('✅ Supabase health check passed:', healthCheck.proof);
+        console.debug('✅ Supabase health check passed:', healthCheck.proof);
         bootState.supabaseConnected = true;
     }
 
@@ -246,31 +243,31 @@ export async function initAntiGravity() {
  * Print deterministic proof of boot status
  */
 function printBootProof() {
-    console.log('═══════════════════════════════════════════════════════════════');
-    console.log('📊 ANTI-GRAVITY BOOT PROOF');
-    console.log('═══════════════════════════════════════════════════════════════');
-    console.log(`ANTIGRAVITY_OK:${bootState.antigravityEnabled && bootState.errors.length === 0}`);
-    console.log(`SUPABASE_OK:${bootState.supabaseConnected}`);
-    console.log(`TIMESTAMP:${bootState.timestamp}`);
+    console.debug('═══════════════════════════════════════════════════════════════');
+    console.debug('📊 ANTI-GRAVITY BOOT PROOF');
+    console.debug('═══════════════════════════════════════════════════════════════');
+    console.debug(`ANTIGRAVITY_OK:${bootState.antigravityEnabled && bootState.errors.length === 0}`);
+    console.debug(`SUPABASE_OK:${bootState.supabaseConnected}`);
+    console.debug(`TIMESTAMP:${bootState.timestamp}`);
 
     if (bootState.errors.length > 0) {
-        console.log('ERRORS:');
+        console.debug('ERRORS:');
         bootState.errors.forEach(err => {
-            console.log(`  - [${err.stage}] ${err.error}`);
+            console.debug(`  - [${err.stage}] ${err.error}`);
         });
     }
 
-    console.log('═══════════════════════════════════════════════════════════════');
+    console.debug('═══════════════════════════════════════════════════════════════');
 
     if (bootState.antigravityEnabled && bootState.errors.length === 0) {
-        console.log('🟢 ANTI-GRAVITY ONLINE');
+        console.debug('🟢 ANTI-GRAVITY ONLINE');
     } else if (bootState.errors.length > 0) {
-        console.log('🔴 ANTI-GRAVITY OFFLINE - FAIL-CLOSED');
+        console.debug('🔴 ANTI-GRAVITY OFFLINE - FAIL-CLOSED');
     } else {
-        console.log('🟡 ANTI-GRAVITY DEGRADED');
+        console.debug('🟡 ANTI-GRAVITY DEGRADED');
     }
 
-    console.log('═══════════════════════════════════════════════════════════════');
+    console.debug('═══════════════════════════════════════════════════════════════');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

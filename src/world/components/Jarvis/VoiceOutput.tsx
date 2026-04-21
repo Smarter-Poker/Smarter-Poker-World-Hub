@@ -14,7 +14,7 @@ export function VoiceOutput({ text }: VoiceOutputProps) {
 
     const speak = () => {
         if (!('speechSynthesis' in window)) {
-            console.error('[VoiceOutput] Speech synthesis not supported');
+            console.warn('[VoiceOutput] Speech synthesis not supported');
             return;
         }
 

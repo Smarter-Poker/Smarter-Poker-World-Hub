@@ -146,7 +146,7 @@ export default function PhoneVerifyVIPModal({ userId, onClose, onVerified }) {
                 window.dispatchEvent(new CustomEvent('profile-updated', {
                     detail: { userId, phone: raw, phone_verified: true, is_vip: data.vipGranted !== false }
                 }));
-                console.log('[PhoneVerifyVIP] 🚌 Bus events dispatched: vip-status-changed, profile-updated');
+                console.debug('[PhoneVerifyVIP] 🚌 Bus events dispatched: vip-status-changed, profile-updated');
             }
 
             setTimeout(() => {

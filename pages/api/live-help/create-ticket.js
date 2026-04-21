@@ -83,7 +83,7 @@ export default async function handler(req, res) {
               .maybeSingle();
 
           if (ticketError) {
-              console.error('Failed to create ticket:', ticketError);
+              console.warn('Failed to create ticket:', ticketError);
               return res.status(500).json({ error: 'Failed to create ticket' });
           }
 
@@ -107,7 +107,7 @@ export default async function handler(req, res) {
                   conversationId: conversationId
               });
           } catch (emailError) {
-              console.error('[LiveHelp] Failed to send ticket email:', emailError);
+              console.warn('[LiveHelp] Failed to send ticket email:', emailError);
               // Don't fail the request if email fails
           }
 
@@ -122,13 +122,13 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('Create ticket error:', error);
+          console.warn('Create ticket error:', error);
           return res.status(500).json({ error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

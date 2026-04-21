@@ -57,7 +57,7 @@ try {
 
                   if (prefsErr && prefsErr.code !== 'PGRST116') {
                       // PGRST116 = "The result contains 0 rows" (table may not exist yet)
-                      console.error('Error fetching alert prefs:', prefsErr);
+                      console.warn('Error fetching alert prefs:', prefsErr);
                   }
 
                   if (!prefs) {
@@ -92,7 +92,7 @@ try {
 
               // Table may not exist — handle gracefully
               if (error && error.code !== 'PGRST116' && !error.message?.includes('does not exist')) {
-                  console.error('Error fetching alert prefs:', error);
+                  console.warn('Error fetching alert prefs:', error);
                   return res.status(500).json({ success: false, error: 'Internal server error' });
               }
 
@@ -127,7 +127,7 @@ try {
                   if (error.message?.includes('does not exist')) {
                       return res.status(200).json({ success: true, prefs: prefsData, note: 'Saved locally only (table not created yet)' });
                   }
-                  console.error('Error saving alert prefs:', error);
+                  console.warn('Error saving alert prefs:', error);
                   return res.status(500).json({ success: false, error: 'Internal server error' });
               }
 
@@ -142,7 +142,7 @@ try {
                   .eq('user_id', userId);
 
               if (error && !error.message?.includes('does not exist')) {
-                  console.error('Error deleting alert prefs:', error);
+                  console.warn('Error deleting alert prefs:', error);
                   return res.status(500).json({ success: false, error: 'Internal server error' });
               }
 
@@ -151,13 +151,13 @@ try {
 
           return res.status(405).json({ success: false, error: `Method ${req.method} not allowed` });
       } catch (err) {
-          console.error('Tournament Alerts API error:', err);
+          console.warn('Tournament Alerts API error:', err);
           return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

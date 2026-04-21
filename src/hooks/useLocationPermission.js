@@ -101,7 +101,7 @@ export default function useLocationPermission(options = {}) {
           if (onSuccess) onSuccess({ lat: parsed.lat, lng: parsed.lng }, true);
         }
       }
-    } catch (e) { /* ignore corrupt data */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-request on mount if configured
@@ -126,7 +126,7 @@ export default function useLocationPermission(options = {}) {
       localStorage.setItem(GPS_STORAGE_KEY, JSON.stringify({
         lat, lng, time: Date.now(), label: `${lat.toFixed(3)}, ${lng.toFixed(3)}`
       }));
-    } catch (e) { /* storage full */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
     if (onSuccess) onSuccess({ lat, lng }, false);
   }, [onSuccess]);

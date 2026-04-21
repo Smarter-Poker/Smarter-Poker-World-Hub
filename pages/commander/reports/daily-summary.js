@@ -64,7 +64,7 @@ const headers = { };
             cashTotal: sumAmount(txns.filter(t => t.payment_method === 'cash' && (t.type === 'buy_in' || t.type === 'add_on'))),
             cardTotal: sumAmount(txns.filter(t => t.payment_method === 'card' && (t.type === 'buy_in' || t.type === 'add_on'))) });
         }
-      } catch (err) { console.error(err); }
+      } catch (err) { console.warn(err); }
       finally { setLoading(false); }
     };
     fetchAll();

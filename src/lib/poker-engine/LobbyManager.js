@@ -70,7 +70,7 @@ class LobbyManager {
   async initialize() {
     // Skip channel creation if no Supabase client (memory-only mode)
     if (!this.supabase) {
-      console.log('[LobbyManager] No Supabase client — running without lobby broadcast');
+      console.debug('[LobbyManager] No Supabase client — running without lobby broadcast');
       return;
     }
 
@@ -150,7 +150,7 @@ class LobbyManager {
             seat.status = SEAT_STATUS.OCCUPIED;
             table.emit('auto_rebuy_success', { playerId, amount, newStack: seat.stack, seatIndex });
             table.emit('chips_added', { playerId, amount, newStack: seat.stack, seatIndex });
-            console.log(`[LobbyManager] Auto-rebuy: ${playerId} rebuys ${amount} chips`);
+            console.debug(`[LobbyManager] Auto-rebuy: ${playerId} rebuys ${amount} chips`);
           }
         } else {
           // Not enough balance — throw to trigger vacate in TableManager
@@ -169,7 +169,7 @@ class LobbyManager {
             seat.stack += amount;
             table.emit('auto_topup_success', { playerId, amount, newStack: seat.stack, seatIndex });
             table.emit('chips_added', { playerId, amount, newStack: seat.stack, seatIndex });
-            console.log(`[LobbyManager] Auto top-up: ${playerId} tops up ${amount} chips → ${seat.stack}`);
+            console.debug(`[LobbyManager] Auto top-up: ${playerId} tops up ${amount} chips → ${seat.stack}`);
           }
         } else {
           // Non-fatal for top-up — just log and continue
@@ -245,7 +245,7 @@ class LobbyManager {
           if (isAI) {
             const VIP_LIFETIME_TIMEBANK_SECONDS = 600; // 10 min Lifetime VIP bank
             timer.initPlayer(data.playerId, VIP_LIFETIME_TIMEBANK_SECONDS);
-            console.log(`[LobbyManager] 👑 Lifetime VIP Timebank granted to Horse ${String(data.playerId).substring(0, 8)}: ${VIP_LIFETIME_TIMEBANK_SECONDS}s`);
+            console.debug(`[LobbyManager] 👑 Lifetime VIP Timebank granted to Horse ${String(data.playerId).substring(0, 8)}: ${VIP_LIFETIME_TIMEBANK_SECONDS}s`);
           }
         }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       }
@@ -266,11 +266,11 @@ class LobbyManager {
             const hasLock = await ChipBridge.checkLockExists(config.tableId, data.playerId);
             if (hasLock) {
               // Lock still exists — this was an engine auto-removal
-              console.log(`[LobbyManager] Auto-unlock: player ${data.playerId} removed from table with ${cashout} chips`);
+              console.debug(`[LobbyManager] Auto-unlock: player ${data.playerId} removed from table with ${cashout} chips`);
               await ChipBridge.unlockChips(clubId, data.playerId, config.tableId, cashout);
             }
           } catch (e) {
-            console.error('[LobbyManager] Auto-unlock error:', e);
+            console.warn('[LobbyManager] Auto-unlock error:', e);
           }
         }, 500);
       }
@@ -315,14 +315,14 @@ class LobbyManager {
 
       // Auto-close: finish current hand then close
       setTimeout(() => {
-        console.log(`[LobbyManager] Game length expired (${gameLengthHours}h) for ${config.tableId}`);
+        console.debug(`[LobbyManager] Game length expired (${gameLengthHours}h) for ${config.tableId}`);
 
         // Auto-extension: if players are seated and auto_extension enabled, extend
         const autoExtension = config.clubSettings?.auto_extension || config.autoExtension;
         const seatedCount = table.seats.filter(s => s.status !== SEAT_STATUS.EMPTY).length;
 
         if (autoExtension && seatedCount >= 2) {
-          console.log(`[LobbyManager] Auto-extending table ${config.tableId} (${seatedCount} players seated)`);
+          console.debug(`[LobbyManager] Auto-extending table ${config.tableId} (${seatedCount} players seated)`);
           table.emit('game_length_extended', { hours: gameLengthHours, seatedPlayers: seatedCount });
           // Schedule another check after 1 hour
           setTimeout(() => {
@@ -381,9 +381,9 @@ class LobbyManager {
       for (const { playerId, stack } of seatedPlayers) {
         try {
           await ChipBridge.unlockChips(clubId, playerId, tableId, stack);
-          console.log(`[LobbyManager.closeTable] Unlocked ${stack} chips for ${playerId}`);
+          console.debug(`[LobbyManager.closeTable] Unlocked ${stack} chips for ${playerId}`);
         } catch (e) {
-          console.error(`[LobbyManager.closeTable] Failed to unlock chips for ${playerId}:`, e.message);
+          console.warn(`[LobbyManager.closeTable] Failed to unlock chips for ${playerId}:`, e.message);
         }
       }
     }
@@ -593,9 +593,9 @@ class LobbyManager {
         const tierConfig = getRakeConfig(config.bigBlind, config.variant || 'nlh');
         const tier = getTierForBB(config.bigBlind);
 
-        console.log(`[BBJ] 🎰 BAD BEAT JACKPOT TRIGGERED! Hand #${bbjData.handNumber}`);
-        console.log(`[BBJ]   Loser: ${bbjData.loserId} (${bbjData.loserHand})`);
-        console.log(`[BBJ]   Winner: ${bbjData.winnerId} (${bbjData.winnerHand})`);
+        console.debug(`[BBJ] 🎰 BAD BEAT JACKPOT TRIGGERED! Hand #${bbjData.handNumber}`);
+        console.debug(`[BBJ]   Loser: ${bbjData.loserId} (${bbjData.loserHand})`);
+        console.debug(`[BBJ]   Winner: ${bbjData.winnerId} (${bbjData.winnerHand})`);
 
         // Award via bbj_pools table (Phase 48f: resilient — financial critical)
         const { data: awardResult, error: awardErr } = await resilientMutation(sb, () => sb.rpc('award_bbj', {
@@ -620,9 +620,9 @@ class LobbyManager {
         }), { critical: true });
 
         if (awardErr) {
-          console.error('[BBJ] Award error:', awardErr.message);
+          console.warn('[BBJ] Award error:', awardErr.message);
         } else if (awardResult?.success) {
-          console.log(`[BBJ] ✅ Jackpot paid! Total: ${awardResult.total_payout}`);
+          console.debug(`[BBJ] ✅ Jackpot paid! Total: ${awardResult.total_payout}`);
 
           // Broadcast BBJ win to the table channel
           const _bbjCh = getSyncChannel();
@@ -670,7 +670,7 @@ class LobbyManager {
           } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         }
       } catch (err) {
-        console.error('[BBJ] Trigger error:', err.message);
+        console.warn('[BBJ] Trigger error:', err.message);
       }
     });
 
@@ -696,8 +696,8 @@ class LobbyManager {
           p_type: 'premium',
           p_metadata: { coverage: data.amount, equity: data.trailerEquity },
         }).then(({ error }) => {
-          if (error) console.error('[LobbyManager] Insurance premium recording failed:', error.message);
-        }).catch(console.error);
+          if (error) console.warn('[LobbyManager] Insurance premium recording failed:', error.message);
+        }).catch(console.warn);
 
         // [AUDIT LOG] Trace the chip movement leaving the player's account for the premium
         try {
@@ -730,7 +730,7 @@ class LobbyManager {
           p_type: 'payout',
           p_metadata: { premium: data.premium, netGain: data.netGain },
         }).then(({ error }) => {
-          if (error) console.error('[LobbyManager] Insurance payout recording failed:', error.message);
+          if (error) console.warn('[LobbyManager] Insurance payout recording failed:', error.message);
         });
 
         // [AUDIT LOG] Trace the chip movement entering the player's account from the insurance hit
@@ -841,11 +841,11 @@ class LobbyManager {
           }), { critical: true });
 
           if (rakeErr) {
-            console.error('[LobbyManager] Rake RPC failed:', rakeErr.message);
+            console.warn('[LobbyManager] Rake RPC failed:', rakeErr.message);
           } else if (rakeResult?.global_hand_id) {
             // Store global ID so it can be pushed to clients if needed in future
             // For now, log it for audit trail
-            console.log(`[LobbyManager] Hand recorded: ${canonicalHandId} → SP-${String(rakeResult.global_hand_id).padStart(10, '0')} (rake=${rakeAmount})`);
+            console.debug(`[LobbyManager] Hand recorded: ${canonicalHandId} → SP-${String(rakeResult.global_hand_id).padStart(10, '0')} (rake=${rakeAmount})`);
           }
 
           // ── INCREMENT SETTLEMENT COUNTERS ──
@@ -861,7 +861,7 @@ class LobbyManager {
               p_hands: 1,
             }));
           } catch (settlErr) {
-            console.error('[LobbyManager] Settlement counter increment failed:', settlErr.message);
+            console.warn('[LobbyManager] Settlement counter increment failed:', settlErr.message);
             // Non-fatal — don't block hand progression
           }
 
@@ -879,7 +879,7 @@ class LobbyManager {
                 p_stakes_tier: tier?.label?.toLowerCase() || 'small',
               });
             } catch (bbjErr) {
-              console.error('[LobbyManager] BBJ contribution failed:', bbjErr.message);
+              console.warn('[LobbyManager] BBJ contribution failed:', bbjErr.message);
             }
           }
 
@@ -900,12 +900,12 @@ class LobbyManager {
             ).then(results => {
               const failures = results.filter(r => r.status === 'rejected' || r.value?.error);
               if (failures.length > 0) {
-                console.error(`[LobbyManager] ${failures.length}/${dealtPlayerIds.length} commission calcs failed`);
+                console.warn(`[LobbyManager] ${failures.length}/${dealtPlayerIds.length} commission calcs failed`);
               }
-            }).catch(console.error);
+            }).catch(console.warn);
           }
         } catch (rakeErr) {
-          console.error('[LobbyManager] Rake recording failed:', rakeErr);
+          console.warn('[LobbyManager] Rake recording failed:', rakeErr);
           // Don't block hand progression on rake recording failure
         }
       }
@@ -922,14 +922,11 @@ class LobbyManager {
                 p_club_id: clubId,
                 p_player_user_id: player.id,
                 p_amount_wagered: invested,
-              }).catch(err => {
-                // Non-blocking — don't fail hand on wagering tracking
-                console.error('[LobbyManager] Promo wagering track failed:', player.id, err.message);
-              });
+              }).catch(err => { console.warn('[App] Handled promise rejection:', err?.message || err); });
             }
           }
         } catch (promoErr) {
-          console.error('[LobbyManager] Promo wagering tracking failed:', promoErr.message);
+          console.warn('[LobbyManager] Promo wagering tracking failed:', promoErr.message);
         }
       }
 
@@ -944,17 +941,10 @@ class LobbyManager {
           await resilientMutation(sb, () => sb.rpc('update_table_stats', {
             p_table_id: config.tableId,
             p_pot_total: potTotal,
-          })).catch(() => {
-            // RPC might not exist — fallback to simple update
-            resilientMutation(sb, () => sb.from('tables').update({
-              hands_dealt: table.handCount || 0,
-              updated_at: new Date().toISOString(),
-            }).eq('id', config.tableId)).catch((err) => console.error('[LobbyManager] Table stats update failed:', err));
+          })).catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); }).eq('id', config.tableId)).catch((err) => console.warn('[LobbyManager] Table stats update failed:', err));
           });
         }
-      } catch (_) {
-        // Non-fatal
-      }
+      } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     });
   }
 
@@ -999,7 +989,7 @@ class LobbyManager {
         if (autoRestart) {
           // Auto-restart: keep table alive, just set status to waiting
           entry.table.status = 'WAITING';
-          console.log(`[LobbyManager] Table ${tableId} empty — auto_restart ON, keeping alive`);
+          console.debug(`[LobbyManager] Table ${tableId} empty — auto_restart ON, keeping alive`);
           entry.table.emit('table_waiting', { reason: 'empty', autoRestart: true });
         } else {
           // Standard: close after timeout
@@ -1033,10 +1023,7 @@ class LobbyManager {
           updated_at: new Date().toISOString(),
         }).eq('id', tableId));
       }
-    } catch (e) {
-      // Non-fatal — lobby count update is best-effort
-      console.warn('[LobbyManager] Player count update failed:', e.message);
-    }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
   }
 
   _checkAutoCreateTable(templateConfig) {
@@ -1070,13 +1057,13 @@ class LobbyManager {
         tableName: `${templateConfig.tableName || 'Table'} #${tableCount + 1}`,
       };
 
-      console.log(`[LobbyManager] Auto-creating table: all ${tableCount} ${variant} ${bigBlind}BB tables full`);
+      console.debug(`[LobbyManager] Auto-creating table: all ${tableCount} ${variant} ${bigBlind}BB tables full`);
       this.createTable(newConfig).then(result => {
         if (result.success) {
-          console.log(`[LobbyManager] Auto-created table ${newConfig.tableId} for ${variant} ${bigBlind}BB`);
+          console.debug(`[LobbyManager] Auto-created table ${newConfig.tableId} for ${variant} ${bigBlind}BB`);
         }
       }).catch(err => {
-        console.error('[LobbyManager] Auto-create table failed:', err.message);
+        console.warn('[LobbyManager] Auto-create table failed:', err.message);
       });
     }
   }
@@ -1192,7 +1179,7 @@ class LobbyManager {
           p_user_id: data.playerId || null,
           p_player_name: data.playerName || 'Player',
           p_message: String(data.message)
-        }).catch(err => console.error('[Audit] Chat log error:', err.message));
+        }).catch(err => console.warn('[Audit] Chat log error:', err.message));
       } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     });
 
@@ -1354,7 +1341,7 @@ class LobbyManager {
         }
       });
     } catch (e) {
-      console.error('[LobbyManager] Error broadcasting mini state:', e.message);
+      console.warn('[LobbyManager] Error broadcasting mini state:', e.message);
     }
   }
 

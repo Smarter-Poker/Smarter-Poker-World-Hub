@@ -274,9 +274,7 @@ export default async function handler(req, res) {
                                   }
                               }
                           }
-                      } catch (e) {
-                          // Fall back to blocked layout if RSS fetch fails
-                      }
+                      } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
                   }
 
                   return res.status(200).send(buildBlockedFallback(targetUrl, response.status));
@@ -364,7 +362,7 @@ export default async function handler(req, res) {
           return res.send(html);
 
       } catch (error) {
-          console.error('[Proxy] Processing error:', error);
+          console.warn('[Proxy] Processing error:', error);
           return res.status(500).json({
               error: 'PROCESSING_ERROR',
               message: 'Failed to process proxied content',
@@ -374,7 +372,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

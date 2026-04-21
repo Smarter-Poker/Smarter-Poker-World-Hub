@@ -69,7 +69,7 @@ export default function PromotionsDisplay() {
           .sort((a, b) => ((a.settings?.display_order ?? 999) - (b.settings?.display_order ?? 999)));
         setPromotions(active);
       }
-    } catch (err) { console.error('Display fetch error:', err); }
+    } catch (err) { console.warn('Display fetch error:', err); }
     setNow(new Date());
   }, [venueId]);
 

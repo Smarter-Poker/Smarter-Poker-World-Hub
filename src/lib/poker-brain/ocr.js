@@ -299,7 +299,7 @@ class PokerOCR {
       this.tesseract = Tesseract;
       this.isInitialized = true;
     } catch (error) {
-      console.error('Tesseract.js initialization failed:', error);
+      console.warn('Tesseract.js initialization failed:', error);
       this.tesseract = null;
       this.isInitialized = false;
       throw error;
@@ -506,7 +506,7 @@ class PokerOCR {
 
     // Terminate the persistent worker to free WASM memory
     if (this._worker) {
-      try { this._worker.terminate(); } catch (_) { /* ignore */ }
+      try { this._worker.terminate(); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
       this._worker = null;
       this._workerReady = false;
     }

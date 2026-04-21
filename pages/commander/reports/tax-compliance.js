@@ -62,7 +62,7 @@ let url = `/api/commander/tax/w2g?venue_id=${staff.venue_id}&year=${year}`;
         setEvents(json.data.events);
         setSummary(json.data.summary);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
     finally { setLoading(false); }
   };
 

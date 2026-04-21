@@ -125,7 +125,7 @@ export default function SquadsPage() {
       busEmit.dataMutated('squads');
       refreshSquads();
     } catch (err) {
-      console.error('Invitation action failed:', err);
+      console.warn('Invitation action failed:', err);
     }
   }
 

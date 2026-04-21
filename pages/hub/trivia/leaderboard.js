@@ -61,7 +61,7 @@ export default function TriviaLeaderboard() {
                 const { data, error } = await query;
 
                 if (error) {
-                    console.error('Error loading leaderboard:', error);
+                    console.warn('Error loading leaderboard:', error);
                     setLeaderboard([]);
                     return;
                 }
@@ -92,7 +92,7 @@ export default function TriviaLeaderboard() {
 
                 setLeaderboard(ranked);
             } catch (error) {
-                console.error('Error:', error);
+                console.warn('Error:', error);
             }
             setIsLoading(false);
         }

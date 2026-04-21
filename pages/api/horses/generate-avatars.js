@@ -56,12 +56,12 @@ Photorealistic, high quality, 4K, professional photography.`;
         });
 
         if (!response?.data?.[0]?.url) {
-            console.error('Image generation returned no URL for horse:', horse.name);
+            console.warn('Image generation returned no URL for horse:', horse.name);
             return null;
         }
         return response.data[0].url;
     } catch (error) {
-        console.error(`Failed to generate avatar for ${horse.name}:`, error.message);
+        console.warn(`Failed to generate avatar for ${horse.name}:`, error.message);
         return null;
     }
 }
@@ -93,7 +93,7 @@ async function uploadToStorage(imageUrl, horseId) {
 
         return urlData.publicUrl;
     } catch (error) {
-        console.error('Upload error:', error);
+        console.warn('Upload error:', error);
         return null;
     }
 }
@@ -191,13 +191,13 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('Avatar generation error:', error);
+          console.warn('Avatar generation error:', error);
           return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

@@ -85,7 +85,7 @@ export default async function handler(req, res) {
               .maybeSingle();
 
           if (fetchError) {
-              console.error('[verify-otp] DB fetch error:', fetchError);
+              console.warn('[verify-otp] DB fetch error:', fetchError);
               return res.status(500).json({ success: false, error: 'Failed to verify code' });
           }
 
@@ -163,7 +163,7 @@ export default async function handler(req, res) {
                       .limit(1);
 
                   if (duplicateProfiles && duplicateProfiles.length > 0) {
-                      console.error(`[verify-otp] Security block: User ${userId} tried to verify phone ${cleanPhone} already in use by another account.`);
+                      console.warn(`[verify-otp] Security block: User ${userId} tried to verify phone ${cleanPhone} already in use by another account.`);
                       return res.status(409).json({ success: false, error: 'This phone number is already registered to another verified account.' });
                   }
 
@@ -189,7 +189,7 @@ export default async function handler(req, res) {
                       .eq('id', userId);
 
                   if (updateError) {
-                      console.error('[verify-otp] Profile update error:', updateError);
+                      console.warn('[verify-otp] Profile update error:', updateError);
                   } else {
                       vipGranted = shouldGrantVip;
 
@@ -212,7 +212,7 @@ export default async function handler(req, res) {
                       }
                   }
               } catch (profileErr) {
-                  console.error('[verify-otp] Profile/VIP update error (non-blocking):', profileErr);
+                  console.warn('[verify-otp] Profile/VIP update error (non-blocking):', profileErr);
               }
           }
 
@@ -224,7 +224,7 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('[verify-otp] Error:', error);
+          console.warn('[verify-otp] Error:', error);
           return res.status(500).json({
               success: false, error: 'Failed to verify code',
               details: process.env.NODE_ENV === 'development' ? error.message : undefined
@@ -233,7 +233,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

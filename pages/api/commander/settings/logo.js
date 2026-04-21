@@ -37,7 +37,7 @@ async function ensureBucket() {
             await getSupabase().storage.createBucket(BUCKET, { public: true });
         }
     } catch (err) {
-        console.error('Bucket check error:', err);
+        console.warn('Bucket check error:', err);
     }
 }
 
@@ -131,7 +131,7 @@ export default async function handler(req, res) {
                   });
 
               if (uploadError) {
-                  console.error('Logo upload error:', uploadError);
+                  console.warn('Logo upload error:', uploadError);
                   return res.status(500).json({ success: false, error: `Upload failed: ${uploadError.message}` });
               }
 
@@ -164,13 +164,13 @@ export default async function handler(req, res) {
 
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       } catch (err) {
-          console.error('Logo API error:', err);
+          console.warn('Logo API error:', err);
           return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

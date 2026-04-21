@@ -40,13 +40,13 @@ export default async function handler(req, res) {
 
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       } catch (error) {
-          console.error('[Tournament Results API] Unhandled error:', error);
+          console.warn('[Tournament Results API] Unhandled error:', error);
           return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -80,7 +80,7 @@ async function handleGet(req, res) {
                 .limit(100);
 
         if (error) {
-            console.error('[Tournament Results API] GET series_id error:', error);
+            console.warn('[Tournament Results API] GET series_id error:', error);
             return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
@@ -99,7 +99,7 @@ async function handleGet(req, res) {
                 .limit(100);
 
         if (error) {
-            console.error('[Tournament Results API] GET tour_code error:', error);
+            console.warn('[Tournament Results API] GET tour_code error:', error);
             return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
@@ -119,7 +119,7 @@ async function handleGet(req, res) {
                 .limit(100);
 
         if (winnerError) {
-            console.error('[Tournament Results API] GET player_name (winner) error:', winnerError);
+            console.warn('[Tournament Results API] GET player_name (winner) error:', winnerError);
             return res.status(500).json({ success: false, error: winnerError.message });
         }
 
@@ -132,7 +132,7 @@ async function handleGet(req, res) {
                 .limit(100);
 
         if (jsonError) {
-            console.error('[Tournament Results API] GET player_name (json) error:', jsonError);
+            console.warn('[Tournament Results API] GET player_name (json) error:', jsonError);
             // Fall back to winner-only results if the json query fails
             return res.status(200).json({ success: true, data: winnerRows });
         }
@@ -154,7 +154,7 @@ async function handleGet(req, res) {
             .limit(rowLimit);
 
         if (error) {
-            console.error('[Tournament Results API] GET latest error:', error);
+            console.warn('[Tournament Results API] GET latest error:', error);
             return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
@@ -249,7 +249,7 @@ async function handlePost(req, res) {
         .select();
 
     if (error) {
-        console.error('[Tournament Results API] POST error:', error);
+        console.warn('[Tournament Results API] POST error:', error);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 

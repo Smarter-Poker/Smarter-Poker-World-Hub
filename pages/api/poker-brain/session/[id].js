@@ -39,7 +39,7 @@ export default async function handler(req, res) {
       .maybeSingle();
 
     if (sessErr) {
-      console.error('[poker-brain/session] query error:', sessErr);
+      console.warn('[poker-brain/session] query error:', sessErr);
       return res.status(500).json({ error: 'Failed to fetch session' });
     }
     if (!session) return res.status(404).json({ error: 'Session not found' });
@@ -52,14 +52,14 @@ export default async function handler(req, res) {
       .order('created_at', { ascending: true });
 
     if (handsErr) {
-      console.error('[poker-brain/session] hands error:', handsErr);
+      console.warn('[poker-brain/session] hands error:', handsErr);
       return res.status(500).json({ error: 'Failed to fetch hands' });
     }
 
     return res.status(200).json({ session, hands: hands || [] });
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[poker-brain/session] error:', err);
+    console.warn('[poker-brain/session] error:', err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

@@ -38,9 +38,7 @@ function getSupabase() {
               adminResult = data?.users?.filter(u =>
                   u.email?.toLowerCase() === email.toLowerCase()
               );
-          } catch (e) {
-              // Admin API may not be available
-          }
+          } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
           // Check what profiles exist
           const { data: profiles } = await getSupabase()
@@ -62,7 +60,7 @@ function getSupabase() {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

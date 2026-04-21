@@ -44,7 +44,7 @@ export default function JarvisLeakInsights({ userId, onRefresh }) {
                 setError(data.error || 'Analysis failed');
             }
         } catch (err) {
-            console.error('[Jarvis Insights] Error:', err);
+            console.warn('[Jarvis Insights] Error:', err);
             setError('Failed to connect to Jarvis');
         }
         setIsLoading(false);

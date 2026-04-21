@@ -20,20 +20,20 @@ let currentGroup = '';
 
 function group(name) {
   currentGroup = name;
-  console.log(`\n${'═'.repeat(60)}`);
-  console.log(`  ${name}`);
-  console.log(`${'═'.repeat(60)}`);
+  console.debug(`\n${'═'.repeat(60)}`);
+  console.debug(`  ${name}`);
+  console.debug(`${'═'.repeat(60)}`);
 }
 
 function test(name, fn) {
   try {
     fn();
     passed++;
-    console.log(`  ✅ ${name}`);
+    console.debug(`  ✅ ${name}`);
   } catch (err) {
     failed++;
-    console.log(`  ❌ ${name}`);
-    console.log(`     ${err.message}`);
+    console.debug(`  ❌ ${name}`);
+    console.debug(`     ${err.message}`);
   }
 }
 
@@ -809,8 +809,8 @@ test('getState hides opponent cards', () => {
 
 // ============ SUMMARY ============
 
-console.log(`\n${'═'.repeat(60)}`);
-console.log(`  PHASE 2 TEST RESULTS: ${passed} passed, ${failed} failed`);
-console.log(`${'═'.repeat(60)}\n`);
+console.debug(`\n${'═'.repeat(60)}`);
+console.debug(`  PHASE 2 TEST RESULTS: ${passed} passed, ${failed} failed`);
+console.debug(`${'═'.repeat(60)}\n`);
 
 if (failed > 0) process.exit(1);

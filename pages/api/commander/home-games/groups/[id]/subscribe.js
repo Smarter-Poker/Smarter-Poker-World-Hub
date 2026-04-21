@@ -63,7 +63,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -112,7 +112,7 @@ async function subscribe(req, res, groupId, userId) {
       message: 'Subscribed to push notifications'
     });
   } catch (error) {
-    console.error('Subscribe error:', error);
+    console.warn('Subscribe error:', error);
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -140,7 +140,7 @@ async function unsubscribe(req, res, groupId, userId) {
       message: all_devices ? 'Unsubscribed all devices' : 'Unsubscribed device'
     });
   } catch (error) {
-    console.error('Unsubscribe error:', error);
+    console.warn('Unsubscribe error:', error);
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -182,7 +182,7 @@ async function updatePreferences(req, res, groupId, userId) {
     });
   } catch (error) {
       try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('Update preferences error:', error);
+    console.warn('Update preferences error:', error);
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

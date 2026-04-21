@@ -38,7 +38,7 @@ export default async function handler(req, res) {
             .limit(100);
 
         if (error) {
-            console.error('[Venue Review Cron] Fetch error:', error);
+            console.warn('[Venue Review Cron] Fetch error:', error);
             return res.status(500).json({ success: false, error: 'Database fetch error' });
         }
 
@@ -55,7 +55,7 @@ export default async function handler(req, res) {
                 .select('id, name')
                 .in('id', venueIds);
             if (venuesError) {
-                console.error('[Venue Review Cron] Venue lookup error:', venuesError);
+                console.warn('[Venue Review Cron] Venue lookup error:', venuesError);
             } else if (venues) {
                 for (const v of venues) venueNameById[v.id] = v.name;
             }
@@ -80,14 +80,14 @@ export default async function handler(req, res) {
                 
                 processed++;
             } catch (err) {
-                console.error(`[Venue Review Cron] Failed to send push for checkin ${checkin.id}:`, err);
+                console.warn(`[Venue Review Cron] Failed to send push for checkin ${checkin.id}:`, err);
             }
         }
 
         return res.status(200).json({ success: true, processed, message: `Sent ${processed} review prompts.` });
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('[Venue Review Cron] Error:', err);
+        console.warn('[Venue Review Cron] Error:', err);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

@@ -26,9 +26,9 @@ const { data, error } = await supabase
     .order('name');
 
 if (error) {
-    console.error('Error:', error.message);
+    console.warn('Error:', error.message);
     process.exit(1);
 }
 
-console.log(`Found ${data.length} horses missing avatars:\n`);
-data.forEach(h => console.log(`${h.id}: ${h.name} (${h.gender})`));
+console.debug(`Found ${data.length} horses missing avatars:\n`);
+data.forEach(h => console.debug(`${h.id}: ${h.name} (${h.gender})`));

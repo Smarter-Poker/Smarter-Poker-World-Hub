@@ -41,7 +41,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
 
   } catch (err) {
-    console.error('[high-hands API Error]', err?.message || err, err?.code || '', err?.details || '', err?.hint || '');
+    console.warn('[high-hands API Error]', err?.message || err, err?.code || '', err?.details || '', err?.hint || '');
     if (!res.headersSent) return res.status(500).json({ success: false, error: err?.message || 'Internal server error', details: err?.details || null, hint: err?.hint || null });
   }
 }
@@ -101,7 +101,7 @@ async function listHighHands(req, res) {
       offset
     });
   } catch (error) {
-    console.error('List high hands error:', error?.message || error, error?.code || '', error?.details || '', error?.hint || '');
+    console.warn('List high hands error:', error?.message || error, error?.code || '', error?.details || '', error?.hint || '');
     return res.status(500).json({ error: error?.message || 'Internal server error', details: error?.details || null, hint: error?.hint || null });
   }
 }
@@ -189,7 +189,7 @@ async function createHighHand(req, res) {
     return res.status(201).json({ high_hand: highHand });
   } catch (error) {
       try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('Create high hand error:', error?.message || error, error?.code || '', error?.details || '');
+    console.warn('Create high hand error:', error?.message || error, error?.code || '', error?.details || '');
     return res.status(500).json({ error: error?.message || 'Internal server error' });
   }
 }

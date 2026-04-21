@@ -118,7 +118,7 @@ function fireConfetti(isJackpot) {
             setTimeout(() => confetti({ particleCount: 100, spread: 160, origin: { y: 0.3, x: 0.3 }, colors }), 300);
             setTimeout(() => confetti({ particleCount: 100, spread: 160, origin: { y: 0.3, x: 0.7 }, colors }), 600);
         }
-    }).catch(() => { /* canvas-confetti not available */ });
+    }).catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
 }
 
 export default function MysteryBountyReveal({ reveal: propReveal, onDismiss }) {

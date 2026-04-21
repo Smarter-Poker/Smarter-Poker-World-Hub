@@ -128,20 +128,20 @@ export default async function handler(req, res) {
                   if (error.code === '23505') {
                       return res.status(200).json({ ok: true, already_recorded: true });
                   }
-                  console.error('[pwa-prompt-status] POST insert error:', error.message);
+                  console.warn('[pwa-prompt-status] POST insert error:', error.message);
                   return res.status(200).json({ ok: false });
               }
 
               return res.status(200).json({ ok: true });
           } catch (err) {
-              console.error('[pwa-prompt-status] POST exception:', err);
+              console.warn('[pwa-prompt-status] POST exception:', err);
               return res.status(200).json({ ok: false });
           }
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

@@ -285,16 +285,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                     }
                 }
             }
-        } catch (err) {
-            // Silently suppress AbortErrors — always
-            if (isAbortError(err)) {
-                console.debug('[TokeTracker] loadData aborted (harmless — auto-retrying)');
-                // Silent auto-retry after 2s
-                if (loadAttemptRef.current < 2 && isMountedRef.current) {
-                    loadAttemptRef.current++;
-                    clearTimeout(failsafeId);
-                    if (isMountedRef.current) setIsLoading(false);
-                    setTimeout(() => { if (isMountedRef.current) loadData(); }, 2000);
+        } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }, 2000);
                 } else {
                     if (isMountedRef.current) setIsLoading(false);
                 }
@@ -309,7 +300,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                 setTimeout(() => { if (isMountedRef.current) loadData(); }, 1500);
                 return;
             }
-            console.error('Error loading toke data:', err);
+            console.warn('Error loading toke data:', err);
             if (isMountedRef.current) setLoadError(err.message || String(err));
         } finally {
             clearTimeout(failsafeId);
@@ -434,7 +425,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
                 navigator.vibrate([200, 100, 200]);
             }
-        } catch (e) { /* Silently fail if vibration API is blocked */ }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
         if (tokePrefs.downTimerAlerts === false) return; // 🛡️ Respect user preference for OS Push Alerts
 
@@ -457,7 +448,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
         try {
             if (typeof window !== 'undefined' && 'Notification' in window) {
                 let perm;
-                try { perm = Notification.permission; } catch (e) { /* ignore security errors */ }
+                try { perm = Notification.permission; } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
                 if (perm === 'granted') {
                     new Notification(title, {
@@ -468,9 +459,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                     });
                 }
             }
-        } catch (e) {
-            // Silently fail if blocked by sandbox
-        }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     }, [tokePrefs.downTimerAlerts, handleDoubleDownPrompt]);
 
     const handleDoubleDownYes = async () => {
@@ -524,7 +513,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
         try {
             if (typeof window !== 'undefined' && 'Notification' in window) {
                 let perm;
-                try { perm = Notification.permission; } catch (e) { /* ignore strict-mode access throws */ }
+                try { perm = Notification.permission; } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
                 if (perm === 'default') {
                     // Safe call: older embedded WebKit might not return a Promise
@@ -545,7 +534,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
         if (isCreating) return; // Prevent double-clicks
         setCreateError(null);
         setIsCreating(true);
-        console.log('[TokeTracker] handleCreateGig fired', { venue_name: newGig.venue_name, userId });
+        console.debug('[TokeTracker] handleCreateGig fired', { venue_name: newGig.venue_name, userId });
 
         if (!newGig.venue_name.trim()) {
             toast.error('Please select or enter a venue');
@@ -565,7 +554,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                 const user = await getSafeUser(supabase);
                 actualUserId = user?.id;
                 if (actualUserId) {
-                    console.log('[TokeTracker] getSafeUser resolved:', actualUserId);
+                    console.debug('[TokeTracker] getSafeUser resolved:', actualUserId);
                     // Cache for future calls
                     resolvedUserIdRef.current = actualUserId;
                 }
@@ -575,7 +564,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
         }
 
         if (!actualUserId) {
-            console.error('[TokeTracker] ALL 4 userId resolution layers failed — user session is expired or missing');
+            console.warn('[TokeTracker] ALL 4 userId resolution layers failed — user session is expired or missing');
             const errMsg = 'Session expired — please log out and log back in to start an event';
             setCreateError(errMsg);
             toast.error(errMsg, 8000);
@@ -594,23 +583,17 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             await requestNotificationPermission();
             await loadData();
             window.dispatchEvent(new CustomEvent('toke-data-updated'));
-        } catch (err) {
-            // "Already active" — just load the existing event
-            if (err?.message?.includes('already have an active')) {
-                toast.info('You already have an active event — loading it now');
-                setShowCreateForm(false);
-                await loadData();
-            } else if (err?.message?.includes('Insert failed')) {
+        } catch (err) { console.warn('[App] Handled exception:', err?.message || err); } else if (err?.message?.includes('Insert failed')) {
                 // Direct fetch insert failure — show the actual error
-                console.error('[TokeTracker] createGig insert failed:', err);
+                console.warn('[TokeTracker] createGig insert failed:', err);
                 setCreateError(err.message);
                 toast.error(err.message, 5000);
             } else if (isAbortError(err)) {
                 // AbortError after all retries exhausted — tell user to try again
-                console.error('[TokeTracker] createGig aborted after all retries');
+                console.warn('[TokeTracker] createGig aborted after all retries');
                 toast.error('Connection interrupted — please try again', 5000);
             } else {
-                console.error('[TokeTracker] createGig failed:', err);
+                console.warn('[TokeTracker] createGig failed:', err);
                 toast.error(err.message || 'Failed to create event', 5000);
             }
         } finally {

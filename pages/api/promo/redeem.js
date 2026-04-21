@@ -130,7 +130,7 @@ export default async function handler(req, res) {
                       p_type: 'promo_code',
                       p_description: `Promo code: ${promo.code} — ${promo.description || 'Bonus'} (fallback)`,
                       p_reference_id: `promo_${promo.id}_${user.id}`,
-                  }).catch(e => console.error('[Promo] Fallback RPC also failed:', e.message));
+                  }).catch(e => console.warn('[Promo] Fallback RPC also failed:', e.message));
               }
 
               reward.message = `${promo.reward_value} diamonds added to your account!`;
@@ -195,13 +195,13 @@ export default async function handler(req, res) {
           });
 
       } catch (err) {
-          console.error('[Promo] Redemption error:', err);
+          console.warn('[Promo] Redemption error:', err);
           return res.status(500).json({ success: false, error: 'Failed to redeem promo code' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

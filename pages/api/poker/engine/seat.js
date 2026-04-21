@@ -123,7 +123,7 @@ try {
               { p_user_id: playerId }
             );
             if (rgErr) {
-              console.error('[seat.js] RG exclusion check failed:', rgErr.message);
+              console.warn('[seat.js] RG exclusion check failed:', rgErr.message);
               // Fail-closed for gaming-compliance: reject on DB error.
               return res.status(503).json({
                 success: false,
@@ -140,7 +140,7 @@ try {
               });
             }
           } catch (e) {
-            console.error('[seat.js] RG exclusion check threw:', e?.message);
+            console.warn('[seat.js] RG exclusion check threw:', e?.message);
             return res.status(503).json({
               success: false,
               error: 'Responsible-gaming check unavailable. Please try again.',
@@ -214,10 +214,7 @@ try {
                   required: careerPercent,
                 });
               }
-            } catch (e) {
-              // If stats query fails, allow entry (don't block on stats errors)
-              console.error('[seat.js] Career percent check failed:', e.message);
-            }
+            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
           }
 
           // Fetch display name from profiles if client sends default
@@ -254,7 +251,7 @@ try {
               fingerprint: fingerprint || null,
               userAgent: req.headers?.['user-agent'] || null,
               clubId,
-            }).catch(err => console.error('[AntiCheat] Session record failed:', err.message));
+            }).catch(err => console.warn('[AntiCheat] Session record failed:', err.message));
 
             // Feed initial GPS to background monitor for continuous scanning
             if (controller.antiCheatMonitor && latitude && longitude) {
@@ -277,7 +274,7 @@ try {
           if (result.success) {
             antiCheat.removePlayerFromTable(playerId, tableId);
             antiCheat.closeSession(tableId, playerId)
-              .catch(err => console.error('[AntiCheat] Session close failed:', err.message));
+              .catch(err => console.warn('[AntiCheat] Session close failed:', err.message));
           }
 
           // If club table: return chips to club balance
@@ -492,13 +489,13 @@ try {
       if (!result.success) return res.status(400).json(result);
       return res.json(result);
     } catch (err) {
-      console.error('[engine/seat]', err);
+      console.warn('[engine/seat]', err);
       return res.status(500).json({ error: 'Internal error' });
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

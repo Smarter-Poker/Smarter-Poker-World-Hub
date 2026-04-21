@@ -152,7 +152,7 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
                 setConfidenceScore(10); // Very low confidence — no OCR data
             }
         } catch (err) {
-            console.error('Process error:', err);
+            console.warn('Process error:', err);
             setError('UPLOAD FAILED - RETRY');
         } finally {
             setIsUploading(false);
@@ -193,7 +193,7 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
                 confidence: confidenceScore,
             }, 'ReceiptScanner');
         } catch (e) {
-            console.error('[ReceiptScanner] Verify error:', e);
+            console.warn('[ReceiptScanner] Verify error:', e);
         } finally {
             setVerifying(false);
         }

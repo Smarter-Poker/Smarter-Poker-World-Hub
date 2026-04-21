@@ -17,7 +17,7 @@ export default class CommanderErrorBoundary extends Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error('Commander Error Boundary caught:', error, errorInfo);
+    console.warn('Commander Error Boundary caught:', error, errorInfo);
 
     // Report to error monitoring if available
     if (typeof window !== 'undefined') {
@@ -27,9 +27,7 @@ export default class CommanderErrorBoundary extends Component {
           action: 'render_error',
           extra: { componentStack: errorInfo?.componentStack }
         });
-      } catch (e) {
-        // Error monitoring not available
-      }
+      } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     }
   }
 

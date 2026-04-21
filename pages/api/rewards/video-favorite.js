@@ -155,13 +155,13 @@ export default async function handler(req, res) {
           return res.status(200).json({ success: true, claimed: true, diamondsAwarded: FAV_REWARD });
 
       } catch (error) {
-          console.error('[VideoFavoriteReward] Error:', error.message || error);
+          console.warn('[VideoFavoriteReward] Error:', error.message || error);
           return res.status(500).json({ success: false, error: 'Failed to claim video favorite reward' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

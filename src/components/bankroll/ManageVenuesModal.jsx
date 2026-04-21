@@ -22,7 +22,7 @@ export default function ManageVenuesModal({ userId, onClose, onUpdate }) {
             const data = await getUserLocations(userId);
             setVenues(data);
         } catch (err) {
-            console.error('Failed to load venues:', err);
+            console.warn('Failed to load venues:', err);
         }
         setLoading(false);
     };
@@ -59,7 +59,7 @@ export default function ManageVenuesModal({ userId, onClose, onUpdate }) {
                 .eq('user_id', userId);
 
             if (error) {
-                console.error('[ManageVenues] Delete error:', error);
+                console.warn('[ManageVenues] Delete error:', error);
                 toast.error('Failed to delete: ' + (error.message || 'Unknown error'));
                 return;
             }
@@ -70,7 +70,7 @@ export default function ManageVenuesModal({ userId, onClose, onUpdate }) {
             setConfirmDeleteId(null);
             onUpdate?.();
         } catch (err) {
-            console.error('[ManageVenues] Delete exception:', err);
+            console.warn('[ManageVenues] Delete exception:', err);
             toast.error('Failed to delete: ' + (err.message || ''));
         } finally {
             setDeletingId(null);

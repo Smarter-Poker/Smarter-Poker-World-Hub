@@ -175,7 +175,7 @@ export default async function handler(req, res) {
                         p_amount: dist.rakeback_amount,
                       });
                     } catch (rbErr) {
-                      console.error('[rakeback] Rollback failed:', rbErr.message);
+                      console.warn('[rakeback] Rollback failed:', rbErr.message);
                     }
                     await markDistributionFailed(dist.id, 'Player credit failed: ' + creditErr.message);
                     results.distributions_failed++;
@@ -241,7 +241,7 @@ export default async function handler(req, res) {
                       read: false,
                     });
                   } catch (notifyErr) {
-                    console.error('[rakeback-notify] Error:', notifyErr.message);
+                    console.warn('[rakeback-notify] Error:', notifyErr.message);
                   }
 
                   agentTotalDeducted += dist.rakeback_amount;
@@ -277,7 +277,7 @@ export default async function handler(req, res) {
                 });
                 results.messages_sent++;
               } catch (notifyErr) {
-                console.error('[rakeback-agent-notify] Error:', notifyErr.message);
+                console.warn('[rakeback-agent-notify] Error:', notifyErr.message);
               }
 
             } catch (agentErr) {
@@ -343,7 +343,7 @@ export default async function handler(req, res) {
             pinned: false,
           });
         } catch (unfreezeErr) {
-          console.error('[unfreeze-msg] Error:', unfreezeErr.message);
+          console.warn('[unfreeze-msg] Error:', unfreezeErr.message);
         }
       }
 
@@ -357,7 +357,7 @@ export default async function handler(req, res) {
       });
 
     } catch (err) {
-      console.error('[auto-settlement-distribute] Fatal error:', err);
+      console.warn('[auto-settlement-distribute] Fatal error:', err);
 
       // Emergency unfreeze on failure
       try {
@@ -382,7 +382,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

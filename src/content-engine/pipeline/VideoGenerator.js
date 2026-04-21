@@ -68,27 +68,27 @@ class VideoGenerator {
         const tempDir = path.join(CONFIG.TEMP_DIR, videoId);
         fs.mkdirSync(tempDir, { recursive: true });
 
-        console.log(`\n🎬 Generating video: ${videoId}\n`);
+        console.debug(`\n🎬 Generating video: ${videoId}\n`);
 
         try {
             // Step 1: Generate voiceover
-            console.log('🎤 Generating voiceover...');
+            console.debug('🎤 Generating voiceover...');
             const audioPath = await this.generateVoiceover(script, persona, tempDir);
 
             // Step 2: Get audio duration
             const duration = await this.getAudioDuration(audioPath);
-            console.log(`⏱️  Audio duration: ${duration}s`);
+            console.debug(`⏱️  Audio duration: ${duration}s`);
 
             // Step 3: Generate background images
-            console.log('🖼️  Generating visuals...');
+            console.debug('🖼️  Generating visuals...');
             const imagePaths = await this.generateBackgroundImages(script, tempDir, duration);
 
             // Step 4: Generate text overlays
-            console.log('✍️  Creating text overlays...');
+            console.debug('✍️  Creating text overlays...');
             const textOverlayPath = await this.createTextOverlay(script, tempDir);
 
             // Step 5: Compile video
-            console.log('🎞️  Compiling video...');
+            console.debug('🎞️  Compiling video...');
             const outputPath = await this.compileVideo(
                 audioPath,
                 imagePaths,
@@ -102,7 +102,7 @@ class VideoGenerator {
                 fs.rmSync(tempDir, { recursive: true });
             }
 
-            console.log(`\n✅ Video generated: ${outputPath}\n`);
+            console.debug(`\n✅ Video generated: ${outputPath}\n`);
 
             return {
                 id: videoId,
@@ -114,7 +114,7 @@ class VideoGenerator {
             };
 
         } catch (error) {
-            console.error('Video generation failed:', error);
+            console.warn('Video generation failed:', error);
             throw error;
         }
     }
@@ -190,7 +190,7 @@ class VideoGenerator {
                 imagePaths.push(imagePath);
 
             } catch (error) {
-                console.error(`Image generation ${i} failed, using fallback`);
+                console.warn(`Image generation ${i} failed, using fallback`);
                 // Create solid color fallback
                 await this.createFallbackImage(imagePath);
                 imagePaths.push(imagePath);

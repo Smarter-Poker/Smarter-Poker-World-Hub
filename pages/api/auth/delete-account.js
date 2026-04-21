@@ -211,7 +211,7 @@ export default async function handler(req, res) {
           const { error: deleteError } = await getSupabase().auth.admin.deleteUser(userId);
 
           if (deleteError) {
-              console.error('[delete-account] Auth user deletion error:', deleteError);
+              console.warn('[delete-account] Auth user deletion error:', deleteError);
               // Profile data is already gone — log but don't block
           }
 
@@ -223,13 +223,13 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('[delete-account] Error:', error);
+          console.warn('[delete-account] Error:', error);
           return res.status(500).json({ error: 'Failed to delete account. Please contact support.' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

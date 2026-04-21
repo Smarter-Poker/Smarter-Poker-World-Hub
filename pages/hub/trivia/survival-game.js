@@ -140,7 +140,7 @@ export default function SurvivalGamePage() {
             if (savedSettings) {
                 setSettings(JSON.parse(savedSettings));
             }
-        } catch (e) { console.error("[survival-game.js]", e); }
+        } catch (e) { console.warn("[survival-game.js]", e); }
     }, [avatarUser?.id, authLoading]);
 
     // Realtime: Sync diamond balance when it changes externally
@@ -164,7 +164,7 @@ export default function SurvivalGamePage() {
     useEffect(() => {
         try {
             localStorage.setItem('trivia_settings', JSON.stringify(settings));
-        } catch (e) { console.error("[survival-game.js]", e); }
+        } catch (e) { console.warn("[survival-game.js]", e); }
     }, [settings]);
 
     // Visibility-based timer pause (when user leaves app/tab)
@@ -290,9 +290,7 @@ export default function SurvivalGamePage() {
             if (data) {
                 setUserProgress({ highestLevel: data.highest_level || 0 });
             }
-        } catch (e) {
-            // No progress yet, that's fine
-        }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     }
 
     async function loadQuestionsForLevel(level) {
@@ -346,7 +344,7 @@ export default function SurvivalGamePage() {
                 }
             }
         } catch (e) {
-            console.error('Failed to load questions:', e);
+            console.warn('Failed to load questions:', e);
         }
         setIsLoading(false);
     }
@@ -379,7 +377,7 @@ export default function SurvivalGamePage() {
                     setUserDiamonds(freshBalance);
                 }
             } catch (e) {
-                console.error('[Survival] Balance check failed:', e);
+                console.warn('[Survival] Balance check failed:', e);
             }
 
             if (freshBalance < GAME_ENTRY_COST) {
@@ -443,12 +441,12 @@ export default function SurvivalGamePage() {
                         p_description: 'Survival 50/50 lifeline — 5💎',
                         p_reference_id: null
                     });
-                    if (rpcErr) { console.error('[Survival] 50/50 deduct RPC error:', rpcErr.message); return; }
+                    if (rpcErr) { console.warn('[Survival] 50/50 deduct RPC error:', rpcErr.message); return; }
                     const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
                     if (profile) setUserDiamonds(profile.diamonds || 0);
                     busEmit.diamondsSpent(5, '50/50 Lifeline');
                 } catch (e) {
-                    console.error('Failed to deduct diamonds:', e);
+                    console.warn('Failed to deduct diamonds:', e);
                     return;
                 }
             }
@@ -489,13 +487,13 @@ export default function SurvivalGamePage() {
                     p_description: `Survival skip question — ${LIFELINE_COST}💎`,
                     p_reference_id: null
                 });
-                if (rpcErr) { console.error('[Survival] Skip deduct RPC error:', rpcErr.message); return; }
+                if (rpcErr) { console.warn('[Survival] Skip deduct RPC error:', rpcErr.message); return; }
                 const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
                 if (profile) setUserDiamonds(profile.diamonds || 0);
                 busEmit.diamondsSpent(LIFELINE_COST, 'Skip Question');
                 setLifelinesUsedThisLevel(prev => prev + 1);
             } catch (e) {
-                console.error('Failed to deduct diamonds:', e);
+                console.warn('Failed to deduct diamonds:', e);
                 return;
             }
         }
@@ -537,13 +535,13 @@ export default function SurvivalGamePage() {
                     p_description: `Survival double chance — ${LIFELINE_COST}💎`,
                     p_reference_id: null
                 });
-                if (rpcErr) { console.error('[Survival] Double chance deduct RPC error:', rpcErr.message); return; }
+                if (rpcErr) { console.warn('[Survival] Double chance deduct RPC error:', rpcErr.message); return; }
                 const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
                 if (profile) setUserDiamonds(profile.diamonds || 0);
                 busEmit.diamondsSpent(LIFELINE_COST, 'Double Chance');
                 setLifelinesUsedThisLevel(prev => prev + 1);
             } catch (e) {
-                console.error('Failed to deduct diamonds:', e);
+                console.warn('Failed to deduct diamonds:', e);
                 return;
             }
         }
@@ -669,7 +667,7 @@ export default function SurvivalGamePage() {
                         p_description: `Survival Level ${level} — ${cappedDiamonds}💎`,
                         p_reference_id: null
                     });
-                    if (rpcErr) console.error('[Survival] Reward RPC error:', rpcErr.message);
+                    if (rpcErr) console.warn('[Survival] Reward RPC error:', rpcErr.message);
                     const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
                     if (profile) setUserDiamonds(profile.diamonds || 0);
                     busEmit.diamondsEarned(cappedDiamonds, `Survival Level ${level}`);
@@ -740,7 +738,7 @@ export default function SurvivalGamePage() {
             setSaveErrorPayload(null);
             savePhaseRef.current = 0;
         } catch (e) {
-            console.error('[Survival] Failed to save progress:', e);
+            console.warn('[Survival] Failed to save progress:', e);
             // Save failed (network drop) -> Provide Retry UI (savePhaseRef preserves progress)
             setSaveErrorPayload({ level, diamonds, targetGameState });
             setGameState('saving_error');

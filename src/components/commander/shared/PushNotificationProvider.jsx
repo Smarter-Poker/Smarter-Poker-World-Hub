@@ -38,13 +38,13 @@ export default function PushNotificationProvider({ children }) {
     // Check if OneSignal is configured
     const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
     if (!appId) {
-      console.log('OneSignal App ID not configured');
+      console.debug('OneSignal App ID not configured');
       return;
     }
 
     // Check if browser supports push
     if (typeof window === 'undefined' || !('Notification' in window)) {
-      console.log('Push notifications not supported');
+      console.debug('Push notifications not supported');
       return;
     }
 
@@ -112,18 +112,13 @@ export default function PushNotificationProvider({ children }) {
             });
 
             setSdkReady(true);
-          } catch (initError) {
-            // Suppress "already initialized" errors
-            if (initError?.message?.includes('already initialized')) {
-              window.__oneSignalInitialized = true;
-              setSdkReady(true);
-            } else {
-              console.error('OneSignal init error:', initError);
+          } catch (initError) { console.warn('[App] Handled exception:', initError?.message || initError); } else {
+              console.warn('OneSignal init error:', initError);
             }
           }
         });
       } catch (err) {
-        console.error('Failed to load OneSignal:', err);
+        console.warn('Failed to load OneSignal:', err);
       }
     };
 
@@ -157,7 +152,7 @@ export default function PushNotificationProvider({ children }) {
 
       return true;
     } catch (err) {
-      console.error('Subscribe error:', err);
+      console.warn('Subscribe error:', err);
       return false;
     }
   };
@@ -181,7 +176,7 @@ export default function PushNotificationProvider({ children }) {
 
       return true;
     } catch (err) {
-      console.error('Unsubscribe error:', err);
+      console.warn('Unsubscribe error:', err);
       return false;
     }
   };
@@ -194,7 +189,7 @@ export default function PushNotificationProvider({ children }) {
       try {
         await OneSignal.login(userId);
       } catch (err) {
-        console.error('Failed to set user ID:', err);
+        console.warn('Failed to set user ID:', err);
       }
     });
   };
@@ -207,7 +202,7 @@ export default function PushNotificationProvider({ children }) {
       try {
         await OneSignal.User.addTags(tags);
       } catch (err) {
-        console.error('Failed to add tags:', err);
+        console.warn('Failed to add tags:', err);
       }
     });
   };

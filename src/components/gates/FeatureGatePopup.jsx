@@ -137,14 +137,14 @@ export function useFeatureGate(featureKey) {
             const detail = e.detail || {};
             // If this feature or daily_unlock_all was just purchased, grant access
             if (detail.featureKey === featureKey || detail.featureKey === 'daily_unlock_all') {
-                console.log(`[useFeatureGate] 🚌 Access granted via bus for ${featureKey}`);
+                console.debug(`[useFeatureGate] 🚌 Access granted via bus for ${featureKey}`);
                 setHasAccess(true);
             }
         };
 
         const handleVipChange = (e) => {
             if (e.detail?.vipGranted !== false) {
-                console.log(`[useFeatureGate] 🚌 VIP granted via bus — unlocking ${featureKey}`);
+                console.debug(`[useFeatureGate] 🚌 VIP granted via bus — unlocking ${featureKey}`);
                 setHasAccess(true);
             }
         };
@@ -297,7 +297,7 @@ export default function FeatureGatePopup({ userId, featureKey, diamonds: initial
                 setError(result.error);
             }
         } catch (err) {
-            console.error('[FeatureGatePopup] Purchase single failed:', err);
+            console.warn('[FeatureGatePopup] Purchase single failed:', err);
             setError('Something went wrong. Please try again.');
         }
         setIsUnlocking(false);
@@ -330,7 +330,7 @@ export default function FeatureGatePopup({ userId, featureKey, diamonds: initial
                 setError(result.error);
             }
         } catch (err) {
-            console.error('[FeatureGatePopup] Purchase all-access failed:', err);
+            console.warn('[FeatureGatePopup] Purchase all-access failed:', err);
             setError('Something went wrong. Please try again.');
         }
         setIsUnlockingAll(false);

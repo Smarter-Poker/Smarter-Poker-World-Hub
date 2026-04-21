@@ -86,13 +86,13 @@ export default async function handler(req, res) {
 
       return res.status(200).json({ success: true, cashouts: enriched });
     } catch (err) {
-      console.error('[cashout-history]', err);
+      console.warn('[cashout-history]', err);
       return res.status(500).json(safeErrorResponse(err, 'Cashout history failed'));
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

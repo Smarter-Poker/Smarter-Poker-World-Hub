@@ -79,7 +79,7 @@ export async function collectUserContext(userId: string): Promise<UserContext> {
             handsPlayed: stats?.hands_played
         };
     } catch (error) {
-        console.error('Failed to collect user context:', error);
+        console.warn('Failed to collect user context:', error);
         // Return minimal context on error
         return {
             currentOrb: 'hub',

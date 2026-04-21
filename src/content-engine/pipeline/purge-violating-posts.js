@@ -23,9 +23,9 @@ const supabase = createClient(
 const VIOLATOR_ALIASES = ['DesertDonk', 'TexasQueen92', 'LANitOwl', 'SeattleSolver'];
 
 async function purgeViolatingContent() {
-    console.log('\n🛡️ CONTENT LAW ENFORCEMENT');
-    console.log('═'.repeat(60));
-    console.log('Finding and removing all posts with fake AI content...\n');
+    console.debug('\n🛡️ CONTENT LAW ENFORCEMENT');
+    console.debug('═'.repeat(60));
+    console.debug('Finding and removing all posts with fake AI content...\n');
 
     // Step 1: Find horses by alias in content_authors
     const { data: authors, error: authErr } = await supabase
@@ -34,10 +34,10 @@ async function purgeViolatingContent() {
         .in('alias', VIOLATOR_ALIASES);
 
     if (authErr) {
-        console.error('Error fetching authors:', authErr.message);
+        console.warn('Error fetching authors:', authErr.message);
     }
-    console.log('\n📋 Found in content_authors:', authors?.length || 0);
-    authors?.forEach(a => console.log(`   - ${a.alias} (profile: ${a.profile_id})`));
+    console.debug('\n📋 Found in content_authors:', authors?.length || 0);
+    authors?.forEach(a => console.debug(`   - ${a.alias} (profile: ${a.profile_id})`));
 
     // Step 2: Get profile IDs of violators
     const violatorProfileIds = (authors || []).map(a => a.profile_id).filter(Boolean);
@@ -54,8 +54,8 @@ async function purgeViolatingContent() {
         )
     );
 
-    console.log('\n📋 Found in profiles:', matchingProfiles.length);
-    matchingProfiles.forEach(p => console.log(`   - ${p.username || p.display_name} (id: ${p.id})`));
+    console.debug('\n📋 Found in profiles:', matchingProfiles.length);
+    matchingProfiles.forEach(p => console.debug(`   - ${p.username || p.display_name} (id: ${p.id})`));
 
     // Combine all violator profile IDs
     const allViolatorIds = [...new Set([
@@ -63,10 +63,10 @@ async function purgeViolatingContent() {
         ...matchingProfiles.map(p => p.id)
     ])];
 
-    console.log('\n🎯 Total violator profile IDs:', allViolatorIds.length);
+    console.debug('\n🎯 Total violator profile IDs:', allViolatorIds.length);
 
     if (allViolatorIds.length === 0) {
-        console.log('⚠️ No violator profiles found. Checking all recent posts with media...\n');
+        console.debug('⚠️ No violator profiles found. Checking all recent posts with media...\n');
 
         // Fallback: Get all recent posts and show them
         const { data: recentPosts } = await supabase
@@ -76,7 +76,7 @@ async function purgeViolatingContent() {
             .order('created_at', { ascending: false })
             .limit(50);
 
-        console.log(`📰 Recent posts with media: ${recentPosts?.length || 0}\n`);
+        console.debug(`📰 Recent posts with media: ${recentPosts?.length || 0}\n`);
 
         // Delete ALL posts with media as a sweep (user requested removal of fake content)
         if (recentPosts && recentPosts.length > 0) {
@@ -88,11 +88,11 @@ async function purgeViolatingContent() {
                     .eq('id', post.id);
 
                 if (!error) {
-                    console.log(`🗑️ Deleted: "${post.content?.substring(0, 40)}..."`);
+                    console.debug(`🗑️ Deleted: "${post.content?.substring(0, 40)}..."`);
                     deleted++;
                 }
             }
-            console.log(`\n✅ Removed ${deleted} posts with media content.`);
+            console.debug(`\n✅ Removed ${deleted} posts with media content.`);
         }
         return;
     }
@@ -104,11 +104,11 @@ async function purgeViolatingContent() {
         .in('author_id', allViolatorIds);
 
     if (postsErr) {
-        console.error('Error fetching posts:', postsErr.message);
+        console.warn('Error fetching posts:', postsErr.message);
         return;
     }
 
-    console.log(`\n🔍 Found ${violatingPosts?.length || 0} posts from violators\n`);
+    console.debug(`\n🔍 Found ${violatingPosts?.length || 0} posts from violators\n`);
 
     // Step 5: Delete violating posts
     let deleted = 0;
@@ -119,16 +119,16 @@ async function purgeViolatingContent() {
             .eq('id', post.id);
 
         if (error) {
-            console.error(`❌ Failed to delete ${post.id}:`, error.message);
+            console.warn(`❌ Failed to delete ${post.id}:`, error.message);
         } else {
-            console.log(`🗑️ Deleted: "${post.content?.substring(0, 40)}..."`);
+            console.debug(`🗑️ Deleted: "${post.content?.substring(0, 40)}..."`);
             deleted++;
         }
     }
 
-    console.log('\n═'.repeat(60));
-    console.log(`🛡️ CONTENT LAW ENFORCED: ${deleted} violating posts removed`);
-    console.log('═'.repeat(60) + '\n');
+    console.debug('\n═'.repeat(60));
+    console.debug(`🛡️ CONTENT LAW ENFORCED: ${deleted} violating posts removed`);
+    console.debug('═'.repeat(60) + '\n');
 }
 
 purgeViolatingContent();

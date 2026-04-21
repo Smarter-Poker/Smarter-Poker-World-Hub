@@ -91,18 +91,18 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 async function downloadWithRetry(sourceUrl, maxRetries = MAX_DOWNLOAD_RETRIES) {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-            console.log(`   📥 Attempt ${attempt}/${maxRetries}...`);
+            console.debug(`   📥 Attempt ${attempt}/${maxRetries}...`);
             const result = await videoClipper.downloadVideo(sourceUrl);
 
             if (result.success) {
                 return result;
             }
 
-            console.log(`   ⚠️ Download failed, retrying...`);
+            console.debug(`   ⚠️ Download failed, retrying...`);
             await sleep(RETRY_DELAY_MS * attempt); // Exponential backoff
 
         } catch (error) {
-            console.log(`   ⚠️ Attempt ${attempt} error: ${error.message}`);
+            console.debug(`   ⚠️ Attempt ${attempt} error: ${error.message}`);
             if (attempt < maxRetries) {
                 await sleep(RETRY_DELAY_MS * attempt);
             }
@@ -116,21 +116,21 @@ async function downloadWithRetry(sourceUrl, maxRetries = MAX_DOWNLOAD_RETRIES) {
 // MAIN POSTING FUNCTION
 // ═══════════════════════════════════════════════════════════════════════════
 async function postForHorse(horse, attemptNumber = 1) {
-    console.log(`\n🐴 ${horse.name} (@${horse.username || 'unknown'})`);
-    console.log('─'.repeat(50));
+    console.debug(`\n🐴 ${horse.name} (@${horse.username || 'unknown'})`);
+    console.debug('─'.repeat(50));
 
     try {
         // Get unique clip with source rotation
         const clip = getUniqueClipWithRotation();
         if (!clip) {
-            console.log('   ⚠️ No more clips available');
+            console.debug('   ⚠️ No more clips available');
             return { success: false, reason: 'no_clips' };
         }
 
         // Ensure source_url exists
         const sourceUrl = ensureSourceUrl(clip);
         if (!sourceUrl) {
-            console.log('   ⚠️ No valid URL for clip, trying another...');
+            console.debug('   ⚠️ No valid URL for clip, trying another...');
             if (attemptNumber < 3) {
                 return postForHorse(horse, attemptNumber + 1);
             }
@@ -138,40 +138,40 @@ async function postForHorse(horse, attemptNumber = 1) {
         }
 
         const sourceName = CLIP_SOURCES[clip.source]?.name || clip.source;
-        console.log(`   📹 Clip: ${clip.title.slice(0, 40)}...`);
-        console.log(`   🎬 Source: ${sourceName}`);
+        console.debug(`   📹 Clip: ${clip.title.slice(0, 40)}...`);
+        console.debug(`   🎬 Source: ${sourceName}`);
 
         // Get caption
         const caption = getRandomCaption(clip.category);
-        console.log(`   💬 Caption: "${caption}"`);
+        console.debug(`   💬 Caption: "${caption}"`);
 
         // Download with retry
-        console.log(`   📥 Downloading from ${clip.source}...`);
+        console.debug(`   📥 Downloading from ${clip.source}...`);
         const downloadResult = await downloadWithRetry(sourceUrl);
 
         if (!downloadResult.success) {
-            console.log(`   ❌ Download failed after ${MAX_DOWNLOAD_RETRIES} attempts`);
+            console.debug(`   ❌ Download failed after ${MAX_DOWNLOAD_RETRIES} attempts`);
             // Try a different clip
             if (attemptNumber < 3) {
-                console.log(`   🔄 Trying different clip...`);
+                console.debug(`   🔄 Trying different clip...`);
                 return postForHorse(horse, attemptNumber + 1);
             }
             return { success: false, reason: 'download_failed' };
         }
 
         // Convert to vertical
-        console.log(`   📐 Converting to vertical...`);
+        console.debug(`   📐 Converting to vertical...`);
         const verticalResult = await videoClipper.convertToVertical(downloadResult.path, {
             deleteOriginal: true
         });
 
         if (!verticalResult.success) {
-            console.log(`   ❌ Conversion failed`);
+            console.debug(`   ❌ Conversion failed`);
             return { success: false, reason: 'conversion_failed' };
         }
 
         // Upload to storage
-        console.log(`   ☁️ Uploading...`);
+        console.debug(`   ☁️ Uploading...`);
         const fileName = `clip_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.mp4`;
         const storagePath = `reels/clips/${fileName}`;
         const fileBuffer = fs.readFileSync(verticalResult.path);
@@ -181,7 +181,7 @@ async function postForHorse(horse, attemptNumber = 1) {
             .upload(storagePath, fileBuffer, { contentType: 'video/mp4' });
 
         if (uploadError) {
-            console.log(`   ❌ Upload failed: ${uploadError.message}`);
+            console.debug(`   ❌ Upload failed: ${uploadError.message}`);
             return { success: false, reason: 'upload_failed' };
         }
 
@@ -190,14 +190,14 @@ async function postForHorse(horse, attemptNumber = 1) {
             .getPublicUrl(storagePath);
 
         if (!urlData?.publicUrl) {
-            console.log(`   ❌ Failed to get public URL`);
+            console.debug(`   ❌ Failed to get public URL`);
             return { success: false, reason: 'url_generation_failed' };
         }
 
         const videoUrl = urlData.publicUrl;
 
         // Create post
-        console.log(`   📝 Creating post...`);
+        console.debug(`   📝 Creating post...`);
         const { data: post, error: postError } = await supabase
             .from('social_posts')
             .insert({
@@ -211,12 +211,12 @@ async function postForHorse(horse, attemptNumber = 1) {
             .maybeSingle();
 
         if (postError || !post) {
-            console.log(`   ❌ Post failed: ${postError?.message || 'No data returned'}`);
+            console.debug(`   ❌ Post failed: ${postError?.message || 'No data returned'}`);
             return { success: false, reason: 'post_failed' };
         }
 
         // Create story
-        console.log(`   📱 Creating story...`);
+        console.debug(`   📱 Creating story...`);
         const { data: story, error: storyError } = await supabase
             .from('stories')
             .insert({
@@ -229,7 +229,7 @@ async function postForHorse(horse, attemptNumber = 1) {
             .maybeSingle();
 
         if (storyError) {
-            console.log(`   ⚠️ Story failed: ${storyError.message}`);
+            console.debug(`   ⚠️ Story failed: ${storyError.message}`);
         }
 
         // Cleanup local file
@@ -241,8 +241,8 @@ async function postForHorse(horse, attemptNumber = 1) {
         markClipUsed(clip.id);
         stable.reserveClip(clip.id, horse.profile_id, horse.name);
 
-        console.log(`   ✅ SUCCESS! Post: ${post.id}`);
-        if (story) console.log(`   ✅ Story: ${story.id}`);
+        console.debug(`   ✅ SUCCESS! Post: ${post.id}`);
+        if (story) console.debug(`   ✅ Story: ${story.id}`);
 
         return {
             success: true,
@@ -256,7 +256,7 @@ async function postForHorse(horse, attemptNumber = 1) {
         };
 
     } catch (error) {
-        console.log(`   ❌ Error: ${error.message}`);
+        console.debug(`   ❌ Error: ${error.message}`);
         return { success: false, reason: error.message };
     }
 }
@@ -265,10 +265,10 @@ async function postForHorse(horse, attemptNumber = 1) {
 // MAIN ORCHESTRATION
 // ═══════════════════════════════════════════════════════════════════════════
 async function unleashTheHorses() {
-    console.log('\n🐴🐴🐴 UNLEASHING THE HORSES (HARDENED) 🐴🐴🐴');
-    console.log('═'.repeat(60));
-    console.log('Features: Source rotation • Retry logic • Deduplication');
-    console.log('Loading all active horses...\n');
+    console.debug('\n🐴🐴🐴 UNLEASHING THE HORSES (HARDENED) 🐴🐴🐴');
+    console.debug('═'.repeat(60));
+    console.debug('Features: Source rotation • Retry logic • Deduplication');
+    console.debug('Loading all active horses...\n');
 
     // Get all active horses
     const { data: horses, error } = await supabase
@@ -278,12 +278,12 @@ async function unleashTheHorses() {
         .not('profile_id', 'is', null);
 
     if (error || !horses?.length) {
-        console.log('No horses found!');
+        console.debug('No horses found!');
         return;
     }
 
-    console.log(`Found ${horses.length} active horses`);
-    console.log(`Available clips: ${CLIP_LIBRARY.length}\n`);
+    console.debug(`Found ${horses.length} active horses`);
+    console.debug(`Available clips: ${CLIP_LIBRARY.length}\n`);
 
     const results = [];
     const sourceStats = {};
@@ -303,48 +303,48 @@ async function unleashTheHorses() {
     }
 
     // Summary
-    console.log('\n' + '═'.repeat(60));
-    console.log('📊 HARDENED RESULTS SUMMARY');
-    console.log('═'.repeat(60));
+    console.debug('\n' + '═'.repeat(60));
+    console.debug('📊 HARDENED RESULTS SUMMARY');
+    console.debug('═'.repeat(60));
 
     const successful = results.filter(r => r.success);
     const failed = results.filter(r => !r.success);
 
-    console.log(`\n✅ Successful: ${successful.length}`);
-    console.log(`❌ Failed: ${failed.length}`);
+    console.debug(`\n✅ Successful: ${successful.length}`);
+    console.debug(`❌ Failed: ${failed.length}`);
 
     if (Object.keys(sourceStats).length > 0) {
-        console.log('\n📺 SOURCE DISTRIBUTION:');
+        console.debug('\n📺 SOURCE DISTRIBUTION:');
         Object.entries(sourceStats)
             .sort((a, b) => b[1] - a[1])
             .forEach(([source, count]) => {
                 const name = CLIP_SOURCES[source]?.name || source;
-                console.log(`   ${name}: ${count} clips`);
+                console.debug(`   ${name}: ${count} clips`);
             });
     }
 
     if (successful.length > 0) {
-        console.log('\n📝 Posts Created:');
+        console.debug('\n📝 Posts Created:');
         successful.slice(0, 10).forEach(r => {
-            console.log(`   • ${r.horse} (${r.source}): "${r.caption.slice(0, 30)}..."`);
+            console.debug(`   • ${r.horse} (${r.source}): "${r.caption.slice(0, 30)}..."`);
         });
         if (successful.length > 10) {
-            console.log(`   ... and ${successful.length - 10} more`);
+            console.debug(`   ... and ${successful.length - 10} more`);
         }
     }
 
     if (failed.length > 0) {
-        console.log('\n⚠️ Failed reasons:');
+        console.debug('\n⚠️ Failed reasons:');
         const reasons = {};
         failed.forEach(r => {
             reasons[r.reason] = (reasons[r.reason] || 0) + 1;
         });
         Object.entries(reasons).forEach(([reason, count]) => {
-            console.log(`   ${reason}: ${count}`);
+            console.debug(`   ${reason}: ${count}`);
         });
     }
 
-    console.log('\n🎉 HORSES UNLEASHED!');
+    console.debug('\n🎉 HORSES UNLEASHED!');
 }
 
-unleashTheHorses().catch(console.error);
+unleashTheHorses().catch(console.warn);

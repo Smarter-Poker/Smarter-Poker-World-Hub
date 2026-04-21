@@ -55,7 +55,7 @@ export async function getRecentTopics(horseProfileId, lookbackHours = 48) {
 
         return topics;
     } catch (error) {
-        console.error('Error fetching recent topics:', error);
+        console.warn('Error fetching recent topics:', error);
         return [];
     }
 }
@@ -92,7 +92,7 @@ export async function getTodayPostCount(horseProfileId) {
 
         return count || 0;
     } catch (error) {
-        console.error('Error fetching today post count:', error);
+        console.warn('Error fetching today post count:', error);
         return 0;
     }
 }
@@ -157,7 +157,7 @@ export async function getMinutesSinceLastPost(horseProfileId) {
         const lastPost = new Date(posts[0].created_at);
         return Math.floor((Date.now() - lastPost.getTime()) / (1000 * 60));
     } catch (error) {
-        console.error('Error fetching last post time:', error);
+        console.warn('Error fetching last post time:', error);
         return Infinity;
     }
 }

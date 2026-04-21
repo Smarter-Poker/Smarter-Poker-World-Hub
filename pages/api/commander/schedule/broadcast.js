@@ -157,7 +157,7 @@ export default async function handler(req, res) {
                           results.skipped++;
                       }
                   } catch (smsErr) {
-                      console.error(`[Broadcast] SMS failed for ${member.display_name}:`, smsErr.message);
+                      console.warn(`[Broadcast] SMS failed for ${member.display_name}:`, smsErr.message);
                       results.failed++;
                   }
               } else if (channel === 'sms' && !member.phone) {
@@ -202,11 +202,11 @@ export default async function handler(req, res) {
                           if (emailResult.id) {
                               results.sent++;
                           } else {
-                              console.error(`[Broadcast] Resend failed for ${member.display_name}:`, emailResult.message);
+                              console.warn(`[Broadcast] Resend failed for ${member.display_name}:`, emailResult.message);
                               results.failed++;
                           }
                       } catch (emailErr) {
-                          console.error(`[Broadcast] Email failed for ${member.display_name}:`, emailErr.message);
+                          console.warn(`[Broadcast] Email failed for ${member.display_name}:`, emailErr.message);
                           results.failed++;
                       }
                   }
@@ -224,7 +224,7 @@ export default async function handler(req, res) {
               }
           });
       } catch (err) {
-          console.error('[Schedule Broadcast] Error:', err);
+          console.warn('[Schedule Broadcast] Error:', err);
           return res.status(500).json({
               success: false,
               error: { message: 'Failed to broadcast schedule' }
@@ -233,7 +233,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

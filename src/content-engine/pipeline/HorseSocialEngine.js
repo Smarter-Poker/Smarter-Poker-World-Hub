@@ -53,7 +53,7 @@ async function sendSocialPush(targetId, horseIds, title, message, urlString) {
             })
         });
     } catch (e) {
-        console.error('Failed to send social interaction push:', e.message);
+        console.warn('Failed to send social interaction push:', e.message);
     }
 }
 
@@ -314,7 +314,7 @@ function shouldAct(probability = 0.7) {
  * Send friend requests from horses to other horses AND real users
  */
 async function sendFriendRequests(maxRequests = 10) {
-    console.log('\n🤝 SENDING FRIEND REQUESTS...');
+    console.debug('\n🤝 SENDING FRIEND REQUESTS...');
 
     // Get all horses
     const { data: horses } = await getSupabase()
@@ -372,7 +372,7 @@ async function sendFriendRequests(maxRequests = 10) {
             });
 
         if (!error) {
-            console.log(`   ${horse.name} → ${target.name} ${target.isHorse ? '🐴' : '👤'} ✓`);
+            console.debug(`   ${horse.name} → ${target.name} ${target.isHorse ? '🐴' : '👤'} ✓`);
             requestsSent++;
 
             if (requestsSent >= maxRequests) break;
@@ -381,7 +381,7 @@ async function sendFriendRequests(maxRequests = 10) {
         await new Promise(r => setTimeout(r, 500)); // Rate limit
     }
 
-    console.log(`   Sent: ${requestsSent} friend requests`);
+    console.debug(`   Sent: ${requestsSent} friend requests`);
     return { sent: requestsSent };
 }
 
@@ -389,7 +389,7 @@ async function sendFriendRequests(maxRequests = 10) {
  * Accept pending friend requests
  */
 async function acceptFriendRequests(maxAccepts = 15) {
-    console.log('\n✅ ACCEPTING FRIEND REQUESTS...');
+    console.debug('\n✅ ACCEPTING FRIEND REQUESTS...');
 
     // Get all horses
     const { data: horses } = await getSupabase()
@@ -411,7 +411,7 @@ async function acceptFriendRequests(maxAccepts = 15) {
         .limit(maxAccepts * 2);
 
     if (!pending?.length) {
-        console.log('   No pending requests to accept');
+        console.debug('   No pending requests to accept');
         return { accepted: 0 };
     }
 
@@ -428,7 +428,7 @@ async function acceptFriendRequests(maxAccepts = 15) {
             if (!error) {
                 const horse = horses.find(h => h.profile_id === request.friend_id);
                 const sender = horses.find(h => h.profile_id === request.user_id);
-                console.log(`   ${horse?.name || 'Horse'} accepted ${sender?.name || 'User'} ✓`);
+                console.debug(`   ${horse?.name || 'Horse'} accepted ${sender?.name || 'User'} ✓`);
                 accepted++;
 
                 if (accepted >= maxAccepts) break;
@@ -438,7 +438,7 @@ async function acceptFriendRequests(maxAccepts = 15) {
         await new Promise(r => setTimeout(r, 300));
     }
 
-    console.log(`   Accepted: ${accepted} requests`);
+    console.debug(`   Accepted: ${accepted} requests`);
     return { accepted };
 }
 
@@ -460,7 +460,7 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
     const currentMinute = now.getMinutes();
     const currentHour = now.getHours();
 
-    console.log(`\n💬 HORSES COMMENTING ON POSTS... (minute ${currentMinute})`);
+    console.debug(`\n💬 HORSES COMMENTING ON POSTS... (minute ${currentMinute})`);
 
     // Get all horses
     const { data: allHorses } = await getSupabase()
@@ -478,10 +478,10 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
         return isInSlot && isActive;
     });
 
-    console.log(`   Active horses this minute: ${activeHorses.length}/${allHorses.length}`);
+    console.debug(`   Active horses this minute: ${activeHorses.length}/${allHorses.length}`);
 
     if (activeHorses.length === 0) {
-        console.log('   No horses in their active slot this minute');
+        console.debug('   No horses in their active slot this minute');
         return { commented: 0, activeHorses: 0 };
     }
 
@@ -498,7 +498,7 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
     const { data: posts } = await postsQuery;
 
     if (!posts?.length) {
-        console.log('   No posts to comment on');
+        console.debug('   No posts to comment on');
         return { commented: 0, activeHorses: activeHorses.length };
     }
 
@@ -509,7 +509,7 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
         // Check probability based on this horse's activity rate
         const activityRate = getHorseActivityRate(horse.profile_id, 'comment');
         if (Math.random() > activityRate) {
-            console.log(`   ${horse.name} chose not to comment (rate: ${(activityRate * 100).toFixed(0)}%)`);
+            console.debug(`   ${horse.name} chose not to comment (rate: ${(activityRate * 100).toFixed(0)}%)`);
             continue;
         }
 
@@ -567,7 +567,7 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
             
             // Simulate human typing delay (1s - 3s based on comment length, reduced for cron efficiency)
             const typingMs = Math.max(1000, Math.min(3000, comment.length * 50));
-            console.log(`   [Live] ${horse.name} is typing on post ${post.id.substring(0,6)}... (${Math.round(typingMs/1000)}s)`);
+            console.debug(`   [Live] ${horse.name} is typing on post ${post.id.substring(0,6)}... (${Math.round(typingMs/1000)}s)`);
             await new Promise(r => setTimeout(r, typingMs));
             
             // Send stop typing event
@@ -602,7 +602,7 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
                         .eq('post_id', post.id).eq('author_id', horse.profile_id)
                         .eq('content', comment);
                     comment = mentionComment;
-                    console.log(`   ${horse.name} tagged @${friendProfile.username}`);
+                    console.debug(`   ${horse.name} tagged @${friendProfile.username}`);
                     
                     // Phase 28 Fix: Insert notification for the mentioned friend
                     await getSupabase().from('notifications').insert({
@@ -624,7 +624,7 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
             await sendSocialPush(post.author_id, horseIds, 'New Comment', `${horse.name} commented on your post: "${comment}"`, `/hub/social-feed?post_id=${post.id}`);
 
             const author = allHorses.find(h => h.profile_id === post.author_id);
-            console.log(`   ${horse.name} → ${author?.name || 'User'}'s post: "${comment}"`);
+            console.debug(`   ${horse.name} → ${author?.name || 'User'}'s post: "${comment}"`);
             commented++;
             
             // Sync denormalized comment_count on social_posts (fire-and-forget)
@@ -641,7 +641,7 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
         await new Promise(r => setTimeout(r, 500 + Math.random() * 1500));
     }
 
-    console.log(`   Posted: ${commented} comments from ${activeHorses.length} active horses`);
+    console.debug(`   Posted: ${commented} comments from ${activeHorses.length} active horses`);
     return { commented, activeHorses: activeHorses.length };
 }
 
@@ -654,7 +654,7 @@ async function likePosts(maxLikes = 30, includeRealUsers = true) {
     const currentMinute = now.getMinutes();
     const currentHour = now.getHours();
 
-    console.log(`\n❤️ HORSES LIKING POSTS... (minute ${currentMinute})`);
+    console.debug(`\n❤️ HORSES LIKING POSTS... (minute ${currentMinute})`);
 
     // Get all horses
     const { data: allHorses } = await getSupabase()
@@ -672,10 +672,10 @@ async function likePosts(maxLikes = 30, includeRealUsers = true) {
         return isInSlot && isActive;
     });
 
-    console.log(`   Active horses this minute: ${activeHorses.length}/${allHorses.length}`);
+    console.debug(`   Active horses this minute: ${activeHorses.length}/${allHorses.length}`);
 
     if (activeHorses.length === 0) {
-        console.log('   No horses in their active slot this minute');
+        console.debug('   No horses in their active slot this minute');
         return { liked: 0, activeHorses: 0 };
     }
 
@@ -700,7 +700,7 @@ async function likePosts(maxLikes = 30, includeRealUsers = true) {
         // Check probability based on this horse's activity rate
         const activityRate = getHorseActivityRate(horse.profile_id, 'like');
         if (Math.random() > activityRate) {
-            console.log(`   ${horse.name} chose not to engage (rate: ${(activityRate * 100).toFixed(0)}%)`);
+            console.debug(`   ${horse.name} chose not to engage (rate: ${(activityRate * 100).toFixed(0)}%)`);
             continue;
         }
 
@@ -749,7 +749,7 @@ async function likePosts(maxLikes = 30, includeRealUsers = true) {
                 const reactionEmoji = reaction === 'love' ? '❤️' : reaction === 'fire' ? '🔥' : reaction === 'wow' ? '😲' : reaction === 'haha' ? '😂' : '👍';
                 await sendSocialPush(post.author_id, horseIds, `New Reaction`, `${horse.name} reacted ${reactionEmoji} to your post.`, `/hub/social-feed?post_id=${post.id}`);
 
-                console.log(`   ${horse.name} liked a post ❤️`);
+                console.debug(`   ${horse.name} liked a post ❤️`);
                 liked++;
                 
                 // Sync denormalized like_count on social_posts (fire-and-forget)
@@ -765,7 +765,7 @@ async function likePosts(maxLikes = 30, includeRealUsers = true) {
         await new Promise(r => setTimeout(r, 500 + Math.random() * 1500));
     }
 
-    console.log(`   Liked: ${liked} posts from ${activeHorses.length} active horses`);
+    console.debug(`   Liked: ${liked} posts from ${activeHorses.length} active horses`);
     return { liked, activeHorses: activeHorses.length };
 }
 
@@ -782,7 +782,7 @@ async function replyToComments(maxReplies = 15) {
     const currentMinute = now.getMinutes();
     const currentHour = now.getHours();
 
-    console.log(`\n💬 HORSES REPLYING TO COMMENTS... (minute ${currentMinute})`);
+    console.debug(`\n💬 HORSES REPLYING TO COMMENTS... (minute ${currentMinute})`);
 
     // Get all horses
     const { data: allHorses } = await getSupabase()
@@ -800,10 +800,10 @@ async function replyToComments(maxReplies = 15) {
         return isInSlot && isActive;
     });
 
-    console.log(`   Active horses this minute: ${activeHorses.length}/${allHorses.length}`);
+    console.debug(`   Active horses this minute: ${activeHorses.length}/${allHorses.length}`);
 
     if (activeHorses.length === 0) {
-        console.log('   No horses in their active slot this minute');
+        console.debug('   No horses in their active slot this minute');
         return { replied: 0, activeHorses: 0 };
     }
 
@@ -817,7 +817,7 @@ async function replyToComments(maxReplies = 15) {
         .limit(50);
 
     if (!comments?.length) {
-        console.log('   No comments to reply to');
+        console.debug('   No comments to reply to');
         return { replied: 0, activeHorses: activeHorses.length };
     }
 
@@ -828,7 +828,7 @@ async function replyToComments(maxReplies = 15) {
         // Check probability
         const activityRate = getHorseActivityRate(horse.profile_id, 'reply');
         if (Math.random() > activityRate) {
-            console.log(`   ${horse.name} chose not to reply (rate: ${(activityRate * 100).toFixed(0)}%)`);
+            console.debug(`   ${horse.name} chose not to reply (rate: ${(activityRate * 100).toFixed(0)}%)`);
             continue;
         }
 
@@ -882,7 +882,7 @@ async function replyToComments(maxReplies = 15) {
             // Trigger push notification to the original comment author
             await sendSocialPush(comment.author_id, horseIds, 'New Reply', `${horse.name} replied to your comment: "${replyText}"`, `/hub/social-feed?post_id=${comment.post_id}`);
 
-            console.log(`   ${horse.name} replied: "${replyText}"`);
+            console.debug(`   ${horse.name} replied: "${replyText}"`);
             replied++;
             
             // Sync denormalized comment_count on social_posts (fire-and-forget)
@@ -899,7 +899,7 @@ async function replyToComments(maxReplies = 15) {
         await new Promise(r => setTimeout(r, 500 + Math.random() * 1500));
     }
 
-    console.log(`   Replied: ${replied} times from ${activeHorses.length} active horses`);
+    console.debug(`   Replied: ${replied} times from ${activeHorses.length} active horses`);
     return { replied, activeHorses: activeHorses.length };
 }
 
@@ -908,8 +908,8 @@ async function replyToComments(maxReplies = 15) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 async function runSocialInteractions(options = {}) {
-    console.log('\n🐴🐴🐴 HORSE SOCIAL ENGINE 🐴🐴🐴');
-    console.log('═'.repeat(60));
+    console.debug('\n🐴🐴🐴 HORSE SOCIAL ENGINE 🐴🐴🐴');
+    console.debug('═'.repeat(60));
 
     const {
         includeFriends = true,
@@ -956,21 +956,21 @@ async function runSocialInteractions(options = {}) {
         }
 
         // Summary
-        console.log('\n' + '═'.repeat(60));
-        console.log('📊 SOCIAL INTERACTION SUMMARY');
-        console.log('═'.repeat(60));
-        console.log(`   Friend Requests Sent: ${results.friendsSent || 0}`);
-        console.log(`   Friend Requests Accepted: ${results.friendsAccepted || 0}`);
-        console.log(`   Comments Posted: ${results.commented || 0}`);
-        console.log(`   Posts Liked: ${results.liked || 0}`);
-        console.log(`   Comment Replies: ${results.replied || 0}`);
-        console.log(`   Comment Reactions: ${results.commentReactions || 0}`);
-        console.log('\n🎉 Horses are socializing!');
+        console.debug('\n' + '═'.repeat(60));
+        console.debug('📊 SOCIAL INTERACTION SUMMARY');
+        console.debug('═'.repeat(60));
+        console.debug(`   Friend Requests Sent: ${results.friendsSent || 0}`);
+        console.debug(`   Friend Requests Accepted: ${results.friendsAccepted || 0}`);
+        console.debug(`   Comments Posted: ${results.commented || 0}`);
+        console.debug(`   Posts Liked: ${results.liked || 0}`);
+        console.debug(`   Comment Replies: ${results.replied || 0}`);
+        console.debug(`   Comment Reactions: ${results.commentReactions || 0}`);
+        console.debug('\n🎉 Horses are socializing!');
 
         return results;
 
     } catch (error) {
-        console.error('Social engine error:', error.message);
+        console.warn('Social engine error:', error.message);
         return { success: false, error: error.message };
     }
 }
@@ -984,7 +984,7 @@ async function reactToComments(maxReactions = 15) {
     const currentMinute = now.getMinutes();
     const currentHour = now.getHours();
 
-    console.log(`\n🔥 HORSES REACTING TO COMMENTS... (minute ${currentMinute})`);
+    console.debug(`\n🔥 HORSES REACTING TO COMMENTS... (minute ${currentMinute})`);
 
     const { data: allHorses } = await getSupabase()
         .from('content_authors')
@@ -1042,14 +1042,14 @@ async function reactToComments(maxReactions = 15) {
 
         if (!error) {
             reacted++;
-            console.log(`   ${horse.name} reacted ${reaction} to a comment`);
+            console.debug(`   ${horse.name} reacted ${reaction} to a comment`);
         }
 
         if (reacted >= maxReactions) break;
         await new Promise(r => setTimeout(r, 500));
     }
 
-    console.log(`   Reacted to ${reacted} comments`);
+    console.debug(`   Reacted to ${reacted} comments`);
     return { reacted };
 }
 

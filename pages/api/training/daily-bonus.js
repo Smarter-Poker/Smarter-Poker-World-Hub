@@ -105,7 +105,7 @@ export default async function handler(req, res) {
               });
 
           } catch (error) {
-              console.error('[DailyBonus] Error:', error.message);
+              console.warn('[DailyBonus] Error:', error.message);
               return res.status(500).json({ success: false, error: 'Failed to check daily bonus' });
           }
       }
@@ -172,7 +172,7 @@ export default async function handler(req, res) {
                           message: 'Daily bonus already claimed for today'
                       });
                   }
-                  console.error('[DailyBonus] Insert error:', claimInsertErr);
+                  console.warn('[DailyBonus] Insert error:', claimInsertErr);
                   throw claimInsertErr;
               }
 
@@ -208,7 +208,7 @@ export default async function handler(req, res) {
               });
 
           } catch (error) {
-              console.error('[DailyBonus] Claim error:', error.message);
+              console.warn('[DailyBonus] Claim error:', error.message);
               return res.status(500).json({ success: false, error: 'Failed to claim daily bonus' });
           }
       }
@@ -217,7 +217,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

@@ -37,7 +37,7 @@ const headers = { };
       const [membersJson, sessionsJson] = await Promise.all([membersRes.json(), sessionsRes.json()]);
       if (membersJson.success) setPlayers(membersJson.data || []);
       if (sessionsJson.success) setSessions(sessionsJson.data || []);
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
     finally { setLoading(false); }
   }, [sortBy]);
 

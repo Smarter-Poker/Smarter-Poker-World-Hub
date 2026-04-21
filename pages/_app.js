@@ -216,9 +216,7 @@ if (typeof window !== 'undefined') {
               }
             }
           }
-        } catch (e) {
-          // Silently fail — don't break the fetch if localStorage read fails
-        }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
       }
     }
 

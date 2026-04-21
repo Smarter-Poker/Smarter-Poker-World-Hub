@@ -94,15 +94,15 @@ export async function sendTicketNotification({
         });
 
         if (error) {
-            console.error('[EmailService] Failed to send ticket notification:', error);
+            console.warn('[EmailService] Failed to send ticket notification:', error);
             throw error;
         }
 
-        console.log('[EmailService] Ticket notification sent:', data);
+        console.debug('[EmailService] Ticket notification sent:', data);
         return data;
 
     } catch (error) {
-        console.error('[EmailService] Error sending email:', error);
+        console.warn('[EmailService] Error sending email:', error);
         throw error;
     }
 }
@@ -169,15 +169,15 @@ export async function sendTicketStatusUpdate({
         });
 
         if (error) {
-            console.error('[EmailService] Failed to send status update:', error);
+            console.warn('[EmailService] Failed to send status update:', error);
             throw error;
         }
 
-        console.log('[EmailService] Status update sent:', data);
+        console.debug('[EmailService] Status update sent:', data);
         return data;
 
     } catch (error) {
-        console.error('[EmailService] Error sending email:', error);
+        console.warn('[EmailService] Error sending email:', error);
         throw error;
     }
 }

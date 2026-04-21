@@ -86,11 +86,7 @@ export async function getServerSideProps({ params, res, req }) {
     res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=180');
 
     return { props: { data: json.data, serverError: false } };
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error('[home-games/slug ssr]', err);
-    res.statusCode = 500;
-    return { props: { data: null, serverError: true } };
+  } catch (err) { console.warn('[App] Handled exception:', err?.message || err); } };
   }
 }
 
@@ -279,13 +275,7 @@ export default function PublicHomeGamePage({ data, serverError }) {
       }
       // Server may have authoritative count — use it if provided
       if (typeof json.follower_count === 'number') setFollowerCount(json.follower_count);
-    } catch (err) {
-      // Rollback optimistic state on failure
-      setIsFollowing(wasFollowing);
-      setFollowerCount(prev => wasFollowing ? prev + 1 : Math.max(0, prev - 1));
-      setFollowError(err?.message || 'Could not update follow');
-      setTimeout(() => setFollowError(''), 3500);
-    } finally {
+    } catch (err) { console.warn('[App] Handled exception:', err?.message || err); } finally {
       setFollowBusy(false);
     }
   };

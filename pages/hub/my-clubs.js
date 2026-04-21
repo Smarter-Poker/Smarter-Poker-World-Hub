@@ -503,7 +503,7 @@ export default function MyClubsPage() {
                         });
                     }
                 } catch (e) {
-                    console.error('[my-clubs] Failed to load follows:', e);
+                    console.warn('[my-clubs] Failed to load follows:', e);
                 }
             }
 
@@ -547,7 +547,7 @@ export default function MyClubsPage() {
                             const games = json.games || json.data || [];
                             gameMap[vid] = Array.isArray(games) ? games.length : 0;
                         }
-                    } catch (e) { console.error("[my-clubs.js]", e); }
+                    } catch (e) { console.warn("[my-clubs.js]", e); }
                     try {
                         const res = await fetch(`/api/commander/waitlist/venue/${vid}`, signal ? { signal } : {});
                         if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -557,7 +557,7 @@ export default function MyClubsPage() {
                                 sum + (wl.players ? wl.players.length : 0), 0);
                             wlMap[vid] = totalPlayers;
                         }
-                    } catch (e) { console.error("[my-clubs.js]", e); }
+                    } catch (e) { console.warn("[my-clubs.js]", e); }
                 }));
                 setLiveGamesMap(gameMap);
                 setWaitlistMap(wlMap);
@@ -572,7 +572,7 @@ export default function MyClubsPage() {
                         if (sJson.success && sJson.data && sJson.data.length > 0) {
                             slugMap[String(vid)] = sJson.data[0].slug || sJson.data[0].id;
                         }
-                    } catch (e) { /* silent */ }
+                    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
                 }));
                 setSocialPageSlugMap(slugMap);
             }
@@ -655,7 +655,7 @@ export default function MyClubsPage() {
                     setSearchResults(Array.isArray(json.data) ? json.data : [json.data]);
                 }
             } catch (e) {
-                if (e.name !== 'AbortError') console.error('[MyClubs] Search error:', e);
+                if (e.name !== 'AbortError') console.warn('[MyClubs] Search error:', e);
             }
             setIsSearching(false);
         }, 350);
@@ -685,7 +685,7 @@ export default function MyClubsPage() {
             setArenaClubs([]);
           }
         } catch (e) {
-          console.error('[my-clubs] Realtime reload failed:', e);
+          console.warn('[my-clubs] Realtime reload failed:', e);
         }
       })
       .subscribe();
@@ -733,7 +733,7 @@ export default function MyClubsPage() {
                     user_id: getUserId(),
                 }),
             });
-        } catch (e) { console.error("[my-clubs.js]", e); }
+        } catch (e) { console.warn("[my-clubs.js]", e); }
     };
 
 

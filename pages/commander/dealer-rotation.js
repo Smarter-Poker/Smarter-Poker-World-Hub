@@ -98,7 +98,7 @@ export default function DealerRotation() {
       const ended = allRotations.filter(r => r.ended_at);
       setRotations(active);
       setHistory(ended);
-    } catch (err) { console.error('[DealerRotation] fetch error:', err); }
+    } catch (err) { console.warn('[DealerRotation] fetch error:', err); }
     finally { setLoading(false); }
   }, []);
 
@@ -135,7 +135,7 @@ export default function DealerRotation() {
         broadcastChange('dealers');
         broadcastChange('tables');
       }
-    } catch (err) { console.error(`[DealerRotation] ${action} error:`, err); setToast({ type: 'error', text: `Action failed: ${action}. Please try again.` }); }
+    } catch (err) { console.warn(`[DealerRotation] ${action} error:`, err); setToast({ type: 'error', text: `Action failed: ${action}. Please try again.` }); }
     finally { setActionLoading(null); }
   };
 

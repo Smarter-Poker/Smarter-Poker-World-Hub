@@ -26,7 +26,7 @@ function savePrefs(prefs, userId) {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ user_id: userId, key: 'tournament_alerts', value: prefs }),
-        }).catch(() => { /* silent - localStorage is primary */ });
+        }).catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
     }
 }
 

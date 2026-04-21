@@ -350,7 +350,7 @@ function detectEventType(text) {
 export async function extractPdfSchedule(pdfUrl, options = {}) {
     const { tourCode = 'UNKNOWN', seriesName = '' } = options;
 
-    console.log(`  [PDF] Downloading: ${pdfUrl}`);
+    console.debug(`  [PDF] Downloading: ${pdfUrl}`);
 
     try {
         // Download binary
@@ -366,7 +366,7 @@ export async function extractPdfSchedule(pdfUrl, options = {}) {
             return { events: [], pages: 0, rawTextLength: 0, error: `Not a valid PDF (header: ${header})` };
         }
 
-        console.log(`  [PDF] Downloaded ${(buffer.length / 1024).toFixed(1)}KB — parsing...`);
+        console.debug(`  [PDF] Downloaded ${(buffer.length / 1024).toFixed(1)}KB — parsing...`);
 
         let pdfData;
         try {
@@ -379,7 +379,7 @@ export async function extractPdfSchedule(pdfUrl, options = {}) {
                 numpages: result.pages ? result.pages.length : (result.numpages || 1)
             };
         } catch (parseErr) {
-            console.log(`  [PDF] pdf-parse v2 failed: ${parseErr.message}, trying fallback`);
+            console.debug(`  [PDF] pdf-parse v2 failed: ${parseErr.message}, trying fallback`);
             // Fallback: extract embedded text directly from buffer
             const rawStr = buffer.toString('latin1');
             const textBlocks = rawStr.match(/\(([^)]{2,200})\)/g) || [];
@@ -393,7 +393,7 @@ export async function extractPdfSchedule(pdfUrl, options = {}) {
         const rawText = pdfData.text || '';
         const numPages = pdfData.numpages || 0;
 
-        console.log(`  [PDF] ${numPages} pages, ${rawText.length} chars of text`);
+        console.debug(`  [PDF] ${numPages} pages, ${rawText.length} chars of text`);
 
         if (rawText.length < 50) {
             return { events: [], pages: numPages, rawTextLength: rawText.length, error: 'PDF text extraction yielded no content (may be scanned/image-only PDF)' };
@@ -409,7 +409,7 @@ export async function extractPdfSchedule(pdfUrl, options = {}) {
             ev.pdf_source_url = pdfUrl;
         });
 
-        console.log(`  [PDF] Extracted ${events.length} events from ${numPages} pages`);
+        console.debug(`  [PDF] Extracted ${events.length} events from ${numPages} pages`);
 
         return {
             events,
@@ -420,7 +420,7 @@ export async function extractPdfSchedule(pdfUrl, options = {}) {
         };
 
     } catch (err) {
-        console.log(`  [PDF] Error: ${err.message}`);
+        console.debug(`  [PDF] Error: ${err.message}`);
         return {
             events: [],
             pages: 0,

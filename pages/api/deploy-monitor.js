@@ -181,14 +181,14 @@ async function createAlertIssue(title, body, { alertKey, ghPat } = {}) {
     if (!res.ok) throw new Error(`GitHub issues API failed: ${res.status}`);
     console.log('[deploy-monitor] Alert issue created on GitHub');
   } catch (err) {
-    console.error('[deploy-monitor] Failed to create alert issue:', err.message);
+    console.warn('[deploy-monitor] Failed to create alert issue:', err.message);
   }
 
   // Best-effort SMS alert.
   try {
     await sendSmsAlert(`🚨 Vercel Deploy Crash\n${title}`);
   } catch (err) {
-    console.error('[deploy-monitor] SMS alert failed (non-fatal):', err.message);
+    console.warn('[deploy-monitor] SMS alert failed (non-fatal):', err.message);
   }
 
   // Best-effort parallel email. Never throws — monitor must keep running.
@@ -199,7 +199,7 @@ async function createAlertIssue(title, body, { alertKey, ghPat } = {}) {
       tag: 'alert',
     });
   } catch (err) {
-    console.error('[deploy-monitor] Email alert failed (non-fatal):', err.message);
+    console.warn('[deploy-monitor] Email alert failed (non-fatal):', err.message);
   }
 }
 
@@ -241,10 +241,10 @@ async function sendSmsAlert(message) {
       console.log(`[deploy-monitor] SMS alert sent to ${ownerPhone}`);
     } else {
       const errData = await res.json().catch(() => ({}));
-      console.error('[deploy-monitor] SMS API error:', res.status, errData);
+      console.warn('[deploy-monitor] SMS API error:', res.status, errData);
     }
   } catch (err) {
-    console.error('[deploy-monitor] Failed to dispatch SMS:', err.message);
+    console.warn('[deploy-monitor] Failed to dispatch SMS:', err.message);
   }
 }
 
@@ -281,12 +281,12 @@ async function sendEmailAlert({ subject, markdown, tag = 'info' }) {
     }, 10000);
     if (!res.ok) {
       const errText = await res.text();
-      console.error(`[deploy-monitor] Resend rejected email (HTTP ${res.status}):`, errText.substring(0, 200));
+      console.warn(`[deploy-monitor] Resend rejected email (HTTP ${res.status}):`, errText.substring(0, 200));
     } else {
       console.log(`[deploy-monitor] Email alert sent (tag=${tag})`);
     }
   } catch (err) {
-    console.error('[deploy-monitor] Resend fetch error:', err.message);
+    console.warn('[deploy-monitor] Resend fetch error:', err.message);
   }
 }
 
@@ -334,7 +334,7 @@ async function isRecentlyAlerted(alertKey) {
     const rows = await res.json();
     return Array.isArray(rows) && rows.length > 0;
   } catch (err) {
-    console.error('[deploy-monitor] Supabase dedup read failed (falling through):', err.message);
+    console.warn('[deploy-monitor] Supabase dedup read failed (falling through):', err.message);
     return false;
   }
 }
@@ -369,7 +369,7 @@ async function recordAlert(alertKey) {
       body: JSON.stringify({ alert_key: alertKey, expires_at: expiresAt }),
     });
   } catch (err) {
-    console.error('[deploy-monitor] Supabase dedup write failed (non-fatal):', err.message);
+    console.warn('[deploy-monitor] Supabase dedup write failed (non-fatal):', err.message);
   }
 }
 
@@ -406,7 +406,7 @@ async function findLastGoodDeploy(beforeSha) {
     }
     return null;
   } catch (err) {
-    console.error('[deploy-monitor] findLastGoodDeploy failed:', err.message);
+    console.warn('[deploy-monitor] findLastGoodDeploy failed:', err.message);
     return null;
   }
 }
@@ -455,7 +455,7 @@ async function countPersistentAttempts(commitSha, branchName, ghPat) {
       return msg.startsWith('[autofix]') && msg.includes(shortSha);
     }).length;
   } catch (err) {
-    console.error('[deploy-monitor] countPersistentAttempts failed:', err.message);
+    console.warn('[deploy-monitor] countPersistentAttempts failed:', err.message);
     return 0;
   }
 }
@@ -493,7 +493,7 @@ export default async function handler(req, res) {
   try {
     rawBody = await readRawBody(req);
   } catch (err) {
-    console.error('[deploy-monitor] Failed to read request body:', err.message);
+    console.warn('[deploy-monitor] Failed to read request body:', err.message);
     const code = err.statusCode === 413 ? 413 : 400;
     return res.status(code).json({
       error: code === 413 ? 'Request body too large' : 'Failed to read request body',
@@ -719,7 +719,7 @@ https://vercel.com/smarter-poker/hub-vanguard/deployments`,
     // ── Fetch build logs ──────────────────────────────────────────────────
     const vercelToken = process.env.VERCEL_TOKEN;
     if (!vercelToken) {
-      console.error('[deploy-monitor] Missing VERCEL_TOKEN env var');
+      console.warn('[deploy-monitor] Missing VERCEL_TOKEN env var');
       await createAlertIssue(
         `Deploy monitor misconfigured — VERCEL_TOKEN missing`,
         `The deploy-monitor endpoint received a valid webhook but \`VERCEL_TOKEN\` is not set. Cannot fetch build logs. Set it in Vercel project env.`,
@@ -915,7 +915,7 @@ Manual intervention needed. Check the Vercel build: https://vercel.com/smarter-p
     });
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[deploy-monitor] Error:', err);
+    console.warn('[deploy-monitor] Error:', err);
     // Pipeline-level errors also deserve an alert
     await createAlertIssue(
       `deploy-monitor threw an exception — ${new Date().toISOString().slice(0, 10)}`,

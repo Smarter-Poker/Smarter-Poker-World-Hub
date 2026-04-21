@@ -108,7 +108,7 @@ export default function HandHistoryPage() {
         alert(`Failed to parse image: ${errData.error || 'Server error'}`);
       }
     } catch(err) {
-      console.error("Upload error", err);
+      console.warn("Upload error", err);
       alert("Error analyzing hand image.");
     }
     setUploadingImage(false);
@@ -160,7 +160,7 @@ export default function HandHistoryPage() {
       setReviewData(null);
       fetchHands();
     } catch (err) {
-      console.error(err);
+      console.warn(err);
       alert('Failed to save hand');
     }
   };

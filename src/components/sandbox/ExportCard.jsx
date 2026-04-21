@@ -29,7 +29,7 @@ export function ExportCard({ results, scenario, onExport }) {
 
             if (onExport) onExport(dataUrl);
         } catch (err) {
-            console.error('Export failed:', err);
+            console.warn('Export failed:', err);
         }
     };
 

@@ -820,18 +820,7 @@ export default function CustomSolvePage() {
           rangePercent: adjustedRange,
         });
       }
-    } catch (e) {
-      // Fallback to local computation
-      const heroRange = PRECOMPUTED_RANGES[heroPos] || PRECOMPUTED_RANGES.BTN;
-      setResult({
-        source: 'precomputed',
-        actions: [
-          {
-            action: 'Raise',
-            freq: Math.round(
-              typeof heroRange.openRange === 'number' ? heroRange.openRange * 0.65 : 20
-            ),
-          },
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); },
           {
             action: 'Call',
             freq: Math.round(

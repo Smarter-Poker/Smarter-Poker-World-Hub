@@ -56,7 +56,7 @@ export default function LiveActivityFeed({ currentUser }) {
                 setPublicSessions(ps || []);
             }
         } catch (err) {
-            console.error('[LiveFeed] Error:', err);
+            console.warn('[LiveFeed] Error:', err);
         }
         setLoading(false);
     }, []);

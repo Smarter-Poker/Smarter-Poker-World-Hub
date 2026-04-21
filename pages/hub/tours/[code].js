@@ -299,11 +299,7 @@ export default function TourDetailPage() {
         } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
       }
     })
-    .catch(() => {
-      // Network error — rollback UI
-      setIsFollowed(prevState);
-      setFollowerCount(prevCount);
-    });
+    .catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
     // Emit EventBus event for cross-page reactivity
     try { busEmit.socialFollowChanged(code, 'tour-detail', { added: newState }); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }

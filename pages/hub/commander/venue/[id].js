@@ -64,7 +64,7 @@ export default function VenueDetail() {
         setWaitlists(waitlistData.data.waitlists || []);
       }
     } catch (error) {
-      console.error('Failed to fetch venue data:', error);
+      console.warn('Failed to fetch venue data:', error);
     } finally {
       setLoading(false);
     }
@@ -119,7 +119,7 @@ export default function VenueDetail() {
         setMessage({ type: 'error', text: data.error?.message || 'Failed to join waitlist' });
       }
     } catch (error) {
-      console.error('Failed to join waitlist:', error);
+      console.warn('Failed to join waitlist:', error);
       setMessage({ type: 'error', text: 'Failed To Join Waitlist' });
     } finally {
       setTimeout(() => setMessage(null), 4000);

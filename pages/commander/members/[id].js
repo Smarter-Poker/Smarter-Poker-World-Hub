@@ -70,7 +70,7 @@ const headers = { };
       setSessions(sessionsArr);
       const tournamentsArr = Array.isArray(tournamentsRes.data) ? tournamentsRes.data : [];
       setTournamentResults(tournamentsArr);
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
     finally { setLoading(false); }
   };
 
@@ -97,7 +97,7 @@ const res = await commanderFetch(`/api/commander/members/${id}`, {
           broadcastChange('members');
         }
       }
-    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
+    } catch (err) { console.warn(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
   setLoading(false);
   };
 
@@ -115,7 +115,7 @@ const res = await commanderFetch(`/api/commander/members/${id}`, {
           broadcastChange('members');
         }
       }
-    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
+    } catch (err) { console.warn(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
   };
 
   const m = member;

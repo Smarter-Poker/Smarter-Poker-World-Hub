@@ -119,10 +119,7 @@ export default async function handler(req, res) {
                       cacheId: cached.id,
                   });
               }
-          } catch (cacheErr) {
-              // Cache miss or table doesn't exist yet — continue to Grok
-              console.warn('[Geeves Chat] Cache lookup failed (non-critical):', cacheErr.message);
-          }
+          } catch (cacheErr) { console.warn('[App] Handled exception:', cacheErr?.message || cacheErr); }
 
           // ── STEP 2: No cache hit — call Grok with conversation context ──
           const grok = getGrokClient();
@@ -192,13 +189,7 @@ export default async function handler(req, res) {
                   p_page: currentPage || null,
                   p_grok_answer: answer,
               });
-          } catch (_rpcErr) {
-              // RPC not yet available — use raw INSERT via PostgREST with SQL function
-              // Supabase's REST API doesn't natively support ON CONFLICT DO UPDATE with expressions,
-              // so we use separate insert + update logic:
-              try {
-                  // Try INSERT first
-                  const { error: insErr } = await getSupabase()
+          } catch (_rpcErr) { console.warn('[App] Handled exception:', _rpcErr?.message || _rpcErr); } = await getSupabase()
                       .from('geeves_missed_questions')
                       .insert({
                           question: message,
@@ -237,7 +228,7 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('[Geeves Chat] Error:', error);
+          console.warn('[Geeves Chat] Error:', error);
           return res.status(500).json({
               success: false, error: 'Failed to process message',
               response: "I'm having trouble connecting right now. Please try again.",
@@ -247,7 +238,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

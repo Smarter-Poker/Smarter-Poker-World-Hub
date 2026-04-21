@@ -39,7 +39,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -73,7 +73,7 @@ async function listLeagues(req, res) {
     const { data: leagues, error } = await query;
 
     if (error) {
-      console.error('Leagues fetch error:', error);
+      console.warn('Leagues fetch error:', error);
       throw error;
     }
 
@@ -102,7 +102,7 @@ async function listLeagues(req, res) {
     });
 
   } catch (error) {
-    console.error('Leagues error:', error);
+    console.warn('Leagues error:', error);
     return res.status(500).json({
       success: false,
       error: { code: 'SERVER_ERROR', message: 'Failed to fetch leagues' }
@@ -152,7 +152,7 @@ async function createLeague(req, res) {
     return res.status(201).json({ success: true, data: { league } });
   } catch (error) {
       try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('Create league error:', error);
+    console.warn('Create league error:', error);
     return res.status(500).json({
       success: false,
       error: { code: 'SERVER_ERROR', message: error.message }

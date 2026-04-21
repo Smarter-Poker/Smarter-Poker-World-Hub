@@ -92,7 +92,7 @@ export function JarvisMessengerWidget({ onMinimize }: JarvisMessengerWidgetProps
                 window.dispatchEvent(new CustomEvent('pa-chat-updated'));
             }
         } catch (error) {
-            console.error('Jarvis chat error:', error);
+            console.warn('Jarvis chat error:', error);
             setMessages(prev => [...prev, {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',

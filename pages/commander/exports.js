@@ -45,7 +45,7 @@ export default function ExportsHub() {
   const [format, setFormat] = useState('csv');
 
   useEffect(() => {
-    try { const s = getStaffData(); if (s.venue_id) setVenueId(s.venue_id); } catch (e) { /* silent */ }
+    try { const s = getStaffData(); if (s.venue_id) setVenueId(s.venue_id); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
   }, []);
 
   const fetchData = useCallback(async () => {
@@ -60,7 +60,7 @@ export default function ExportsHub() {
       const tJson = await tRes.json().catch(() => ({ data: [] }));
       setExports(expJson.exports || []);
       setTournaments(tJson.data || []);
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
     finally { setLoading(false); }
   }, [venueId]);
 

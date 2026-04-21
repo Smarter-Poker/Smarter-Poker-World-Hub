@@ -36,7 +36,7 @@ export async function getServerSideProps({ res }) {
     .not('location_state', 'is', null);
 
   if (error) {
-    console.error('[home-games/in] fetch failed:', error.message);
+    console.warn('[home-games/in] fetch failed:', error.message);
     return { props: { states: [], totalGames: 0 } };
   }
 

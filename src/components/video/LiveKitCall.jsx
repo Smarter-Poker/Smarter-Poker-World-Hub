@@ -177,7 +177,7 @@ export default function LiveKitCall({
                 setConnecting(false);
             })
             .catch((err) => {
-                console.error('LiveKit token error:', err);
+                console.warn('LiveKit token error:', err);
                 setError(err.message);
                 setConnecting(false);
             });

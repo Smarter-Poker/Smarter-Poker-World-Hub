@@ -165,7 +165,7 @@ export default function HomeGameDetailPage() {
         const payload = JSON.parse(atob(token.split('.')[1]));
         setCurrentUserId(payload.sub);
       } catch (e) {
-        console.error('Failed to decode token:', e);
+        console.warn('Failed to decode token:', e);
       }
     }
     })();
@@ -221,7 +221,7 @@ export default function HomeGameDetailPage() {
         }
       }
     } catch (error) {
-      console.error('Failed to fetch group:', error);
+      console.warn('Failed to fetch group:', error);
     } finally {
       setLoading(false);
     }
@@ -278,7 +278,7 @@ export default function HomeGameDetailPage() {
         setEventReviews(allReviews);
         setReviewsAvgRating(totalCount > 0 ? Math.round((totalRating / totalCount) * 10) / 10 : 0);
       } catch (err) {
-        console.error('Load reviews error:', err);
+        console.warn('Load reviews error:', err);
       } finally {
         setReviewsLoading(false);
       }
@@ -310,7 +310,7 @@ export default function HomeGameDetailPage() {
         fetchGroup();
       }
     } catch (error) {
-      console.error('Join failed:', error);
+      console.warn('Join failed:', error);
     } finally {
       setJoining(false);
     }
@@ -351,7 +351,7 @@ export default function HomeGameDetailPage() {
         }
       }
     } catch (error) {
-      console.error('RSVP failed:', error);
+      console.warn('RSVP failed:', error);
       toast.error(error.message || 'Failed to RSVP');
     }
   }
@@ -376,7 +376,7 @@ export default function HomeGameDetailPage() {
         toast.error(data.error?.message || data.error || 'Failed to start message');
       }
     } catch (err) {
-      console.error('DM start failed:', err);
+      console.warn('DM start failed:', err);
       toast.error('Failed to start message');
     }
   }
@@ -616,7 +616,7 @@ export default function HomeGameDetailPage() {
                         setNewPost('');
                         fetchGroup();
                       } catch (err) {
-                        console.error('Post failed:', err);
+                        console.warn('Post failed:', err);
                       }
                     }}
                     disabled={!newPost.trim()}
@@ -677,7 +677,7 @@ export default function HomeGameDetailPage() {
                       setUserReview(reviewData);
                     }
                   } catch (err) {
-                    console.error('Submit review error:', err);
+                    console.warn('Submit review error:', err);
                   } finally {
                     setReviewSubmitting(false);
                   }

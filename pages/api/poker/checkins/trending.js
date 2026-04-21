@@ -33,7 +33,7 @@ export default async function handler(req, res) {
             .gte('created_at', twentyFourHoursAgo);
 
         if (error) {
-            console.error('Trending checkins error:', error);
+            console.warn('Trending checkins error:', error);
             return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
@@ -100,7 +100,7 @@ export default async function handler(req, res) {
 
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('[Trending Checkins Error]', err);
+        console.warn('[Trending Checkins Error]', err);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

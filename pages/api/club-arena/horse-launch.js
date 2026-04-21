@@ -366,7 +366,7 @@ async function seatHorseAtTable(tableId, horseId, maxPlayers, bigBlind) {
   });
   
   if (error) {
-    console.error(`[Horse Launch] Failed to buy into table ${tableId}: ${error.message}`);
+    console.warn(`[Horse Launch] Failed to buy into table ${tableId}: ${error.message}`);
     return false;
   }
 
@@ -692,7 +692,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[horse-launch]', err);
+    console.warn('[horse-launch]', err);
     return res.status(500).json({ error: err.message || 'Launch failed', log });
   }
 }

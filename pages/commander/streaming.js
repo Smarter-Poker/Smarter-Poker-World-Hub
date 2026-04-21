@@ -314,7 +314,7 @@ const res = await commanderFetch(`/api/commander/streaming?venue_id=${venueId}`,
         setStreams(data.data?.streams || []);
       }
     } catch (err) {
-      console.error('Fetch streams failed:', err);
+      console.warn('Fetch streams failed:', err);
       setStreams([]);
     } finally {
       setLoading(false);
@@ -345,7 +345,7 @@ const res = await commanderFetch(`/api/commander/streaming/${tableId}/start`, {
       }
     } catch (err) {
       setLoading(false);
-      console.error('Start stream failed:', err);
+      console.warn('Start stream failed:', err);
       setToast({ type: 'error', text: 'Failed to start stream. Please try again.' });
     }
   }
@@ -362,7 +362,7 @@ const res = await commanderFetch(`/api/commander/streaming/${tableId}/stop`, {
         broadcastChange('streaming');
       }
     } catch (err) {
-      console.error('Stop stream failed:', err);
+      console.warn('Stop stream failed:', err);
       setToast({ type: 'error', text: 'Failed to stop stream. Please try again.' });
     }
   }
@@ -380,7 +380,7 @@ const res = await commanderFetch(`/api/commander/streaming/${tableId}/config`, {
         broadcastChange('streaming');
       }
     } catch (err) {
-      console.error('Save config failed:', err);
+      console.warn('Save config failed:', err);
       setToast({ type: 'error', text: 'Failed to save streaming config. Please try again.' });
     }
   }

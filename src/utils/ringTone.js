@@ -57,7 +57,7 @@ export function createRingTone() {
             ringInterval = setInterval(playBeep, 2000); // Repeat every 2 seconds
 
         } catch (e) {
-            console.error('Ring tone error:', e);
+            console.warn('Ring tone error:', e);
         }
     };
 

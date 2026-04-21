@@ -124,7 +124,7 @@ export default async function handler(req, res) {
             .eq('id', userId);
 
         if (updateError) {
-            console.error('Update error:', updateError);
+            console.warn('Update error:', updateError);
             return res.status(500).json({ success: false, error: 'Failed to save stats' });
         }
 
@@ -139,7 +139,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

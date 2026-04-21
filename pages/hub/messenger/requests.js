@@ -62,13 +62,13 @@ export default function MessageRequests() {
                 .order('created_at', { ascending: false });
 
             if (error && error.code !== 'PGRST116') {
-                console.error('Error fetching requests:', error);
+                console.warn('Error fetching requests:', error);
             }
 
             setRequests(data || []);
             setLoading(false);
         } catch (error) {
-            console.error('Error loading requests:', error);
+            console.warn('Error loading requests:', error);
             setLoading(false);
         }
     };
@@ -89,7 +89,7 @@ export default function MessageRequests() {
                 if (error) {
                     // Rollback on failure
                     setRequests(prevRequests);
-                    console.error('Error accepting request:', error);
+                    console.warn('Error accepting request:', error);
                     alert('Failed to accept request');
                 }
             })
@@ -112,7 +112,7 @@ export default function MessageRequests() {
                 if (error) {
                     // Rollback on failure
                     setRequests(prevRequests);
-                    console.error('Error declining request:', error);
+                    console.warn('Error declining request:', error);
                     alert('Failed to decline request');
                 }
             })

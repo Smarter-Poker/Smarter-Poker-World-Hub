@@ -169,7 +169,7 @@ export default function WeaknessScannerPage() {
       const d = await res.json();
       if (d.success && d.sessions) setRawSessions(d.sessions);
     } catch (e) {
-      console.error('[Scanner]', e);
+      console.warn('[Scanner]', e);
       setFetchError('Unable to load session data. Please check your connection.');
     }
     setLoading(false);

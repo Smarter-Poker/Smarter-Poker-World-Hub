@@ -50,7 +50,7 @@ export function LiveStreamViewer({ stream, userId, onClose }) {
                 busEmit.dataMutated?.('live_streams');
 
             } catch (err) {
-                console.error('Failed to join stream:', err);
+                console.warn('Failed to join stream:', err);
                 setError(err.message || 'Failed to connect to stream');
                 setIsConnecting(false);
             }

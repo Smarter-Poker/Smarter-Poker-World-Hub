@@ -272,7 +272,7 @@ export default async function handler(req, res) {
             return { id: item.id, type: item.type, text: item.text, time: timeStr, color: item.color };
           });
         } catch (e) {
-          console.error('[UnionDashboard API] Activity Feed build failed:', e);
+          console.warn('[UnionDashboard API] Activity Feed build failed:', e);
         }
       }
 
@@ -401,13 +401,13 @@ export default async function handler(req, res) {
         recentPeriods: periods,
       });
     } catch (err) {
-      console.error('[union-dashboard]', err);
+      console.warn('[union-dashboard]', err);
       return res.status(500).json({ success: false, error: 'Union dashboard failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

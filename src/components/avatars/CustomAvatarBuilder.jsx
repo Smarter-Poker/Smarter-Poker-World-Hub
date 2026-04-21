@@ -139,7 +139,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
         toast.error(result.error);
       }
     } catch (error) {
-      console.error('Avatar generation error:', error);
+      console.warn('Avatar generation error:', error);
       toast.error('Error generating avatar. Please try again.');
     } finally {
       setGenerating(false);
@@ -161,7 +161,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
           .maybeSingle();
 
         if (error) {
-          console.error('Error saving avatar:', error);
+          console.warn('Error saving avatar:', error);
           toast.error('Failed to save avatar. Please try again.');
           return;
         }
@@ -175,7 +175,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
         });
 
         if (setError) {
-          console.error('Error setting active avatar:', setError);
+          console.warn('Error setting active avatar:', setError);
         }
 
         // ═══ REAL-TIME PROPAGATION ═══
@@ -194,7 +194,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
         }));
 
       } catch (err) {
-        console.error('Error in handleAccept:', err);
+        console.warn('Error in handleAccept:', err);
         toast.error('Failed to save avatar. Please try again.');
         return;
       }
@@ -237,7 +237,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
     let token = null;
     try {
       token = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token;
-    } catch (_) { /* no-op */ }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
     if (!token) {
       toast.error('Authentication required. Please sign in and try again.');
@@ -283,7 +283,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
       if (error.name === 'AbortError') {
         toast.error('Avatar editing timed out. Please try again.');
       } else {
-        console.error('Avatar edit error:', error);
+        console.warn('Avatar edit error:', error);
         toast.error('Error editing avatar. Please try again.');
       }
     } finally {

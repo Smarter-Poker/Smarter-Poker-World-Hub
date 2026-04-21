@@ -136,7 +136,7 @@ async function buildSocialPages(pageType) {
             };
         });
     } catch (e) {
-        console.error('buildSocialPages error:', e);
+        console.warn('buildSocialPages error:', e);
         return [];
     }
 }
@@ -228,9 +228,7 @@ export default async function handler(req, res) {
                       });
                   }
               }
-          } catch (e) {
-              // Supabase unavailable, continue without follow data
-          }
+          } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
           // Attach follow data to pages
           pages = pages.map(p => ({
@@ -283,13 +281,13 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('Pages API error:', error);
+          console.warn('Pages API error:', error);
           return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

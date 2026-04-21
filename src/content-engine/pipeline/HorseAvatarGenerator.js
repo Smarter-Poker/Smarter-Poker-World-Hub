@@ -194,7 +194,7 @@ class HorseAvatarGenerator {
         const { data, error } = await query;
 
         if (error) {
-            console.error('Failed to fetch horses:', error.message);
+            console.warn('Failed to fetch horses:', error.message);
             return [];
         }
 
@@ -208,11 +208,11 @@ class HorseAvatarGenerator {
     async prepareAvatarGeneration(horse) {
         const promptData = generatePrompt(horse);
 
-        console.log(`\n🐴 ${horse.name}`);
-        console.log(`   Gender: ${promptData.gender}`);
-        console.log(`   Attire: ${promptData.attire}`);
-        console.log(`   Expression: ${promptData.expression}`);
-        console.log(`   Prompt ready for generation`);
+        console.debug(`\n🐴 ${horse.name}`);
+        console.debug(`   Gender: ${promptData.gender}`);
+        console.debug(`   Attire: ${promptData.attire}`);
+        console.debug(`   Expression: ${promptData.expression}`);
+        console.debug(`   Prompt ready for generation`);
 
         return {
             horse,
@@ -237,7 +237,7 @@ class HorseAvatarGenerator {
             });
 
         if (uploadError) {
-            console.error(`Upload failed for ${horse.name}:`, uploadError.message);
+            console.warn(`Upload failed for ${horse.name}:`, uploadError.message);
             return null;
         }
 
@@ -254,7 +254,7 @@ class HorseAvatarGenerator {
             .eq('profile_id', horse.profile_id);
 
         if (updateError) {
-            console.error(`DB update failed for ${horse.name}:`, updateError.message);
+            console.warn(`DB update failed for ${horse.name}:`, updateError.message);
         }
 
         // Also update profiles table
@@ -263,7 +263,7 @@ class HorseAvatarGenerator {
             .update({ avatar_url: publicUrl })
             .eq('id', horse.profile_id);
 
-        console.log(`   ✅ Avatar uploaded: ${publicUrl}`);
+        console.debug(`   ✅ Avatar uploaded: ${publicUrl}`);
         return publicUrl;
     }
 
@@ -271,12 +271,12 @@ class HorseAvatarGenerator {
      * Generate prompts for all horses (preparation phase)
      */
     async prepareAllAvatars(options = {}) {
-        console.log('\n🐴🐴🐴 HORSE AVATAR GENERATOR 🐴🐴🐴');
-        console.log('═'.repeat(60));
-        console.log('Preparing Law-compliant avatar prompts...\n');
+        console.debug('\n🐴🐴🐴 HORSE AVATAR GENERATOR 🐴🐴🐴');
+        console.debug('═'.repeat(60));
+        console.debug('Preparing Law-compliant avatar prompts...\n');
 
         const horses = await this.getHorsesNeedingAvatars(options);
-        console.log(`Found ${horses.length} horses\n`);
+        console.debug(`Found ${horses.length} horses\n`);
 
         const preparations = [];
         for (const horse of horses) {
@@ -296,7 +296,7 @@ class HorseAvatarGenerator {
         const outputFile = path.join(this.outputDir, 'avatar_prompts.json');
         fs.writeFileSync(outputFile, JSON.stringify(preparations, null, 2));
 
-        console.log(`\n📄 Exported ${preparations.length} prompts to ${outputFile}`);
+        console.debug(`\n📄 Exported ${preparations.length} prompts to ${outputFile}`);
         return outputFile;
     }
 }
@@ -319,8 +319,8 @@ if (process.argv[1]?.includes('HorseAvatarGenerator')) {
     const limit = parseInt(process.argv[2]) || 5;
 
     generator.prepareAllAvatars({ limit }).then(preps => {
-        console.log('\n═'.repeat(60));
-        console.log(`✅ Prepared ${preps.length} avatar prompts`);
-        console.log('Ready for image generation!');
+        console.debug('\n═'.repeat(60));
+        console.debug(`✅ Prepared ${preps.length} avatar prompts`);
+        console.debug('Ready for image generation!');
     });
 }

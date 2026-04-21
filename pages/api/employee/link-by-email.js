@@ -29,7 +29,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -82,7 +82,7 @@ async function handleGet(req, res) {
 
         return res.status(200).json({ success: true, data: { matches: enriched } });
     } catch (err) {
-        console.error('Email match check error:', err);
+        console.warn('Email match check error:', err);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }
@@ -143,7 +143,7 @@ async function handlePost(req, res) {
         });
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('Email link error:', err);
+        console.warn('Email link error:', err);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

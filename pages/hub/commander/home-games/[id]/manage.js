@@ -59,7 +59,7 @@ function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
         onClose();
       }
     } catch (error) {
-      console.error('Failed to schedule event:', error);
+      console.warn('Failed to schedule event:', error);
     } finally {
       setSubmitting(false);
     }
@@ -294,7 +294,7 @@ export default function ManageHomeGamePage() {
         toast.error(data.error?.message || data.error || 'Failed to start message');
       }
     } catch (err) {
-      console.error('DM start failed:', err);
+      console.warn('DM start failed:', err);
       toast.error('Failed to start message');
     }
   }
@@ -367,7 +367,7 @@ export default function ManageHomeGamePage() {
       }
 
     } catch (error) {
-      console.error('Failed to fetch data:', error);
+      console.warn('Failed to fetch data:', error);
     } finally {
       setLoading(false);
     }
@@ -404,7 +404,7 @@ export default function ManageHomeGamePage() {
       busEmit.dataMutated('home-games');
       fetchData();
     } catch (error) {
-      console.error('Approve failed:', error);
+      console.warn('Approve failed:', error);
       toast.error(error.message || 'Approve failed');
     }
   }
@@ -421,7 +421,7 @@ export default function ManageHomeGamePage() {
       busEmit.dataMutated('home-games');
       fetchData();
     } catch (error) {
-      console.error('Remove failed:', error);
+      console.warn('Remove failed:', error);
       toast.error(error.message || 'Remove failed');
     }
   }
@@ -437,7 +437,7 @@ export default function ManageHomeGamePage() {
       const data = await res.json();
       setEventRsvps(data.rsvps || data.data?.rsvps || []);
     } catch (err) {
-      console.error('Load RSVPs failed:', err);
+      console.warn('Load RSVPs failed:', err);
       setEventRsvps([]);
     } finally {
       setRsvpLoading(false);
@@ -458,7 +458,7 @@ export default function ManageHomeGamePage() {
       if (expandedEventId) loadEventRsvps(expandedEventId);
     } catch (err) {
       setRsvpLoading(false);
-      console.error('RSVP action failed:', err);
+      console.warn('RSVP action failed:', err);
     }
   }
 
@@ -474,7 +474,7 @@ export default function ManageHomeGamePage() {
       fetchData();
     } catch (error) {
       setRsvpLoading(false);
-      console.error('Delete failed:', error);
+      console.warn('Delete failed:', error);
       toast.error(error.message || 'Delete failed');
     }
   }
@@ -502,7 +502,7 @@ export default function ManageHomeGamePage() {
         toast.error(data.error?.message || data.error || 'Failed to release escrow');
       }
     } catch (error) {
-      console.error('Release failed:', error);
+      console.warn('Release failed:', error);
       toast.error(error.message || 'Release failed');
     } finally {
       setProcessingEscrow(null);
@@ -533,7 +533,7 @@ export default function ManageHomeGamePage() {
         toast.error(data.error?.message || data.error || 'Failed to refund escrow');
       }
     } catch (error) {
-      console.error('Refund failed:', error);
+      console.warn('Refund failed:', error);
       toast.error(error.message || 'Refund failed');
     } finally {
       setProcessingEscrow(null);
@@ -560,7 +560,7 @@ export default function ManageHomeGamePage() {
         setDeleteError(data.error?.message || 'Failed to delete group');
       }
     } catch (error) {
-      console.error('Delete group failed:', error);
+      console.warn('Delete group failed:', error);
       setDeleteError('Failed to delete group');
     }
   }
@@ -583,7 +583,7 @@ export default function ManageHomeGamePage() {
         setGroup(prev => ({ ...prev, ...newSettings }));
       }
     } catch (error) {
-      console.error('Update settings failed:', error);
+      console.warn('Update settings failed:', error);
     }
   }
 

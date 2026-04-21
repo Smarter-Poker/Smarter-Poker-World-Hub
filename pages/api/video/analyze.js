@@ -60,7 +60,7 @@ async function fetchYouTubeTranscript(videoId) {
 
         return null;
     } catch (error) {
-        console.error('Error fetching transcript:', error);
+        console.warn('Error fetching transcript:', error);
         return null;
     }
 }
@@ -118,7 +118,7 @@ Focus on actual poker hands and strategy moments. If no specific hands are discu
             return JSON.parse(jsonMatch[0]);
         }
     } catch (e) {
-        console.error('Failed to parse JSON:', e);
+        console.warn('Failed to parse JSON:', e);
     }
 
     return {
@@ -263,7 +263,7 @@ export default async function handler(req, res) {
               }, { onConflict: 'video_id' });
 
           if (insertError) {
-              console.error('Error caching analysis:', insertError);
+              console.warn('Error caching analysis:', insertError);
           }
 
           return res.status(200).json({
@@ -275,7 +275,7 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('Video analysis error:', error);
+          console.warn('Video analysis error:', error);
           return res.status(500).json({
               success: false,
               error: error.message
@@ -284,7 +284,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

@@ -43,7 +43,7 @@ export default async function handler(req, res) {
             .limit(5000);
 
         if (error) {
-            console.error('Popular hours query error:', error);
+            console.warn('Popular hours query error:', error);
             return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
@@ -78,7 +78,7 @@ export default async function handler(req, res) {
 
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('[Popular Hours Error]', err);
+        console.warn('[Popular Hours Error]', err);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

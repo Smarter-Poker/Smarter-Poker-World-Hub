@@ -50,7 +50,7 @@ export default async function handler(req, res) {
       }
 
       if (!supabaseUrl || !supabaseKey) {
-          console.error('[DailyLogin] Missing env vars:', { url: !!supabaseUrl, key: !!supabaseKey });
+          console.warn('[DailyLogin] Missing env vars:', { url: !!supabaseUrl, key: !!supabaseKey });
           return res.status(500).json({ success: false, error: 'Server configuration error' });
       }
 
@@ -168,7 +168,7 @@ export default async function handler(req, res) {
                       message: 'Daily login already claimed today'
                   });
               }
-              console.error('[DailyLogin] Insert error:', insertError);
+              console.warn('[DailyLogin] Insert error:', insertError);
               throw insertError;
           }
 
@@ -184,7 +184,7 @@ export default async function handler(req, res) {
           });
 
           if (rpcError) {
-              console.error('[DailyLogin] RPC error:', rpcError);
+              console.warn('[DailyLogin] RPC error:', rpcError);
               throw rpcError;
           }
 
@@ -197,13 +197,13 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('[DailyLogin] Error:', error.message || error);
+          console.warn('[DailyLogin] Error:', error.message || error);
           return res.status(500).json({ success: false, error: 'Failed to claim daily login reward' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

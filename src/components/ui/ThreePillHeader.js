@@ -229,7 +229,7 @@ export default function ThreePillHeader({
                             // Support both legacy string and new object payloads
                             const isRefresh = msg === 'refresh_notifications' || msg?.action === 'refresh_notifications';
                             if (isRefresh) {
-                                console.log('[ThreePillHeader] received refresh_notifications broadcast');
+                                console.debug('[ThreePillHeader] received refresh_notifications broadcast');
                                 fetchUnreadCount();
                             }
                         });
@@ -257,7 +257,7 @@ export default function ThreePillHeader({
                     }
                 }
             } catch (e) {
-                console.error('[ThreePillHeader] Error:', e);
+                console.warn('[ThreePillHeader] Error:', e);
             }
         };
 
@@ -338,13 +338,9 @@ export default function ThreePillHeader({
                         const directHref = `/hub/user/${result.profile.username}`;
                         setProfileHref(directHref);
                     }
-                    console.log('[ThreePillHeader] 🚌 Profile refreshed via bus event');
+                    console.debug('[ThreePillHeader] 🚌 Profile refreshed via bus event');
                 }
-            } catch (e) {
-                // Silently ignore AbortError — expected when superseded by a newer fetch
-                if (e.name === 'AbortError') return;
-                console.warn('[ThreePillHeader] Profile refresh failed:', e.message);
-            }
+            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         };
 
         window.addEventListener('profile-updated', handleProfileUpdate);
@@ -372,7 +368,7 @@ export default function ThreePillHeader({
     useEffect(() => {
         const cleanup = listenBroadcast('smarter_poker_avatar_sync', (msg) => {
             if (msg === 'refresh') {
-                console.log('[ThreePillHeader] Avatar refresh via BroadcastChannel');
+                console.debug('[ThreePillHeader] Avatar refresh via BroadcastChannel');
                 // Trigger a profile re-fetch so avatar + name update in the header
                 window.dispatchEvent(new CustomEvent('profile-updated'));
             }

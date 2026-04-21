@@ -17,7 +17,7 @@ export default function ArenaLedgerPage() {
         const staff = JSON.parse(stored);
         if (staff.venue_id) setClubId(staff.venue_id);
       }
-    } catch (e) { /* silent */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
   }, []);
 
   return (

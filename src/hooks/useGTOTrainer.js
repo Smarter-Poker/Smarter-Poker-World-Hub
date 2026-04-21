@@ -52,9 +52,7 @@ function applyDifficultyToQuestion(question, difficultyMode) {
                 _difficultyApplied: difficultyMode,
             };
         }
-    } catch (e) {
-        // Fallback: return question unchanged
-    }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     return question;
 }
 
@@ -151,12 +149,9 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
 
             if (response.ok && data.questions && data.questions.length > 0) {
                 nextLevelCacheRef.current = { level: nextLevel, questions: data.questions };
-                console.log(`[GTOTrainer] 🚀 Prefetched ${data.questions.length} questions for level ${nextLevel}`);
+                console.debug(`[GTOTrainer] 🚀 Prefetched ${data.questions.length} questions for level ${nextLevel}`);
             }
-        } catch (err) {
-            // Non-critical — player will just wait for normal fetch
-            console.warn('[GTOTrainer] Prefetch non-critical error:', err.message);
-        }
+        } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
     }, [gameId, level, effectiveQuestionsPerLevel, trainerConfig]);
 
     /**
@@ -198,7 +193,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
 
             setCurrentQuestion(data.questions[0]);
         } catch (err) {
-            console.error('[GTOTrainer] Fetch error:', err);
+            console.warn('[GTOTrainer] Fetch error:', err);
             setError(err.message);
         } finally {
             setLoading(false);
@@ -244,7 +239,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                     params.set('handClass', trainerConfig.handClass);
                 }
                 apiUrl = `/api/training/custom-train?${params}`;
-                console.log(`[GTOTrainer] Custom trainer: ${trainerConfig.label || 'custom config'}`);
+                console.debug(`[GTOTrainer] Custom trainer: ${trainerConfig.label || 'custom config'}`);
             } else {
                 // STANDARD MODE — use batch-preload
                 params = new URLSearchParams({
@@ -265,7 +260,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                     if (weakSpots[0].street && weakSpots[0].mistakeRate >= 0.5) {
                         params.set('targetStreet', weakSpots[0].street);
                     }
-                    console.log(`[GTOTrainer] 🎯 Targeting weak spots: positions=${weakPositions.join(',')} street=${weakSpots[0].street || 'any'}`);
+                    console.debug(`[GTOTrainer] 🎯 Targeting weak spots: positions=${weakPositions.join(',')} street=${weakSpots[0].street || 'any'}`);
                 }
 
                 // ═══ PHASE 19: Pass difficulty hint if set in localStorage ═══
@@ -275,7 +270,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                 }
 
                 apiUrl = `/api/training/batch-preload?${params}`;
-                console.log(`[GTOTrainer] Pre-loading ${effectiveQuestionsPerLevel} questions for ${gameId} level ${level}`);
+                console.debug(`[GTOTrainer] Pre-loading ${effectiveQuestionsPerLevel} questions for ${gameId} level ${level}`);
             }
 
             const response = await fetch(apiUrl, {
@@ -288,7 +283,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
             try {
                 data = JSON.parse(textResponse);
             } catch (e) {
-                console.error('[GTOTrainer] Non-JSON response:', textResponse.substring(0, 100));
+                console.warn('[GTOTrainer] Non-JSON response:', textResponse.substring(0, 100));
                 if (response.status === 401) throw new Error('Auth required');
                 throw new Error(`Server error (${response.status})`);
             }
@@ -300,7 +295,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                 return fetchSingleQuestion();
             }
 
-            console.log(`[GTOTrainer] ✅ Pre-loaded ${data.questions.length} questions`);
+            console.debug(`[GTOTrainer] ✅ Pre-loaded ${data.questions.length} questions`);
 
             setPreloadedQuestions(data.questions);
             setPreloadComplete(true);
@@ -315,7 +310,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
             setLoading(false);
 
         } catch (err) {
-            console.error('[GTOTrainer] Pre-load error:', err);
+            console.warn('[GTOTrainer] Pre-load error:', err);
             setPreloadComplete(false);
             setLoading(false);
             return fetchSingleQuestion();
@@ -410,10 +405,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                     spotType: spotMeta.spotType || null,
                 }),
             });
-        } catch (err) {
-            // Non-blocking - continue even if recording fails
-            console.warn('[GTOTrainer] Record error:', err);
-        }
+        } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
     }, [userId, gameId, level]);
 
     /**
@@ -460,9 +452,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                     scenario.pot || 10
                 );
             }
-        } catch (e) {
-            // ActionTreeEngine scoring is non-critical
-        }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
         // Store for UI consumption
         setLastMoveClassification(moveResult.classification);
@@ -512,7 +502,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
         }
 
         // Phase 75: Update adaptive difficulty tracking
-        try { deterministicEngine.updateSessionDifficulty(isCorrect); } catch (e) { /* non-critical */ }
+        try { deterministicEngine.updateSessionDifficulty(isCorrect); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
         // Phase 76: Record mistake pattern for dynamic explanation depth
         try {
@@ -526,7 +516,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                 nodeType: scenario.nodeType || '',
                 classification: moveResult.classification,
             });
-        } catch (e) { /* non-critical */ }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
         // ═══ PHASE 140: GTO deviation detection ═══
         try {
@@ -541,10 +531,10 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                     currentQuestion._deviationNote = deviationNote;
                 }
             }
-        } catch (e) { /* non-critical */ }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
         // ═══ PHASE 143: Auto-difficulty adjustment ═══
-        try { deterministicEngine.recordRecentResult(isCorrect); } catch (e) { /* non-critical */ }
+        try { deterministicEngine.recordRecentResult(isCorrect); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
         // ═══ PHASE 144: Concept mastery tracking ═══
         try {
@@ -553,14 +543,14 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                 correctAnswer, currentQuestion.handCategory || ''
             );
             deterministicEngine.recordConceptExposure(concept, isCorrect);
-        } catch (e) { /* non-critical */ }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
         // ═══ PHASE 146: Spaced repetition for missed scenarios ═══
         try {
             if (!isCorrect) {
                 deterministicEngine.recordMissedScenario(scenario, moveResult.classification);
             }
-        } catch (e) { /* non-critical */ }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
         // ═══ PHASE 153: EV graph data ═══
         try {
@@ -572,26 +562,26 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                 deterministicEngine._getSessionQuestionCount(), isCorrect,
                 evLossData ? parseFloat(evLossData.evLossBB) : 0, scenario.street || 'flop'
             );
-        } catch (e) { /* non-critical */ }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
         // ═══ PHASE 158: Aggression tracking ═══
-        try { deterministicEngine.recordAggressionAction(selectedOptionId, scenario.street || 'flop'); } catch (e) { /* non-critical */ }
+        try { deterministicEngine.recordAggressionAction(selectedOptionId, scenario.street || 'flop'); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
         // ═══ PHASE 159: VPIP/PFR tracking ═══
         try {
             if (scenario.street === 'preflop') {
                 deterministicEngine.recordPreflopAction(selectedOptionId, scenario.nodeType || '');
             }
-        } catch (e) { /* non-critical */ }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
         // ═══ PHASE 160: Positional awareness ═══
-        try { deterministicEngine.recordPositionalDecision(scenario.heroPosition || '', isCorrect); } catch (e) { /* non-critical */ }
+        try { deterministicEngine.recordPositionalDecision(scenario.heroPosition || '', isCorrect); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
         // ═══ PHASE 180: Question type diversity ═══
-        try { deterministicEngine.recordQuestionType(`${scenario.street || 'flop'}:${scenario.nodeType || 'general'}`); } catch (e) { /* non-critical */ }
+        try { deterministicEngine.recordQuestionType(`${scenario.street || 'flop'}:${scenario.nodeType || 'general'}`); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
         // ═══ PHASE 185: User vs solver frequency ═══
-        try { deterministicEngine.recordUserAction(selectedOptionId, correctAnswer, scenario.street || 'flop', scenario.nodeType || ''); } catch (e) { /* non-critical */ }
+        try { deterministicEngine.recordUserAction(selectedOptionId, correctAnswer, scenario.street || 'flop', scenario.nodeType || ''); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
         // ═══ PHASE 190: Hand history replay ═══
         try {
@@ -599,7 +589,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                 scenario, currentQuestion.heroHand || '', currentQuestion.board || [],
                 selectedOptionId, correctAnswer, currentQuestion.explanation || ''
             );
-        } catch (e) { /* non-critical */ }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
         // ═══ PHASE 227: Deviation cost tracking ═══
         try {
@@ -610,10 +600,10 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
             if (evLossForCost && !isCorrect) {
                 deterministicEngine.recordDeviationCost(parseFloat(evLossForCost.evLossBB) || 0);
             }
-        } catch (e) { /* non-critical */ }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
         // ═══ PHASE 241: Training calendar ═══
-        try { deterministicEngine.recordDailyTraining(); } catch (e) { /* non-critical */ }
+        try { deterministicEngine.recordDailyTraining(); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
         // ═══ PHASE 179: Session bests tracking ═══
         try {
@@ -622,7 +612,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                 const currentStreakVal = recentResults.reduce((acc, r) => r ? acc + 1 : 0, 0);
                 deterministicEngine.recordSessionBest('streak', currentStreakVal);
             }
-        } catch (e) { /* non-critical */ }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
         // Update legacy scores
         let currentStreakCount = prevStreak => prevStreak; // fallback
@@ -665,14 +655,14 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                 if (deviationNote) {
                     fullExplanation = fullExplanation ? `${fullExplanation} ${deviationNote}` : deviationNote;
                 }
-            } catch (e) { /* non-critical */ }
+            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
             // ═══ PHASE 140: Append GTO deviation note ═══
             try {
                 if (currentQuestion._deviationNote) {
                     fullExplanation = `${fullExplanation} ${currentQuestion._deviationNote}`;
                 }
-            } catch (e) { /* non-critical */ }
+            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
             // ═══ PHASE 147: EV loss quantification ═══
             try {
@@ -683,7 +673,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                 if (evLoss && evLoss.message) {
                     fullExplanation = `${fullExplanation} ${evLoss.message}`;
                 }
-            } catch (e) { /* non-critical */ }
+            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         }
 
         // ═══ PHASE 150: Coaching message ═══
@@ -694,7 +684,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
             if (coachMsg) {
                 fullExplanation = coachMsg + ' ' + fullExplanation;
             }
-        } catch (e) { /* non-critical */ }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
         // ═══ PHASE 249: Tilt detection ═══
         try {
@@ -702,7 +692,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
             if (tiltStatus && tiltStatus.message) {
                 fullExplanation = `${fullExplanation} ${tiltStatus.message}`;
             }
-        } catch (e) { /* non-critical */ }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
         // ═══ PHASE 198: Mental game note ═══
         try {
@@ -710,7 +700,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
             if (mentalNote) {
                 fullExplanation = `${fullExplanation} ${mentalNote}`;
             }
-        } catch (e) { /* non-critical */ }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
         // ═══ PHASE 225: Smart recap ═══
         try {
@@ -719,7 +709,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                 const recapText = recap.sections.map(s => `${s.title}: ${s.content}`).join(' | ');
                 fullExplanation = `${fullExplanation} 📊 Session recap — ${recapText}`;
             }
-        } catch (e) { /* non-critical */ }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
         setExplanation(fullExplanation);
 
@@ -743,7 +733,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                     scenario.stackDepth,
                     scenario.nodeType || ''
                 );
-            } catch (_e) { /* non-critical */ }
+            } catch (_e) { console.warn('[App] Handled exception:', _e?.message || _e); }
             setStructuredExplanation(structured);
         } catch (e) {
             setStructuredExplanation(null);
@@ -770,8 +760,8 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                 setAdaptiveLevelChange({ from: level, to: newLevel, direction: 'up' });
                 try {
                     eventBus.emit('adaptiveDifficultyChange', { from: level, to: newLevel, direction: 'up' });
-                } catch (_) { /* SSR guard */ }
-                console.log(`[GTOTrainer] 📈 Adaptive: Level ${level} → ${newLevel} (accuracy ${recentAccuracy}%)`);
+                } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+                console.debug(`[GTOTrainer] 📈 Adaptive: Level ${level} → ${newLevel} (accuracy ${recentAccuracy}%)`);
             } else if (recentAccuracy < 50 && level > 1) {
                 // Player struggling → decrease difficulty
                 const newLevel = Math.max(1, level - 1);
@@ -779,8 +769,8 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                 setAdaptiveLevelChange({ from: level, to: newLevel, direction: 'down' });
                 try {
                     eventBus.emit('adaptiveDifficultyChange', { from: level, to: newLevel, direction: 'down' });
-                } catch (_) { /* SSR guard */ }
-                console.log(`[GTOTrainer] 📉 Adaptive: Level ${level} → ${newLevel} (accuracy ${recentAccuracy}%)`);
+                } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+                console.debug(`[GTOTrainer] 📉 Adaptive: Level ${level} → ${newLevel} (accuracy ${recentAccuracy}%)`);
             }
 
             // ═══ PHASE 14: Emit weak-spot analysis for UI consumption ═══
@@ -792,8 +782,8 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                         topWeakSpot: weakSpots[0],
                         checkpoint: answeredSoFar,
                     });
-                } catch (_) { /* SSR guard */ }
-                console.log(`[GTOTrainer] 🎯 Weak spots detected:`, weakSpots.map(s => `${s.position}/${s.street}/${s.spotType} (${Math.round(s.mistakeRate * 100)}%)`).join(', '));
+                } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+                console.debug(`[GTOTrainer] 🎯 Weak spots detected:`, weakSpots.map(s => `${s.position}/${s.street}/${s.spotType} (${Math.round(s.mistakeRate * 100)}%)`).join(', '));
             }
 
             adaptiveCheckpointRef.current = answeredSoFar + 5; // Next checkpoint
@@ -961,7 +951,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                 body: JSON.stringify({ mistakes: mistakePayloads }),
             });
 
-            console.log(`[GTOTrainer] 🔄 Saved ${mistakePayloads.length} mistakes to spaced repetition`);
+            console.debug(`[GTOTrainer] 🔄 Saved ${mistakePayloads.length} mistakes to spaced repetition`);
         } catch (err) {
             console.warn('[GTOTrainer] Spaced repetition save error (non-critical):', err.message);
         }
@@ -1007,18 +997,15 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                     setMasteryStatus(data.mastery);
                     if (data.mastery.masteryToken) {
                         setMasteryToken(data.mastery.masteryToken);
-                        console.log(`[GTOTrainer] 🏆 Mastery token received — next level: ${data.mastery.nextLevelUnlocked}`);
+                        console.debug(`[GTOTrainer] 🏆 Mastery token received — next level: ${data.mastery.nextLevelUnlocked}`);
                     }
                     // Server overrides client pass/fail
                     if (data.mastery.passed !== passed) {
-                        console.log(`[GTOTrainer] ⚠️ Server mastery override: client=${passed} server=${data.mastery.passed}`);
+                        console.debug(`[GTOTrainer] ⚠️ Server mastery override: client=${passed} server=${data.mastery.passed}`);
                         setLevelPassed(data.mastery.passed);
                     }
                 }
-            } catch (parseErr) {
-                // Non-critical — mastery token is a bonus, not required for gameplay
-                console.warn('[GTOTrainer] Mastery response parse failed:', parseErr.message);
-            }
+            } catch (parseErr) { console.warn('[App] Handled exception:', parseErr?.message || parseErr); }
 
             // ═══ PHASE 14: Save mistakes to spaced repetition ═══
             saveMistakesToSpacedRepetition();
@@ -1158,7 +1145,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
         // ═══ PHASE 14: Use prefetched cache if available for INSTANT level transition ═══
         const cache = nextLevelCacheRef.current;
         if (cache && cache.level === nextLevel && cache.questions.length > 0) {
-            console.log(`[GTOTrainer] ⚡ Using prefetched cache for level ${nextLevel} (${cache.questions.length} questions)`);
+            console.debug(`[GTOTrainer] ⚡ Using prefetched cache for level ${nextLevel} (${cache.questions.length} questions)`);
             setPreloadedQuestions(cache.questions);
             setPreloadComplete(true);
             setCurrentQuestion(cache.questions[0]);
@@ -1216,7 +1203,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
         // Clear the mistakes ref so this retrain session tracks fresh mistakes
         mistakeQuestionsRef.current = [];
 
-        console.log(`[GTOTrainer] Retraining ${shuffled.length} mistake hands`);
+        console.debug(`[GTOTrainer] Retraining ${shuffled.length} mistake hands`);
     }, [gtowScoring]);
 
     /**
@@ -1444,7 +1431,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
             try { return deterministicEngine.getEngineHealth(); } catch (e) { return null; }
         },
         resetSession: () => {
-            try { deterministicEngine.resetSession(); } catch (e) { /* non-critical */ }
+            try { deterministicEngine.resetSession(); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         },
         // ═══ PHASE 203: Board coverage ═══
         generateBoardCoverageData: (board, heroPos, isPFR) => {
@@ -1460,7 +1447,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
         },
         // ═══ PHASE 214: Tagging ═══
         tagScenario: (handId, tag) => {
-            try { deterministicEngine.tagScenario(handId, tag); } catch (e) { /* non-critical */ }
+            try { deterministicEngine.tagScenario(handId, tag); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         },
         getTaggedScenarios: (tag) => {
             try { return deterministicEngine.getTaggedScenarios(tag); } catch (e) { return []; }
@@ -1471,7 +1458,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
         },
         // ═══ PHASE 216: Explanation ratings ═══
         rateExplanation: (handId, rating, feedback) => {
-            try { deterministicEngine.rateExplanation(handId, rating, feedback); } catch (e) { /* non-critical */ }
+            try { deterministicEngine.rateExplanation(handId, rating, feedback); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         },
         // ═══ PHASE 218: Frequency-weighted scoring ═══
         calculateFrequencyWeightedScore: (chosen, handActions) => {

@@ -40,7 +40,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -101,14 +101,7 @@ async function getRotations(req, res) {
 
       if (result.error) throw result.error;
       rotations = result.data || [];
-    } catch (joinErr) {
-      // Fallback: simple query without FK join
-      const result = await getSupabase()
-        .from('commander_dealer_rotations')
-        .select('*')
-        .eq('venue_id', venue_id)
-        .is('ended_at', null)
-        .order('started_at', { ascending: false })
+    } catch (joinErr) { console.warn('[App] Handled exception:', joinErr?.message || joinErr); })
 
       if (result.error) throw result.error;
       rotations = result.data || [];
@@ -119,7 +112,7 @@ async function getRotations(req, res) {
       data: { rotations: rotations || [] }
     });
   } catch (error) {
-    console.error('Get rotations error:', error);
+    console.warn('Get rotations error:', error);
     return res.status(500).json({
       success: false,
       error: { code: 'SERVER_ERROR', message: 'Failed to get rotations' }
@@ -291,7 +284,7 @@ async function createRotation(req, res) {
     });
   } catch (error) {
       try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('Create rotation error:', error);
+    console.warn('Create rotation error:', error);
     return res.status(500).json({
       success: false,
       error: { code: 'SERVER_ERROR', message: 'Failed to create rotation' }

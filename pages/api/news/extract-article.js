@@ -39,7 +39,7 @@ export default async function handler(req, res) {
                 };
             }
         } catch (e) {
-            console.error('[Article Extract] Microlink metadata failed:', e.message);
+            console.warn('[Article Extract] Microlink metadata failed:', e.message);
         }
 
         // Phase 2: Fetch page directly and extract article content
@@ -59,7 +59,7 @@ export default async function handler(req, res) {
                 paragraphs = extractArticleContent(html);
             }
         } catch (e) {
-            console.error('[Article Extract] Direct fetch failed:', e.message);
+            console.warn('[Article Extract] Direct fetch failed:', e.message);
         }
 
         // Fallback to description if no paragraphs found
@@ -79,7 +79,7 @@ export default async function handler(req, res) {
 
     } catch (error) {
         try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('[Article Extract] Error:', error);
+        console.warn('[Article Extract] Error:', error);
         return res.status(500).json({
             success: false,
             error: error.message

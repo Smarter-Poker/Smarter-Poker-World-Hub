@@ -160,7 +160,7 @@ export function ProfilePictureHistory({
             // Limit results
             setHistory((data || []).slice(0, limit));
         } catch (err) {
-            console.error('Error fetching profile picture history:', err);
+            console.warn('Error fetching profile picture history:', err);
             setHistory([]);
         } finally {
             setLoading(false);
@@ -203,7 +203,7 @@ export function ProfilePictureHistory({
 
                 fetchHistory(); // Refresh
             } catch (err) {
-                console.error('Error restoring profile picture:', err);
+                console.warn('Error restoring profile picture:', err);
             }
         }
     };

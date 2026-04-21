@@ -89,9 +89,7 @@ export function prefetchProfile(userId, username) {
                 localStorage.setItem(cacheKey, JSON.stringify(cachePayload));
                 prefetchedSet.add(username);
             } catch { /* quota exceeded */ }
-        }).catch(() => {
-            // Prefetch failed — profile will load normally
-        }).finally(() => {
+        }).catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); }).finally(() => {
             inflightSet.delete(username);
         });
     });

@@ -75,7 +75,7 @@ export default function DailyPresetsPage() {
     try {
       const sub = JSON.parse(localStorage.getItem('commander_subscription') || '{}');
       if (sub.tier) setCurrentTier(sub.tier);
-    } catch (e) { console.error("[room-presets.js]", e); }
+    } catch (e) { console.warn("[room-presets.js]", e); }
   }, [router]);
 
   // Fetch hard stop settings
@@ -92,7 +92,7 @@ export default function DailyPresetsPage() {
           }
         })
         .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-    } catch (e) { console.error("[room-presets.js]", e); }
+    } catch (e) { console.warn("[room-presets.js]", e); }
   }, [staff]);
 
   async function handleHardStopSave() {
@@ -114,7 +114,7 @@ const res = await commanderFetch('/api/commander/settings', {
           setTimeout(() => setHardStopSuccess(null), 3000);
         }
       }
-    } catch (e) { console.error("[room-presets.js]", e); setError('Action failed. Please check your connection and try again.'); }
+    } catch (e) { console.warn("[room-presets.js]", e); setError('Action failed. Please check your connection and try again.'); }
     finally { setHardStopSaving(false); }
   }
 
@@ -137,7 +137,7 @@ const res = await commanderFetch('/api/commander/settings', {
           setTimeout(() => setAutoCompSuccess(null), 3000);
         }
       }
-    } catch (e) { console.error("[room-presets.js]", e); setError('Action failed. Please check your connection and try again.'); }
+    } catch (e) { console.warn("[room-presets.js]", e); setError('Action failed. Please check your connection and try again.'); }
     finally { setAutoCompSaving(false); }
   }
 
@@ -157,7 +157,7 @@ const res = await commanderFetch('/api/commander/settings', {
       if (presetsJson.success) setPresets(presetsJson.data || []);
       if (typesJson.success) setGameTypes(typesJson.data || []);
       if (promosJson.success) setPromotions(promosJson.data?.promotions || []);
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
     finally { setLoading(false); }
   }, []);
 
@@ -331,7 +331,7 @@ const res = await commanderFetch('/api/commander/settings', {
           broadcastChange('settings');
         }
       }
-    } catch (err) { console.error(err); setError('Action failed. Please check your connection and try again.'); }
+    } catch (err) { console.warn(err); setError('Action failed. Please check your connection and try again.'); }
   }
 
   function startEdit(preset) {

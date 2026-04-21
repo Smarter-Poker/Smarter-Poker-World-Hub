@@ -56,7 +56,7 @@ export default async function handler(req, res) {
 
         return res.json({ success: true, messages: (messages || []).reverse() });
       } catch (err) {
-        console.error('[club-chat GET]', err);
+        console.warn('[club-chat GET]', err);
         return res.status(500).json({ error: 'Failed to load messages' });
       }
     }
@@ -94,7 +94,7 @@ export default async function handler(req, res) {
 
         return res.json({ success: true, messageId: msg.id, createdAt: msg.created_at });
       } catch (err) {
-        console.error('[club-chat POST]', err);
+        console.warn('[club-chat POST]', err);
         return res.status(500).json({ error: 'Failed to send message' });
       }
     }
@@ -103,7 +103,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

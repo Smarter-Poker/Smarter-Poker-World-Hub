@@ -22,7 +22,7 @@ export default function PushNotificationBell({ style = {} }) {
                 await subscribe();
             }
         } catch (error) {
-            console.error('Push toggle error:', error);
+            console.warn('Push toggle error:', error);
         } finally {
             setLoading(false);
         }

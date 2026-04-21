@@ -49,9 +49,7 @@ async function getAlertState(supabase, source) {
     if (!error && data) {
       return JSON.parse(data.value);
     }
-  } catch (e) {
-    // Table might not exist — fall through to in-memory
-  }
+  } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
   
   return alertStateCache[key] || { last_alert_ms: 0, was_alerting: false };
 }
@@ -68,9 +66,7 @@ async function setAlertState(supabase, source, state) {
         value: JSON.stringify(state),
         updated_at: new Date().toISOString(),
       }, { onConflict: 'key' });
-  } catch (e) {
-    // Silently fail — in-memory cache is the fallback
-  }
+  } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 }
 
 async function appendAlertHistory(supabase, source, type, message) {
@@ -100,7 +96,7 @@ async function appendAlertHistory(supabase, source, type, message) {
       updated_at: new Date().toISOString(),
     }, { onConflict: 'key' });
   } catch (e) {
-    console.error('Failed to append alert history:', e.message);
+    console.warn('Failed to append alert history:', e.message);
   }
 }
 
@@ -126,7 +122,7 @@ async function sendOneSignalAlert(title, message) {
       }),
     });
   } catch (err) {
-    console.error('OneSignal alert failed:', err.message);
+    console.warn('OneSignal alert failed:', err.message);
   }
 }
 
@@ -171,7 +167,7 @@ export default async function handler(req, res) {
       try {
         const { data: bData } = await supabase.from('scraper_watchdog_state').select('value').eq('key', baseKey).maybeSingle();
         if (bData && bData.value) baselines = typeof bData.value === 'string' ? JSON.parse(bData.value) : bData.value;
-      } catch (e) { console.error('Baseline parse error', e); }
+      } catch (e) { console.warn('Baseline parse error', e); }
 
       const previousBaseline = baselines[currentHour] || null;
       baselines[currentHour] = previousBaseline ? Math.round((safeCount * 0.1) + (previousBaseline * 0.9)) : safeCount;
@@ -208,7 +204,7 @@ export default async function handler(req, res) {
       }
     } catch (err) {
       results.sources[source] = { status: 'ERROR', error: err.message };
-      console.error(`Watchdog error for ${source}:`, err.message);
+      console.warn(`Watchdog error for ${source}:`, err.message);
     }
   }
 

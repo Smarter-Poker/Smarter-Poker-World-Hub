@@ -145,7 +145,7 @@ export default function LeagueDetailPage() {
         refreshLeague();
       }
     } catch (err) {
-      console.error('Join failed:', err);
+      console.warn('Join failed:', err);
     } finally {
       setJoining(false);
     }

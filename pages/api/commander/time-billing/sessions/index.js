@@ -77,7 +77,7 @@ export default async function handler(req, res) {
           .maybeSingle();
 
         if (error) {
-          console.error('Time session create error:', error);
+          console.warn('Time session create error:', error);
           return res.status(500).json({ success: false, error: 'Internal server error' });
         }
         if (!session) {
@@ -88,13 +88,13 @@ export default async function handler(req, res) {
 
       return res.status(405).json({ success: false, error: 'Method not allowed' });
     } catch (err) {
-      console.error('Time billing error:', err);
+      console.warn('Time billing error:', err);
       return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

@@ -141,7 +141,7 @@ export default async function handler(req, res) {
         .maybeSingle();
 
       if (gameError) {
-        console.error('Commander game create error:', gameError);
+        console.warn('Commander game create error:', gameError);
         return res.status(500).json({
           success: false,
           error: { code: 'DATABASE_ERROR', message: 'Failed to create game' }
@@ -176,7 +176,7 @@ export default async function handler(req, res) {
         data: { game }
       });
     } catch (error) {
-      console.error('Commander games API error:', error);
+      console.warn('Commander games API error:', error);
       return res.status(500).json({
         success: false,
         error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }
@@ -185,7 +185,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

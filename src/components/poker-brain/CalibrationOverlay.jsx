@@ -430,7 +430,7 @@ export function saveLayoutOverrides(overrides) {
     } else {
       window.localStorage.setItem(OVERRIDES_KEY, JSON.stringify(overrides));
     }
-  } catch (err) { /* swallow */ }
+  } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
 }
 
 export function mergeLayoutWithOverrides(base, overrides) {

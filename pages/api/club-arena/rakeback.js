@@ -351,7 +351,7 @@ export default async function handler(req, res) {
             await getSupabase().rpc('fn_credit_treasury', {
               p_club_id: clubId,
               p_amount: totalClaim,
-            }).catch(rbErr => console.error('[rakeback] Treasury rollback failed:', rbErr.message));
+            }).catch(rbErr => console.warn('[rakeback] Treasury rollback failed:', rbErr.message));
 
             // Rollback period status
             const ids = pending.map(p => p.id);
@@ -406,13 +406,13 @@ export default async function handler(req, res) {
 
       return res.status(405).json({ success: false, error: 'GET or POST only' });
     } catch (err) {
-      console.error('[rakeback]', err);
+      console.warn('[rakeback]', err);
       return res.status(500).json(safeErrorResponse(err, 'Rakeback operation failed'));
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

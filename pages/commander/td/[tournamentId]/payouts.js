@@ -65,7 +65,7 @@ export default function TDPayouts() {
                 setOverrides(initial);
             }
         } catch (err) {
-            console.error('Fetch payouts error:', err);
+            console.warn('Fetch payouts error:', err);
         } finally {
             setLoading(false);
         }
@@ -99,7 +99,7 @@ export default function TDPayouts() {
                 broadcastChange('tournaments');
             }
         } catch (err) {
-            console.error('Save payouts error:', err);
+            console.warn('Save payouts error:', err);
             setToast({ type: 'error', text: 'Failed to save payouts. Please try again.' });
         } finally {
             setSaving(false);

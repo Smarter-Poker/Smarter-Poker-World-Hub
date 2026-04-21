@@ -171,7 +171,7 @@ export default function HomeGameRosterPage() {
         toast.error(data.error?.message || data.error || 'Broadcast failed');
       }
     } catch (err) {
-      console.error(err);
+      console.warn(err);
       toast.error('Failed to broadcast message');
     } finally {
       setSending(false);

@@ -59,7 +59,7 @@ export default async function handler(req, res) {
         const { data, error } = await query;
 
         if (error) {
-          console.error('Commander waitlist GET error:', error);
+          console.warn('Commander waitlist GET error:', error);
           return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
@@ -244,7 +244,7 @@ export default async function handler(req, res) {
         .maybeSingle();
 
       if (insertError) {
-        console.error('Commander waitlist insert error:', insertError);
+        console.warn('Commander waitlist insert error:', insertError);
         return res.status(500).json({
           success: false,
           error: { code: 'DATABASE_ERROR', message: 'Failed to join waitlist' }
@@ -318,7 +318,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

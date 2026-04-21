@@ -172,7 +172,7 @@ export default function TrainingAchievements() {
                               const d = await res.json();
                               if (d.success) alert('Achievement shared to your feed!');
                             } catch (err) {
-                              console.error('Share error:', err);
+                              console.warn('Share error:', err);
                               alert('Failed to share. Try again.');
                             } finally {
                               setSharingId(null);

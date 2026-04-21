@@ -60,7 +60,7 @@ export function getAuthUser() {
             }
         }
     } catch (e) {
-        console.error('[AuthUtils] Error reading auth:', e);
+        console.warn('[AuthUtils] Error reading auth:', e);
     }
 
     return null;
@@ -88,19 +88,19 @@ export async function getSafeUser(supabaseClient) {
         const { data: authData } = await supabaseClient.auth.getUser();
         const user = authData?.user;
         if (user) return user;
-    } catch (_) { /* AbortError — fall through */ }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
     // Level 2: Try supabase.auth.getSession() (localStorage via Supabase)
     try {
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session?.user) return session.user;
-    } catch (_) { /* navigator.locks — fall through */ }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
     // Level 3: Direct localStorage read (NEVER fails in browser)
     try {
         const localUser = getAuthUser();
         if (localUser?.id) return localUser;
-    } catch (_) { /* impossible, but safe */ }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
     return null; // Truly not logged in
 }
@@ -127,7 +127,7 @@ export async function ensureAuthReady(supabaseClient) {
     try {
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session?.user) return session.user;
-    } catch (_) { /* fall through */ }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
     // 3. Brief wait then retry localStorage (SDK may write async after getSession resolves)
     await new Promise(r => setTimeout(r, 300));
@@ -144,11 +144,11 @@ export async function ensureAuthReady(supabaseClient) {
         if (restored) {
             const backupUser = getAuthUser();
             if (backupUser?.id) {
-                console.log('[authUtils] Session recovered from backup');
+                console.debug('[authUtils] Session recovered from backup');
                 return backupUser;
             }
         }
-    } catch (_) { /* silently fail */ }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
     return null; // Truly not logged in
 }
@@ -272,7 +272,7 @@ export function getSessionToken() {
             return tokenData?.access_token || null;
         }
     } catch (e) {
-        console.error('[AuthUtils] Error reading token:', e);
+        console.warn('[AuthUtils] Error reading token:', e);
     }
 
     return null;
@@ -334,7 +334,7 @@ export async function authedFetch(url, options = {}) {
                     return retryResponse; // Refresh worked
                 }
             }
-        } catch (_) { /* refresh failed — fall through */ }
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
         // Refresh didn't help — clear fast-path so next page does full auth
         try { sessionStorage.removeItem('sp_auth_confirmed'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
@@ -421,7 +421,7 @@ export async function queryDiamondBalance(userId) {
         );
         return data[0]?.balance || 0;
     } catch (e) {
-        console.error('[AuthUtils] Diamond balance fetch error:', e);
+        console.warn('[AuthUtils] Diamond balance fetch error:', e);
         return 0;
     }
 }
@@ -534,7 +534,7 @@ export function backupSession() {
                 timestamp: Date.now(),
             }));
         }
-    } catch (e) { /* silently fail */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 }
 
 /**
@@ -555,7 +555,7 @@ export function restoreSessionBackup() {
 
         if (session && !localStorage.getItem(AUTH_STORAGE_KEY)) {
             localStorage.setItem(AUTH_STORAGE_KEY, session);
-            console.log('[authUtils] 🛡️ Session restored from backup');
+            console.debug('[authUtils] 🛡️ Session restored from backup');
             return true;
         }
         return false;

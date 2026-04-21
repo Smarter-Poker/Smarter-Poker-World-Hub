@@ -45,7 +45,7 @@ export default async function handler(req, res) {
               .order('last_active', { ascending: false });
 
           if (sessionsError) {
-              console.error('Error fetching sessions:', sessionsError);
+              console.warn('Error fetching sessions:', sessionsError);
               return res.status(500).json({ error: 'Failed to fetch sessions' });
           }
 
@@ -54,13 +54,13 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('Session list error:', error);
+          console.warn('Session list error:', error);
           return res.status(500).json({ error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

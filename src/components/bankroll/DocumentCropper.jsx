@@ -458,7 +458,7 @@ export default function DocumentCropper({ imageSrc, onConfirm, onCancel }) {
 
             onConfirm(croppedBase64);
         } catch (err) {
-            console.error('Crop error:', err);
+            console.warn('Crop error:', err);
             // Fallback: return original
             onConfirm(imageSrc);
         } finally {

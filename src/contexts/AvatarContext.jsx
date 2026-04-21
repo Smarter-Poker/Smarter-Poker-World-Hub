@@ -73,7 +73,7 @@ export function AvatarProvider({ children }) {
                 setIsVip(localUser?.user_metadata?.is_vip || false);
             }
         } catch (err) {
-            console.error('Error fetching VIP status:', err);
+            console.warn('Error fetching VIP status:', err);
             // 🛡️ BULLETPROOF: Fallback to localStorage on any error
             try {
                 const cachedVip = localStorage.getItem('sp-vip-status') === 'true';
@@ -98,10 +98,7 @@ export function AvatarProvider({ children }) {
                 setUser(freshUser);
                 await fetchVipStatus(freshUser.id);
             }
-        } catch (e) {
-            // AbortError or network failure — keep existing session, don't crash
-            console.warn('[AvatarContext] refreshUser failed (non-blocking):', e.name);
-        }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     }
 
     // Load user on mount - WAIT for INITIAL_SESSION before concluding user is null
@@ -144,7 +141,7 @@ export function AvatarProvider({ children }) {
                 clearTimeout(timeoutId);
                 const data = await res.json();
                 if (data.created || data.isBrandNew) {
-                    console.log('[ANTIGRAVITY] Profile was missing or brand new - checking welcome modal for:', data.profile?.username);
+                    console.debug('[ANTIGRAVITY] Profile was missing or brand new - checking welcome modal for:', data.profile?.username);
 
                     // ═════════════════════════════════════════════════════════════
                     // NEW USER WELCOME PACKAGE: Trigger welcome modal
@@ -163,49 +160,49 @@ export function AvatarProvider({ children }) {
                 if (err.name === 'AbortError') {
                     console.warn('[ANTIGRAVITY] ensure-profile timed out (non-blocking)');
                 } else {
-                    console.error('[ANTIGRAVITY] ensure-profile failed:', err);
+                    console.warn('[ANTIGRAVITY] ensure-profile failed:', err);
                 }
             }
         }
 
         // Listen for auth changes - this includes INITIAL_SESSION event
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            console.log('[AvatarContext] Auth event:', event, session?.user?.email || 'no session');
+            console.debug('[AvatarContext] Auth event:', event, session?.user?.email || 'no session');
 
             // INITIAL_SESSION fires when Supabase restores session from localStorage
             if (event === 'INITIAL_SESSION') {
                 if (session?.user) {
                     // Use the existing session IMMEDIATELY — don't block on refresh
-                    console.log('[AvatarContext] Session found, using immediately');
+                    console.debug('[AvatarContext] Session found, using immediately');
                     setUser(session.user);
 
                     // Run initialization steps concurrently, don't wait for profile generation to check VIP
-                    ensureUserProfile(session.user, session).catch(e => console.error('[AvatarContext] ensureUserProfile error:', e));
+                    ensureUserProfile(session.user, session).catch(e => console.warn('[AvatarContext] ensureUserProfile error:', e));
                     await fetchVipStatus(session.user.id);
 
                     // Background refresh — non-blocking, won't affect UI if it fails
                     supabase.auth.refreshSession().then(({ data, error }) => {
                         if (data?.session?.user && !error) {
-                            console.log('[AvatarContext] Background refresh succeeded');
+                            console.debug('[AvatarContext] Background refresh succeeded');
                             setUser(data.session.user);
                         } else if (error) {
                             // Only clear session on permanent auth death (invalid_grant)
                             const isPermanent = error.message?.includes('invalid_grant') ||
                                 error.message?.includes('Invalid Refresh Token');
                             if (isPermanent) {
-                                console.error('[AvatarContext] Permanent auth failure:', error.message);
+                                console.warn('[AvatarContext] Permanent auth failure:', error.message);
                                 setUser(null);
                                 try { localStorage.removeItem('smarter-poker-auth'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                             }
                             // Transient errors (timeout, network) — keep existing session
                         }
-                    }).catch(() => { /* Network failure — keep existing session */ });
+                    }).catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
                 } else {
                     // No session from Supabase — try direct localStorage fallback
                     // This catches the case where navigator.locks AbortError killed session restoration
                     const fallbackUser = getAuthUser();
                     if (fallbackUser?.id) {
-                        console.log('[AvatarContext] INITIAL_SESSION empty but found user in localStorage fallback:', fallbackUser.email);
+                        console.debug('[AvatarContext] INITIAL_SESSION empty but found user in localStorage fallback:', fallbackUser.email);
                         setUser(fallbackUser);
                         fetchVipStatus(fallbackUser.id);
                     } else {
@@ -260,7 +257,7 @@ export function AvatarProvider({ children }) {
     // ═══════════════════════════════════════════════════════════════════
     useEffect(() => {
         function handleVipChange(e) {
-            console.log('[AvatarContext] VIP status change event received:', e.detail);
+            console.debug('[AvatarContext] VIP status change event received:', e.detail);
             const vipGranted = e.detail?.vipGranted !== false;
             setIsVip(vipGranted);
             try { localStorage.setItem('sp-vip-status', String(vipGranted)); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
@@ -271,7 +268,7 @@ export function AvatarProvider({ children }) {
         }
 
         function handleProfileUpdate(e) {
-            console.log('[AvatarContext] Profile update event received:', e.detail);
+            console.debug('[AvatarContext] Profile update event received:', e.detail);
             const d = e.detail;
             if (!d) return; // Headers dispatch without detail — skip gracefully
             const { avatar_url, full_name, username } = d;
@@ -368,7 +365,7 @@ export function AvatarProvider({ children }) {
                     table: 'user_avatars',
                     filter: `user_id=eq.${user.id}`
                 }, (payload) => {
-                    console.log('[AvatarContext] Avatar updated via realtime:', payload);
+                    console.debug('[AvatarContext] Avatar updated via realtime:', payload);
                     loadAvatar();
                 })
                 .subscribe();
@@ -379,7 +376,7 @@ export function AvatarProvider({ children }) {
         // Listen for cross-tab avatar sync messages
         const cleanupAvatarSync = listenBroadcast('smarter_poker_avatar_sync', (msg) => {
             if (msg === 'refresh') {
-                console.log('[AvatarContext] Avatar refresh via BroadcastChannel');
+                console.debug('[AvatarContext] Avatar refresh via BroadcastChannel');
                 loadAvatar();
             }
         });
@@ -410,7 +407,7 @@ export function AvatarProvider({ children }) {
             const avatarData = await getUserAvatar(user.id);
             setAvatar(avatarData);
         } catch (error) {
-            console.error('Error loading avatar:', error);
+            console.warn('Error loading avatar:', error);
             // ── CRITICAL FALLBACK: If avatar service fails (AbortError on Safari),
             // use the user's actual profile picture instead of a generic preset ──
             const profilePic = user.user_metadata?.avatar_url;
@@ -476,7 +473,7 @@ export function AvatarProvider({ children }) {
 
             return { success: true };
         } catch (error) {
-            console.error('Error setting active avatar:', error);
+            console.warn('Error setting active avatar:', error);
             return { success: false, error: error.message };
         }
     }

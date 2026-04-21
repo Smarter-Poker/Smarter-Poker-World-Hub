@@ -21,7 +21,7 @@ export async function getWatchHistory(userId, limit = 50) {
         .limit(limit);
 
     if (error) {
-        console.error('Error fetching watch history:', error);
+        console.warn('Error fetching watch history:', error);
         throw error;
     }
 
@@ -50,7 +50,7 @@ export async function addToWatchHistory(userId, videoId, videoData = {}) {
             .maybeSingle();
 
         if (error) {
-            console.error('Error updating watch history:', error);
+            console.warn('Error updating watch history:', error);
             throw error;
         }
 
@@ -71,7 +71,7 @@ export async function addToWatchHistory(userId, videoId, videoData = {}) {
         .maybeSingle();
 
     if (error) {
-        console.error('Error adding to watch history:', error);
+        console.warn('Error adding to watch history:', error);
         throw error;
     }
 
@@ -88,7 +88,7 @@ export async function clearWatchHistory(userId) {
         .eq('user_id', userId);
 
     if (error) {
-        console.error('Error clearing watch history:', error);
+        console.warn('Error clearing watch history:', error);
         throw error;
     }
 
@@ -122,14 +122,14 @@ export async function updateWatchDuration(userId, videoId, additionalSeconds, vi
             .maybeSingle();
 
         if (error) {
-            console.error('Error updating watch duration:', error);
+            console.warn('Error updating watch duration:', error);
             throw error;
         }
 
         // Award video watch diamonds when crossing 5-min threshold (3 diamonds, once per video)
         if (newDuration >= 300 && !rewardedVideoIds.has(videoId) && userId) {
             rewardedVideoIds.add(videoId);
-            claimReward('/api/rewards/video-watch', { userId, videoId }, 'Watched a Video (5+ min)').catch(console.error);
+            claimReward('/api/rewards/video-watch', { userId, videoId }, 'Watched a Video (5+ min)').catch(console.warn);
         }
 
         return data || null;
@@ -150,7 +150,7 @@ export async function updateWatchDuration(userId, videoId, additionalSeconds, vi
         .maybeSingle();
 
     if (error) {
-        console.error('Error adding watch duration:', error);
+        console.warn('Error adding watch duration:', error);
         throw error;
     }
 
@@ -169,7 +169,7 @@ export async function getWatchedVideos(userId, minDuration = 60) {
         .gte('watch_duration_seconds', minDuration);
 
     if (error) {
-        console.error('Error fetching watched videos:', error);
+        console.warn('Error fetching watched videos:', error);
         return new Set();
     }
 
@@ -188,7 +188,7 @@ export async function getWatchProgress(userId) {
         .order('watched_at', { ascending: false });
 
     if (error) {
-        console.error('Error fetching watch progress:', error);
+        console.warn('Error fetching watch progress:', error);
         return new Map();
     }
 
@@ -216,7 +216,7 @@ export async function getRecentlyWatched(userId, limit = 10) {
         .limit(limit);
 
     if (error) {
-        console.error('Error fetching recently watched:', error);
+        console.warn('Error fetching recently watched:', error);
         return [];
     }
 
@@ -234,7 +234,7 @@ export async function getWatchStats(userId) {
         .eq('user_id', userId);
 
     if (error) {
-        console.error('Error fetching watch stats:', error);
+        console.warn('Error fetching watch stats:', error);
         return {
             totalWatchTimeSeconds: 0,
             totalVideosStarted: 0,

@@ -299,7 +299,7 @@ export function MediaLibrary({
             if (error) throw error;
             setMedia(data || []);
         } catch (err) {
-            console.error('Error fetching media:', err);
+            console.warn('Error fetching media:', err);
         } finally {
             setLoading(false);
         }
@@ -356,7 +356,7 @@ export function MediaLibrary({
             // Refresh
             fetchMedia();
         } catch (err) {
-            console.error('Upload error:', err);
+            console.warn('Upload error:', err);
         } finally {
             setUploading(false);
         }
@@ -388,7 +388,7 @@ export function MediaLibrary({
             fetchMedia();
             setLightboxMedia(null);
         } catch (err) {
-            console.error('Error setting profile picture:', err);
+            console.warn('Error setting profile picture:', err);
         }
     };
 
@@ -411,7 +411,7 @@ export function MediaLibrary({
             fetchMedia();
             setLightboxMedia(null);
         } catch (err) {
-            console.error('Delete error:', err);
+            console.warn('Delete error:', err);
         }
     };
 

@@ -50,7 +50,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true, key, show: !!show });
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[show-cards] Error:', err.message);
+    console.warn('[show-cards] Error:', err.message);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

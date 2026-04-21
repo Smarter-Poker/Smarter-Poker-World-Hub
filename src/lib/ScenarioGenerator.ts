@@ -565,13 +565,13 @@ export class ScenarioGenerator {
         const expectedTotal = scenario.config.startStack * scenario.players.length;
 
         if (Math.abs(totalChips - expectedTotal) > 0.01) {
-            console.error('Chip conservation violated!', { totalChips, expectedTotal, playerCount: scenario.players.length });
+            console.warn('Chip conservation violated!', { totalChips, expectedTotal, playerCount: scenario.players.length });
             return false;
         }
 
         // Validate hero cards exist
         if (!scenario.heroCards || scenario.heroCards.length !== 2) {
-            console.error('Hero cards missing or invalid!', scenario.heroCards);
+            console.warn('Hero cards missing or invalid!', scenario.heroCards);
             return false;
         }
 
@@ -579,7 +579,7 @@ export class ScenarioGenerator {
         const allCards = [...scenario.heroCards, ...scenario.boardCards];
         const uniqueCards = new Set(allCards);
         if (uniqueCards.size !== allCards.length) {
-            console.error('Duplicate cards detected!', allCards);
+            console.warn('Duplicate cards detected!', allCards);
             return false;
         }
 

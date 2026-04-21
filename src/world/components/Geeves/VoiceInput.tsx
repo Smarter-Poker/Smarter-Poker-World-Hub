@@ -34,7 +34,7 @@ export function VoiceInput({ onTranscript, onError }: VoiceInputProps) {
             };
 
             recognitionInstance.onerror = (event: any) => {
-                console.error('Speech recognition error:', event.error);
+                console.warn('Speech recognition error:', event.error);
                 onError?.(event.error);
                 setIsListening(false);
             };
@@ -95,7 +95,7 @@ export function VoiceInput({ onTranscript, onError }: VoiceInputProps) {
                 )}
             </svg>
 
-            <style jsx>{`
+            <style>{`
                 @keyframes voicePulse {
                     0%, 100% { transform: scale(1); opacity: 1; }
                     50% { transform: scale(1.05); opacity: 0.8; }

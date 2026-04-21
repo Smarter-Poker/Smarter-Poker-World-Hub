@@ -58,7 +58,7 @@ class HorseStable {
         // Check if clip was recently used by ANY horse
         const existing = this.usedClips.get(clipId);
         if (existing && Date.now() - existing.usedAt < windowMs) {
-            console.log(`   ⚠️ Clip ${clipId} already used by ${existing.horseName}`);
+            console.debug(`   ⚠️ Clip ${clipId} already used by ${existing.horseName}`);
             return false;
         }
 
@@ -160,10 +160,10 @@ class HorseStable {
                         horseName: 'Horse'
                     });
                 }
-                console.log(`   📦 Synced ${usage.length} recent clips from database`);
+                console.debug(`   📦 Synced ${usage.length} recent clips from database`);
             }
         } catch (e) {
-            console.log('   ⚠️ Could not sync from database:', e.message);
+            console.debug('   ⚠️ Could not sync from database:', e.message);
         }
     }
 

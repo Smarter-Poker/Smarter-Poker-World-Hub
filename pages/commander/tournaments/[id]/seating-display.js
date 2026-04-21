@@ -39,7 +39,7 @@ export default function SeatingDisplay() {
       ]);
       if (tRes.success) setTournament(tRes.data);
       if (eRes.success) setEntries(eRes.data || []);
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
     setNow(new Date());
   }, [id]);
 

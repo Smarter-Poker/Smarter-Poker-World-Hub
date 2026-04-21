@@ -368,7 +368,7 @@ export async function getFriendsForTagging(horseProfileId, friendGroup) {
         // For now return all horses except self
         return horses.filter(h => h.profile_id !== horseProfileId);
     } catch (error) {
-        console.error('Error fetching friends:', error);
+        console.warn('Error fetching friends:', error);
         return [];
     }
 }

@@ -60,7 +60,7 @@ export default function AchievementToast({ achievements = [], onDismiss, userId 
                 alert('Shared to your feed!');
             }
         } catch (error) {
-            console.error('Share error:', error);
+            console.warn('Share error:', error);
         } finally {
             setSharing(false);
         }

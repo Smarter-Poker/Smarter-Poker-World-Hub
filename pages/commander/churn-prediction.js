@@ -52,7 +52,7 @@ export default function ChurnPrediction() {
         setPredictions(json.data.predictions);
         setSummary(json.data.summary);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
     finally { setLoading(false); }
   };
 

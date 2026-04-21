@@ -84,7 +84,7 @@ export default function WaitlistDesk() {
     try {
       const staff = getStaffData();
       if (staff.venue_name) setVenueName(staff.venue_name);
-    } catch (e) { /* silent */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
     // Fetch saved settings
     const controller = new AbortController();
@@ -94,7 +94,7 @@ const json = await commanderFetchJSON('/api/commander/settings', { signal: contr
         if (json.success && json.data?.desk_customization) {
           setCustom(prev => ({ ...prev, ...json.data.desk_customization }));
         }
-      } catch (e) { if (e.name !== 'AbortError') console.error(e); }
+      } catch (e) { if (e.name !== 'AbortError') console.warn(e); }
     })();
     return () => controller.abort();
   }, []);
@@ -108,7 +108,7 @@ const res = await commanderFetch('/api/commander/settings', {
         body: JSON.stringify({ desk_customization: newCustom })
       });
       if (!res.ok) throw new Error('Request failed');
-    } catch (err) { console.error('Failed to save customization:', err); setToast({ type: 'error', text: 'Action failed: Failed to save customization. Please try again.' }); }
+    } catch (err) { console.warn('Failed to save customization:', err); setToast({ type: 'error', text: 'Action failed: Failed to save customization. Please try again.' }); }
   };
 
   const CALL_EXPIRY_MINUTES = 10; // Auto-delete called entries after 10 minutes
@@ -140,7 +140,7 @@ const staffData = getStaffData();
         if (expiredCalled.length > 0) {
           await Promise.all(expiredCalled.map(e =>
             commanderFetch(`/api/commander/waitlist/${e.id}`, {
-              method: 'DELETE'}).then(r => { if (!r.ok) console.warn('Non-critical cleanup err'); }).catch(() => { /* non-critical */ })
+              method: 'DELETE'}).then(r => { if (!r.ok) console.warn('Non-critical cleanup err'); }).catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); })
           ));
           // Filter out expired entries from the display
           const expiredIds = new Set(expiredCalled.map(e => e.id));
@@ -149,7 +149,7 @@ const staffData = getStaffData();
           setWaitlists(entries);
         }
       }
-    } catch (err) { if (err.name !== 'AbortError') console.error(err); }
+    } catch (err) { if (err.name !== 'AbortError') console.warn(err); }
     finally { setLoading(false); }
   }, []);
 
@@ -182,7 +182,7 @@ const res = await commanderFetch(`/api/commander/waitlist/${entry.id}/call`, {
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (!res.ok || !json.success) {
-        console.error('Call API error:', json);
+        console.warn('Call API error:', json);
         setSmsStatus({ type: 'none', text: json.error?.message || json.error || 'Call failed' });
         setTimeout(() => setSmsStatus(null), 4000);
         await fetchData();
@@ -199,7 +199,7 @@ const res = await commanderFetch(`/api/commander/waitlist/${entry.id}/call`, {
       broadcastChange('waitlist');
       busEmit.screenFlash('#1877F2', 300);
       setTimeout(() => setSmsStatus(null), 3000);
-    } catch (err) { console.error('Call error:', err); setSmsStatus({ type: 'none', text: 'Network error' }); setTimeout(() => setSmsStatus(null), 3000); }
+    } catch (err) { console.warn('Call error:', err); setSmsStatus({ type: 'none', text: 'Network error' }); setTimeout(() => setSmsStatus(null), 3000); }
     finally { setCallLoading(null); setActionLock(null); }
   };
 
@@ -215,7 +215,7 @@ const res = await commanderFetch('/api/commander/waitlist/seat', {
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (!res.ok || !json.success) {
-        console.error('Seat API error:', json);
+        console.warn('Seat API error:', json);
         setSmsStatus({ type: 'none', text: 'Seat failed: ' + (json.error?.message || json.error || 'Unknown error') });
         setTimeout(() => setSmsStatus(null), 4000);
       } else {
@@ -229,7 +229,7 @@ const res = await commanderFetch('/api/commander/waitlist/seat', {
         await fetchData();
         broadcastChange('waitlist');
       }
-    } catch (err) { console.error('Seat error:', err); setSmsStatus({ type: 'none', text: 'Seat failed: ' + err.message }); setTimeout(() => setSmsStatus(null), 4000); await fetchData(); }
+    } catch (err) { console.warn('Seat error:', err); setSmsStatus({ type: 'none', text: 'Seat failed: ' + err.message }); setTimeout(() => setSmsStatus(null), 4000); await fetchData(); }
     finally { setActionLock(null); }
   };
 
@@ -245,7 +245,7 @@ const res = await commanderFetch(`/api/commander/waitlist/${entry.id}/pass`, {
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (!res.ok || !json.success) {
-        console.error('Pass API error:', json);
+        console.warn('Pass API error:', json);
         setSmsStatus({ type: 'none', text: 'Pass failed: ' + (json.error?.message || json.error || 'Unknown error') });
         setTimeout(() => setSmsStatus(null), 4000);
         await fetchData();
@@ -259,7 +259,7 @@ const res = await commanderFetch(`/api/commander/waitlist/${entry.id}/pass`, {
         await fetchData();
         broadcastChange('waitlist');
       }
-    } catch (err) { console.error('Pass error:', err); setToast({ type: 'error', text: 'Action failed: Pass. Please try again.' }); await fetchData(); }
+    } catch (err) { console.warn('Pass error:', err); setToast({ type: 'error', text: 'Action failed: Pass. Please try again.' }); await fetchData(); }
     finally { setActionLock(null); }
   };
 
@@ -275,7 +275,7 @@ const res = await commanderFetch(`/api/commander/waitlist/${entry.id}`, {
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (!res.ok || !json.success) {
-        console.error('Remove API error:', json);
+        console.warn('Remove API error:', json);
         setSmsStatus({ type: 'none', text: 'Delete failed: ' + (json.error?.message || json.error || 'Unknown error') });
         setTimeout(() => setSmsStatus(null), 4000);
         await fetchData();
@@ -286,7 +286,7 @@ const res = await commanderFetch(`/api/commander/waitlist/${entry.id}`, {
         await fetchData();
         broadcastChange('waitlist');
       }
-    } catch (err) { console.error('Remove error:', err); setToast({ type: 'error', text: 'Action failed: Remove. Please try again.' }); await fetchData(); }
+    } catch (err) { console.warn('Remove error:', err); setToast({ type: 'error', text: 'Action failed: Remove. Please try again.' }); await fetchData(); }
     finally { setActionLock(null); }
   };
 
@@ -308,7 +308,7 @@ const res = await commanderFetch(`/api/commander/waitlist/${entry.id}`, {
       }
       setSelectedPlayer(null); await fetchData();
       broadcastChange('waitlist');
-    } catch (err) { console.error(err); setSmsStatus({ type: 'none', text: 'Check-in failed: network error' }); setTimeout(() => setSmsStatus(null), 4000); }
+    } catch (err) { console.warn(err); setSmsStatus({ type: 'none', text: 'Check-in failed: network error' }); setTimeout(() => setSmsStatus(null), 4000); }
   };
 
   const handleAddWalkIn = async (playerData) => {
@@ -348,7 +348,7 @@ const staffData = getStaffData();
         setSmsStatus({ type: 'none', text: json.error?.message || json.error || 'Failed to add player' });
         setTimeout(() => setSmsStatus(null), 4000);
       }
-    } catch (err) { console.error(err); setSmsStatus({ type: 'none', text: 'Failed to add player: network error' }); setTimeout(() => setSmsStatus(null), 4000); }
+    } catch (err) { console.warn(err); setSmsStatus({ type: 'none', text: 'Failed to add player: network error' }); setTimeout(() => setSmsStatus(null), 4000); }
   };
 
   // ── RENAME GAME: Batch-update all entries for old game to new name/stakes ──
@@ -387,7 +387,7 @@ const staffData = getStaffData();
       setEditGame(null);
       await fetchData();
       broadcastChange('waitlist');
-    } catch (err) { console.error('Rename game error:', err); setToast({ type: 'error', text: 'Action failed: Rename game. Please try again.' }); }
+    } catch (err) { console.warn('Rename game error:', err); setToast({ type: 'error', text: 'Action failed: Rename game. Please try again.' }); }
   };
 
   // ── ADD GAME: Create a new game column (interest list) ──
@@ -442,7 +442,7 @@ const parts = gameLabel.split(' ');
       setEditGame(null);
       await fetchData();
       broadcastChange('waitlist');
-    } catch (err) { console.error('Remove game error:', err); setToast({ type: 'error', text: 'Action failed: Remove game. Please try again.' }); }
+    } catch (err) { console.warn('Remove game error:', err); setToast({ type: 'error', text: 'Action failed: Remove game. Please try again.' }); }
   };
 
   // ── GROUP & SORT ────────────────────────────────────────────────
@@ -1363,7 +1363,7 @@ function DeskSettingsModal({ custom, onSave, onClose, onUpdate }) {
         setToast({ type: 'error', text: 'Upload failed: ' + (json.error || 'Unknown error') });
       }
     } catch (err) {
-      console.error('Logo upload error:', err);
+      console.warn('Logo upload error:', err);
       setToast({ type: 'error', text: 'Upload failed' });
     }
     setUploading(false);

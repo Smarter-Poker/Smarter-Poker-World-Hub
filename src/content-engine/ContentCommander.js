@@ -361,7 +361,7 @@ class ContentGenerator {
 
         // If all topics on cooldown, skip this content type
         if (availableTopics.length === 0) {
-            console.log(`⏸️ ${persona.name}: All ${contentType} topics on cooldown, skipping...`);
+            console.debug(`⏸️ ${persona.name}: All ${contentType} topics on cooldown, skipping...`);
             return null;
         }
 
@@ -423,7 +423,7 @@ IMPORTANT: Stay consistent with your past posts and opinions listed above.`;
                 created_at: new Date().toISOString()
             };
         } catch (error) {
-            console.error(`Error generating content for ${persona.name}:`, error);
+            console.warn(`Error generating content for ${persona.name}:`, error);
             return null;
         }
     }
@@ -441,7 +441,7 @@ IMPORTANT: Stay consistent with your past posts and opinions listed above.`;
             const content = await this.generateContent(persona, contentType);
             if (content) {
                 results.push(content);
-                console.log(`✅ Generated: ${content.author_name} - ${content.content_type} (🧠 memory updated)`);
+                console.debug(`✅ Generated: ${content.author_name} - ${content.content_type} (🧠 memory updated)`);
             }
 
             // Small delay to avoid rate limits
@@ -461,7 +461,7 @@ IMPORTANT: Stay consistent with your past posts and opinions listed above.`;
             .select();
 
         if (error) {
-            console.error('Database insert error:', error);
+            console.warn('Database insert error:', error);
             return null;
         }
 
@@ -472,8 +472,8 @@ IMPORTANT: Stay consistent with your past posts and opinions listed above.`;
      * Run the content seeding loop
      */
     async runSeedingLoop(totalPosts = 100) {
-        console.log(`\n🚀 CONTENT COMMANDER: Starting seed of ${totalPosts} posts`);
-        console.log(`🧠 HORSE MEMORY: Enabled - Each horse has persistent memory\n`);
+        console.debug(`\n🚀 CONTENT COMMANDER: Starting seed of ${totalPosts} posts`);
+        console.debug(`🧠 HORSE MEMORY: Enabled - Each horse has persistent memory\n`);
 
         const batchSize = 10;
         const batches = Math.ceil(totalPosts / batchSize);
@@ -482,7 +482,7 @@ IMPORTANT: Stay consistent with your past posts and opinions listed above.`;
             const remaining = totalPosts - (i * batchSize);
             const currentBatch = Math.min(batchSize, remaining);
 
-            console.log(`\n📦 Batch ${i + 1}/${batches} (${currentBatch} posts)`);
+            console.debug(`\n📦 Batch ${i + 1}/${batches} (${currentBatch} posts)`);
 
             const content = await this.generateBatch(currentBatch);
 
@@ -493,13 +493,13 @@ IMPORTANT: Stay consistent with your past posts and opinions listed above.`;
 
             // Delay between batches
             if (i < batches - 1) {
-                console.log('⏳ Waiting before next batch...');
+                console.debug('⏳ Waiting before next batch...');
                 await this.sleep(5000);
             }
         }
 
-        console.log(`\n✅ CONTENT COMMANDER: Seeding complete! ${totalPosts} posts created.`);
-        console.log(`🧠 All horse memories have been updated.\n`);
+        console.debug(`\n✅ CONTENT COMMANDER: Seeding complete! ${totalPosts} posts created.`);
+        console.debug(`🧠 All horse memories have been updated.\n`);
     }
 
     // Utility functions

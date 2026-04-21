@@ -135,7 +135,7 @@ export default function MultiTablePage() {
             'MultiTable'
           );
         } catch (err) {
-          console.error('[MultiTable] Save error:', err);
+          console.warn('[MultiTable] Save error:', err);
           setSaveStatus('error');
         }
       };

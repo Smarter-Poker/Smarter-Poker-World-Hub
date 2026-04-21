@@ -62,7 +62,7 @@ try {
           .maybeSingle();
 
         if (error) {
-          console.error('Error creating notification:', error);
+          console.warn('Error creating notification:', error);
           return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
@@ -84,7 +84,7 @@ try {
           .limit(100);
 
         if (followError) {
-          console.error('Error fetching follows:', followError);
+          console.warn('Error fetching follows:', followError);
           return res.status(500).json({ success: false, error: followError.message });
         }
 
@@ -106,7 +106,7 @@ try {
           .range(offsetNum, offsetNum + limitNum - 1);
 
         if (notifError) {
-          console.error('Error fetching notifications:', notifError);
+          console.warn('Error fetching notifications:', notifError);
           return res.status(500).json({ success: false, error: notifError.message });
         }
 
@@ -125,7 +125,7 @@ try {
           .limit(100);
 
         if (readError) {
-          console.error('Error fetching read status:', readError);
+          console.warn('Error fetching read status:', readError);
           return res.status(500).json({ success: false, error: readError.message });
         }
 
@@ -159,7 +159,7 @@ try {
             .limit(100);
 
           if (followError) {
-            console.error('Error fetching follows:', followError);
+            console.warn('Error fetching follows:', followError);
             return res.status(500).json({ success: false, error: followError.message });
           }
 
@@ -179,7 +179,7 @@ try {
             .limit(100);
 
           if (notifError) {
-            console.error('Error fetching notifications:', notifError);
+            console.warn('Error fetching notifications:', notifError);
             return res.status(500).json({ success: false, error: notifError.message });
           }
 
@@ -198,7 +198,7 @@ try {
             .limit(100);
 
           if (existingError) {
-            console.error('Error fetching existing reads:', existingError);
+            console.warn('Error fetching existing reads:', existingError);
             return res.status(500).json({ success: false, error: existingError.message });
           }
 
@@ -221,7 +221,7 @@ try {
             .insert(inserts);
 
           if (insertError) {
-            console.error('Error marking all read:', insertError);
+            console.warn('Error marking all read:', insertError);
             return res.status(500).json({ success: false, error: insertError.message });
           }
 
@@ -242,7 +242,7 @@ try {
           .limit(1);
 
         if (existError) {
-          console.error('Error checking read status:', existError);
+          console.warn('Error checking read status:', existError);
           return res.status(500).json({ success: false, error: existError.message });
         }
 
@@ -261,7 +261,7 @@ try {
           .maybeSingle();
 
         if (error) {
-          console.error('Error marking notification read:', error);
+          console.warn('Error marking notification read:', error);
           return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
@@ -270,13 +270,13 @@ try {
 
       return res.status(405).json({ success: false, error: `Method ${req.method} not allowed` });
     } catch (err) {
-      console.error('Notifications API error:', err);
+      console.warn('Notifications API error:', err);
       return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

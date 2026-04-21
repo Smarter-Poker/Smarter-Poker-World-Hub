@@ -143,7 +143,7 @@ export default async function handler(req, res) {
               .maybeSingle();
 
           if (error) {
-              console.error('[TrainingShare] Insert error:', error);
+              console.warn('[TrainingShare] Insert error:', error);
 
               // If social_posts doesn't exist, just log success
               if (error.code === '42P01') {
@@ -166,13 +166,13 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('[TrainingShare] Error:', error.message);
+          console.warn('[TrainingShare] Error:', error.message);
           return res.status(500).json({ success: false, error: 'Failed to share' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

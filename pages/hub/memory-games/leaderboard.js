@@ -75,7 +75,7 @@ export default function MemoryGamesLeaderboard() {
                 .limit(50);
 
             if (error) {
-                console.error('[Leaderboard] Error fetching:', error);
+                console.warn('[Leaderboard] Error fetching:', error);
                 // Use fallback placeholder data if table doesn't exist yet
                 setLeaderboard(getPlaceholderData());
             } else {
@@ -88,7 +88,7 @@ export default function MemoryGamesLeaderboard() {
                 }
             }
         } catch (err) {
-            console.error('[Leaderboard] Fetch error:', err);
+            console.warn('[Leaderboard] Fetch error:', err);
             setLeaderboard(getPlaceholderData());
         } finally {
             setLoading(false);

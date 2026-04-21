@@ -65,7 +65,7 @@ export default class PlayerDatabase {
           this._db = parsed.players;
         }
       }
-    } catch (_) { /* ignore parse errors */ }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }
 
   _save() {
@@ -76,7 +76,7 @@ export default class PlayerDatabase {
         players: this._db,
         savedAt: new Date().toISOString(),
       }));
-    } catch (_) { /* quota exceeded or private mode */ }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }
 
   _normalize(name) {

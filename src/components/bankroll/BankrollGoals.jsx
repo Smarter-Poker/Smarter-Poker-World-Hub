@@ -40,7 +40,7 @@ export default function BankrollGoals({ userId, currentBankroll = 0, periodPL = 
                 setGoals(data);
             }
         } catch (err) {
-            console.error('[BankrollGoals] Error:', err);
+            console.warn('[BankrollGoals] Error:', err);
         }
         setIsLoading(false);
     }
@@ -75,7 +75,7 @@ export default function BankrollGoals({ userId, currentBankroll = 0, periodPL = 
                 setShowAddGoal(false);
             }
         } catch (err) {
-            console.error('[BankrollGoals] Add error:', err);
+            console.warn('[BankrollGoals] Add error:', err);
         }
     }
 
@@ -84,7 +84,7 @@ export default function BankrollGoals({ userId, currentBankroll = 0, periodPL = 
             await supabase.from('bankroll_goals').delete().eq('id', goalId);
             setGoals(goals.filter(g => g.id !== goalId));
         } catch (err) {
-            console.error('[BankrollGoals] Delete error:', err);
+            console.warn('[BankrollGoals] Delete error:', err);
         }
     }
 

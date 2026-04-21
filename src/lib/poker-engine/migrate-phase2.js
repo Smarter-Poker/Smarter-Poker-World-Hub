@@ -45,15 +45,15 @@ async function exec(label, sql) {
     if (!ok && !alreadyExists) {
         console.warn(`  ⚠️  ${label} [${r.status}]: ${msg}`);
     } else {
-        console.log(`  ✅ ${label}`);
+        console.debug(`  ✅ ${label}`);
     }
 }
 
 (async () => {
-    console.log('\n═══════════════════════════════════════════');
-    console.log('  PHASE 2 SUPABASE MIGRATION');
-    console.log(`  Project: ${projectRef}`);
-    console.log('═══════════════════════════════════════════\n');
+    console.debug('\n═══════════════════════════════════════════');
+    console.debug('  PHASE 2 SUPABASE MIGRATION');
+    console.debug(`  Project: ${projectRef}`);
+    console.debug('═══════════════════════════════════════════\n');
 
     await exec('CREATE horse_threat_intel', `
         CREATE TABLE IF NOT EXISTS horse_threat_intel (
@@ -91,10 +91,10 @@ async function exec(label, sql) {
     await exec('Policy intel', `DO $$ BEGIN CREATE POLICY "svc_threat_intel" ON horse_threat_intel FOR ALL TO service_role USING (true) WITH CHECK (true); EXCEPTION WHEN duplicate_object THEN NULL; END $$`);
     await exec('Policy presence', `DO $$ BEGIN CREATE POLICY "svc_table_presence" ON horse_table_presence FOR ALL TO service_role USING (true) WITH CHECK (true); EXCEPTION WHEN duplicate_object THEN NULL; END $$`);
 
-    console.log('\n  Verifying...');
+    console.debug('\n  Verifying...');
     const r1 = await runSQL('SELECT COUNT(*) FROM horse_threat_intel');
     const r2 = await runSQL('SELECT COUNT(*) FROM horse_table_presence');
-    console.log('  horse_threat_intel:', r1.status === 200 ? '✅ accessible' : '❌ ' + JSON.stringify(r1.body));
-    console.log('  horse_table_presence:', r2.status === 200 ? '✅ accessible' : '❌ ' + JSON.stringify(r2.body));
-    console.log('\n  Migration complete!\n');
+    console.debug('  horse_threat_intel:', r1.status === 200 ? '✅ accessible' : '❌ ' + JSON.stringify(r1.body));
+    console.debug('  horse_table_presence:', r2.status === 200 ? '✅ accessible' : '❌ ' + JSON.stringify(r2.body));
+    console.debug('\n  Migration complete!\n');
 })();

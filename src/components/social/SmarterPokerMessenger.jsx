@@ -918,9 +918,9 @@ export const ChatWindow = ({
                     const encryptedBuffer = await window.crypto.subtle.encrypt({ name: "RSA-OAEP" }, keyPair.publicKey, encodedMsg);
                     const encryptedHex = Array.from(new Uint8Array(encryptedBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
                     finalPayloadText = `[🔒 E2E Encrypted] ${encryptedHex.slice(0, 32)}...`;
-                    console.log('[E2E] RSA Ciphertext generated:', encryptedHex);
+                    console.debug('[E2E] RSA Ciphertext generated:', encryptedHex);
                 } catch (err) {
-                    console.error('[E2E] Crypto API failed', err);
+                    console.warn('[E2E] Crypto API failed', err);
                 }
             }
 
@@ -935,7 +935,7 @@ export const ChatWindow = ({
                         updatePrefs(p => ({ ...p, scheduledQueue: (p.scheduledQueue || []).filter(q => q.id !== queueItem.id) })); 
                     }, delayMs);
                     updatePrefs(p => ({ ...p, scheduledQueue: [...(p.scheduledQueue || []), queueItem] }));
-                    console.log(`[Messenger] Message scheduled to send in ${delayMs}ms — persisted to queue`);
+                    console.debug(`[Messenger] Message scheduled to send in ${delayMs}ms — persisted to queue`);
                 } else {
                     onSend?.(finalPayloadText);
                     svc.sendMessage(finalPayloadText, { isEncrypted: isE2E }); // P12
@@ -1214,7 +1214,7 @@ export const ChatWindow = ({
                 setSharingLocation(false);
                 busEmit.messageSent(conversationId, otherUser?.id);
             },
-            (err) => { console.error('[Location] Failed:', err); if (err.code === 1) { setShowLocationModal(true); } setSharingLocation(false); },
+            (err) => { console.warn('[Location] Failed:', err); if (err.code === 1) { setShowLocationModal(true); } setSharingLocation(false); },
             { enableHighAccuracy: true, timeout: 10000 }
         );
     };
@@ -1285,7 +1285,7 @@ export const ChatWindow = ({
                 return { ...p, editHistory: { ...p.editHistory, [editingMsg.id]: [...history, { text: editingMsg.text, editedAt: Date.now() }] } };
             });
             busEmit.messageEdited(conversationId, editingMsg.id);
-            console.log(`[Messenger] Edited message ${editingMsg.id}: "${editText}"`);
+            console.debug(`[Messenger] Edited message ${editingMsg.id}: "${editText}"`);
         }
         setEditingMsg(null);
         setEditText('');
@@ -1365,7 +1365,7 @@ export const ChatWindow = ({
                 .upload(fileName, uploadFile, { cacheControl: '3600', upsert: false });
 
             if (error) {
-                console.error('[Messenger] File upload failed:', error.message);
+                console.warn('[Messenger] File upload failed:', error.message);
                 return;
             }
 
@@ -1381,7 +1381,7 @@ export const ChatWindow = ({
                  onSend?.(`📎 [File: ${file.name}]`, { fileUrl: publicUrl, file: { name: file.name, size: (file.size / 1024).toFixed(1) + ' KB', type: file.type } });
             }
         } catch (err) {
-            console.error('[Messenger] Storage error:', err);
+            console.warn('[Messenger] Storage error:', err);
         }
     };
 
@@ -1423,7 +1423,7 @@ export const ChatWindow = ({
             }, 1000);
 
         } catch (err) {
-            console.error('Mic access denied:', err);
+            console.warn('Mic access denied:', err);
             alert('Microphone access is required for voice notes.');
         }
     };

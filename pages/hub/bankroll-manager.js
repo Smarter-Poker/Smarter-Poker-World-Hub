@@ -279,7 +279,7 @@ export default function BankrollManagerPage() {
   const handleChartTypeChange = (type) => {
     setChartType(type);
     setShowChartTypeDropdown(false);
-    try { localStorage.setItem('bankroll_chart_type', type); } catch (_) { console.error("[bankroll-manager.js]", _); }
+    try { localStorage.setItem('bankroll_chart_type', type); } catch (_) { console.warn("[bankroll-manager.js]", _); }
   };
 
   const toggleGameType = (type) => {
@@ -381,7 +381,7 @@ export default function BankrollManagerPage() {
   // Initialize bankroll for new users
   useEffect(() => {
     if (userId) {
-      initializeUserBankroll(userId).catch(console.error);
+      initializeUserBankroll(userId).catch(console.warn);
       // Check VIP status
       supabase.from('profiles').select('is_vip').eq('id', userId).maybeSingle()
         .then(({ data }) => { if (data) setIsVip(!!data.is_vip); });
@@ -500,7 +500,7 @@ export default function BankrollManagerPage() {
       visible.sort(function (a, b) { return b.entry_date.localeCompare(a.entry_date); });
       setEntries(visible);
     } catch (error) {
-      console.error('Error loading bankroll data:', error);
+      console.warn('Error loading bankroll data:', error);
     } finally {
       if (isMountedRef.current) setIsLoading(false);
     }
@@ -629,7 +629,7 @@ export default function BankrollManagerPage() {
           }
         }
       } catch (err) {
-        console.error('[RuleCheck] Error:', err);
+        console.warn('[RuleCheck] Error:', err);
       }
     }
   };
@@ -675,7 +675,7 @@ export default function BankrollManagerPage() {
       setRefreshTrigger(prev => prev + 1);
       await loadData(); // Full refresh to sync stats
     } catch (err) {
-      console.error('Delete failed:', err);
+      console.warn('Delete failed:', err);
       toast.error('Failed To Delete Entry');
       await loadData(); // Re-fetch to restore if delete failed
     }
@@ -737,7 +737,7 @@ export default function BankrollManagerPage() {
       try {
         await updateBankrollPreferences(userId, { [key]: value });
       } catch (error) {
-        console.error('Failed to save preference:', error);
+        console.warn('Failed to save preference:', error);
       }
     }
   }, [userId, preferences]);
@@ -1585,7 +1585,7 @@ export default function BankrollManagerPage() {
                             toast.error(data.message || 'No Entries To Export');
                           }
                         } catch (err) {
-                          console.error('Export failed:', err);
+                          console.warn('Export failed:', err);
                           toast.error('CSV Export Failed');
                         }
                       }}
@@ -1629,7 +1629,7 @@ export default function BankrollManagerPage() {
                             toast.error(data.message || 'No Entries To Export');
                           }
                         } catch (err) {
-                          console.error('Export failed:', err);
+                          console.warn('Export failed:', err);
                           toast.error('JSON Export Failed');
                         }
                       }}
@@ -1664,7 +1664,7 @@ export default function BankrollManagerPage() {
                             URL.revokeObjectURL(url);
                           }
                         } catch (err) {
-                          console.error('PDF export failed:', err);
+                          console.warn('PDF export failed:', err);
                         }
                       }}
                       style={styles.reportActionBtn}
@@ -1952,7 +1952,7 @@ export default function BankrollManagerPage() {
                                 setScannerEntryId(null);
                                 setScannerImageUrl(null);
                               } catch (err) {
-                                console.error('Attach failed:', err);
+                                console.warn('Attach failed:', err);
                               }
                             }}
                             style={styles.scannerEntryBtn}

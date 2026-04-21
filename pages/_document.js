@@ -74,7 +74,7 @@ export default class MyDocument extends Document {
                                     if (src.includes('_next/static/chunks')) {
                                         console.warn('⚠️ Stale chunk failed. Nuking PWA cache & reloading...');
                                         if (sessionStorage.getItem('reloaded_stale_chunk')) {
-                                            console.error('Already attempted reload. Halting to prevent infinite loop.');
+                                            console.warn('Already attempted reload. Halting to prevent infinite loop.');
                                             return;
                                         }
                                         sessionStorage.setItem('reloaded_stale_chunk', '1');

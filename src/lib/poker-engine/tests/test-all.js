@@ -19,28 +19,28 @@ let currentSection = '';
 
 function section(name) {
   currentSection = name;
-  console.log(`\n${'═'.repeat(60)}`);
-  console.log(`  ${name}`);
-  console.log(`${'═'.repeat(60)}`);
+  console.debug(`\n${'═'.repeat(60)}`);
+  console.debug(`  ${name}`);
+  console.debug(`${'═'.repeat(60)}`);
 }
 
 function assert(condition, description) {
   if (condition) {
     passed++;
-    console.log(`  ✅ ${description}`);
+    console.debug(`  ✅ ${description}`);
   } else {
     failed++;
-    console.log(`  ❌ ${description}`);
+    console.debug(`  ❌ ${description}`);
   }
 }
 
 function assertEq(actual, expected, description) {
   if (actual === expected) {
     passed++;
-    console.log(`  ✅ ${description}`);
+    console.debug(`  ✅ ${description}`);
   } else {
     failed++;
-    console.log(`  ❌ ${description} (expected: ${expected}, got: ${actual})`);
+    console.debug(`  ❌ ${description} (expected: ${expected}, got: ${actual})`);
   }
 }
 
@@ -665,9 +665,9 @@ assert(oddPayouts[0] === 101 || oddPayouts[0] === 102, 'Odd chip distributed (no
 // ============================================================
 // SUMMARY
 // ============================================================
-console.log(`\n${'═'.repeat(60)}`);
-console.log(`  TEST RESULTS: ${passed} passed, ${failed} failed`);
-console.log(`${'═'.repeat(60)}`);
+console.debug(`\n${'═'.repeat(60)}`);
+console.debug(`  TEST RESULTS: ${passed} passed, ${failed} failed`);
+console.debug(`${'═'.repeat(60)}`);
 
 if (failed > 0) {
   process.exit(1);

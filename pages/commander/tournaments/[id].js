@@ -132,7 +132,7 @@ const headers = { };
         setEntries(entriesData.data.entries || []);
       }
     } catch (error) {
-      if (error.name !== 'AbortError') console.error('Failed to fetch tournament:', error);
+      if (error.name !== 'AbortError') console.warn('Failed to fetch tournament:', error);
     } finally {
       setLoading(false);
     }
@@ -191,7 +191,7 @@ const res = await commanderFetch(`/api/commander/tournaments/${id}/clock`, {
         broadcastChange('tournaments');
       }
     } catch (error) {
-      console.error('Clock action failed:', error);
+      console.warn('Clock action failed:', error);
       setToast({ type: 'error', text: 'Clock action failed. Please try again.' });
     }
   }
@@ -212,7 +212,7 @@ const res = await commanderFetch(`/api/commander/tournaments/${id}`, {
         broadcastChange('tournaments');
       }
     } catch (error) {
-      console.error('Status change failed:', error);
+      console.warn('Status change failed:', error);
       setToast({ type: 'error', text: 'Status change failed. Please try again.' });
     }
   }
@@ -315,7 +315,7 @@ const json = await commanderFetchJSON(`/api/commander/tournaments/${tournament.i
                         setToast({ type: 'error', text: 'Failed to close tournament. Please try again.' });
                       }
                     } catch (err) {
-                      console.error(err);
+                      console.warn(err);
                       setToast({ type: 'error', text: 'Failed to close tournament' });
                     } finally {
                       setClosing(false);

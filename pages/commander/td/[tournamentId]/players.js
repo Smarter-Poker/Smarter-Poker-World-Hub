@@ -73,7 +73,7 @@ export default function TDPlayers() {
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setFloor(json.data);
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
     finally { setLoading(false); }
   }, [tournamentId]);
 
@@ -261,7 +261,7 @@ ${receipts.map(r => `<div class="card">
         await fetchFloor();
         broadcastChange('tournaments');
       }
-    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Check console.' }); }
+    } catch (err) { console.warn(err); setToast({ type: 'error', text: 'Action failed. Check console.' }); }
     finally { setActionLoading(null); }
   };
 
@@ -299,7 +299,7 @@ ${receipts.map(r => `<div class="card">
       } else {
         setToast({ type: 'error', text: 'Failed to update chips.' });
       }
-    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Failed to update chips. Check console.' }); }
+    } catch (err) { console.warn(err); setToast({ type: 'error', text: 'Failed to update chips. Check console.' }); }
     finally { setActionLoading(null); }
   };
 
@@ -320,7 +320,7 @@ ${receipts.map(r => `<div class="card">
       } else {
         setToast({ type: 'error', text: res.error || 'Move failed — seat may be occupied.' });
       }
-    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Move failed. Check console.' }); }
+    } catch (err) { console.warn(err); setToast({ type: 'error', text: 'Move failed. Check console.' }); }
     finally { setActionLoading(null); }
   };
 

@@ -66,7 +66,7 @@ const GiphyPicker = ({ onSelect, onClose, compact = false, onPaste }) => {
                 setError(data.error || 'Failed to load GIFs');
             }
         } catch (e) {
-            console.error('[GiphyPicker] Load error:', e);
+            console.warn('[GiphyPicker] Load error:', e);
             setError('Unable to connect to GIF service');
         }
         setLoading(false);
@@ -95,7 +95,7 @@ const GiphyPicker = ({ onSelect, onClose, compact = false, onPaste }) => {
                     setError(data.error || 'Search failed');
                 }
             } catch (e) {
-                console.error('[GiphyPicker] Search error:', e);
+                console.warn('[GiphyPicker] Search error:', e);
                 setError('Unable to search GIFs');
             }
             setLoading(false);
@@ -118,7 +118,7 @@ const GiphyPicker = ({ onSelect, onClose, compact = false, onPaste }) => {
                 setHasMore(false);
             }
         } catch (e) {
-            console.error('[GiphyPicker] Load more error:', e);
+            console.warn('[GiphyPicker] Load more error:', e);
         }
         setLoadingMore(false);
     }, [loadingMore, hasMore, query, tab]);

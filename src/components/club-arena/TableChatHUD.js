@@ -120,7 +120,7 @@ export default function TableChatHUD({ tableId, userId, isMuted = false }) {
         });
 
         if (!resp.ok) {
-            console.error('Failed to send message:', resp.status);
+            console.warn('Failed to send message:', resp.status);
             // Revert optimistic insert on failure
             setMessages(prev => prev.filter(m => m.id !== optMsg.id));
         }

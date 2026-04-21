@@ -52,7 +52,7 @@ try {
           .limit(1);
 
         if (checkError) {
-          console.error('Error checking existing claim:', checkError);
+          console.warn('Error checking existing claim:', checkError);
           return res.status(500).json({ success: false, error: checkError.message });
         }
 
@@ -91,7 +91,7 @@ try {
           .maybeSingle();
 
         if (error) {
-          console.error('Error creating claim:', error);
+          console.warn('Error creating claim:', error);
           return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
@@ -116,7 +116,7 @@ try {
             .limit(1);
 
           if (error) {
-            console.error('Error fetching claim:', error);
+            console.warn('Error fetching claim:', error);
             return res.status(500).json({ success: false, error: 'Internal server error' });
           }
 
@@ -137,7 +137,7 @@ try {
                 .limit(100);
 
           if (error) {
-            console.error('Error fetching user claims:', error);
+            console.warn('Error fetching user claims:', error);
             return res.status(500).json({ success: false, error: 'Internal server error' });
           }
 
@@ -149,13 +149,13 @@ try {
 
       return res.status(405).json({ success: false, error: `Method ${req.method} not allowed` });
     } catch (err) {
-      console.error('Claim page API error:', err);
+      console.warn('Claim page API error:', err);
       return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

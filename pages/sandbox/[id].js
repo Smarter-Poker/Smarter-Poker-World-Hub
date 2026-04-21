@@ -15,7 +15,7 @@ export default function SharedSandboxRedirect({ error, stateJson }) {
             sessionStorage.setItem('shared-sandbox-state', JSON.stringify(stateJson));
             window.location.replace('/hub/personal-assistant/sandbox?loadShared=true');
         } catch (e) {
-            console.error('Failed to parse state:', e);
+            console.warn('Failed to parse state:', e);
         }
     }
 

@@ -277,9 +277,7 @@ export default function DailyChallengePage() {
             }),
           }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         }
-      } catch (_) {
-        /* ignore */
-      }
+      } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
       // Emit bus events
       try {
@@ -304,9 +302,7 @@ export default function DailyChallengePage() {
           'DailyChallenge'
         );
         busEmit.sessionEnd('DailyChallenge');
-      } catch (_) {
-        /* SSG guard */
-      }
+      } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     },
     [challenge, bus]
   );
@@ -898,7 +894,7 @@ export default function DailyChallengePage() {
                               const d = await res.json();
                               if (d.success) alert('Result shared to your feed!');
                             } catch (err) {
-                              console.error('Share error:', err);
+                              console.warn('Share error:', err);
                             } finally {
                               setSharingResult(false);
                             }

@@ -96,7 +96,7 @@ export default async function handler(req, res) {
         .order('sort_order', { ascending: true });
 
       if (seedErr) {
-        console.error('[Membership] Auto-seed error:', seedErr);
+        console.warn('[Membership] Auto-seed error:', seedErr);
         return res.json({ success: true, data: { plans: [] } });
       }
       return res.json({ success: true, data: { plans: seeded || [] } });
@@ -190,7 +190,7 @@ export default async function handler(req, res) {
   return res.status(405).json({ success: false, error: 'Method not allowed' });
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[pages/api/commander/membership-plans.js]', err);
+    console.warn('[pages/api/commander/membership-plans.js]', err);
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

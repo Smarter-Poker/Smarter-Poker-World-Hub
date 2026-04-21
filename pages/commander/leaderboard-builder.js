@@ -83,7 +83,7 @@ export default function LeaderboardBuilder() {
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             setBoards(json?.leaderboards || json?.data || []);
-        } catch (err) { console.error(err); }
+        } catch (err) { console.warn(err); }
         setLoading(false);
     }, []);
 
@@ -95,7 +95,7 @@ export default function LeaderboardBuilder() {
             if (!res.ok) throw new Error('err');
             const json = await res.json();
             setMembers(json?.data?.members || json?.members || []);
-        } catch (e) { /* silent */ }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     }, [venueId]);
 
     // ── Fetch entries for a board ──
@@ -103,7 +103,7 @@ export default function LeaderboardBuilder() {
         try {
             const json = await commanderFetchJSON(`/api/commander/leaderboards/${boardId}/entries`, {});
             setEntries(prev => ({ ...prev, [boardId]: (json?.entries || json?.data || []).sort((a, b) => (b.score || 0) - (a.score || 0)) }));
-        } catch (e) { /* silent */ }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     };
 
     useEffect(() => { const c = new AbortController(); fetchBoards(c.signal); fetchMembers(c.signal); return () => c.abort(); }, [fetchBoards, fetchMembers]);

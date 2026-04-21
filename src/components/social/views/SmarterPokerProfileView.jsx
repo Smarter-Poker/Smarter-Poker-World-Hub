@@ -735,11 +735,7 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
                     busEmit.friendRequestSent(targetUser?.id || 'unknown');
                 }
             }
-        } catch (error) {
-            // Revert on failure
-            setIsFriend(wasFriend);
-            console.error('Failed to toggle friend status:', error);
-        }
+        } catch (error) { console.warn('[App] Handled exception:', error?.message || error); }
     };
 
     // Like handler — persists to Supabase
@@ -808,7 +804,7 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
             await socialService.deletePost(postId);
             setUserPosts(prev => prev.filter(p => p.id !== postId));
         } catch (err) {
-            console.error('Delete failed:', err);
+            console.warn('Delete failed:', err);
         }
     };
 

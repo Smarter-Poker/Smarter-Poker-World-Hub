@@ -32,7 +32,7 @@ export const copyReferralLink = async (user) => {
             alert('Could not find your player number. Please try again.');
         }
     } catch (err) {
-        console.error('Copy referral link error:', err);
+        console.warn('Copy referral link error:', err);
         alert('Failed to copy referral link. Please try again.');
     }
 };

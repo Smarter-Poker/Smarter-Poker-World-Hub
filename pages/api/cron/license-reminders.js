@@ -42,7 +42,7 @@ function isAuthorized(req) {
     // Allow unauthenticated access in development when no secret is configured
     if (!secret) {
         if (process.env.NODE_ENV !== 'production') return true;
-        console.error('[LicenseReminders] ⚠️ CRON_SECRET not set in production — all requests rejected. Add it to Vercel env vars.');
+        console.warn('[LicenseReminders] ⚠️ CRON_SECRET not set in production — all requests rejected. Add it to Vercel env vars.');
         return false;
     }
 
@@ -145,11 +145,11 @@ export default async function handler(req, res) {
                           .eq('id', doc.id);
                       sent++;
                   } else {
-                      console.error(`[LicenseReminders] ❌ OneSignal error for doc ${doc.id}:`, result.errors);
+                      console.warn(`[LicenseReminders] ❌ OneSignal error for doc ${doc.id}:`, result.errors);
                       skipped++;
                   }
               } catch (pushErr) {
-                  console.error(`[LicenseReminders] Push error for doc ${doc.id}:`, pushErr.message);
+                  console.warn(`[LicenseReminders] Push error for doc ${doc.id}:`, pushErr.message);
                   skipped++;
               }
           }
@@ -157,13 +157,13 @@ export default async function handler(req, res) {
           return res.status(200).json({ sent, skipped, total: docs.length });
 
       } catch (err) {
-          console.error('[LicenseReminders] Fatal error:', err);
+          console.warn('[LicenseReminders] Fatal error:', err);
           return res.status(500).json({ error: err.message });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

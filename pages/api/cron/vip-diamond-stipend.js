@@ -47,7 +47,7 @@ export default async function handler(req, res) {
                   .limit(100);
 
           if (fetchErr) {
-              console.error('[VIP Stipend] Error fetching VIP users:', fetchErr);
+              console.warn('[VIP Stipend] Error fetching VIP users:', fetchErr);
               return res.status(500).json({ error: fetchErr.message });
           }
 
@@ -91,7 +91,7 @@ export default async function handler(req, res) {
                   });
 
                   if (rpcErr) {
-                      console.error(`[VIP Stipend] RPC error for ${user.id}:`, rpcErr.message);
+                      console.warn(`[VIP Stipend] RPC error for ${user.id}:`, rpcErr.message);
                       errors.push({ userId: user.id, error: rpcErr.message });
                       continue;
                   }
@@ -99,7 +99,7 @@ export default async function handler(req, res) {
                   credited++;
 
               } catch (userErr) {
-                  console.error(`[VIP Stipend] Error for user ${user.id}:`, userErr);
+                  console.warn(`[VIP Stipend] Error for user ${user.id}:`, userErr);
                   errors.push({ userId: user.id, error: userErr.message });
               }
           }
@@ -115,13 +115,13 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('[VIP Stipend] Cron error:', error);
+          console.warn('[VIP Stipend] Cron error:', error);
           return res.status(500).json({ error: error.message });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

@@ -32,9 +32,7 @@ export default function ResetAuthPage() {
                         setTimeout(() => reject(new Error('timeout')), 2000)
                     );
                     await Promise.race([signOutPromise, timeoutPromise]);
-                } catch (signOutErr) {
-                    // Continue anyway - clearing localStorage will fix it
-                }
+                } catch (signOutErr) { console.warn('[App] Handled exception:', signOutErr?.message || signOutErr); }
 
                 // Step 2: Clear ALL localStorage keys related to auth
                 setStatus('Clearing local storage...');
@@ -76,7 +74,7 @@ export default function ResetAuthPage() {
                 setDone(true);
 
             } catch (err) {
-                console.error('[Reset Auth] Error:', err);
+                console.warn('[Reset Auth] Error:', err);
                 setError(err.message);
             }
         }

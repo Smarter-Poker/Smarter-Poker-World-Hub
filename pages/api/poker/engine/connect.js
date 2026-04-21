@@ -81,7 +81,7 @@ try {
                 message_type: 'player',
                 display_name: chatResult.displayName || null,
               });
-            } catch (e) { /* ignore */ }
+            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
           }
           return res.json(chatResult);
 
@@ -93,13 +93,13 @@ try {
           return res.status(400).json({ success: false, error: `Unknown type: ${type}` });
       }
     } catch (err) {
-      console.error('[engine/connect]', err);
+      console.warn('[engine/connect]', err);
       return res.status(500).json({ success: false, error: 'Internal error' });
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

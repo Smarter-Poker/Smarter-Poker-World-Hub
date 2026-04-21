@@ -106,9 +106,7 @@ export function warmCache(user) {
             } else {
                 saveCachePayload();
             }
-        }).catch(() => {
-            // Prefetch failed — pages will load normally
-        });
+        }).catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
     });
 }
 

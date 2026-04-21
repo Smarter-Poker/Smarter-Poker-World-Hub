@@ -19,7 +19,7 @@ async function fireConfetti(opts) {
     try {
         if (!_confetti) { const m = await import('canvas-confetti'); _confetti = m.default || m; }
         _confetti(opts);
-    } catch (e) { /* confetti is cosmetic — swallow import/execution errors */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 }
 import * as audio from '../../lib/trivia/triviaAudio';
 
@@ -69,13 +69,13 @@ export default function TriviaResult({
         if (typeof navigator !== 'undefined' && navigator.share) {
             try {
                 await navigator.share({ title: 'Smarter.Poker Trivia', text, url: 'https://smarter.poker/hub/trivia' });
-            } catch (e) { /* user cancelled share */ }
+            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
             try {
                 await navigator.clipboard.writeText(text);
                 setShareLabel('Copied!');
                 setTimeout(() => setShareLabel('Share Result'), 2000);
-            } catch (e) { /* clipboard blocked — page may not have focus */ }
+            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         }
     };
 

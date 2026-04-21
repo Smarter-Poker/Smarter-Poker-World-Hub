@@ -26,7 +26,7 @@ export default function TableUtilization() {
   const [venueId, setVenueId] = useState(null);
 
   useEffect(() => {
-    try { const s = getStaffData(); if (s.venue_id) setVenueId(s.venue_id); } catch (e) { /* silent */ }
+    try { const s = getStaffData(); if (s.venue_id) setVenueId(s.venue_id); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
   }, []);
 
   const fetchData = useCallback(async () => {
@@ -35,7 +35,7 @@ export default function TableUtilization() {
     try {
 const json = await commanderFetchJSON(`/api/commander/reports/table-utilization?venue_id=${venueId}&range=${range}`, {});
       if (json.success) setData(json.data);
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
     finally { setLoading(false); }
   }, [venueId, range]);
 

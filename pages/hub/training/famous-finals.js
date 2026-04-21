@@ -342,7 +342,7 @@ export default function FamousFinalsPage() {
             hands_played: total,
           });
         } catch (e) {
-          console.error(e);
+          console.warn(e);
         }
       })();
     }

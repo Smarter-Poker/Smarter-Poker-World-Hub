@@ -312,7 +312,7 @@ export default function HorsesAdmin() {
           .maybeSingle();
 
         if (error) {
-          console.error('Failed to verify admin role:', error);
+          console.warn('Failed to verify admin role:', error);
           setLoginError('Network error checking admin status. Try again.');
           setLoading(false);
           return;
@@ -424,7 +424,7 @@ export default function HorsesAdmin() {
         setPromoCodes(data.codes || []);
       }
     } catch (err) {
-      console.error('Failed to load promo codes:', err);
+      console.warn('Failed to load promo codes:', err);
     } finally {
       setPromoLoading(false);
     }
@@ -600,7 +600,7 @@ export default function HorsesAdmin() {
       });
       setGeevesAnalyticsLoaded(true);
     } catch (err) {
-      console.error('Failed to load Geeves analytics:', err);
+      console.warn('Failed to load Geeves analytics:', err);
     } finally {
       setGeevesAnalyticsLoading(false);
     }
@@ -917,7 +917,7 @@ export default function HorsesAdmin() {
       if (error) throw error;
       broadcastUpdate('horses-settings-updated');
     } catch (err) {
-      console.error('Settings save error:', err);
+      console.warn('Settings save error:', err);
       showNotification('Failed to save setting', 'error');
     }
   };
@@ -944,7 +944,7 @@ export default function HorsesAdmin() {
       if (error) throw error;
 
       if (!data) {
-        console.error('Failed to create persona: no data returned');
+        console.warn('Failed to create persona: no data returned');
         throw new Error('Persona creation returned null');
       }
 
@@ -962,7 +962,7 @@ export default function HorsesAdmin() {
       showNotification('New horse stabled! 🐴', 'success');
       broadcastUpdate('horses-updated');
     } catch (err) {
-      console.error(err);
+      console.warn(err);
       // Demo fallback
       const demoP = { ...personaToCreate, id: Date.now() };
       setPersonas([demoP, ...personas]);
@@ -1019,7 +1019,7 @@ export default function HorsesAdmin() {
         showNotification(errData.error || `Error ${res.status}: Pipeline failed`, 'error');
       }
     } catch (err) {
-      console.error('Pipeline Trigger Error:', err);
+      console.warn('Pipeline Trigger Error:', err);
       showNotification('Network error triggering pipeline', 'error');
     }
   };
@@ -1056,7 +1056,7 @@ export default function HorsesAdmin() {
         }
       }
     } catch (err) {
-      console.error('Failed to load grinder data:', err);
+      console.warn('Failed to load grinder data:', err);
     } finally {
       setGrinderLoading(false);
     }
@@ -1092,7 +1092,7 @@ export default function HorsesAdmin() {
         showNotification(data.error || 'Fleet action failed', 'error');
       }
     } catch (err) {
-      console.error('Fleet launch error:', err);
+      console.warn('Fleet launch error:', err);
       showNotification('Network error during fleet launch', 'error');
     } finally {
       setGrinderLoading(false);
@@ -1136,7 +1136,7 @@ export default function HorsesAdmin() {
         }
       }
     } catch (err) {
-      console.error('Grinder action error:', err);
+      console.warn('Grinder action error:', err);
       showNotification('Network error executing action', 'error');
     } finally {
       setGrinderLoading(false);
@@ -1176,7 +1176,7 @@ export default function HorsesAdmin() {
         }
       }
     } catch (err) {
-      console.error('Failed to load reviews:', err);
+      console.warn('Failed to load reviews:', err);
     } finally {
       setReviewsLoading(false);
     }
@@ -1265,7 +1265,7 @@ export default function HorsesAdmin() {
         }
       }
     } catch (err) {
-      console.error('Failed to load scraper health:', err);
+      console.warn('Failed to load scraper health:', err);
     } finally {
       setScraperHealthLoading(false);
     }

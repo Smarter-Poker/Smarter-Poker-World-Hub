@@ -394,7 +394,7 @@ export default function IncidentsPage() {
 const data = await commanderFetchJSON(`/api/commander/incidents?venue_id=${venueId}`, {});
       if (data.success) setIncidents(data.data?.incidents || []);
     } catch (err) {
-      console.error('Fetch incidents failed:', err);
+      console.warn('Fetch incidents failed:', err);
       setIncidents([]);
     } finally { setLoading(false); }
   }
@@ -415,7 +415,7 @@ const res = await commanderFetch('/api/commander/incidents', {
           busEmit.screenShake('medium');
         }
       }
-    } catch (err) { console.error('Create incident failed:', err); setToast({ type: 'error', text: 'Action failed: Create incident failed. Please try again.' }); }
+    } catch (err) { console.warn('Create incident failed:', err); setToast({ type: 'error', text: 'Action failed: Create incident failed. Please try again.' }); }
   setLoading(false);
   }
 
@@ -434,7 +434,7 @@ const res = await commanderFetch(`/api/commander/incidents/${incidentId}/resolve
           broadcastChange('incidents');
         }
       }
-    } catch (err) { console.error('Resolve incident failed:', err); setToast({ type: 'error', text: 'Action failed: Resolve incident failed. Please try again.' }); }
+    } catch (err) { console.warn('Resolve incident failed:', err); setToast({ type: 'error', text: 'Action failed: Resolve incident failed. Please try again.' }); }
   }
 
   const filteredIncidents = incidents

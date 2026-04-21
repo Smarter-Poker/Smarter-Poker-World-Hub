@@ -42,7 +42,7 @@ export default async function handler(req, res) {
 
       // ORB-0 FIX-4: Fail hard if service key is missing — never fall back to anon for admin ops
       if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-          console.error('[ANTIGRAVITY] FATAL: Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY env vars');
+          console.warn('[ANTIGRAVITY] FATAL: Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY env vars');
           return res.status(500).json({ error: 'Server configuration error — contact admin' });
       }
 
@@ -178,7 +178,7 @@ export default async function handler(req, res) {
               .maybeSingle();
 
           if (insertError) {
-              console.error('[ANTIGRAVITY] Profile creation failed:', insertError);
+              console.warn('[ANTIGRAVITY] Profile creation failed:', insertError);
 
               // Try with minimal fields if full insert failed
               const { data: minimalProfile, error: minimalError } = await getSupabase()
@@ -218,7 +218,7 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('[ANTIGRAVITY] Error:', error);
+          console.warn('[ANTIGRAVITY] Error:', error);
           return res.status(500).json({
               status: 'ERROR',
               error: error.message
@@ -227,7 +227,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

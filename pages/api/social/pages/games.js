@@ -96,7 +96,7 @@ export default async function handler(req, res) {
                           .in('id', socialPlayerIds)
                               .limit(100);
                       (profiles || []).forEach(p => { socialProfilePicMap[p.id] = p.avatar_url; });
-                  } catch (e) { /* no profile pics */ }
+                  } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
               }
 
               const enriched = (games || []).map(g => ({
@@ -149,7 +149,7 @@ export default async function handler(req, res) {
                                       .in('id', playerIds)
                                           .limit(100);
                                   (profiles || []).forEach(p => { profilePicMap[p.id] = p.avatar_url; });
-                              } catch (e) { /* no profile pics */ }
+                              } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
                           }
 
                           // Fetch table names for display
@@ -173,7 +173,7 @@ export default async function handler(req, res) {
                                   .eq('venue_id', venueId)
                                   .maybeSingle();
                               if (venueSettings?.venue_type) venueType = venueSettings.venue_type;
-                          } catch (e) { /* default to texas */ }
+                          } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
                           // Fetch active dealer rotations for all tables in one batch
                           // Rotations may have table_id, table_number, or both — query by both
@@ -212,7 +212,7 @@ export default async function handler(req, res) {
                                           }
                                       });
                                   }
-                              } catch (e) { /* no dealer data */ }
+                              } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
                           }
 
                           // Fetch active table sessions for time tracking
@@ -227,7 +227,7 @@ export default async function handler(req, res) {
                                       .order('seat_number', { ascending: true })
                                           .limit(100);
                                   allSessions = sessions || [];
-                              } catch (e) { /* no session data */ }
+                              } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
                           }
 
                           const now = new Date();
@@ -551,7 +551,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

@@ -115,7 +115,7 @@ export default async function handler(req, res) {
                 recentReferrals: enrichedReferrals,
             });
         } catch (err) {
-            console.error('[Referral] GET error:', err);
+            console.warn('[Referral] GET error:', err);
             return res.status(500).json({ error: 'Failed to load referral data' });
         }
     }
@@ -211,7 +211,7 @@ export default async function handler(req, res) {
                 });
             } catch (err) {
                 try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-                console.error('[Referral] Apply error:', err);
+                console.warn('[Referral] Apply error:', err);
                 return res.status(500).json({ error: 'Failed to apply referral' });
             }
         }

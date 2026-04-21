@@ -53,7 +53,7 @@ export default async function handler(req, res) {
             .limit(100)
 
       if (waitlistError) {
-        console.error('Waitlist fetch error:', waitlistError);
+        console.warn('Waitlist fetch error:', waitlistError);
       }
 
       // Get active games to calculate turnover
@@ -64,7 +64,7 @@ export default async function handler(req, res) {
         .eq('status', 'running')
 
       if (gamesError) {
-        console.error('Games fetch error:', gamesError);
+        console.warn('Games fetch error:', gamesError);
       }
 
       // Get historical wait time data for this venue
@@ -76,7 +76,7 @@ export default async function handler(req, res) {
         .limit(500);
 
       if (historyError) {
-        console.error('History fetch error:', historyError);
+        console.warn('History fetch error:', historyError);
       }
 
       // Group waitlist by game type and stakes
@@ -204,7 +204,7 @@ export default async function handler(req, res) {
       });
 
     } catch (error) {
-      console.error('AI wait time error:', error);
+      console.warn('AI wait time error:', error);
       return res.status(500).json({
         success: false,
         error: { code: 'SERVER_ERROR', message: 'Failed to generate predictions' }
@@ -213,7 +213,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

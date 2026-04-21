@@ -186,31 +186,31 @@ export default function VideoLibraryPage() {
             // Load favorites and watch later lists
             getVideoFavorites(userId).then(data => {
                 setFavorites(new Set(data.map(v => v.video_id)));
-            }).catch(err => console.error('Error loading favorites:', err));
+            }).catch(err => console.warn('Error loading favorites:', err));
 
             getWatchLater(userId).then(data => {
                 setWatchLater(new Set(data.map(v => v.video_id)));
-            }).catch(err => console.error('Error loading watch later:', err));
+            }).catch(err => console.warn('Error loading watch later:', err));
 
             // Load watched videos (30+ second threshold - lowered for better feedback)
             getWatchedVideos(userId, 30).then(watchedSet => {
                 setWatchedVideos(watchedSet);
-            }).catch(err => console.error('Error loading watched videos:', err));
+            }).catch(err => console.warn('Error loading watched videos:', err));
 
             // Load watch progress for progress bars
             getWatchProgress(userId).then(progressMap => {
                 setWatchProgress(progressMap);
-            }).catch(err => console.error('Error loading watch progress:', err));
+            }).catch(err => console.warn('Error loading watch progress:', err));
 
             // Load recently watched for carousel
             getRecentlyWatched(userId, 10).then(recent => {
                 setRecentlyWatched(recent);
-            }).catch(err => console.error('Error loading recently watched:', err));
+            }).catch(err => console.warn('Error loading recently watched:', err));
 
             // Load watch stats
             getWatchStats(userId).then(stats => {
                 setWatchStats(stats);
-            }).catch(err => console.error('Error loading watch stats:', err));
+            }).catch(err => console.warn('Error loading watch stats:', err));
         }
     }, [userId]);
 
@@ -223,7 +223,7 @@ export default function VideoLibraryPage() {
             try {
                 await updateVideoLibraryPreferences(userId, { [key]: value });
             } catch (error) {
-                console.error('Failed to save preference:', error);
+                console.warn('Failed to save preference:', error);
             }
         }
     }, [preferences]);
@@ -318,7 +318,7 @@ export default function VideoLibraryPage() {
                 setAiAnalysisSource(data.source || 'generated');
             }
         } catch (err) {
-            console.error('Failed to fetch AI analysis:', err);
+            console.warn('Failed to fetch AI analysis:', err);
         } finally {
             setAiAnalysisLoading(false);
         }
@@ -374,7 +374,7 @@ export default function VideoLibraryPage() {
                         setWatchedVideos(prev => new Set(prev).add(video.id));
                     }
                 } catch (err) {
-                    console.error('Error saving watch duration:', err);
+                    console.warn('Error saving watch duration:', err);
                 }
             }
         }
@@ -1242,9 +1242,7 @@ export default function VideoLibraryPage() {
                                             if (data.info && typeof data.info.currentTime === 'number') {
                                                 setCurrentVideoTime(data.info.currentTime);
                                             }
-                                        } catch (e) {
-                                            // Ignore parsing errors
-                                        }
+                                        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
                                     };
                                     window.addEventListener('message', handleMessage);
                                     ytPlayerRef.current.messageHandler = handleMessage; // store for cleanup

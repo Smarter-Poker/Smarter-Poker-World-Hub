@@ -328,7 +328,7 @@ async function handler(req, res) {
         }
         if (venueRows.length < 1000) break; // no more pages
       }
-    } catch (_) { /* non-fatal */ }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
     const getVenueInfo = (venueId, venueName) => {
       const vNameClean = venueName ? venueName.toLowerCase().trim() : null;
@@ -442,7 +442,7 @@ async function handler(req, res) {
           }
         }
       } catch (e) {
-        console.error('[events-calendar] Daily tournaments error:', e.message);
+        console.warn('[events-calendar] Daily tournaments error:', e.message);
       }
     }
 
@@ -541,7 +541,7 @@ async function handler(req, res) {
           }
         }
       } catch (e) {
-        console.error('[events-calendar] Series error:', e.message);
+        console.warn('[events-calendar] Series error:', e.message);
       }
     }
 
@@ -619,7 +619,7 @@ async function handler(req, res) {
           }
         }
       } catch (e) {
-        console.error('[events-calendar] Tour events error:', e.message);
+        console.warn('[events-calendar] Tour events error:', e.message);
       }
     }
 
@@ -720,7 +720,7 @@ async function handler(req, res) {
     return res.status(200).json(responsePayload);
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[events-calendar] Fatal error:', err);
+    console.warn('[events-calendar] Fatal error:', err);
     // [EC7 FIX] Was res.status(200) — returning 200 for fatal errors lets Vercel CDN
     // cache the error response (s-maxage=60) and serve it to hundreds of users.
     // Changed to 500 so CDN treats it as non-cacheable and clients can't accidentally

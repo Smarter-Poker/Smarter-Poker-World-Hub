@@ -30,24 +30,24 @@ let failed = 0;
 
 function test(name, condition, details = '') {
     if (condition) {
-        console.log(`✅ ${name}`);
+        console.debug(`✅ ${name}`);
         passed++;
     } else {
-        console.log(`❌ ${name}`);
-        if (details) console.log(`   ${details}`);
+        console.debug(`❌ ${name}`);
+        if (details) console.debug(`   ${details}`);
         failed++;
     }
 }
 
 async function verifyLaws() {
-    console.log('\n🔒 HORSE CONTENT LAW VERIFICATION');
-    console.log('═'.repeat(60));
+    console.debug('\n🔒 HORSE CONTENT LAW VERIFICATION');
+    console.debug('═'.repeat(60));
 
     // ═══════════════════════════════════════════════════════════════════════
     // LAW 1: NO AI-GENERATED IMAGES
     // ═══════════════════════════════════════════════════════════════════════
-    console.log('\n📜 LAW 1: NO AI-GENERATED IMAGES');
-    console.log('─'.repeat(40));
+    console.debug('\n📜 LAW 1: NO AI-GENERATED IMAGES');
+    console.debug('─'.repeat(40));
 
     // Check horses-post.js is DELETED
     const horsesPostPath = path.join(CRON_DIR, 'horses-post.js');
@@ -81,8 +81,8 @@ async function verifyLaws() {
     // ═══════════════════════════════════════════════════════════════════════
     // LAW 2: CONTENT SOURCES (WHITELIST ONLY)
     // ═══════════════════════════════════════════════════════════════════════
-    console.log('\n📜 LAW 2: CONTENT SOURCES (WHITELIST ONLY)');
-    console.log('─'.repeat(40));
+    console.debug('\n📜 LAW 2: CONTENT SOURCES (WHITELIST ONLY)');
+    console.debug('─'.repeat(40));
 
     // Check horses-clips.js exists
     const horsesClipsPath = path.join(CRON_DIR, 'horses-clips.js');
@@ -114,8 +114,8 @@ async function verifyLaws() {
     // ═══════════════════════════════════════════════════════════════════════
     // LAW 3: NO DUPLICATE CONTENT
     // ═══════════════════════════════════════════════════════════════════════
-    console.log('\n📜 LAW 3: NO DUPLICATE CONTENT');
-    console.log('─'.repeat(40));
+    console.debug('\n📜 LAW 3: NO DUPLICATE CONTENT');
+    console.debug('─'.repeat(40));
 
     // Check horses-clips.js has duplicate prevention
     if (fs.existsSync(horsesClipsPath)) {
@@ -152,8 +152,8 @@ async function verifyLaws() {
     // ═══════════════════════════════════════════════════════════════════════
     // LAW 4: HORSE COORDINATION
     // ═══════════════════════════════════════════════════════════════════════
-    console.log('\n📜 LAW 4: HORSE COORDINATION');
-    console.log('─'.repeat(40));
+    console.debug('\n📜 LAW 4: HORSE COORDINATION');
+    console.debug('─'.repeat(40));
 
     // Check horses-clips.js passes recentlyUsedClips
     if (fs.existsSync(horsesClipsPath)) {
@@ -168,8 +168,8 @@ async function verifyLaws() {
     // ═══════════════════════════════════════════════════════════════════════
     // LAW 5: AUTONOMOUS OPERATION
     // ═══════════════════════════════════════════════════════════════════════
-    console.log('\n📜 LAW 5: AUTONOMOUS OPERATION');
-    console.log('─'.repeat(40));
+    console.debug('\n📜 LAW 5: AUTONOMOUS OPERATION');
+    console.debug('─'.repeat(40));
 
     // Check environment variables
     test(
@@ -204,15 +204,15 @@ async function verifyLaws() {
     // ═══════════════════════════════════════════════════════════════════════
     // RESULTS
     // ═══════════════════════════════════════════════════════════════════════
-    console.log('\n' + '═'.repeat(60));
-    console.log(`📊 RESULTS: ${passed} passed, ${failed} failed`);
+    console.debug('\n' + '═'.repeat(60));
+    console.debug(`📊 RESULTS: ${passed} passed, ${failed} failed`);
 
     if (failed === 0) {
-        console.log('🎉 ALL LAWS VERIFIED - System is compliant!');
+        console.debug('🎉 ALL LAWS VERIFIED - System is compliant!');
     } else {
-        console.log('🚨 VIOLATIONS DETECTED - Fix issues before deployment!');
+        console.debug('🚨 VIOLATIONS DETECTED - Fix issues before deployment!');
     }
-    console.log('═'.repeat(60) + '\n');
+    console.debug('═'.repeat(60) + '\n');
 
     return { passed, failed };
 }

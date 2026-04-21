@@ -52,7 +52,7 @@ export default function DiamondArenaPage() {
             try {
                 await updateDiamondArenaPreferences(userId, { [key]: value });
             } catch (error) {
-                console.error('Failed to save preference:', error);
+                console.warn('Failed to save preference:', error);
             }
         }
     }, [preferences]);

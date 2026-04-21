@@ -40,7 +40,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -119,7 +119,7 @@ async function listEvents(req, res) {
 
     return res.status(200).json({ events: data });
   } catch (error) {
-    console.error('List events error:', error);
+    console.warn('List events error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
@@ -244,7 +244,7 @@ async function createEvent(req, res) {
     return res.status(201).json({ event });
   } catch (error) {
       try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('Create event error:', error);
+    console.warn('Create event error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

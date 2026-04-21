@@ -17,15 +17,15 @@ let failed = 0;
 const failures = [];
 
 function assert(condition, label) {
-    if (condition) { passed++; console.log(`  ✅ ${label}`); }
-    else { failed++; failures.push(label); console.log(`  ❌ FAIL: ${label}`); }
+    if (condition) { passed++; console.debug(`  ✅ ${label}`); }
+    else { failed++; failures.push(label); console.debug(`  ❌ FAIL: ${label}`); }
 }
 
 (async () => {
 
-    console.log('\n═══════════════════════════════════════════════════');
-    console.log('  🔬 DEEP END-TO-END HORSE AI VERIFICATION');
-    console.log('═══════════════════════════════════════════════════\n');
+    console.debug('\n═══════════════════════════════════════════════════');
+    console.debug('  🔬 DEEP END-TO-END HORSE AI VERIFICATION');
+    console.debug('═══════════════════════════════════════════════════\n');
 
     const Brain = require('../brain');
     const Adv = require('../../../content-engine/services/HorsePokerAdvanced');
@@ -33,13 +33,13 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════
     // TEST 1: SUPABASE TABLE EXISTENCE
     // ═══════════════════════════════════════════
-    console.log('--- TEST 1: Supabase Table Existence ---');
+    console.debug('--- TEST 1: Supabase Table Existence ---');
 
     const tables = ['horse_session_stats', 'horse_opponent_reads', 'horse_hand_history'];
     for (const table of tables) {
         const { data, error } = await supabase.from(table).select('*').limit(1);
         if (error) {
-            console.log(`  ⚠️  Table "${table}" — Error: ${error.message}`);
+            console.debug(`  ⚠️  Table "${table}" — Error: ${error.message}`);
             if (error.message.includes('does not exist') || error.code === '42P01') {
                 assert(false, `Supabase table "${table}" EXISTS`);
             } else {
@@ -54,7 +54,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════
     // TEST 2: MULTI-HAND SIMULATION (50 hands)
     // ═══════════════════════════════════════════
-    console.log('\n--- TEST 2: Multi-Hand Stress Test (50 decisions) ---');
+    console.debug('\n--- TEST 2: Multi-Hand Stress Test (50 decisions) ---');
 
 
     // Load horse IDs
@@ -102,7 +102,7 @@ function assert(condition, label) {
             preflopDecisions.push({ hand: `${rank1}${rank2}`, pos, action, delay: result.delayMs });
         } catch (err) {
             errors++;
-            console.log(`  ⚠️ Preflop hand ${i} error: ${err.message}`);
+            console.debug(`  ⚠️ Preflop hand ${i} error: ${err.message}`);
         }
     }
 
@@ -140,17 +140,17 @@ function assert(condition, label) {
             postflopDecisions.push({ action, delay: result.delayMs, amount: result.action.amount || 0 });
         } catch (err) {
             errors++;
-            console.log(`  ⚠️ Postflop hand ${i} error: ${err.message}`);
+            console.debug(`  ⚠️ Postflop hand ${i} error: ${err.message}`);
         }
     }
 
     assert(errors === 0, `50 decisions with ZERO errors (errors: ${errors})`);
-    console.log(`\n  Decision Distribution:`);
-    console.log(`    Raise/Bet: ${decisions.raise || 0} + ${decisions.bet || 0}`);
-    console.log(`    Call:      ${decisions.call || 0}`);
-    console.log(`    Check:     ${decisions.check || 0}`);
-    console.log(`    Fold:      ${decisions.fold || 0}`);
-    console.log(`    All-in:    ${decisions.all_in || 0}`);
+    console.debug(`\n  Decision Distribution:`);
+    console.debug(`    Raise/Bet: ${decisions.raise || 0} + ${decisions.bet || 0}`);
+    console.debug(`    Call:      ${decisions.call || 0}`);
+    console.debug(`    Check:     ${decisions.check || 0}`);
+    console.debug(`    Fold:      ${decisions.fold || 0}`);
+    console.debug(`    All-in:    ${decisions.all_in || 0}`);
 
     // Action variety check — should NOT be all the same action
     const totalDecisions = Object.values(decisions).reduce((a, b) => a + b, 0);
@@ -166,7 +166,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════
     // TEST 3: TIMING TELL REALISM
     // ═══════════════════════════════════════════
-    console.log('\n--- TEST 3: Timing Tell Realism ---');
+    console.debug('\n--- TEST 3: Timing Tell Realism ---');
 
     const delays = [...preflopDecisions, ...postflopDecisions].map(d => d.delay);
     const avgDelay = delays.reduce((a, b) => a + b, 0) / delays.length;
@@ -184,7 +184,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════
     // TEST 4: BET SIZING REALISM
     // ═══════════════════════════════════════════
-    console.log('\n--- TEST 4: Bet Sizing Realism ---');
+    console.debug('\n--- TEST 4: Bet Sizing Realism ---');
 
     const bets = postflopDecisions.filter(d => d.amount > 0);
     if (bets.length > 0) {
@@ -201,14 +201,14 @@ function assert(condition, label) {
         const uniqueBets = new Set(betAmounts).size;
         assert(uniqueBets >= 2, `Bet sizing variety: ${uniqueBets} unique sizes`);
     } else {
-        console.log('  ⚠️ No bets placed in 25 postflop hands — checking if check-heavy is valid');
+        console.debug('  ⚠️ No bets placed in 25 postflop hands — checking if check-heavy is valid');
         assert(true, 'No bets (may be correct for given board textures)');
     }
 
     // ═══════════════════════════════════════════
     // TEST 5: PERFORMANCE STATS ACCUMULATE
     // ═══════════════════════════════════════════
-    console.log('\n--- TEST 5: Performance Stats Accumulation ---');
+    console.debug('\n--- TEST 5: Performance Stats Accumulation ---');
 
     const stats = Brain.getPerformanceStats(HORSE);
     assert(stats.handsPlayed >= 25, `Hands tracked: ${stats.handsPlayed} (expected 25+)`);
@@ -219,7 +219,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════
     // TEST 6: ADAPTIVE STRATEGY WORKS
     // ═══════════════════════════════════════════
-    console.log('\n--- TEST 6: Adaptive Strategy ---');
+    console.debug('\n--- TEST 6: Adaptive Strategy ---');
 
     // Record enough results (need 30+ hands for adaptive to kick in)
     for (let i = 0; i < 10; i++) {
@@ -228,12 +228,12 @@ function assert(condition, label) {
     }
     const adaptWinning = Brain.getAdaptiveStrategy(HORSE);
     assert(adaptWinning.reason !== 'insufficient_data', `Adaptive has enough data (reason: ${adaptWinning.reason})`);
-    console.log(`  📊 After 20 wins: rangeAdjust=${adaptWinning.rangeAdjust}, reason=${adaptWinning.reason}`);
+    console.debug(`  📊 After 20 wins: rangeAdjust=${adaptWinning.rangeAdjust}, reason=${adaptWinning.reason}`);
 
     // ═══════════════════════════════════════════
     // TEST 7: ANTI-COLLUSION ENFORCES LIMITS
     // ═══════════════════════════════════════════
-    console.log('\n--- TEST 7: Anti-Collusion Guards ---');
+    console.debug('\n--- TEST 7: Anti-Collusion Guards ---');
 
     const HORSE_A = 'aaaa-test-horse-1';
     const HORSE_B = 'bbbb-test-horse-2';
@@ -250,7 +250,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════
     // TEST 8: DYNAMIC REBUY LOGIC
     // ═══════════════════════════════════════════
-    console.log('\n--- TEST 8: Dynamic Rebuy Logic ---');
+    console.debug('\n--- TEST 8: Dynamic Rebuy Logic ---');
 
     const rebuy1 = Brain.getDynamicRebuyStrategy('test', 20, 2, 1, 200); // 10BB = short
     assert(rebuy1.shouldRebuy === true, `10BB short-stack triggers rebuy (reason: ${rebuy1.reason})`);
@@ -265,7 +265,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════
     // TEST 9: HORSE EVOLUTION OVER TIME
     // ═══════════════════════════════════════════
-    console.log('\n--- TEST 9: Horse Evolution Over Sessions ---');
+    console.debug('\n--- TEST 9: Horse Evolution Over Sessions ---');
 
     const EVO_HORSE = 'evolution-test-horse';
     const evo1 = Brain.evolveHorseSkill(EVO_HORSE, 15); // Big winner
@@ -289,7 +289,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════
     // TEST 10: SESSION REVIEW COMPLETENESS
     // ═══════════════════════════════════════════
-    console.log('\n--- TEST 10: Session Review System ---');
+    console.debug('\n--- TEST 10: Session Review System ---');
 
     const review = Brain.getSessionReview(HORSE);
     assert(review.handsPlayed > 0, `Review: ${review.handsPlayed} hands played`);
@@ -305,7 +305,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════
     // TEST 11: BANKROLL-AWARE STAKE SELECTION
     // ═══════════════════════════════════════════
-    console.log('\n--- TEST 11: Bankroll Stake Selection ---');
+    console.debug('\n--- TEST 11: Bankroll Stake Selection ---');
 
     const s1 = Brain.getRecommendedStake(500, 'Cash');
     assert(s1.recommendedBlinds.bb <= 0.50, `$500 bankroll → $${s1.recommendedBlinds.bb} BB max`);
@@ -322,7 +322,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════
     // TEST 12: POSTFLOP HAND EVALUATOR EDGE CASES
     // ═══════════════════════════════════════════
-    console.log('\n--- TEST 12: Hand Evaluator Edge Cases ---');
+    console.debug('\n--- TEST 12: Hand Evaluator Edge Cases ---');
 
     // Null/empty inputs
     const e1 = Brain.evaluatePostflopHand(null, null);
@@ -354,7 +354,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════
     // TEST 13: SPR EDGE CASES
     // ═══════════════════════════════════════════
-    console.log('\n--- TEST 13: SPR Edge Cases ---');
+    console.debug('\n--- TEST 13: SPR Edge Cases ---');
 
     const spr0 = Brain.getSPRStrategy(0, 100); // Zero stack
     assert(spr0.spr === 0, `Zero stack SPR = 0 (got ${spr0.spr})`);
@@ -373,7 +373,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════
     // TEST 14: DRAW EQUITY MATH VERIFICATION
     // ═══════════════════════════════════════════
-    console.log('\n--- TEST 14: Draw Equity Math ---');
+    console.debug('\n--- TEST 14: Draw Equity Math ---');
 
     // Flush draw on flop: 9 outs, ~35% equity
     const fd = Brain.getDrawEquity({ hasFlushDraw: true, hasOESD: false, hasGutshot: false }, 'flop');
@@ -403,12 +403,12 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════
     // TEST 15: SUPABASE PERSISTENCE E2E
     // ═══════════════════════════════════════════
-    console.log('\n--- TEST 15: Supabase Persistence E2E ---');
+    console.debug('\n--- TEST 15: Supabase Persistence E2E ---');
 
     // Try to actually save session analytics
     const saveResult = await Brain.saveSessionAnalytics(HORSE, 'test-table-verify');
     if (saveResult) {
-        console.log('  📊 Session analytics saved to Supabase');
+        console.debug('  📊 Session analytics saved to Supabase');
         // Verify the data by reading it back
         const { data: readBack, error } = await supabase
             .from('horse_session_stats')
@@ -433,24 +433,24 @@ function assert(condition, label) {
             assert(false, `Read back from Supabase (error: ${error?.message || 'no data'})`);
         }
     } else {
-        console.log('  ⚠️ saveSessionAnalytics returned false — table may not exist');
+        console.debug('  ⚠️ saveSessionAnalytics returned false — table may not exist');
         assert(false, 'Supabase session analytics persistence WORKS');
     }
 
     // ═══════════════════════════════════════════
     // RESULTS
     // ═══════════════════════════════════════════
-    console.log('\n═══════════════════════════════════════════════════');
-    console.log(`  RESULTS: ${passed} passed, ${failed} failed`);
-    console.log('═══════════════════════════════════════════════════');
+    console.debug('\n═══════════════════════════════════════════════════');
+    console.debug(`  RESULTS: ${passed} passed, ${failed} failed`);
+    console.debug('═══════════════════════════════════════════════════');
 
     if (failed > 0) {
-        console.log('\n❌ FAILURES:');
-        failures.forEach(f => console.log(`  - ${f}`));
+        console.debug('\n❌ FAILURES:');
+        failures.forEach(f => console.debug(`  - ${f}`));
     } else {
-        console.log('\n✅ ALL DEEP TESTS PASSED — VERIFIED END-TO-END');
+        console.debug('\n✅ ALL DEEP TESTS PASSED — VERIFIED END-TO-END');
     }
 
-    console.log('');
+    console.debug('');
     process.exit(failed > 0 ? 1 : 0);
 })();

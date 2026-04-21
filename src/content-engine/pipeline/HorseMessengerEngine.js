@@ -72,7 +72,7 @@ CRITICAL RULES:
         });
 
         if (!response.ok) {
-            console.error('Grok API Error:', await response.text());
+            console.warn('Grok API Error:', await response.text());
             return null;
         }
 
@@ -89,7 +89,7 @@ CRITICAL RULES:
 
         return replyText;
     } catch (e) {
-        console.error('Error generating Grok reply:', e);
+        console.warn('Error generating Grok reply:', e);
         return null;
     }
 }
@@ -98,7 +98,7 @@ CRITICAL RULES:
  * Scan for pending messages directed at horses and reply
  */
 async function processDirectMessages() {
-    console.log('\n💬 HORSE MESSENGER ENGINE RUNNING...');
+    console.debug('\n💬 HORSE MESSENGER ENGINE RUNNING...');
 
     // 1. Get all active horses
     const { data: horses } = await getSupabase()
@@ -125,7 +125,7 @@ async function processDirectMessages() {
         .order('created_at', { ascending: false });
 
     if (!recentMsgs?.length) {
-        console.log('   No recent messages found.');
+        console.debug('   No recent messages found.');
         return;
     }
 
@@ -133,7 +133,7 @@ async function processDirectMessages() {
     const humanMsgs = recentMsgs.filter(m => !horseIds.includes(m.sender_id));
 
     if (humanMsgs.length === 0) {
-        console.log('   No recent human messages found.');
+        console.debug('   No recent human messages found.');
         return;
     }
 
@@ -182,7 +182,7 @@ async function processDirectMessages() {
         // HARD LIMIT: Max 3 horse replies per conversation (prevents infinite bot messaging)
         const horseReplyCount = history.filter(h => h.sender_id === targetHorseId).length;
         if (horseReplyCount >= 3) {
-            console.log(`   ${horse.name}: conversation capped at ${horseReplyCount} replies, skipping.`);
+            console.debug(`   ${horse.name}: conversation capped at ${horseReplyCount} replies, skipping.`);
             continue;
         }
 
@@ -197,7 +197,7 @@ async function processDirectMessages() {
                 .eq('conversation_id', convId)
                 .eq('sender_id', lastHumanMsg.sender_id)
                 .is('read_at', null);
-            console.log(`   ${horse.name} read the message (Seen)`);
+            console.debug(`   ${horse.name} read the message (Seen)`);
         }
 
         // Synthetic "thinking" delay before reply (2-8 seconds)
@@ -210,7 +210,7 @@ async function processDirectMessages() {
             content: h.content
         }));
 
-        console.log(`   Generating DM reply for ${horse.name} (Conv ~ ${history.length} msgs)...`);
+        console.debug(`   Generating DM reply for ${horse.name} (Conv ~ ${history.length} msgs)...`);
         
         const replyContent = await generateGrokReply(horse, conversationContext);
 
@@ -234,7 +234,7 @@ async function processDirectMessages() {
                 })
                 .eq('id', convId);
 
-            console.log(`   ${horse.name} 💬: "${replyContent}" ✓`);
+            console.debug(`   ${horse.name} 💬: "${replyContent}" ✓`);
             repliesSent++;
         }
 
@@ -242,7 +242,7 @@ async function processDirectMessages() {
         await new Promise(r => setTimeout(r, 2000));
     }
 
-    console.log(`   Sent ${repliesSent} automated responses.`);
+    console.debug(`   Sent ${repliesSent} automated responses.`);
 }
 
 // Allow running standalone
@@ -250,7 +250,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     processDirectMessages()
         .then(() => process.exit(0))
         .catch(e => {
-            console.error('Fatal execution error:', e);
+            console.warn('Fatal execution error:', e);
             process.exit(1);
         });
 }

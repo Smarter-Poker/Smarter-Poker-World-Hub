@@ -30,7 +30,7 @@ function addPageTransition(filePath) {
 
     // Check if already has PageTransition
     if (content.includes('PageTransition')) {
-        console.log(`✓ ${path.basename(filePath)} already has PageTransition`);
+        console.debug(`✓ ${path.basename(filePath)} already has PageTransition`);
         return false;
     }
 
@@ -74,7 +74,7 @@ function addPageTransition(filePath) {
     content = lines.join('\n');
 
     fs.writeFileSync(filePath, content, 'utf8');
-    console.log(`✓ Added PageTransition to ${path.basename(filePath)}`);
+    console.debug(`✓ Added PageTransition to ${path.basename(filePath)}`);
     return true;
 }
 
@@ -87,8 +87,8 @@ pagesToUpdate.forEach(page => {
             updated++;
         }
     } else {
-        console.log(`✗ File not found: ${page}`);
+        console.debug(`✗ File not found: ${page}`);
     }
 });
 
-console.log(`\n✨ Updated ${updated} pages with PageTransition`);
+console.debug(`\n✨ Updated ${updated} pages with PageTransition`);

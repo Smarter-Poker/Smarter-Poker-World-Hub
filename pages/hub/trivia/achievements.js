@@ -92,7 +92,7 @@ export default function TriviaAchievements() {
                 setAchievements(processedAchievements);
                 setUnlockedCount(processedAchievements.filter(a => a.unlocked).length);
             } catch (error) {
-                console.error('Error loading achievements:', error);
+                console.warn('Error loading achievements:', error);
                 setAchievements(ACHIEVEMENTS.map(a => ({ ...a, unlocked: false })));
             }
             setIsLoading(false);

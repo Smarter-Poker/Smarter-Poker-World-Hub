@@ -70,7 +70,7 @@ export function JarvisAvatar({ isTyping = false, size = 40 }: JarvisAvatarProps)
                 </>
             )}
 
-            <style jsx>{`
+            <style>{`
                 @keyframes pulse {
                     0%, 100% { opacity: 0.6; transform: scale(1); }
                     50% { opacity: 1; transform: scale(1.1); }

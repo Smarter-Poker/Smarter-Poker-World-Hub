@@ -23,7 +23,7 @@ const STORAGE_KEY = 'club-arena-multi-tables';
 function saveState(slots, activeIndex, viewMode, pendingSlotIndex) {
   try {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ slots, activeIndex, viewMode, pendingSlotIndex }));
-  } catch (_) { /* quota or SSR — silent */ }
+  } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 }
 
 function loadState() {
@@ -254,7 +254,7 @@ export function useMultiTable({ supabase, userId }) {
         }
         notifSoundRef.current.play().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       }
-    } catch (_) { /* no sound available */ }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
     // Auto-switch: if active table has no action, switch to this one after 3s
     // Read from refs to avoid stale closure

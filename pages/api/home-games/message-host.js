@@ -75,7 +75,7 @@ export default async function handler(req, res) {
             .eq('id', game_id)
             .maybeSingle();
         if (gameErr) {
-            console.error('[MessageHost] Game lookup failed:', gameErr?.message);
+            console.warn('[MessageHost] Game lookup failed:', gameErr?.message);
             return res.status(500).json({ success: false, error: 'Game lookup failed' });
         }
         if (!gameRow) {
@@ -149,7 +149,7 @@ export default async function handler(req, res) {
                 .maybeSingle();
 
             if (convoErr || !newConvo) {
-                console.error('[MessageHost] Failed to create conversation:', convoErr?.message);
+                console.warn('[MessageHost] Failed to create conversation:', convoErr?.message);
                 return res.status(500).json({ success: false, error: 'Failed to create conversation' });
             }
 
@@ -177,7 +177,7 @@ export default async function handler(req, res) {
         });
 
         if (msgErr) {
-            console.error('[MessageHost] Send message error:', msgErr.message);
+            console.warn('[MessageHost] Send message error:', msgErr.message);
             return res.status(500).json({ success: false, error: 'Failed to send message' });
         }
 
@@ -190,7 +190,7 @@ export default async function handler(req, res) {
 
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('[MessageHost API Error]', err);
+        console.warn('[MessageHost API Error]', err);
         if (!res.headersSent) {
             return res.status(500).json({ success: false, error: 'Internal server error' });
         }

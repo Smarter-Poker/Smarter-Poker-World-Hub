@@ -171,7 +171,7 @@ export async function syncEngagementFromDatabase(horseProfileId) {
             await recordPostEngagement(horseProfileId, styleKey, likes, comments);
         }
     } catch (error) {
-        console.error('Error syncing engagement:', error);
+        console.warn('Error syncing engagement:', error);
     }
 }
 

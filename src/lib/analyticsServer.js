@@ -52,10 +52,7 @@ function getClient() {
             flushInterval: 1000,
         });
         return _client;
-    } catch (_err) {
-        // posthog-node not installed yet — silently no-op.
-        return null;
-    }
+    } catch (_err) { console.warn('[App] Handled exception:', _err?.message || _err); }
 }
 
 /**
@@ -77,7 +74,7 @@ export function capture(event, userId, properties = {}) {
             event,
             properties,
         });
-    } catch (_err) { /* swallow */ }
+    } catch (_err) { console.warn('[App] Handled exception:', _err?.message || _err); }
 }
 
 /**
@@ -91,7 +88,7 @@ export function identify(userId, properties = {}) {
             distinctId: userId,
             properties,
         });
-    } catch (_err) { /* swallow */ }
+    } catch (_err) { console.warn('[App] Handled exception:', _err?.message || _err); }
 }
 
 /**
@@ -105,7 +102,7 @@ export async function flushPosthog() {
         await client.shutdown();
         _client = null;
         _triedInit = false;
-    } catch (_err) { /* swallow */ }
+    } catch (_err) { console.warn('[App] Handled exception:', _err?.message || _err); }
 }
 
 export const FunnelEvents = Object.freeze({

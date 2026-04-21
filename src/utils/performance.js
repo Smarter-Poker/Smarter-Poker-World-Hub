@@ -162,7 +162,7 @@ export async function preloadCriticalResources() {
         await Promise.all(promises);
         return { success: true };
     } catch (error) {
-        console.error('[Performance] Error preloading resources:', error);
+        console.warn('[Performance] Error preloading resources:', error);
         return { success: false, error };
     }
 }
@@ -189,7 +189,7 @@ export class PerformanceMonitor {
         const duration = performance.now() - startTime;
         this.metrics.delete(label);
 
-        console.log(`[Performance] ${label}: ${duration.toFixed(2)}ms`);
+        console.debug(`[Performance] ${label}: ${duration.toFixed(2)}ms`);
         return duration;
     }
 
@@ -237,7 +237,7 @@ export class OptimizedStorage {
                 return parsed;
             }
         } catch (error) {
-            console.error('[OptimizedStorage] Error reading:', error);
+            console.warn('[OptimizedStorage] Error reading:', error);
         }
 
         return null;
@@ -252,7 +252,7 @@ export class OptimizedStorage {
             this.cache.set(fullKey, value);
             return true;
         } catch (error) {
-            console.error('[OptimizedStorage] Error writing:', error);
+            console.warn('[OptimizedStorage] Error writing:', error);
             return false;
         }
     }

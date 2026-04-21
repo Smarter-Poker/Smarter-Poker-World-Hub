@@ -200,10 +200,7 @@ export default function DailyTournaments() {
                 if (d.success) refreshTournaments(d, { revalidate: false });
                 else refreshTournaments(); // Soft invalidate if payload is bad
             })
-            .catch(() => {
-                // Network failure — invalidate SWR to force re-fetch on next focus
-                refreshTournaments();
-            });
+            .catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
     });
     const tournaments = swrData?.tournaments || [];
     const stats = swrData?.stats || {};

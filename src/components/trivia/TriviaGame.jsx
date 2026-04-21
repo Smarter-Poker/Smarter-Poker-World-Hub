@@ -90,7 +90,7 @@ export default function TriviaGame({
                 confettiRef.current = mod.default || mod;
             }
             confettiRef.current(opts);
-        } catch (e) { /* confetti is cosmetic — swallow import/execution errors */ }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     };
 
     const currentQuestion = questions[currentIndex];

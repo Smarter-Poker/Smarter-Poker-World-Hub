@@ -85,7 +85,7 @@ export default function DealerTicker({
             // Custom ticker message from settings
             const customMsg = sRes.data?.desk_customization?.tickerMessage || '';
             setTickerMessage(customMsg);
-        } catch (err) { /* silent */ }
+        } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
     }, []);
 
     useEffect(() => {

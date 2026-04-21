@@ -46,7 +46,7 @@ export default async function handler(req, res) {
           const latency = Date.now() - startTime;
 
           if (error) {
-              console.error('[health/header] Database error:', error);
+              console.warn('[health/header] Database error:', error);
               return res.status(500).json({
                   status: 'error',
                   message: 'Database query failed',
@@ -74,7 +74,7 @@ export default async function handler(req, res) {
           });
 
       } catch (e) {
-          console.error('[health/header] Exception:', e);
+          console.warn('[health/header] Exception:', e);
           return res.status(500).json({
               status: 'error',
               message: e.message,
@@ -84,7 +84,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

@@ -119,7 +119,7 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
             setUploadProgress(100);
             onSuccess();
         } catch (err) {
-            console.error('Upload error:', err);
+            console.warn('Upload error:', err);
             setError(err.message || 'Failed to upload reel');
         } finally {
             setUploading(false);

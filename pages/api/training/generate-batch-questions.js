@@ -123,7 +123,7 @@ export default async function handler(req, res) {
                                   if (error.message?.includes('duplicate')) {
                                       results.cached++;
                                   } else {
-                                      console.error(`  ❌ Save failed:`, error.message);
+                                      console.warn(`  ❌ Save failed:`, error.message);
                                       levelResults.failed++;
                                       results.failed++;
                                   }
@@ -134,7 +134,7 @@ export default async function handler(req, res) {
 
                               results.total++;
                           } else {
-                              console.error(`  ❌ Generation failed`);
+                              console.warn(`  ❌ Generation failed`);
                               levelResults.failed++;
                               results.failed++;
                           }
@@ -143,7 +143,7 @@ export default async function handler(req, res) {
                           await new Promise(resolve => setTimeout(resolve, 1000));
 
                       } catch (error) {
-                          console.error(`  ❌ Error:`, error.message);
+                          console.warn(`  ❌ Error:`, error.message);
                           levelResults.failed++;
                           results.failed++;
                       }
@@ -161,13 +161,13 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('❌ Batch generation error:', error);
+          console.warn('❌ Batch generation error:', error);
           return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -303,12 +303,12 @@ IMPORTANT: Make the scenario realistic for ${gameTypeDisplay} with ${playerCount
             const parsed = JSON.parse(jsonMatch[0]);
             return parsed;
         } else {
-            console.error('    ❌ No JSON found in Grok response');
+            console.warn('    ❌ No JSON found in Grok response');
             return null;
         }
     } catch (error) {
         try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('    ❌ Grok generation failed:', error.message);
+        console.warn('    ❌ Grok generation failed:', error.message);
         return null;
     }
 }

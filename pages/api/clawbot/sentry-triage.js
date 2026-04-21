@@ -124,7 +124,7 @@ async function fetchSentryIssues() {
     );
     return Array.isArray(issues) ? issues : [];
   } catch (err) {
-    console.error('[CB-01] Failed to fetch Sentry issues:', err.message);
+    console.warn('[CB-01] Failed to fetch Sentry issues:', err.message);
     // Try alternative org/project discovery
     try {
       const orgs = await sentryFetch('/organizations/');
@@ -141,7 +141,7 @@ async function fetchSentryIssues() {
         }
       }
     } catch (discoveryErr) {
-      console.error('[CB-01] Sentry discovery also failed:', discoveryErr.message);
+      console.warn('[CB-01] Sentry discovery also failed:', discoveryErr.message);
     }
     return [];
   }
@@ -190,12 +190,12 @@ async function getPreviousSnapshot() {
       .lt('snapshot_date', new Date().toISOString().split('T')[0]);
 
     if (error) {
-      console.error('[CB-01] Failed to get previous snapshot:', error.message);
+      console.warn('[CB-01] Failed to get previous snapshot:', error.message);
       return [];
     }
     return data || [];
   } catch (err) {
-    console.error('[CB-01] getPreviousSnapshot error:', err.message);
+    console.warn('[CB-01] getPreviousSnapshot error:', err.message);
     return [];
   }
 }
@@ -227,13 +227,13 @@ async function storeSnapshot(errors) {
     });
 
     if (error) {
-      console.error('[CB-01] Failed to store snapshot:', error.message);
+      console.warn('[CB-01] Failed to store snapshot:', error.message);
       return 0;
     }
 
     return rows.length;
   } catch (err) {
-    console.error('[CB-01] storeSnapshot error:', err.message);
+    console.warn('[CB-01] storeSnapshot error:', err.message);
     return 0;
   }
 }
@@ -293,7 +293,7 @@ async function createGithubIssues(errors) {
       });
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-      console.error(`[CB-01] Failed to create GitHub issue for ${error.sentry_issue_id}:`, err.message);
+      console.warn(`[CB-01] Failed to create GitHub issue for ${error.sentry_issue_id}:`, err.message);
       await logAudit(TASK_IDS.SENTRY_TRIAGE, 'github_issue_creation_failed', {
         sentry_id: error.sentry_issue_id,
         error: err.message,

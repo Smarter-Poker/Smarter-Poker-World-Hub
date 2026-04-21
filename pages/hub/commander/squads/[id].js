@@ -112,7 +112,7 @@ export default function SquadDetailPage() {
         setError(data.error?.message || 'Squad not found');
       }
     } catch (err) {
-      console.error('Fetch squad failed:', err);
+      console.warn('Fetch squad failed:', err);
       setError('Failed to load squad');
     } finally {
       setLoading(false);
@@ -128,7 +128,7 @@ export default function SquadDetailPage() {
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       setLoading(false);
-      console.error('Copy failed:', err);
+      console.warn('Copy failed:', err);
     }
   }
 
@@ -152,7 +152,7 @@ export default function SquadDetailPage() {
       }
     } catch (err) {
       setLoading(false);
-      console.error('Share failed:', err);
+      console.warn('Share failed:', err);
     }
   }
 
@@ -180,7 +180,7 @@ export default function SquadDetailPage() {
         setTimeout(() => setError(null), 4000);
       }
     } catch (err) {
-      console.error('Join waitlist failed:', err);
+      console.warn('Join waitlist failed:', err);
       setError('Failed to join waitlist');
       setTimeout(() => setError(null), 4000);
     } finally {
@@ -206,7 +206,7 @@ export default function SquadDetailPage() {
         fetchSquad();
       }
     } catch (err) {
-      console.error('Remove member failed:', err);
+      console.warn('Remove member failed:', err);
     } finally {
       setActionLoading(false);
     }
@@ -234,7 +234,7 @@ export default function SquadDetailPage() {
         router.push('/hub/commander/squads');
       }
     } catch (err) {
-      console.error('Disband failed:', err);
+      console.warn('Disband failed:', err);
     } finally {
       setActionLoading(false);
     }
@@ -258,7 +258,7 @@ export default function SquadDetailPage() {
         router.push('/hub/commander/squads');
       }
     } catch (err) {
-      console.error('Leave failed:', err);
+      console.warn('Leave failed:', err);
     } finally {
       setActionLoading(false);
     }

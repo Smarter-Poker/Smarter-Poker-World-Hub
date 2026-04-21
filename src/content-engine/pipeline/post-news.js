@@ -27,14 +27,14 @@ const NEWS_SOURCES = [
 ];
 
 async function postNewsToHorse() {
-    console.log('\n📰 POSTING POKER NEWS TO HORSE');
-    console.log('═'.repeat(60));
+    console.debug('\n📰 POSTING POKER NEWS TO HORSE');
+    console.debug('═'.repeat(60));
 
     // Fetch news
     let article = null;
     for (const source of NEWS_SOURCES) {
         try {
-            console.log(`Fetching from ${source.name}...`);
+            console.debug(`Fetching from ${source.name}...`);
             const feed = await rssParser.parseURL(source.rss);
             if (feed.items?.length) {
                 const item = feed.items[0];
@@ -47,18 +47,18 @@ async function postNewsToHorse() {
                 break;
             }
         } catch (e) {
-            console.log(`   ${source.name} failed: ${e.message}`);
+            console.debug(`   ${source.name} failed: ${e.message}`);
         }
     }
 
     if (!article) {
-        console.error('No news found');
+        console.warn('No news found');
         return;
     }
 
-    console.log(`\n📰 Article: ${article.title}`);
-    console.log(`   Source: ${article.source}`);
-    console.log(`   Link: ${article.link}`);
+    console.debug(`\n📰 Article: ${article.title}`);
+    console.debug(`   Source: ${article.source}`);
+    console.debug(`   Link: ${article.link}`);
 
     // Get random horse
     const { data: horses, error: horsesError } = await supabase
@@ -69,12 +69,12 @@ async function postNewsToHorse() {
         .limit(10);
 
     if (horsesError || !horses || horses.length === 0) {
-        console.error('No active horses found:', horsesError?.message || 'Empty list');
+        console.warn('No active horses found:', horsesError?.message || 'Empty list');
         return;
     }
 
     const horse = horses[Math.floor(Math.random() * horses.length)];
-    console.log(`\n🐴 Horse: ${horse.alias}`);
+    console.debug(`\n🐴 Horse: ${horse.alias}`);
 
     // Generate commentary
     const { choices } = await openai.chat.completions.create({
@@ -90,7 +90,7 @@ async function postNewsToHorse() {
     });
 
     const commentary = choices[0].message.content;
-    console.log(`\n💬 Commentary: ${commentary}`);
+    console.debug(`\n💬 Commentary: ${commentary}`);
 
     // Create post
     const postContent = `${commentary}\n\n${article.icon} ${article.title}\n🔗 ${article.link}`;
@@ -107,13 +107,13 @@ async function postNewsToHorse() {
         .maybeSingle();
 
     if (error || !post) {
-        console.error('Post error:', error?.message || 'No data returned');
+        console.warn('Post error:', error?.message || 'No data returned');
         return;
     }
 
-    console.log(`\n✅ POST CREATED: ${post.id}`);
-    console.log('═'.repeat(60));
-    console.log(`🎉 ${horse.alias} shared poker news!`);
+    console.debug(`\n✅ POST CREATED: ${post.id}`);
+    console.debug('═'.repeat(60));
+    console.debug(`🎉 ${horse.alias} shared poker news!`);
 }
 
 postNewsToHorse();

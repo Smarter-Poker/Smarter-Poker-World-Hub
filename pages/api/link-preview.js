@@ -94,7 +94,7 @@ export default async function handler(req, res) {
                 });
             }
         } catch (e) {
-            console.error('[link-preview] Microlink failed for social URL, using fallback:', e.message);
+            console.warn('[link-preview] Microlink failed for social URL, using fallback:', e.message);
         }
 
         // Fallback to generic preview if Microlink fails
@@ -144,7 +144,7 @@ export default async function handler(req, res) {
         return res.status(200).json(metadata);
 
     } catch (error) {
-        console.error('Direct fetch failed:', error.message);
+        console.warn('Direct fetch failed:', error.message);
 
         // Try using Microlink.io API as fallback - bypasses Cloudflare
         try {
@@ -167,7 +167,7 @@ export default async function handler(req, res) {
                 }
             }
         } catch (externalError) {
-            console.error('Microlink API failed:', externalError.message);
+            console.warn('Microlink API failed:', externalError.message);
         }
 
         // Final fallback: extract metadata from URL
@@ -255,7 +255,7 @@ function parseOpenGraph(html, originalUrl) {
         try {
             const urlObj = new URL(originalUrl);
             metadata.siteName = urlObj.hostname.replace(/^www\./, '');
-        } catch (e) { /* intentionally silent */ }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     }
 
     return metadata;

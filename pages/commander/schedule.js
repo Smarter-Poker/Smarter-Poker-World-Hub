@@ -279,7 +279,7 @@ return { 'Content-Type': 'application/json' };
         setUsingMockData(false);
       }
     } catch (err) {
-      console.error('[Schedule] fetch error:', err);
+      console.warn('[Schedule] fetch error:', err);
       // Fallback to mock data on error
       setAllStaff(MOCK_STAFF);
       setShifts(generateMockShifts());

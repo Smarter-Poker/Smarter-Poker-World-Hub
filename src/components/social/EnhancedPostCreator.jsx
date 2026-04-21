@@ -272,7 +272,7 @@ export const EnhancedPostCreator = ({
             name: file.name
           });
         } catch (uploadErr) {
-          console.error('Media upload failed:', uploadErr);
+          console.warn('Media upload failed:', uploadErr);
           setError(`Failed to upload ${file.name}`);
           setIsSubmitting(false);
           return;
@@ -322,7 +322,7 @@ export const EnhancedPostCreator = ({
       }, 1500);
 
     } catch (err) {
-      console.error('Post creation error details:', err);
+      console.warn('Post creation error details:', err);
 
       // SAFETY: Robust error message extraction
       let errorMessage = 'Failed to create post';

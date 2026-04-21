@@ -30,7 +30,7 @@ export default class PageErrorBoundary extends React.Component {
         this.setState({ errorInfo });
 
         // Log to console for dev visibility
-        console.error(
+        console.warn(
             '[PageErrorBoundary] 🔥 PAGE CRASH CAUGHT — site is still alive:',
             error,
             errorInfo?.componentStack
@@ -50,7 +50,7 @@ export default class PageErrorBoundary extends React.Component {
                     crashedRoute: typeof window !== 'undefined' ? window.location.pathname : 'SSR',
                 },
             });
-        } catch (_) { /* never let Sentry crash the boundary itself */ }
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }
 
     handleRetry = () => {

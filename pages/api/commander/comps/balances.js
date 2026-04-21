@@ -41,7 +41,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -188,7 +188,7 @@ async function awardComp(req, res, staffAuth) {
         processed_by: staffRecord.id, balance_after: member.comp_balance || 0,
         comp_category: 'free_membership', notes: notes || null
       });
-      if (logErr1) console.error('Comp log insert failed:', logErr1);
+      if (logErr1) console.warn('Comp log insert failed:', logErr1);
 
       return res.json({
         success: true,
@@ -234,7 +234,7 @@ async function awardComp(req, res, staffAuth) {
         processed_by: staffRecord.id, balance_after: updateFields.comp_balance || member.comp_balance || 0,
         comp_category: 'free_time', notes: `${timeMinutes} minutes${notes ? ' — ' + notes : ''}`
       });
-      if (logErr2) console.error('Comp log insert failed:', logErr2);
+      if (logErr2) console.warn('Comp log insert failed:', logErr2);
 
       return res.json({
         success: true,
@@ -287,7 +287,7 @@ async function awardComp(req, res, staffAuth) {
       processed_by: staffRecord.id, balance_after: Math.round(newBalance * 100) / 100,
       comp_category: comp_category || 'cash_bonus', notes: notes || null
     });
-    if (logErr3) console.error('Comp log insert failed:', logErr3);
+    if (logErr3) console.warn('Comp log insert failed:', logErr3);
 
     return res.json({
       success: true,
@@ -298,7 +298,7 @@ async function awardComp(req, res, staffAuth) {
       }
     });
   } catch (error) {
-    console.error('Award comp error:', error);
+    console.warn('Award comp error:', error);
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -484,7 +484,7 @@ async function getBalances(req, res) {
       }
     });
   } catch (error) {
-    console.error('Get comp balances error:', error);
+    console.warn('Get comp balances error:', error);
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -605,7 +605,7 @@ async function voidComp(req, res, staffAuth) {
       comp_category: compCategory,
       notes: `VOID-REF:${comp_log_id} | ${void_reason || 'Voided by staff'}`,
     });
-    if (voidLogErr) console.error('Void comp log insert failed:', voidLogErr);
+    if (voidLogErr) console.warn('Void comp log insert failed:', voidLogErr);
 
     return res.json({
       success: true,
@@ -620,7 +620,7 @@ async function voidComp(req, res, staffAuth) {
     });
   } catch (error) {
       try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('Void comp error:', error);
+    console.warn('Void comp error:', error);
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

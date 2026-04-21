@@ -105,7 +105,7 @@ async function recordAttempt({ deployId, commitSha, strategy, confidence, status
     // Return the id whether or not the response parsed correctly
     return id;
   } catch (e) {
-    console.error(`[deploy-error-poll] recordAttempt failed: ${e.message}`);
+    console.warn(`[deploy-error-poll] recordAttempt failed: ${e.message}`);
     return null;
   }
 }
@@ -122,7 +122,7 @@ async function updateAttemptStatus(id, status) {
       body: JSON.stringify({ status }),
     });
   } catch (e) {
-    console.error(`[deploy-error-poll] updateAttemptStatus failed: ${e.message}`);
+    console.warn(`[deploy-error-poll] updateAttemptStatus failed: ${e.message}`);
   }
 }
 
@@ -131,7 +131,7 @@ async function sendErrorSMS(title, message) {
   const adminPhone = process.env.MY_PHONE_NUMBER || process.env.ADMIN_PHONE;
   if (!adminPhone) return;
   const body = `🚨 SMARTER.POKER ALERT 🚨\n\n${title}\n${message}`;
-  await sendSMS(adminPhone, body).catch(e => console.error('[deploy-error-poll] SMS failed:', e));
+  await sendSMS(adminPhone, body).catch(e => console.warn('[deploy-error-poll] SMS failed:', e));
 }
 
 async function sendNotification({ title, message, color, fields }) {
@@ -171,7 +171,7 @@ async function sendNotification({ title, message, color, fields }) {
       });
     }
   } catch (e) {
-    console.error(`[deploy-error-poll] Notification failed: ${e.message}`);
+    console.warn(`[deploy-error-poll] Notification failed: ${e.message}`);
   }
 }
 
@@ -279,7 +279,7 @@ export default async function handler(req, res) {
         const reason = stale.state === 'BUILDING' ? 'Hung >15m' : (stale.meta?.githubCommitRef === 'main' ? 'Redundant Queue' : 'Preview >5m');
         console.log(`[deploy-error-poll] Cancelled ${stale.state} build ${stale.uid} (${reason}, branch: ${stale.meta?.githubCommitRef})`);
       } catch (e) {
-        console.error(`[deploy-error-poll] Failed to cancel ${stale.uid}: ${e.message}`);
+        console.warn(`[deploy-error-poll] Failed to cancel ${stale.uid}: ${e.message}`);
       }
     }));
 
@@ -408,7 +408,7 @@ export default async function handler(req, res) {
           attemptTracker[commitSha] = autofixCount + 1;
         }
       } catch (e) {
-        console.error(`[deploy-error-poll] Git history check failed: ${e.message}`);
+        console.warn(`[deploy-error-poll] Git history check failed: ${e.message}`);
         // attemptTracker already defaulted to 1 above — escalation still works
       }
     }
@@ -527,7 +527,7 @@ export default async function handler(req, res) {
         }
       }
     } catch (e) {
-      console.error(`[deploy-error-poll] Log fetch failed for ${deployId}: ${e.message}`);
+      console.warn(`[deploy-error-poll] Log fetch failed for ${deployId}: ${e.message}`);
       // Track consecutive log-fetch failures. After 3, permanently skip so we
       // don't hammer the Vercel Events API on a deploy whose logs are unavailable.
       attemptTracker[logFailKey] = (attemptTracker[logFailKey] || 0) + 1;
@@ -668,14 +668,14 @@ export default async function handler(req, res) {
       });
     } catch (e) {
       if (e.name === 'AbortError') {
-        console.error(`[deploy-error-poll] Autofix call timed out after 55s for ${deployId}`);
+        console.warn(`[deploy-error-poll] Autofix call timed out after 55s for ${deployId}`);
         return res.status(200).json({ action: 'autofix_timeout', deployId, error: 'deploy-autofix fetch timed out' });
       }
-      console.error(`[deploy-error-poll] Autofix call failed: ${e.message}`);
+      console.warn(`[deploy-error-poll] Autofix call failed: ${e.message}`);
       return res.status(200).json({ action: 'autofix_call_failed', deployId, error: e.message });
     }
   } catch (e) {
-    console.error(`[deploy-error-poll] Fatal error: ${e.message}`);
+    console.warn(`[deploy-error-poll] Fatal error: ${e.message}`);
     return res.status(500).json({ error: e.message });
   }
 }

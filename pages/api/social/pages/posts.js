@@ -197,7 +197,7 @@ export default async function handler(req, res) {
                           }
                       });
               } catch (mirrorErr) {
-                  console.error('[PagePosts] Failed to mirror post to global feed:', mirrorErr.message);
+                  console.warn('[PagePosts] Failed to mirror post to global feed:', mirrorErr.message);
                   // Non-fatal — page post was still created successfully
               }
           }
@@ -305,7 +305,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

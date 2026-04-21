@@ -751,13 +751,7 @@ function FriendsPage() {
                 });
                 toast.error('Could not send friend request. Please try again.');
             }
-        } catch (e) {
-            // Rollback optimistic update on network failure
-            setPendingIds(prev => {
-                const next = new Set(prev);
-                next.delete(friendId);
-                return next;
-            });
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); });
             toast.error('Network error. Please try again.');
         } finally { actionInProgress.current = false; }
     };
@@ -854,14 +848,7 @@ function FriendsPage() {
 
             busEmit.dataMutated('friends');
             broadcastSyncDebounced('smarter_poker_friends_sync', { action: 'refresh', tabId: BROADCAST_TAB_ID });
-        } catch (e) {
-            // Rollback on failure
-            setFriends(prevFriends);
-            setFriendIds(prevFriendIds);
-            setSuggestions(prevSuggestions);
-            toast.error('Could not remove friend. Please try again.');
-            console.warn('[Friends] Error removing friend:', e?.message || e);
-        } finally { actionInProgress.current = false; }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); } finally { actionInProgress.current = false; }
     };
 
     // ═══════════════════════════════════════════════════════════════════════

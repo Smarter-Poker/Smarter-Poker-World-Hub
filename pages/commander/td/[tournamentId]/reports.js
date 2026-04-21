@@ -54,7 +54,7 @@ export default function TDReports() {
             const json = await commanderFetchJSON(`/api/commander/tournaments/${tournamentId}/reports?type=${type}`, {});
             if (json.success) setReportData(json.data);
         } catch (err) {
-            console.error('Fetch report error:', err);
+            console.warn('Fetch report error:', err);
         } finally {
             setLoading(false);
         }

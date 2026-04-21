@@ -92,10 +92,7 @@ export const playSound = (soundName) => {
 
         oscillator.start(ctx.currentTime);
         oscillator.stop(ctx.currentTime + config.duration / 1000);
-    } catch (e) {
-        // Audio not supported or blocked
-        console.log('Audio unavailable');
-    }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 };
 
 /**

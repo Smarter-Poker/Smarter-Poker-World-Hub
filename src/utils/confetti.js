@@ -11,9 +11,7 @@ async function getConfetti() {
         try {
             const m = await import('canvas-confetti');
             _confetti = m.default || m;
-        } catch (e) {
-            // Swallow import errors — confetti is cosmetic
-            _confetti = () => {};
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); };
         }
     }
     return _confetti;
@@ -24,7 +22,7 @@ async function fire(opts) {
     try {
         const c = await getConfetti();
         c(opts);
-    } catch (e) { /* swallow */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 }
 
 // Confetti presets
@@ -69,7 +67,7 @@ export const confettiPresets = {
                     particleCount,
                     origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
                 });
-            } catch (e) { /* swallow */ }
+            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         }, 250);
     },
 
@@ -89,7 +87,7 @@ export const confettiPresets = {
                     ...opts,
                     particleCount: Math.floor(count * particleRatio),
                 });
-            } catch (e) { /* swallow */ }
+            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         }
 
         fireBurst(0.25, {
@@ -165,7 +163,7 @@ export const confettiPresets = {
                     origin: { x: 1 },
                     colors: ['#00ff88', '#00cc66'],
                 });
-            } catch (e) { /* swallow */ }
+            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         }, 50);
     },
 
@@ -196,7 +194,7 @@ export const confettiPresets = {
                     origin: { x: randomInRange(0.1, 0.9), y: randomInRange(0.1, 0.5) },
                     colors: ['#00d4ff', '#00ff88', '#ffd700', '#ff6b35', '#ff1744'],
                 });
-            } catch (e) { /* swallow */ }
+            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         }, 250);
     },
 

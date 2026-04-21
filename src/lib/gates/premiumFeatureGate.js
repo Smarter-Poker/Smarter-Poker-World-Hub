@@ -23,7 +23,7 @@ export async function checkFeatureAccess(userId, featureKey) {
     if (typeof window !== 'undefined') {
         try {
             if (localStorage.getItem('sp-vip-status') === 'true') {
-                console.log('[FeatureGate] VIP confirmed via localStorage cache — skipping network check');
+                console.debug('[FeatureGate] VIP confirmed via localStorage cache — skipping network check');
                 return { hasAccess: true, isVip: true, expiresAt: null, diamonds: 0 };
             }
         } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
@@ -80,7 +80,7 @@ export async function checkFeatureAccess(userId, featureKey) {
 
     // If profile fetch totally failed, try server-side VIP bridge as last resort
     if (!profile) {
-        console.error('[FeatureGate] CRITICAL: Could not fetch profile for userId:', userId, '| Error:', fetchError?.message);
+        console.warn('[FeatureGate] CRITICAL: Could not fetch profile for userId:', userId, '| Error:', fetchError?.message);
         // ═══════════════════════════════════════════════════════════════════
         // HARDENED: Server-side fallback via /api/vip/check-status
         // Uses Supabase service role key (bypasses RLS) — will succeed even
@@ -100,7 +100,7 @@ export async function checkFeatureAccess(userId, featureKey) {
             if (resp.ok) {
                 const vipData = await resp.json();
                 if (vipData.isVip) {
-                    console.log('[FeatureGate] Server-side fallback confirmed VIP for userId:', userId);
+                    console.debug('[FeatureGate] Server-side fallback confirmed VIP for userId:', userId);
                     return { hasAccess: true, isVip: true, expiresAt: null, diamonds: vipData.diamonds || 0 };
                 }
             }
@@ -110,7 +110,7 @@ export async function checkFeatureAccess(userId, featureKey) {
         return { hasAccess: false, isVip: false, expiresAt: null, diamonds: 0, error: 'Profile fetch failed' };
     }
 
-    console.log('[FeatureGate] Profile loaded — diamonds:', profile.diamonds, '| is_vip:', profile.is_vip);
+    console.debug('[FeatureGate] Profile loaded — diamonds:', profile.diamonds, '| is_vip:', profile.is_vip);
 
     // VIP users get unlimited access
     if (profile.is_vip) {
@@ -281,15 +281,7 @@ export async function purchaseFeatureAccess(userId, featureKey, cost, durationHo
             p_amount: cost,
             p_source: 'feature_unlock_refund',
             p_metadata: { feature_key: featureKey, reason: 'access_grant_failed' }
-        }).catch(() => {
-            // Fallback refund via audit-safe RPC
-            supabase.rpc('add_diamonds_to_balance', {
-                p_user_id: userId,
-                p_amount: cost,
-                p_type: 'feature_unlock_refund',
-                p_description: `${featureKey} refund (access grant failed)`,
-                p_reference_id: null
-            }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+        }).catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         });
         return { success: false, error: 'Failed to grant access' };
     }

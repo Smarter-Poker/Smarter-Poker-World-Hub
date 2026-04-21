@@ -78,7 +78,7 @@ export default async function handler(req, res) {
                 // RPC succeeded but returned an unexpected shape — surface
                 // rather than silently fall back.
                 // eslint-disable-next-line no-console
-                console.error('[get-conversations] RPC returned non-array:', typeof rpcData);
+                console.warn('[get-conversations] RPC returned non-array:', typeof rpcData);
                 return res.status(500).json({ success: false, error: 'Unexpected RPC response shape' });
             }
             const conversations = rpcData.map((c) => ({
@@ -97,7 +97,7 @@ export default async function handler(req, res) {
         // other error is fatal and must not be papered over.
         if (!isMissingRpc(rpcError)) {
             // eslint-disable-next-line no-console
-            console.error('[get-conversations] RPC error (not falling back):', rpcError);
+            console.warn('[get-conversations] RPC error (not falling back):', rpcError);
             return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
@@ -113,7 +113,7 @@ export default async function handler(req, res) {
 
         if (partError) {
             // eslint-disable-next-line no-console
-            console.error('[get-conversations] participations query error:', partError);
+            console.warn('[get-conversations] participations query error:', partError);
             return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
@@ -155,17 +155,17 @@ export default async function handler(req, res) {
         // Surface errors from any branch rather than silently returning partial data.
         if (convsResult.error) {
             // eslint-disable-next-line no-console
-            console.error('[get-conversations] conversations query error:', convsResult.error);
+            console.warn('[get-conversations] conversations query error:', convsResult.error);
             return res.status(500).json({ success: false, error: 'Internal server error' });
         }
         if (otherParticipantsResult.error) {
             // eslint-disable-next-line no-console
-            console.error('[get-conversations] other-participants query error:', otherParticipantsResult.error);
+            console.warn('[get-conversations] other-participants query error:', otherParticipantsResult.error);
             return res.status(500).json({ success: false, error: 'Internal server error' });
         }
         if (candidateMsgsResult.error) {
             // eslint-disable-next-line no-console
-            console.error('[get-conversations] unread-count query error:', candidateMsgsResult.error);
+            console.warn('[get-conversations] unread-count query error:', candidateMsgsResult.error);
             return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
@@ -190,7 +190,7 @@ export default async function handler(req, res) {
                 .in('id', [...otherUserIds]);
             if (profErr) {
                 // eslint-disable-next-line no-console
-                console.error('[get-conversations] profiles query error:', profErr);
+                console.warn('[get-conversations] profiles query error:', profErr);
                 return res.status(500).json({ success: false, error: 'Internal server error' });
             }
             (profiles || []).forEach((p) => { profilesMap[p.id] = p; });
@@ -232,7 +232,7 @@ export default async function handler(req, res) {
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         // eslint-disable-next-line no-console
-        console.error('[get-conversations]', err);
+        console.warn('[get-conversations]', err);
         if (!res.headersSent) {
             return res.status(500).json({ success: false, error: 'Internal server error' });
         }

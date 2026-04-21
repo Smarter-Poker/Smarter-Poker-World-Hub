@@ -197,7 +197,7 @@ export default function UniversalHeader({
 
                 if (authUser) {
                     setUser(authUser);
-                    console.log('[UniversalHeader] User found in localStorage:', authUser.email);
+                    console.debug('[UniversalHeader] User found in localStorage:', authUser.email);
 
                     // 🛡️ BULLETPROOF: Retry logic with exponential backoff
                     const MAX_RETRIES = 3;
@@ -221,7 +221,7 @@ export default function UniversalHeader({
                             });
 
                             const result = await response.json();
-                            console.log(`[UniversalHeader] API fetch attempt ${attempt}:`, result);
+                            console.debug(`[UniversalHeader] API fetch attempt ${attempt}:`, result);
 
                             if (result.success && result.profile && mounted) {
                                 const { diamonds, full_name, username, avatar_url, is_vip } = result.profile;
@@ -266,14 +266,14 @@ export default function UniversalHeader({
                     let success = await fetchProfileWithRetry(1);
                     for (let attempt = 2; attempt <= MAX_RETRIES && !success && mounted; attempt++) {
                         const delay = Math.pow(2, attempt - 1) * 500; // 500ms, 1000ms, 2000ms
-                        console.log(`[UniversalHeader] Retrying in ${delay}ms...`);
+                        console.debug(`[UniversalHeader] Retrying in ${delay}ms...`);
                         await new Promise(r => setTimeout(r, delay));
                         success = await fetchProfileWithRetry(attempt);
                     }
 
                     // Final fallback: direct REST API call (not Supabase client)
                     if (!success && mounted) {
-                        console.log('[UniversalHeader] All API retries failed, trying direct REST...');
+                        console.debug('[UniversalHeader] All API retries failed, trying direct REST...');
                         try {
                             const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
                             const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo';
@@ -323,10 +323,10 @@ export default function UniversalHeader({
                                     setProfileHref(directHref);
                                     router.prefetch(directHref);
                                 }
-                                console.log('[UniversalHeader] Direct REST fallback SUCCESS:', { diamonds: profile.diamonds });
+                                console.debug('[UniversalHeader] Direct REST fallback SUCCESS:', { diamonds: profile.diamonds });
                             }
                         } catch (e) {
-                            console.error('[UniversalHeader] Direct REST fallback failed:', e);
+                            console.warn('[UniversalHeader] Direct REST fallback failed:', e);
                         }
                     }
 
@@ -349,7 +349,7 @@ export default function UniversalHeader({
                         // Support both legacy string and new object payloads
                         const isRefresh = msg === 'refresh_notifications' || msg?.action === 'refresh_notifications';
                         if (isRefresh) {
-                            console.log('[UniversalHeader] received refresh_notifications broadcast');
+                            console.debug('[UniversalHeader] received refresh_notifications broadcast');
                             fetchUnreadCount();
                         }
                     });
@@ -378,7 +378,7 @@ export default function UniversalHeader({
                     // Global useUnreadCount handles social_messages naturally
                 }
             } catch (e) {
-                console.error('[UniversalHeader] Data fetch error:', e);
+                console.warn('[UniversalHeader] Data fetch error:', e);
             } finally {
                 // loadUser complete
             }
@@ -410,7 +410,7 @@ export default function UniversalHeader({
 
         const cleanup = listenBroadcast('smarter_poker_avatar_sync', (msg) => {
             if (msg === 'refresh') {
-                console.log('[UniversalHeader] Avatar refresh via BroadcastChannel');
+                console.debug('[UniversalHeader] Avatar refresh via BroadcastChannel');
                 // Trigger a profile re-fetch so avatar + name update in the header
                 window.dispatchEvent(new CustomEvent('profile-updated'));
             }
@@ -426,7 +426,7 @@ export default function UniversalHeader({
     // Triggered by PhoneVerifyVIPModal after successful phone verification
     useEffect(() => {
         const handleVipChange = (e) => {
-            console.log('[UniversalHeader] 🚌 VIP status change event received:', e.detail);
+            console.debug('[UniversalHeader] 🚌 VIP status change event received:', e.detail);
             if (e.detail?.vipGranted) {
                 setIsVip(true);
             }
@@ -476,7 +476,7 @@ export default function UniversalHeader({
                         const directHref = `/hub/user/${result.profile.username}`;
                         setProfileHref(directHref);
                     }
-                    console.log('[UniversalHeader] 🚌 Profile refreshed via bus event');
+                    console.debug('[UniversalHeader] 🚌 Profile refreshed via bus event');
                 }
             } catch (e) {
                 console.warn('[UniversalHeader] Profile refresh failed:', e.message);
@@ -987,7 +987,7 @@ export default function UniversalHeader({
                     {/* Live Help - Hidden on mobile */}
                     <button
                         onClick={() => {
-                            console.log('[UniversalHeader] Live Help button clicked');
+                            console.debug('[UniversalHeader] Live Help button clicked');
                             liveHelp.setIsOpen(true);
                         }}
                         className="orb-btn"

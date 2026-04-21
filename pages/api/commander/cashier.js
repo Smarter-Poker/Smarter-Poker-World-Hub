@@ -38,7 +38,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -89,7 +89,7 @@ async function handleGet(req, res, staff) {
 
     return res.status(200).json({ success: true, data: transactions, summary });
   } catch (err) {
-    console.error('Cashier GET error:', err);
+    console.warn('Cashier GET error:', err);
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -164,7 +164,7 @@ async function handlePost(req, res, staff) {
 
     return res.status(201).json({ success: true, data, player_totals: playerTotals });
   } catch (err) {
-    console.error('Cashier POST error:', err);
+    console.warn('Cashier POST error:', err);
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -225,7 +225,7 @@ async function handlePatch(req, res, staff) {
     return res.status(200).json({ success: true, data });
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('Cashier PATCH error:', err);
+    console.warn('Cashier PATCH error:', err);
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

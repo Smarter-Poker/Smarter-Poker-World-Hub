@@ -49,7 +49,7 @@ export default function CategoryOverview({ userId, categoryFilter, onBack }) {
             setLocations(locs || []);
             setTrips(trps || []);
         } catch (err) {
-            console.error('Error loading category data:', err);
+            console.warn('Error loading category data:', err);
         } finally {
             setIsLoading(false);
         }
@@ -71,7 +71,7 @@ export default function CategoryOverview({ userId, categoryFilter, onBack }) {
             toast.success('Entry deleted');
             await loadData();
         } catch (err) {
-            console.error('Delete failed:', err);
+            console.warn('Delete failed:', err);
             toast.error('Failed to delete entry');
             await loadData();
         }

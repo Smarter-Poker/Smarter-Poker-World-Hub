@@ -89,7 +89,7 @@ export default async function handler(req, res) {
 
             const { data: reviews, error } = await query;
             if (error) {
-                console.error('[Admin Reviews GET] Error:', error);
+                console.warn('[Admin Reviews GET] Error:', error);
                 return res.status(500).json({ success: false, error: 'Internal server error' });
             }
 
@@ -104,7 +104,7 @@ export default async function handler(req, res) {
                             .select('id, name, city, state')
                             .in('id', venueIds.map(String));
                         (venues || []).forEach(v => { venueNames[String(v.id)] = `${v.name}${v.city ? ` — ${v.city}` : ''}${v.state ? `, ${v.state}` : ''}`; });
-                    } catch (_) { /* non-fatal */ }
+                    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                 }
             }
 
@@ -143,7 +143,7 @@ export default async function handler(req, res) {
                 .eq('id', review_id);
 
             if (error) {
-                console.error('[Admin Reviews DELETE] Error:', error);
+                console.warn('[Admin Reviews DELETE] Error:', error);
                 return res.status(500).json({ success: false, error: 'Internal server error' });
             }
 
@@ -151,7 +151,7 @@ export default async function handler(req, res) {
             if (existing?.venue_id) {
                 try {
                     await getSupabase().rpc('recalculate_venue_trust_score', { p_venue_id: String(existing.venue_id) });
-                } catch (_) { /* non-fatal */ }
+                } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
             }
 
             // Apply Trust Score Punishment & Send Push Notification
@@ -185,7 +185,7 @@ export default async function handler(req, res) {
                                 message: pushMessage, // /api/notifications/send uses 'message' or 'body', typically 'message'
                                 type: 'moderation_alert'
                             })
-                        }).catch(e => console.error("Push Dispatch Warning:", e));
+                        }).catch(e => console.warn("Push Dispatch Warning:", e));
                     }
                 } catch (punishErr) {
                     console.warn('[Admin Reviews DELETE] Trust Score Error:', punishErr);
@@ -201,7 +201,7 @@ export default async function handler(req, res) {
                     details: { reviewer_name: existing?.reviewer_name, venue_id: existing?.venue_id },
                     created_at: new Date().toISOString(),
                 }]);
-            } catch (_) { /* non-fatal audit */ }
+            } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
             return res.status(200).json({ success: true, deleted_id: review_id });
         }
@@ -223,7 +223,7 @@ export default async function handler(req, res) {
                 .eq('id', review_id);
 
             if (error) {
-                console.error('[Admin Reviews PATCH] Error:', error);
+                console.warn('[Admin Reviews PATCH] Error:', error);
                 return res.status(500).json({ success: false, error: 'Internal server error' });
             }
 
@@ -234,7 +234,7 @@ export default async function handler(req, res) {
 
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('[Admin Reviews API] Error:', err);
+        console.warn('[Admin Reviews API] Error:', err);
         if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

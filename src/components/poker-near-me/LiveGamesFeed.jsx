@@ -409,7 +409,7 @@ function LiveGamesFeed({
                 }
             }
         } catch (e) {
-            console.error('Fetch global live data error:', e);
+            console.warn('Fetch global live data error:', e);
             // Network failure — preserve last-known data
             if (lastGoodLiveDataRef.current && Object.keys(lastGoodLiveDataRef.current).length > 0) {
                 setIsScraperDead(true);
@@ -1449,7 +1449,7 @@ class LiveGamesFeedErrorBoundary extends React.Component {
     }
     static getDerivedStateFromError() { return { hasError: true }; }
     componentDidCatch(err, info) {
-        console.error('[LiveGamesFeed] Caught render error:', err, info?.componentStack);
+        console.warn('[LiveGamesFeed] Caught render error:', err, info?.componentStack);
         if (this._retryTimer) clearTimeout(this._retryTimer);
         this._retryTimer = setTimeout(() => this.setState({ hasError: false }), 8000);
     }

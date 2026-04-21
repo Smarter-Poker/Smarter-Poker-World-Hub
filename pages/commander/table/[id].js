@@ -65,7 +65,7 @@ const headers = { };
       setSessions(sessionsArr.filter(s => s.status === 'active'));
       const waitlistArr = Array.isArray(waitlistRes.data) ? waitlistRes.data : [];
       setWaitlist(waitlistArr.filter(w => w.status === 'waiting'));
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
     finally { setLoading(false); }
   };
 
@@ -96,7 +96,7 @@ const res = await commanderFetch(`/api/commander/dealer/sessions/${sessionId}/en
         fetchData();
         broadcastChange('tables');
       }
-    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
+    } catch (err) { console.warn(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
   };
 
   if (loading) return (

@@ -343,7 +343,7 @@ export const SmarterPokerLayout = ({ children, currentUser: propUser, onNavigate
                     setAuthProfile(profile);
                 }
             } catch (err) {
-                console.error('Auth error:', err);
+                console.warn('Auth error:', err);
             }
         };
         checkAuth();

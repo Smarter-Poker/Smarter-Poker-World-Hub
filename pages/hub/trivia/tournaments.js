@@ -359,7 +359,7 @@ export default function TournamentsPage() {
                 setUserDiamonds(freshBalance);
             }
         } catch (e) {
-            console.error('[Tournaments] Balance check failed:', e);
+            console.warn('[Tournaments] Balance check failed:', e);
         }
 
         if (freshBalance < tournament.entry_fee) {
@@ -385,7 +385,7 @@ export default function TournamentsPage() {
                 .maybeSingle();
             if (freshProfile) setUserDiamonds(freshProfile.diamonds || 0);
         } catch (e) {
-            console.error('[Tournaments] Entry fee deduction failed — aborting:', e);
+            console.warn('[Tournaments] Entry fee deduction failed — aborting:', e);
             return;
         }
 
@@ -415,7 +415,7 @@ export default function TournamentsPage() {
                 })
                 .eq('id', tournament.id);
         } catch (e) {
-            console.error('[Tournaments] Entry creation failed after fee deduction:', e);
+            console.warn('[Tournaments] Entry creation failed after fee deduction:', e);
         }
 
         // Refresh tournament data
@@ -535,7 +535,7 @@ export default function TournamentsPage() {
                     .eq('tournament_id', activeTournament.id)
                     .eq('user_id', userId);
             } catch (e) {
-                console.error('[Tournaments] Failed to save round results:', e);
+                console.warn('[Tournaments] Failed to save round results:', e);
             }
         }
 
@@ -560,7 +560,7 @@ export default function TournamentsPage() {
                         });
                 }
             } catch (e) {
-                console.error('[Tournaments] Error recording history:', e);
+                console.warn('[Tournaments] Error recording history:', e);
             }
         }
 

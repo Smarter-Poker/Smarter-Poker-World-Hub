@@ -27,7 +27,7 @@ const supabase = createClient(
 );
 
 async function seedPersonas() {
-    console.log('🐴 Seeding personas to database...\n');
+    console.debug('🐴 Seeding personas to database...\n');
 
     const authorsToInsert = personas.personas.map(p => ({
         name: p.name,
@@ -57,14 +57,14 @@ async function seedPersonas() {
             .select();
 
         if (error) {
-            console.error(`Batch ${i / batchSize + 1} error:`, error);
+            console.warn(`Batch ${i / batchSize + 1} error:`, error);
         } else {
             inserted += data.length;
-            console.log(`✅ Batch ${i / batchSize + 1}: Inserted ${data.length} authors`);
+            console.debug(`✅ Batch ${i / batchSize + 1}: Inserted ${data.length} authors`);
         }
     }
 
-    console.log(`\n🎉 Done! ${inserted} personas seeded to database.`);
+    console.debug(`\n🎉 Done! ${inserted} personas seeded to database.`);
 }
 
 // Run if called directly

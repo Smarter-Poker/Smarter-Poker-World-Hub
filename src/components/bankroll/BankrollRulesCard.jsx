@@ -98,9 +98,7 @@ export default function BankrollRulesCard({ userId }) {
       });
       setRules(ruleMap);
       setCustomRules(customs);
-    } catch (err) {
-      // Table may not exist
-    } finally {
+    } catch (err) { console.warn('[App] Handled exception:', err?.message || err); } finally {
       setIsLoading(false);
     }
   };
@@ -137,7 +135,7 @@ export default function BankrollRulesCard({ userId }) {
         toast.success(`${premadeRule.label} enabled`);
       }
     } catch (err) {
-      console.error('[BankrollRules] Toggle error:', err);
+      console.warn('[BankrollRules] Toggle error:', err);
       toast.error('Failed to update rule');
     }
   };
@@ -259,7 +257,7 @@ export default function BankrollRulesCard({ userId }) {
       setShowAddForm(false);
       toast.success('Custom rule created!');
     } catch (err) {
-      console.error('[BankrollRules] Add custom error:', err);
+      console.warn('[BankrollRules] Add custom error:', err);
       toast.error('Failed to create rule');
     } finally {
       setIsSaving(false);

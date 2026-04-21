@@ -75,7 +75,7 @@ async function getCashHoursPerPlayer(venueId, dateRange, gameTypes, minStakes) {
 
     const { data: sessions, error } = await query;
     if (error) {
-        console.error('Cash hours query error:', error);
+        console.warn('Cash hours query error:', error);
         return {};
     }
 
@@ -113,7 +113,7 @@ async function getTournamentPointsPerPlayer(venueId, dateRange) {
             .limit(100);
 
     if (tError || !tournaments || tournaments.length === 0) {
-        if (tError) console.error('Tournament query error:', tError);
+        if (tError) console.warn('Tournament query error:', tError);
         return {};
     }
 
@@ -128,7 +128,7 @@ async function getTournamentPointsPerPlayer(venueId, dateRange) {
         .limit(5000);
 
     if (eError) {
-        console.error('Tournament entries query error:', eError);
+        console.warn('Tournament entries query error:', eError);
         return {};
     }
 
@@ -226,7 +226,7 @@ async function syncFreeroll(freeroll) {
             });
 
         if (error) {
-            console.error(`Upsert error for player ${pid}:`, error);
+            console.warn(`Upsert error for player ${pid}:`, error);
         } else {
             upserted++;
             if (isQualified) qualified++;
@@ -292,7 +292,7 @@ export default async function handler(req, res) {
           const { data: freerolls, error: fetchError } = await query;
 
           if (fetchError) {
-              console.error('Fetch freerolls error:', fetchError);
+              console.warn('Fetch freerolls error:', fetchError);
               return res.status(500).json({ error: fetchError.message });
           }
 
@@ -310,7 +310,7 @@ export default async function handler(req, res) {
                   const result = await syncFreeroll(freeroll);
                   results.push(result);
               } catch (err) {
-                  console.error(`Sync error for freeroll ${freeroll.id}:`, err);
+                  console.warn(`Sync error for freeroll ${freeroll.id}:`, err);
                   results.push({
                       freeroll_id: freeroll.id,
                       name: freeroll.name,
@@ -329,13 +329,13 @@ export default async function handler(req, res) {
               timestamp: new Date().toISOString()
           });
       } catch (error) {
-          console.error('Freeroll qualification sync error:', error);
+          console.warn('Freeroll qualification sync error:', error);
           return res.status(500).json({ error: error.message });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

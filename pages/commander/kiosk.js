@@ -91,7 +91,7 @@ export default function MembershipKiosk() {
         if (staffData.venue_id) setVenueId(staffData.venue_id);
         setStaffHeader(staffStr);
       }
-    } catch (e) { console.error("[kiosk.js]", e); }
+    } catch (e) { console.warn("[kiosk.js]", e); }
     return () => _ctrl.abort();
   }, []);
 
@@ -154,7 +154,7 @@ export default function MembershipKiosk() {
           return; // Have real games, skip fallback
         }
       }
-    } catch (e) { console.error("[kiosk.js]", e); }
+    } catch (e) { console.warn("[kiosk.js]", e); }
     // Fallback if no games were fetched — use ref-safe check
     setAvailableGames(prev => {
       if (prev.length > 0) return prev; // Already have games from a previous fetch
@@ -192,7 +192,7 @@ export default function MembershipKiosk() {
         });
         setWaitlistMatches(matches);
       }
-    } catch (err) { console.error(err); setLoadError("Failed to load kiosk data."); }
+    } catch (err) { console.warn(err); setLoadError("Failed to load kiosk data."); }
     finally { setSearching(false); }
   };
 
@@ -223,7 +223,7 @@ export default function MembershipKiosk() {
       } else {
         throw new Error('Check-in failed on server');
       }
-    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
+    } catch (err) { console.warn(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
     finally { setSubmitting(false); }
   };
 
@@ -290,7 +290,7 @@ export default function MembershipKiosk() {
           }
         }
       } catch (e) {
-        console.error("[kiosk.js]", e);
+        console.warn("[kiosk.js]", e);
       }
 
       setCheckinIsWaitlisted(foundOnWaitlist);
@@ -298,7 +298,7 @@ export default function MembershipKiosk() {
       setSuccessMsg(`✅ ${titleCase(member.first_name || member.name || 'Player')} — Checked In!`);
       setMode('success');
     } catch (err) {
-      console.error(err);
+      console.warn(err);
       setScanError('Scan failed. Please try again.');
     } finally {
       setSubmitting(false);
@@ -356,7 +356,7 @@ export default function MembershipKiosk() {
         setMode('success');
       }
     } catch (err) {
-      console.error(err);
+      console.warn(err);
       setScanError('Search failed. Please try again.');
     }
     finally { setSubmitting(false); }
@@ -405,7 +405,7 @@ export default function MembershipKiosk() {
         setMode('success');
       }
     } catch (err) {
-      console.error(err);
+      console.warn(err);
       setScanError('Search failed. Please try again.');
     }
     finally { setSubmitting(false); }
@@ -436,7 +436,7 @@ export default function MembershipKiosk() {
       fetchGames();
       setMode('join_game');
     } catch (err) {
-      console.error(err);
+      console.warn(err);
       setScanError('Scan failed. Please enter your name manually.');
     }
     finally { setSubmitting(false); }
@@ -472,13 +472,13 @@ export default function MembershipKiosk() {
         setMode('success');
         broadcastChange('waitlist');
       }
-    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
+    } catch (err) { console.warn(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
     finally { setSubmitting(false); }
   };
 
   // Haptic feedback for touch devices (iPads, mobiles)
   const haptic = () => {
-    try { if (navigator.vibrate) navigator.vibrate(15); } catch (e) { console.error("[kiosk.js]", e); }
+    try { if (navigator.vibrate) navigator.vibrate(15); } catch (e) { console.warn("[kiosk.js]", e); }
   };
 
   if (loadError) return (

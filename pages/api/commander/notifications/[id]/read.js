@@ -58,7 +58,7 @@ export default async function handler(req, res) {
         data: { notification }
       });
     } catch (error) {
-      console.error('Mark read error:', error);
+      console.warn('Mark read error:', error);
       return res.status(500).json({
         success: false,
         error: { code: 'SERVER_ERROR', message: 'Failed to mark as read' }
@@ -67,7 +67,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

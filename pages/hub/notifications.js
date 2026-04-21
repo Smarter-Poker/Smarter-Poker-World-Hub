@@ -105,11 +105,7 @@ function NotificationsPage() {
                     broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID });
                 }
             }
-        } catch (err) {
-            // [Audit#2] Rollback on network error
-            console.error('[Delete Notif]', err);
-            if (snapshot && mounted.current) setNotifications(snapshot);
-            setDeletingIds(prev => { const s = new Set(prev); s.delete(notifId); return s; });
+        } catch (err) { console.warn('[App] Handled exception:', err?.message || err); });
             // [Pass4-Fix] Trigger header re-fetch to restore badge count we decremented
             if (wasUnread) {
                 broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID });
@@ -399,7 +395,7 @@ function NotificationsPage() {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
                     body: JSON.stringify({ notification_id: realId })
-                }).catch(console.error)
+                }).catch(console.warn)
             );
         }
     };
@@ -434,7 +430,7 @@ function NotificationsPage() {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
                     body: JSON.stringify({ mark_all: true })
-                }).catch(console.error)
+                }).catch(console.warn)
             );
         }
     };
@@ -452,7 +448,7 @@ function NotificationsPage() {
 
 
         if (!requesterId || !user) {
-            console.error('Missing requesterId or user');
+            console.warn('Missing requesterId or user');
             return;
         }
 
@@ -495,11 +491,11 @@ function NotificationsPage() {
                 busEmit.dataMutated('friends');
                 broadcastSync('smarter_poker_friends_sync', 'refresh');
             } else {
-                console.error('Could not find friendship to accept');
+                console.warn('Could not find friendship to accept');
                 toast.error('Could not find friend request.');
             }
         } catch (err) {
-            console.error('Error accepting friend request:', err);
+            console.warn('Error accepting friend request:', err);
             toast.error('Failed to accept friend request. Try again.');
         }
     };
@@ -513,7 +509,7 @@ function NotificationsPage() {
 
 
         if (!requesterId || !user) {
-            console.error('Missing requesterId or user');
+            console.warn('Missing requesterId or user');
             return;
         }
 
@@ -546,7 +542,7 @@ function NotificationsPage() {
             busEmit.dataMutated('friends');
             broadcastSync('smarter_poker_friends_sync', 'refresh');
         } catch (err) {
-            console.error('Error declining friend request:', err);
+            console.warn('Error declining friend request:', err);
             toast.error('Failed to decline request. Try again.');
         }
     };

@@ -35,7 +35,7 @@ export default function ProfileRedirect() {
                     try {
                         const tokenData = JSON.parse(unifiedToken);
                         authUser = tokenData?.user || null;
-                    } catch (e) { /* ignore */ }
+                    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
                 }
 
                 // Fallback: legacy Supabase keys
@@ -45,7 +45,7 @@ export default function ProfileRedirect() {
                         try {
                             const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
                             authUser = tokenData?.user || null;
-                        } catch (e) { /* ignore */ }
+                        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
                     }
                 }
 
@@ -66,7 +66,7 @@ export default function ProfileRedirect() {
                             return;
                         }
                     }
-                } catch (e) { /* ignore stale cache */ }
+                } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
                 // ── STEP 3: Fetch username from Supabase (network call) ──
                 const { data: profile } = await supabase
@@ -83,7 +83,7 @@ export default function ProfileRedirect() {
                             username: profile.username,
                             ts: Date.now()
                         }));
-                    } catch (e) { /* ignore quota errors */ }
+                    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
                     // Redirect to their SmarterPoker-style public profile
                     router.replace(`/hub/user/${profile.username}`);
@@ -92,7 +92,7 @@ export default function ProfileRedirect() {
                     router.replace('/hub/profile-edit');
                 }
             } catch (e) {
-                console.error('[Profile] Redirect error:', e);
+                console.warn('[Profile] Redirect error:', e);
                 router.replace('/hub/profile-edit');
             }
         };

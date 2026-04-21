@@ -194,7 +194,7 @@ export default async function handler(req, res) {
               .eq('id', page_id);
 
           if (updateError) {
-              console.error('[geocode-locations] Update error:', updateError);
+              console.warn('[geocode-locations] Update error:', updateError);
               return res.status(500).json({ success: false, error: 'Failed to save geocoded locations' });
           }
 
@@ -204,13 +204,13 @@ export default async function handler(req, res) {
               results,
           });
       } catch (err) {
-          console.error('[geocode-locations] Error:', err);
+          console.warn('[geocode-locations] Error:', err);
           return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

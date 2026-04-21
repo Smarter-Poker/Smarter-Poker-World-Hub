@@ -87,7 +87,7 @@ export default async function handler(req, res) {
           const { data: messages, error } = await query;
 
           if (error) {
-              console.error('[ANTIGRAVITY] Error fetching messages:', error);
+              console.warn('[ANTIGRAVITY] Error fetching messages:', error);
               return res.status(500).json({ success: false, error: 'Internal server error' });
           }
 
@@ -100,13 +100,13 @@ export default async function handler(req, res) {
               count: sorted.length
           });
       } catch (e) {
-          console.error('[ANTIGRAVITY] Exception:', e);
+          console.warn('[ANTIGRAVITY] Exception:', e);
           return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

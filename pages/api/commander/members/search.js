@@ -187,7 +187,7 @@ export default async function handler(req, res) {
           }
         }
       } catch (staffErr) {
-        console.error('Staff search warning:', staffErr);
+        console.warn('Staff search warning:', staffErr);
       }
 
       // ═══ 2. Search commander_members ═══
@@ -286,19 +286,19 @@ export default async function handler(req, res) {
             }
           }
         } catch (wlErr) {
-          console.error('Waitlist fallback search warning:', wlErr);
+          console.warn('Waitlist fallback search warning:', wlErr);
         }
       }
 
       return res.status(200).json({ success: true, data: results });
     } catch (err) {
-      console.error('Member search error:', err);
+      console.warn('Member search error:', err);
       return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

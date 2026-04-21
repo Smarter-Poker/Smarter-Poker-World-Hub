@@ -273,7 +273,7 @@ class OpponentStats {
         data[seat] = { ...s };
       }
       localStorage.setItem(this.persistKey, JSON.stringify(data));
-    } catch (_) { /* localStorage full or unavailable */ }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }
 
   _restore() {
@@ -295,7 +295,7 @@ class OpponentStats {
           lastSeen: s.lastSeen || null,
         });
       }
-    } catch (_) { /* corrupt or unavailable */ }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }
 }
 

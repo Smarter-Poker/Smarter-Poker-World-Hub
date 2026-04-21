@@ -98,7 +98,7 @@ export default async function handler(req, res) {
                           const settleData = await settleRes.json();
                           settleSuccess = settleData.success;
                       } catch (settleErr) {
-                          console.error(`[auto_close] settle-period call failed for ${club.name}:`, settleErr.message);
+                          console.warn(`[auto_close] settle-period call failed for ${club.name}:`, settleErr.message);
                           // Fallback: at minimum close the period so it's not orphaned
                           await getSupabase()
                               .from('settlement_periods')
@@ -117,7 +117,7 @@ export default async function handler(req, res) {
                               body: JSON.stringify({ clubId: club.id, action: 'open' }),
                           });
                       } catch (openErr) {
-                          console.error(`[auto_close] settle-period open failed for ${club.name}:`, openErr.message);
+                          console.warn(`[auto_close] settle-period open failed for ${club.name}:`, openErr.message);
                       }
 
                       logAudit(supabaseAdmin, {
@@ -307,7 +307,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

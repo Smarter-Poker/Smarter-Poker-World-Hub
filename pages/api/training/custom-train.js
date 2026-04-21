@@ -111,7 +111,7 @@ export default async function handler(req, res) {
           const { data: scenarios, error: dbErr } = await query;
 
           if (dbErr) {
-              console.error('[CustomTrain] DB error:', dbErr.message);
+              console.warn('[CustomTrain] DB error:', dbErr.message);
               return res.status(500).json({ success: false, error: 'Database query failed' });
           }
 
@@ -157,13 +157,13 @@ export default async function handler(req, res) {
           return buildAndReturnQuestions(res, scenarios, parsedCount, position, parsedStack, street, handClass);
 
       } catch (err) {
-          console.error('[CustomTrain] Error:', err);
+          console.warn('[CustomTrain] Error:', err);
           return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

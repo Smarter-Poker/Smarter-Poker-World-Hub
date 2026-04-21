@@ -84,7 +84,7 @@ export default async function handler(req, res) {
           try {
               communityScenario = await generateCommunityScenario(selectedCategory, level, challengeDate);
           } catch (grokError) {
-              console.error('[TrainingDailyChallenge] Grok generation failed:', grokError.message);
+              console.warn('[TrainingDailyChallenge] Grok generation failed:', grokError.message);
           }
 
           // Insert the daily challenge with community scenario
@@ -103,7 +103,7 @@ export default async function handler(req, res) {
               .maybeSingle();
 
           if (error || !challenge) {
-              console.error('[TrainingDailyChallenge] Error creating challenge:', error);
+              console.warn('[TrainingDailyChallenge] Error creating challenge:', error);
               return res.status(500).json({ error: 'Failed to create challenge', details: error?.message || 'No data returned' });
           }
 
@@ -121,13 +121,13 @@ export default async function handler(req, res) {
           });
 
       } catch (err) {
-          console.error('[TrainingDailyChallenge] Unexpected error:', err);
+          console.warn('[TrainingDailyChallenge] Unexpected error:', err);
           return res.status(500).json({ error: 'Internal server error', details: err.message });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

@@ -32,7 +32,7 @@ export async function getPokerNearMePreferences(userId) {
 
         return data?.poker_near_me_preferences || { geofenceAlerts: true, locationEnabled: true, showNewcomerFriendly: true };
     } catch (error) {
-        console.error('Error fetching poker near me preferences:', error);
+        console.warn('Error fetching poker near me preferences:', error);
         return { geofenceAlerts: true, locationEnabled: true, showNewcomerFriendly: true };
     }
 }
@@ -65,7 +65,7 @@ export async function updatePokerNearMePreferences(userId, preferences) {
 
         return data;
     } catch (error) {
-        console.error('Error updating poker near me preferences:', error);
+        console.warn('Error updating poker near me preferences:', error);
         return preferences; // Optimistically return to prevent UI crash
     }
 }

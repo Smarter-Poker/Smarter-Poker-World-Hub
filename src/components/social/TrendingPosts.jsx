@@ -53,7 +53,7 @@ export default function TrendingPosts({ limit = 5 }) {
                     })).sort((a, b) => b.engagement - a.engagement));
                 }
             } catch (err) {
-                console.error('Trending fetch error:', err);
+                console.warn('Trending fetch error:', err);
             }
             setLoading(false);
         };

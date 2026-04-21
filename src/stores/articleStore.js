@@ -52,7 +52,7 @@ export const useArticleStore = create((set, get) => ({
                 }
             }
         } catch (error) {
-            console.error('Failed to fetch article:', error);
+            console.warn('Failed to fetch article:', error);
         } finally {
             set({ isLoading: false });
         }

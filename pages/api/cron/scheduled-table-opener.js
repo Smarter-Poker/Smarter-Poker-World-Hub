@@ -126,13 +126,13 @@ export default async function handler(req, res) {
           console.log(`[scheduled-table-opener] Opened "${tmpl.name}" in club ${tmpl.clubs?.name || tmpl.club_id}`);
         } catch (e) {
           errors.push({ template: tmpl.name, error: e.message });
-          console.error(`[scheduled-table-opener] Error for "${tmpl.name}":`, e.message);
+          console.warn(`[scheduled-table-opener] Error for "${tmpl.name}":`, e.message);
         }
       }
 
       return res.json({ success: true, opened, errors: errors.length > 0 ? errors : undefined });
     } catch (err) {
-      console.error('[scheduled-table-opener] Fatal:', err);
+      console.warn('[scheduled-table-opener] Fatal:', err);
       return res.status(500).json({ error: 'Cron failed' });
     }
 
@@ -157,12 +157,12 @@ export default async function handler(req, res) {
             return;
           }
         }
-      } catch (_) { /* non-fatal */ }
+      } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

@@ -171,7 +171,7 @@ async function buildHomeGameUrls() {
 
         return urls;
     } catch (err) {
-        console.error('[sitemap] home-game URL build failed:', err.message);
+        console.warn('[sitemap] home-game URL build failed:', err.message);
         return [];
     }
 }

@@ -46,7 +46,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -106,7 +106,7 @@ async function listAnnouncements(req, res, groupId) {
 
     return res.status(200).json({ announcements: data });
   } catch (error) {
-    console.error('List announcements error:', error);
+    console.warn('List announcements error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
@@ -188,7 +188,7 @@ async function createAnnouncement(req, res, groupId) {
 
     return res.status(201).json({ announcement });
   } catch (error) {
-    console.error('Create announcement error:', error);
+    console.warn('Create announcement error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
@@ -286,11 +286,11 @@ async function sendPushNotifications(groupId, announcement, targetAll, targetMem
         });
 
       } catch (pushError) {
-        console.error('OneSignal push failed:', pushError);
+        console.warn('OneSignal push failed:', pushError);
       }
     } else {
     }
   } catch (error) {
-    console.error('Send push notifications error:', error);
+    console.warn('Send push notifications error:', error);
   }
 }

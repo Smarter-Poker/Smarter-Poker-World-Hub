@@ -92,7 +92,7 @@ export default async function handler(req, res) {
                   .eq('id', existingSession.id);
 
               if (updateError) {
-                  console.error('Error updating session:', updateError);
+                  console.warn('Error updating session:', updateError);
               }
           } else {
               // Insert new session
@@ -107,7 +107,7 @@ export default async function handler(req, res) {
                   });
 
               if (insertError) {
-                  console.error('Error inserting session:', insertError);
+                  console.warn('Error inserting session:', insertError);
               }
           }
 
@@ -117,13 +117,13 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('Session track error:', error);
+          console.warn('Session track error:', error);
           return res.status(500).json({ error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

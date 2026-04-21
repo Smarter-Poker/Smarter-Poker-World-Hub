@@ -38,7 +38,7 @@ export default async function handler(req, res) {
       .maybeSingle();
 
     if (handErr) {
-      console.error('[poker-brain/hand] query error:', handErr);
+      console.warn('[poker-brain/hand] query error:', handErr);
       return res.status(500).json({ error: 'Failed to fetch hand' });
     }
     if (!hand) return res.status(404).json({ error: 'Hand not found' });
@@ -57,7 +57,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ hand });
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[poker-brain/hand] error:', err);
+    console.warn('[poker-brain/hand] error:', err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

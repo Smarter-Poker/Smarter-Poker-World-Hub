@@ -123,7 +123,7 @@ export default async function handler(req, res) {
         });
 
         if (error) {
-            console.error("[rg/self-exclude:rpc]", error);
+            console.warn("[rg/self-exclude:rpc]", error);
             const status = /monotonic|cannot shorten|already excluded/i.test(
                 error.message
             )
@@ -138,7 +138,7 @@ export default async function handler(req, res) {
         return res.status(200).json(data);
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error("[rg/self-exclude] unhandled:", err);
+        console.warn("[rg/self-exclude] unhandled:", err);
         return res
             .status(500)
             .json({ error: err?.message || "unhandled failure" });

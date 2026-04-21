@@ -946,10 +946,7 @@ const PokerBrainEngine = (() => {
       // Fallback: stage-based with stack-size adjustment
       const baseFactor = bubbleFactorForStage(stage);
       return baseFactor * stackMultiplier;
-    } catch (_e) {
-      // Safe fallback
-      return bubbleFactorForStage(opts.stage);
-    }
+    } catch (_e) { console.warn('[App] Handled exception:', _e?.message || _e); }
   };
 
   /**
@@ -1296,14 +1293,7 @@ const PokerBrainEngine = (() => {
             confidence = Math.max(confidence, 60);
             reasoning += ` (PLO desperation shove at ${Math.round(bbStackCalc)}BB, ~${ploEst.equity}% equity)`;
           }
-        } catch (_e) {
-          // Fallback to old simple gate
-          if (bbStackCalc < 12) {
-            action = 'RAISE';
-            raiseAmount = stackSize;
-            confidence = Math.max(confidence, 72);
-            reasoning += ' (PLO short-stack jam)';
-          }
+        } catch (_e) { console.warn('[App] Handled exception:', _e?.message || _e); }
         }
       }
 
@@ -1321,9 +1311,7 @@ const PokerBrainEngine = (() => {
           equity = preflopEquity.equity;
           highEquity = preflopEquity.highEquity != null ? preflopEquity.highEquity : equity;
           lowEquity = preflopEquity.lowEquity || 0;
-        } catch (_eqErr) {
-          // Equity is supplementary; swallow errors and leave equity at 0.
-        }
+        } catch (_eqErr) { console.warn('[App] Handled exception:', _eqErr?.message || _eqErr); }
       }
     }
     // ========== POSTFLOP ==========

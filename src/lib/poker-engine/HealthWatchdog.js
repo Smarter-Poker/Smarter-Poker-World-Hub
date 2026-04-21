@@ -87,17 +87,17 @@ class HealthWatchdog {
 
     // Initial check
     this._runHealthCheck().catch(err => {
-      console.error('[HealthWatchdog] Initial check failed:', err.message);
+      console.warn('[HealthWatchdog] Initial check failed:', err.message);
     });
 
     // Schedule recurring checks
     this._interval = setInterval(() => {
       this._runHealthCheck().catch(err => {
-        console.error('[HealthWatchdog] Health check failed:', err.message);
+        console.warn('[HealthWatchdog] Health check failed:', err.message);
       });
     }, WATCHDOG_INTERVAL_MS);
 
-    console.log(`[HealthWatchdog] 🏥 Started — checking every ${WATCHDOG_INTERVAL_MS / 1000}s`);
+    console.debug(`[HealthWatchdog] 🏥 Started — checking every ${WATCHDOG_INTERVAL_MS / 1000}s`);
   }
 
   /**
@@ -110,7 +110,7 @@ class HealthWatchdog {
     }
     this._running = false;
     this._status = 'stopped';
-    console.log('[HealthWatchdog] 🏥 Stopped');
+    console.debug('[HealthWatchdog] 🏥 Stopped');
   }
 
   /**
@@ -183,7 +183,7 @@ class HealthWatchdog {
             });
             this._totalHealingActions++;
           } catch (err) {
-            console.error(`[HealthWatchdog] Healing failed for ${issue.system}:`, err.message);
+            console.warn(`[HealthWatchdog] Healing failed for ${issue.system}:`, err.message);
           }
         }
       }
@@ -278,7 +278,7 @@ class HealthWatchdog {
           // Try to trigger GC if exposed (--expose-gc flag)
           if (global.gc) {
             global.gc();
-            console.log('[HealthWatchdog] 🧹 Forced garbage collection');
+            console.debug('[HealthWatchdog] 🧹 Forced garbage collection');
           }
           // Clear non-critical caches
           this._clearNonCriticalCaches();
@@ -369,7 +369,7 @@ class HealthWatchdog {
                 try {
                   table.processAction(String(currentPlayer.id), { type: 'fold' });
                 } catch (e) {
-                  console.error(`[HealthWatchdog] Force-fold failed:`, e.message);
+                  console.warn(`[HealthWatchdog] Force-fold failed:`, e.message);
                 }
               }
             },
@@ -435,7 +435,7 @@ class HealthWatchdog {
                 try {
                   timer.startTurn(String(currentPlayer.id));
                 } catch (e) {
-                  console.error(`[HealthWatchdog] Timer restart failed:`, e.message);
+                  console.warn(`[HealthWatchdog] Timer restart failed:`, e.message);
                 }
               }
             },
@@ -470,9 +470,9 @@ class HealthWatchdog {
       if (HorsePokerBrain._journalCache) {
         const size = HorsePokerBrain._journalCache.size;
         HorsePokerBrain._journalCache.clear();
-        console.log(`[HealthWatchdog] 🧹 Cleared journal cache (${size} entries)`);
+        console.debug(`[HealthWatchdog] 🧹 Cleared journal cache (${size} entries)`);
       }
-    } catch (_) { /* Brain not loaded */ }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
     // Clear old health log entries
     if (this._healthLog.length > 20) {

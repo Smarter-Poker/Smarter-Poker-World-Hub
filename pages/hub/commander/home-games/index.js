@@ -135,7 +135,7 @@ export default function PlayerHomeGamesHub() {
         setGames(data.groups);
       }
     } catch (err) {
-      console.error('Load error:', err);
+      console.warn('Load error:', err);
     } finally {
       setIsLoading(false);
     }
@@ -168,7 +168,7 @@ export default function PlayerHomeGamesHub() {
         setMessage({ type: 'error', text: data.error || 'Failed to join' });
       }
     } catch (err) {
-      console.error('Join error:', err);
+      console.warn('Join error:', err);
       setMessage({ type: 'error', text: 'Failed To Join Game' });
     }
     setTimeout(() => setMessage(null), 4000);
@@ -187,7 +187,7 @@ export default function PlayerHomeGamesHub() {
         setDiscoverGames(data.groups);
       }
     } catch (err) {
-      console.error('Discover load error:', err);
+      console.warn('Discover load error:', err);
     } finally {
       setDiscoverLoading(false);
     }
@@ -206,7 +206,7 @@ export default function PlayerHomeGamesHub() {
         setCalendarEvents(data.events || data.data?.events || []);
       }
     } catch (err) {
-      console.error('Calendar load error:', err);
+      console.warn('Calendar load error:', err);
     } finally {
       setCalendarLoading(false);
     }

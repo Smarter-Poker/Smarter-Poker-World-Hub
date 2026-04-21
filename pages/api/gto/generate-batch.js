@@ -141,7 +141,7 @@ export default async function handler(req, res) {
                   await new Promise(resolve => setTimeout(resolve, 500));
 
               } catch (genError) {
-                  console.error(`[BatchGenerate] Error on scenario ${i}:`, genError);
+                  console.warn(`[BatchGenerate] Error on scenario ${i}:`, genError);
                   errors.push({ index: i, error: genError.message });
               }
           }
@@ -159,7 +159,7 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('[BatchGenerate] Error:', error);
+          console.warn('[BatchGenerate] Error:', error);
           return res.status(500).json({
               success: false,
               error: error.message,
@@ -168,7 +168,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

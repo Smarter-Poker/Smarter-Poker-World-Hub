@@ -11,7 +11,7 @@ class GameSessionService {
      */
     async recordSession(userId, sessionData) {
         if (!userId) {
-            console.log('[GameSessionService] No user ID, skipping session record');
+            console.debug('[GameSessionService] No user ID, skipping session record');
             return { success: false };
         }
 
@@ -48,16 +48,16 @@ class GameSessionService {
             if (error) {
                 // Table doesn't exist - silently fail
                 if (error.code === '42P01') {
-                    console.log('[GameSessionService] memory_game_sessions table not created yet');
+                    console.debug('[GameSessionService] memory_game_sessions table not created yet');
                     return { success: false };
                 }
                 throw error;
             }
 
-            console.log('[GameSessionService] Session recorded:', data?.id);
+            console.debug('[GameSessionService] Session recorded:', data?.id);
             return { success: true, sessionId: data?.id };
         } catch (error) {
-            console.error('[GameSessionService] Error recording session:', error);
+            console.warn('[GameSessionService] Error recording session:', error);
             return { success: false, error: error.message };
         }
     }
@@ -124,7 +124,7 @@ class GameSessionService {
                 recentSessions: sessions.slice(0, 10)
             };
         } catch (error) {
-            console.error('[GameSessionService] Error fetching stats:', error);
+            console.warn('[GameSessionService] Error fetching stats:', error);
             return null;
         }
     }
@@ -146,7 +146,7 @@ class GameSessionService {
             if (error) throw error;
             return count || 0;
         } catch (error) {
-            console.error('[GameSessionService] Error counting today\'s sessions:', error);
+            console.warn('[GameSessionService] Error counting today\'s sessions:', error);
             return 0;
         }
     }

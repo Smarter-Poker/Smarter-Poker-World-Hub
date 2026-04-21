@@ -412,7 +412,7 @@ export function ShareAnalysisModal({ isOpen, onClose, results, scenario }) {
             if (navigator.share) {
                 await navigator.share({ title: 'GTO Analysis — Smarter.Poker', text: shareText, url: 'https://smarter.poker/hub/personal-assistant/sandbox' });
             } else { handleCopy(); }
-        } catch (e) { console.log('Share cancelled'); }
+        } catch (e) { console.debug('Share cancelled'); }
     };
     const handleCopy = () => { navigator.clipboard?.writeText(shareText); toast.success('Copied to clipboard!'); };
 
@@ -444,7 +444,7 @@ export function ShareAnalysisModal({ isOpen, onClose, results, scenario }) {
                 setTimeout(onClose, 1500);
             }
         } catch (err) {
-            console.error('Feed post error:', err);
+            console.warn('Feed post error:', err);
             toast.error('Failed to post to feed.');
         } finally {
             setIsPosting(false);
@@ -1179,10 +1179,10 @@ export function ShareHandModal({ isOpen, onClose, results, scenario, heroHand, b
                 setTimeout(onClose, 1200);
             } else {
                 const errBody = await res.json().catch(() => ({}));
-                console.error('[ShareHandModal] Post failed:', res.status, errBody);
+                console.warn('[ShareHandModal] Post failed:', res.status, errBody);
             }
         } catch (err) {
-            console.error('[ShareHandModal] Post error:', err);
+            console.warn('[ShareHandModal] Post error:', err);
         }
         setIsPosting(false);
     };

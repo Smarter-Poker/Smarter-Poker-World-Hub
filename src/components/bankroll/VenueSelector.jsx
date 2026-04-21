@@ -54,7 +54,7 @@ export default function VenueSelector({ value, venueType, onChange, userId }) {
                     setSavedLocations(data);
                 }
             } catch (err) {
-                console.error('[VenueSelector] Failed to load saved locations:', err);
+                console.warn('[VenueSelector] Failed to load saved locations:', err);
             }
         };
         loadSavedLocations();
@@ -95,7 +95,7 @@ export default function VenueSelector({ value, venueType, onChange, userId }) {
                 setShowSuggestions(true);
             }
         } catch (err) {
-            console.error('[VenueSelector] Search failed:', err);
+            console.warn('[VenueSelector] Search failed:', err);
         } finally {
             setIsSearching(false);
         }

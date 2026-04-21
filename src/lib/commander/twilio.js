@@ -32,7 +32,7 @@ async function getClient() {
     );
     return twilioClient;
   } catch (err) {
-    console.error('Failed to initialize Twilio:', err.message);
+    console.warn('Failed to initialize Twilio:', err.message);
     return null;
   }
 }
@@ -43,7 +43,7 @@ async function getClient() {
 export async function sendSMS(to, body) {
   const client = await getClient();
   if (!client) {
-    console.log('[SMS MOCK]', to, body);
+    console.debug('[SMS MOCK]', to, body);
     return { success: false, reason: 'Twilio not configured' };
   }
 
@@ -66,7 +66,7 @@ export async function sendSMS(to, body) {
       status: message.status
     };
   } catch (err) {
-    console.error('SMS send error:', err.message);
+    console.warn('SMS send error:', err.message);
     return { success: false, reason: err.message };
   }
 }
@@ -216,7 +216,7 @@ export async function sendBulkSMS(recipients, body, options = {}) {
 export async function notifyWaitlistForGame(venueId, gameType, stakes, message) {
   // This would be called from the API to notify all waitlist players
   // Implementation depends on database access
-  console.log('Notify waitlist:', { venueId, gameType, stakes, message });
+  console.debug('Notify waitlist:', { venueId, gameType, stakes, message });
   return { success: true, notified: 0 };
 }
 

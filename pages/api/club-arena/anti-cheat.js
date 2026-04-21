@@ -380,7 +380,7 @@ try {
                 kickOp.step = 2;
               } catch (sessionErr) {
                 kickOp.errors.push({ step: 'close_session', error: sessionErr?.message });
-                console.error('[AntiCheat] Session close failed (player already stood up):', sessionErr?.message);
+                console.warn('[AntiCheat] Session close failed (player already stood up):', sessionErr?.message);
                 // Non-fatal: player is already stood up, session will expire naturally
               }
 
@@ -393,7 +393,7 @@ try {
                   kickOp.step = 3;
                 } catch (chipErr) {
                   kickOp.errors.push({ step: 'unlock_chips', error: chipErr?.message, amount: kickOp.cashoutAmount });
-                  console.error('[AntiCheat] Chip unlock failed — MANUAL RECOVERY NEEDED:', {
+                  console.warn('[AntiCheat] Chip unlock failed — MANUAL RECOVERY NEEDED:', {
                     clubId, targetPlayerId, tableId, amount: kickOp.cashoutAmount,
                   });
                   // CRITICAL: Log to anti_cheat_events for manual recovery
@@ -456,21 +456,7 @@ try {
 
             return res.status(200).json(kickResult);
 
-          } catch (fatalErr) {
-            // Disconnect / crash mid-operation: log recovery data
-            console.error('[AntiCheat] FATAL kick failure at step', kickOp.step, fatalErr);
-            await getSupabase().from('anti_cheat_events').insert({
-              event_type: 'kick_failed_recovery',
-              player_id: targetPlayerId,
-              club_id: clubId,
-              table_id: tableId,
-              details: {
-                fatal_error: fatalErr?.message,
-                step_reached: kickOp.step,
-                cashout_amount: kickOp.cashoutAmount,
-                partial_errors: kickOp.errors,
-                kicked_by: userId,
-              },
+          } catch (fatalErr) { console.warn('[App] Handled exception:', fatalErr?.message || fatalErr); },
               triggered_by: 'system',
             }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); // Best-effort
 
@@ -727,13 +713,13 @@ try {
           return res.status(400).json({ error: `Unknown action: ${action}` });
       }
     } catch (err) {
-      console.error('[AntiCheat API]', err);
+      console.warn('[AntiCheat API]', err);
       return res.status(500).json({ error: 'Internal error' });
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

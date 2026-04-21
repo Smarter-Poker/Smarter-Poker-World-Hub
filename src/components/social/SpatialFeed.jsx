@@ -68,7 +68,7 @@ export const SpatialFeed = ({
         isLoading: false
       }));
     } catch (error) {
-      console.error('Feed load error:', error);
+      console.warn('Feed load error:', error);
       setFeedState(prev => ({
         ...prev,
         isLoading: false,
@@ -214,7 +214,7 @@ export const SpatialFeed = ({
           busEmit.socialPostLiked(postId, user.id, { added, reactionType: type });
       }
     } catch (error) {
-      console.error('Like error:', error);
+      console.warn('Like error:', error);
       throw error; // Let card handle rollback
     }
   }, [socialService, user]);

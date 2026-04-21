@@ -63,7 +63,7 @@ export default function CommandBar() {
                     setLocation(geocoded);
                 }
             } catch (error) {
-                console.error('Geocoding failed:', error);
+                console.warn('Geocoding failed:', error);
             }
         }, 500);
     };

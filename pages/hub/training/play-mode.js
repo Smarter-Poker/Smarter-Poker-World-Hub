@@ -668,7 +668,7 @@ function usePlayMode() {
           'PlayMode'
         );
       } catch (err) {
-        console.error('[PlayMode] Session save error:', err);
+        console.warn('[PlayMode] Session save error:', err);
       }
     };
 

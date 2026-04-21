@@ -57,13 +57,13 @@ export default async function handler(req, res) {
                 data: { action: 'checkin', venueId: venue_id }
             });
         } catch (pushErr) {
-            console.error('[Record Geofence] Failed to send push:', pushErr);
+            console.warn('[Record Geofence] Failed to send push:', pushErr);
         }
 
         return res.status(200).json({ success: true, message: 'Geofence ping recorded, push sent if opted in' });
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('[API Error] record-geofence:', err);
+        console.warn('[API Error] record-geofence:', err);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

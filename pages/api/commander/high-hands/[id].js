@@ -51,7 +51,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
 
   } catch (err) {
-    console.error('[high-hands/id API Error]', err?.message || err, err?.code || '', err?.details || '');
+    console.warn('[high-hands/id API Error]', err?.message || err, err?.code || '', err?.details || '');
     if (!res.headersSent) return res.status(500).json({ success: false, error: err?.message || 'Internal server error' });
   }
 }
@@ -72,7 +72,7 @@ async function getHighHand(req, res, id) {
 
     return res.status(200).json({ high_hand: highHand });
   } catch (error) {
-    console.error('Get high hand error:', error);
+    console.warn('Get high hand error:', error);
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -168,7 +168,7 @@ async function updateHighHand(req, res, id) {
 
     return res.status(200).json({ high_hand: highHand });
   } catch (error) {
-    console.error('Update high hand error:', error);
+    console.warn('Update high hand error:', error);
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -228,7 +228,7 @@ async function deleteHighHand(req, res, id) {
     return res.status(200).json({ success: true, message: 'High hand deleted' });
   } catch (error) {
       try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('Delete high hand error:', error);
+    console.warn('Delete high hand error:', error);
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

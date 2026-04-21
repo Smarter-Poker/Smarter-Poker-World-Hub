@@ -41,7 +41,7 @@ export default function SaveHandModal({ onClose, sandboxState, onSaveComplete })
                     if (folders.length > 0) setFolder(folders[0]);
                 }
             } catch (err) {
-                console.error(err);
+                console.warn(err);
             }
             setLoading(false);
         }

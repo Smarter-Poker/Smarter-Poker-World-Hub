@@ -47,7 +47,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -109,7 +109,7 @@ async function getClubByCode(req, res, code) {
       can_join: !myMembership || myMembership.status === 'declined'
     });
   } catch (error) {
-    console.error('Get club by code error:', error);
+    console.warn('Get club by code error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
@@ -192,7 +192,7 @@ async function joinClubByCode(req, res, code) {
     });
   } catch (error) {
       try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('Join club by code error:', error);
+    console.warn('Join club by code error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

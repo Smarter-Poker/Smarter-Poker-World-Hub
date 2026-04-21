@@ -265,7 +265,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
                             storeLeakForIntercept(question.lawId, result.confidence, result.mistakeCount);
                         }
                     })
-                    .catch(console.error);
+                    .catch(console.warn);
             }
         }
 

@@ -35,7 +35,7 @@ function updateCachedBalance(diamonds) {
         cached.diamonds = diamonds;
         cached._ts = Date.now(); // Refresh TTL on balance update
         localStorage.setItem('sp-cached-header-user', JSON.stringify(cached));
-    } catch (_) { /* quota exceeded — ignore */ }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 }
 
 // ── Helper: read cached diamond balance from localStorage ──

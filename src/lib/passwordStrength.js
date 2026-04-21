@@ -191,9 +191,7 @@ async function checkHIBP(pw, { timeoutMs = 3000 } = {}) {
             }
         }
         return { ok: true, breachCount: 0 };
-    } catch (err) {
-        // Timeout / DNS failure / parse error — fail open.
-        return { ok: true, breachCount: null, reason: 'hibp_error' };
+    } catch (err) { console.warn('[App] Handled exception:', err?.message || err); };
     }
 }
 

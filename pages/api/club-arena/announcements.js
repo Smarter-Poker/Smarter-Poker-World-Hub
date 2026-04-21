@@ -152,13 +152,13 @@ export default async function handler(req, res) {
 
       return res.status(405).json({ success: false, error: 'GET or POST only' });
     } catch (err) {
-      console.error('[announcements]', err);
+      console.warn('[announcements]', err);
       return res.status(500).json({ success: false, error: 'Announcements failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

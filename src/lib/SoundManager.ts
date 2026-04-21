@@ -82,10 +82,7 @@ export class SoundManager {
 
             // Now preload all sounds
             this.preloadAll();
-        } catch (error) {
-            // Silently handle unlock failure - audio just won't work
-            console.warn('🔇 Audio unlock failed (autoplay policy):', error);
-        }
+        } catch (error) { console.warn('[App] Handled exception:', error?.message || error); }
     }
 
     /**
@@ -111,9 +108,7 @@ export class SoundManager {
                 });
 
                 this.audioCache.set(event, audio);
-            } catch (error) {
-                // Log but don't throw - sound just won't be available
-                console.warn(`🔇 Sound preload failed for ${event}:`, (error as Error).message);
+            } catch (error) { console.warn('[App] Handled exception:', error?.message || error); }:`, (error as Error).message);
                 this.failedSounds.add(event);
             }
         });
@@ -151,10 +146,7 @@ export class SoundManager {
                     audio.playbackRate = options.pitch;
                 }
 
-                audio.play().catch(() => {
-                    // Silently catch autoplay errors
-                    this.failedSounds.add(event);
-                });
+                audio.play().catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
                 return;
             }
 
@@ -167,12 +159,8 @@ export class SoundManager {
                 audio.playbackRate = options.pitch;
             }
 
-            audio.play().catch(() => {
-                // Silently catch autoplay errors
-            });
-        } catch (error) {
-            // Catch any unexpected errors - never crash the app
-            console.warn(`🔇 Sound play failed for ${event}:`, error);
+            audio.play().catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
+        } catch (error) { console.warn('[App] Handled exception:', error?.message || error); }:`, error);
         }
     }
 
@@ -262,9 +250,7 @@ export class HapticsManager {
 
         try {
             navigator.vibrate(pattern);
-        } catch (error) {
-            // Silently fail - vibration is optional
-        }
+        } catch (error) { console.warn('[App] Handled exception:', error?.message || error); }
     }
 
     /**

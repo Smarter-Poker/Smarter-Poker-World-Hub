@@ -17,7 +17,7 @@ export async function getSearchHistory(userId, limit = 20) {
         .limit(limit);
 
     if (error) {
-        console.error('Error fetching search history:', error);
+        console.warn('Error fetching search history:', error);
         throw error;
     }
 
@@ -41,7 +41,7 @@ export async function addSearchHistory(userId, searchQuery, searchData = {}) {
         .maybeSingle();
 
     if (error) {
-        console.error('Error adding search history:', error);
+        console.warn('Error adding search history:', error);
         throw error;
     }
 
@@ -58,7 +58,7 @@ export async function clearSearchHistory(userId) {
         .eq('user_id', userId);
 
     if (error) {
-        console.error('Error clearing search history:', error);
+        console.warn('Error clearing search history:', error);
         throw error;
     }
 
@@ -76,7 +76,7 @@ export async function removeSearchHistory(userId, searchId) {
         .eq('id', searchId);
 
     if (error) {
-        console.error('Error removing search history:', error);
+        console.warn('Error removing search history:', error);
         throw error;
     }
 

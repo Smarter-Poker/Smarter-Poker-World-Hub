@@ -83,7 +83,7 @@ export default async function handler(req, res) {
             date: c.commit.committer?.date,
             author: c.commit.author?.name,
           }));
-      } catch (_) { /* ignore */ }
+      } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }
 
     // Optimize: Add caching to prevent rate-limiting from Vercel's own API

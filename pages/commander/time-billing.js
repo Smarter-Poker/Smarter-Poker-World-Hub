@@ -127,7 +127,7 @@ const headers = { };
       }
 
       setSessions(allSessions);
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
     finally { setLoading(false); }
   }, [filter, pricing.time_billing_rate]);
 
@@ -197,7 +197,7 @@ const res = await commanderFetch('/api/commander/settings', {
         setPricingDirty(false);
         broadcastChange('settings');
       }
-    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
+    } catch (err) { console.warn(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
     finally { setPricingSaving(false); }
   };
 
@@ -306,7 +306,7 @@ const res = await commanderFetch(`/api/commander/dealer/sessions/${sessionId}/en
           }
         }
       }
-    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
+    } catch (err) { console.warn(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
     finally { setStopping(null); }
   };
 
@@ -377,7 +377,7 @@ const res = await commanderFetch(`/api/commander/time-billing/sessions/${payModa
           broadcastChange('tables');
         }
       }
-    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
+    } catch (err) { console.warn(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
   };
 
   const activeSessions = sessions.filter(s => s.status === 'active');
@@ -406,7 +406,7 @@ const res = await commanderFetch(`/api/commander/membership-plans?venue_id=${ven
         setMemberDirty(prev => ({ ...prev, [plan.id]: false }));
         broadcastChange('settings');
       }
-    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
+    } catch (err) { console.warn(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
     finally { setMemberSaving(null); }
   };
 

@@ -137,10 +137,10 @@ export default async function handler(req, res) {
               });
 
           // Clean up temp file
-          try { fs.unlinkSync(file.filepath); } catch (e) { /* ignore */ }
+          try { fs.unlinkSync(file.filepath); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
           if (uploadError) {
-              console.error('[Upload API] Storage upload error:', uploadError.message);
+              console.warn('[Upload API] Storage upload error:', uploadError.message);
               return res.status(500).json({ success: false, error: 'Upload failed: ' + uploadError.message });
           }
 
@@ -164,13 +164,13 @@ export default async function handler(req, res) {
           });
 
       } catch (err) {
-          console.error('[Upload API] Error:', err.message);
+          console.warn('[Upload API] Error:', err.message);
           return res.status(500).json({ success: false, error: 'Upload failed: ' + err.message });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

@@ -208,7 +208,7 @@ async function saveToCache(question, answer, questionType, userId) {
         .maybeSingle();
 
     if (error) {
-        console.error('[Geeves Cache] Failed to save:', error);
+        console.warn('[Geeves Cache] Failed to save:', error);
         return null;
     }
 
@@ -419,7 +419,7 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('[Geeves] Error:', error);
+          console.warn('[Geeves] Error:', error);
           return res.status(500).json({
               error: 'Failed to process question',
               details: error.message
@@ -428,7 +428,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

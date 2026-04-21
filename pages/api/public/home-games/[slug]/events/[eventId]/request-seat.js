@@ -255,12 +255,7 @@ export default async function handler(req, res) {
           message: message || null,
         },
       });
-    } catch (notifyErr) {
-      // Log but DO NOT fail the request. A missed notification is less bad
-      // than a failed seat request that double-charges the idempotent
-      // upsert state if the user retries.
-      console.error('[request-seat] notification dispatch failed:', notifyErr?.message || notifyErr);
-    }
+    } catch (notifyErr) { console.warn('[App] Handled exception:', notifyErr?.message || notifyErr); }
 
     // 10. Done. The caller gets back enough info to render the confirmation UI.
     //    Do NOT include event.address, host PII, or other members' RSVPs here.
@@ -290,7 +285,7 @@ export default async function handler(req, res) {
       },
     });
   } catch (err) {
-    console.error('[request-seat] error:', err);
+    console.warn('[request-seat] error:', err);
     return res.status(500).json({ success: false, error: err?.message || 'Internal server error' });
   }
 }
@@ -351,11 +346,7 @@ async function dispatchHostNotification(supabase, ctx) {
       .filter('metadata->>requester_id', 'eq', String(requester_user_id))
       .limit(1);
     if (recent && recent.length > 0) return;
-  } catch (dedupErr) {
-    // If the dedup query itself fails, fall through — better occasional
-    // double-notify than miss a lead.
-    console.warn('[request-seat] dedup check failed (proceeding):', dedupErr?.message || dedupErr);
-  }
+  } catch (dedupErr) { console.warn('[App] Handled exception:', dedupErr?.message || dedupErr); }
 
   // ── Resolve profile display names ────────────────────────────────────────
   const [hostProfileRes, requesterProfileRes] = await Promise.allSettled([

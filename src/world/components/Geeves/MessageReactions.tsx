@@ -30,7 +30,7 @@ export function MessageReactions({ messageId, cacheId, initialReaction, onReact 
             const authData = token ? JSON.parse(token) : null;
 
             if (!authData?.access_token) {
-                console.error('No auth token available');
+                console.warn('No auth token available');
                 return;
             }
 
@@ -69,7 +69,7 @@ export function MessageReactions({ messageId, cacheId, initialReaction, onReact 
 
             onReact?.(finalReaction as any);
         } catch (error) {
-            console.error('Failed to save reaction:', error);
+            console.warn('Failed to save reaction:', error);
             // Revert on error
             setReaction(initialReaction || null);
         } finally {

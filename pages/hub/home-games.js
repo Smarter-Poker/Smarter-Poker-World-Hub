@@ -413,7 +413,7 @@ export default function HomeGamesPage() {
             })
             .catch((e) => {
                 if (e?.name === 'AbortError') return;
-                console.error('[home-games] discover load failed:', e);
+                console.warn('[home-games] discover load failed:', e);
                 setAllHomeGames([]);
                 setVenues([]);
                 setLoading(false);

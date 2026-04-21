@@ -200,17 +200,7 @@ function ExternalLinkModal({ url, title, onClose }) {
             await navigator.clipboard.writeText(url);
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
-        } catch (err) {
-            // Fallback for older browsers
-            const textArea = document.createElement('textarea');
-            textArea.value = url;
-            document.body.appendChild(textArea);
-            textArea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textArea);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-        }
+        } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
     };
 
     return (

@@ -48,7 +48,7 @@ return { 'x-staff-session': staff };
         const rotJson = await rotRes.json();
         if (rotJson.success) setRotations(rotJson.data?.rotations || rotJson.data || []);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
     setNow(new Date());
   }, []);
 
@@ -67,7 +67,7 @@ return { 'x-staff-session': staff };
     const requestWakeLock = async () => {
       try {
         if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen');
-      } catch (e) { /* silent */ }
+      } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     };
     requestWakeLock();
     document.addEventListener('visibilitychange', () => {

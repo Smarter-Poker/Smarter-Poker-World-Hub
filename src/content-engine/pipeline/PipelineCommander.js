@@ -33,7 +33,7 @@ class PipelineCommander {
      * Initialize pipeline with settings from database
      */
     async init() {
-        console.log('\n🚀 CONTENT PIPELINE COMMANDER INITIALIZING...\n');
+        console.debug('\n🚀 CONTENT PIPELINE COMMANDER INITIALIZING...\n');
 
         // Load settings
         const { data: settings } = await supabase
@@ -58,9 +58,9 @@ class PipelineCommander {
             this.activePersonas = personas.personas.filter(p => activeAliases.has(p.alias));
         }
 
-        console.log(`📊 Settings loaded`);
-        console.log(`🐴 Active personas: ${this.activePersonas.length}`);
-        console.log(`⚙️  Engine: ${this.settings.engine_enabled ? 'ENABLED' : 'DISABLED'}\n`);
+        console.debug(`📊 Settings loaded`);
+        console.debug(`🐴 Active personas: ${this.activePersonas.length}`);
+        console.debug(`⚙️  Engine: ${this.settings.engine_enabled ? 'ENABLED' : 'DISABLED'}\n`);
 
         return this;
     }
@@ -88,13 +88,13 @@ class PipelineCommander {
         } = options;
 
         if (!this.settings?.engine_enabled) {
-            console.log('⏸️  Engine is disabled. Skipping cycle.');
+            console.debug('⏸️  Engine is disabled. Skipping cycle.');
             return { status: 'disabled' };
         }
 
-        console.log('\n═══════════════════════════════════════════════════════════════');
-        console.log('  🔄 STARTING CONTENT CYCLE');
-        console.log('═══════════════════════════════════════════════════════════════\n');
+        console.debug('\n═══════════════════════════════════════════════════════════════');
+        console.debug('  🔄 STARTING CONTENT CYCLE');
+        console.debug('═══════════════════════════════════════════════════════════════\n');
 
         const results = {
             text_posts: [],
@@ -104,13 +104,13 @@ class PipelineCommander {
 
         try {
             // Step 1: Fetch latest news
-            console.log('📡 STEP 1: Fetching news from RSS feeds...');
+            console.debug('📡 STEP 1: Fetching news from RSS feeds...');
             const articles = await rssAggregator.getLatest(text_posts + videos);
-            console.log(`   Found ${articles.length} articles\n`);
+            console.debug(`   Found ${articles.length} articles\n`);
 
             // Step 2: Generate text posts
             if (text_posts > 0) {
-                console.log(`✍️  STEP 2: Generating ${text_posts} text posts...`);
+                console.debug(`✍️  STEP 2: Generating ${text_posts} text posts...`);
 
                 for (let i = 0; i < text_posts && i < articles.length; i++) {
                     const persona = this.randomChoice(this.activePersonas);
@@ -142,19 +142,19 @@ class PipelineCommander {
                             results.text_posts.push(posted);
                         }
                     } catch (error) {
-                        console.error(`   Error generating post ${i + 1}:`, error.message);
+                        console.warn(`   Error generating post ${i + 1}:`, error.message);
                         results.errors.push({ type: 'text', error: error.message });
                     }
 
                     await this.sleep(500);
                 }
 
-                console.log(`   ✅ Created ${results.text_posts.length} posts\n`);
+                console.debug(`   ✅ Created ${results.text_posts.length} posts\n`);
             }
 
             // Step 3: Generate videos
             if (videos > 0) {
-                console.log(`🎬 STEP 3: Generating ${videos} videos...`);
+                console.debug(`🎬 STEP 3: Generating ${videos} videos...`);
 
                 for (let i = 0; i < videos; i++) {
                     const articleIndex = text_posts + i;
@@ -185,26 +185,26 @@ class PipelineCommander {
                             results.videos.push(posted);
                         }
                     } catch (error) {
-                        console.error(`   Error generating video ${i + 1}:`, error.message);
+                        console.warn(`   Error generating video ${i + 1}:`, error.message);
                         results.errors.push({ type: 'video', error: error.message });
                     }
                 }
 
-                console.log(`   ✅ Created ${results.videos.length} videos\n`);
+                console.debug(`   ✅ Created ${results.videos.length} videos\n`);
             }
 
         } catch (error) {
-            console.error('Pipeline error:', error);
+            console.warn('Pipeline error:', error);
             results.errors.push({ type: 'pipeline', error: error.message });
         }
 
         // Summary
-        console.log('═══════════════════════════════════════════════════════════════');
-        console.log('  📊 CYCLE COMPLETE');
-        console.log(`     Text Posts: ${results.text_posts.length}`);
-        console.log(`     Videos: ${results.videos.length}`);
-        console.log(`     Errors: ${results.errors.length}`);
-        console.log('═══════════════════════════════════════════════════════════════\n');
+        console.debug('═══════════════════════════════════════════════════════════════');
+        console.debug('  📊 CYCLE COMPLETE');
+        console.debug(`     Text Posts: ${results.text_posts.length}`);
+        console.debug(`     Videos: ${results.videos.length}`);
+        console.debug(`     Errors: ${results.errors.length}`);
+        console.debug('═══════════════════════════════════════════════════════════════\n');
 
         return results;
     }
@@ -229,7 +229,7 @@ class PipelineCommander {
      * Publish any due scheduled content
      */
     async publishDue() {
-        console.log('\n📤 Publishing due content...\n');
+        console.debug('\n📤 Publishing due content...\n');
         return autoPoster.publishDue();
     }
 
@@ -253,7 +253,7 @@ class PipelineCommander {
     async testRun() {
         await this.init();
 
-        console.log('\n🧪 RUNNING TEST CYCLE (3 posts, 0 videos, no scheduling)\n');
+        console.debug('\n🧪 RUNNING TEST CYCLE (3 posts, 0 videos, no scheduling)\n');
 
         return this.runCycle({
             text_posts: 3,
@@ -268,7 +268,7 @@ class PipelineCommander {
     async generateSingleVideo(topic = null) {
         await this.init();
 
-        console.log('\n🎬 Generating single video on demand...\n');
+        console.debug('\n🎬 Generating single video on demand...\n');
 
         const persona = this.randomChoice(this.activePersonas);
 
@@ -339,7 +339,7 @@ switch (command) {
         break;
 
     default:
-        console.log(`
+        console.debug(`
 🚀 CONTENT PIPELINE COMMANDER
 
 Usage:

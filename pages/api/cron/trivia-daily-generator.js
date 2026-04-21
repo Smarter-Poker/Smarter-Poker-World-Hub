@@ -86,7 +86,7 @@ async function selectDailyForCategory(category, targetDate, sixtyDaysAgo) {
         .limit(500);
 
     if (freshError) {
-        console.error(`[Rotation] Error fetching fresh questions for ${category}:`, freshError.message);
+        console.warn(`[Rotation] Error fetching fresh questions for ${category}:`, freshError.message);
         return { selected: 0, recycled: false };
     }
 
@@ -115,7 +115,7 @@ async function selectDailyForCategory(category, targetDate, sixtyDaysAgo) {
     const selectedIds = selected.map(q => q.id);
 
     if (selectedIds.length === 0) {
-        console.error(`[Rotation] ${category}: No questions available!`);
+        console.warn(`[Rotation] ${category}: No questions available!`);
         return { selected: 0, recycled };
     }
 
@@ -126,7 +126,7 @@ async function selectDailyForCategory(category, targetDate, sixtyDaysAgo) {
         .in('id', selectedIds);
 
     if (updateError) {
-        console.error(`[Rotation] ${category}: Failed to tag questions:`, updateError.message);
+        console.warn(`[Rotation] ${category}: Failed to tag questions:`, updateError.message);
         return { selected: 0, recycled };
     }
 
@@ -190,13 +190,13 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('[Rotation] Fatal error:', error);
+          console.warn('[Rotation] Fatal error:', error);
           return res.status(500).json({ success: false, error: error.message, ...results });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

@@ -31,7 +31,7 @@ export default async function handler(req, res) {
                   const { data: authData } = await supabase.auth.getUser(token);
                   const user = authData?.user;
                   if (user) userId = user.id;
-              } catch (e) { /* non-fatal */ }
+              } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
           }
 
           if (!userId) {
@@ -46,7 +46,7 @@ export default async function handler(req, res) {
               .maybeSingle();
 
           if (summaryErr) {
-              console.error('[coach-accuracy] View error:', summaryErr.message);
+              console.warn('[coach-accuracy] View error:', summaryErr.message);
           }
 
           // Top leak spots — most common wrong picks
@@ -59,7 +59,7 @@ export default async function handler(req, res) {
               .limit(5);
 
           if (leaksErr) {
-              console.error('[coach-accuracy] Leaks query error:', leaksErr.message);
+              console.warn('[coach-accuracy] Leaks query error:', leaksErr.message);
           }
 
           return res.status(200).json({
@@ -74,13 +74,13 @@ export default async function handler(req, res) {
               topLeaks: leaks || [],
           });
       } catch (err) {
-          console.error('[coach-accuracy] Handler error:', err);
+          console.warn('[coach-accuracy] Handler error:', err);
           return res.status(500).json({ success: false, error: err.message });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

@@ -54,7 +54,7 @@ export function VoiceInput({ onTranscript, isDisabled = false }: VoiceInputProps
         };
 
         recognition.onerror = (event: any) => {
-            console.error('[VoiceInput] Error:', event.error);
+            console.warn('[VoiceInput] Error:', event.error);
             setIsListening(false);
         };
 
@@ -139,7 +139,7 @@ export function VoiceInput({ onTranscript, isDisabled = false }: VoiceInputProps
                 </div>
             )}
 
-            <style jsx>{`
+            <style>{`
                 @keyframes pulse {
                     0%, 100% { transform: scale(1); }
                     50% { transform: scale(1.1); }

@@ -110,7 +110,7 @@ export default async function handler(req, res) {
               .eq('id', entry.id);
 
           if (updateErr) {
-              console.error('Update chips error:', updateErr);
+              console.warn('Update chips error:', updateErr);
               return res.status(500).json({ success: false, error: 'Failed to update chips' });
           }
 
@@ -123,13 +123,13 @@ export default async function handler(req, res) {
               }
           });
       } catch (err) {
-          console.error('My chips error:', err);
+          console.warn('My chips error:', err);
           return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

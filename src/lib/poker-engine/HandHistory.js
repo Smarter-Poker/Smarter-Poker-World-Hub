@@ -254,12 +254,12 @@ class HandHistoryRecorder {
         );
 
         if (error) {
-          console.error('Hand history save error:', error);
+          console.warn('Hand history save error:', error);
           return { success: false, handId, error: error.message };
         }
       }
     } catch (err) {
-      console.error('Hand history save exception:', err);
+      console.warn('Hand history save exception:', err);
       return { success: false, handId, error: err.message };
     }
     

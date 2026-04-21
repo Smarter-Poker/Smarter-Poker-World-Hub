@@ -346,7 +346,7 @@ export default function ServicesPage() {
         refreshServices();
       }
     } catch (err) {
-      console.error('Submit failed:', err);
+      console.warn('Submit failed:', err);
     }
   }
 
@@ -360,7 +360,7 @@ export default function ServicesPage() {
       busEmit.dataMutated('services');
       refreshServices();
     } catch (err) {
-      console.error('Cancel failed:', err);
+      console.warn('Cancel failed:', err);
       setRequests(prev => prev.filter(r => r.id !== requestId));
     }
   }

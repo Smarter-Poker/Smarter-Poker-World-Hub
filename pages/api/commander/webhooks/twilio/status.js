@@ -110,7 +110,7 @@ export default async function handler(req, res) {
         .limit(100);
 
       if (findError) {
-        console.error('Find notification error:', findError);
+        console.warn('Find notification error:', findError);
       }
 
       if (notifications && notifications.length > 0) {
@@ -134,7 +134,7 @@ export default async function handler(req, res) {
           .eq('id', notifications[0].id);
 
         if (updateError) {
-          console.error('Update notification error:', updateError);
+          console.warn('Update notification error:', updateError);
         }
       }
 
@@ -142,14 +142,14 @@ export default async function handler(req, res) {
       return res.status(200).json({ received: true });
 
     } catch (error) {
-      console.error('Twilio webhook error:', error);
+      console.warn('Twilio webhook error:', error);
       // Still return 200 to prevent Twilio from retrying
       return res.status(200).json({ received: true, error: 'Internal server error' });
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

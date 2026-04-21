@@ -61,7 +61,7 @@ export default async function handler(req, res) {
               .limit(1);
 
           if (error) {
-              console.error('Subscription check error:', error.message);
+              console.warn('Subscription check error:', error.message);
               return res.status(500).json({ error: 'Failed to check subscription' });
           }
 
@@ -73,13 +73,13 @@ export default async function handler(req, res) {
 
           return res.status(200).json({ subscription });
       } catch (err) {
-          console.error('check-subscription error:', err);
+          console.warn('check-subscription error:', err);
           return res.status(500).json({ error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

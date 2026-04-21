@@ -53,7 +53,7 @@ export async function getServerSideProps({ params, res }) {
     .eq('location_state', stateCode);
 
   if (error) {
-    console.error(`[home-games/in/${stateCode}/${citySlug}] fetch failed:`, error.message);
+    console.warn(`[home-games/in/${stateCode}/${citySlug}] fetch failed:`, error.message);
     return { notFound: true };
   }
 

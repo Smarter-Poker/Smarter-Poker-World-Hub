@@ -160,7 +160,7 @@ export default function NotificationPrompt({ userId, onDismiss }) {
     // Link user ID when initialized AND we have a playerId - ALWAYS try to link if subscribed
     useEffect(() => {
         if (isInitialized && userId && playerId && isSubscribed) {
-            if (process.env.NODE_ENV === 'development') console.log('[NotificationPrompt] Attempting to link user:', userId, 'playerId:', playerId);
+            if (process.env.NODE_ENV === 'development') console.debug('[NotificationPrompt] Attempting to link user:', userId, 'playerId:', playerId);
             setExternalUserId(userId);
         }
     }, [isInitialized, userId, isSubscribed, playerId, setExternalUserId]);
@@ -172,11 +172,11 @@ export default function NotificationPrompt({ userId, onDismiss }) {
             // Verify the write succeeded
             const verify = localStorage.getItem(PROMPT_KEY);
             if (!verify) {
-                console.error('[NotificationPrompt] localStorage write FAILED, retrying...');
+                console.warn('[NotificationPrompt] localStorage write FAILED, retrying...');
                 localStorage.setItem(PROMPT_KEY, value);
             }
         } catch (err) {
-            console.error('[NotificationPrompt] localStorage error:', err);
+            console.warn('[NotificationPrompt] localStorage error:', err);
         }
     }, []);
 
@@ -198,7 +198,7 @@ export default function NotificationPrompt({ userId, onDismiss }) {
                 await setExternalUserId(userId);
             }
         } catch (error) {
-            console.error('Failed to enable notifications:', error);
+            console.warn('Failed to enable notifications:', error);
         }
         if (mountedRef.current) setLoading(false);
     }, [markResponded, subscribe, userId, setExternalUserId]);

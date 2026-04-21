@@ -218,14 +218,14 @@ class GameController {
     this._horseGlobalLock = new Map(); // horseId → Promise<void>
 
     this.initialized = true;
-    console.log(`[GameController] Initialized (${this.lobby.tables.size} tables recovered)`);
+    console.debug(`[GameController] Initialized (${this.lobby.tables.size} tables recovered)`);
   }
 
   /**
    * Graceful shutdown.
    */
   async shutdown() {
-    console.log('[GameController] Shutting down...');
+    console.debug('[GameController] Shutting down...');
 
     if (this._snapshotInterval) clearInterval(this._snapshotInterval);
     if (this._staleCheckInterval) clearInterval(this._staleCheckInterval);
@@ -247,7 +247,7 @@ class GameController {
           await performanceTracker.persistSessionStats(this.supabase, stats).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         }
       }
-    } catch (_) { /* don't block shutdown */ }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
     // Save final snapshots
     await this._saveAllSnapshots();
@@ -258,7 +258,7 @@ class GameController {
     }
 
     this.initialized = false;
-    console.log('[GameController] Shutdown complete');
+    console.debug('[GameController] Shutdown complete');
   }
 
   /**
@@ -304,7 +304,7 @@ class GameController {
             if (seat.status === 'sitting_out') {
               seat._sitOutTime = seat._sitOutTime || now;
               if (now - seat._sitOutTime > 5 * 60000) {
-                console.log(`[HorseAI Watchdog] 🧟 Zombie removed: ${playerId.substring(0, 8)} sitting out > 5m on ${tableId}`);
+                console.debug(`[HorseAI Watchdog] 🧟 Zombie removed: ${playerId.substring(0, 8)} sitting out > 5m on ${tableId}`);
                 // Phase 48f: End session + persist stats on ALL exit paths
                 const zombieStats = performanceTracker.endSession(playerId, tableId);
                 if (zombieStats && this.supabase) {
@@ -319,7 +319,7 @@ class GameController {
 
             // Anomaly 2: Zero-Chip Zombie (Failed to rebuy)
             if (seat.stack === 0 && table.game && !table.game.handInProgress) {
-              console.log(`[HorseAI Watchdog] 💸 Zero-Chip removed: ${playerId.substring(0, 8)} busted on ${tableId}`);
+              console.debug(`[HorseAI Watchdog] 💸 Zero-Chip removed: ${playerId.substring(0, 8)} busted on ${tableId}`);
               // Phase 48f: End session + persist stats on ALL exit paths
               const bustedStats = performanceTracker.endSession(playerId, tableId);
               if (bustedStats && this.supabase) {
@@ -352,7 +352,7 @@ class GameController {
             if (!table.game?.handInProgress) {
               const leaveCheck = performanceTracker.shouldLeaveTable(playerId, tableId);
               if (leaveCheck.shouldLeave) {
-                console.log(`[HorseAI Session] 🚪 ${playerId.substring(0, 8)} leaving ${tableId}: ${leaveCheck.reason}`);
+                console.debug(`[HorseAI Session] 🚪 ${playerId.substring(0, 8)} leaving ${tableId}: ${leaveCheck.reason}`);
                 const sessionStats = performanceTracker.endSession(playerId, tableId);
                 if (sessionStats && this.supabase) {
                   performanceTracker.persistSessionStats(this.supabase, sessionStats).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
@@ -393,12 +393,12 @@ class GameController {
 
             // Auto-Rebuy (Only forced if busted AND we still have an overlay to cover)
             if (overlayAmount > 0 && t.allowsRebuys && pEntry.status === 'busted_rebuy') {
-              console.log(`[HorseAI Defense] 🔥 Forcing rebuy for ${playerId.substring(0, 8)} to cover overlay on ${tournamentId}`);
+              console.debug(`[HorseAI Defense] 🔥 Forcing rebuy for ${playerId.substring(0, 8)} to cover overlay on ${tournamentId}`);
               await t.processRebuy(playerId);
             }
             // Auto-Addon (ALWAYS executed 100% of the time during break, completely ignoring overlayAmount)
             else if (t.allowsAddon && t.status === 'break' && pEntry.status === 'active' && !pEntry.addonTaken) {
-              console.log(`[HorseAI] ➕ 100% Add-On Mandate: Forcing Add-on for ${playerId.substring(0, 8)} on ${tournamentId}`);
+              console.debug(`[HorseAI] ➕ 100% Add-On Mandate: Forcing Add-on for ${playerId.substring(0, 8)} on ${tournamentId}`);
               await t.processAddon(playerId);
             }
           }
@@ -439,7 +439,7 @@ class GameController {
         }
       }
     } catch (err) {
-      console.error(`[HorseAI] Pipeline Heartbeat failed:`, err.message);
+      console.warn(`[HorseAI] Pipeline Heartbeat failed:`, err.message);
     }
   }
 
@@ -450,7 +450,7 @@ class GameController {
    */
   async _processDailyHorseReload(horseIds) {
     if (!this.supabase || !horseIds || horseIds.size === 0) return;
-    console.log(`[HorseAI] 🏦 Executing 9:00 AM Daily Bankroll Reload for ${horseIds.size} horses`);
+    console.debug(`[HorseAI] 🏦 Executing 9:00 AM Daily Bankroll Reload for ${horseIds.size} horses`);
     try {
       // ─── AUDIT 13 Fix: UPSERT into all active clubs ───
       // Horses aren't always explicitly invited to clubs, so their ledger rows might not exist.
@@ -461,7 +461,7 @@ class GameController {
       }
 
       if (activeClubIds.size === 0) {
-        console.log('[HorseAI] 🏦 No active clubs found to reload horses into.');
+        console.debug('[HorseAI] 🏦 No active clubs found to reload horses into.');
         return;
       }
 
@@ -484,12 +484,12 @@ class GameController {
         if (!error) {
           reloaded += updates.length;
         } else {
-          console.error(`[HorseAI] Failed to upsert ledgers for club ${clubId}:`, error.message);
+          console.warn(`[HorseAI] Failed to upsert ledgers for club ${clubId}:`, error.message);
         }
       }
-      console.log(`[HorseAI] 🏦 Daily reload complete. Successfully refreshed ${reloaded} horse ledgers across ${activeClubIds.size} clubs.`);
+      console.debug(`[HorseAI] 🏦 Daily reload complete. Successfully refreshed ${reloaded} horse ledgers across ${activeClubIds.size} clubs.`);
     } catch (err) {
-      console.error('[HorseAI] Daily reload failed:', err.message);
+      console.warn('[HorseAI] Daily reload failed:', err.message);
     }
   }
 
@@ -543,7 +543,7 @@ class GameController {
         .maybeSingle();
 
       if (error) {
-        console.error('[GameController] DB insert failed:', error.message);
+        console.warn('[GameController] DB insert failed:', error.message);
         tableId = `table_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
       } else {
         tableId = data.id;
@@ -580,10 +580,10 @@ class GameController {
     try {
       await this.lobby.createTable(tableConfig);
       this._wireHorseAI(tableId);
-      console.log(`[GameController] Table created: ${tableId}`);
+      console.debug(`[GameController] Table created: ${tableId}`);
       return { success: true, tableId };
     } catch (err) {
-      console.error('[GameController] Engine table creation failed:', err.message);
+      console.warn('[GameController] Engine table creation failed:', err.message);
       return { success: false, error: err.message };
     }
   }
@@ -707,7 +707,7 @@ class GameController {
             const fullState = await StateSerializer.loadFromDB(clubTableId, this.supabase);
             const recovered = fullState ? StateSerializer.restore(entry.table, fullState) : false;
             if (recovered) {
-              console.log(`[GameController] connectToClubTable: mid-hand state restored for ${clubTableId}`);
+              console.debug(`[GameController] connectToClubTable: mid-hand state restored for ${clubTableId}`);
               // Resume Horse AI if it was their turn when server crashed
               const game = entry.table.game;
               if (game?.bettingRound) {
@@ -739,10 +739,10 @@ class GameController {
                   seatData.stack,
                   { displayName: seatData.player.displayName, avatarUrl: seatData.player.avatarUrl }
                 );
-              } catch (_) { /* seat may already be taken — non-fatal */ }
+              } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
             }
           }
-          console.log(`[GameController] connectToClubTable: restored ${snapshot.seats.length} seats from snapshot for ${clubTableId}`);
+          console.debug(`[GameController] connectToClubTable: restored ${snapshot.seats.length} seats from snapshot for ${clubTableId}`);
         }
       }
 
@@ -752,10 +752,10 @@ class GameController {
         .update({ status: 'running' })
         .eq('id', clubTableId);
 
-      console.log(`[GameController] Connected to club table: ${clubTableId} (${row.name})`);
+      console.debug(`[GameController] Connected to club table: ${clubTableId} (${row.name})`);
       return { success: true, tableId: clubTableId, name: row.name };
     } catch (err) {
-      console.error('[GameController] Club table connect failed:', err.message);
+      console.warn('[GameController] Club table connect failed:', err.message);
       return { success: false, error: err.message };
     }
   }
@@ -799,7 +799,7 @@ class GameController {
             }
           }
         }
-      } catch (_) { /* non-fatal */ }
+      } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
       // Clear AI session tracking
       HorsePokerBrain.clearTableSessions(tableId);
@@ -901,7 +901,7 @@ class GameController {
           performanceTracker.persistSessionStats(this.supabase, stats).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         }
       }
-    } catch (_) { /* never block standUp */ }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
     const result = entry.table.standUp(playerId);
     this._broadcastTableState(tableId);
@@ -1124,7 +1124,7 @@ class GameController {
     const existingLock = this._horseGlobalLock?.get(playerId);
     if (existingLock) {
       try { await Promise.race([existingLock, new Promise(r => setTimeout(r, 10000))]); }
-      catch (_) { /* timeout or error, proceed anyway */ }
+      catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }
     let _resolveLock;
     const lockPromise = new Promise(r => { _resolveLock = r; });
@@ -1181,7 +1181,7 @@ class GameController {
 
       if (result.success) {
         this._stats.totalActions++;
-        console.log(`[HorseAI] ${playerId.substring(0, 8)}... \u2192 ${action.type}${action.amount ? ' ' + action.amount : ''} (${delayMs}ms delay)`);
+        console.debug(`[HorseAI] ${playerId.substring(0, 8)}... \u2192 ${action.type}${action.amount ? ' ' + action.amount : ''} (${delayMs}ms delay)`);
 
         // Check for AI Emotes/Chat (#10) - Emote when all-in or throwing good luck
         const messages = HorsePokerBrain.getChatMessages();
@@ -1210,7 +1210,7 @@ class GameController {
         console.warn(`[HorseAI] Action rejected for ${playerId.substring(0, 8)}...: ${result.error}`);
       }
     } catch (err) {
-      console.error(`[HorseAI] _triggerHorseAction error:`, err.message);
+      console.warn(`[HorseAI] _triggerHorseAction error:`, err.message);
     } finally {
       this._horseActionPending.delete(key);
       // Phase 48f: Release multi-table coordination lock
@@ -1244,7 +1244,7 @@ class GameController {
           HorsePokerBrain.observeNewHand(tableId, data.handId || `${tableId}_${data.handNumber}`, players, horseIds, bb);
         }
       } catch (err) {
-        console.error(`[LiveObserver] hand_start hook failed:`, err.message);
+        console.warn(`[LiveObserver] hand_start hook failed:`, err.message);
       }
     });
 
@@ -1313,10 +1313,7 @@ class GameController {
             }
           }
         }
-      } catch (err) {
-        // Never let observer errors break the game loop
-        console.error(`[LiveObserver] action_processed hook failed:`, err.message);
-      }
+      } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
     });
 
     // ═══════════════════════════════════════════════════════════════════
@@ -1352,7 +1349,7 @@ class GameController {
           HorsePokerBrain.observeShowdown(tableId, pid, won, handStrength, wasBluff, horseIds);
         }
       } catch (err) {
-        console.error(`[LiveObserver] showdown hook failed:`, err.message);
+        console.warn(`[LiveObserver] showdown hook failed:`, err.message);
       }
     });
 
@@ -1362,7 +1359,7 @@ class GameController {
         HorsePokerBrain.isHorse(String(data.playerId)).then(isAI => {
           if (isAI) {
             this._triggerHorseAction(tableId, String(data.playerId)).catch(err => {
-              console.error(`[HorseAI] action_required trigger failed:`, err.message);
+              console.warn(`[HorseAI] action_required trigger failed:`, err.message);
             });
           }
         }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
@@ -1374,10 +1371,10 @@ class GameController {
     entry.table.on('hand_complete', (data) => {
       const bb = entry.table.bigBlind || 2;
       HorsePokerBrain.processHandResult(data, bb).catch(err => {
-        console.error(`[HorseAI] processHandResult failed:`, err.message);
+        console.warn(`[HorseAI] processHandResult failed:`, err.message);
       });
       HorsePokerBrain.evaluateSessions(this, entry.table).catch(err => {
-        console.error(`[HorseAI] evaluateSessions failed:`, err.message);
+        console.warn(`[HorseAI] evaluateSessions failed:`, err.message);
       });
 
       // Phase 48f: Record hand results in PerformanceTracker for all horses at table
@@ -1398,7 +1395,7 @@ class GameController {
           }
         }
       } catch (perfErr) {
-        console.error(`[PerformanceTracker] recordHand failed:`, perfErr.message);
+        console.warn(`[PerformanceTracker] recordHand failed:`, perfErr.message);
       }
 
       // ═══ BOMB POT FREQUENCY TRIGGER ═══
@@ -1413,7 +1410,7 @@ class GameController {
           this._bombPotCounters.set(tableId, 0);
           // Flag the next hand as a bomb pot on the engine's config
           if (gameConfig) gameConfig.bombPotTriggered = true;
-          console.log(`[GameController] 💣 Bomb Pot triggered on ${tableId} (every ${freq} hands)`);
+          console.debug(`[GameController] 💣 Bomb Pot triggered on ${tableId} (every ${freq} hands)`);
         } else {
           if (gameConfig) gameConfig.bombPotTriggered = false;
         }
@@ -1422,7 +1419,7 @@ class GameController {
 
     // Auto-fill table with horses after wiring (non-blocking)
     this.fillTableWithHorses(tableId).catch(err => {
-      console.error(`[HorseAI] Auto-fill failed for ${tableId}:`, err.message);
+      console.warn(`[HorseAI] Auto-fill failed for ${tableId}:`, err.message);
     });
   }
 
@@ -1567,7 +1564,7 @@ class GameController {
         // Phase 48f: Start performance tracking session
         const variant = entry.config?.variant || 'holdem';
         performanceTracker.startSession(horse.id, tableId, variant, bigBlind, buyIn);
-        console.log(`[HorseAI] 🐴 ${horse.alias || horse.id.substring(0, 8)} seated at ${tableId} (seat ${seatSlot.index}) physically locking ${buyIn} chips!`);
+        console.debug(`[HorseAI] 🐴 ${horse.alias || horse.id.substring(0, 8)} seated at ${tableId} (seat ${seatSlot.index}) physically locking ${buyIn} chips!`);
       } else if (clubId) {
         // Rollback physical lock if memory table rejects them
         const ChipBridge = require('./ChipBridge');
@@ -1578,7 +1575,7 @@ class GameController {
     if (seated > 0) {
       this._broadcastTableState(tableId);
       this._updateTablePlayerCount(tableId);
-      console.log(`[HorseAI] ✅ Auto-filled ${seated} horses at table ${tableId}`);
+      console.debug(`[HorseAI] ✅ Auto-filled ${seated} horses at table ${tableId}`);
     }
 
     return { success: true, seated };
@@ -1697,13 +1694,13 @@ class GameController {
         }
 
         // We don't need ChipBridge locking here; TournamentController.registerPlayer handles `ledger.deductBuyin` natively.
-        console.log(`[HorseAI] 🏆 ${horse.alias || horse.id.substring(0, 8)} registered for tournament ${tournamentId} for ${buyIn} chips`);
+        console.debug(`[HorseAI] 🏆 ${horse.alias || horse.id.substring(0, 8)} registered for tournament ${tournamentId} for ${buyIn} chips`);
       } else {
         console.warn(`[HorseAI] Failed to register ${horse.id.substring(0, 8)}: ${result.error}`);
       }
     }
 
-    console.log(`[HorseAI] ✅ Auto-registered ${registered} horses for tournament ${tournamentId}`);
+    console.debug(`[HorseAI] ✅ Auto-registered ${registered} horses for tournament ${tournamentId}`);
     return { success: true, registered };
   }
 
@@ -1962,7 +1959,7 @@ class GameController {
           })
           .select('id').maybeSingle();
         if (!error && data) tournamentId = data.id;
-      } catch (err) { console.error('[GameController] Tournament DB insert:', err.message); }
+      } catch (err) { console.warn('[GameController] Tournament DB insert:', err.message); }
     }
 
     if (!tournamentId) {
@@ -1991,7 +1988,7 @@ class GameController {
     const bridge = new TournamentBridge(controller, this.lobby, this.supabase);
     await bridge.wire();
     this._tournaments.set(tournamentId, { controller, bridge });
-    console.log(`[GameController] Tournament created: ${tournamentId} (${name})`);
+    console.debug(`[GameController] Tournament created: ${tournamentId} (${name})`);
 
     // ─── Phase 2: Auto-Register Horses on Creation ───
     // Horses will evaluate the buyIn and their physical club_members balance,
@@ -2110,12 +2107,12 @@ class GameController {
               }), { critical: true });
               refunded++;
             } else {
-              console.error(`[cancelTournament] Refund failed for ${playerId}:`, creditErr.message);
+              console.warn(`[cancelTournament] Refund failed for ${playerId}:`, creditErr.message);
               refundErrors++;
             }
           }
         } catch (err) {
-          console.error(`[cancelTournament] Refund error for ${playerId}:`, err.message);
+          console.warn(`[cancelTournament] Refund error for ${playerId}:`, err.message);
           refundErrors++;
         }
       }
@@ -2127,7 +2124,7 @@ class GameController {
 
     entry.bridge.destroy();
     this._tournaments.delete(tournamentId);
-    console.log(`[GameController] Tournament ${tournamentId} cancelled — ${refunded} refunds issued`);
+    console.debug(`[GameController] Tournament ${tournamentId} cancelled — ${refunded} refunds issued`);
     return { success: true, refunded, refundErrors };
   }
 
@@ -2169,10 +2166,10 @@ class GameController {
     if (this.lobby.tables.has(tableId)) return true;
 
     // Not in memory — try to reconnect from DB
-    console.log(`[GameController] Cold-start auto-recovery: reconnecting table ${tableId}`);
+    console.debug(`[GameController] Cold-start auto-recovery: reconnecting table ${tableId}`);
     const result = await this.connectToClubTable(tableId);
     if (result.success) {
-      console.log(`[GameController] Auto-recovery succeeded: ${tableId}`);
+      console.debug(`[GameController] Auto-recovery succeeded: ${tableId}`);
     } else {
       console.warn(`[GameController] Auto-recovery failed for ${tableId}: ${result.error}`);
     }
@@ -2201,7 +2198,7 @@ class GameController {
       }
 
       if (!tables || tables.length === 0) {
-        console.log('[GameController] No tables to recover');
+        console.debug('[GameController] No tables to recover');
         return;
       }
 
@@ -2276,7 +2273,7 @@ class GameController {
               const fullState = await StateSerializer.loadFromDB(row.id, this.supabase);
               const recovered = fullState ? StateSerializer.restore(entry.table, fullState) : false;
               if (recovered) {
-                console.log(`[GameController] Mid-hand recovered: ${row.id}`);
+                console.debug(`[GameController] Mid-hand recovered: ${row.id}`);
 
                 // ─── GAP 6: Resume Horse AI if it was their turn when server crashed ───
                 const game = entry.table.game;
@@ -2285,7 +2282,7 @@ class GameController {
                   if (currPlayer) {
                     HorsePokerBrain.isHorse(String(currPlayer.id)).then(isAI => {
                       if (isAI) {
-                        console.log(`[HorseAI] Resuming interrupted turn for ${currPlayer.id.substring(0, 8)} on ${row.id}`);
+                        console.debug(`[HorseAI] Resuming interrupted turn for ${currPlayer.id.substring(0, 8)} on ${row.id}`);
                         this._triggerHorseAction(row.id, currPlayer.id);
                       }
                     }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
@@ -2315,13 +2312,13 @@ class GameController {
             }
           }
         } catch (err) {
-          console.error(`[GameController] Failed to recover table ${row.id}:`, err.message);
+          console.warn(`[GameController] Failed to recover table ${row.id}:`, err.message);
         }
       }
 
-      console.log(`[GameController] Recovered ${tables.length} tables from DB`);
+      console.debug(`[GameController] Recovered ${tables.length} tables from DB`);
     } catch (err) {
-      console.error('[GameController] Recovery failed:', err.message);
+      console.warn('[GameController] Recovery failed:', err.message);
     }
   }
 
@@ -2342,7 +2339,7 @@ class GameController {
         .limit(50);
 
       if (error || !rows || rows.length === 0) {
-        console.log('[GameController] No active tournaments to recover');
+        console.debug('[GameController] No active tournaments to recover');
         return;
       }
 
@@ -2408,15 +2405,15 @@ class GameController {
           const bridge = new TournamentBridge(controller, this.lobby, this.supabase);
           await bridge.wire();
           this._tournaments.set(row.id, { controller, bridge });
-          console.log(`[GameController] Recovered tournament: ${row.id} (${row.name}, ${row.status}, ${row.tournament_registrations?.length || 0} entries)`);
+          console.debug(`[GameController] Recovered tournament: ${row.id} (${row.name}, ${row.status}, ${row.tournament_registrations?.length || 0} entries)`);
         } catch (err) {
-          console.error(`[GameController] Failed to recover tournament ${row.id}:`, err.message);
+          console.warn(`[GameController] Failed to recover tournament ${row.id}:`, err.message);
         }
       }
 
-      console.log(`[GameController] Recovered ${rows.length} tournaments from DB`);
+      console.debug(`[GameController] Recovered ${rows.length} tournaments from DB`);
     } catch (err) {
-      console.error('[GameController] Tournament recovery failed:', err.message);
+      console.warn('[GameController] Tournament recovery failed:', err.message);
     }
   }
 
@@ -2451,7 +2448,7 @@ class GameController {
           })
           .eq('id', tableId);
       } catch (err) {
-        console.error(`[GameController] Snapshot save failed for ${tableId}:`, err.message);
+        console.warn(`[GameController] Snapshot save failed for ${tableId}:`, err.message);
       }
     }
   }
@@ -2468,7 +2465,7 @@ class GameController {
       if (playerCount === 0) {
         const created = new Date(entry.config.createdAt).getTime();
         if (now - created > MAX_EMPTY_TABLE_AGE_MS) {
-          console.log(`[GameController] Removing stale empty table: ${tableId}`);
+          console.debug(`[GameController] Removing stale empty table: ${tableId}`);
           await this.closeTable(tableId);
         }
       }
@@ -2497,9 +2494,7 @@ class GameController {
         .from('tables')
         .update({ current_players: count })
         .eq('id', tableId);
-    } catch (_) {
-      // Silently fail if current_players column doesn't exist yet
-    }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }
 
   /** @private */

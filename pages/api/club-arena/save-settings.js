@@ -83,13 +83,13 @@ export default async function handler(req, res) {
 
           return res.status(200).json({ success: true });
       } catch (err) {
-          console.error('[save-settings]', err);
+          console.warn('[save-settings]', err);
           return res.status(500).json(safeErrorResponse(err, 'Failed to save settings'));
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

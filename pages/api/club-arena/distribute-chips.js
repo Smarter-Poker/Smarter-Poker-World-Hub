@@ -188,7 +188,7 @@ export default async function handler(req, res) {
       });
 
       if (rpcErr) {
-        console.error('[distribute-chips] RPC error:', rpcErr);
+        console.warn('[distribute-chips] RPC error:', rpcErr);
         return res.status(500).json({ success: false, error: 'Distribution failed', details: rpcErr.message });
       }
 
@@ -218,13 +218,13 @@ export default async function handler(req, res) {
         memberAfter: result.member_after,
       });
     } catch (err) {
-      console.error('[distribute-chips]', err);
+      console.warn('[distribute-chips]', err);
       return res.status(500).json(safeErrorResponse(err, 'Distribution failed'));
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

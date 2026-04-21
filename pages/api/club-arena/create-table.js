@@ -36,7 +36,7 @@ export default async function handler(req, res) {
           try {
               const { applyRateLimit: rl, LIMITS } = require('../../../src/lib/apiRateLimit');
               if (!rl(req, res, LIMITS.write)) return;
-          } catch (_) { /* rate limiter not available — proceed */ }
+          } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
       }
 
       if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
@@ -279,13 +279,13 @@ export default async function handler(req, res) {
           cacheResponse(req, 200, responseBody);
           return res.status(200).json(responseBody);
       } catch (err) {
-          console.error('[create-table]', err);
+          console.warn('[create-table]', err);
           return res.status(500).json(safeErrorResponse(err, 'Failed to create table'));
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

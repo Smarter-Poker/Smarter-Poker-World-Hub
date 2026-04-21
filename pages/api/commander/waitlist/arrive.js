@@ -78,7 +78,7 @@ export default async function handler(req, res) {
       .select('id, game_type, stakes, status');
 
     if (updateError) {
-      console.error('[arrive] Update error:', updateError);
+      console.warn('[arrive] Update error:', updateError);
       return res.status(500).json({
         success: false,
         error: { code: 'DATABASE_ERROR', message: 'Failed to update arrival status' }
@@ -96,7 +96,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[arrive] Error:', err);
+    console.warn('[arrive] Error:', err);
     if (!res.headersSent) {
       return res.status(500).json({ success: false, error: 'Internal server error' });
     }

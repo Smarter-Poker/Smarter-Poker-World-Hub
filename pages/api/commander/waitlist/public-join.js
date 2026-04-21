@@ -189,7 +189,7 @@ export default async function handler(req, res) {
               .maybeSingle();
 
           if (insertError) {
-              console.error('Public waitlist join insert error:', insertError);
+              console.warn('Public waitlist join insert error:', insertError);
               return res.status(500).json({
                   success: false,
                   error: { code: 'DATABASE_ERROR', message: 'Failed to join waitlist' }
@@ -255,10 +255,7 @@ export default async function handler(req, res) {
                           .is('phone', null);
                   }
               }
-          } catch (memberErr) {
-              // Non-critical — waitlist entry already created successfully
-              console.warn('Member upsert warning (non-critical):', memberErr);
-          }
+          } catch (memberErr) { console.warn('[App] Handled exception:', memberErr?.message || memberErr); }
 
           return res.status(201).json({
               success: true,
@@ -279,7 +276,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

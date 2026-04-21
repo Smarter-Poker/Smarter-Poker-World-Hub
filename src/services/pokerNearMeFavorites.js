@@ -19,7 +19,7 @@ export async function getVenueFavorites(userId) {
         .order('created_at', { ascending: false });
 
     if (error) {
-        console.error('Error fetching venue favorites:', error);
+        console.warn('Error fetching venue favorites:', error);
         throw error;
     }
 
@@ -49,7 +49,7 @@ export async function addVenueFavorite(userId, venueId, venueData = {}) {
         .maybeSingle();
 
     if (error) {
-        console.error('Error adding venue favorite:', error);
+        console.warn('Error adding venue favorite:', error);
         throw error;
     }
 
@@ -77,7 +77,7 @@ export async function removeVenueFavorite(userId, venueId) {
         .eq('venue_id', venueId);
 
     if (error) {
-        console.error('Error removing venue favorite:', error);
+        console.warn('Error removing venue favorite:', error);
         throw error;
     }
 
@@ -103,7 +103,7 @@ export async function isVenueFavorited(userId, venueId) {
         .maybeSingle();
 
     if (error && error.code !== 'PGRST116') {
-        console.error('Error checking venue favorite:', error);
+        console.warn('Error checking venue favorite:', error);
         throw error;
     }
 

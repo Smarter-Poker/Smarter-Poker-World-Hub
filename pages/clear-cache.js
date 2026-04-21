@@ -48,7 +48,7 @@ export default function ClearCachePage() {
                     indexedDB.deleteDatabase('sp_cache');
                     console.log('[ClearCache] Deleted IndexedDB sp_cache');
                 }
-            } catch (e) { /* noop */ }
+            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
             // 5. Clear sessionStorage
             sessionStorage.clear();

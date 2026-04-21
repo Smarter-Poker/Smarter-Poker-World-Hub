@@ -134,7 +134,7 @@ export default async function handler(req, res) {
       });
 
       if (rpcErr) {
-        console.error('[request-cashout] RPC Error:', rpcErr);
+        console.warn('[request-cashout] RPC Error:', rpcErr);
         throw rpcErr;
       }
 
@@ -228,13 +228,13 @@ export default async function handler(req, res) {
       cacheResponse(req, 200, responseBody);
       return res.status(200).json(responseBody);
     } catch (err) {
-      console.error('[request-cashout]', err);
+      console.warn('[request-cashout]', err);
       return res.status(500).json(safeErrorResponse(err, 'Cashout request failed'));
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

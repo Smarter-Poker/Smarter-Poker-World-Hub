@@ -51,14 +51,14 @@ export default async function handler(req, res) {
             .maybeSingle();
 
         if (error) {
-            console.error('[Checkin API] Insert error:', error);
+            console.warn('[Checkin API] Insert error:', error);
             return res.status(500).json({ success: false, error: 'Failed to record checkin' });
         }
 
         return res.status(200).json({ success: true, checkin_id: newCheckin.id });
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('[API Error] checkin:', err);
+        console.warn('[API Error] checkin:', err);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

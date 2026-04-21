@@ -73,7 +73,7 @@ export default function PokerBrainLaunchButton({
       setMode('camera');
       setOpen(true);
     } catch (err) {
-      console.error(err);
+      console.warn(err);
       setError(
         err.name === 'NotAllowedError'
           ? 'Camera permission denied. Enable camera access in your browser to use Poker Brain.'
@@ -99,7 +99,7 @@ export default function PokerBrainLaunchButton({
       setMode('screen');
       setOpen(true);
     } catch (err) {
-      console.error(err);
+      console.warn(err);
       if (err.name !== 'NotAllowedError') {
         setError(`Could not start screen capture: ${err.message}`);
       }

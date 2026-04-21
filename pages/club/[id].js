@@ -365,7 +365,7 @@ export default function ClubPage() {
           });
         }
       } catch (e) {
-        console.error('Auth check error:', e);
+        console.warn('Auth check error:', e);
       }
     }
     loadUser();
@@ -385,7 +385,7 @@ export default function ClubPage() {
           setIsFollowing(json.is_following || false);
         }
       } catch (e) {
-        console.error('Follow status check error:', e);
+        console.warn('Follow status check error:', e);
       }
     }
     checkFollowStatus();
@@ -403,7 +403,7 @@ export default function ClubPage() {
         setTournaments(data.data.upcoming_tournaments || []);
       }
     } catch (err) {
-      if (err.name !== 'AbortError') console.error('Live data refresh failed:', err);
+      if (err.name !== 'AbortError') console.warn('Live data refresh failed:', err);
     }
   }, [id]);
 
@@ -448,7 +448,7 @@ export default function ClubPage() {
           }
         }
       } catch (error) {
-        if (error.name !== 'AbortError') console.error('Fetch venue data failed:', error);
+        if (error.name !== 'AbortError') console.warn('Fetch venue data failed:', error);
       } finally {
         setLoading(false);
       }
@@ -510,7 +510,7 @@ export default function ClubPage() {
           });
         }
       } catch (e) {
-        console.error('Inline auth check failed:', e);
+        console.warn('Inline auth check failed:', e);
       }
     }
 
@@ -535,7 +535,7 @@ export default function ClubPage() {
         setIsFollowing(!isFollowing);
       }
     } catch (error) {
-      console.error('Follow failed:', error);
+      console.warn('Follow failed:', error);
     }
   }
 
@@ -564,7 +564,7 @@ export default function ClubPage() {
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
     } catch (err) {
-      console.error('Like error:', err);
+      console.warn('Like error:', err);
       // Revert optimistic update on failure
       setLikedPosts(prev => {
         const next = new Set(prev);
@@ -596,7 +596,7 @@ export default function ClubPage() {
         ));
       }
     } catch (err) {
-      console.error('Comment error:', err);
+      console.warn('Comment error:', err);
     }
   }
 
@@ -606,14 +606,14 @@ export default function ClubPage() {
       try {
         await navigator.share({ url: shareUrl, title: venue?.name || 'Check out this club' });
       } catch (e) {
-        if (e.name !== 'AbortError') console.error('Share error:', e);
+        if (e.name !== 'AbortError') console.warn('Share error:', e);
       }
     } else {
       try {
         await navigator.clipboard.writeText(shareUrl);
         alert('Link copied to clipboard!');
       } catch (e) {
-        console.error('Copy error:', e);
+        console.warn('Copy error:', e);
       }
     }
     // Record the share interaction
@@ -688,12 +688,12 @@ export default function ClubPage() {
           if (json.success && json.url) {
             uploaded.push({ type: json.type || 'photo', url: json.url });
           } else {
-            console.error('[ClubPage] Upload failed:', json.error);
+            console.warn('[ClubPage] Upload failed:', json.error);
             alert('Upload failed: ' + (json.error || 'Unknown error'));
           }
         }
       } catch (err) {
-        console.error('[ClubPage] Upload error:', err);
+        console.warn('[ClubPage] Upload error:', err);
         alert('Upload failed: ' + err.message);
       }
     }
@@ -740,7 +740,7 @@ export default function ClubPage() {
         alert('Post failed: ' + json.error);
       }
     } catch (e) {
-      console.error('Post error:', e);
+      console.warn('Post error:', e);
       alert('Post failed: ' + e.message);
     }
     setPosting(false);
@@ -790,7 +790,7 @@ export default function ClubPage() {
             }
           }
         } catch (refreshErr) {
-          console.error('Review refresh failed (review was saved):', refreshErr);
+          console.warn('Review refresh failed (review was saved):', refreshErr);
         }
       } else {
         setReviewError(data.error || 'Failed to submit review');

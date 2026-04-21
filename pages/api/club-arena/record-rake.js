@@ -81,7 +81,7 @@ export default async function handler(req, res) {
       });
 
       if (rakeErr) {
-        console.error('[record-rake] RPC error:', rakeErr);
+        console.warn('[record-rake] RPC error:', rakeErr);
         return res.status(500).json({ success: false, error: 'Rake recording failed', details: process.env.NODE_ENV === 'development' ? rakeErr.message : undefined });
       }
 
@@ -111,10 +111,7 @@ export default async function handler(req, res) {
           p_club_id: clubId,
           p_rake: rakeAmount,
           p_hands: 1,
-        }).catch(e => {
-          // Non-fatal: settlement close has a fallback that calculates from agents
-          console.warn('[record-rake] Settlement counter increment failed:', e.message);
-        });
+        }).catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
       }
 
       return res.status(200).json({
@@ -123,13 +120,13 @@ export default async function handler(req, res) {
         commissions: commissionResults,
       });
     } catch (err) {
-      console.error('[record-rake]', err);
+      console.warn('[record-rake]', err);
       return res.status(500).json({ success: false, error: 'Rake recording failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

@@ -51,11 +51,11 @@ async function sendTwilioSMS(to, message) {
     if (response.ok) {
       return { success: true, sid: data.sid };
     } else {
-      console.error('Twilio error:', data);
+      console.warn('Twilio error:', data);
       return { success: false, error: data.message };
     }
   } catch (error) {
-    console.error('Twilio SMS error:', error);
+    console.warn('Twilio SMS error:', error);
     return { success: false, error: error.message };
   }
 }
@@ -92,11 +92,11 @@ async function sendOneSignalPush(userId, title, message, data = {}) {
     if (response.ok && !result.errors) {
       return { success: true, id: result.id };
     } else {
-      console.error('OneSignal error:', result);
+      console.warn('OneSignal error:', result);
       return { success: false, error: result.errors?.[0] || 'Push failed' };
     }
   } catch (error) {
-    console.error('OneSignal push error:', error);
+    console.warn('OneSignal push error:', error);
     return { success: false, error: error.message };
   }
 }
@@ -180,7 +180,7 @@ export default async function handler(req, res) {
         .maybeSingle();
 
       if (updateError) {
-        console.error('Commander waitlist call update error:', updateError);
+        console.warn('Commander waitlist call update error:', updateError);
         return res.status(500).json({
           success: false,
           error: { code: 'DATABASE_ERROR', message: 'Failed to update entry' }
@@ -321,7 +321,7 @@ export default async function handler(req, res) {
         }
       });
     } catch (error) {
-      console.error('Commander waitlist call API error:', error);
+      console.warn('Commander waitlist call API error:', error);
       return res.status(500).json({
         success: false,
         error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }
@@ -330,7 +330,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

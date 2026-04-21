@@ -156,7 +156,7 @@ const CUE_DEFS = {
 export function playCue(name) {
   const fn = CUE_DEFS[name];
   if (fn) {
-    try { fn(); } catch (_) { /* swallow audio errors */ }
+    try { fn(); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }
 }
 

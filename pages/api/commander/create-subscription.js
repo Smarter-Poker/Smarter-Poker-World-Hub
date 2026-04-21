@@ -50,7 +50,7 @@ async function findUserByEmail(email) {
       return { id: profile.id, email: profile.email || normalizedEmail };
     }
   } catch (e) {
-    console.error('Method 0 (profiles) failed:', e.message);
+    console.warn('Method 0 (profiles) failed:', e.message);
   }
 
   // Method 1: Supabase admin getUserByEmail (if available in this SDK version)
@@ -67,7 +67,7 @@ async function findUserByEmail(email) {
       return data.user;
     }
   } catch (e) {
-    console.error('Method 1 failed:', e.message);
+    console.warn('Method 1 failed:', e.message);
   }
 
   // Method 2: GoTrue REST API - paginated search (up to 5000 users)
@@ -96,7 +96,7 @@ async function findUserByEmail(email) {
       page++;
     }
   } catch (e) {
-    console.error('Method 2 failed:', e.message);
+    console.warn('Method 2 failed:', e.message);
   }
 
   return null;
@@ -225,7 +225,7 @@ export default async function handler(req, res) {
                   role: 'venue_owner',
                 }
               });
-            } catch (e) { /* non-critical */ }
+            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
           } else {
             return res.status(400).json({
               error: 'An account with this email already exists. Please check "I already have a Smarter.Poker account" and try again.'
@@ -233,7 +233,7 @@ export default async function handler(req, res) {
           }
         } else {
           // Unexpected error
-          console.error('createUser error:', authError?.message);
+          console.warn('createUser error:', authError?.message);
           return res.status(400).json({
             error: `Registration issue: ${authError?.message || 'Unknown error'}. Please contact support at admin@smarter.poker.`
           });
@@ -315,7 +315,7 @@ export default async function handler(req, res) {
           .maybeSingle();
 
         if (venueError) {
-          console.error('Venue creation error:', venueError);
+          console.warn('Venue creation error:', venueError);
           return res.status(400).json({ error: 'Failed to create venue: ' + venueError.message });
         }
 
@@ -448,7 +448,7 @@ export default async function handler(req, res) {
           .maybeSingle();
 
         if (subError) {
-          console.error('Subscription creation error:', subError);
+          console.warn('Subscription creation error:', subError);
           return res.status(500).json({ error: 'Failed to create subscription' });
         }
         if (!newSub) {
@@ -507,7 +507,7 @@ export default async function handler(req, res) {
             await getSupabase().from('commander_tables').insert(tablesToInsert);
           }
         } catch (e) {
-          console.error('Table auto-provision error (non-critical):', e.message);
+          console.warn('Table auto-provision error (non-critical):', e.message);
         }
       }
 
@@ -526,7 +526,7 @@ export default async function handler(req, res) {
             website: clubInfo.website || null, owner_id: userId
           })
         });
-      } catch (e) { /* non-critical */ }
+      } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
       // ─── 7. Welcome email (best-effort) ──────────────────────────────
       try {
@@ -541,7 +541,7 @@ export default async function handler(req, res) {
             tier, loginUrl: `${process.env.NEXT_PUBLIC_APP_URL}/commander/login`
           })
         });
-      } catch (e) { /* non-critical */ }
+      } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
       // ─── Done ────────────────────────────────────────────────────────
       return res.status(200).json({
@@ -555,13 +555,13 @@ export default async function handler(req, res) {
       });
 
     } catch (error) {
-      console.error('Registration error:', error);
+      console.warn('Registration error:', error);
       return res.status(500).json({ error: error.message || 'Registration failed' });
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

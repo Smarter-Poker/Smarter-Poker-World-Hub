@@ -49,7 +49,7 @@ export default function QuickLogWidget({ userId, onSubmit, onOpenFullModal }) {
             setAmount('');
             setTimeout(() => setShowSuccess(false), 2000);
         } catch (error) {
-            console.error('Quick log failed:', error);
+            console.warn('Quick log failed:', error);
         }
 
         setIsSubmitting(false);

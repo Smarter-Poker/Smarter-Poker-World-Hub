@@ -182,7 +182,7 @@ export default function DailyGoalsPage() {
         setPrevComplete(result.completeCount);
       }
     } catch (e) {
-      console.error('[DailyGoals]', e);
+      console.warn('[DailyGoals]', e);
       setFetchError('Unable to load daily goals. Please try again.');
     }
     setLoading(false);

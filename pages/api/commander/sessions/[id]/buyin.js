@@ -87,7 +87,7 @@ export default async function handler(req, res) {
         .maybeSingle();
 
       if (updateError) {
-        console.error('Session buy-in error:', updateError);
+        console.warn('Session buy-in error:', updateError);
         return res.status(500).json({
           success: false,
           error: { code: 'DATABASE_ERROR', message: 'Failed to add buy-in' }
@@ -106,10 +106,7 @@ export default async function handler(req, res) {
             transaction_type: 'buyin',
             created_at: new Date().toISOString()
           });
-      } catch (logError) {
-        // Transaction logging is optional - don't fail if table doesn't exist
-        console.debug('[buyin] Transaction log skipped (table optional):', logError.message);
-      }
+      } catch (logError) { console.warn('[App] Handled exception:', logError?.message || logError); }
 
       return res.status(200).json({
         success: true,
@@ -120,7 +117,7 @@ export default async function handler(req, res) {
         }
       });
     } catch (error) {
-      console.error('Session buy-in error:', error);
+      console.warn('Session buy-in error:', error);
       return res.status(500).json({
         success: false,
         error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }
@@ -129,7 +126,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

@@ -34,7 +34,7 @@ export default function ArticlePage() {
             try {
                 const user = getAuthUser();
                 if (user?.id) setUserId(user.id);
-            } catch (e) { console.error("[article.js]", e); }
+            } catch (e) { console.warn("[article.js]", e); }
         }
         loadUser();
     }, []);
@@ -60,7 +60,7 @@ export default function ArticlePage() {
                 .eq('article_id', article.id)
                 .maybeSingle();
             setIsBookmarked(!!data);
-        } catch (e) { console.error("[article.js]", e); }
+        } catch (e) { console.warn("[article.js]", e); }
     };
 
     const handleBookmark = async () => {
@@ -109,7 +109,7 @@ export default function ArticlePage() {
                 fetchRelated(data.category, data.id);
             }
         } catch (e) {
-            console.error('Failed to fetch article:', e);
+            console.warn('Failed to fetch article:', e);
         } finally {
             setLoading(false);
         }
@@ -124,7 +124,7 @@ export default function ArticlePage() {
                 .neq('id', excludeId)
                 .limit(3);
             if (data) setRelated(data);
-        } catch (e) { console.error("[article.js]", e); }
+        } catch (e) { console.warn("[article.js]", e); }
     setLoading(false);
     };
 

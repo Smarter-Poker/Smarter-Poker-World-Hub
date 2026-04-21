@@ -195,9 +195,7 @@ class GlobalEventBus {
             if (!fromBroadcast && this.channel) {
                 try {
                     this.channel.postMessage({ type: eventType, payload, source, instanceId: this.instanceId });
-                } catch (bcError) {
-                    // Fail silently, data cloning limits might fail on complex payloads
-                }
+                } catch (bcError) { console.warn('[App] Handled exception:', bcError?.message || bcError); }
             }
 
             const callbacks = this.listeners.get(eventType);
@@ -206,17 +204,15 @@ class GlobalEventBus {
                     try {
                         callback(event);
                     } catch (error) {
-                        console.error(`Event bus error for ${eventType}:`, error);
+                        console.warn(`Event bus error for ${eventType}:`, error);
                     }
                 });
             }
 
             if (window.location?.hostname === 'localhost' && !fromBroadcast) {
-                console.log(`🚌 [BUS] ${eventType}`, payload);
+                console.debug(`🚌 [BUS] ${eventType}`, payload);
             }
-        } catch (err) {
-            // [HARDENING] Bus errors must NEVER crash a page render.
-            if (_isClient) console.warn(`🚌 [BUS] Emit failed for ${eventType}:`, err);
+        } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }:`, err);
         }
     }
 

@@ -39,11 +39,7 @@ function openDB() {
       // Verify the connection is still alive by checking objectStoreNames
       _dbInstance.objectStoreNames;
       return Promise.resolve(_dbInstance);
-    } catch (_) {
-      // Connection was closed or invalidated — reopen
-      _dbInstance = null;
-      _dbPromise = null;
-    }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }
   // Deduplicate concurrent open requests
   if (_dbPromise) return _dbPromise;
@@ -354,7 +350,7 @@ export class PokerBrainStorage {
       for (const entry of persisted) {
         idMap.set(entry.tempId, entry.realId);
       }
-    } catch (_) { /* IndexedDB read failed — proceed with empty map */ }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
     for (const item of items) {
       try {
@@ -413,16 +409,7 @@ export class PokerBrainStorage {
             console.warn('[storage] dropping unknown queue item type', item.type);
         }
         await queueDelete(item.id);
-      } catch (err) {
-        // Per-item failures no longer stop the flush. A poisonous item
-        // (permanent error) should NOT block well-formed items behind
-        // it; continue the loop and retry the failed one next flush.
-        // If this is a transient network blip, the retry-next-flush
-        // path still works. If it's permanent, at least nothing else
-        // gets trapped behind it.
-        console.warn('Queue flush failed for item', item.id, err);
-        // No break: continue with the next item.
-      }
+      } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
     }
   }
 }

@@ -58,7 +58,7 @@ export default async function handler(req, res) {
     .select();
 
   if (error) {
-    console.error('Mark all read error:', error);
+    console.warn('Mark all read error:', error);
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 
@@ -70,7 +70,7 @@ export default async function handler(req, res) {
   });
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[pages/api/commander/notifications/mark-all-read.js]', err);
+    console.warn('[pages/api/commander/notifications/mark-all-read.js]', err);
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

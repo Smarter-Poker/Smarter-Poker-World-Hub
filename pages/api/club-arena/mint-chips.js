@@ -163,7 +163,7 @@ export default async function handler(req, res) {
         });
       }
     } catch (ceilErr) {
-      console.error('[mint-chips] Daily ceiling check failed:', ceilErr.message);
+      console.warn('[mint-chips] Daily ceiling check failed:', ceilErr.message);
       // Non-fatal — allow mint if ceiling check fails (fail-open for operational continuity)
     }
 
@@ -183,7 +183,7 @@ export default async function handler(req, res) {
       });
 
       if (rpcErr) {
-        console.error('[mint-chips] RPC error:', rpcErr);
+        console.warn('[mint-chips] RPC error:', rpcErr);
         return res.status(500).json(safeErrorResponse(rpcErr, 'Mint failed'));
       }
 
@@ -209,13 +209,13 @@ export default async function handler(req, res) {
         treasuryAfter: result.new_treasury,
       });
     } catch (err) {
-      console.error('[mint-chips]', err);
+      console.warn('[mint-chips]', err);
       return res.status(500).json(safeErrorResponse(err, 'Mint failed'));
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

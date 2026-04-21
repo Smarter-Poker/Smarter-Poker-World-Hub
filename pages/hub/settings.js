@@ -463,7 +463,7 @@ export default function SettingsPage() {
                 body: JSON.stringify({})
             });
         } catch (error) {
-            console.error('Error tracking session:', error);
+            console.warn('Error tracking session:', error);
         }
     };
 
@@ -499,7 +499,7 @@ export default function SettingsPage() {
                 setMfaFeedback({ type: 'error', message: 'Failed To Setup 2FA. Please Try Again.' });
             }
         } catch (error) {
-            console.error('Error setting up 2FA:', error);
+            console.warn('Error setting up 2FA:', error);
             setMfaFeedback({ type: 'error', message: 'Error Setting Up 2FA. Check Your Connection.' });
         } finally {
             setLoadingMFA(false);
@@ -536,7 +536,7 @@ export default function SettingsPage() {
                 setMfaFeedback({ type: 'error', message: error.error || 'Invalid Verification Code.' });
             }
         } catch (error) {
-            console.error('Error verifying 2FA:', error);
+            console.warn('Error verifying 2FA:', error);
             setMfaFeedback({ type: 'error', message: 'Error Verifying 2FA. Please Try Again.' });
         } finally {
             setLoadingMFA(false);
@@ -567,7 +567,7 @@ export default function SettingsPage() {
                 setMfaFeedback({ type: 'error', message: 'Failed To Disable 2FA. Please Try Again.' });
             }
         } catch (error) {
-            console.error('Error disabling 2FA:', error);
+            console.warn('Error disabling 2FA:', error);
             setMfaFeedback({ type: 'error', message: 'Error Disabling 2FA. Check Your Connection.' });
         } finally {
             setLoadingMFA(false);
@@ -593,7 +593,7 @@ export default function SettingsPage() {
             }
             const { error } = await supabase.from('profiles').update(updatePayload).eq('id', user.id);
             if (error) {
-                console.error('[Settings] Failed to save settings to DB:', error);
+                console.warn('[Settings] Failed to save settings to DB:', error);
                 // Revert optimistic update on failure
                 if (key === 'display_name_preference') {
                     setSettings(prev => ({ ...prev, display_name_preference: prev.display_name_preference }));
@@ -612,7 +612,7 @@ export default function SettingsPage() {
             // Force hard redirect to clear all cached state
             window.location.href = '/';
         } catch (error) {
-            console.error('Logout error:', error);
+            console.warn('Logout error:', error);
             // Even if there's an error, redirect anyway
             window.location.href = '/';
         }
@@ -662,7 +662,7 @@ export default function SettingsPage() {
             setExportFeedback({ type: 'success', message: 'Data Exported Successfully!' });
             setTimeout(() => setExportFeedback(null), 4000);
         } catch (error) {
-            console.error('Error exporting data:', error);
+            console.warn('Error exporting data:', error);
             setExportFeedback({ type: 'error', message: 'Failed To Export Data. Please Try Again.' });
         } finally {
             setExportLoading(false);
@@ -689,7 +689,7 @@ export default function SettingsPage() {
                 setDeleteFeedback({ type: 'error', message: err.error || err.details || 'Failed To Delete Account. Contact Support.' });
             }
         } catch (error) {
-            console.error('Error deleting account:', error);
+            console.warn('Error deleting account:', error);
             setDeleteFeedback({ type: 'error', message: 'An Error Occurred. Please Try Again Or Contact Support.' });
         }
     };
@@ -706,7 +706,7 @@ export default function SettingsPage() {
                 .order('redeemed_at', { ascending: false });
             if (!error && data) setPromoHistory(data);
         } catch (err) {
-            console.error('[Settings] Error loading promo history:', err);
+            console.warn('[Settings] Error loading promo history:', err);
         } finally {
             setPromoHistoryLoading(false);
         }
@@ -740,7 +740,7 @@ export default function SettingsPage() {
                     .from('union_admins').select('role, union_id, unions(name, code)').eq('user_id', user.id).limit(10);
                 setCaRoles({ agents: agentRows || [], members: memberRows || [], unionAdmins: unionRows || [] });
             } catch (e) {
-                console.error('[settings club_arena]', e);
+                console.warn('[settings club_arena]', e);
                 setCaRoles({ agents: [], members: [], unionAdmins: [] });
             } finally {
                 setCaRolesLoading(false);
@@ -777,7 +777,7 @@ export default function SettingsPage() {
                 setBillingDiamonds(profileRes.value.data.diamonds || 0);
             }
         } catch (err) {
-            console.error('[Settings] Error loading billing data:', err);
+            console.warn('[Settings] Error loading billing data:', err);
         } finally {
             setBillingLoading(false);
             setBillingLoaded(true);
@@ -831,7 +831,7 @@ export default function SettingsPage() {
                     }
                     setNotificationsLoaded(true);
                 })
-                .catch(err => console.error('[Settings] Error loading notification prefs:', err));
+                .catch(err => console.warn('[Settings] Error loading notification prefs:', err));
         }
     }, [activeSection, user?.id, notificationsLoaded]);
 
@@ -846,7 +846,7 @@ export default function SettingsPage() {
                 .eq('user_id', user.id);
                 
             if (error) {
-                console.error('[Settings] Failed to save push preference:', error);
+                console.warn('[Settings] Failed to save push preference:', error);
                 // Revert on failure
                 setNotificationPrefs(prev => ({ ...prev, [key]: !value }));
             } else {
@@ -1311,7 +1311,7 @@ export default function SettingsPage() {
                                                     setPasswordResetStatus('sent');
                                                 }
                                             } catch (err) {
-                                                console.error('[Settings] Password reset error:', err);
+                                                console.warn('[Settings] Password reset error:', err);
                                                 setPasswordResetStatus('error');
                                             }
                                             setTimeout(() => setPasswordResetStatus(null), 5000);
@@ -1361,7 +1361,7 @@ export default function SettingsPage() {
                                                     setConnectedDevices(data.sessions || []);
                                                 }
                                             } catch (err) {
-                                                console.error('Error loading devices:', err);
+                                                console.warn('Error loading devices:', err);
                                             } finally {
                                                 setDevicesLoading(false);
                                             }
@@ -2358,7 +2358,7 @@ export default function SettingsPage() {
                                                                 await unblockUser(user.id, entry.blocked_id);
                                                                 setBlockedList(prev => prev.filter(b => b.blocked_id !== entry.blocked_id));
                                                             } catch (err) {
-                                                                console.error('[Settings] Unblock failed:', err);
+                                                                console.warn('[Settings] Unblock failed:', err);
                                                             } finally {
                                                                 setUnblockingId(null);
                                                             }
@@ -2724,7 +2724,7 @@ export default function SettingsPage() {
                                                         setCancelFeedback({ type: 'error', message: errData.error || 'Failed To Cancel Membership. Please Try Again.' });
                                                     }
                                                 } catch (err) {
-                                                    console.error('Cancel VIP error:', err);
+                                                    console.warn('Cancel VIP error:', err);
                                                     setCancelFeedback({ type: 'error', message: 'Something Went Wrong. Please Try Again.' });
                                                 } finally {
                                                     setCancelLoading(false);
@@ -3223,10 +3223,10 @@ export default function SettingsPage() {
                                                 if (response.ok) {
                                                     setConnectedDevices(prev => prev.filter(d => d.id !== revokeDeviceTarget.id));
                                                 } else {
-                                                    console.error('Failed to revoke session');
+                                                    console.warn('Failed to revoke session');
                                                 }
                                             } catch (err) {
-                                                console.error('Error revoking session:', err);
+                                                console.warn('Error revoking session:', err);
                                             } finally {
                                                 setRevokeDeviceTarget(null);
                                             }

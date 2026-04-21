@@ -259,7 +259,7 @@ export class DiamondRewardService {
         });
 
         if (error) {
-            console.error('Reward claim error:', error);
+            console.warn('Reward claim error:', error);
             return { success: false, error: error.message };
         }
 
@@ -317,7 +317,7 @@ export class DiamondRewardService {
         });
 
         if (error) {
-            console.error('Track training action error:', error);
+            console.warn('Track training action error:', error);
             return results;
         }
 
@@ -582,7 +582,7 @@ export class DiamondRewardService {
         });
 
         if (error) {
-            console.error('Get celebrations error:', error);
+            console.warn('Get celebrations error:', error);
             return [];
         }
 
@@ -636,7 +636,7 @@ export class DiamondRewardService {
         });
 
         if (error) {
-            console.error('Get reward summary error:', error);
+            console.warn('Get reward summary error:', error);
             return null;
         }
 

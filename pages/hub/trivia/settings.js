@@ -39,7 +39,7 @@ export default function TriviaSettings() {
                     setPreferences(prev => ({ ...prev, ...prefs }));
                 }
             } catch (error) {
-                console.error('Error loading preferences:', error);
+                console.warn('Error loading preferences:', error);
             }
             setIsLoading(false);
         }
@@ -54,7 +54,7 @@ export default function TriviaSettings() {
             setSaveMessage('Settings saved automatically');
             setTimeout(() => setSaveMessage(''), 2000);
         } catch (error) {
-            console.error('Error auto-saving:', error);
+            console.warn('Error auto-saving:', error);
             setSaveMessage('Failed to save. Please try again.');
             if (onRollback) onRollback();
         }
@@ -89,7 +89,7 @@ export default function TriviaSettings() {
                 router.push('/hub/trivia');
             }, 1000);
         } catch (error) {
-            console.error('Error saving preferences:', error);
+            console.warn('Error saving preferences:', error);
             setSaveMessage('Failed to save. Please try again.');
         }
         setIsSaving(false);

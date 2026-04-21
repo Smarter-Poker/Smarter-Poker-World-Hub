@@ -197,7 +197,7 @@ export default function CompSystem() {
         const json = await commanderFetchJSON(`/api/commander/comps/balances?venue_id=${venueId}&history=true`, { headers });
         setCompLog(json.data?.transactions || []);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
     finally { setLoading(false); }
   }, [tab]);
 
@@ -218,7 +218,7 @@ export default function CompSystem() {
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setSearchResults(json.data || []);
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
     finally { setSearching(false); }
   };
 
@@ -364,7 +364,7 @@ export default function CompSystem() {
         setAwardError(json.error || 'Failed To Issue Comp — Please Try Again');
       }
     } catch (err) {
-      console.error(err);
+      console.warn(err);
       setAwardError('Network Error — Please Try Again');
     }
     finally { setAwarding(false); setVerifying(false); }
@@ -515,7 +515,7 @@ export default function CompSystem() {
           });
       })
       .catch(function (err) {
-        console.error(err);
+        console.warn(err);
         setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' });
         setVoidPinError('Network error');
         setVoidLoading(false);
@@ -545,7 +545,7 @@ export default function CompSystem() {
       g3.gain.setValueAtTime(0.4, ctx.currentTime + 0.25);
       g3.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.7);
       o3.start(ctx.currentTime + 0.25); o3.stop(ctx.currentTime + 0.7);
-    } catch (e) { /* audio not available */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
   };
 
   // Show full-screen success overlay

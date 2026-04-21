@@ -21,7 +21,7 @@ import BottomNavBar from '../../src/components/ui/BottomNavBar';
 // Error handling on the dynamic import itself catches module-level init failures
 const WorldHub = dynamic(
     () => import('../../src/world/WorldHub').catch(err => {
-        console.error('[HubPage] WorldHub module failed to load:', err);
+        console.warn('[HubPage] WorldHub module failed to load:', err);
         // Return a safe fallback module when the import itself throws
         return {
             default: () => (

@@ -667,7 +667,7 @@ export const SmarterPokerClubView = ({ onNavigate }) => {
             await socialService.deletePost(postId);
             setPosts(prev => prev.filter(p => p.id !== postId));
         } catch (err) {
-            console.error('Delete failed:', err);
+            console.warn('Delete failed:', err);
         }
     };
 

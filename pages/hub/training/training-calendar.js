@@ -116,7 +116,7 @@ export default function TrainingCalendarPage() {
       const data = await res.json();
       if (data.success && data.sessions) setDayMap(buildHeatmap(data.sessions));
     } catch (e) {
-      console.error('[Calendar]', e);
+      console.warn('[Calendar]', e);
       setFetchError('Failed to load training calendar. Please try again.');
     }
     setLoading(false);

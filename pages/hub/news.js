@@ -30,7 +30,7 @@ async function fireConfetti(opts) {
     try {
         if (!_confetti) { const m = await import('canvas-confetti'); _confetti = m.default || m; }
         _confetti(opts);
-    } catch (e) { /* confetti is cosmetic — swallow import/execution errors */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 }
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import { Eye, TrendingUp, Trophy, Play, MapPin, ExternalLink, Loader, Bookmark, BookmarkCheck, Share2, Twitter, LinkIcon, CheckCircle, ChevronDown, ChevronUp, Newspaper, Globe, ChevronRight, ChevronLeft, Film, Clock } from 'lucide-react';
@@ -337,7 +337,7 @@ export default function NewsHub() {
             // Load bookmarks
             getNewsBookmarks(userId).then(data => {
                 setBookmarks((data || []).map(b => b.article_id));
-            }).catch(err => console.error('Error loading bookmarks:', err));
+            }).catch(err => console.warn('Error loading bookmarks:', err));
         }
     }, [userId]);
 
@@ -349,7 +349,7 @@ export default function NewsHub() {
             try {
                 await updateNewsPreferences(userId, { [key]: value });
             } catch (error) {
-                console.error('Failed to save preference:', error);
+                console.warn('Failed to save preference:', error);
             }
         }
     }, [preferences]);
@@ -390,11 +390,11 @@ export default function NewsHub() {
             try {
                 const savedBookmarks = localStorage.getItem('news_bookmarks');
                 if (savedBookmarks) setBookmarks(JSON.parse(savedBookmarks));
-            } catch (e) { /* corrupted localStorage */ }
+            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
             try {
                 const savedRead = localStorage.getItem('news_read');
                 if (savedRead) setReadArticles(JSON.parse(savedRead));
-            } catch (e) { /* corrupted localStorage */ }
+            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         }
     }, []);
 

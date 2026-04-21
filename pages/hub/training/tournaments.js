@@ -101,7 +101,7 @@ export default function TournamentsPage() {
         alert(data.error || 'Registration failed');
       }
     } catch (error) {
-      console.error('Register error:', error);
+      console.warn('Register error:', error);
     } finally {
       setRegistering(null);
     }

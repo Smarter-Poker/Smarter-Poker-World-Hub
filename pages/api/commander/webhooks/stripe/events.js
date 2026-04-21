@@ -48,7 +48,7 @@ export default async function handler(req, res) {
       // SECURITY: Signature verification is REQUIRED.
       // If webhook secret is not configured, reject all events.
       if (!endpointSecret) {
-        console.error('STRIPE_WEBHOOK_SECRET not configured — rejecting webhook');
+        console.warn('STRIPE_WEBHOOK_SECRET not configured — rejecting webhook');
         return res.status(500).json({ error: 'Webhook secret not configured' });
       }
       if (!sig) {
@@ -58,7 +58,7 @@ export default async function handler(req, res) {
       const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
       event = stripe.webhooks.constructEvent(rawBody, sig, endpointSecret);
     } catch (err) {
-      console.error('Webhook signature verification failed:', err.message);
+      console.warn('Webhook signature verification failed:', err.message);
       return res.status(400).json({ error: `Webhook Error: ${err.message}` });
     }
 
@@ -91,13 +91,13 @@ export default async function handler(req, res) {
 
       return res.status(200).json({ received: true });
     } catch (error) {
-      console.error('Webhook handler error:', error);
+      console.warn('Webhook handler error:', error);
       return res.status(500).json({ error: 'Webhook handler failed' });
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -117,7 +117,7 @@ async function handlePaymentSuccess(paymentIntent) {
       .eq('id', metadata.escrow_id);
 
     if (error) {
-      console.error('Update escrow error:', error);
+      console.warn('Update escrow error:', error);
     }
   }
 
@@ -137,7 +137,7 @@ async function handlePaymentFailed(paymentIntent) {
       .eq('id', metadata.escrow_id);
 
     if (error) {
-      console.error('Update escrow error:', error);
+      console.warn('Update escrow error:', error);
     }
   }
 
@@ -156,7 +156,7 @@ async function handleRefund(charge) {
       .eq('id', metadata.escrow_id);
 
     if (error) {
-      console.error('Update escrow error:', error);
+      console.warn('Update escrow error:', error);
     }
   }
 
@@ -187,7 +187,7 @@ async function handleSubscriptionUpdate(subscription) {
       .eq('id', metadata.venue_id);
 
     if (error) {
-      console.error('Update venue subscription error:', error);
+      console.warn('Update venue subscription error:', error);
     }
 
     // Also update commander_subscriptions table (login flow reads from here)
@@ -201,7 +201,7 @@ async function handleSubscriptionUpdate(subscription) {
       .in('status', ['active', 'trialing', 'past_due']);
 
     if (subError) {
-      console.error('Update commander_subscriptions error:', subError);
+      console.warn('Update commander_subscriptions error:', subError);
     }
   }
 
@@ -221,7 +221,7 @@ async function handleSubscriptionCancelled(subscription) {
       .eq('id', metadata.venue_id);
 
     if (error) {
-      console.error('Update venue subscription error:', error);
+      console.warn('Update venue subscription error:', error);
     }
 
     // Update commander_subscriptions status
@@ -234,7 +234,7 @@ async function handleSubscriptionCancelled(subscription) {
       .in('status', ['active', 'trialing', 'past_due']);
 
     if (subError) {
-      console.error('Update commander_subscriptions cancel error:', subError);
+      console.warn('Update commander_subscriptions cancel error:', subError);
     }
   }
 

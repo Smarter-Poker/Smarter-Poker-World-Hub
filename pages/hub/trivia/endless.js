@@ -123,9 +123,7 @@ export default function EndlessModePage() {
                         .eq('mode', 'random')
                         .maybeSingle();
                     if (data) setHighScore(data.high_score || 0);
-                } catch (e) {
-                    // High score table may not exist yet
-                }
+                } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
                 // Load user diamonds
                 try {
                     const { data: profile } = await supabase
@@ -135,14 +133,14 @@ export default function EndlessModePage() {
                         .maybeSingle();
                     if (profile) setUserDiamonds(profile.diamonds || 0);
                 } catch (e) {
-                    console.error('Failed to load diamonds:', e);
+                    console.warn('Failed to load diamonds:', e);
                 }
             }
             // Load settings from localStorage
             try {
                 const savedSettings = localStorage.getItem('trivia_settings');
                 if (savedSettings) setSettings(JSON.parse(savedSettings));
-            } catch (e) { console.error("[endless.js]", e); }
+            } catch (e) { console.warn("[endless.js]", e); }
 
             await loadMoreQuestions();
             setIsLoading(false);
@@ -162,7 +160,7 @@ export default function EndlessModePage() {
                     const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
                     if (profile) setUserDiamonds(profile.diamonds || 0);
                 } catch (e) {
-                    console.error('[Endless] Realtime refresh failed:', e);
+                    console.warn('[Endless] Realtime refresh failed:', e);
                 }
             })
             .subscribe();
@@ -173,7 +171,7 @@ export default function EndlessModePage() {
     useEffect(() => {
         try {
             localStorage.setItem('trivia_settings', JSON.stringify(settings));
-        } catch (e) { console.error("[endless.js]", e); }
+        } catch (e) { console.warn("[endless.js]", e); }
     }, [settings]);
 
     // Visibility-based timer pause (when user leaves app/tab)
@@ -215,7 +213,7 @@ export default function EndlessModePage() {
                 setQuestions(prev => [...prev, ...shuffleOptions(toAdd)]);
             }
         } catch (e) {
-            console.error('Failed to load questions:', e);
+            console.warn('Failed to load questions:', e);
         }
     }
 
@@ -259,7 +257,7 @@ export default function EndlessModePage() {
                 if (result.balance !== undefined) setUserDiamonds(result.balance);
                 // DiamondEngine.deduct auto-emits busEmit.diamondsSpent
             } catch (e) {
-                console.error('[Endless] Diamond deduction failed:', e);
+                console.warn('[Endless] Diamond deduction failed:', e);
                 setShowOutOfDiamonds(true);
                 return;
             }
@@ -383,7 +381,7 @@ export default function EndlessModePage() {
                     if (profile) setUserDiamonds(profile.diamonds || 0);
                     busEmit.diamondsSpent(5, '50/50 Lifeline');
                 } catch (e) {
-                    console.error('Failed to deduct diamonds:', e);
+                    console.warn('Failed to deduct diamonds:', e);
                     return;
                 }
             }
@@ -428,7 +426,7 @@ export default function EndlessModePage() {
                 busEmit.diamondsSpent(LIFELINE_COST, 'Skip Question');
                 setLifelinesUsedThisGame(prev => prev + 1);
             } catch (e) {
-                console.error('Failed to deduct diamonds:', e);
+                console.warn('Failed to deduct diamonds:', e);
                 return;
             }
         }
@@ -474,7 +472,7 @@ export default function EndlessModePage() {
                 busEmit.diamondsSpent(LIFELINE_COST, 'Double Chance');
                 setLifelinesUsedThisGame(prev => prev + 1);
             } catch (e) {
-                console.error('Failed to deduct diamonds:', e);
+                console.warn('Failed to deduct diamonds:', e);
                 return;
             }
         }
@@ -649,7 +647,7 @@ export default function EndlessModePage() {
             setSaveErrorPayload(null);
             savePhaseRef.current = 0;
         } catch (e) {
-            console.error('[Endless] Failed to save game result:', e);
+            console.warn('[Endless] Failed to save game result:', e);
             // Save failed (network drop) -> Provide Retry UI (savePhaseRef preserves progress)
             setSaveErrorPayload({ finalDiamonds, finalStreak, finalIndex });
             setGameState('saving_error');

@@ -319,7 +319,7 @@ export default function MilestonesPage() {
       if (data.success && data.sessions) setStats(computeStats(data.sessions));
       else setStats(computeStats([]));
     } catch (e) {
-      console.error('[Milestones] Error:', e);
+      console.warn('[Milestones] Error:', e);
       setFetchError('Failed to load milestones. Please try again.');
       setStats(computeStats([]));
     }

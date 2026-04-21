@@ -276,13 +276,13 @@ export default async function handler(req, res) {
       logAudit(supabaseAdmin, { actionType: `agent_credit_${action}`, userId: user.id, targetUserId: agentUserId, clubId, amount, ip: extractIP(req), details: { ...result } });
       return res.status(200).json({ success: true, ...result });
     } catch (err) {
-      console.error('[agent-credit]', err);
+      console.warn('[agent-credit]', err);
       return res.status(500).json(safeErrorResponse(err, 'Agent credit action failed'));
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

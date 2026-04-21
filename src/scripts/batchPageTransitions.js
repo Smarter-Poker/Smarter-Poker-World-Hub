@@ -43,7 +43,7 @@ function addPageTransitionToFile(filePath) {
 
         // Check if already has PageTransition
         if (content.includes('PageTransition')) {
-            console.log(`✓ ${fileName} - Already has PageTransition`);
+            console.debug(`✓ ${fileName} - Already has PageTransition`);
             return { updated: false, reason: 'already_has' };
         }
 
@@ -89,11 +89,11 @@ function addPageTransitionToFile(filePath) {
         }
 
         fs.writeFileSync(filePath, content, 'utf8');
-        console.log(`✅ ${fileName} - PageTransition added`);
+        console.debug(`✅ ${fileName} - PageTransition added`);
         return { updated: true };
 
     } catch (error) {
-        console.error(`❌ ${path.basename(filePath)} - Error: ${error.message}`);
+        console.warn(`❌ ${path.basename(filePath)} - Error: ${error.message}`);
         return { updated: false, reason: 'error', error: error.message };
     }
 }
@@ -101,7 +101,7 @@ function addPageTransitionToFile(filePath) {
 // Process main pages
 let stats = { updated: 0, skipped: 0, errors: 0 };
 
-console.log('\n🚀 Starting PageTransition batch integration...\n');
+console.debug('\n🚀 Starting PageTransition batch integration...\n');
 
 pagesToUpdate.forEach(page => {
     const filePath = path.join(PAGES_DIR, page);
@@ -111,7 +111,7 @@ pagesToUpdate.forEach(page => {
         else if (result.reason === 'already_has') stats.skipped++;
         else stats.errors++;
     } else {
-        console.log(`⚠️  ${page} - File not found`);
+        console.debug(`⚠️  ${page} - File not found`);
     }
 });
 
@@ -124,16 +124,16 @@ subDirPages.forEach(({ dir, file }) => {
         else if (result.reason === 'already_has') stats.skipped++;
         else stats.errors++;
     } else {
-        console.log(`⚠️  ${dir}/${file} - File not found`);
+        console.debug(`⚠️  ${dir}/${file} - File not found`);
     }
 });
 
-console.log('\n' + '='.repeat(50));
-console.log('📊 BATCH INTEGRATION COMPLETE');
-console.log('='.repeat(50));
-console.log(`✅ Updated: ${stats.updated} pages`);
-console.log(`⏭️  Skipped: ${stats.skipped} pages (already have PageTransition)`);
-console.log(`❌ Errors: ${stats.errors} pages`);
-console.log('='.repeat(50) + '\n');
+console.debug('\n' + '='.repeat(50));
+console.debug('📊 BATCH INTEGRATION COMPLETE');
+console.debug('='.repeat(50));
+console.debug(`✅ Updated: ${stats.updated} pages`);
+console.debug(`⏭️  Skipped: ${stats.skipped} pages (already have PageTransition)`);
+console.debug(`❌ Errors: ${stats.errors} pages`);
+console.debug('='.repeat(50) + '\n');
 
 process.exit(stats.errors > 0 ? 1 : 0);

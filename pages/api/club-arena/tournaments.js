@@ -223,7 +223,7 @@ export default async function handler(req, res) {
             .maybeSingle();
 
           if (createErr || !tournament) {
-            console.error('[tournament/create]', createErr);
+            console.warn('[tournament/create]', createErr);
             return res.status(500).json({ success: false, error: 'Failed to create tournament' });
           }
 
@@ -288,7 +288,7 @@ export default async function handler(req, res) {
           });
 
           if (regErr) {
-            console.error('[tournament/register] RPC error:', regErr.message);
+            console.warn('[tournament/register] RPC error:', regErr.message);
             return res.status(500).json({ success: false, error: 'Registration failed' });
           }
           if (!regResult?.success) {
@@ -348,10 +348,10 @@ export default async function handler(req, res) {
                   .update({ status: 'running', started_at: new Date().toISOString() })
                   .eq('id', tournamentId);
               } else {
-                console.error('[Tournament] SNG engine create failed:', sngCreate.error);
+                console.warn('[Tournament] SNG engine create failed:', sngCreate.error);
               }
             } catch (sngErr) {
-              console.error('[Tournament] SNG auto-start engine error:', sngErr.message);
+              console.warn('[Tournament] SNG auto-start engine error:', sngErr.message);
               // Don't mark running — stays in registering until manually started
             }
           }
@@ -381,12 +381,12 @@ export default async function handler(req, res) {
               );
 
               if (!engineReg.success) {
-                console.error(`[Tournament] Engine late-reg failed for ${user.id}:`, engineReg.error);
+                console.warn(`[Tournament] Engine late-reg failed for ${user.id}:`, engineReg.error);
               } else {
                 console.info(`[Tournament] Engine late-reg succeeded.`);
               }
             } catch (err) {
-              console.error('[Tournament] Engine late-reg exception:', err.message);
+              console.warn('[Tournament] Engine late-reg exception:', err.message);
             }
           }
 
@@ -518,7 +518,7 @@ export default async function handler(req, res) {
             });
 
             if (!createResult.success) {
-              console.error('[Tournament] Engine create failed:', createResult.error);
+              console.warn('[Tournament] Engine create failed:', createResult.error);
               return res.status(500).json({ success: false, error: 'Engine failed to create tournament: ' + (createResult.error || 'unknown') });
             }
 
@@ -557,7 +557,7 @@ export default async function handler(req, res) {
               .eq('id', tournamentId);
 
           } catch (engineErr) {
-            console.error('[Tournament] Engine init error:', engineErr.message);
+            console.warn('[Tournament] Engine init error:', engineErr.message);
             // Engine failed — do NOT mark as running, revert to registering
             await getSupabase()
               .from('club_tournaments')
@@ -621,7 +621,7 @@ export default async function handler(req, res) {
             .eq('status', 'registered');
 
           if (regErr) {
-            console.error('[Tournament] Failed to fetch registrations for refund:', regErr);
+            console.warn('[Tournament] Failed to fetch registrations for refund:', regErr);
             return res.status(500).json({ success: false, error: 'Failed to fetch registrations for refund' });
           }
 
@@ -650,14 +650,14 @@ export default async function handler(req, res) {
 
               refundResults.push({ userId: reg.user_id, amount: reg.buy_in_amount, success: true });
             } catch (refErr) {
-              console.error(`[Tournament] Refund FAILED for user ${reg.user_id}:`, refErr.message);
+              console.warn(`[Tournament] Refund FAILED for user ${reg.user_id}:`, refErr.message);
               failedRefunds.push({ userId: reg.user_id, amount: reg.buy_in_amount, error: 'Refund failed' });
             }
           }
 
           // ── Safety wire: ONLY mark cancelled if ALL refunds succeeded ──
           if (failedRefunds.length > 0) {
-            console.error(`[Tournament] CANCEL ABORTED: ${failedRefunds.length}/${(registrations || []).length} refunds failed`);
+            console.warn(`[Tournament] CANCEL ABORTED: ${failedRefunds.length}/${(registrations || []).length} refunds failed`);
             return res.status(500).json({
               success: false,
               error: `Cancel aborted: ${failedRefunds.length} refund(s) failed. Tournament status unchanged.`,
@@ -736,7 +736,7 @@ export default async function handler(req, res) {
             .eq('id', tournamentId);
 
           if (updErr) {
-            console.error('[Tournament] Update failed:', updErr);
+            console.warn('[Tournament] Update failed:', updErr);
             return res.status(500).json({ success: false, error: 'Update failed' });
           }
 
@@ -803,13 +803,13 @@ export default async function handler(req, res) {
           return res.status(400).json({ success: false, error: `Unknown action: ${action}` });
       }
     } catch (err) {
-      console.error('[club-arena/tournaments]', err);
+      console.warn('[club-arena/tournaments]', err);
       return res.status(500).json({ success: false, error: 'Internal error' });
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

@@ -292,7 +292,7 @@ export default function StrategyTrivia({ mode }) {
                 setPreloadedQuestions(getFallbackQuestions(mode));
             }
         } catch (err) {
-            console.error('[StrategyTrivia] Preload failed:', err);
+            console.warn('[StrategyTrivia] Preload failed:', err);
             setPreloadedQuestions(getFallbackQuestions(mode));
         }
     }
@@ -308,7 +308,7 @@ export default function StrategyTrivia({ mode }) {
                 setUserDiamonds(profile.diamonds || 0);
             }
         } catch (e) {
-            console.error('[StrategyTrivia] Failed to load diamonds:', e);
+            console.warn('[StrategyTrivia] Failed to load diamonds:', e);
         }
     }
 
@@ -408,7 +408,7 @@ export default function StrategyTrivia({ mode }) {
                 }
             }
         } catch (e) {
-            console.error('[StrategyTrivia] Error loading questions:', e);
+            console.warn('[StrategyTrivia] Error loading questions:', e);
             setQuestions(getFallbackQuestions(mode));
         }
 
@@ -533,7 +533,7 @@ export default function StrategyTrivia({ mode }) {
                     setUserDiamonds(freshBalance);
                 }
             } catch (e) {
-                console.error('[StrategyTrivia] Balance check failed:', e);
+                console.warn('[StrategyTrivia] Balance check failed:', e);
             }
 
             if (freshBalance < GAME_DIAMOND_COST) {
@@ -551,7 +551,7 @@ export default function StrategyTrivia({ mode }) {
                 if (result.balance !== undefined) setUserDiamonds(result.balance);
                 busEmit.diamondsSpent(GAME_DIAMOND_COST, `${config.title} Entry`);
             } catch (e) {
-                console.error('[StrategyTrivia] Diamond deduction failed:', e);
+                console.warn('[StrategyTrivia] Diamond deduction failed:', e);
                 setShowOutOfDiamonds(true);
                 return;
             }
@@ -643,7 +643,7 @@ export default function StrategyTrivia({ mode }) {
                     busEmit.diamondsEarned(diamondsEarned, `${config.title} Reward`);
                     if (actualCorrectCount >= questions.length) busEmit.celebration('confetti');
                 } catch (e) {
-                    console.error('[StrategyTrivia] Error awarding diamonds:', e);
+                    console.warn('[StrategyTrivia] Error awarding diamonds:', e);
                 }
             }
 
@@ -661,7 +661,7 @@ export default function StrategyTrivia({ mode }) {
                     play_date: today
                 });
             } catch (e) {
-                console.error('[StrategyTrivia] Error saving score:', e);
+                console.warn('[StrategyTrivia] Error saving score:', e);
             }
 
             // Record question history for 60-day non-repeat tracking
@@ -681,7 +681,7 @@ export default function StrategyTrivia({ mode }) {
                             ignoreDuplicates: false
                         });
                 } catch (e) {
-                    console.error('[StrategyTrivia] Error recording history:', e);
+                    console.warn('[StrategyTrivia] Error recording history:', e);
                 }
             }
         }
@@ -711,7 +711,7 @@ export default function StrategyTrivia({ mode }) {
                 if (profile) setUserDiamonds(profile.diamonds || 0);
                 busEmit.diamondsSpent(LIFELINE_COST, '50/50 Lifeline');
             } catch (e) {
-                console.error('[StrategyTrivia] 50/50 deduct failed:', e);
+                console.warn('[StrategyTrivia] 50/50 deduct failed:', e);
                 return;
             }
         }
@@ -750,7 +750,7 @@ export default function StrategyTrivia({ mode }) {
                 if (profile) setUserDiamonds(profile.diamonds || 0);
                 busEmit.diamondsSpent(LIFELINE_COST, 'Skip Question');
             } catch (e) {
-                console.error('[StrategyTrivia] Skip deduct failed:', e);
+                console.warn('[StrategyTrivia] Skip deduct failed:', e);
                 return;
             }
         }

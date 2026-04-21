@@ -46,7 +46,7 @@ const ICE_SERVERS = [
  * Log errors with context for debugging
  */
 const logError = (context, error) => {
-    console.error(`[LiveStream:${context}]`, error?.message || error);
+    console.warn(`[LiveStream:${context}]`, error?.message || error);
     // Could integrate with error tracking service here
 };
 
@@ -103,7 +103,7 @@ class LiveStreamService {
         // Notify all followers that user is going live
         this.notifyFollowers(userId, title || 'Live Stream', stream.id);
 
-        console.log('🔴 Broadcast started:', stream.id);
+        console.debug('🔴 Broadcast started:', stream.id);
         return { streamId: stream.id, stream };
     }
 
@@ -143,7 +143,7 @@ class LiveStreamService {
             }));
 
             await supabase.from('notifications').insert(notifications);
-            console.log(`📣 Notified ${followers.length} followers about live stream`);
+            console.debug(`📣 Notified ${followers.length} followers about live stream`);
         } catch (err) {
             logError('notifyFollowers', err);
         }
@@ -177,7 +177,7 @@ class LiveStreamService {
             this.signalingChannel = null;
         }
 
-        console.log('⬛ Broadcast ended:', this.currentStreamId);
+        console.debug('⬛ Broadcast ended:', this.currentStreamId);
         this.currentStreamId = null;
     }
 
@@ -187,7 +187,7 @@ class LiveStreamService {
      * @param {object} offer - WebRTC offer from viewer
      */
     async handleViewerOffer(viewerId, offer) {
-        console.log('📥 Received offer from viewer:', viewerId);
+        console.debug('📥 Received offer from viewer:', viewerId);
 
         // Create peer connection for this viewer
         const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
@@ -208,7 +208,7 @@ class LiveStreamService {
         };
 
         pc.onconnectionstatechange = () => {
-            console.log(`Viewer ${viewerId} connection state:`, pc.connectionState);
+            console.debug(`Viewer ${viewerId} connection state:`, pc.connectionState);
             if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
                 this.peerConnections.delete(viewerId);
                 pc.close();
@@ -223,7 +223,7 @@ class LiveStreamService {
         await pc.setLocalDescription(answer);
         await this.sendSignal(viewerId, 'answer', answer);
 
-        console.log('📤 Sent answer to viewer:', viewerId);
+        console.debug('📤 Sent answer to viewer:', viewerId);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -263,7 +263,7 @@ class LiveStreamService {
 
         // Handle incoming stream
         pc.ontrack = (event) => {
-            console.log('📺 Received remote stream');
+            console.debug('📺 Received remote stream');
             if (onRemoteStream && event.streams[0]) {
                 onRemoteStream(event.streams[0]);
             }
@@ -277,7 +277,7 @@ class LiveStreamService {
         };
 
         pc.onconnectionstatechange = () => {
-            console.log('Connection state:', pc.connectionState);
+            console.debug('Connection state:', pc.connectionState);
             if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
                 if (this.onStreamEnded) this.onStreamEnded();
             }
@@ -291,7 +291,7 @@ class LiveStreamService {
         await pc.setLocalDescription(offer);
         await this.sendSignal(stream.broadcaster_id, 'offer', offer);
 
-        console.log('📤 Sent offer to broadcaster');
+        console.debug('📤 Sent offer to broadcaster');
         return stream;
     }
 
@@ -318,7 +318,7 @@ class LiveStreamService {
             this.signalingChannel = null;
         }
 
-        console.log('👋 Left stream:', this.currentStreamId);
+        console.debug('👋 Left stream:', this.currentStreamId);
         this.currentStreamId = null;
     }
 
@@ -353,7 +353,7 @@ class LiveStreamService {
                         const pc = this.peerConnections.values().next().value;
                         if (pc) {
                             await pc.setRemoteDescription(new RTCSessionDescription(signalPayload));
-                            console.log('📥 Set remote description (answer)');
+                            console.debug('📥 Set remote description (answer)');
                         }
                     } else if (message_type === 'ice-candidate') {
                         const pc = this.peerConnections.get(from_user_id) ||
@@ -366,7 +366,7 @@ class LiveStreamService {
             )
             .subscribe();
 
-        console.log('🔔 Subscribed to signaling channel:', channelName);
+        console.debug('🔔 Subscribed to signaling channel:', channelName);
     }
 
     /**

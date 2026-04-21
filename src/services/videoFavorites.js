@@ -17,7 +17,7 @@ export async function getVideoFavorites(userId) {
         .order('created_at', { ascending: false });
 
     if (error) {
-        console.error('Error fetching video favorites:', error);
+        console.warn('Error fetching video favorites:', error);
         throw error;
     }
 
@@ -41,7 +41,7 @@ export async function addVideoFavorite(userId, videoId, videoData = {}) {
         .maybeSingle();
 
     if (error) {
-        console.error('Error adding video favorite:', error);
+        console.warn('Error adding video favorite:', error);
         throw error;
     }
 
@@ -64,7 +64,7 @@ export async function removeVideoFavorite(userId, videoId) {
         .eq('video_id', videoId);
 
     if (error) {
-        console.error('Error removing video favorite:', error);
+        console.warn('Error removing video favorite:', error);
         throw error;
     }
 
@@ -83,7 +83,7 @@ export async function isVideoFavorited(userId, videoId) {
         .maybeSingle();
 
     if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-        console.error('Error checking video favorite:', error);
+        console.warn('Error checking video favorite:', error);
         throw error;
     }
 

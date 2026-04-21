@@ -47,7 +47,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -74,7 +74,7 @@ async function listFreerolls(req, res) {
         const { data: freerolls, error } = await query;
 
         if (error) {
-            console.error('Freerolls fetch error:', error);
+            console.warn('Freerolls fetch error:', error);
             throw error;
         }
 
@@ -109,7 +109,7 @@ async function listFreerolls(req, res) {
         });
 
     } catch (error) {
-        console.error('Freerolls error:', error);
+        console.warn('Freerolls error:', error);
         return res.status(500).json({
             success: false,
             error: { code: 'SERVER_ERROR', message: 'Failed to fetch freerolls' }
@@ -161,7 +161,7 @@ async function createFreeroll(req, res, guard) {
         return res.status(201).json({ success: true, data: { freeroll } });
     } catch (error) {
         try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('Create freeroll error:', error);
+        console.warn('Create freeroll error:', error);
         return res.status(500).json({
             success: false,
             error: { code: 'SERVER_ERROR', message: 'Internal server error' }

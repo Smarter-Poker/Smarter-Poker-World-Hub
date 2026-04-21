@@ -264,7 +264,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
       if (stakerRaw) setSavedStakerNames(JSON.parse(stakerRaw));
       const slotRaw = localStorage.getItem('bankroll_slot_games');
       if (slotRaw) setSavedSlotGames(JSON.parse(slotRaw));
-    } catch (_) { /* ignore */ }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }, []);
 
   // Detect active trip — auto-assign trip_id and location
@@ -496,7 +496,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
 
       onSubmit(entry);
     } catch (error) {
-      console.error('Error logging entry:', error);
+      console.warn('Error logging entry:', error);
       toast.error('Failed to log entry. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -566,7 +566,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
       setMediaFiles(prev => [...prev, ...newUploads]);
       // Photo upload success toast removed per user request
     } catch (error) {
-      console.error('Upload failed:', error);
+      console.warn('Upload failed:', error);
       toast.error('Failed to upload image');
     } finally {
       setUploading(false);

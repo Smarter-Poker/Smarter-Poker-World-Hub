@@ -43,7 +43,7 @@ export default async function handler(req, res) {
         }, { onConflict: 'hand_id,user_id' });
         return res.status(200).json({ ok: true });
       } catch (err) {
-        console.error('[hand-history] POST error:', err);
+        console.warn('[hand-history] POST error:', err);
         return res.status(500).json({ error: 'Failed to save hand' });
       }
     }
@@ -68,7 +68,7 @@ export default async function handler(req, res) {
         .range(offset, offset + lim - 1);
 
       if (error) {
-        console.error('[hand-history] Query error:', error.message);
+        console.warn('[hand-history] Query error:', error.message);
         return res.status(500).json({ error: 'Failed to fetch hand history' });
       }
 
@@ -85,13 +85,13 @@ export default async function handler(req, res) {
         limit: lim,
       });
     } catch (err) {
-      console.error('[hand-history] Error:', err);
+      console.warn('[hand-history] Error:', err);
       return res.status(500).json({ error: 'Internal server error' });
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

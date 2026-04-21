@@ -37,7 +37,7 @@ export default function DailyBonusWidget({ userId, onBonusClaimed }) {
                 setBonusData(data);
             }
         } catch (e) {
-            console.error('[DailyBonusWidget] Error:', e);
+            console.warn('[DailyBonusWidget] Error:', e);
         } finally {
             setLoading(false);
         }
@@ -103,7 +103,7 @@ export default function DailyBonusWidget({ userId, onBonusClaimed }) {
                 }, 2500);
             }
         } catch (e) {
-            console.error('[DailyBonusWidget] Claim error:', e);
+            console.warn('[DailyBonusWidget] Claim error:', e);
         } finally {
             setClaiming(false);
         }

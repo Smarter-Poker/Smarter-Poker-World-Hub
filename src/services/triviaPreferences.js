@@ -23,9 +23,7 @@ export async function getTriviaPreferences(userId) {
         if (raw) {
             return { ...DEFAULTS, ...JSON.parse(raw) };
         }
-    } catch (e) {
-        // Corrupted localStorage — return defaults
-    }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     return { ...DEFAULTS };
 }
 
@@ -43,7 +41,7 @@ export async function updateTriviaPreferences(userId, preferences) {
         localStorage.setItem(getStorageKey(userId), JSON.stringify(merged));
         return merged;
     } catch (e) {
-        console.error('[TriviaPrefs] Failed to save:', e);
+        console.warn('[TriviaPrefs] Failed to save:', e);
         throw e;
     }
 }

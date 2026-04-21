@@ -82,7 +82,7 @@ export default function MfaSettingsPage() {
             else if (data.enabled) setMfaStatus('on');
             else setMfaStatus('pending');
         } catch (err) {
-            console.error('[mfa-settings] status probe failed', err);
+            console.warn('[mfa-settings] status probe failed', err);
             setError('Could not load your MFA status. Please refresh.');
         } finally {
             setLoading(false);
@@ -109,7 +109,7 @@ export default function MfaSettingsPage() {
             setQrDataUrl(json.qrCode || json.qrCodeDataURL || null);
             setPendingSecret(json.secret || json.base32 || null);
         } catch (err) {
-            console.error('[mfa-settings] setup error', err);
+            console.warn('[mfa-settings] setup error', err);
             setError(err.message || 'Could not start enrolment.');
         } finally {
             setEnrolling(false);
@@ -144,7 +144,7 @@ export default function MfaSettingsPage() {
             setNotice('Two-factor authentication is now ON.');
             await refreshStatus();
         } catch (err) {
-            console.error('[mfa-settings] verify error', err);
+            console.warn('[mfa-settings] verify error', err);
             setError(err.message || 'Could not verify that code.');
         } finally {
             setEnrolling(false);
@@ -177,7 +177,7 @@ export default function MfaSettingsPage() {
             setNotice('Two-factor authentication has been disabled.');
             await refreshStatus();
         } catch (err) {
-            console.error('[mfa-settings] disable error', err);
+            console.warn('[mfa-settings] disable error', err);
             setError(err.message || 'Could not disable two-factor authentication.');
         } finally {
             setDisabling(false);

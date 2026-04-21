@@ -65,9 +65,7 @@ export default async function handler(req, res) {
         const prevTotal = Object.keys(previousCounts).length;
         hasHistoricalData = prevTotal > 0 && currentTotal > 0 && prevTotal >= Math.min(5, currentTotal / 2);
       }
-    } catch (_) {
-      // Table may not exist — just skip
-    }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
     // Determine age of previous snapshot to avoid saving too frequently (e.g., only update every 30m)
     let shouldSaveSnapshot = true;
@@ -88,9 +86,7 @@ export default async function handler(req, res) {
             value: JSON.stringify({ counts: currentCounts, saved_at: new Date().toISOString() }),
             updated_at: new Date().toISOString(),
           }, { onConflict: 'key' });
-      } catch (_) {
-        // Silent — non-critical
-      }
+      } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }
 
     // Build trend analysis
@@ -123,7 +119,7 @@ export default async function handler(req, res) {
     });
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('Game trends error:', err);
+    console.warn('Game trends error:', err);
     res.status(500).json({ error: err.message });
   }
 }

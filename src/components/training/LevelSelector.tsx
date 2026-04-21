@@ -279,7 +279,7 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
                     };
                     console.log(`[LevelSelector] Using TRAINING_LIBRARY fallback for: ${gameId}`);
                 } else {
-                    console.error('Game not found in registry or library:', gameId);
+                    console.warn('Game not found in registry or library:', gameId);
                     // Still show levels with minimal game data
                     gameInfo = { id: gameId, title: gameId, slug: gameId, category: 'CASH', engine_type: 'PIO' };
                 }
@@ -335,7 +335,7 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
             setLevels(levelDataList);
 
         } catch (error) {
-            console.error('Failed to fetch game/progress:', error);
+            console.warn('Failed to fetch game/progress:', error);
         } finally {
             setLoading(false);
         }
@@ -397,7 +397,7 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
             router.push(`/hub/training/arena/${gameId}?level=${level}&session=${sessionId}`);
 
         } catch (error) {
-            console.error('Failed to start session:', error);
+            console.warn('Failed to start session:', error);
             setStartingLevel(null);
         }
     };

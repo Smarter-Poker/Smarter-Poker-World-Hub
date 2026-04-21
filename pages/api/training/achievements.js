@@ -87,7 +87,7 @@ export default async function handler(req, res) {
               });
 
           } catch (error) {
-              console.error('[Achievements] Error:', error.message);
+              console.warn('[Achievements] Error:', error.message);
               return res.status(500).json({ success: false, error: 'Failed to fetch achievements' });
           }
       }
@@ -221,7 +221,7 @@ export default async function handler(req, res) {
               });
 
           } catch (error) {
-              console.error('[Achievements] Unlock error:', error.message);
+              console.warn('[Achievements] Unlock error:', error.message);
               return res.status(500).json({ success: false, error: 'Failed to check achievements' });
           }
       }
@@ -230,7 +230,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

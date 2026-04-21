@@ -330,7 +330,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 try { eventBus.emit('page:follow', { slug: venue.host_social_page_slug }, 'VenueCard'); } catch (e) { console.warn('[App] Handled exception:', e); }
             }
         } catch (err) {
-            console.error('Follow error:', err);
+            console.warn('Follow error:', err);
         } finally {
             setFollowLoading(false);
         }

@@ -78,7 +78,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
         const firstScenario = ScenarioGenerator.create(config);
 
         if (!ScenarioGenerator.validate(firstScenario)) {
-            console.error('❌ First scenario failed validation!');
+            console.warn('❌ First scenario failed validation!');
         }
 
         setCurrentScenario(firstScenario);

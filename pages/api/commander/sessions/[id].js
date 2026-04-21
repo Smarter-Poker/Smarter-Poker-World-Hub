@@ -52,7 +52,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -84,7 +84,7 @@ async function handleGet(req, res, sessionId) {
       data: { session }
     });
   } catch (error) {
-    console.error('Commander session GET error:', error);
+    console.warn('Commander session GET error:', error);
     return res.status(500).json({
       success: false,
       error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }
@@ -171,7 +171,7 @@ async function handlePatch(req, res, sessionId) {
       .maybeSingle();
 
     if (updateError) {
-      console.error('Commander session PATCH error:', updateError);
+      console.warn('Commander session PATCH error:', updateError);
       return res.status(500).json({
         success: false,
         error: { code: 'DATABASE_ERROR', message: 'Failed to update session' }
@@ -184,7 +184,7 @@ async function handlePatch(req, res, sessionId) {
     });
   } catch (error) {
       try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('Commander session PATCH error:', error);
+    console.warn('Commander session PATCH error:', error);
     return res.status(500).json({
       success: false,
       error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }

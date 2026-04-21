@@ -84,13 +84,13 @@ export default async function handler(req, res) {
       if (req.method === 'POST') return handleClose(req, res, venueId, staffUserId);
       return res.status(405).json({ success: false, error: 'Method not allowed' });
     } catch (err) {
-      console.error('Table assignment error:', err);
+      console.warn('Table assignment error:', err);
       return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -271,7 +271,7 @@ async function handlePut(req, res, venueId, staffUserId) {
     .maybeSingle();
 
   if (error) {
-    console.error('Assignment update error:', error);
+    console.warn('Assignment update error:', error);
     return res.status(500).json({ success: false, error: 'Failed to update table assignment' });
   }
 

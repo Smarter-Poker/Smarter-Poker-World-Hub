@@ -182,11 +182,7 @@ export default function RegisterPage() {
         setStep(2);
         finish();
       })
-      .catch(() => {
-        // Check-access failure is non-fatal — just let the user proceed
-        // through the full wizard.
-        finish();
-      });
+      .catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
 
     return () => { cancelled = true; };
   }, [router.isReady, queryReturn]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -369,7 +365,7 @@ export default function RegisterPage() {
           });
           if (!promoRes.ok) console.warn('Promo payload failed');
         } catch (e) {
-          console.error('Promo redemption error:', e);
+          console.warn('Promo redemption error:', e);
         }
       }
 

@@ -276,7 +276,7 @@ export default function MemoryGameClient({
             // Notify parent component
             onLevelComplete?.(passed, accuracy);
         } catch (error) {
-            console.error('Failed to process rewards:', error);
+            console.warn('Failed to process rewards:', error);
             // Fallback: still show local rewards
             setBackendRewards({
                 diamonds: gameState.sessionDiamonds
@@ -330,7 +330,7 @@ export default function MemoryGameClient({
             .maybeSingle();
 
         if (error || !data) {
-            console.error('Failed to load chart:', error);
+            console.warn('Failed to load chart:', error);
             return;
         }
 

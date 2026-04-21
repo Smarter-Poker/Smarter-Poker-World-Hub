@@ -111,7 +111,7 @@ export default function LoginPage() {
                         capture('login', { source: 'password' });
                     }
                 }
-            } catch (_analyticsErr) { /* swallow — analytics must never block auth */ }
+            } catch (_analyticsErr) { console.warn('[App] Handled exception:', _analyticsErr?.message || _analyticsErr); }
 
             // Remember device if checkbox is checked
             if (rememberMe) {
@@ -148,15 +148,13 @@ export default function LoginPage() {
             //         router.push(`/auth/mfa?next=${next}`);
             //         return;
             //     }
-            // } catch (mfaProbeErr) {
-            //     console.warn('[login] MFA probe failed, continuing:', mfaProbeErr);
-            // }
+            // } catch (mfaProbeErr) { console.warn('[App] Handled exception:', mfaProbeErr?.message || mfaProbeErr); }
 
             // Set flag so hub plays intro animation
             sessionStorage.setItem('just_authenticated', 'true');
             router.push(getRedirectUrl());
         } catch (err) {
-            console.error('Login error:', err);
+            console.warn('Login error:', err);
 
             // ── [Phase 6.1.19] Account enumeration defense ──────────────────
             // Supabase normalises both "email not found" and "wrong password"
@@ -212,7 +210,7 @@ export default function LoginPage() {
                 router.push(getRedirectUrl());
             }
         } catch (err) {
-            console.error('Signup error:', err);
+            console.warn('Signup error:', err);
             setError(err.message || 'Signup failed');
         } finally {
             setIsLoading(false);
@@ -241,7 +239,7 @@ export default function LoginPage() {
 
             setMessage('Magic link sent! Check your email.');
         } catch (err) {
-            console.error('Magic link error:', err);
+            console.warn('Magic link error:', err);
             setError(err.message || 'Failed to send magic link');
         } finally {
             setIsLoading(false);

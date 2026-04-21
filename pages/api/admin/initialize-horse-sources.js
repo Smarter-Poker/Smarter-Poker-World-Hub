@@ -49,7 +49,7 @@ export default async function handler(req, res) {
               .order('alias');
 
           if (horsesError || !horses?.length) {
-              console.error('Error fetching horses:', horsesError);
+              console.warn('Error fetching horses:', horsesError);
               return res.status(500).json({ success: false, error: 'Failed to fetch horses' });
           }
 
@@ -107,7 +107,7 @@ export default async function handler(req, res) {
               .select();
 
           if (error) {
-              console.error('Error inserting assignments:', error);
+              console.warn('Error inserting assignments:', error);
               return res.status(500).json({ success: false, error: error.message });
           }
 
@@ -133,13 +133,13 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('Initialization error:', error);
+          console.warn('Initialization error:', error);
           return res.status(500).json({ success: false, error: error.message });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

@@ -25,14 +25,14 @@ export default function ZeroLatencyIntro({ isVisible, game, onComplete, onLevelR
     useEffect(() => {
         if (isVisible && !level1Data && !isGenerating) {
             setIsGenerating(true);
-            console.log('[MASKED LOADING] Generating Level 1 during intro...');
+            console.debug('[MASKED LOADING] Generating Level 1 during intro...');
 
             // Generate in background
             setTimeout(() => {
                 const levelData = generateLevel(1);
                 setLevel1Data(levelData);
                 setIsGenerating(false);
-                console.log('✅ [MASKED LOADING] Level 1 ready!', levelData);
+                console.debug('✅ [MASKED LOADING] Level 1 ready!', levelData);
 
                 // Notify parent that level is ready
                 if (onLevelReady) {
@@ -83,7 +83,7 @@ export default function ZeroLatencyIntro({ isVisible, game, onComplete, onLevelR
             }
         }
 
-        console.log('[ZERO-LATENCY] Starting game with pre-generated Level 1');
+        console.debug('[ZERO-LATENCY] Starting game with pre-generated Level 1');
         setPhase('complete');
 
         if (onComplete) {

@@ -153,7 +153,7 @@ export default async function handler(req, res) {
               return res.status(405).json({ success: false, error: 'Method not allowed' });
           }
       } catch (error) {
-          console.error('Social pages reviews API error:', error);
+          console.warn('Social pages reviews API error:', error);
           return res.status(500).json({
               success: false,
               error: error.message || 'Internal server error'
@@ -162,7 +162,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

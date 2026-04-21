@@ -165,7 +165,7 @@ export default function CreateHomeGamePage() {
 
       updateField('profile_photo_url', json.url);
     } catch (err) {
-      console.error('Logo upload failed:', err);
+      console.warn('Logo upload failed:', err);
       setLogoError(err?.message || 'Upload failed — please try again');
     } finally {
       setUploadingLogo(false);
@@ -912,7 +912,7 @@ export default function CreateHomeGamePage() {
                       router.push(`/hub/commander/home-games/${createdGroup.id}`);
                     }
                   } catch (err) {
-                    console.error('Schedule event error:', err);
+                    console.warn('Schedule event error:', err);
                   } finally {
                     setEventSubmitting(false);
                   }

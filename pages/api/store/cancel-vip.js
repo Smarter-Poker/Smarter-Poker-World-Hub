@@ -94,10 +94,7 @@ export default async function handler(req, res) {
                       cancel_reason_text: reasonText || '',
                   })
                   .eq('stripe_subscription_id', sub.stripe_subscription_id);
-          } catch (reasonErr) {
-              // Non-critical — reason is also stored in Stripe metadata
-              console.error('Could not store cancel reason locally:', reasonErr.message);
-          }
+          } catch (reasonErr) { console.warn('[App] Handled exception:', reasonErr?.message || reasonErr); }
 
           // 5. Log the cancellation event
 
@@ -106,13 +103,13 @@ export default async function handler(req, res) {
               message: 'Subscription will cancel at the end of your billing period'
           });
       } catch (err) {
-          console.error('Cancel VIP error:', err);
+          console.warn('Cancel VIP error:', err);
           return res.status(500).json({ success: false, error: 'Failed to cancel subscription' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

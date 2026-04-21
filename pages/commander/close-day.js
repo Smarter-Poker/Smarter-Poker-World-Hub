@@ -75,7 +75,7 @@ const headers = { };
       const sessionsArr = Array.isArray(sessionsRes.data) ? sessionsRes.data : [];
       setActiveSessions(sessionsArr.filter(s => s.status === 'active'));
       if (reportRes.data) setDayStats(reportRes.data);
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
     finally { setLoading(false); }
   }, []);
 
@@ -115,7 +115,7 @@ const headers = { 'Content-Type': 'application/json' };
         broadcastChange('games');
       }
       await fetchStatus();
-    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
+    } catch (err) { console.warn(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
     finally { setClosing(false); }
   };
 
@@ -138,7 +138,7 @@ const venueId = getVenueId();
       } else {
         setPin('');
       }
-    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
+    } catch (err) { console.warn(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
     finally { setVerifying(false); }
   };
 

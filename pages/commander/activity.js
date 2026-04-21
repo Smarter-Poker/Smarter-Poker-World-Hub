@@ -63,7 +63,7 @@ export default function ActivityFeed() {
       const staffSession = getStaffSession();
       if (!staffSession) return;
       let venueId = '';
-      try { venueId = JSON.parse(staffSession).venue_id || ''; } catch (e) { /* silent */ }
+      try { venueId = JSON.parse(staffSession).venue_id || ''; } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
       const headers = { 'x-staff-session': staffSession };
 
       // Aggregate from multiple sources for the activity feed
@@ -126,7 +126,7 @@ export default function ActivityFeed() {
       // Sort by timestamp descending
       allEvents.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
       setEvents(allEvents.slice(0, 50));
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
     finally { setLoading(false); }
   }, []);
 

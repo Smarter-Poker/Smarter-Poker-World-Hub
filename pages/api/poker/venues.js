@@ -250,10 +250,7 @@ async function fetchPublicHomeGroups({ state, city, search, lat, lng, radius, ef
                     social_page_id: p?.id || null,
                 };
             });
-        } catch (e) {
-            // Non-fatal — continue without slug/follower enrichment.
-            console.warn('[venues] social_pages enrichment for home groups failed:', e.message);
-        }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     }
 
     // GPS distance + radius filter (reuses the same calculateDistance helper
@@ -624,9 +621,7 @@ export default async function handler(req, res) {
                       } else {
                           throw new Error(error?.message || 'Not found in Supabase');
                       }
-                  } catch (dbError) {
-                      // Fall back to JSON for single venue
-                      venues = applyFilters(getJsonVenues(), { id });
+                  } catch (dbError) { console.warn('[App] Handled exception:', dbError?.message || dbError); });
                   }
               } else {
                   // Non-numeric ID (slug): search by slug/bravo_slug in JSON data
@@ -715,7 +710,7 @@ export default async function handler(req, res) {
                           if (data && data.length > 0) {
                               venues = [data[0]];
                           }
-                      } catch (_) { /* silent */ }
+                      } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                       if (venues.length === 0) {
                           return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Venue not found' } });
                       }
@@ -1438,9 +1433,7 @@ export default async function handler(req, res) {
                           todaySeriesTournaments.forEach(t => activeSeriesIds.add(t.venue_id));
                       }
                   }
-              } catch (e) {
-                  // Fallback: If DB query fails, assume no series are running today to be safe
-              }
+              } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
               const stateGroups = {};
               for (const v of venues) {
@@ -1648,7 +1641,7 @@ export default async function handler(req, res) {
                       });
                   }
               } catch(e) {
-                  console.error('Error enriching charity next_event:', e);
+                  console.warn('Error enriching charity next_event:', e);
               }
           }
 
@@ -1769,7 +1762,7 @@ export default async function handler(req, res) {
               offset,
           });
       } catch (error) {
-          console.error('Venues API error:', error);
+          console.warn('Venues API error:', error);
           captureError(error, {
               tags: { api: 'poker-venues', stage: 'handler' },
               extra: { query: req.query },
@@ -1787,7 +1780,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

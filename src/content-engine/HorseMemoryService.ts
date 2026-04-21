@@ -87,7 +87,7 @@ class HorseMemoryService {
         });
 
         if (error) {
-            console.error('[HorseMemory] Error fetching memories:', error);
+            console.warn('[HorseMemory] Error fetching memories:', error);
             return [];
         }
 
@@ -173,7 +173,7 @@ class HorseMemoryService {
         });
 
         if (error) {
-            console.error('[HorseMemory] Error recording memory:', error);
+            console.warn('[HorseMemory] Error recording memory:', error);
             return null;
         }
 

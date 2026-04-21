@@ -165,7 +165,7 @@ export default async function handler(req, res) {
             notes: `${action === 'rebuy' ? 'Rebuy' : 'Table buy-in'}: ${amount} chips locked for table ${tableId || 'unknown'}`,
           });
         } catch (logErr) {
-          console.error('[table-chips] Failed to log transaction:', logErr);
+          console.warn('[table-chips] Failed to log transaction:', logErr);
         }
 
         const responseBody = {
@@ -201,7 +201,7 @@ export default async function handler(req, res) {
             notes: `Table cash-out: ${amount} chips unlocked from table ${tableId || 'unknown'}`,
           });
         } catch (logErr) {
-          console.error('[table-chips] Failed to log unlock transaction:', logErr);
+          console.warn('[table-chips] Failed to log unlock transaction:', logErr);
         }
 
         const responseBody = {
@@ -216,13 +216,13 @@ export default async function handler(req, res) {
         return res.status(200).json(responseBody);
       }
     } catch (err) {
-      console.error('[table-chips]', err);
+      console.warn('[table-chips]', err);
       return res.status(500).json({ success: false, error: 'Table chip operation failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

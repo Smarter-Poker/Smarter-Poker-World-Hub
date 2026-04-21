@@ -52,7 +52,7 @@ export default function TokeAnalyticsPage() {
             const settings = profile?.settings || {};
             settings.tokeTracker = newPrefs;
             await supabase.from('profiles').update({ settings }).eq('id', userId);
-        } catch (err) { console.error('[TokeTracker] Pref save error:', err); }
+        } catch (err) { console.warn('[TokeTracker] Pref save error:', err); }
     }, [userId]);
 
     useEffect(() => {

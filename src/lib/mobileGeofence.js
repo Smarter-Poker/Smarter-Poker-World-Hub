@@ -291,9 +291,9 @@ export default class MobileGeofenceService {
 
             // Start monitoring
             await bgGeo.start();
-            console.log(`[MobileGeofence] ✅ Capacitor: Registered ${venues.length} geofences`);
+            console.debug(`[MobileGeofence] ✅ Capacitor: Registered ${venues.length} geofences`);
         } catch (err) {
-            console.error('[MobileGeofence] Capacitor init failed:', err);
+            console.warn('[MobileGeofence] Capacitor init failed:', err);
             // Fall back to web
             this._platform = 'web';
             this._initWeb(venues);
@@ -342,9 +342,9 @@ export default class MobileGeofenceService {
                 },
             }));
 
-            console.log(`[MobileGeofence] ✅ React Native: Sent ${venues.length} geofences to native shell`);
+            console.debug(`[MobileGeofence] ✅ React Native: Sent ${venues.length} geofences to native shell`);
         } catch (err) {
-            console.error('[MobileGeofence] React Native init failed:', err);
+            console.warn('[MobileGeofence] React Native init failed:', err);
             this._platform = 'web';
             this._initWeb(venues);
         }

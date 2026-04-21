@@ -71,9 +71,7 @@ async function logAudit(supabaseAdmin, {
             ip_address: ip,
             details,
         });
-    } catch (err) {
-        // NEVER block the response — audit failures are logged but non-fatal
-        console.error(`[auditLogger] Failed to write ${actionType}:`, err.message);
+    } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }:`, err.message);
     }
 }
 

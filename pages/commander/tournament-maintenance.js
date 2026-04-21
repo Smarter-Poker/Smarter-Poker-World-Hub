@@ -38,7 +38,7 @@ export default function TournamentMaintenance() {
             if (json.success || json.data) {
                 setTournaments(json.data?.tournaments || json.data || []);
             }
-        } catch (err) { console.error(err); }
+        } catch (err) { console.warn(err); }
         finally { setLoading(false); }
     }, []);
 

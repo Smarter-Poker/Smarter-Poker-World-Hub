@@ -46,22 +46,22 @@ export async function sendPushNotification({ playerIds, externalIds, collapseId,
         try {
             result = JSON.parse(textData);
         } catch (parseErr) {
-            console.error('[OneSignal Server] Non-JSON response received:', textData.substring(0, 500));
+            console.warn('[OneSignal Server] Non-JSON response received:', textData.substring(0, 500));
             return { success: false, error: 'Upstream Gateway Error: Invalid JSON response' };
         }
         
         if (response.ok && !result.errors) {
             return { success: true, result };
         } else {
-            console.error('[OneSignal Server] API returned an error:', result);
+            console.warn('[OneSignal Server] API returned an error:', result);
             return { success: false, error: result.errors || 'Unknown API Error' };
         }
     } catch (e) {
         if (e.name === 'AbortError') {
-            console.error('[OneSignal Server] Request timed out after 8000ms');
+            console.warn('[OneSignal Server] Request timed out after 8000ms');
             return { success: false, error: 'OneSignal API Timeout' };
         }
-        console.error('[OneSignal Server] Request failed:', e);
+        console.warn('[OneSignal Server] Request failed:', e);
         return { success: false, error: e.message };
     }
 }

@@ -32,7 +32,7 @@ export default async function handler(req, res) {
     const { data, error } = await supabase.rpc("purge_idempotency_keys");
 
     if (error) {
-      console.error("[purge-idempotency-keys] RPC error:", error);
+      console.warn("[purge-idempotency-keys] RPC error:", error);
       return res.status(500).json({ error: error.message });
     }
 
@@ -53,7 +53,7 @@ export default async function handler(req, res) {
     });
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error("[purge-idempotency-keys] unhandled:", err);
+    console.warn("[purge-idempotency-keys] unhandled:", err);
     return res
       .status(500)
       .json({ error: err?.message || "unhandled purge failure" });

@@ -119,7 +119,7 @@ export default async function handler(req, res) {
     });
   } catch (error) {
       try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('Stripe setup error:', error);
+    console.warn('Stripe setup error:', error);
     res.status(500).json({
       success: false, error: error.message,
       type: error.type,

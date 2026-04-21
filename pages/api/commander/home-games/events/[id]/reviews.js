@@ -45,7 +45,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -78,7 +78,7 @@ async function handleGet(req, res, eventId) {
       }
     });
   } catch (error) {
-    console.error('Get reviews error:', error);
+    console.warn('Get reviews error:', error);
     return res.status(500).json({
       success: false,
       error: { code: 'SERVER_ERROR', message: 'Failed to fetch reviews' }
@@ -134,7 +134,7 @@ async function handleCreate(req, res, eventId, _user) {
       .maybeSingle();
 
     if (rsvpErr) {
-      console.error('Reviews: RSVP attendance check failed:', rsvpErr);
+      console.warn('Reviews: RSVP attendance check failed:', rsvpErr);
       return res.status(500).json({
         success: false,
         error: { code: 'SERVER_ERROR', message: 'Attendance check failed' }
@@ -171,7 +171,7 @@ async function handleCreate(req, res, eventId, _user) {
     });
   } catch (error) {
       try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('Create review error:', error);
+    console.warn('Create review error:', error);
     return res.status(500).json({
       success: false,
       error: { code: 'SERVER_ERROR', message: 'Failed to create review' }

@@ -39,7 +39,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -68,7 +68,7 @@ async function getPreferences(req, res) {
       data: { preferences: prefs || { preferred_seats: [], left_handed: false, near_tv: null, away_from_tv: null, notes: null } }
     });
   } catch (error) {
-    console.error('Get preferences error:', error);
+    console.warn('Get preferences error:', error);
     return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message } });
   }
 }
@@ -107,7 +107,7 @@ async function savePreferences(req, res) {
     return res.status(200).json({ success: true, data: { preferences: pref } });
   } catch (error) {
       try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('Save preferences error:', error);
+    console.warn('Save preferences error:', error);
     return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message } });
   }
 }

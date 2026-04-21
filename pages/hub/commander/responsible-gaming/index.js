@@ -138,7 +138,7 @@ export default function ResponsibleGamingPage() {
         setSaveMessage({ type: 'error', text: 'Failed To Save Limits' });
       }
     } catch (err) {
-      console.error('Save failed:', err);
+      console.warn('Save failed:', err);
       setSaveMessage({ type: 'error', text: 'Failed To Save Limits' });
     } finally {
       setSaving(false);
@@ -179,7 +179,7 @@ export default function ResponsibleGamingPage() {
         });
       }
     } catch (err) {
-      console.error('Exclusion failed:', err);
+      console.warn('Exclusion failed:', err);
     } finally {
       setSaving(false);
     }

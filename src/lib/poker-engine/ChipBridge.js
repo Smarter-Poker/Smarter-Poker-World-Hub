@@ -62,7 +62,7 @@ async function lockChips(clubId, userId, tableId, amount) {
     }), { critical: true });
 
     if (rpcErr) {
-      console.error('[ChipBridge.lockChips] RPC error:', rpcErr);
+      console.warn('[ChipBridge.lockChips] RPC error:', rpcErr);
       return { success: false, error: rpcErr.message };
     }
 
@@ -91,7 +91,7 @@ async function lockChips(clubId, userId, tableId, amount) {
       status: 'locked',
     })).then(({ error }) => {
       if (error) console.warn('[ChipBridge] Escrow insert warning:', error.message);
-    }).catch(console.error);
+    }).catch(console.warn);
 
     return {
       success: true,
@@ -99,7 +99,7 @@ async function lockChips(clubId, userId, tableId, amount) {
       remainingBalance: result.balance_after,
     };
   } catch (err) {
-    console.error('[ChipBridge.lockChips] Error:', err);
+    console.warn('[ChipBridge.lockChips] Error:', err);
     return { success: false, error: err.message };
   }
 }
@@ -126,7 +126,7 @@ async function unlockChips(clubId, userId, tableId, cashoutAmount) {
     }), { critical: true });
 
     if (rpcErr) {
-      console.error('[ChipBridge.unlockChips] RPC error:', rpcErr);
+      console.warn('[ChipBridge.unlockChips] RPC error:', rpcErr);
       // DO NOT clear in-memory lock — allows retry
       return { success: false, error: rpcErr.message };
     }
@@ -157,7 +157,7 @@ async function unlockChips(clubId, userId, tableId, cashoutAmount) {
       newBalance: result.balance_after,
     };
   } catch (err) {
-    console.error('[ChipBridge.unlockChips] Error:', err);
+    console.warn('[ChipBridge.unlockChips] Error:', err);
     // DO NOT clear in-memory lock — allows retry
     return { success: false, error: err.message };
   }
@@ -304,7 +304,7 @@ async function recordRake({ clubId, tableId, handId, potSize, rakeAmount, numPla
 
     return { success: true, rakeRecorded: rakeAmount };
   } catch (err) {
-    console.error('[ChipBridge.recordRake]', err);
+    console.warn('[ChipBridge.recordRake]', err);
     return { success: false, error: err.message };
   }
 }
@@ -335,7 +335,7 @@ async function checkLockExists(tableId, userId) {
     );
     return !!data;
   } catch (err) {
-    console.error('[ChipBridge.checkLockExists] DB check failed:', err.message);
+    console.warn('[ChipBridge.checkLockExists] DB check failed:', err.message);
     // Fail safe: assume lock exists to allow cleanup attempt
     return true;
   }

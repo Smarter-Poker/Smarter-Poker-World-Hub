@@ -58,7 +58,7 @@ export default async function handler(req, res) {
             .limit(1000);
 
         if (error) {
-            console.error('Batch counts error:', error);
+            console.warn('Batch counts error:', error);
             return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
@@ -85,7 +85,7 @@ export default async function handler(req, res) {
 
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('[Batch Counts Error]', err);
+        console.warn('[Batch Counts Error]', err);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

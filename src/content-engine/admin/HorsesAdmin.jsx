@@ -175,7 +175,7 @@ function HorsesDashboard({ user, onLogout }) {
             setStats(statsData || []);
             setPipelineRuns(runsData || []);
         } catch (err) {
-            console.log('Using demo data');
+            console.debug('Using demo data');
             setPersonas(demoPersonas);
         }
 
@@ -227,7 +227,7 @@ function HorsesDashboard({ user, onLogout }) {
                 .from('content_settings')
                 .upsert({ id: 1, ...newSettings });
         } catch (err) {
-            console.log('Demo mode - settings not saved');
+            console.debug('Demo mode - settings not saved');
         }
     };
 
@@ -257,10 +257,7 @@ function HorsesDashboard({ user, onLogout }) {
             setShowCreateModal(false);
             setNewPersona({ name: '', gender: 'male', location: '', specialty: 'cash_games', stakes: '', bio: '', voice: 'casual' });
             showNotification('New author added! ✍️', 'success');
-        } catch (err) {
-            // For demo mode fallback
-            const demoId = Date.now();
-            const demoPersona = { ...personaToCreate, id: demoId };
+        } catch (err) { console.warn('[App] Handled exception:', err?.message || err); };
             setPersonas([demoPersona, ...personas]);
             setShowCreateModal(false);
             showNotification('Author created (Demo Mode)', 'success');

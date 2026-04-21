@@ -186,7 +186,7 @@ export default async function handler(req, res) {
               });
 
           if (uploadError) {
-              console.error('❌ Supabase upload error:', uploadError);
+              console.warn('❌ Supabase upload error:', uploadError);
               throw new Error('Failed to upload avatar to storage');
           }
 
@@ -218,7 +218,7 @@ export default async function handler(req, res) {
                       .eq('id', existingAvatars[0].id);
 
                   if (updateError) {
-                      console.error('⚠️ Failed to update gallery:', updateError);
+                      console.warn('⚠️ Failed to update gallery:', updateError);
                   } else {
                   }
               }
@@ -231,8 +231,8 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('❌ Avatar edit error:', error);
-          console.error('Error details:', {
+          console.warn('❌ Avatar edit error:', error);
+          console.warn('Error details:', {
               message: error.message,
               status: error.status,
               response: error.response?.data,
@@ -247,7 +247,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

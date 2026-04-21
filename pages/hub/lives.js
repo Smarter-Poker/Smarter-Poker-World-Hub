@@ -78,7 +78,7 @@ export default function LivesPage() {
 
             setStreams(allStreams);
         } catch (e) {
-            console.error('fetchStreams error:', e);
+            console.warn('fetchStreams error:', e);
         }
         setLoading(false);
     }, []);
@@ -168,7 +168,7 @@ export default function LivesPage() {
                 if (!res.ok) throw new Error(`Request failed (${res.status})`);
                 const json = await res.json();
                 setChatMessages(json.comments || []);
-            } catch (e) { console.error('Load chat:', e); }
+            } catch (e) { console.warn('Load chat:', e); }
         }
     };
 
@@ -189,7 +189,7 @@ export default function LivesPage() {
                 setChatMessages(prev => [...prev, { ...json.comment, author: { username: 'You' } }]);
             }
             setChatText('');
-        } catch (e) { console.error('Submit chat:', e); }
+        } catch (e) { console.warn('Submit chat:', e); }
         setSubmittingChat(false);
     };
 

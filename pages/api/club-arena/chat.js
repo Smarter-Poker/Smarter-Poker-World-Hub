@@ -10,7 +10,7 @@ function getSupabase() {
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
         const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
         if (!key) {
-            console.error('[chat] SUPABASE_SERVICE_ROLE_KEY not set — refusing to start with anon key');
+            console.warn('[chat] SUPABASE_SERVICE_ROLE_KEY not set — refusing to start with anon key');
             throw new Error('Server misconfiguration: missing service role key');
         }
         _supabase = createClient(url, key);
@@ -143,7 +143,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[chat API Error]', err);
+    console.warn('[chat API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

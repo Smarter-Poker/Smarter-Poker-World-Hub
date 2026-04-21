@@ -549,7 +549,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                 // Mark user as authenticated (sets isAuthenticated for future features)
                 if (user) setIsAuthenticated(true);
             } catch (e) {
-                console.error('Failed to fetch user profile:', e);
+                console.warn('Failed to fetch user profile:', e);
             }
         };
         fetchUserProfile();

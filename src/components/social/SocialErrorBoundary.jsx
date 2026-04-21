@@ -17,7 +17,7 @@ export class SocialErrorBoundary extends React.Component {
     }
 
     componentDidCatch(error, errorInfo) {
-        console.error('[SocialErrorBoundary]', error, errorInfo);
+        console.warn('[SocialErrorBoundary]', error, errorInfo);
     }
 
     render() {

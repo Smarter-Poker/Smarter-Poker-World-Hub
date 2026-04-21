@@ -48,7 +48,7 @@ class DiamondEngineSupabase {
                 .maybeSingle();
 
             if (error) {
-                console.error('Error fetching balance:', error);
+                console.warn('Error fetching balance:', error);
                 return this._getLocalBalance();
             }
 
@@ -57,7 +57,7 @@ class DiamondEngineSupabase {
             this._cachedBalance = balance;
             return balance;
         } catch (err) {
-            console.error('Balance fetch failed:', err);
+            console.warn('Balance fetch failed:', err);
             return this._getLocalBalance();
         }
     }
@@ -83,7 +83,7 @@ class DiamondEngineSupabase {
                 .maybeSingle();
 
             if (error) {
-                console.error('[DiamondEngine] VIP check error:', error);
+                console.warn('[DiamondEngine] VIP check error:', error);
                 // ═══════════════════════════════════════════════════════════
                 // HARDENED: Server-side fallback via /api/vip/check-status
                 // ═══════════════════════════════════════════════════════════
@@ -118,7 +118,7 @@ class DiamondEngineSupabase {
             this._syncVIPCache(isVip);
             return isVip;
         } catch (err) {
-            console.error('[DiamondEngine] VIP check failed:', err);
+            console.warn('[DiamondEngine] VIP check failed:', err);
             return this._getLocalVIP();
         }
     }
@@ -160,7 +160,7 @@ class DiamondEngineSupabase {
                 });
 
             if (error) {
-                console.error('Error deducting diamonds:', error);
+                console.warn('Error deducting diamonds:', error);
                 // Fallback: try direct update
                 return await this._deductDirect(amount, source);
             }
@@ -173,7 +173,7 @@ class DiamondEngineSupabase {
 
             return data || { success: false, error: 'Deduction failed' };
         } catch (err) {
-            console.error('Deduct failed:', err);
+            console.warn('Deduct failed:', err);
             return this._deductLocal(amount);
         }
     }
@@ -199,14 +199,14 @@ class DiamondEngineSupabase {
                 });
 
             if (error) {
-                console.error('Error awarding diamonds:', error);
+                console.warn('Error awarding diamonds:', error);
                 // Fallback: try direct update
                 return await this._awardDirect(amount, source);
             }
 
             // Check if data is valid (RPC might return null)
             if (!data && data !== 0) {
-                console.error('Award RPC returned no data');
+                console.warn('Award RPC returned no data');
                 // Fallback to direct update
                 return await this._awardDirect(amount, source);
             }
@@ -222,7 +222,7 @@ class DiamondEngineSupabase {
 
             return newBalance;
         } catch (err) {
-            console.error('Award failed:', err);
+            console.warn('Award failed:', err);
             return this._awardLocal(amount);
         }
     }
@@ -241,7 +241,7 @@ class DiamondEngineSupabase {
                     ...sessionData
                 });
         } catch (err) {
-            console.error('Session log failed:', err);
+            console.warn('Session log failed:', err);
         }
     }
 
@@ -260,13 +260,13 @@ class DiamondEngineSupabase {
                 .limit(limit);
 
             if (error) {
-                console.error('Error fetching transactions:', error);
+                console.warn('Error fetching transactions:', error);
                 return [];
             }
 
             return data;
         } catch (err) {
-            console.error('Transaction fetch failed:', err);
+            console.warn('Transaction fetch failed:', err);
             return [];
         }
     }

@@ -108,7 +108,7 @@ export default function ClockSetup() {
         try {
             const json = await commanderFetchJSON('/api/commander/clock-presets', {});
             if (json.success) setPresets(json.data || []);
-        } catch (err) { console.error(err); }
+        } catch (err) { console.warn(err); }
         finally { setLoading(false); }
     }, []);
 
@@ -170,7 +170,7 @@ export default function ClockSetup() {
                 fetchPresets();
                 broadcastChange('tournaments');
             }
-        } catch (err) { console.error(err); }
+        } catch (err) { console.warn(err); }
         finally { setSaving(false); }
     };
 
@@ -184,7 +184,7 @@ export default function ClockSetup() {
                 broadcastChange('tournaments');
                 if (editing?.id === presetId) setEditing(null);
             }
-        } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
+        } catch (err) { console.warn(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
     };
 
     if (!staff) {

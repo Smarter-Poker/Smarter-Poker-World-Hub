@@ -113,7 +113,7 @@ function QRScannerModal({ onScan, onClose, title, subtitle }) {
           videoRef.current.play();
         }
       } catch (err) {
-        console.error('Camera error:', err);
+        console.warn('Camera error:', err);
         setError('Camera access denied. Please allow camera access to scan QR codes.');
         return;
       }
@@ -332,7 +332,7 @@ export default function PlayerTableDisplay() {
         setDealer(json.data.dealer || null);
         if (json.data.venue_type) setVenueType(json.data.venue_type);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
   }, [tableNumber, table?.venue_id]);
 
   useEffect(() => {
@@ -368,7 +368,7 @@ export default function PlayerTableDisplay() {
     const requestWakeLock = async () => {
       try {
         if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen');
-      } catch (e) { /* silent */ }
+      } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     };
     requestWakeLock();
     document.addEventListener('visibilitychange', () => {

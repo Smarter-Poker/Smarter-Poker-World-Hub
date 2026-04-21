@@ -75,7 +75,7 @@ export default function MemoryCampaignView() {
             .select('*');
 
         if (chartsError) {
-            console.error('Failed to load charts:', chartsError);
+            console.warn('Failed to load charts:', chartsError);
             setLoading(false);
             return;
         }

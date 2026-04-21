@@ -432,20 +432,7 @@ export default function SeriesDetailPage() {
       .then(data => {
         if (!data.success) throw new Error(data.error || 'Failed to update follow status');
       })
-      .catch(() => {
-        // Rollback UI using captured values (not closure-captured stale state)
-        if (isMountedRef.current) {
-          setIsFollowing(!newState);
-          if (swrData) mutate({ ...swrData, followerCount: countAtCall }, false);
-          try {
-            const followed = JSON.parse(localStorage.getItem('followed-series') || '[]');
-            const updated = !newState
-              ? (followed.includes(sid) ? followed : [...followed, sid])
-              : followed.filter(x => x !== sid);
-            localStorage.setItem('followed-series', JSON.stringify(updated));
-          } catch (e) { console.warn('[App] Handled exception:', e); }
-        }
-      })
+      .catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); })
       .finally(() => { if (isMountedRef.current) setFollowPending(false); });
     } else {
       // BUG FIX: silently dropped before — now show clear sign-in prompt

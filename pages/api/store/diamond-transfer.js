@@ -250,7 +250,7 @@ export default async function handler(req, res) {
             });
 
         if (deductErr) {
-            console.error('Transfer deduct error:', deductErr);
+            console.warn('Transfer deduct error:', deductErr);
             return res.status(500).json({ success: false, error: 'Transfer failed — please try again' });
         }
 
@@ -273,7 +273,7 @@ export default async function handler(req, res) {
                 recipient_id: userId,
                 credit_amount: amount,
             });
-            console.error('Transfer credit error (rolled back):', creditErr);
+            console.warn('Transfer credit error (rolled back):', creditErr);
             return res.status(500).json({ success: false, error: 'Transfer failed — your diamonds have been restored' });
         }
 
@@ -323,7 +323,7 @@ export default async function handler(req, res) {
 
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('[Diamond Transfer Error]', err);
+        console.warn('[Diamond Transfer Error]', err);
         if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

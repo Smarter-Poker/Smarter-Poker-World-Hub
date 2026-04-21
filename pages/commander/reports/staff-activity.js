@@ -28,7 +28,7 @@ export default function StaffActivity() {
       try {
 const json = await commanderFetchJSON('/api/commander/incidents?status=all&limit=50', {});
         if (json.success) setActivities(json.data || []);
-      } catch (err) { console.error(err); }
+      } catch (err) { console.warn(err); }
       finally { setLoading(false); }
     };
     fetchActivity();
@@ -47,7 +47,7 @@ const params = new URLSearchParams();
         setAuditLogs(data.logs);
       }
     } catch (err) {
-      console.error('Audit logs fetch error:', err);
+      console.warn('Audit logs fetch error:', err);
     } finally {
       setAuditLoading(false);
     }

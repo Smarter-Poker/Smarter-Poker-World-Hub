@@ -45,9 +45,7 @@ export default function useVIP() {
     if (!initializing && typeof window !== 'undefined') {
         try {
             localStorage.setItem(VIP_CACHE_KEY, String(contextIsVip));
-        } catch (_) {
-            // localStorage full or blocked — non-critical
-        }
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }
 
     return {

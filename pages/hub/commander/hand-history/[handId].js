@@ -154,7 +154,7 @@ export default function HandDetailPage() {
         setHand(data.data?.hand);
       }
     } catch (err) {
-      console.error('Fetch failed:', err);
+      console.warn('Fetch failed:', err);
       setHand(null);
     } finally {
       setLoading(false);
@@ -179,7 +179,7 @@ export default function HandDetailPage() {
       }
     } catch (err) {
       setLoading(false);
-      console.error('Analysis failed:', err);
+      console.warn('Analysis failed:', err);
       // Demo redirect
       router.push(`/hub/godmode?hand=${handId}`);
     } finally {
@@ -195,9 +195,7 @@ export default function HandDetailPage() {
           text: `Check out this ${hand?.winning_hand || 'hand'} from my session!`,
           url: window.location.href
         });
-      } catch (err) {
-        // User cancelled or error
-      }
+      } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
     }
   }
 

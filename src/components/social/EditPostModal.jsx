@@ -92,7 +92,7 @@ export default function EditPostModal({ post, onClose, onSaved, supabase }) {
             broadcastSync('smarter_poker_social_sync', { action: 'refresh_feed', tabId: BROADCAST_TAB_ID });
             onClose();
         } catch (err) {
-            console.error('Edit post failed:', err);
+            console.warn('Edit post failed:', err);
             setError('Failed to save. Please try again.');
         } finally {
             setSaving(false);

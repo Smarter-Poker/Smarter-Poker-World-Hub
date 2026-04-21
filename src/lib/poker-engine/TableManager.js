@@ -256,7 +256,7 @@ class TableManager {
   emit(event, data) {
     const listeners = this._listeners.get(event) || [];
     for (const cb of listeners) {
-      try { cb(data); } catch (err) { console.error(`TableManager event error (${event}):`, err); }
+      try { cb(data); } catch (err) { console.warn(`TableManager event error (${event}):`, err); }
     }
   }
 
@@ -1165,13 +1165,13 @@ class TableManager {
             // onAutoRebuy is async — set by LobbyManager for ChipBridge integration
             // We fire-and-forget; LobbyManager will call addChips if successful
             Promise.resolve(this.onAutoRebuy(playerId, rebuyAmount, seat.seatIndex)).catch(err => {
-              console.error('[TableManager] Auto-rebuy failed for', playerId, err.message);
+              console.warn('[TableManager] Auto-rebuy failed for', playerId, err.message);
               // If rebuy fails, vacate the player
               this._vacateSeat(seat);
               this.emit('player_left', { playerId, seatIndex: seat.seatIndex, cashout: 0, reason: 'busted_rebuy_failed' });
               this._seatFromWaitlist(seat.seatIndex);
             });
-          }).catch(err => console.error('[TableManager] Horse rebuy check failed', err));
+          }).catch(err => console.warn('[TableManager] Horse rebuy check failed', err));
 
           continue; // Don't vacate yet — waiting for rebuy callback
         }
@@ -1262,7 +1262,7 @@ class TableManager {
         nextVariant: this.variantRotation[(this._mixedGameIndex + 1) % this.variantRotation.length],
       });
 
-      console.log(`[TableManager] Mixed game rotation: ${newVariant} (${this._mixedGameIndex + 1}/${this.variantRotation.length})`);
+      console.debug(`[TableManager] Mixed game rotation: ${newVariant} (${this._mixedGameIndex + 1}/${this.variantRotation.length})`);
     }
   }
 

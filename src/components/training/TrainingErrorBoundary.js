@@ -32,7 +32,7 @@ class TrainingErrorBoundary extends React.Component {
     }
 
     componentDidCatch(error, errorInfo) {
-        console.error(`[TrainingErrorBoundary] ${this.props.pageName || 'Training Page'} crashed:`, error, errorInfo);
+        console.warn(`[TrainingErrorBoundary] ${this.props.pageName || 'Training Page'} crashed:`, error, errorInfo);
     }
 
     handleRetry = () => {

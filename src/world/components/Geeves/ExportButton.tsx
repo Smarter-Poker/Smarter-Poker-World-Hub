@@ -47,17 +47,7 @@ export function ExportButton({ messages }: ExportButtonProps) {
         navigator.clipboard.writeText(markdown).then(() => {
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
-        }).catch(() => {
-            // Fallback for older browsers
-            const textarea = document.createElement('textarea');
-            textarea.value = markdown;
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textarea);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-        });
+        }).catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
     };
 
     if (messages.length === 0) return null;

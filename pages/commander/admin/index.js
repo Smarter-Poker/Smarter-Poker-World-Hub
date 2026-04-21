@@ -48,7 +48,7 @@ function ApiKeysModal({ isOpen, onClose, venueId, onSuccess }) {
         setError(data.error?.message || 'Failed to load API keys');
       }
     } catch (err) {
-      console.error('Load API keys error:', err);
+      console.warn('Load API keys error:', err);
       setError('Failed to load API keys');
     } finally {
       setLoading(false);
@@ -81,7 +81,7 @@ function ApiKeysModal({ isOpen, onClose, venueId, onSuccess }) {
       }
     } catch (err) {
       setLoading(false);
-      console.error('Create API key error:', err);
+      console.warn('Create API key error:', err);
       setError('Failed to create API key');
     } finally {
       setCreating(false);
@@ -104,7 +104,7 @@ function ApiKeysModal({ isOpen, onClose, venueId, onSuccess }) {
         setError(data.error?.message || 'Failed to delete API key');
       }
     } catch (err) {
-      console.error('Delete API key error:', err);
+      console.warn('Delete API key error:', err);
       setError('Failed to delete API key');
     }
   }
@@ -259,7 +259,7 @@ function VenueSettingsModal({ isOpen, onClose, venue, onSave, onSuccess }) {
         onClose();
       }
     } catch (err) {
-      console.error('Save venue settings error:', err);
+      console.warn('Save venue settings error:', err);
       setError('Failed to save venue settings. Please try again.');
     } finally {
       setSaving(false);
@@ -482,7 +482,7 @@ export default function AdminDashboard() {
       }
 
     } catch (err) {
-      console.error('Load error:', err);
+      console.warn('Load error:', err);
     } finally {
       setIsLoading(false);
     }
@@ -505,7 +505,7 @@ export default function AdminDashboard() {
       }
     } catch (err) {
       setIsLoading(false);
-      console.error('Audit logs error:', err);
+      console.warn('Audit logs error:', err);
     }
   };
 
@@ -531,7 +531,7 @@ export default function AdminDashboard() {
         broadcastChange('exports');
       }
     } catch (err) {
-      console.error('Create export error:', err);
+      console.warn('Create export error:', err);
       setError('Failed to create export. Please try again.');
     }
   };

@@ -31,7 +31,7 @@ export default function Wishlist() {
             setWishlist(items);
             setLoading(false);
         } catch (error) {
-            console.error('Error loading wishlist:', error);
+            console.warn('Error loading wishlist:', error);
             setLoading(false);
         }
     };
@@ -41,7 +41,7 @@ export default function Wishlist() {
             await wishlistService.removeFromWishlist(user.id, productId);
             setWishlist(wishlist.filter(item => item.product_id !== productId));
         } catch (error) {
-            console.error('Error removing from wishlist:', error);
+            console.warn('Error removing from wishlist:', error);
         }
     };
 

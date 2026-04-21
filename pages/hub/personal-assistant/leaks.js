@@ -590,7 +590,7 @@ export default function LeakFinderPage() {
         const json = await res.json();
         if (json.success) setCoachAccuracy(json.accuracy);
       }
-    } catch (e) { /* non-fatal */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
   };
 
   // Fetch on mount and whenever a new coach verdict is saved

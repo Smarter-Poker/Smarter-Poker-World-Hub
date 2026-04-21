@@ -38,7 +38,7 @@ export default async function handler(req, res) {
             .limit(1000);
 
       if (error) {
-        console.error('Failed to fetch venues:', error);
+        console.warn('Failed to fetch venues:', error);
         return res.status(500).json({
           success: false,
           error: 'Failed to fetch venues from database'
@@ -74,7 +74,7 @@ export default async function handler(req, res) {
         updated_at: new Date().toISOString()
       });
     } catch (error) {
-      console.error('Venue JSON refresh failed:', error);
+      console.warn('Venue JSON refresh failed:', error);
       return res.status(500).json({
         success: false,
         error: error.message
@@ -83,7 +83,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

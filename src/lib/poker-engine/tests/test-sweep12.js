@@ -24,14 +24,14 @@ let failed = 0;
 const failures = [];
 
 function assert(condition, label) {
-    if (condition) { passed++; console.log(`  ✅ ${label}`); }
-    else { failed++; failures.push(label); console.log(`  ❌ FAIL: ${label}`); }
+    if (condition) { passed++; console.debug(`  ✅ ${label}`); }
+    else { failed++; failures.push(label); console.debug(`  ❌ FAIL: ${label}`); }
 }
 
 (async () => {
-    console.log('\n═══════════════════════════════════════════════════════════════');
-    console.log('  🔬 SWEEP 12: PLO ANTI-EXPLOIT COUNTERMEASURE VERIFICATION');
-    console.log('═══════════════════════════════════════════════════════════════\n');
+    console.debug('\n═══════════════════════════════════════════════════════════════');
+    console.debug('  🔬 SWEEP 12: PLO ANTI-EXPLOIT COUNTERMEASURE VERIFICATION');
+    console.debug('═══════════════════════════════════════════════════════════════\n');
 
     const HORSE = '00000000-0000-0000-0000-000000000028';
     const HUMAN = '99999999-9999-9999-9999-999999999901';
@@ -42,7 +42,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 1: MODULE 8 — COUNTER-EXPLOIT PROFILER (Standard Mode)
     // ═══════════════════════════════════════════════════════════════
-    console.log('--- TEST 1: Module 8 — selectCounterStrategy (clean state) ---');
+    console.debug('--- TEST 1: Module 8 — selectCounterStrategy (clean state) ---');
     const cs1 = Brain.selectCounterStrategy(HORSE, HUMAN, TABLE);
     assert(typeof cs1 === 'object', 'selectCounterStrategy returns object');
     assert(typeof cs1.mode === 'string', `mode is string: "${cs1.mode}"`);
@@ -52,7 +52,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 2: MODULE 3 — SHOWDOWN EXPOSURE TRACKER
     // ═══════════════════════════════════════════════════════════════
-    console.log('\n--- TEST 2: Module 3 — Showdown Exposure Tracker ---');
+    console.debug('\n--- TEST 2: Module 3 — Showdown Exposure Tracker ---');
 
     // Simulate showdowns in processHandResult
     for (let i = 0; i < 4; i++) {
@@ -75,7 +75,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 3: MODULE 8 — COUNTER-EXPLOIT PROFILER (Stealth Mode Triggered)
     // ═══════════════════════════════════════════════════════════════
-    console.log('\n--- TEST 3: Module 8 — Counter-Exploit Profiler (stealth trigger) ---');
+    console.debug('\n--- TEST 3: Module 8 — Counter-Exploit Profiler (stealth trigger) ---');
 
     // Simulate heavy showdown exposure (8+ showdowns)
     const expMapHorse = Brain.showdownExposureMap;
@@ -92,7 +92,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 4: MODULE 4 — PATTERN EXPLOITATION DETECTOR
     // ═══════════════════════════════════════════════════════════════
-    console.log('\n--- TEST 4: Module 4 — Pattern Exploitation Detector ---');
+    console.debug('\n--- TEST 4: Module 4 — Pattern Exploitation Detector ---');
 
     // Simulate a human exploiting via c-bets for 6BB
     const pMap = Brain.patternProfitMap;
@@ -106,7 +106,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 5: MODULE 7 — BOT/SOLVER OPPONENT DETECTOR
     // ═══════════════════════════════════════════════════════════════
-    console.log('\n--- TEST 5: Module 7 — Bot/Solver Opponent Detector ---');
+    console.debug('\n--- TEST 5: Module 7 — Bot/Solver Opponent Detector ---');
 
     // Inject a high bot score manually
     const bMap = Brain.suspectBotMap;
@@ -124,7 +124,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 6: MODULE 7 — BOT SCORE CALCULATION
     // ═══════════════════════════════════════════════════════════════
-    console.log('\n--- TEST 6: Module 7 — Bot Score Math ---');
+    console.debug('\n--- TEST 6: Module 7 — Bot Score Math ---');
 
     const testBot = { perfectFolds: 10, gtoSizes: 15, humanErrors: 5, handsObserved: 20, suspectScore: 0 };
     const obsCount = Math.max(1, testBot.handsObserved);
@@ -136,7 +136,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 7: MODULE 6 — ENHANCED CHAOS (Cooldown Suppression)
     // ═══════════════════════════════════════════════════════════════
-    console.log('\n--- TEST 7: Module 6 — Chaos Cooldown State ---');
+    console.debug('\n--- TEST 7: Module 6 — Chaos Cooldown State ---');
 
     const cMap = Brain.chaosSuppressionMap;
     assert(typeof cMap === 'object' || cMap instanceof Map, 'chaosSuppressionMap is exported Map');
@@ -166,13 +166,13 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 8: MODULE 1 — FREQUENCY OBFUSCATOR (Map Exists)
     // ═══════════════════════════════════════════════════════════════
-    console.log('\n--- TEST 8: Module 1 — Frequency Obfuscator Map ---');
+    console.debug('\n--- TEST 8: Module 1 — Frequency Obfuscator Map ---');
     assert(Brain.frequencyObfuscatorMap instanceof Map, 'frequencyObfuscatorMap is a Map');
 
     // ═══════════════════════════════════════════════════════════════
     // TEST 9: MODULE 2 — BET SIZE NOISE INJECTOR (Jitter Bounds)
     // ═══════════════════════════════════════════════════════════════
-    console.log('\n--- TEST 9: Module 2 — Bet Size Noise Injector (Statistical) ---');
+    console.debug('\n--- TEST 9: Module 2 — Bet Size Noise Injector (Statistical) ---');
 
     let betAmounts = [];
     for (let i = 0; i < 20; i++) {
@@ -210,7 +210,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 10: MODULE 5 — STACK SANDWICH DETECTOR
     // ═══════════════════════════════════════════════════════════════
-    console.log('\n--- TEST 10: Module 5 — Stack Sandwich Detector ---');
+    console.debug('\n--- TEST 10: Module 5 — Stack Sandwich Detector ---');
 
     // Simulate 3-player situation where horse is in middle (sandwiched)
     let sandwichResult;
@@ -239,7 +239,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 11: ALL NEW EXPORTS PRESENT
     // ═══════════════════════════════════════════════════════════════
-    console.log('\n--- TEST 11: Phase 7 Exports ---');
+    console.debug('\n--- TEST 11: Phase 7 Exports ---');
 
     assert(typeof Brain.selectCounterStrategy === 'function', 'selectCounterStrategy exported');
     assert(Brain.frequencyObfuscatorMap instanceof Map, 'frequencyObfuscatorMap exported');
@@ -251,7 +251,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 12: REGRESSION — ALL SWEEP 11 KEY EXPORTS
     // ═══════════════════════════════════════════════════════════════
-    console.log('\n--- TEST 12: Regression — All Sweep 11 Key Exports ---');
+    console.debug('\n--- TEST 12: Regression — All Sweep 11 Key Exports ---');
 
     const keyExports = [
         'getDecision', 'loadHorseIds', 'processHandResult', 'evaluatePostflopHand',
@@ -266,7 +266,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 13: REGRESSION — GARBAGE FOLDING
     // ═══════════════════════════════════════════════════════════════
-    console.log('\n--- TEST 13: Regression — Garbage Folding ---');
+    console.debug('\n--- TEST 13: Regression — Garbage Folding ---');
 
     let folds = 0;
     for (let i = 0; i < 10; i++) {
@@ -291,7 +291,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 14: REGRESSION — STRONG HAND BETTING
     // ═══════════════════════════════════════════════════════════════
-    console.log('\n--- TEST 14: Regression — Strong Hand Betting ---');
+    console.debug('\n--- TEST 14: Regression — Strong Hand Betting ---');
 
     let bets = 0;
     for (let i = 0; i < 10; i++) {
@@ -316,7 +316,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 15: REGRESSION — PLO DECISION ROUTING
     // ═══════════════════════════════════════════════════════════════
-    console.log('\n--- TEST 15: Regression — PLO Routing ---');
+    console.debug('\n--- TEST 15: Regression — PLO Routing ---');
 
     let ploActions = 0;
     for (let i = 0; i < 5; i++) {
@@ -341,17 +341,17 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // RESULTS
     // ═══════════════════════════════════════════════════════════════
-    console.log('\n═══════════════════════════════════════════════════════════════');
-    console.log(`  RESULTS: ${passed} passed, ${failed} failed`);
-    console.log('═══════════════════════════════════════════════════════════════');
+    console.debug('\n═══════════════════════════════════════════════════════════════');
+    console.debug(`  RESULTS: ${passed} passed, ${failed} failed`);
+    console.debug('═══════════════════════════════════════════════════════════════');
 
     if (failed > 0) {
-        console.log('\n❌ FAILURES:');
-        failures.forEach(f => console.log(`  - ${f}`));
+        console.debug('\n❌ FAILURES:');
+        failures.forEach(f => console.debug(`  - ${f}`));
     } else {
-        console.log('\n✅ ALL 8 MODULES VERIFIED — SWEEP 12 CLEAN');
+        console.debug('\n✅ ALL 8 MODULES VERIFIED — SWEEP 12 CLEAN');
     }
 
-    console.log('');
+    console.debug('');
     process.exit(failed > 0 ? 1 : 0);
 })();

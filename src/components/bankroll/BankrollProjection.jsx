@@ -42,7 +42,7 @@ export default function BankrollProjection({ userId, currentBankroll = 0, onClos
             }
         } catch (err) {
             setError('Failed to run projection');
-            console.error('[BankrollProjection]', err);
+            console.warn('[BankrollProjection]', err);
         }
 
         setIsLoading(false);

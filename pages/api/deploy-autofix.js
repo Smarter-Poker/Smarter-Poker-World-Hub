@@ -285,13 +285,13 @@ export default async function handler(req, res) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     // Handle AbortController timeout specifically
     if (err.name === 'AbortError') {
-      console.error('[deploy-autofix] Anthropic API call timed out (45s limit)');
+      console.warn('[deploy-autofix] Anthropic API call timed out (45s limit)');
       return res.status(200).json({
         action: 'timeout',
         reason: 'Claude API call exceeded 45s timeout — Vercel function would have timed out',
       });
     }
-    console.error('[deploy-autofix] Error:', err);
+    console.warn('[deploy-autofix] Error:', err);
     return res.status(500).json({
       action: 'error',
       error: 'Internal server error',
@@ -463,7 +463,7 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
         } else {
           const errBody = await claudeRes.text();
           apiError = `Anthropic API returned ${claudeRes.status}: ${errBody}`;
-          console.error(`[deploy-autofix] ${apiError.substring(0, 300)}`);
+          console.warn(`[deploy-autofix] ${apiError.substring(0, 300)}`);
 
           // ── Detect Anthropic billing/credit exhaustion ──
           // Anthropic returns 402 (payment), 429 with credit-related messages,
@@ -475,19 +475,19 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
             /credit|balance|billing|payment|quota|insufficient|prepaid|funds/i.test(errBody);
 
           if (isBillingError) {
-            console.error('[deploy-autofix] 🚨 ANTHROPIC BILLING ALERT: API credits exhausted or payment required');
+            console.warn('[deploy-autofix] 🚨 ANTHROPIC BILLING ALERT: API credits exhausted or payment required');
             const adminPhone = process.env.MY_PHONE_NUMBER || process.env.ADMIN_PHONE;
             if (adminPhone) {
               sendSMS(
                 adminPhone,
                 `🚨 SMARTER.POKER ALERT 🚨\n\nAnthropic (Claude) API credits are exhausted.\n\nStatus: ${claudeRes.status}\nError: ${errBody.substring(0, 120)}\n\nAdd credits at: console.anthropic.com\n\nAutofix has switched to Grok as fallback.`
-              ).catch(e => console.error('[deploy-autofix] SMS billing alert failed:', e.message));
+              ).catch(e => console.warn('[deploy-autofix] SMS billing alert failed:', e.message));
             }
           }
         }
       } catch (e) {
         apiError = `Anthropic request failed: ${e.message}`;
-        console.error(`[deploy-autofix] ${apiError}`);
+        console.warn(`[deploy-autofix] ${apiError}`);
       }
     }
 
@@ -518,11 +518,11 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
         } else {
           const errBody = await grokRes.text();
           apiError += ` | Grok error: ${grokRes.status}: ${errBody.substring(0, 200)}`;
-          console.error(`[deploy-autofix] Grok API error: ${grokRes.status}`);
+          console.warn(`[deploy-autofix] Grok API error: ${grokRes.status}`);
         }
       } catch (e) {
         apiError += ` | Grok request failed: ${e.message}`;
-        console.error(`[deploy-autofix] Grok request failed: ${e.message}`);
+        console.warn(`[deploy-autofix] Grok request failed: ${e.message}`);
       }
       clearTimeout(grokTimeout);
     }
@@ -764,7 +764,7 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
 
     if (!pushRes.ok) {
       const pushErr = await pushRes.text();
-      console.error(`[deploy-autofix] GitHub push failed: ${pushRes.status} ${pushErr}`);
+      console.warn(`[deploy-autofix] GitHub push failed: ${pushRes.status} ${pushErr}`);
       return {
         action: 'push_failed',
         reason: `GitHub Contents API returned ${pushRes.status}`,
@@ -790,13 +790,13 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
 
   } catch (err) {
     if (err.name === 'AbortError') {
-      console.error('[deploy-autofix] Anthropic API call timed out (45s limit)');
+      console.warn('[deploy-autofix] Anthropic API call timed out (45s limit)');
       return {
         action: 'timeout',
         reason: 'Claude API call exceeded 45s timeout',
       };
     }
-    console.error(`[deploy-autofix] Error fixing ${errorFile}:`, err);
+    console.warn(`[deploy-autofix] Error fixing ${errorFile}:`, err);
     return {
       action: 'error',
       reason: err.message || 'Unknown error',

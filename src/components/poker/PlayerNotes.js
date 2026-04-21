@@ -71,7 +71,7 @@ export default function PlayerNotes({ targetPlayerId, targetPlayerName }) {
                 }
             }
         } catch (e) {
-            console.error('[PlayerNotes] Failed to fetch:', e);
+            console.warn('[PlayerNotes] Failed to fetch:', e);
         } finally {
             setLoading(false);
         }
@@ -115,7 +115,7 @@ export default function PlayerNotes({ targetPlayerId, targetPlayerName }) {
                 setIsEditing(false);
             }
         } catch (e) {
-            console.error('[PlayerNotes] Failed to save:', e);
+            console.warn('[PlayerNotes] Failed to save:', e);
         } finally {
             setSaving(false);
         }

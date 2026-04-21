@@ -89,13 +89,13 @@ export default async function handler(req, res) {
           // No access found
           return res.status(200).json({ hasAccess: false });
       } catch (err) {
-          console.error('[check-access] Error:', err);
+          console.warn('[check-access] Error:', err);
           return res.status(200).json({ hasAccess: false }); // Fail open — don't block the Hub
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

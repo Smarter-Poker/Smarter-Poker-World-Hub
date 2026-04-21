@@ -26,7 +26,7 @@ export async function getVideoLibraryPreferences(userId) {
 
         return data?.video_library_preferences || { autoplay: true, hdQuality: true, captions: false };
     } catch (error) {
-        console.error('Error fetching video library preferences:', error);
+        console.warn('Error fetching video library preferences:', error);
         return { autoplay: true, hdQuality: true, captions: false };
     }
 }
@@ -53,7 +53,7 @@ export async function updateVideoLibraryPreferences(userId, preferences) {
 
         return data;
     } catch (error) {
-        console.error('Error updating video library preferences:', error);
+        console.warn('Error updating video library preferences:', error);
         throw error;
     }
 }

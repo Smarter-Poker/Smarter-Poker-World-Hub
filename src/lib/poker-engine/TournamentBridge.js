@@ -56,7 +56,7 @@ class TournamentBridge {
         `tournament:${this.tournament.tournamentId}`,
         { config: { broadcast: { ack: false } } }
       );
-      this._tournamentChannel.on('system', {}, (status) => { if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') { console.error('[TournamentBridge] Channel error:', status); } });
+      this._tournamentChannel.on('system', {}, (status) => { if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') { console.warn('[TournamentBridge] Channel error:', status); } });
       await this._tournamentChannel.subscribe();
     }
 
@@ -65,7 +65,7 @@ class TournamentBridge {
     // ── TABLE LIFECYCLE ──────────────────────────────────────
     t.on('table_created', ({ tableId, tableNumber }) => {
       this._registerTable(tableId).catch(err =>
-        console.error(`[TournamentBridge] _registerTable failed for ${tableId}:`, err.message)
+        console.warn(`[TournamentBridge] _registerTable failed for ${tableId}:`, err.message)
       );
     });
 
@@ -117,12 +117,12 @@ class TournamentBridge {
                   notes: `Tournament payout: ${payout.place}${payout.place === 1 ? 'st' : payout.place === 2 ? 'nd' : payout.place === 3 ? 'rd' : 'th'} place — ${t.name || t.tournamentId}`,
                 });
 
-                console.log(`[TournamentBridge] Credited ${payout.amount} chips to ${payout.playerId} (${payout.place} place)`);
+                console.debug(`[TournamentBridge] Credited ${payout.amount} chips to ${payout.playerId} (${payout.place} place)`);
               } else {
-                console.error(`[TournamentBridge] Payout credit failed for ${payout.playerId}:`, creditErr.message);
+                console.warn(`[TournamentBridge] Payout credit failed for ${payout.playerId}:`, creditErr.message);
               }
             } catch (err) {
-              console.error(`[TournamentBridge] Payout error for ${payout.playerId}:`, err.message);
+              console.warn(`[TournamentBridge] Payout error for ${payout.playerId}:`, err.message);
             }
           }
         }
@@ -144,12 +144,12 @@ class TournamentBridge {
             });
 
           if (releaseErr) {
-            console.error('[TournamentBridge] held_chips release RPC failed:', releaseErr.message);
+            console.warn('[TournamentBridge] held_chips release RPC failed:', releaseErr.message);
           } else {
-            console.log(`[TournamentBridge] Released held_chips for ${releaseResult?.released_count || 0} registrants`);
+            console.debug(`[TournamentBridge] Released held_chips for ${releaseResult?.released_count || 0} registrants`);
           }
         } catch (err) {
-          console.error('[TournamentBridge] held_chips cleanup error:', err.message);
+          console.warn('[TournamentBridge] held_chips cleanup error:', err.message);
         }
       }
 
@@ -277,7 +277,7 @@ class TournamentBridge {
               this.supabase.removeChannel(bountyChannel);
             }, 1000);
           } catch (e) {
-            console.error('[TournamentBridge] Chat/Bounty broadcast failed for table', tableId, e.message);
+            console.warn('[TournamentBridge] Chat/Bounty broadcast failed for table', tableId, e.message);
           }
         }
       }
@@ -340,7 +340,7 @@ class TournamentBridge {
               );
             }
           } catch (pushErr) {
-            console.error('[TournamentBridge] Push notification failed:', pushErr.message);
+            console.warn('[TournamentBridge] Push notification failed:', pushErr.message);
           }
 
           // Broadcast a trigger to the club channel:
@@ -352,7 +352,7 @@ class TournamentBridge {
           });
           this.supabase.removeChannel(clubChannel);
         } catch (err) {
-          console.error('[TournamentBridge] Jackpot announcement failed:', err.message);
+          console.warn('[TournamentBridge] Jackpot announcement failed:', err.message);
         }
       }
     });
@@ -542,7 +542,7 @@ class TournamentBridge {
               })).sort((a, b) => b.totalBounties - a.totalBounties),
           };
         } catch (bErr) {
-          console.error('[TournamentBridge] Bounty results capture error:', bErr.message);
+          console.warn('[TournamentBridge] Bounty results capture error:', bErr.message);
         }
       }
 
@@ -579,7 +579,7 @@ class TournamentBridge {
         .update(updatePayload)
         .eq('id', t.tournamentId);
     } catch (err) {
-      console.error('[TournamentBridge] Persist state error:', err.message);
+      console.warn('[TournamentBridge] Persist state error:', err.message);
     }
   }
 
@@ -598,7 +598,7 @@ class TournamentBridge {
         })
         .eq('id', this.tournament.tournamentId);
     } catch (err) {
-      console.error('[TournamentBridge] Level change persist error:', err.message);
+      console.warn('[TournamentBridge] Level change persist error:', err.message);
     }
   }
 
@@ -617,7 +617,7 @@ class TournamentBridge {
           registered_at: new Date().toISOString(),
         }, { onConflict: 'tournament_id,player_id' });
     } catch (err) {
-      console.error('[TournamentBridge] Registration persist error:', err.message);
+      console.warn('[TournamentBridge] Registration persist error:', err.message);
     }
   }
 
@@ -649,7 +649,7 @@ class TournamentBridge {
         .eq('user_id', data.playerId);
 
     } catch (err) {
-      console.error('[TournamentBridge] Elimination persist error:', err.message);
+      console.warn('[TournamentBridge] Elimination persist error:', err.message);
     }
   }
 
@@ -665,7 +665,7 @@ class TournamentBridge {
         .eq('tournament_id', this.tournament.tournamentId)
         .eq('player_id', data.playerId);
     } catch (err) {
-      console.error('[TournamentBridge] Payout persist error:', err.message);
+      console.warn('[TournamentBridge] Payout persist error:', err.message);
     }
   }
 
@@ -695,7 +695,7 @@ class TournamentBridge {
         .eq('user_id', data.playerId);
 
     } catch (err) {
-      console.error('[TournamentBridge] Rebuy persist error:', err.message);
+      console.warn('[TournamentBridge] Rebuy persist error:', err.message);
     }
   }
 
@@ -715,7 +715,7 @@ class TournamentBridge {
 
       // Mirror to UI Table (No status change, just ensuring hooks match if needed)
     } catch (err) {
-      console.error('[TournamentBridge] Add-on persist error:', err.message);
+      console.warn('[TournamentBridge] Add-on persist error:', err.message);
     }
   }
 
@@ -770,7 +770,7 @@ class TournamentBridge {
         });
       }
     } catch (err) {
-      console.error('[TournamentBridge] Bounty award persist error:', err.message);
+      console.warn('[TournamentBridge] Bounty award persist error:', err.message);
     }
   }
 
@@ -856,9 +856,9 @@ class TournamentBridge {
         p_action_type: `tournament_${actionType}`,
         p_amount: amount || 0,
         p_details: details
-      }).catch(err => console.error('[TournamentBridge.AuditLog] RPC error:', err.message));
+      }).catch(err => console.warn('[TournamentBridge.AuditLog] RPC error:', err.message));
     } catch (e) {
-      console.error('[TournamentBridge.AuditLog] Sync Error:', e.message);
+      console.warn('[TournamentBridge.AuditLog] Sync Error:', e.message);
     }
   }
 

@@ -18,7 +18,7 @@ async function fireConfetti(opts) {
     try {
         if (!_confetti) { const m = await import('canvas-confetti'); _confetti = m.default || m; }
         _confetti(opts);
-    } catch (e) { /* confetti is cosmetic — swallow import/execution errors */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 }
 
 export default function LevelUpOverlay({

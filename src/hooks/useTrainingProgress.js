@@ -103,7 +103,7 @@ export default function useTrainingProgress() {
         loadProgress();
 
         const handleReload = () => {
-            console.log('[useTrainingProgress] Caught session-saved bus event, re-hydrating...');
+            console.debug('[useTrainingProgress] Caught session-saved bus event, re-hydrating...');
             loadProgress();
         };
 

@@ -117,7 +117,7 @@ export default async function handler(req, res) {
                   });
 
                   if (diamondErr) {
-                      console.error('[redeem-promo] Diamond credit RPC failed:', diamondErr.message);
+                      console.warn('[redeem-promo] Diamond credit RPC failed:', diamondErr.message);
                       // Fallback to add_diamonds_to_balance RPC with different params
                       const { error: fallbackErr } = await getSupabase().rpc('add_diamonds_to_balance', {
                           p_user_id: userId,
@@ -127,7 +127,7 @@ export default async function handler(req, res) {
                           p_reference_id: `promo_${promo.id}_${userId}`,
                       });
                       if (fallbackErr) {
-                          console.error('[redeem-promo] Fallback diamond credit also failed:', fallbackErr.message);
+                          console.warn('[redeem-promo] Fallback diamond credit also failed:', fallbackErr.message);
                       }
                   }
 
@@ -191,13 +191,13 @@ export default async function handler(req, res) {
               value: promo.reward_value,
           });
       } catch (err) {
-          console.error('Redeem promo code error:', err);
+          console.warn('Redeem promo code error:', err);
           return res.status(500).json({ success: false, error: 'Server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

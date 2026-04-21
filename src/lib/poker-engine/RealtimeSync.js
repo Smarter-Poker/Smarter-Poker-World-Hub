@@ -97,7 +97,7 @@ class RealtimeSync {
   async initialize() {
     // Skip channel creation if no Supabase client (memory-only mode)
     if (!this.supabase) {
-      console.log(`[RealtimeSync] No Supabase client — running without realtime for table ${this.tableId}`);
+      console.debug(`[RealtimeSync] No Supabase client — running without realtime for table ${this.tableId}`);
       this._wireTableEvents();
       this._wireTimerEvents();
       return;
@@ -119,7 +119,7 @@ class RealtimeSync {
       .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
         this._handlePresenceLeave(leftPresences);
       })
-      .on('system', {}, (status) => { if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') { console.error('[RealtimeSync] Channel error:', status); } });
+      .on('system', {}, (status) => { if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') { console.warn('[RealtimeSync] Channel error:', status); } });
 
     // Subscribe to channel
     await this.channel.subscribe();
@@ -206,7 +206,7 @@ class RealtimeSync {
           .delete()
           .eq('table_id', this.tableId)
           .then(({ error }) => {
-            if (error) console.error(`[RealtimeSync] hole cards cleanup failed:`, error.message);
+            if (error) console.warn(`[RealtimeSync] hole cards cleanup failed:`, error.message);
           })
           .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       }
@@ -246,9 +246,9 @@ class RealtimeSync {
             .from('table_hole_cards')
             .insert(rows)
             .then(({ error }) => {
-              if (error) console.error(`[RealtimeSync] table_hole_cards insert failed:`, error.message);
+              if (error) console.warn(`[RealtimeSync] table_hole_cards insert failed:`, error.message);
             })
-            .catch(err => console.error(`[RealtimeSync] table_hole_cards exception:`, err.message));
+            .catch(err => console.warn(`[RealtimeSync] table_hole_cards exception:`, err.message));
         }
       }
     });

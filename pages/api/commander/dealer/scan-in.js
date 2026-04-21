@@ -152,7 +152,7 @@ export default async function handler(req, res) {
                       .maybeSingle();
 
                   if (createErr) {
-                      console.error('Failed to create dealer record:', createErr.message);
+                      console.warn('Failed to create dealer record:', createErr.message);
                       // Try without employee_id
                       const { data: nd2 } = await getSupabase()
                           .from('commander_dealers')
@@ -234,13 +234,13 @@ export default async function handler(req, res) {
               }
           });
       } catch (err) {
-          console.error('Dealer scan-in error:', err);
+          console.warn('Dealer scan-in error:', err);
           return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

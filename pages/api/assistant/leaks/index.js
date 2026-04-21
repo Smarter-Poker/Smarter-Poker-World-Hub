@@ -266,7 +266,7 @@ export default async function handler(req, res) {
         });
 
       } catch (error) {
-        console.error('Fetch leaks error:', error);
+        console.warn('Fetch leaks error:', error);
         return res.status(200).json({
           success: true,
           leaks: getDemoLeaks(userId),
@@ -299,7 +299,7 @@ export default async function handler(req, res) {
         });
 
       } catch (error) {
-        console.error('Save leak error:', error);
+        console.warn('Save leak error:', error);
         return res.status(500).json({
           success: false,
           error: error.message
@@ -350,7 +350,7 @@ export default async function handler(req, res) {
         });
 
       } catch (error) {
-        console.error('Update leak error:', error);
+        console.warn('Update leak error:', error);
         return res.status(500).json({
           success: false,
           error: error.message
@@ -362,7 +362,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

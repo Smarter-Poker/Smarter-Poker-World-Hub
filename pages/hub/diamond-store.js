@@ -230,7 +230,7 @@ export default function DiamondStorePage() {
             window.location.href = data.data.url;
 
         } catch (error) {
-            console.error('Checkout error:', error);
+            console.warn('Checkout error:', error);
             showStoreToast('error', error.message || 'Failed to start checkout. Please try again.');
             setIsProcessing(false);
         }
@@ -344,7 +344,7 @@ export default function DiamondStorePage() {
             if (data.role) setClubShopRole(data.role);
             setClubShopLoaded(true);
         } catch (err) {
-            console.error('[Club Shop]', err);
+            console.warn('[Club Shop]', err);
         } finally {
             clubShopLoadingRef.current = false;
             setClubShopLoading(false);
@@ -411,7 +411,7 @@ export default function DiamondStorePage() {
             setClubShopAdminItems(itemsWithCounts);
             setClubShopAdminLoaded(true);
         } catch (err) {
-            console.error('[Club Shop Admin]', err);
+            console.warn('[Club Shop Admin]', err);
         }
     }, [clubShopClubId]);
 
@@ -448,7 +448,7 @@ export default function DiamondStorePage() {
                 loadClubShop(true);
             })
             .subscribe((status) => {
-                if (status === 'CHANNEL_ERROR') console.error('[Club Shop] Realtime channel error');
+                if (status === 'CHANNEL_ERROR') console.warn('[Club Shop] Realtime channel error');
             });
         return () => { supabase.removeChannel(channel); };
     }, [clubShopClubId, loadClubShop, clubShopAdminLoaded, loadClubShopAdmin]);
@@ -534,7 +534,7 @@ export default function DiamondStorePage() {
             broadcastSync('smarter_poker_chips_sync', 'refresh');
 
         } catch (error) {
-            console.error('Diamond payment error:', error);
+            console.warn('Diamond payment error:', error);
             showStoreToast('error', error.message || 'Failed to complete diamond payment. Please try again.');
         } finally {
             setIsProcessing(false);

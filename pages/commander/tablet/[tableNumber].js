@@ -125,7 +125,7 @@ export default function TabletDisplay() {
                 setError(json.error || 'Failed to load table data');
             }
         } catch (err) {
-            console.error('Tablet fetch error:', err);
+            console.warn('Tablet fetch error:', err);
             setError('Connection lost — retrying...');
         }
         setLoading(false);

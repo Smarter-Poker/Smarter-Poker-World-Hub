@@ -145,7 +145,7 @@ class GameStateMachine {
       try {
         cb(data);
       } catch (err) {
-        console.error(`Event handler error (${event}):`, err);
+        console.warn(`Event handler error (${event}):`, err);
       }
     }
   }
@@ -439,10 +439,7 @@ class GameStateMachine {
           bestScore = result.score;
           bestDiscardIdx = i;
         }
-      } catch (e) {
-        // If evaluation fails, discard first card
-        bestDiscardIdx = 0;
-      }
+      } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     }
 
     player.holeCards.splice(bestDiscardIdx, 1);
@@ -964,7 +961,7 @@ class GameStateMachine {
     // Timeout: 15 seconds total. If not all responded, treat as decline.
     this._runItOffer.timeoutHandle = setTimeout(() => {
       if (!this._runItOffer || this._runItOffer.resolved) return;
-      console.log('[RunIt] Offer timed out — running single board');
+      console.debug('[RunIt] Offer timed out — running single board');
       this._resolveRunItOffer();
     }, 15000);
   }
@@ -1002,7 +999,7 @@ class GameStateMachine {
 
       if (choice === 'once') {
         // Proposer chose single board — done immediately, no need to ask others
-        console.log('[RunIt] Proposer chose once — single board');
+        console.debug('[RunIt] Proposer chose once — single board');
         this.emit('run_it_response', { playerId: pid, role: 'proposer', choice });
         offer.resolved = true;
         if (offer.timeoutHandle) { clearTimeout(offer.timeoutHandle); offer.timeoutHandle = null; }
@@ -1037,7 +1034,7 @@ class GameStateMachine {
 
     // Instant decline — any single decline kills the offer
     if (choice === 'decline') {
-      console.log(`[RunIt] Player ${pid} declined — single board`);
+      console.debug(`[RunIt] Player ${pid} declined — single board`);
       offer.resolved = true;
       if (offer.timeoutHandle) { clearTimeout(offer.timeoutHandle); offer.timeoutHandle = null; }
       this.emit('run_it_declined', { reason: 'responder_declined', declinedBy: pid });
@@ -1090,7 +1087,7 @@ class GameStateMachine {
 
     // If proposer never chose, or chose 'once', or any responder didn't respond → single board
     if (!proposal || proposal === 'once') {
-      console.log('[RunIt] No proposal or chose once — single board');
+      console.debug('[RunIt] No proposal or chose once — single board');
       this.emit('run_it_declined', { reason: 'no_proposal' });
       this._runItOffer = null;
       this._singleBoardRunout(fromStreet);
@@ -1103,7 +1100,7 @@ class GameStateMachine {
     if (!allAccepted) {
       // At least one missing or declined
       const decliners = responderIds.filter(pid => responses[pid] !== 'accept');
-      console.log(`[RunIt] Not all agreed (${decliners.length} declined/timeout) — single board`);
+      console.debug(`[RunIt] Not all agreed (${decliners.length} declined/timeout) — single board`);
       this.emit('run_it_declined', { reason: 'not_all_accepted', declinedBy: decliners });
       this._runItOffer = null;
       this._singleBoardRunout(fromStreet);
@@ -1112,7 +1109,7 @@ class GameStateMachine {
 
     // Everyone agreed! Run the boards
     const numBoards = proposal === 'thrice' ? 3 : 2;
-    console.log(`[RunIt] All ${activePlayers.length} players agreed → Run It ${numBoards === 2 ? 'Twice' : 'Three Times'}`);
+    console.debug(`[RunIt] All ${activePlayers.length} players agreed → Run It ${numBoards === 2 ? 'Twice' : 'Three Times'}`);
     this.emit('run_it_agreed', { numBoards, proposerId, proposal });
     this._runItOffer = null;
 
@@ -1210,7 +1207,7 @@ class GameStateMachine {
         iters
       );
     } catch (err) {
-      console.error('[Equity] Calculation error:', err.message);
+      console.warn('[Equity] Calculation error:', err.message);
       return null;
     }
   }
@@ -1412,7 +1409,7 @@ class GameStateMachine {
     // Also emit generic event for UI
     this.emit('run_it_multiple', runoutData);
 
-    console.log(`🃏 Run It ${numBoards === 2 ? 'Twice' : 'Three Times'}: ${numBoards} boards dealt`);
+    console.debug(`🃏 Run It ${numBoards === 2 ? 'Twice' : 'Three Times'}: ${numBoards} boards dealt`);
 
     // Finish hand normally
     this._finishHand();
@@ -1555,7 +1552,7 @@ class GameStateMachine {
       houseRevenue: premium,
     });
 
-    console.log(`🛡️ Insurance purchased: ${clampedAmount} coverage for ${premium} premium`);
+    console.debug(`🛡️ Insurance purchased: ${clampedAmount} coverage for ${premium} premium`);
   }
 
   /**
@@ -1597,7 +1594,7 @@ class GameStateMachine {
         reason: 'Leader won — no payout',
       });
 
-      console.log(`🛡️ Insurance expired: ${ins.buyerId} loses ${ins.premium} premium`);
+      console.debug(`🛡️ Insurance expired: ${ins.buyerId} loses ${ins.premium} premium`);
       return { buyerId: ins.buyerId, payout: 0, premiumLost: ins.premium };
     }
   }

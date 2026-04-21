@@ -14,7 +14,7 @@ export const SoundEngine = {
         if (!this._ctx && typeof window !== 'undefined') {
             try {
                 this._ctx = new (window.AudioContext || window.webkitAudioContext)();
-            } catch (_) { /* audio unavailable */ }
+            } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         }
         if (this._ctx && this._ctx.state === 'suspended') {
             this._ctx.resume().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
@@ -131,9 +131,7 @@ export const SoundEngine = {
                 // Fallback: basic beep for unknown sounds
                 this._note(ctx, 440, 'sine', ctx.currentTime, 0.1, 0.08, null);
             }
-        } catch (e) {
-            // Silently fail if audio context unavailable
-        }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     },
 
     toggle() {

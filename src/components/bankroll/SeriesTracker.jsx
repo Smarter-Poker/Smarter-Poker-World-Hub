@@ -87,7 +87,7 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
                 setSeriesEntries([]);
             }
         } catch (err) {
-            console.error('Error loading series data:', err);
+            console.warn('Error loading series data:', err);
         } finally {
             setIsLoading(false);
         }

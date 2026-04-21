@@ -64,7 +64,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -169,7 +169,7 @@ async function getClockState(req, res, tournamentId) {
       }
     });
   } catch (error) {
-    console.error('Get clock state error:', error);
+    console.warn('Get clock state error:', error);
     return res.status(500).json({
       success: false,
       error: { code: 'SERVER_ERROR', message: 'Failed to get clock state' }
@@ -230,7 +230,7 @@ async function handleClockAction(req, res, tournamentId, staff) {
 
         // --- Push Notification: Tournament Starting ---
         fireTournamentStartNotification(tournamentId, tournament.name).catch(err =>
-          console.error('[clock.js] Start notification failed:', err.message)
+          console.warn('[clock.js] Start notification failed:', err.message)
         );
 
         break;
@@ -433,7 +433,7 @@ async function handleClockAction(req, res, tournamentId, staff) {
       .eq('id', tournamentId);
 
     if (updateError) {
-      console.error('[clock.js] Update error:', JSON.stringify(updateError, null, 2));
+      console.warn('[clock.js] Update error:', JSON.stringify(updateError, null, 2));
       return res.status(500).json({
         success: false,
         error: { code: 'DB_ERROR', message: updateError.message }
@@ -518,7 +518,7 @@ async function handleClockAction(req, res, tournamentId, staff) {
     });
   } catch (error) {
       try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[clock.js] Clock action exception:', error.message, error.stack);
+    console.warn('[clock.js] Clock action exception:', error.message, error.stack);
     return res.status(500).json({
       success: false,
       error: { code: 'SERVER_ERROR', message: 'Internal server error' }

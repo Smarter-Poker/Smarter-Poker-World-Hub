@@ -35,7 +35,7 @@ export default function AvatarGallery({ onSelect }) {
             const customs = await getCustomAvatarGallery(user.id);
             setCustomAvatars(customs || []);
           } catch (err) {
-            console.error('Error loading custom avatars:', err);
+            console.warn('Error loading custom avatars:', err);
             setCustomAvatars([]);
           }
         }
@@ -43,7 +43,7 @@ export default function AvatarGallery({ onSelect }) {
         // Then load preset avatars
         await loadAvatars();
       } catch (error) {
-        console.error('Error in loadAllAvatars:', error);
+        console.warn('Error in loadAllAvatars:', error);
       } finally {
         setLoading(false);
       }
@@ -67,7 +67,7 @@ export default function AvatarGallery({ onSelect }) {
         isLocked: !isVip && a.category !== 'free' && a.tier !== 'free' && !a.is_free
       })));
     } catch (error) {
-      console.error('Error loading avatars:', error);
+      console.warn('Error loading avatars:', error);
       setAvatars([]);
     }
   }
@@ -133,7 +133,7 @@ export default function AvatarGallery({ onSelect }) {
         toast.error(result.error || 'Failed to delete avatar');
       }
     } catch (err) {
-      console.error('Delete error:', err);
+      console.warn('Delete error:', err);
       toast.error('Failed to delete avatar');
     }
   }

@@ -49,7 +49,7 @@ export function useAssistantStats() {
           setStats(data.stats);
         }
       } catch (err) {
-        console.error('Error fetching stats:', err);
+        console.warn('Error fetching stats:', err);
         setError(err.message);
       } finally {
         setIsLoading(false);
@@ -114,7 +114,7 @@ export function useLeaks(statusFilter = null) {
         setLeaks(formattedLeaks);
       }
     } catch (err) {
-      console.error('Error fetching leaks:', err);
+      console.warn('Error fetching leaks:', err);
       setError(err.message);
     } finally {
       setIsLoading(false);
@@ -151,7 +151,7 @@ export function useLeaks(statusFilter = null) {
       }
       return data;
     } catch (err) {
-      console.error('Error updating leak:', err);
+      console.warn('Error updating leak:', err);
       return { success: false, error: err.message };
     }
   };
@@ -184,7 +184,7 @@ export function useArchetypes() {
           setArchetypes(data.archetypes);
         }
       } catch (err) {
-        console.error('Error fetching archetypes:', err);
+        console.warn('Error fetching archetypes:', err);
         // Use defaults
         setArchetypes([
           { id: 'gto_neutral', name: 'GTO Neutral', color: '#6b7280' },
@@ -329,7 +329,7 @@ export function useSandboxAnalysis() {
 
       return data;
     } catch (err) {
-      console.error('Analysis error:', err);
+      console.warn('Analysis error:', err);
       setError(err.message === 'SERVER_RELOADING'
         ? 'Server is temporarily unavailable. Please try again in a moment.'
         : err.message);
@@ -394,7 +394,7 @@ export function useRecentSessions(limit = 10) {
         .limit(limit);
 
       if (error) {
-        console.error('Error fetching sessions:', error);
+        console.warn('Error fetching sessions:', error);
         setSessions([]);
       } else {
         const formatted = (data || []).map(s => ({
@@ -420,7 +420,7 @@ export function useRecentSessions(limit = 10) {
         setSessions(formatted);
       }
     } catch (err) {
-      console.error('Fetch sessions error:', err);
+      console.warn('Fetch sessions error:', err);
       setSessions([]);
     } finally {
       setIsLoading(false);
@@ -478,7 +478,7 @@ export function useBookmarks(limit = 15) {
         .limit(limit);
 
       if (error) {
-        console.error('Error fetching bookmarks:', error);
+        console.warn('Error fetching bookmarks:', error);
         setBookmarks([]);
       } else {
         const formatted = (data || []).map(b => ({
@@ -501,7 +501,7 @@ export function useBookmarks(limit = 15) {
         setBookmarks(formatted);
       }
     } catch (err) {
-      console.error('Fetch bookmarks error:', err);
+      console.warn('Fetch bookmarks error:', err);
       setBookmarks([]);
     } finally {
       setIsLoading(false);
@@ -558,7 +558,7 @@ export function useStudyDeck(limit = 20) {
         .limit(limit);
 
       if (error) {
-        console.error('[useStudyDeck] Query error:', error.message);
+        console.warn('[useStudyDeck] Query error:', error.message);
         setStudySessions([]);
       } else {
         const formatted = (data || []).map(r => ({
@@ -574,7 +574,7 @@ export function useStudyDeck(limit = 20) {
         setStudySessions(formatted);
       }
     } catch (err) {
-      console.error('[useStudyDeck] Error:', err);
+      console.warn('[useStudyDeck] Error:', err);
       setStudySessions([]);
     } finally {
       setIsLoading(false);
@@ -649,7 +649,7 @@ export function useQuizLeaderboard(limit = 10) {
 
         setEntries(sorted);
       } catch (err) {
-        console.error('[useQuizLeaderboard] Error:', err);
+        console.warn('[useQuizLeaderboard] Error:', err);
         setEntries([]);
       } finally {
         setIsLoading(false);
@@ -711,7 +711,7 @@ export function useLeakDetection() {
 
       return data;
     } catch (err) {
-      console.error('Leak detection error:', err);
+      console.warn('Leak detection error:', err);
       setError(err.message);
       return { success: false, error: err.message };
     } finally {
@@ -756,7 +756,7 @@ export function useLeakHandExamples(leakId) {
         .limit(10);
 
       if (fetchError) {
-        console.error('Error fetching leak examples:', fetchError);
+        console.warn('Error fetching leak examples:', fetchError);
         setError(fetchError.message);
         return;
       }
@@ -771,7 +771,7 @@ export function useLeakHandExamples(leakId) {
 
       setExamples(formatted);
     } catch (err) {
-      console.error('Fetch examples error:', err);
+      console.warn('Fetch examples error:', err);
       setError(err.message);
     } finally {
       setIsLoading(false);
@@ -841,7 +841,7 @@ export function useTrainingStats() {
           .limit(100);
 
         if (sessionsError) {
-          console.error('Training sessions fetch error:', sessionsError);
+          console.warn('Training sessions fetch error:', sessionsError);
           throw sessionsError;
         }
 
@@ -907,7 +907,7 @@ export function useTrainingStats() {
           categoryProgress
         });
       } catch (err) {
-        console.error('Error fetching training stats:', err);
+        console.warn('Error fetching training stats:', err);
         setError(err.message);
       } finally {
         setIsLoading(false);

@@ -174,7 +174,7 @@ export default async function handler(req, res) {
 
     } catch (error) {
         try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('[Trivia Pool Status] Error:', error);
+        console.warn('[Trivia Pool Status] Error:', error);
         return res.status(500).json({ error: error.message });
     }
 }

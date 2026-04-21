@@ -90,7 +90,7 @@ export default function SessionReport({ sessionLog, resultsRaw, onClose }) {
                             title: 'GTO Session Report',
                             text: `Session: ${accuracy}% GTO Accuracy — ${totalHands} hands analyzed`,
                         });
-                    } catch (e) { /* user cancelled */ }
+                    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
                 }
             }, 'image/png');
         } catch (e) {
@@ -125,7 +125,7 @@ export default function SessionReport({ sessionLog, resultsRaw, onClose }) {
                 // Optionally, vibrate on success
                 try { navigator.vibrate?.(15); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
             } else {
-                console.error('Failed to post report to hub:', await response.text());
+                console.warn('Failed to post report to hub:', await response.text());
                 alert('Failed to post report. Please try again.');
             }
         } catch (e) {

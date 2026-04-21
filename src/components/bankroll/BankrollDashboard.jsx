@@ -165,7 +165,7 @@ export default function BankrollDashboard({ userId }) {
       visible.sort(function (a, b) { return b.entry_date.localeCompare(a.entry_date); });
       setEntries(visible);
     } catch (error) {
-      console.error('Error loading bankroll data:', error);
+      console.warn('Error loading bankroll data:', error);
     } finally {
       setIsLoading(false);
     }
@@ -194,7 +194,7 @@ export default function BankrollDashboard({ userId }) {
       toast.success('Entry deleted');
       await loadData(); // Full refresh to sync stats
     } catch (err) {
-      console.error('Delete failed:', err);
+      console.warn('Delete failed:', err);
       toast.error('Failed to delete entry');
       await loadData(); // Re-fetch to restore if delete failed
     }

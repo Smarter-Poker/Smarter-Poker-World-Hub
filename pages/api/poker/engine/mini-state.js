@@ -157,7 +157,7 @@ export default async function handler(req, res) {
     return res.status(200).json(results);
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[mini-state] Error:', err.message);
+    console.warn('[mini-state] Error:', err.message);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

@@ -106,7 +106,7 @@ function _checkCircuitBreaker() {
       // Transition to half-open
       _circuitState = CIRCUIT_STATE.HALF_OPEN;
       _halfOpenInFlight = 0;
-      console.log('[SupabaseResilience] Circuit breaker → HALF_OPEN (testing connection)');
+      console.debug('[SupabaseResilience] Circuit breaker → HALF_OPEN (testing connection)');
       return true; // Allow one probe
     }
     return false; // Still in cooldown
@@ -132,7 +132,7 @@ function _onSuccess() {
   if (_circuitState === CIRCUIT_STATE.HALF_OPEN) {
     _circuitState = CIRCUIT_STATE.CLOSED;
     _halfOpenInFlight = 0;
-    console.log('[SupabaseResilience] Circuit breaker → CLOSED (connection restored)');
+    console.debug('[SupabaseResilience] Circuit breaker → CLOSED (connection restored)');
   }
 }
 
@@ -154,7 +154,7 @@ function _onFailure(err) {
   if (_consecutiveFailures >= CIRCUIT_BREAKER_CONFIG.failureThreshold && _circuitState === CIRCUIT_STATE.CLOSED) {
     _circuitState = CIRCUIT_STATE.OPEN;
     _metrics.circuitBreakerTrips++;
-    console.error(`[SupabaseResilience] Circuit breaker → OPEN after ${_consecutiveFailures} consecutive failures. Cooldown: ${CIRCUIT_BREAKER_CONFIG.resetTimeoutMs}ms`);
+    console.warn(`[SupabaseResilience] Circuit breaker → OPEN after ${_consecutiveFailures} consecutive failures. Cooldown: ${CIRCUIT_BREAKER_CONFIG.resetTimeoutMs}ms`);
   }
 }
 
@@ -358,7 +358,7 @@ function resetCircuitBreaker() {
   _circuitState = CIRCUIT_STATE.CLOSED;
   _consecutiveFailures = 0;
   _halfOpenInFlight = 0;
-  console.log('[SupabaseResilience] Circuit breaker manually reset → CLOSED');
+  console.debug('[SupabaseResilience] Circuit breaker manually reset → CLOSED');
 }
 
 // ═══════════════════════════════════════════════════════════════════

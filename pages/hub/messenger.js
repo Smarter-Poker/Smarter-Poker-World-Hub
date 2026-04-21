@@ -89,7 +89,7 @@ function playMessageSound() {
         const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleR0tRXFuYz0mFTNNaWxofmh+YKStoJd/aGtbL09OYUFRYWOHeoKK');
         audio.volume = 0.3;
         audio.play().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-    } catch (e) { console.error("[messenger.js]", e); }
+    } catch (e) { console.warn("[messenger.js]", e); }
 }
 
 function timeAgo(timestamp) {
@@ -306,7 +306,7 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, onVoiceSend,
                 setGifError(data.error || 'Failed to load GIFs');
             }
         } catch (e) {
-            console.error('GIF load error:', e);
+            console.warn('GIF load error:', e);
             setGifError('Unable to connect to GIF service');
         }
         setLoadingGifs(false);
@@ -331,7 +331,7 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, onVoiceSend,
                     setGifError(data.error || 'Search failed');
                 }
             } catch (e) {
-                console.error('GIF search error:', e);
+                console.warn('GIF search error:', e);
                 setGifError('Unable to search GIFs');
             }
             setLoadingGifs(false);
@@ -390,7 +390,7 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, onVoiceSend,
                 }
             }, 60000);
         } catch (err) {
-            console.error('Microphone access denied:', err);
+            console.warn('Microphone access denied:', err);
         }
     };
 
@@ -1072,7 +1072,7 @@ function LinkPreviewCard({ url, isOwn }) {
                     linkPreviewCache[url] = data.preview;
                     setPreview(data.preview);
                 }
-            } catch (_) { /* silently fail — link is still clickable */ }
+            } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
             setLoading(false);
         };
         fetchPreview();
@@ -1708,9 +1708,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                             let receiptData = null;
                             try {
                                 receiptData = JSON.parse(raw);
-                            } catch (_) {
-                                // Legacy format: "Voice call - 2m 15s"
-                                receiptData = { type: raw.toLowerCase().includes('video') ? 'video' : 'voice', status: 'completed', duration: 0, legacyText: raw };
+                            } catch (_) { console.warn('[App] Handled exception:', _?.message || _); };
                             }
                             const st = receiptData.status || 'completed';
                             const tp = receiptData.type || 'voice';
@@ -2215,7 +2213,7 @@ function MessengerPage() {
                             headers: { 'Authorization': 'Bearer ' + token }
                         }).then(r => r.json()).catch(() => ({ data: { friends: [] } }));
                         if (mounted && resp?.data?.friends) setFriends(resp.data.friends);
-                    } catch (e) { /* silent */ }
+                    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
                 }, 800);
             }
         });
@@ -2372,7 +2370,7 @@ function MessengerPage() {
                     await subscribePush();
                     setToast({ type: 'success', message: 'Push Notifications Enabled' });
                 } catch (e) {
-                    console.error('[Messenger] Push subscribe error:', e);
+                    console.warn('[Messenger] Push subscribe error:', e);
                 }
             } else if (!value && pushReady) {
                 // Note: OneSignal doesn't have a direct unsubscribe in the hook,
@@ -2461,9 +2459,7 @@ function MessengerPage() {
                 if (!authUser) {
                     try {
                         authUser = await ensureAuthReady(supabase);
-                    } catch (_) {
-                        // Session check failed — user is genuinely not logged in
-                    }
+                    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                 }
 
                 if (authUser) {
@@ -2504,7 +2500,7 @@ function MessengerPage() {
                     }
                 }
             } catch (e) {
-                console.error('Init error:', e);
+                console.warn('Init error:', e);
             }
             setLoading(false);
         }
@@ -2638,7 +2634,7 @@ function MessengerPage() {
                     }
                 }
             } catch (e) {
-                if (e.name !== 'AbortError') console.error('[Pending calls]', e);
+                if (e.name !== 'AbortError') console.warn('[Pending calls]', e);
             }
         }
 
@@ -3138,7 +3134,7 @@ function MessengerPage() {
             type: 'broadcast',
             event: 'typing',
             payload: { userId: user.id, username: user.username },
-        }).catch(() => { /* channel not yet subscribed is fine */ });
+        }).catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
     };
 
     const loadConversations = async (userId) => {
@@ -3253,7 +3249,7 @@ function MessengerPage() {
                         unreadByConvo[msg.conversation_id] = (unreadByConvo[msg.conversation_id] || 0) + 1;
                     }
                 });
-            } catch (e) { console.error('[messenger.js] Unread batch failed:', e); }
+            } catch (e) { console.warn('[messenger.js] Unread batch failed:', e); }
 
             // Assemble enriched conversations
             const enriched = data.map(p => {
@@ -3291,7 +3287,7 @@ function MessengerPage() {
                 });
             setConversations(sorted);
         } catch (e) {
-            console.error('[MESSENGER] All fallbacks failed:', e);
+            console.warn('[MESSENGER] All fallbacks failed:', e);
             // FINAL FALLBACK: Don't crash - keep existing conversations or set empty
             if (!conversations || conversations.length === 0) {
                 setConversations([]);
@@ -3350,7 +3346,7 @@ function MessengerPage() {
                     body: JSON.stringify({ conversationId, userId: user.id }),
                 });
             } catch (e) {
-                console.error('Mark read failed:', e);
+                console.warn('Mark read failed:', e);
             }
 
             // M2 FIX: Only broadcast read receipt if readReceipts preference is enabled
@@ -3372,7 +3368,7 @@ function MessengerPage() {
             broadcastSync('smarter_poker_unread_sync', 'refresh_unread');
 
         } catch (e) {
-            console.error('Load messages error:', e);
+            console.warn('Load messages error:', e);
         }
         setLoadingMessages(false);
     };
@@ -3425,7 +3421,7 @@ function MessengerPage() {
                 setHasMoreMessages(false);
             }
         } catch (e) {
-            console.error('Load older messages error:', e);
+            console.warn('Load older messages error:', e);
         }
         setLoadingOlderMessages(false);
         paginationLockRef.current = false;
@@ -3449,7 +3445,7 @@ function MessengerPage() {
                     const history = JSON.parse(saved);
                     setMessages(history);
                 } catch (e) {
-                    console.error('Failed to load Jarvis history:', e);
+                    console.warn('Failed to load Jarvis history:', e);
                     setMessages([{
                         id: 'welcome',
                         content: "Hey! I'm Jarvis, your poker AI assistant. Ask me anything about strategy, hand analysis, or GTO concepts.",
@@ -3593,7 +3589,7 @@ function MessengerPage() {
                     return updated;
                 });
             } catch (error) {
-                console.error('Jarvis chat error:', error);
+                console.warn('Jarvis chat error:', error);
                 setMessages(prev => {
                     const withoutTyping = prev.filter(m => m.id !== 'typing');
                     const errorMsg = {
@@ -3679,7 +3675,7 @@ function MessengerPage() {
             // DEEP SWEEP FIX: Push native global Message Sent event
             busEmit.messageSent(activeConversation.id, activeConversation.otherUser?.id);
         } catch (e) {
-            console.error('Send message error:', e);
+            console.warn('Send message error:', e);
             // Mark message as failed
             setMessages(prev => prev.map(m =>
                 m.id === tempId ? { ...m, status: 'failed' } : m
@@ -3707,7 +3703,7 @@ function MessengerPage() {
             // DEEP SWEEP FIX: Push native global Message Reacted event
             busEmit.messageReacted(activeConversation?.id, messageId, emoji);
         } catch (e) {
-            console.error('Reaction error:', e);
+            console.warn('Reaction error:', e);
             // Reactions are optimistically updated, so failure is already handled in UI
         }
     };
@@ -3770,7 +3766,7 @@ function MessengerPage() {
                 setToast({ type: 'success', message: 'Message Removed' });
             }
         } catch (e) {
-            console.error('Delete message error:', e);
+            console.warn('Delete message error:', e);
             setToast({ type: 'error', message: 'Failed To Delete Message' });
         }
     };
@@ -3827,7 +3823,7 @@ function MessengerPage() {
                     setToast({ type: 'error', message: result.error || 'Edit Failed' });
                 }
             } catch (e) {
-                console.error('Edit message error:', e);
+                console.warn('Edit message error:', e);
                 setMessages(prevMessages);
                 setToast({ type: 'error', message: 'Failed To Edit Message' });
             }
@@ -3869,7 +3865,7 @@ function MessengerPage() {
             // DEEP SWEEP FIX: Data mutated
             busEmit.dataMutated('messenger');
         } catch (e) {
-            console.error('Unsend error:', e);
+            console.warn('Unsend error:', e);
             // Restore on failure
             setMessages(prev => prev.map(m =>
                 m.id === messageId ? originalMessage : m
@@ -3908,7 +3904,7 @@ function MessengerPage() {
             // DEEP SWEEP FIX: Push native global Message Forwarded event
             busEmit.messageForwarded(forwardingMessage.conversation_id || activeConversation?.id, targetConversation.id);
         } catch (e) {
-            console.error('Forward error:', e);
+            console.warn('Forward error:', e);
             setToast({ type: 'error', message: 'Failed To Forward Message' });
         }
         setForwardingMessage(null);
@@ -3984,7 +3980,7 @@ function MessengerPage() {
                 });
 
             if (uploadError) {
-                console.error('Upload error:', uploadError);
+                console.warn('Upload error:', uploadError);
                 throw uploadError;
             }
 
@@ -4030,7 +4026,7 @@ function MessengerPage() {
 
             setToast({ type: 'success', message: `${isImage ? 'Photo' : 'Video'} sent!` });
         } catch (e) {
-            console.error('Media upload error:', e);
+            console.warn('Media upload error:', e);
             setMessages(prev => prev.map(m =>
                 m.id === tempId ? { ...m, status: 'failed' } : m
             ));
@@ -4106,7 +4102,7 @@ function MessengerPage() {
             busEmit.dataMutated('messenger');
             setToast({ type: 'success', message: 'Voice Message Sent' });
         } catch (e) {
-            console.error('Voice upload error:', e);
+            console.warn('Voice upload error:', e);
             setMessages(prev => prev.map(m =>
                 m.id === tempId ? { ...m, status: 'failed' } : m
             ));
@@ -4134,7 +4130,7 @@ function MessengerPage() {
 
                 setSearchResults(data || []);
             } catch (e) {
-                console.error('Search error:', e);
+                console.warn('Search error:', e);
             }
         }, 300);
     }, [user]);
@@ -4168,7 +4164,7 @@ function MessengerPage() {
 
             handleSelectConversation(newConv);
         } catch (e) {
-            console.error('Start conversation error:', e);
+            console.warn('Start conversation error:', e);
         }
     };
 
@@ -4192,7 +4188,7 @@ function MessengerPage() {
                 if (error) throw error;
                 setMessageSearchResults(data || []);
             } catch (e) {
-                console.error('Message search error:', e);
+                console.warn('Message search error:', e);
             }
         }, 300);
     }, [activeConversation, user]);
@@ -4215,7 +4211,7 @@ function MessengerPage() {
                     p_is_online: effectiveOnline,
                 });
             } catch (e) {
-                console.error('[Presence] DB update error:', e);
+                console.warn('[Presence] DB update error:', e);
             }
         };
 
@@ -4371,7 +4367,7 @@ function MessengerPage() {
         // 🔒 CRITICAL VALIDATION: Ensure we're calling the right person
         if (!otherUser?.id) {
             setToast({ type: 'error', message: 'Cannot Start Call - User Not Found' });
-            console.error('❌ CALL ERROR: otherUser is missing!', { activeConversation });
+            console.warn('❌ CALL ERROR: otherUser is missing!', { activeConversation });
             return;
         }
 
@@ -4384,7 +4380,7 @@ function MessengerPage() {
         // NEVER call yourself - this would be a bug
         if (otherUser.id === user.id) {
             setToast({ type: 'error', message: 'Cannot Call Yourself' });
-            console.error('❌ CALL ERROR: Attempted to call self!', { otherUser, currentUser: user.id });
+            console.warn('❌ CALL ERROR: Attempted to call self!', { otherUser, currentUser: user.id });
             return;
         }
 
@@ -4480,7 +4476,7 @@ function MessengerPage() {
                 console.warn('[Messenger] Push notification for call failed (non-blocking):', pushError?.message || pushError);
             }
         } catch (e) {
-            console.error('Failed to send call signal:', e);
+            console.warn('Failed to send call signal:', e);
             setToast({ type: 'error', message: 'Failed To Call. Please Try Again.' });
             setCallingUser(null);
             return;
@@ -4546,9 +4542,7 @@ function MessengerPage() {
                     } finally {
                         setTimeout(() => supabase.removeChannel(channel), 1000);
                     }
-                } catch (e) {
-                    // Non-blocking — best-effort notification
-                }
+                } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
             }
         }
 
@@ -5442,7 +5436,7 @@ function MessengerPage() {
                                                 });
                                                 busEmit.dataMutated('messenger');
                                             } catch (e) {
-                                                console.error('[Messenger] Delete conversation failed:', e);
+                                                console.warn('[Messenger] Delete conversation failed:', e);
                                                 // Re-fetch to restore if delete failed
                                                 loadConversations(user.id);
                                             }

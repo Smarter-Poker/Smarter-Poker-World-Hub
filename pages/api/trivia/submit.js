@@ -66,7 +66,7 @@ export default async function handler(req, res) {
                           .maybeSingle();
                       username = profile?.username || profile?.full_name || user.email?.split('@')[0] || username;
                   }
-              } catch (e) { /* fall back to guest */ }
+              } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
           }
 
           // Save score to leaderboard
@@ -83,7 +83,7 @@ export default async function handler(req, res) {
               });
 
           if (insertError) {
-              console.error('[Trivia Submit] Insert error:', insertError);
+              console.warn('[Trivia Submit] Insert error:', insertError);
               // Don't fail - the table might not exist yet
           }
 
@@ -104,13 +104,13 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('[Trivia Submit] Error:', error);
+          console.warn('[Trivia Submit] Error:', error);
           return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

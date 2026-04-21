@@ -85,20 +85,20 @@ export default async function handler(req, res) {
               .eq('id', postId);
 
           if (deleteError) {
-              console.error('[Delete Post] Error:', deleteError);
+              console.warn('[Delete Post] Error:', deleteError);
               return res.status(500).json({ success: false, error: 'Failed to delete post', details: deleteError.message });
           }
 
           return res.status(200).json({ success: true, deletedBy: isGodMode ? 'god' : 'owner' });
 
       } catch (e) {
-          console.error('[Delete Post] Unexpected error:', e);
+          console.warn('[Delete Post] Unexpected error:', e);
           return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

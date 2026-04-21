@@ -383,7 +383,7 @@ export default async function handler(req, res) {
 
       const refundErrors = refundResults.filter(r => r.status === 'rejected');
       if (refundErrors.length > 0) {
-        console.error(`[union-games] cancel_tournament: ${refundErrors.length}/${toRefund.length} refunds failed`);
+        console.warn(`[union-games] cancel_tournament: ${refundErrors.length}/${toRefund.length} refunds failed`);
       }
 
       const { error } = await supabaseAdmin
@@ -579,7 +579,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[union-games]', err);
+    console.warn('[union-games]', err);
     return res.status(500).json({ success: false, error: 'Union games request failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
   }
 }

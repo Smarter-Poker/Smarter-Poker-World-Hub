@@ -121,7 +121,7 @@ Source: ${article.source_name}`;
                 }
             };
         } catch (error) {
-            console.error(`Rewrite error for ${persona.name}:`, error.message);
+            console.warn(`Rewrite error for ${persona.name}:`, error.message);
             return null;
         }
     }
@@ -130,13 +130,13 @@ Source: ${article.source_name}`;
      * Generate a batch of rewritten content from latest news
      */
     async generateBatch(count = 10) {
-        console.log(`\n✍️ Generating ${count} rewritten articles...\n`);
+        console.debug(`\n✍️ Generating ${count} rewritten articles...\n`);
 
         // Get latest articles
         const articles = await rssAggregator.getLatest(count * 2);
 
         if (articles.length === 0) {
-            console.log('No articles found!');
+            console.debug('No articles found!');
             return [];
         }
 
@@ -153,14 +153,14 @@ Source: ${article.source_name}`;
 
             if (result) {
                 results.push(result);
-                console.log(`✅ ${persona.alias} (${format}): "${article.title.slice(0, 50)}..."`);
+                console.debug(`✅ ${persona.alias} (${format}): "${article.title.slice(0, 50)}..."`);
             }
 
             // Rate limit protection
             await this.sleep(500);
         }
 
-        console.log(`\n📝 Generated ${results.length} pieces of content\n`);
+        console.debug(`\n📝 Generated ${results.length} pieces of content\n`);
         return results;
     }
 

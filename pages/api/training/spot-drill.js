@@ -112,7 +112,7 @@ export default async function handler(req, res) {
 
           const { count, error: countErr } = await countQuery;
           if (countErr) {
-              console.error('[SpotDrill] Count error:', countErr);
+              console.warn('[SpotDrill] Count error:', countErr);
               return res.status(500).json({ success: false, error: 'Database error' });
           }
 
@@ -136,7 +136,7 @@ export default async function handler(req, res) {
 
           const { data: spots, error: spotErr } = await spotQuery;
           if (spotErr || !spots || spots.length === 0) {
-              console.error('[SpotDrill] Spot fetch error:', spotErr);
+              console.warn('[SpotDrill] Spot fetch error:', spotErr);
               return res.status(500).json({ success: false, error: 'Failed to fetch spot' });
           }
 
@@ -213,13 +213,13 @@ export default async function handler(req, res) {
           });
 
       } catch (err) {
-          console.error('[SpotDrill] Error:', err);
+          console.warn('[SpotDrill] Error:', err);
           return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

@@ -43,7 +43,7 @@ export default async function handler(req, res) {
 
     const { data: sessions, error, count } = await query;
     if (error) {
-      console.error('[poker-brain/sessions] query error:', error);
+      console.warn('[poker-brain/sessions] query error:', error);
       return res.status(500).json({ error: 'Failed to fetch sessions' });
     }
 
@@ -58,7 +58,7 @@ export default async function handler(req, res) {
         .in('session_id', sessionIds);
 
       if (handCountError) {
-        console.error('[poker-brain/sessions] hand count query error:', handCountError);
+        console.warn('[poker-brain/sessions] hand count query error:', handCountError);
         return res.status(500).json({ error: 'Failed to fetch hand counts' });
       }
 
@@ -84,7 +84,7 @@ export default async function handler(req, res) {
     });
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[poker-brain/sessions] error:', err);
+    console.warn('[poker-brain/sessions] error:', err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

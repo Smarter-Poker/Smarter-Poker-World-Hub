@@ -57,7 +57,7 @@ export default async function handler(req, res) {
                   .limit(500);
 
           if (entriesError) {
-              console.error('[Jarvis Bankroll] Error fetching entries:', entriesError);
+              console.warn('[Jarvis Bankroll] Error fetching entries:', entriesError);
               return res.status(500).json({ success: false, error: entriesError.message });
           }
 
@@ -113,7 +113,7 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('[Jarvis Bankroll] Server error:', error);
+          console.warn('[Jarvis Bankroll] Server error:', error);
 
           // Check for specific API credit/rate limit errors
           const status = error?.status || error?.response?.status;
@@ -141,7 +141,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

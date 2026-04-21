@@ -79,7 +79,7 @@ export default function useWalletData({ supabase, userId, clubId }) {
         setClubBankBalance(null);
       }
     } catch (e) {
-      console.error('[useWalletData] Load error:', e);
+      console.warn('[useWalletData] Load error:', e);
     } finally {
       setLoading(false);
     }

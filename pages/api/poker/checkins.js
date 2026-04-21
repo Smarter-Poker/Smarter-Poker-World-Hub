@@ -55,7 +55,7 @@ try {
           .limit(1);
 
         if (checkError) {
-          console.error('Error checking recent checkins:', checkError);
+          console.warn('Error checking recent checkins:', checkError);
           return res.status(500).json({ success: false, error: checkError.message });
         }
 
@@ -80,7 +80,7 @@ try {
           .maybeSingle();
 
         if (error) {
-          console.error('Error creating checkin:', error);
+          console.warn('Error creating checkin:', error);
           return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
@@ -111,10 +111,7 @@ try {
               metadata: { type: 'checkin', venue_id: venueIdNum },
               created_at: new Date().toISOString(),
             });
-        } catch (postErr) {
-          // Non-blocking — don't fail the check-in if post creation fails
-          console.warn('[Checkin] Auto-post failed:', postErr.message);
-        }
+        } catch (postErr) { console.warn('[App] Handled exception:', postErr?.message || postErr); }
 
         return res.status(201).json({ success: true, checkin: data });
       }
@@ -135,7 +132,7 @@ try {
             .select('venue_id, id')
             .gte('created_at', twentyFourHoursAgo);
           if (error) {
-            console.error('Error fetching global today checkins:', error);
+            console.warn('Error fetching global today checkins:', error);
             return res.status(500).json({ success: false, error: 'Internal server error' });
           }
           res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
@@ -160,7 +157,7 @@ try {
                   .limit(100);
 
             if (error) {
-              console.error('Error counting checkins:', error);
+              console.warn('Error counting checkins:', error);
               return res.status(500).json({ success: false, error: 'Internal server error' });
             }
 
@@ -177,7 +174,7 @@ try {
                 .limit(100);
 
           if (error) {
-            console.error('Error fetching checkins:', error);
+            console.warn('Error fetching checkins:', error);
             return res.status(500).json({ success: false, error: 'Internal server error' });
           }
 
@@ -198,7 +195,7 @@ try {
                 .limit(100);
 
           if (error) {
-            console.error('Error fetching user checkins:', error);
+            console.warn('Error fetching user checkins:', error);
             return res.status(500).json({ success: false, error: 'Internal server error' });
           }
 
@@ -230,13 +227,13 @@ try {
 
       return res.status(405).json({ success: false, error: `Method ${req.method} not allowed` });
     } catch (err) {
-      console.error('Checkins API error:', err);
+      console.warn('Checkins API error:', err);
       return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

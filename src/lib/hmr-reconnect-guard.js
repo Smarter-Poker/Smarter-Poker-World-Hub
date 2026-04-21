@@ -29,11 +29,7 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
       lastTs = parseInt(sessionStorage.getItem(RELOAD_TS_KEY) || '0', 10);
       count = parseInt(sessionStorage.getItem(RELOAD_KEY) || '0', 10);
     }
-  } catch (e) {
-    // Agent headless browsers might throw SecurityError when accessing storage
-    console.warn('[HMR Guard] sessionStorage access blocked, disabling infinite reload guard');
-    storageAvailable = false;
-  }
+  } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
   if (storageAvailable) {
     // Reset counter if outside the window
@@ -45,9 +41,7 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
     try {
       sessionStorage.setItem(RELOAD_KEY, String(count));
       sessionStorage.setItem(RELOAD_TS_KEY, String(now));
-    } catch (e) {
-      // Ignore
-    }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
   }
 
   if (storageAvailable && count > MAX_RELOADS) {

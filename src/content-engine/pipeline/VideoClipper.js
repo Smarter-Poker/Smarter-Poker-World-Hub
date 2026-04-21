@@ -181,8 +181,8 @@ class VideoClipper {
 
         ytdlpArgs.push(url);
 
-        console.log(`📥 Downloading: ${url}`);
-        console.log(`   Args: yt-dlp ${ytdlpArgs.join(' ')}`);
+        console.debug(`📥 Downloading: ${url}`);
+        console.debug(`   Args: yt-dlp ${ytdlpArgs.join(' ')}`);
 
         try {
             // Use spawn to avoid shell escaping issues
@@ -198,7 +198,7 @@ class VideoClipper {
             });
 
             if (fs.existsSync(outputPath)) {
-                console.log(`✅ Downloaded: ${outputPath}`);
+                console.debug(`✅ Downloaded: ${outputPath}`);
                 return {
                     success: true,
                     path: outputPath,
@@ -209,7 +209,7 @@ class VideoClipper {
                 throw new Error('Download completed but file not found');
             }
         } catch (error) {
-            console.error(`❌ Download failed: ${error.message}`);
+            console.warn(`❌ Download failed: ${error.message}`);
             return {
                 success: false,
                 error: error.message,
@@ -249,7 +249,7 @@ class VideoClipper {
                 proc.on('error', reject);
             });
         } catch (error) {
-            console.error(`Failed to get video info: ${error.message}`);
+            console.warn(`Failed to get video info: ${error.message}`);
             return null;
         }
     }
@@ -286,13 +286,13 @@ class VideoClipper {
             -movflags +faststart \
             "${outputPath}"`;
 
-        console.log(`✂️ Extracting clip: ${startSeconds}s for ${duration}s`);
+        console.debug(`✂️ Extracting clip: ${startSeconds}s for ${duration}s`);
 
         try {
             await execAsync(ffmpegCmd);
 
             if (fs.existsSync(outputPath)) {
-                console.log(`✅ Clip extracted: ${outputPath}`);
+                console.debug(`✅ Clip extracted: ${outputPath}`);
                 return {
                     success: true,
                     path: outputPath,
@@ -304,7 +304,7 @@ class VideoClipper {
                 throw new Error('Clip extraction completed but file not found');
             }
         } catch (error) {
-            console.error(`❌ Clip extraction failed: ${error.message}`);
+            console.warn(`❌ Clip extraction failed: ${error.message}`);
             return { success: false, error: error.message };
         }
     }
@@ -346,13 +346,13 @@ class VideoClipper {
             -movflags +faststart \
             "${outputPath}"`;
 
-        console.log(`📐 Converting to vertical: ${inputPath}`);
+        console.debug(`📐 Converting to vertical: ${inputPath}`);
 
         try {
             await execAsync(ffmpegCmd, { maxBuffer: 100 * 1024 * 1024 });
 
             if (fs.existsSync(outputPath)) {
-                console.log(`✅ Converted to vertical: ${outputPath}`);
+                console.debug(`✅ Converted to vertical: ${outputPath}`);
 
                 // Clean up original if requested
                 if (options.deleteOriginal && inputPath !== outputPath) {
@@ -368,7 +368,7 @@ class VideoClipper {
                 throw new Error('Conversion completed but file not found');
             }
         } catch (error) {
-            console.error(`❌ Vertical conversion failed: ${error.message}`);
+            console.warn(`❌ Vertical conversion failed: ${error.message}`);
             return { success: false, error: error.message };
         }
     }
@@ -404,7 +404,7 @@ class VideoClipper {
                 format: 'srt'
             };
         } catch (error) {
-            console.error(`Caption generation failed: ${error.message}`);
+            console.warn(`Caption generation failed: ${error.message}`);
             return { success: false, error: error.message };
         }
     }
@@ -452,7 +452,7 @@ class VideoClipper {
         const fileName = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.mp4`;
         const storagePath = `${CONFIG.STORAGE_PATH}/${fileName}`;
 
-        console.log(`☁️ Uploading clip to storage...`);
+        console.debug(`☁️ Uploading clip to storage...`);
 
         const supabase = this.getSupabase();
         if (!supabase) {
@@ -479,7 +479,7 @@ class VideoClipper {
                 .getPublicUrl(storagePath);
 
             const publicUrl = urlData.publicUrl;
-            console.log(`✅ Uploaded: ${publicUrl}`);
+            console.debug(`✅ Uploaded: ${publicUrl}`);
 
             // Create reel record if author provided
             if (metadata.authorId) {
@@ -498,9 +498,9 @@ class VideoClipper {
                     .maybeSingle();
 
                 if (reelError || !reel) {
-                    console.error(`Reel record creation failed: ${reelError?.message || 'No data returned'}`);
+                    console.warn(`Reel record creation failed: ${reelError?.message || 'No data returned'}`);
                 } else {
-                    console.log(`✅ Reel created: ${reel.id}`);
+                    console.debug(`✅ Reel created: ${reel.id}`);
                     return { success: true, publicUrl, reel };
                 }
             }
@@ -508,7 +508,7 @@ class VideoClipper {
             return { success: true, publicUrl };
 
         } catch (error) {
-            console.error(`❌ Upload failed: ${error.message}`);
+            console.warn(`❌ Upload failed: ${error.message}`);
             return { success: false, error: error.message };
         }
     }
@@ -521,10 +521,10 @@ class VideoClipper {
      * Complete pipeline: Download -> Clip -> Convert -> Caption -> Upload
      */
     async processVideo(videoUrl, clipConfig) {
-        console.log(`\n🎬 PROCESSING VIDEO CLIP`);
-        console.log(`   Source: ${videoUrl}`);
-        console.log(`   Start: ${clipConfig.startTime}s, Duration: ${clipConfig.duration}s`);
-        console.log('═'.repeat(60));
+        console.debug(`\n🎬 PROCESSING VIDEO CLIP`);
+        console.debug(`   Source: ${videoUrl}`);
+        console.debug(`   Start: ${clipConfig.startTime}s, Duration: ${clipConfig.duration}s`);
+        console.debug('═'.repeat(60));
 
         try {
             // Step 1: Download video (or specific section)
@@ -574,11 +574,11 @@ class VideoClipper {
                 fs.unlinkSync(currentPath);
             }
 
-            console.log(`\n✅ CLIP PROCESSED SUCCESSFULLY`);
+            console.debug(`\n✅ CLIP PROCESSED SUCCESSFULLY`);
             return uploadResult;
 
         } catch (error) {
-            console.error(`\n❌ PIPELINE FAILED: ${error.message}`);
+            console.warn(`\n❌ PIPELINE FAILED: ${error.message}`);
             return { success: false, error: error.message };
         }
     }

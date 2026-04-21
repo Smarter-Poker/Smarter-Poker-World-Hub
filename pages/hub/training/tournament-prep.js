@@ -56,7 +56,7 @@ export default function TournamentPrepPlanner() {
         }),
       });
     } catch (e) {
-      console.error('Failed to save session:', e);
+      console.warn('Failed to save session:', e);
     }
   };
 

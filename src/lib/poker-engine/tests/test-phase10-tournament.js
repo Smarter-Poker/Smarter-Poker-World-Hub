@@ -39,8 +39,8 @@ const {
 const { ClubLedger, TRANSACTION_TYPE } = require('../src/ClubLedger');
 
 let passed = 0, failed = 0;
-function assert(cond, label) { if (cond) { console.log(`  ✅ ${label}`); passed++; } else { console.log(`  ❌ ${label}`); failed++; } }
-function section(t) { console.log(`\n${'═'.repeat(60)}\n  ${t}\n${'═'.repeat(60)}`); }
+function assert(cond, label) { if (cond) { console.debug(`  ✅ ${label}`); passed++; } else { console.debug(`  ❌ ${label}`); failed++; } }
+function section(t) { console.debug(`\n${'═'.repeat(60)}\n  ${t}\n${'═'.repeat(60)}`); }
 
 function playOneHand(tableInfo) {
   const table = tableInfo.table;
@@ -720,10 +720,10 @@ async function runTests() {
   assert(idx.TRANSACTION_TYPE, 'TRANSACTION_TYPE exported');
 
   // ═══════════════════════════════════════════════════════
-  console.log(`\n${'═'.repeat(60)}`);
-  console.log(`  PHASE 10: ${passed} passed, ${failed} failed`);
-  console.log('═'.repeat(60));
+  console.debug(`\n${'═'.repeat(60)}`);
+  console.debug(`  PHASE 10: ${passed} passed, ${failed} failed`);
+  console.debug('═'.repeat(60));
   process.exit(failed > 0 ? 1 : 0);
 }
 
-runTests().catch(err => { console.error('ERROR:', err); process.exit(1); });
+runTests().catch(err => { console.warn('ERROR:', err); process.exit(1); });

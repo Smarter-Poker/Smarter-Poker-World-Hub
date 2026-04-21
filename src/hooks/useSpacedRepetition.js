@@ -60,7 +60,7 @@ export default function useSpacedRepetition(gameId = null) {
             setDueCount(spots.length);
             setLoading(false);
 
-            console.log(`[SpacedRepetition] ${spots.length} spots due for review`);
+            console.debug(`[SpacedRepetition] ${spots.length} spots due for review`);
             return spots;
         } catch (err) {
             console.warn('[SpacedRepetition] Fetch error:', err.message);
@@ -124,7 +124,7 @@ export default function useSpacedRepetition(gameId = null) {
                 body: JSON.stringify({ spotSignature, wasCorrect }),
             });
 
-            console.log(`[SpacedRepetition] Marked ${spotSignature.slice(0, 20)}... as ${wasCorrect ? 'correct' : 'wrong'}`);
+            console.debug(`[SpacedRepetition] Marked ${spotSignature.slice(0, 20)}... as ${wasCorrect ? 'correct' : 'wrong'}`);
         } catch (err) {
             console.warn('[SpacedRepetition] Mark reviewed error:', err.message);
         }

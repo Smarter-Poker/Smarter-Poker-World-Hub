@@ -20,7 +20,7 @@ async function fireConfetti(opts) {
     try {
         if (!_confetti) { const m = await import('canvas-confetti'); _confetti = m.default || m; }
         _confetti(opts);
-    } catch (e) { /* confetti is cosmetic — swallow import/execution errors */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 }
 
 // Supabase services for persistence
@@ -234,7 +234,7 @@ async function loadHorses() {
                 stakes: h.stakes,
                 avatar: SPECIALTY_AVATARS[h.specialty] || FALLBACK_AVATARS[Math.floor(Math.random() * FALLBACK_AVATARS.length)],
             }));
-            console.log(`[Tournament] Loaded ${_horsesCache.length} horses from Supabase`);
+            console.debug(`[Tournament] Loaded ${_horsesCache.length} horses from Supabase`);
             return _horsesCache;
         } catch (err) {
             console.warn('[Tournament] Horse fetch error:', err);
@@ -556,7 +556,7 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                         0, // timeTaken
                         null // sessionId
                     ).then(res => {
-                        console.log('[Tournament] Leaderboard updated:', res);
+                        console.debug('[Tournament] Leaderboard updated:', res);
                     }).catch(err => {
                         console.warn('[Tournament] Leaderboard update failed:', err);
                     });
@@ -565,7 +565,7 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                 // 2. Update ELO rating in profiles table
                 processGameResult(userId, 1, accuracy, roundsPlayed)
                     .then(eloResult => {
-                        console.log('[Tournament] ELO persisted:', eloResult);
+                        console.debug('[Tournament] ELO persisted:', eloResult);
                     }).catch(err => {
                         console.warn('[Tournament] ELO persist failed:', err);
                     });
@@ -582,7 +582,7 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                     diamondsEarned,
                     completed: true
                 }).then(sessionResult => {
-                    console.log('[Tournament] Session recorded:', sessionResult);
+                    console.debug('[Tournament] Session recorded:', sessionResult);
                 }).catch(err => {
                     console.warn('[Tournament] Session recording failed:', err);
                 });
@@ -600,7 +600,7 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                     modesPlayed: [gameMode]
                 }).then(unlocked => {
                     if (unlocked.length > 0) {
-                        console.log('[Tournament] Achievements unlocked:', unlocked);
+                        console.debug('[Tournament] Achievements unlocked:', unlocked);
                     }
                 }).catch(err => {
                     console.warn('[Tournament] Achievement check failed:', err);

@@ -703,7 +703,7 @@ export default async function handler(req, res) {
         try {
             await evaluateAndAlert(scraperName, stats);
         } catch (alertErr) {
-            console.error('[ALERT] Failed to send SMS alert:', alertErr.message);
+            console.warn('[ALERT] Failed to send SMS alert:', alertErr.message);
         }
 
         // ─── Summary log ───
@@ -719,7 +719,7 @@ export default async function handler(req, res) {
 
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('[Tour Schedule Scraper FATAL]', err);
+        console.warn('[Tour Schedule Scraper FATAL]', err);
 
         // Send critical SMS on unhandled error
         try {

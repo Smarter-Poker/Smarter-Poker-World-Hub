@@ -48,7 +48,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -98,7 +98,7 @@ async function handleUpdate(req, res, id) {
         .maybeSingle();
 
     if (error) {
-        console.error('Member update error:', error);
+        console.warn('Member update error:', error);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
@@ -118,7 +118,7 @@ async function handleDelete(req, res, id) {
         .maybeSingle();
 
     if (error) {
-        console.error('Member delete error:', error);
+        console.warn('Member delete error:', error);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 

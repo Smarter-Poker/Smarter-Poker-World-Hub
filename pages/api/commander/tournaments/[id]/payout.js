@@ -40,7 +40,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -142,7 +142,7 @@ async function handleGetPayouts(req, res, tournamentId) {
       }
     });
   } catch (error) {
-    console.error('Get payouts error:', error);
+    console.warn('Get payouts error:', error);
     return res.status(500).json({ success: false, error: { message: 'Failed to fetch payouts' } });
   }
 }
@@ -197,7 +197,7 @@ async function handlePayout(req, res, tournamentId) {
 
     return res.status(200).json({ success: true, data: { entry } });
   } catch (error) {
-    console.error('Payout error:', error);
+    console.warn('Payout error:', error);
     return res.status(500).json({ success: false, error: { message: 'Failed to record payout' } });
   }
 }
@@ -258,7 +258,7 @@ async function handleBulkPayouts(req, res, tournamentId) {
       data: { updated: results.length, payouts: results }
     });
   } catch (error) {
-    console.error('Bulk payout error:', error);
+    console.warn('Bulk payout error:', error);
     return res.status(500).json({ success: false, error: { message: 'Failed to save payouts' } });
   }
 }
@@ -316,6 +316,6 @@ async function awardLeaderboardPoints(leaderboardId, tournamentId, entry) {
     }
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('Award points error:', err);
+    console.warn('Award points error:', err);
   }
 }

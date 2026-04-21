@@ -54,7 +54,7 @@ export default async function handler(req, res) {
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            console.error('[generate-logo] Grok API error:', errorData);
+            console.warn('[generate-logo] Grok API error:', errorData);
             return res.status(502).json({
                 success: false,
                 error: errorData.error?.message || errorData.error || `xAI API error: ${response.status}`,
@@ -73,7 +73,7 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, logoUrl });
     } catch (error) {
         try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('[generate-logo] Failed:', error);
+        console.warn('[generate-logo] Failed:', error);
         return res.status(500).json({
             success: false,
             error: error instanceof Error ? error.message : 'Unknown error',

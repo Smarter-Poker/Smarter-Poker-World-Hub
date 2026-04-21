@@ -311,7 +311,7 @@ const json = await commanderFetchJSON(`/api/commander/tournaments/${id}`, {});
           if (t.custom_payouts) setCustomPayouts(t.custom_payouts);
           if (t.entry_count) setEstimatedEntries(t.entry_count);
         }
-      } catch (err) { console.error(err); }
+      } catch (err) { console.warn(err); }
       finally { setLoading(false); }
     };
     fetch_();
@@ -382,7 +382,7 @@ const res = await commanderFetch(`/api/commander/tournaments/${id}`, {
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) { setSaved(true); setTimeout(() => setSaved(false), 2000); broadcastChange('tournaments'); }
-    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
+    } catch (err) { console.warn(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
     finally { setSaving(false); }
   };
 

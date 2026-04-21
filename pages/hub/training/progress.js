@@ -170,7 +170,7 @@ export default function TrainingProgress() {
 
       setLoading(false);
     } catch (error) {
-      console.error('Error loading progress:', error);
+      console.warn('Error loading progress:', error);
       setFetchError('Unable to load progress data. Please try again.');
       setLoading(false);
     }

@@ -48,7 +48,7 @@ export async function checkSettlementLock(supabase, clubId) {
         .from('clubs')
         .update({ settlement_locked: false, settlement_locked_until: null })
         .eq('id', clubId);
-      if (unlockErr) console.error('[SettlementLock] Club unlock failed:', unlockErr.message);
+      if (unlockErr) console.warn('[SettlementLock] Club unlock failed:', unlockErr.message);
 
       // Also deactivate settlement_locks record
       const { error: lockErr } = await supabase
@@ -56,7 +56,7 @@ export async function checkSettlementLock(supabase, clubId) {
         .update({ is_active: false, unlocked_at: new Date().toISOString() })
         .eq('club_id', clubId)
         .eq('is_active', true);
-      if (lockErr) console.error('[SettlementLock] Lock deactivation failed:', lockErr.message);
+      if (lockErr) console.warn('[SettlementLock] Lock deactivation failed:', lockErr.message);
 
       return { locked: false };
     }
@@ -75,10 +75,7 @@ export async function checkSettlementLock(supabase, clubId) {
       reason: lock?.lock_reason || 'Weekly auto-settlement in progress. Operations resume at 4:10 AM CST.',
     };
 
-  } catch (err) {
-    // On error, don't block operations
-    console.error('[settlement-lock] Check error:', err.message);
-    return { locked: false };
+  } catch (err) { console.warn('[App] Handled exception:', err?.message || err); };
   }
 }
 

@@ -25,14 +25,14 @@ let failed = 0;
 const failures = [];
 
 function assert(condition, label) {
-    if (condition) { passed++; console.log(`  ✅ ${label}`); }
-    else { failed++; failures.push(label); console.log(`  ❌ FAIL: ${label}`); }
+    if (condition) { passed++; console.debug(`  ✅ ${label}`); }
+    else { failed++; failures.push(label); console.debug(`  ❌ FAIL: ${label}`); }
 }
 
 (async () => {
-    console.log('\n═══════════════════════════════════════════════════');
-    console.log('  🔬 SWEEP 11: AUTONOMOUS PIPELINE VERIFICATION');
-    console.log('═══════════════════════════════════════════════════\n');
+    console.debug('\n═══════════════════════════════════════════════════');
+    console.debug('  🔬 SWEEP 11: AUTONOMOUS PIPELINE VERIFICATION');
+    console.debug('═══════════════════════════════════════════════════\n');
 
     const HORSE = '00000000-0000-0000-0000-000000000028';
     await Brain.loadHorseIds();
@@ -40,7 +40,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════
     // TEST 1: SKILL EVOLUTION PERSISTENCE (Gap 3)
     // ═══════════════════════════════════════════════════
-    console.log('--- TEST 1: Skill Evolution Persistence ---');
+    console.debug('--- TEST 1: Skill Evolution Persistence ---');
 
     // Evolve skill with a winning session
     const evo1 = Brain.evolveHorseSkill(HORSE, 15); // Winning session
@@ -75,7 +75,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════
     // TEST 2: OPPONENT READ SAVE + LOAD (Gap 4)
     // ═══════════════════════════════════════════════════
-    console.log('\n--- TEST 2: Opponent Read Pipeline ---');
+    console.debug('\n--- TEST 2: Opponent Read Pipeline ---');
 
     const OPP_ID = 'test-opp-sweep11-' + Date.now();
 
@@ -106,14 +106,14 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════
     // TEST 3: EVALUATE SESSIONS EXISTS
     // ═══════════════════════════════════════════════════
-    console.log('\n--- TEST 3: evaluateSessions Function ---');
+    console.debug('\n--- TEST 3: evaluateSessions Function ---');
 
     assert(typeof Brain.evaluateSessions === 'function', 'evaluateSessions is exported');
 
     // ═══════════════════════════════════════════════════
     // TEST 4: GAME CONTROLLER EXPORTS & HEARTBEAT
     // ═══════════════════════════════════════════════════
-    console.log('\n--- TEST 4: GameController New Methods ---');
+    console.debug('\n--- TEST 4: GameController New Methods ---');
 
     const { GameController } = require('../GameController');
     assert(typeof GameController.prototype.fillTableWithHorses === 'function', 'fillTableWithHorses is a method');
@@ -124,7 +124,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════
     // TEST 5: REGRESSION — CARD CONVERSION
     // ═══════════════════════════════════════════════════
-    console.log('\n--- TEST 5: Regression — Card Conversion ---');
+    console.debug('\n--- TEST 5: Regression — Card Conversion ---');
 
     const objCards = Brain.cardsToStrings([{ rank: 14, suit: 0 }, { rank: 13, suit: 1 }]);
     assert(objCards[0] === 'Ac', 'Object card → Ac');
@@ -135,7 +135,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════
     // TEST 6: REGRESSION — GARBAGE FOLDING
     // ═══════════════════════════════════════════════════
-    console.log('\n--- TEST 6: Regression — Garbage Folding ---');
+    console.debug('\n--- TEST 6: Regression — Garbage Folding ---');
 
     let folds = 0;
     for (let i = 0; i < 10; i++) {
@@ -158,7 +158,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════
     // TEST 7: REGRESSION — STRONG HAND BETTING
     // ═══════════════════════════════════════════════════
-    console.log('\n--- TEST 7: Regression — Strong Hand Betting ---');
+    console.debug('\n--- TEST 7: Regression — Strong Hand Betting ---');
 
     let bets = 0;
     for (let i = 0; i < 10; i++) {
@@ -181,7 +181,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════
     // TEST 8: REGRESSION — HAND EVALUATOR
     // ═══════════════════════════════════════════════════
-    console.log('\n--- TEST 8: Regression — Hand Evaluator ---');
+    console.debug('\n--- TEST 8: Regression — Hand Evaluator ---');
 
     const eval1 = Brain.evaluatePostflopHand(['Ac', 'Ah'], ['7c', '3d', '2s']);
     assert(eval1.category === 'overpair', `AA overpair: ${eval1.category}`);
@@ -194,7 +194,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════
     // TEST 9: REGRESSION — SUPABASE PERSISTENCE
     // ═══════════════════════════════════════════════════
-    console.log('\n--- TEST 9: Regression — Supabase ---');
+    console.debug('\n--- TEST 9: Regression — Supabase ---');
 
     Brain.recordPerformanceAction(HORSE, 'preflop', 'raise', true);
     const saved = await Brain.saveSessionAnalytics(HORSE, 'test-sweep11');
@@ -206,7 +206,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════
     // TEST 10: ALL KEY EXPORTS
     // ═══════════════════════════════════════════════════
-    console.log('\n--- TEST 10: All Key Exports ---');
+    console.debug('\n--- TEST 10: All Key Exports ---');
 
     const keyExports = [
         'getDecision', 'loadHorseIds', 'processHandResult', 'evaluatePostflopHand',
@@ -221,20 +221,20 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════
     // RESULTS
     // ═══════════════════════════════════════════════════
-    console.log('\n═══════════════════════════════════════════════════');
-    console.log(`  RESULTS: ${passed} passed, ${failed} failed`);
-    console.log('═══════════════════════════════════════════════════');
+    console.debug('\n═══════════════════════════════════════════════════');
+    console.debug(`  RESULTS: ${passed} passed, ${failed} failed`);
+    console.debug('═══════════════════════════════════════════════════');
 
     if (failed > 0) {
-        console.log('\n❌ FAILURES:');
-        failures.forEach(f => console.log(`  - ${f}`));
+        console.debug('\n❌ FAILURES:');
+        failures.forEach(f => console.debug(`  - ${f}`));
     } else {
-        console.log('\n✅ ALL TESTS PASSED — SWEEP 11 CLEAN');
+        console.debug('\n✅ ALL TESTS PASSED — SWEEP 11 CLEAN');
     }
 
     // Cleanup evolution test data
     await supabase.from('horse_session_stats').delete().eq('table_id', `evolution_${HORSE}`);
 
-    console.log('');
+    console.debug('');
     process.exit(failed > 0 ? 1 : 0);
 })();

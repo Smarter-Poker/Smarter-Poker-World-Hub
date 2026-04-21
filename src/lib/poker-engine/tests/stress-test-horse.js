@@ -23,12 +23,12 @@ const newBugs = [];
 function assert(condition, label, extra = '') {
     if (condition) {
         passed++;
-        console.log(`  ✅ ${label}${extra ? ' [' + extra + ']' : ''}`);
+        console.debug(`  ✅ ${label}${extra ? ' [' + extra + ']' : ''}`);
     } else {
         failed++;
         failures.push(label);
         newBugs.push(label);
-        console.error(`  ❌ FAIL: ${label}${extra ? ' — ' + extra : ''}`);
+        console.warn(`  ❌ FAIL: ${label}${extra ? ' — ' + extra : ''}`);
     }
 }
 
@@ -94,9 +94,9 @@ function isValidAction(action) {
 }
 
 (async () => {
-    console.log('\n═══════════════════════════════════════════════════════════════');
-    console.log('  🔥 STRESS TEST: MISSION-CRITICAL HORSE DECISION ENGINE');
-    console.log('═══════════════════════════════════════════════════════════════\n');
+    console.debug('\n═══════════════════════════════════════════════════════════════');
+    console.debug('  🔥 STRESS TEST: MISSION-CRITICAL HORSE DECISION ENGINE');
+    console.debug('═══════════════════════════════════════════════════════════════\n');
 
     const horses = await Brain.loadHorseIds();
     horses.add(HR);
@@ -104,7 +104,7 @@ function isValidAction(action) {
     // ══════════════════════════════════════════════════════════════
     // TEST 1: EXTREME EDGE CASES — Stacks, Pots, Positions
     // ══════════════════════════════════════════════════════════════
-    console.log('═══ TEST 1: EXTREME EDGE CASES ═══\n');
+    console.debug('═══ TEST 1: EXTREME EDGE CASES ═══\n');
 
     const edgeCases = [
         { label: '1BB stack facing jam', board: 'flop_wet', hand: NUT_HAND, pot: 100, toCall: 2, stack: 2, pos: 'bb' },
@@ -133,7 +133,7 @@ function isValidAction(action) {
     // ══════════════════════════════════════════════════════════════
     // TEST 2: TIMING — Must complete decisions under 100ms
     // ══════════════════════════════════════════════════════════════
-    console.log('\n═══ TEST 2: TIMING VERIFICATION (< 100ms per decision) ═══\n');
+    console.debug('\n═══ TEST 2: TIMING VERIFICATION (< 100ms per decision) ═══\n');
 
     const timingRuns = 20;
     const timings = [];
@@ -151,12 +151,12 @@ function isValidAction(action) {
     assert(avg < 100, `TIMING: Avg decision time < 100ms`, `avg=${avg.toFixed(2)}ms`);
     assert(max < 500, `TIMING: Max decision time < 500ms`, `max=${max.toFixed(2)}ms`);
     assert(p95 < 200, `TIMING: P95 decision time < 200ms`, `p95=${p95.toFixed(2)}ms`);
-    console.log(`  📊 Timing stats: avg=${avg.toFixed(2)}ms, p95=${p95.toFixed(2)}ms, max=${max.toFixed(2)}ms`);
+    console.debug(`  📊 Timing stats: avg=${avg.toFixed(2)}ms, p95=${p95.toFixed(2)}ms, max=${max.toFixed(2)}ms`);
 
     // ══════════════════════════════════════════════════════════════
     // TEST 3: ALL STREETS × ALL POSITIONS — Matrix coverage
     // ══════════════════════════════════════════════════════════════
-    console.log('\n═══ TEST 3: STREET × POSITION MATRIX ═══\n');
+    console.debug('\n═══ TEST 3: STREET × POSITION MATRIX ═══\n');
 
     const streets = [
         { name: 'preflop', board: BOARDS.preflop },
@@ -184,11 +184,11 @@ function isValidAction(action) {
                         matrixOk++;
                     } else {
                         matrixFail++;
-                        console.error(`  ❌ Matrix fail: ${street.name}/${pos}/${hand.name} → ${JSON.stringify(result.action)}`);
+                        console.warn(`  ❌ Matrix fail: ${street.name}/${pos}/${hand.name} → ${JSON.stringify(result.action)}`);
                     }
                 } catch (e) {
                     matrixFail++;
-                    console.error(`  ❌ Matrix CRASH: ${street.name}/${pos}/${hand.name} → ${e.message}`);
+                    console.warn(`  ❌ Matrix CRASH: ${street.name}/${pos}/${hand.name} → ${e.message}`);
                 }
             }
         }
@@ -198,7 +198,7 @@ function isValidAction(action) {
     // ══════════════════════════════════════════════════════════════
     // TEST 4: ALL 32 MODULES ACTIVE SIMULTANEOUSLY
     // ══════════════════════════════════════════════════════════════
-    console.log('\n═══ TEST 4: SIMULTANEOUS MODULE ACTIVATION ═══\n');
+    console.debug('\n═══ TEST 4: SIMULTANEOUS MODULE ACTIVATION ═══\n');
 
     // Prime every module with data
     const OPP = 'stress-opp-001';
@@ -247,7 +247,7 @@ function isValidAction(action) {
     // ══════════════════════════════════════════════════════════════
     // TEST 5: processHandResult STRESS — incomplete data
     // ══════════════════════════════════════════════════════════════
-    console.log('\n═══ TEST 5: processHandResult STRESS ═══\n');
+    console.debug('\n═══ TEST 5: processHandResult STRESS ═══\n');
 
     const phrCases = [
         { label: 'Empty everything', data: { tableId: TABLE, players: [], result: { winners: [], players: [] } } },
@@ -273,7 +273,7 @@ function isValidAction(action) {
     // Verify that the 6 utility functions we moved actually receive
     // real equityFinal values (not 0) by checking decision behavior
     // ══════════════════════════════════════════════════════════════
-    console.log('\n═══ TEST 6: DEFERRED UTILITY CALL DEEP VERIFICATION ═══\n');
+    console.debug('\n═══ TEST 6: DEFERRED UTILITY CALL DEEP VERIFICATION ═══\n');
 
     // If multiWayGov still received 0, it would ALWAYS block aggression in 4-way
     // With real equity (nuts), it should allow SOME aggression
@@ -309,7 +309,7 @@ function isValidAction(action) {
     // ══════════════════════════════════════════════════════════════
     // TEST 7: MODULE 24 RIVER DONK BLOCK — ACTUALLY FIRES
     // ══════════════════════════════════════════════════════════════
-    console.log('\n═══ TEST 7: MODULE 24 RIVER DONK BLOCK FIRES IN RIVER ═══\n');
+    console.debug('\n═══ TEST 7: MODULE 24 RIVER DONK BLOCK FIRES IN RIVER ═══\n');
 
     // If Module 24 was still dead code, the horse with 100% equity facing a small
     // river donk bet IP would not get the Module 24 raise. Let's verify.
@@ -324,7 +324,7 @@ function isValidAction(action) {
     // ══════════════════════════════════════════════════════════════
     // TEST 8: HOLDEM REGRESSION — PLO changes don't break Holdem
     // ══════════════════════════════════════════════════════════════
-    console.log('\n═══ TEST 8: HOLDEM REGRESSION ═══\n');
+    console.debug('\n═══ TEST 8: HOLDEM REGRESSION ═══\n');
 
     const holdemHands = [
         { label: 'AA preflop', hand: [{ rank: 14, suit: 0 }, { rank: 14, suit: 1 }], board: [], phase: 'preflop', pot: 6, toCall: 4 },
@@ -351,7 +351,7 @@ function isValidAction(action) {
     // ══════════════════════════════════════════════════════════════
     // TEST 9: OUTPUT INTEGRITY — No NaN, Infinity, undefined
     // ══════════════════════════════════════════════════════════════
-    console.log('\n═══ TEST 9: OUTPUT INTEGRITY ═══\n');
+    console.debug('\n═══ TEST 9: OUTPUT INTEGRITY ═══\n');
 
     let nanCount = 0, undefinedCount = 0;
     for (let i = 0; i < 50; i++) {
@@ -380,7 +380,7 @@ function isValidAction(action) {
     // ══════════════════════════════════════════════════════════════
     // TEST 10: DATA FLOW — Recording feeds detection feeds decision
     // ══════════════════════════════════════════════════════════════
-    console.log('\n═══ TEST 10: DATA FLOW PIPELINE ═══\n');
+    console.debug('\n═══ TEST 10: DATA FLOW PIPELINE ═══\n');
 
     // Module 25: Record → Detect → Available in state
     const FLOW_OPP = 'flow-test-opp-001';
@@ -420,15 +420,15 @@ function isValidAction(action) {
     // ══════════════════════════════════════════════════════════════
     // FINAL RESULTS
     // ══════════════════════════════════════════════════════════════
-    console.log('\n═══════════════════════════════════════════════════════════════');
-    console.log(`  RESULTS: ${passed} passed, ${failed} failed`);
-    console.log('═══════════════════════════════════════════════════════════════');
+    console.debug('\n═══════════════════════════════════════════════════════════════');
+    console.debug(`  RESULTS: ${passed} passed, ${failed} failed`);
+    console.debug('═══════════════════════════════════════════════════════════════');
     if (failed > 0) {
-        console.log('\n🔴 NEW BUGS FOUND:');
-        newBugs.forEach(b => console.error(`  - ${b}`));
+        console.debug('\n🔴 NEW BUGS FOUND:');
+        newBugs.forEach(b => console.warn(`  - ${b}`));
         process.exit(1);
     } else {
-        console.log('\n✅ STRESS TEST CLEAN — ZERO NEW BUGS — ENGINE IS BATTLE-READY');
+        console.debug('\n✅ STRESS TEST CLEAN — ZERO NEW BUGS — ENGINE IS BATTLE-READY');
     }
-    console.log('');
+    console.debug('');
 })();

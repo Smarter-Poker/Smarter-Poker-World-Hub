@@ -74,7 +74,7 @@ export default function PlayerCheckInPage() {
         setPromotions(promosData.data?.promotions || []);
       }
     } catch (err) {
-      console.error('Fetch failed:', err);
+      console.warn('Fetch failed:', err);
       setError('Unable to load venue information');
     } finally {
       setLoading(false);

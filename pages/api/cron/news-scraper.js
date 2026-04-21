@@ -265,7 +265,7 @@ async function fetchOgImageViaProxy(url) {
         }
         return null;
     } catch (error) {
-        console.error(`   Proxy image fetch failed: ${error.message}`);
+        console.warn(`   Proxy image fetch failed: ${error.message}`);
         return null;
     }
 }
@@ -292,7 +292,7 @@ async function fetchOgImageViaNoEmbed(url) {
         }
         return null;
     } catch (error) {
-        console.error(`   Noembed image fetch failed: ${error.message}`);
+        console.warn(`   Noembed image fetch failed: ${error.message}`);
         return null;
     }
 }
@@ -400,7 +400,7 @@ async function extractCardPlayerImage(articleUrl) {
                         return candidateUrl;
                     }
                 }
-            } catch (e) { /* continue to next candidate */ }
+            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         }
     }
 
@@ -487,7 +487,7 @@ function extractArticleImage(html, baseUrl = '') {
                 // Also check thumbnailUrl
                 if (item.thumbnailUrl) return item.thumbnailUrl;
             }
-        } catch (e) { /* ignore JSON parse errors */ }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     }
 
     // 4. Try featured image classes with lazy-loading support
@@ -680,7 +680,7 @@ async function scrapeRSS(source) {
             }
         }
     } catch (error) {
-        console.error(`   RSS Error: ${error.message}`);
+        console.warn(`   RSS Error: ${error.message}`);
     }
 
     return articles;
@@ -1240,7 +1240,7 @@ async function postToSocialFeed(article, newsPosterId) {
         });
 
     if (error) {
-        console.error(`   ✗ Social post error: ${error.message}`);
+        console.warn(`   ✗ Social post error: ${error.message}`);
     } else {
     }
 }
@@ -1278,7 +1278,7 @@ async function saveArticle(article, newsPosterId) {
     const savedArticle = data?.[0] || null;
 
     if (error && !error.message.includes('duplicate')) {
-        console.error(`   ✗ DB Error: ${error.message}`);
+        console.warn(`   ✗ DB Error: ${error.message}`);
         return null;
     }
 
@@ -1302,7 +1302,7 @@ async function archiveOldArticles() {
         .select('id');
 
     if (error) {
-        console.error('Archive error:', error.message);
+        console.warn('Archive error:', error.message);
         return 0;
     }
 
@@ -1372,7 +1372,7 @@ export default async function handler(req, res) {
 
                       return { name: source.name, stats: sourceStats };
                   } catch (error) {
-                      console.error(`   ✗ ${source.name} error: ${error.message}`);
+                      console.warn(`   ✗ ${source.name} error: ${error.message}`);
                       throw { name: source.name, message: error.message };
                   }
               })
@@ -1403,13 +1403,13 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('❌ Scraper error:', error);
+          console.warn('❌ Scraper error:', error);
           return res.status(500).json({ success: false, error: error.message, results });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

@@ -159,7 +159,7 @@ function getPersistedRecipients() {
 function persistRecipients(recipients) {
     try {
         localStorage.setItem(RECENT_RECIPIENTS_KEY, JSON.stringify(recipients.slice(0, 5)));
-    } catch (_) { /* quota exceeded */ }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 }
 
 // ── R8-I3: Rate-limit error parser ──
@@ -397,7 +397,7 @@ async function exportTransactionsPDF(filteredTx, balance, stats) {
         showStoreToast('success', 'PDF statement exported successfully');
         return true;
     } catch (err) {
-        console.error('PDF export failed:', err);
+        console.warn('PDF export failed:', err);
         showStoreToast('error', 'PDF export failed. Try CSV instead.');
         return false;
     }
@@ -425,7 +425,7 @@ function setCachedTransactions(transactions, balance, total) {
         localStorage.setItem(CACHE_KEY, JSON.stringify({
             transactions, balance, total, ts: Date.now()
         }));
-    } catch (_) { /* quota exceeded — ignore */ }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 }
 
 // ── PERF-4: Read cached balance from header cache ──
@@ -833,7 +833,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 throw new Error(`Server error ${res.status}`);
             }
         } catch (err) {
-            console.error('Failed to load transactions:', err);
+            console.warn('Failed to load transactions:', err);
             if (offset === 0) {
                 setError('Failed to load transactions. Please try again.');
             }
@@ -900,9 +900,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 const data = await res.json();
                 setTransferFriends(data.data?.friends || []);
             }
-        } catch (_) {
-            // Network/parse errors — silently fail
-        } finally {
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); } finally {
             // ── BUG-FIX: Always clear loading state, even on early returns ──
             setFriendsLoading(false);
         }

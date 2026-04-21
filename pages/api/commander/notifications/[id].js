@@ -62,7 +62,7 @@ export default async function handler(req, res) {
       .maybeSingle();
 
     if (error) {
-      console.error('Mark read error:', error);
+      console.warn('Mark read error:', error);
       return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
@@ -78,7 +78,7 @@ export default async function handler(req, res) {
       .eq('player_id', user.id);
 
     if (error) {
-      console.error('Delete error:', error);
+      console.warn('Delete error:', error);
       return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
@@ -88,7 +88,7 @@ export default async function handler(req, res) {
   return res.status(405).json({ success: false, error: 'Method not allowed' });
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[pages/api/commander/notifications/[id].js]', err);
+    console.warn('[pages/api/commander/notifications/[id].js]', err);
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

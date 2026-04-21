@@ -275,7 +275,7 @@ export default async function handler(req, res) {
       }
 
       if (!graphValid) {
-        console.error('[SETTLE] DAG validation failed:', graphErrors);
+        console.warn('[SETTLE] DAG validation failed:', graphErrors);
         // Continue anyway but log the error — don't block settlement
         logAudit(supabaseAdmin, {
           actionType: 'settlement_dag_error',
@@ -302,7 +302,7 @@ export default async function handler(req, res) {
 
         while (currentAgent.parent_agent_id) {
           if (visitedTree.has(currentAgent.parent_agent_id)) {
-            console.error(`[CRITICAL] Infinite MLM loop detected at agent ${currentAgent.id}. Breaking upline propagation.`);
+            console.warn(`[CRITICAL] Infinite MLM loop detected at agent ${currentAgent.id}. Breaking upline propagation.`);
             break;
           }
 
@@ -388,7 +388,7 @@ export default async function handler(req, res) {
         });
 
         if (holdDebitErr) {
-          console.error('[settle-period] union hold debit failed (treasury shortfall):', holdDebitErr.message);
+          console.warn('[settle-period] union hold debit failed (treasury shortfall):', holdDebitErr.message);
           // Skip union credit — don't create chips from thin air
         } else {
           // Credit the hold amount into the union's rake_wallet
@@ -396,7 +396,7 @@ export default async function handler(req, res) {
             p_union_id: club.union_id,
             p_wallet: 'rake_wallet',
             p_amount: unionHold,
-          }).catch(e => console.error('[settle-period] union rake_wallet credit error:', e.message));
+          }).catch(e => console.warn('[settle-period] union rake_wallet credit error:', e.message));
 
           // Ledger entry for union wallet
           await supabaseAdmin.from('union_wallet_transactions').insert({
@@ -408,7 +408,7 @@ export default async function handler(req, res) {
             club_id: clubId,
             period_id: pid,
             notes: `Settlement hold from ${club.name} — Period #${period.period_number} (${(unionRakeHold * 100).toFixed(1)}% of ${totalRake.toLocaleString()} rake)`,
-          }).catch(e => console.error('[settle-period] union wallet tx insert error:', e.message));
+          }).catch(e => console.warn('[settle-period] union wallet tx insert error:', e.message));
 
           await supabaseAdmin.from('chip_transactions').insert({
             club_id: clubId,
@@ -444,7 +444,7 @@ export default async function handler(req, res) {
             status: 'paid',
             chips_transferred: true,
             transferred_at: new Date().toISOString(),
-          }).catch(e => console.error('[settle-period] Invoice insert error:', e.message));
+          }).catch(e => console.warn('[settle-period] Invoice insert error:', e.message));
         } // end else (debit succeeded)
       }
 
@@ -468,7 +468,7 @@ export default async function handler(req, res) {
             commission_amount: cr.commission_amount,
           },
           status: 'generated',
-        }).catch(e => console.error('[settle-period] Agent invoice error:', e.message));
+        }).catch(e => console.warn('[settle-period] Agent invoice error:', e.message));
       }
 
       // Close the period
@@ -542,7 +542,7 @@ export default async function handler(req, res) {
         });
 
         if (debitErr) {
-          console.error('[settle-period] pay debit failed:', debitErr.message);
+          console.warn('[settle-period] pay debit failed:', debitErr.message);
           return res.status(400).json({ success: false, error: 'Insufficient club treasury to pay commission' });
         }
 
@@ -753,7 +753,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[settle-period]', err);
+    console.warn('[settle-period]', err);
     return res.status(500).json({ success: false, error: 'Settlement action failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
   }
 }

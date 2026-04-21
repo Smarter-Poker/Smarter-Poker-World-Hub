@@ -94,7 +94,7 @@ export default async function handler(req, res) {
               .limit(questionCount);
 
           if (error) {
-              console.error('[BatchPreload] Supabase error:', error);
+              console.warn('[BatchPreload] Supabase error:', error);
               // Don't return 500 — fall through to solver engine
           }
 
@@ -138,7 +138,7 @@ export default async function handler(req, res) {
                           console.debug(`[BatchPreload] DeterministicEngine generated ${batch.length} solver questions for ${gameId}`);
                       }
                   } catch (solverErr) {
-                      console.error('[BatchPreload] ⚠️ Solver engine failed:', solverErr.message);
+                      console.warn('[BatchPreload] ⚠️ Solver engine failed:', solverErr.message);
                   }
               } else if (gameCfg?.engine === 'SCENARIO' || pioConfig?.sourceOfTruth === 'SCENARIO') {
                   // SCENARIO/PSYCHOLOGY: Use DeterministicEngine for scenario questions too
@@ -369,13 +369,13 @@ export default async function handler(req, res) {
           });
 
       } catch (err) {
-          console.error('[BatchPreload] Unexpected error:', err);
+          console.warn('[BatchPreload] Unexpected error:', err);
           return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

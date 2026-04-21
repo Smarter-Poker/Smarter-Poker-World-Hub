@@ -205,7 +205,7 @@ export default async function handler(req, res) {
           throw new Error('Failed to parse Grok response');
 
       } catch (error) {
-          console.error('[InfiniteScenario] Error:', error.message);
+          console.warn('[InfiniteScenario] Error:', error.message);
 
           // Deterministic fallback — use the seed to build a template question
           const fallbackQuestion = {
@@ -247,7 +247,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

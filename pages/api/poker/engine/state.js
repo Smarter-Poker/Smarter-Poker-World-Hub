@@ -54,7 +54,7 @@ if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' });
     });
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[engine/state]', err);
+    console.warn('[engine/state]', err);
     return res.status(500).json({ error: 'Internal error' });
   }
 }

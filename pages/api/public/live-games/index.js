@@ -57,7 +57,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -85,7 +85,7 @@ async function handleGet(req, res) {
             });
 
             if (error) {
-                console.error('Error fetching nearby live games:', error);
+                console.warn('Error fetching nearby live games:', error);
                 return res.status(500).json({ success: false, error: 'Failed to fetch live games' });
             }
 
@@ -124,7 +124,7 @@ async function handleGet(req, res) {
             .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
 
         if (error) {
-            console.error('Error fetching live games:', error);
+            console.warn('Error fetching live games:', error);
             return res.status(500).json({ success: false, error: 'Failed to fetch live games' });
         }
 
@@ -153,7 +153,7 @@ async function handleGet(req, res) {
         });
 
     } catch (error) {
-        console.error('Live games GET error:', error);
+        console.warn('Live games GET error:', error);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }
@@ -251,7 +251,7 @@ async function handlePost(req, res) {
         });
 
         if (reportError) {
-            console.error('Error reporting live game:', reportError);
+            console.warn('Error reporting live game:', reportError);
             return res.status(500).json({ success: false, error: 'Failed to report game' });
         }
 
@@ -263,7 +263,7 @@ async function handlePost(req, res) {
             .maybeSingle();
 
         if (fetchError) {
-            console.error('Error fetching reported game:', fetchError);
+            console.warn('Error fetching reported game:', fetchError);
         }
 
         return res.status(201).json({
@@ -274,7 +274,7 @@ async function handlePost(req, res) {
 
     } catch (error) {
         try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('Live games POST error:', error);
+        console.warn('Live games POST error:', error);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

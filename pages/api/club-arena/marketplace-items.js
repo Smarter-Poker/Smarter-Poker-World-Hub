@@ -96,9 +96,7 @@ export default async function handler(req, res) {
                   item_name: p.club_shop_items?.name || null,
                   item_category: p.club_shop_items?.category || null,
               }));
-          } catch (_joinErr) {
-              // FK join failed — fall back to basic query without item name enrichment
-              const { data: purchases, error: purErr } = await getSupabase()
+          } catch (_joinErr) { console.warn('[App] Handled exception:', _joinErr?.message || _joinErr); } = await getSupabase()
                   .from('club_shop_purchases')
                   .select('id, item_id, price_paid, created_at')
                   .eq('club_id', clubId)
@@ -120,13 +118,13 @@ export default async function handler(req, res) {
               role: membership.role
           });
       } catch (err) {
-          console.error('[marketplace-items]', err);
+          console.warn('[marketplace-items]', err);
           return res.status(500).json({ error: 'Failed to fetch marketplace data', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

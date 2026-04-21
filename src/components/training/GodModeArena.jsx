@@ -2489,7 +2489,7 @@ function GodModeArenaInner({
                                         <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>{grade.label}</span>
                                     </div>
                                 );
-                            } catch (_) { /* non-critical */ }
+                            } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                             return null;
                         })()}
                     </motion.div>
@@ -3305,7 +3305,7 @@ function GodModeArenaInner({
                                             setTimeout(() => setShareStatus(null), 3000);
                                         }
                                     } catch (e) {
-                                        console.error('[Share] Error:', e);
+                                        console.warn('[Share] Error:', e);
                                         setShareStatus('error');
                                         setTimeout(() => setShareStatus(null), 3000);
                                     }

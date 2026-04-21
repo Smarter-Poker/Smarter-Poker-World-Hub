@@ -79,7 +79,7 @@ export default function AddMemberModal({ isOpen, onClose, onSubmit, venueId }) {
             }
             setShowCamera(true);
         } catch (err) {
-            console.error('Camera error:', err);
+            console.warn('Camera error:', err);
             setError('Camera access denied. Please enter information manually.');
         }
     }, []);

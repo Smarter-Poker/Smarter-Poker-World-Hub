@@ -90,7 +90,7 @@ function emailWrapper(title, bodyContent) {
 async function sendEmail({ to, subject, html, from }) {
     const resend = getResend();
     if (!resend) {
-        console.log('[Email MOCK]', { to, subject });
+        console.debug('[Email MOCK]', { to, subject });
         return { success: false, reason: 'Resend not configured' };
     }
 
@@ -103,13 +103,13 @@ async function sendEmail({ to, subject, html, from }) {
         });
 
         if (error) {
-            console.error('[Email] Send error:', error);
+            console.warn('[Email] Send error:', error);
             return { success: false, reason: error.message || 'Send failed' };
         }
 
         return { success: true, messageId: data?.id };
     } catch (err) {
-        console.error('[Email] Error:', err.message);
+        console.warn('[Email] Error:', err.message);
         return { success: false, reason: err.message };
     }
 }

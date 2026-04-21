@@ -159,19 +159,19 @@ try {
           const entry = controller.lobby?.tables?.get(tableId);
           const clubId = entry?.config?.clubId;
           antiCheat.persistFlags(playerId, clubId, tableId)
-            .catch(err => console.error('[AntiCheat] Persist bot flags error:', err.message));
+            .catch(err => console.warn('[AntiCheat] Persist bot flags error:', err.message));
         }
       }
 
       return res.json({ success: true });
     } catch (err) {
-      console.error('[engine/action]', err);
+      console.warn('[engine/action]', err);
       return res.status(500).json({ success: false, error: 'Internal error' });
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

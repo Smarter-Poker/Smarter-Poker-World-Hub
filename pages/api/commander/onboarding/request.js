@@ -100,7 +100,7 @@ export default async function handler(req, res) {
             data: { lead_id: 'pending-table-creation' }
           });
         }
-        console.error('Database error:', error);
+        console.warn('Database error:', error);
         throw error;
       }
 
@@ -163,7 +163,7 @@ export default async function handler(req, res) {
             })
           });
         } catch (emailError) {
-          console.error('Failed to send emails:', emailError);
+          console.warn('Failed to send emails:', emailError);
           // Don't fail the request if email fails
         }
       }
@@ -174,7 +174,7 @@ export default async function handler(req, res) {
       });
 
     } catch (error) {
-      console.error('Onboarding request error:', error);
+      console.warn('Onboarding request error:', error);
       return res.status(500).json({
         success: false,
         error: { code: 'SERVER_ERROR', message: 'Failed to submit request' }
@@ -183,7 +183,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

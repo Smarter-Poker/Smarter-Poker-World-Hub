@@ -52,7 +52,7 @@ function getBrain() {
     try {
       _brain = require('../../../src/lib/poker-engine/brain');
     } catch (err) {
-      console.error('[poker-brain/decide] Failed to load Horse Brain:', err.message);
+      console.warn('[poker-brain/decide] Failed to load Horse Brain:', err.message);
       throw new Error('Horse Brain module load failure: ' + err.message);
     }
   }
@@ -76,7 +76,7 @@ function clearHorseSideEffects(brain) {
     if (core.chatMessages && Array.isArray(core.chatMessages)) {
       core.chatMessages.length = 0;
     }
-  } catch (_) { /* swallow — don't crash on cleanup failure */ }
+  } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 }
 
 /**
@@ -360,7 +360,7 @@ export default async function handler(req, res) {
 
     // ── VALIDATE RESULT ──────────────────────────────────────────────
     if (!result || !result.action || typeof result.action.type !== 'string') {
-      console.error('[poker-brain/decide] Router returned invalid result:', result);
+      console.warn('[poker-brain/decide] Router returned invalid result:', result);
       return res.status(200).json({
         action: 'CHECK',
         amount: null,
@@ -388,7 +388,7 @@ export default async function handler(req, res) {
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     const isTimeout = err.message && err.message.includes('timed out');
-    console.error('[poker-brain/decide] error:', isTimeout ? 'TIMEOUT' : err.message);
+    console.warn('[poker-brain/decide] error:', isTimeout ? 'TIMEOUT' : err.message);
     return res.status(isTimeout ? 504 : 500).json({
       error: isTimeout ? 'Decision engine timeout' : 'Decision engine error',
       detail: err.message,

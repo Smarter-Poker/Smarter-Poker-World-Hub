@@ -71,7 +71,7 @@ export default function ChallengesPage() {
         alert(`🎉 +${data.diamondsAwarded} diamonds claimed!`);
       }
     } catch (error) {
-      console.error('Claim error:', error);
+      console.warn('Claim error:', error);
     } finally {
       setClaiming(null);
     }

@@ -44,7 +44,7 @@ export default function HighHands() {
   });
 
   useEffect(() => {
-    try { const s = getStaffData(); if (s.venue_id) setVenueId(s.venue_id); } catch (e) { /* silent */ }
+    try { const s = getStaffData(); if (s.venue_id) setVenueId(s.venue_id); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
   }, []);
 
   const fetchData = useCallback(async () => {
@@ -54,7 +54,7 @@ export default function HighHands() {
 const json = await commanderFetchJSON(`/api/commander/high-hands?venue_id=${venueId}&limit=50`, {});
       setHighHands(json.high_hands || []);
       setCurrentHigh(json.current_high || null);
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
     finally { setLoading(false); }
   }, [venueId]);
 
@@ -107,7 +107,7 @@ const res = await commanderFetch(`/api/commander/high-hands/${id}`, {
         broadcastChange('settings');
         fetchData();
       }
-    } catch (err) { console.error(err); setMessage({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
+    } catch (err) { console.warn(err); setMessage({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
   };
 
   const handleDelete = async (id) => {
@@ -119,7 +119,7 @@ const res = await commanderFetch(`/api/commander/high-hands/${id}`, {
         broadcastChange('settings');
         fetchData();
       }
-    } catch (err) { console.error(err); setMessage({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
+    } catch (err) { console.warn(err); setMessage({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
   };
 
   useEffect(() => {

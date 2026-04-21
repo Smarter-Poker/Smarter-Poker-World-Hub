@@ -162,7 +162,7 @@ export default function LocationMapPicker({ initialLat, initialLng, onConfirm, o
                 }
             }
         } catch (err) {
-            console.error('[LocationMapPicker] Search failed:', err);
+            console.warn('[LocationMapPicker] Search failed:', err);
         } finally {
             setIsSearching(false);
         }

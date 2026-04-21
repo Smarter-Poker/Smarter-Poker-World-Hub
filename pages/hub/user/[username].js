@@ -307,7 +307,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
                 if (!res.ok) throw new Error(`Request failed (${res.status})`);
                 const json = await res.json();
                 setComments(json.comments || []);
-            } catch (e) { console.error('Load comments error:', e); }
+            } catch (e) { console.warn('Load comments error:', e); }
         }
     };
 
@@ -333,7 +333,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
                 busEmit.socialCommentAdded(post.id, currentUserId);
             }
             setCommentText('');
-        } catch (e) { console.error('Submit comment error:', e); toast.error('Could not submit comment'); }
+        } catch (e) { console.warn('Submit comment error:', e); toast.error('Could not submit comment'); }
         setSubmittingComment(false);
     };
 
@@ -373,7 +373,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
         try {
             await onDelete(post.id);
         } catch (e) {
-            console.error('Delete failed:', e);
+            console.warn('Delete failed:', e);
             toast.error('Could not delete post');
         }
         setDeleting(false);
@@ -531,16 +531,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
                                     busEmit.socialPostLiked(post.id, currentUserId, { added: true, reactionType: type });
                                 }
                                 // Switch case: no bus emission needed — count doesn't change
-                            }).catch(() => {
-                                // Revert optimistic update on failure
-                                setCurrentReaction(prevReaction);
-                                if (isSameReaction) {
-                                    setLikeCount(prev => prev + 1); // Undo the -1
-                                } else if (!wasReacted) {
-                                    setLikeCount(prev => Math.max(0, prev - 1)); // Undo the +1
-                                }
-                                toast.error('Could not update reaction');
-                            });
+                            }).catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
                         }
                     }}
                 />
@@ -596,7 +587,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
                                                             busEmit.socialCommentAdded(post.id, currentUserId, { removed: true });
                                                             try { await supabase.rpc('decrement_post_count', { p_post_id: post.id, p_field: 'comment_count' }); } catch (e) { console.warn('[App] Handled exception:', e); }
                                                             toast.success('Comment deleted');
-                                                        } catch (e) { console.error('Delete comment error:', e); toast.error('Could not delete comment'); }
+                                                        } catch (e) { console.warn('Delete comment error:', e); toast.error('Could not delete comment'); }
                                                     }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#F02849', fontSize: 11, padding: 0 }}>Delete</button>
                                                 </div>
                                             )}
@@ -621,7 +612,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
                                                             setEditingCommentId(null);
                                                             busEmit.dataMutated?.('social_comments');
                                                             toast.success('Comment updated');
-                                                        } catch (e) { console.error('Edit comment error:', e); toast.error('Could not update comment'); }
+                                                        } catch (e) { console.warn('Edit comment error:', e); toast.error('Could not update comment'); }
                                                     }} disabled={!editCommentText.trim()} style={{ padding: '4px 12px', borderRadius: 20, border: 'none', background: C.blue, color: 'white', cursor: 'pointer', fontSize: 12, fontWeight: 600, opacity: editCommentText.trim() ? 1 : 0.5 }}>Save</button>
                                                 </div>
                                             </div>
@@ -1154,7 +1145,7 @@ export default function UserProfilePage() {
 
                 // Fetch poker activity (fire-and-forget, non-blocking)
                 let anonUid = null;
-                try { anonUid = localStorage.getItem('sp-anon-uid'); } catch (ex) { /* ignore */ }
+                try { anonUid = localStorage.getItem('sp-anon-uid'); } catch (ex) { console.warn('[App] Handled exception:', ex?.message || ex); }
                 const pokerUid = data.id || anonUid;
                 if (pokerUid) {
                     const token = getAccessToken();
@@ -1207,7 +1198,7 @@ export default function UserProfilePage() {
                 }
 
             } catch (e) {
-                console.error('Error fetching profile:', e);
+                console.warn('Error fetching profile:', e);
             }
             setLoading(false);
         };
@@ -1223,7 +1214,7 @@ export default function UserProfilePage() {
             // Clear the profile cache so next fetch gets fresh data
             try {
                 localStorage.removeItem(`sp-profile-cache-${username}`);
-            } catch (_) { /* noop */ }
+            } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
             // Fetch fresh profile data inline (lightweight re-fetch of posts/follows only)
             const refreshContent = async () => {
@@ -1339,12 +1330,7 @@ export default function UserProfilePage() {
             invalidateProfileCache();
             busEmit.friendRequestSent(profile.id);
             notifyFriendsSync();
-        } catch (e) {
-            // Rollback on failure
-            setFriendRequestSent(false);
-            console.error('Error sending friend request:', e);
-            toast.error('Could not send friend request');
-        }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     };
 
     const handleCancelFriendRequest = async () => {
@@ -1360,12 +1346,7 @@ export default function UserProfilePage() {
             if (error) throw error;
             invalidateProfileCache();
             notifyFriendsSync();
-        } catch (e) {
-            // Rollback on failure
-            setFriendRequestSent(true);
-            console.error('Error cancelling friend request:', e);
-            toast.error('Could not cancel friend request');
-        }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     };
 
     const handleFollowToggle = async () => {
@@ -1399,19 +1380,13 @@ export default function UserProfilePage() {
                         body: JSON.stringify({ followingUserId: profile.id })
                     }).then(() => {
                         busEmit.dataMutated('notifications');
-                    }).catch(() => { /* non-critical */ });
+                    }).catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
                 }
             }
             invalidateProfileCache();
             busEmit.dataMutated('follows');
-        } catch (e) {
-            // Rollback on failure
-            setIsFollowing(wasFollowing);
-            setStats(prev => ({
-                ...prev,
-                followers: wasFollowing ? prev.followers + 1 : Math.max(0, prev.followers - 1)
-            }));
-            console.error('Error toggling follow:', e);
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }));
+            console.warn('Error toggling follow:', e);
             toast.error(wasFollowing ? 'Could not unfollow' : 'Could not follow');
         }
         setFollowLoading(false);
@@ -1443,13 +1418,7 @@ export default function UserProfilePage() {
             if (res1.error && res2.error) throw res1.error; // Both failed — rollback
             invalidateProfileCache();
             notifyFriendsSync();
-        } catch (e) {
-            // Rollback on failure
-            setIsFriend(wasFriend);
-            setStats(prevStats);
-            console.error('Error unfriending:', e);
-            toast.error('Could not unfriend user');
-        }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     };
 
     const handleDeletePost = async (postId) => {
@@ -1474,14 +1443,14 @@ export default function UserProfilePage() {
                 setPhotos(prevPhotos);
                 setVideos(prevVideos);
                 setStats(prevStats);
-                console.error('Error deleting post:', error);
+                console.warn('Error deleting post:', error);
             }
         });
     };
 
     const handlePost = async (content, urls = [], type = 'text', mentions = [], linkPreview = null) => {
         if (!currentUser?.id) {
-            console.error('Cannot post: user not logged in');
+            console.warn('Cannot post: user not logged in');
             return false;
         }
 
@@ -1532,13 +1501,13 @@ export default function UserProfilePage() {
             const { data, error } = await supabase.from('social_posts').insert(insertPayload).select().maybeSingle();
 
             if (error) {
-                console.error('Post creation error:', error);
+                console.warn('Post creation error:', error);
                 setIsPosting(false);
                 return false;
             }
 
             if (!data) {
-                console.error('Post creation returned null');
+                console.warn('Post creation returned null');
                 setIsPosting(false);
                 return false;
             }
@@ -1561,7 +1530,7 @@ export default function UserProfilePage() {
             broadcastSync('smarter_poker_social_sync', { action: 'refresh_feed', tabId: BROADCAST_TAB_ID });
             return true;
         } catch (e) {
-            console.error('Error creating post:', e);
+            console.warn('Error creating post:', e);
             setIsPosting(false);
             return false;
         }

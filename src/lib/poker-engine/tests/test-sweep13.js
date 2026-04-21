@@ -24,14 +24,14 @@ let failed = 0;
 const failures = [];
 
 function assert(condition, label) {
-    if (condition) { passed++; console.log(`  ✅ ${label}`); }
-    else { failed++; failures.push(label); console.error(`  ❌ FAIL: ${label}`); }
+    if (condition) { passed++; console.debug(`  ✅ ${label}`); }
+    else { failed++; failures.push(label); console.warn(`  ❌ FAIL: ${label}`); }
 }
 
 (async () => {
-    console.log('\n═══════════════════════════════════════════════════════════════');
-    console.log('  🔬 SWEEP 13: PLO ANTI-EXPLOIT PHASE 2 VERIFICATION');
-    console.log('═══════════════════════════════════════════════════════════════\n');
+    console.debug('\n═══════════════════════════════════════════════════════════════');
+    console.debug('  🔬 SWEEP 13: PLO ANTI-EXPLOIT PHASE 2 VERIFICATION');
+    console.debug('═══════════════════════════════════════════════════════════════\n');
 
     const HORSE = '00000000-0000-0000-0000-000000000029';
     const HUMAN = '99999999-9999-9999-9999-999999999902';
@@ -45,7 +45,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 1: MODULE 12 — PLO Multiway Equity Discount
     // ═══════════════════════════════════════════════════════════════
-    console.log('--- TEST 1: Module 12 — applyMultiwayEquityDiscount ---');
+    console.debug('--- TEST 1: Module 12 — applyMultiwayEquityDiscount ---');
     assert(Brain.applyMultiwayEquityDiscount(70, 2) === 70, '2 players: no discount (70→70)');
     assert(Brain.applyMultiwayEquityDiscount(70, 3) === 60, '3 players: -10 discount (70→60)');
     assert(Brain.applyMultiwayEquityDiscount(70, 4) === 52, '4 players: -18 discount (70→52)');
@@ -56,7 +56,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 2: MODULE 13 — PLO Nut-Bias Exploit Detector
     // ═══════════════════════════════════════════════════════════════
-    console.log('\n--- TEST 2: Module 13 — detectNutBiasExploitBoard ---');
+    console.debug('\n--- TEST 2: Module 13 — detectNutBiasExploitBoard ---');
     // Dry rainbow low board
     const dryBoard = [{ rank: 2, suit: 0 }, { rank: 5, suit: 1 }, { rank: 9, suit: 2 }];
     const dryResult = Brain.detectNutBiasExploitBoard(dryBoard, 2);
@@ -75,7 +75,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 3: MODULE 11 — Proactive Range Rotation
     // ═══════════════════════════════════════════════════════════════
-    console.log('\n--- TEST 3: Module 11 — getRangeRotationGear ---');
+    console.debug('\n--- TEST 3: Module 11 — getRangeRotationGear ---');
     const gear1 = Brain.getRangeRotationGear(HORSE, TABLE_A);
     assert(typeof gear1.gear === 'string', `Gear is a string: "${gear1.gear}"`);
     assert(['A', 'B', 'C', 'D'].includes(gear1.gear), `Gear is valid: ${gear1.gear}`);
@@ -96,7 +96,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 4: MODULE 10 — Cross-Table Collusion Radar
     // ═══════════════════════════════════════════════════════════════
-    console.log('\n--- TEST 4: Module 10 — crossTableRadar ---');
+    console.debug('\n--- TEST 4: Module 10 — crossTableRadar ---');
     assert(Brain.crossTableRadar instanceof Map, 'crossTableRadar is a Map');
 
     // Simulate human at 3 tables via processHandResult
@@ -118,7 +118,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 5: MODULE 15 — Anti-Timebank Abuse
     // ═══════════════════════════════════════════════════════════════
-    console.log('\n--- TEST 5: Module 15 — timeAbuseSuspicion ---');
+    console.debug('\n--- TEST 5: Module 15 — timeAbuseSuspicion ---');
     for (let i = 0; i < 5; i++) {
         await Brain.processHandResult({
             tableId: TABLE_A,
@@ -136,7 +136,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 6: MODULE 14 — Dynamic Blacklist Enforcer (getThreatScore)
     // ═══════════════════════════════════════════════════════════════
-    console.log('\n--- TEST 6: Module 14 — getThreatScore ---');
+    console.debug('\n--- TEST 6: Module 14 — getThreatScore ---');
     const botMap = Brain.suspectBotMap;
     botMap.set(HUMAN, { perfectFolds: 20, gtoSizes: 25, humanErrors: 2, handsObserved: 30, suspectScore: 90 });
 
@@ -152,7 +152,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 7: MODULE 14 — isBlacklisted
     // ═══════════════════════════════════════════════════════════════
-    console.log('\n--- TEST 7: Module 14 — isBlacklisted ---');
+    console.debug('\n--- TEST 7: Module 14 — isBlacklisted ---');
     assert(Brain.isBlacklisted(HUMAN) === false, 'No blacklist in cache yet (clean state)');
 
     Brain.threatIntelCache.set(HUMAN, {
@@ -170,7 +170,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 8: MODULE 9 — Threat Intel Cache
     // ═══════════════════════════════════════════════════════════════
-    console.log('\n--- TEST 8: Module 9 — Threat Intel Cache ---');
+    console.debug('\n--- TEST 8: Module 9 — Threat Intel Cache ---');
     assert(Brain.threatIntelCache instanceof Map, 'threatIntelCache is a Map');
     assert(typeof Brain._loadThreatIntel === 'function', '_loadThreatIntel exported');
     assert(typeof Brain._persistThreatIntel === 'function', '_persistThreatIntel exported');
@@ -178,20 +178,20 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 9: MODULE 15 — Tablebank Blacklist Map
     // ═══════════════════════════════════════════════════════════════
-    console.log('\n--- TEST 9: Module 15 — tableTimebankBlacklist ---');
+    console.debug('\n--- TEST 9: Module 15 — tableTimebankBlacklist ---');
     assert(Brain.tableTimebankBlacklist instanceof Map, 'tableTimebankBlacklist is a Map');
 
     // ═══════════════════════════════════════════════════════════════
     // TEST 10: MODULE 11 — Range Rotation State Map
     // ═══════════════════════════════════════════════════════════════
-    console.log('\n--- TEST 10: Module 11 — rangeRotationMap ---');
+    console.debug('\n--- TEST 10: Module 11 — rangeRotationMap ---');
     assert(Brain.rangeRotationMap instanceof Map, 'rangeRotationMap is a Map');
     assert(Brain.rangeRotationMap.has(`${HORSE}:${TABLE_A}`), `rangeRotationMap has entry for HORSE:TABLE_A`);
 
     // ═══════════════════════════════════════════════════════════════
     // TEST 11: MODULE 12 — Multiway Discount wired into PLO pipeline
     // ═══════════════════════════════════════════════════════════════
-    console.log('\n--- TEST 11: Module 12 — Multiway Discount Wiring ---');
+    console.debug('\n--- TEST 11: Module 12 — Multiway Discount Wiring ---');
     // Verify discount produces different values for 2 vs 5 players (function correctness)
     const disc2p = Brain.applyMultiwayEquityDiscount(60, 2);
     const disc5p = Brain.applyMultiwayEquityDiscount(60, 5);
@@ -219,7 +219,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 12: ALL PHASE 2 EXPORTS PRESENT
     // ═══════════════════════════════════════════════════════════════
-    console.log('\n--- TEST 12: Phase 2 Exports ---');
+    console.debug('\n--- TEST 12: Phase 2 Exports ---');
     const p2exports = [
         '_loadThreatIntel', '_persistThreatIntel', 'getThreatScore', 'isBlacklisted',
         'crossTableRadar', 'getRangeRotationGear', 'rangeRotationMap',
@@ -233,7 +233,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 13: REGRESSION — All Phase 1 Anti-Exploit Exports
     // ═══════════════════════════════════════════════════════════════
-    console.log('\n--- TEST 13: Regression — Phase 1 Exports ---');
+    console.debug('\n--- TEST 13: Regression — Phase 1 Exports ---');
     const p1exports = [
         'selectCounterStrategy', 'frequencyObfuscatorMap', 'showdownExposureMap',
         'patternProfitMap', 'chaosSuppressionMap', 'suspectBotMap',
@@ -245,7 +245,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 14: REGRESSION — Core Brain Functions
     // ═══════════════════════════════════════════════════════════════
-    console.log('\n--- TEST 14: Regression — Core Brain Functions ---');
+    console.debug('\n--- TEST 14: Regression — Core Brain Functions ---');
     const coreExports = ['getDecision', 'processHandResult', 'evaluatePostflopHand', 'isHorse', 'evolveHorseSkill'];
     for (const fn of coreExports) {
         assert(typeof Brain[fn] === 'function', `Brain.${fn} is function`);
@@ -254,7 +254,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // TEST 15: REGRESSION — Holdem Still Works Post-Module-12
     // ═══════════════════════════════════════════════════════════════
-    console.log('\n--- TEST 15: Regression — Holdem decisions unaffected ---');
+    console.debug('\n--- TEST 15: Regression — Holdem decisions unaffected ---');
     let holdemActions = 0;
     for (let i = 0; i < 5; i++) {
         const r = await Brain.getDecision(HORSE, {
@@ -275,15 +275,15 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     // RESULTS
     // ═══════════════════════════════════════════════════════════════
-    console.log('\n═══════════════════════════════════════════════════════════════');
-    console.log(`  RESULTS: ${passed} passed, ${failed} failed`);
-    console.log('═══════════════════════════════════════════════════════════════');
+    console.debug('\n═══════════════════════════════════════════════════════════════');
+    console.debug(`  RESULTS: ${passed} passed, ${failed} failed`);
+    console.debug('═══════════════════════════════════════════════════════════════');
     if (failed > 0) {
-        console.log('\n❌ FAILURES:');
-        failures.forEach(f => console.error(`  - ${f}`));
+        console.debug('\n❌ FAILURES:');
+        failures.forEach(f => console.warn(`  - ${f}`));
     } else {
-        console.log('\n✅ ALL PHASE 2 MODULES VERIFIED — SWEEP 13 CLEAN');
+        console.debug('\n✅ ALL PHASE 2 MODULES VERIFIED — SWEEP 13 CLEAN');
     }
-    console.log('');
+    console.debug('');
     process.exit(failed > 0 ? 1 : 0);
 })();

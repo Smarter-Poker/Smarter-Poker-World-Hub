@@ -252,7 +252,7 @@ export default function VenueReviews({ venueId, venueName }) {
                 }
             }
         } catch (err) {
-            console.error('[VenueReviews] Fetch error:', err);
+            console.warn('[VenueReviews] Fetch error:', err);
         } finally {
             setLoading(false);
         }

@@ -680,7 +680,7 @@ async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('Daily tournaments API error:', error);
+          console.warn('Daily tournaments API error:', error);
           // [DT-2 FIX] Return 500 so CDN does NOT cache this error as a valid 200 response.
           // The outer catch prevents crashing — this inner catch handles query-level failures.
           return res.status(500).json({
@@ -695,7 +695,7 @@ async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

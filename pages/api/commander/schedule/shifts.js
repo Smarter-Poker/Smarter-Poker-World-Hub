@@ -35,7 +35,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -76,7 +76,7 @@ async function handleGet(req, res) {
 
         return res.status(200).json({ success: true, data: data || [] });
     } catch (err) {
-        console.error('[Schedule Shifts] GET error:', err);
+        console.warn('[Schedule Shifts] GET error:', err);
         return res.status(500).json({ success: false, error: { message: 'Failed to fetch shifts' } });
     }
 }
@@ -123,7 +123,7 @@ async function handlePost(req, res) {
 
         return res.status(201).json({ success: true, data });
     } catch (err) {
-        console.error('[Schedule Shifts] POST error:', err);
+        console.warn('[Schedule Shifts] POST error:', err);
         return res.status(500).json({ success: false, error: { message: 'Failed to create shift' } });
     }
 }
@@ -156,7 +156,7 @@ async function handleDelete(req, res) {
         return res.status(200).json({ success: true });
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('[Schedule Shifts] DELETE error:', err);
+        console.warn('[Schedule Shifts] DELETE error:', err);
         return res.status(500).json({ success: false, error: { message: 'Failed to delete shift' } });
     }
 }

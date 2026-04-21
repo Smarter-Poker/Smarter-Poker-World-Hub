@@ -104,7 +104,7 @@ export default function MyTournamentStatus() {
                 setMyEntry(entryResult.data);
                 setChipValue(String(entryResult.data.current_chips || ''));
             }
-        } catch (err) { console.error(err); setError('Failed to load tournament data'); }
+        } catch (err) { console.warn(err); setError('Failed to load tournament data'); }
         finally { setLoading(false); }
     }, [id, authUser]);
 
@@ -148,7 +148,7 @@ export default function MyTournamentStatus() {
             const result = await Notification.requestPermission();
             setPushEnabled(result === 'granted');
         } catch (err) {
-            console.error('Push permission error:', err);
+            console.warn('Push permission error:', err);
         } finally {
             setPushRequesting(false);
         }
@@ -181,7 +181,7 @@ export default function MyTournamentStatus() {
                 setTimeout(() => setStoryShared(false), 3000);
             }
         } catch (err) {
-            console.error('Share story error:', err);
+            console.warn('Share story error:', err);
         } finally {
             setSharingStory(false);
         }

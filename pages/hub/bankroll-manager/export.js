@@ -87,7 +87,7 @@ export default function BankrollExport() {
                 }
             }
         } catch (err) {
-            console.error(`[Export] ${format} failed:`, err);
+            console.warn(`[Export] ${format} failed:`, err);
             toast.error(`${format.toUpperCase()} Export Failed`);
         }
 

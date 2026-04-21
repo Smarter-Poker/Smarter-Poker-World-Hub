@@ -28,7 +28,7 @@ function decodeSupabaseJWT(token) {
 
         const secret = process.env.SUPABASE_JWT_SECRET;
         if (!secret) {
-            console.error('[supabase-patch] SUPABASE_JWT_SECRET not configured, refusing to locally verify token.');
+            console.warn('[supabase-patch] SUPABASE_JWT_SECRET not configured, refusing to locally verify token.');
             return null;
         }
 
@@ -59,7 +59,7 @@ function createClientPatched(url, key, options) {
     const resolvedKey = key || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     if (!resolvedKey) {
-        console.error('[FATAL] No Supabase key available — check SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY');
+        console.warn('[FATAL] No Supabase key available — check SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY');
     }
 
     const client = originalCreateClient(resolvedUrl, resolvedKey || 'missing-key', options);
@@ -75,10 +75,7 @@ function createClientPatched(url, key, options) {
             if (result.data?.user) {
                 return result; // GoTrue worked, return as-is
             }
-        } catch (e) {
-            // GoTrue failed (AbortError, timeout, etc.)
-            console.warn('[supabase-patch] getUser network call failed:', e.message || e);
-        }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
         // Fallback: decode JWT locally
         if (token) {

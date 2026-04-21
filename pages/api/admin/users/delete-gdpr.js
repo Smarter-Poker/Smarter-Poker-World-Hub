@@ -146,7 +146,7 @@ export default async function handler(req, res) {
         );
 
         if (stage1Err) {
-            console.error("[GDPR admin] stage1 failed:", stage1Err);
+            console.warn("[GDPR admin] stage1 failed:", stage1Err);
             return res.status(500).json({
                 success: false,
                 error: stage1Err.message || "Anonymisation RPC failed",
@@ -219,7 +219,7 @@ export default async function handler(req, res) {
         });
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error("[GDPR admin] unexpected:", err);
+        console.warn("[GDPR admin] unexpected:", err);
         if (!res.headersSent) {
             return res
                 .status(500)

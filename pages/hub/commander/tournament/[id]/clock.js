@@ -46,7 +46,7 @@ export default function TournamentClockDisplay() {
         }
       }
     } catch (err) {
-      console.error('Failed to fetch tournament:', err);
+      console.warn('Failed to fetch tournament:', err);
     } finally {
       setLoading(false);
     }

@@ -26,7 +26,7 @@ export async function canSendFriendRequest(targetUserId) {
             .maybeSingle();
 
         if (error) {
-            console.error('[Privacy] Error checking friend request permission:', error);
+            console.warn('[Privacy] Error checking friend request permission:', error);
             return true; // Default to allowing requests if check fails
         }
 
@@ -36,7 +36,7 @@ export async function canSendFriendRequest(targetUserId) {
         // Check the allowRequests setting
         return data.friend_preferences.allowRequests !== false;
     } catch (error) {
-        console.error('[Privacy] Exception checking friend request permission:', error);
+        console.warn('[Privacy] Exception checking friend request permission:', error);
         return true;
     }
 }
@@ -55,7 +55,7 @@ export async function shouldShowOnlineStatus(targetUserId) {
             .maybeSingle();
 
         if (error) {
-            console.error('[Privacy] Error checking online status visibility:', error);
+            console.warn('[Privacy] Error checking online status visibility:', error);
             return false; // Default to hiding status if check fails
         }
 
@@ -63,7 +63,7 @@ export async function shouldShowOnlineStatus(targetUserId) {
 
         return data.friend_preferences.showOnlineStatus !== false;
     } catch (error) {
-        console.error('[Privacy] Exception checking online status:', error);
+        console.warn('[Privacy] Exception checking online status:', error);
         return false;
     }
 }
@@ -104,7 +104,7 @@ export async function canSendMessage(senderId, receiverId) {
         // messenger_preferences column not yet in DB — skip the query
         return { allowed: true, reason: 'message_request' };
     } catch (error) {
-        console.error('[Privacy] Exception checking message permission:', error);
+        console.warn('[Privacy] Exception checking message permission:', error);
         return { allowed: true, reason: 'error_fallback' };
     }
 }
@@ -122,7 +122,7 @@ export async function getBulkPrivacySettings(userIds) {
             .in('id', userIds);
 
         if (error) {
-            console.error('[Privacy] Error fetching bulk privacy settings:', error);
+            console.warn('[Privacy] Error fetching bulk privacy settings:', error);
             return {};
         }
 
@@ -138,7 +138,7 @@ export async function getBulkPrivacySettings(userIds) {
 
         return privacyMap;
     } catch (error) {
-        console.error('[Privacy] Exception fetching bulk privacy settings:', error);
+        console.warn('[Privacy] Exception fetching bulk privacy settings:', error);
         return {};
     }
 }
@@ -159,13 +159,13 @@ export async function isUserBlocked(blockerId, targetId) {
             .maybeSingle();
 
         if (error && error.code !== 'PGRST116') {
-            console.error('[Privacy] Error checking block status:', error);
+            console.warn('[Privacy] Error checking block status:', error);
             return false;
         }
 
         return !!data;
     } catch (error) {
-        console.error('[Privacy] Exception checking block status:', error);
+        console.warn('[Privacy] Exception checking block status:', error);
         return false;
     }
 }
@@ -192,10 +192,10 @@ export async function blockUser(blockerId, targetId) {
             .delete()
             .or(`and(user_id.eq.${blockerId},friend_id.eq.${targetId}),and(user_id.eq.${targetId},friend_id.eq.${blockerId})`);
 
-        console.log('[Privacy] User blocked successfully');
+        console.debug('[Privacy] User blocked successfully');
         return { success: true };
     } catch (error) {
-        console.error('[Privacy] Error blocking user:', error);
+        console.warn('[Privacy] Error blocking user:', error);
         throw error;
     }
 }
@@ -215,10 +215,10 @@ export async function unblockUser(blockerId, targetId) {
 
         if (error) throw error;
 
-        console.log('[Privacy] User unblocked successfully');
+        console.debug('[Privacy] User unblocked successfully');
         return { success: true };
     } catch (error) {
-        console.error('[Privacy] Error unblocking user:', error);
+        console.warn('[Privacy] Error unblocking user:', error);
         throw error;
     }
 }
@@ -257,7 +257,7 @@ export async function getBlockedUsers(userId) {
             blocked: profileMap[r.blocked_id] || { id: r.blocked_id, username: 'Unknown' }
         }));
     } catch (error) {
-        console.error('[Privacy] Error getting blocked users:', error);
+        console.warn('[Privacy] Error getting blocked users:', error);
         return [];
     }
 }

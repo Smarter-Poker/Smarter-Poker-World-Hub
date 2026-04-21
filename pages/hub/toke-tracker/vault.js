@@ -51,7 +51,7 @@ export default function DealerVaultPage() {
             const gigs = await fetchGigs(userId);
             setCompletedGigs(gigs.filter(g => g.status === 'completed'));
         } catch (err) {
-            console.error('Error loading gigs for vault:', err);
+            console.warn('Error loading gigs for vault:', err);
         }
     }, [userId]);
 
@@ -100,7 +100,7 @@ export default function DealerVaultPage() {
             const settings = profile?.settings || {};
             settings.tokeTracker = newPrefs;
             await supabase.from('profiles').update({ settings }).eq('id', userId);
-        } catch (err) { console.error('[TokeTracker] Pref save error:', err); }
+        } catch (err) { console.warn('[TokeTracker] Pref save error:', err); }
     }, [userId]);
 
     useEffect(() => {

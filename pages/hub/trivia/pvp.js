@@ -179,7 +179,7 @@ export default function PvPPage() {
                 });
             }
         } catch (e) {
-            console.error('[PVP] Failed to load user data:', e);
+            console.warn('[PVP] Failed to load user data:', e);
         }
     }
 
@@ -235,7 +235,7 @@ export default function PvPPage() {
                 bestStreak: newStats.best_streak
             });
         } catch (e) {
-            console.error('[PVP] Failed to update stats:', e);
+            console.warn('[PVP] Failed to update stats:', e);
         }
     }
 
@@ -263,7 +263,7 @@ export default function PvPPage() {
                 setUserDiamonds(freshBalance);
             }
         } catch (e) {
-            console.error('[PVP] Balance check failed:', e);
+            console.warn('[PVP] Balance check failed:', e);
         }
 
         if (freshBalance < stake) {
@@ -293,7 +293,7 @@ export default function PvPPage() {
             if (postDeductProfile) setUserDiamonds(postDeductProfile.diamonds || 0);
             busEmit.diamondsSpent(stake, 'PvP Stake Entry');
         } catch (e) {
-            console.error('[PVP] Stake deduction failed — aborting match:', e);
+            console.warn('[PVP] Stake deduction failed — aborting match:', e);
             setGameState('lobby');
             return;
         }
@@ -472,12 +472,12 @@ export default function PvPPage() {
                 .maybeSingle();
             if (profile) setUserDiamonds(profile.diamonds || 0);
         } catch (e) {
-            console.error('[PVP] Refund failed — user may need manual refund:', e);
+            console.warn('[PVP] Refund failed — user may need manual refund:', e);
         }
 
         await leaveMatchmakingQueue(userId);
         setGameState('lobby');
-        console.error('[PVP] Unable to start match — returned to lobby.');
+        console.warn('[PVP] Unable to start match — returned to lobby.');
     }
 
     async function handleCancelSearch() {
@@ -505,7 +505,7 @@ export default function PvPPage() {
                 .maybeSingle();
             if (profile) setUserDiamonds(profile.diamonds || 0);
         } catch (e) {
-            console.error('[PVP] Cancel refund failed:', e);
+            console.warn('[PVP] Cancel refund failed:', e);
         }
 
         setGameState('lobby');
@@ -618,7 +618,7 @@ export default function PvPPage() {
                     .maybeSingle();
                 if (winProfile) setUserDiamonds(winProfile.diamonds || 0);
             } catch (e) {
-                console.error('[PVP] Win payout failed:', e);
+                console.warn('[PVP] Win payout failed:', e);
             }
 
             busEmit.diamondsEarned(winnings, 'PvP Victory');
@@ -640,7 +640,7 @@ export default function PvPPage() {
                     .maybeSingle();
                 if (tieProfile) setUserDiamonds(tieProfile.diamonds || 0);
             } catch (e) {
-                console.error('[PVP] Tie refund failed:', e);
+                console.warn('[PVP] Tie refund failed:', e);
             }
             winnings = stakeAmount;
         } else {
@@ -684,7 +684,7 @@ export default function PvPPage() {
                         ignoreDuplicates: false
                     });
             } catch (e) {
-                console.error('[PVP] Error recording history:', e);
+                console.warn('[PVP] Error recording history:', e);
             }
         }
 
@@ -756,7 +756,7 @@ export default function PvPPage() {
                         ignoreDuplicates: false
                     });
             } catch (e) {
-                console.error('[PVP] Error recording history:', e);
+                console.warn('[PVP] Error recording history:', e);
             }
         }
 

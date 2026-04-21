@@ -114,10 +114,10 @@ export async function updateHorseBio(profileId, newBio) {
             .update({ bio: newBio })
             .eq('id', profileId);
 
-        console.log(`   📝 Updated bio for ${profileId.slice(0, 8)}...`);
+        console.debug(`   📝 Updated bio for ${profileId.slice(0, 8)}...`);
         return true;
     } catch (error) {
-        console.error('Error updating bio:', error);
+        console.warn('Error updating bio:', error);
         return false;
     }
 }
@@ -218,10 +218,10 @@ async function executeFollow(horseProfileId, targetUserId) {
                 following_id: targetUserId
             });
 
-        console.log(`   👤 ${horseProfileId.slice(0, 8)} followed ${targetUserId.slice(0, 8)}`);
+        console.debug(`   👤 ${horseProfileId.slice(0, 8)} followed ${targetUserId.slice(0, 8)}`);
         return true;
     } catch (error) {
-        console.error('Error executing follow:', error);
+        console.warn('Error executing follow:', error);
         return false;
     }
 }

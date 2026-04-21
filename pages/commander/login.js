@@ -26,7 +26,7 @@ export default function CommanderLogin() {
     try {
       const staffData = JSON.parse(localStorage.getItem('commander_staff') || '{}');
       if (staffData.email) setEmail(staffData.email);
-    } catch (e) { /* silent */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     // Show 'session expired' message if redirected from expired session
     if (router.query.expired === '1') {
       setError('Your session has expired. Please sign in again.');
@@ -67,7 +67,7 @@ export default function CommanderLogin() {
         // Refresh failed — keep commander_remember and staff email for pre-fill
         localStorage.removeItem('commander_venue');
         localStorage.removeItem('commander_subscription');
-      } catch (e) { /* silent */ }
+      } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
       clearTimeout(safetyTimeout);
       setCheckingSession(false);
     }
@@ -88,7 +88,7 @@ export default function CommanderLogin() {
           redirectTo: `${window.location.origin}/auth/callback` } });
       if (error) throw error;
     } catch (err) {
-      console.error(`${provider} sign in error:`, err);
+      console.warn(`${provider} sign in error:`, err);
       setError(err.message || `Failed to sign in with ${provider}`);
       setLoading(false);
     }
@@ -180,7 +180,7 @@ export default function CommanderLogin() {
       window.location.href = redirectTo;
 
     } catch (err) {
-      console.error('Login error:', err);
+      console.warn('Login error:', err);
       if (err.name === 'AbortError') {
         setError('Login timed out. Please check your connection and try again.');
       } else {

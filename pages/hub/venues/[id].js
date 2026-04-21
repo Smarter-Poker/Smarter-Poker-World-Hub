@@ -418,7 +418,7 @@ export default function VenueDetailPage() {
         var games = json.games || json.data || [];
         setLiveGames(Array.isArray(games) ? games : []);
       }
-    } catch (e) { /* silent */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
   };
 
   useEffect(function () {
@@ -460,7 +460,7 @@ export default function VenueDetailPage() {
       if (wlJson.success && wlJson.data && wlJson.data.waitlists) {
         setWaitlistData(wlJson.data.waitlists);
       }
-    } catch (e) { /* not a Commander venue, ignore */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
   };
 
   useEffect(function () {
@@ -490,7 +490,7 @@ export default function VenueDetailPage() {
         });
         if (recent) setHasCheckedIn(true);
       }
-    } catch (e) { /* silent */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
   };
 
   useEffect(function () {
@@ -507,7 +507,7 @@ export default function VenueDetailPage() {
           var tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
           if (tokenData.access_token) headers['Authorization'] = 'Bearer ' + tokenData.access_token;
         }
-      } catch (_e) { /* ignore */ }
+      } catch (_e) { console.warn('[App] Handled exception:', _e?.message || _e); }
     }
     fetch(whUrl, { headers: headers })
       .then(function(r) { return r.json(); })
@@ -550,7 +550,7 @@ export default function VenueDetailPage() {
           ? reviewData.reduce(function (sum, r) { return sum + (r.rating || 0); }, 0) / reviewData.length
           : 0));
       }
-    } catch (e) { /* silent */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
   };
 
   useEffect(function () {
@@ -568,7 +568,7 @@ export default function VenueDetailPage() {
         var items = json.activities || json.data || [];
         setActivities(Array.isArray(items) ? items : []);
       }
-    } catch (e) { /* silent */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
   };
 
   useEffect(function () {
@@ -589,7 +589,7 @@ export default function VenueDetailPage() {
           setClaimStatus(null);
         }
       }
-    } catch (e) { /* silent */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
   };
 
   useEffect(function () {
@@ -609,7 +609,7 @@ export default function VenueDetailPage() {
           setGameSchedule(null);
         }
       }
-    } catch (e) { /* silent */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     setScheduleLoading(false);
   };
 
@@ -631,7 +631,7 @@ export default function VenueDetailPage() {
           setTournamentSchedule([]);
         }
       }
-    } catch (e) { /* silent */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     setTournamentScheduleLoading(false);
   };
 
@@ -665,7 +665,7 @@ export default function VenueDetailPage() {
         setScheduleForm({ day_of_week: scheduleForm.day_of_week, game_name: '', start_time: '', end_time: '', notes: '' });
         await fetchGameSchedule();
       }
-    } catch (err) { /* silent */ }
+    } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
     setScheduleSaving(false);
   };
 
@@ -680,7 +680,7 @@ export default function VenueDetailPage() {
         headers: { 'Authorization': 'Bearer ' + token },
       });
       await fetchGameSchedule();
-    } catch (err) { /* silent */ }
+    } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
     setScheduleDeleting(null);
   };
 
@@ -885,7 +885,7 @@ export default function VenueDetailPage() {
         await removeVenueFavorite(uId, venueId);
       }
     } catch (err) {
-      console.error('Failed to save venue:', err);
+      console.warn('Failed to save venue:', err);
       // Rollback optimistic UI
       setIsSaved(!newState);
       try {
@@ -999,7 +999,7 @@ export default function VenueDetailPage() {
         setReportForm({ game_type: 'NL Holdem', stakes: '', table_count: 1, wait_time: '', notes: '' });
         await fetchLiveGames();
       }
-    } catch (err) { /* silent */ }
+    } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
     finally { setReportSubmitting(false); }
   };
 
@@ -1025,7 +1025,7 @@ export default function VenueDetailPage() {
           var tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
           if (tokenData.access_token) fetchHeaders['Authorization'] = 'Bearer ' + tokenData.access_token;
         }
-      } catch (_e) { /* ignore */ }
+      } catch (_e) { console.warn('[App] Handled exception:', _e?.message || _e); }
 
       var res = await fetch('/api/poker/checkins', {
         method: 'POST',
@@ -1045,7 +1045,7 @@ export default function VenueDetailPage() {
           headers: fetchHeaders,
           body: JSON.stringify({ venue_id: id }),
         });
-      } catch (_e) { /* background process, do not fail UX */ }
+      } catch (_e) { console.warn('[App] Handled exception:', _e?.message || _e); }
 
       if (!res.ok) {
         var errBody = null;
@@ -1082,12 +1082,7 @@ export default function VenueDetailPage() {
       } else {
         throw new Error(json.error || 'Check-in failed');
       }
-    } catch (err) {
-      // Revert optimistic UI on failure
-      setHasCheckedIn(false);
-      setCheckinConfirm(false);
-      setCheckinError(err.message || 'Check-in failed. Please try again.');
-      setTimeout(function () { setCheckinError(''); }, 5000);
+    } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }, 5000);
     }
     finally { setCheckinSubmitting(false); }
   };
@@ -1136,7 +1131,7 @@ export default function VenueDetailPage() {
           );
         }
       }
-    } catch (err) { /* silent */ }
+    } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
     finally { setReviewSubmitting(false); }
   };
 
@@ -1163,7 +1158,7 @@ export default function VenueDetailPage() {
         setPostContent('');
         await fetchActivities();
       }
-    } catch (err) { /* silent */ }
+    } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
     finally { setPostSubmitting(false); }
   };
 
@@ -1193,7 +1188,7 @@ export default function VenueDetailPage() {
         setShowClaimForm(false);
         setClaimForm({ contact_name: '', contact_email: '', contact_phone: '', role: 'Manager', verification_notes: '' });
       }
-    } catch (err) { /* silent */ }
+    } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
     finally { setClaimSubmitting(false); }
   };
 

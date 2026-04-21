@@ -16,7 +16,7 @@ export async function getWatchLater(userId) {
         .order('created_at', { ascending: false });
 
     if (error) {
-        console.error('Error fetching watch later:', error);
+        console.warn('Error fetching watch later:', error);
         throw error;
     }
 
@@ -40,7 +40,7 @@ export async function addToWatchLater(userId, videoId, videoData = {}) {
         .maybeSingle();
 
     if (error) {
-        console.error('Error adding to watch later:', error);
+        console.warn('Error adding to watch later:', error);
         throw error;
     }
 
@@ -58,7 +58,7 @@ export async function removeFromWatchLater(userId, videoId) {
         .eq('video_id', videoId);
 
     if (error) {
-        console.error('Error removing from watch later:', error);
+        console.warn('Error removing from watch later:', error);
         throw error;
     }
 
@@ -77,7 +77,7 @@ export async function isInWatchLater(userId, videoId) {
         .maybeSingle();
 
     if (error && error.code !== 'PGRST116') {
-        console.error('Error checking watch later:', error);
+        console.warn('Error checking watch later:', error);
         throw error;
     }
 

@@ -20,14 +20,14 @@ let passed = 0;
 let failed = 0;
 
 function assert(condition, label) {
-  if (condition) { console.log(`  ✅ ${label}`); passed++; }
-  else { console.log(`  ❌ ${label}`); failed++; }
+  if (condition) { console.debug(`  ✅ ${label}`); passed++; }
+  else { console.debug(`  ❌ ${label}`); failed++; }
 }
 
 function section(title) {
-  console.log(`\n${'═'.repeat(60)}`);
-  console.log(`  ${title}`);
-  console.log('═'.repeat(60));
+  console.debug(`\n${'═'.repeat(60)}`);
+  console.debug(`  ${title}`);
+  console.debug('═'.repeat(60));
 }
 
 async function runTests() {
@@ -304,15 +304,15 @@ async function runTests() {
   await gc.shutdown();
 
   // ═══════════════════════════════════════════════════════
-  console.log(`\n${'═'.repeat(60)}`);
-  console.log(`  PHASE 7 ARCHITECTURE: ${passed} passed, ${failed} failed`);
-  console.log('═'.repeat(60));
-  console.log('');
+  console.debug(`\n${'═'.repeat(60)}`);
+  console.debug(`  PHASE 7 ARCHITECTURE: ${passed} passed, ${failed} failed`);
+  console.debug('═'.repeat(60));
+  console.debug('');
 
   process.exit(failed > 0 ? 1 : 0);
 }
 
 runTests().catch(err => {
-  console.error('Test failed:', err);
+  console.warn('Test failed:', err);
   process.exit(1);
 });

@@ -52,7 +52,7 @@ class ContentScheduler {
      * Generate a full day's content schedule
      */
     async scheduleDayContent(targetDate = new Date()) {
-        console.log(`\n📅 Scheduling content for: ${targetDate.toDateString()}\n`);
+        console.debug(`\n📅 Scheduling content for: ${targetDate.toDateString()}\n`);
 
         const schedule = [];
         const usedPersonaSlots = {}; // Track posts per persona
@@ -89,7 +89,7 @@ class ContentScheduler {
         // Sort by scheduled time
         schedule.sort((a, b) => a.scheduledTime - b.scheduledTime);
 
-        console.log(`📝 Generated ${schedule.length} scheduled slots\n`);
+        console.debug(`📝 Generated ${schedule.length} scheduled slots\n`);
 
         return schedule;
     }
@@ -98,7 +98,7 @@ class ContentScheduler {
      * Execute the schedule - generate and queue content
      */
     async executeSchedule(schedule) {
-        console.log(`\n⚡ Executing schedule with ${schedule.length} items\n`);
+        console.debug(`\n⚡ Executing schedule with ${schedule.length} items\n`);
 
         for (const slot of schedule) {
             try {
@@ -122,7 +122,7 @@ class ContentScheduler {
                     .maybeSingle();
 
                 if (contentError || !insertedContent) {
-                    console.error('Content insert error:', contentError?.message || 'No data returned');
+                    console.warn('Content insert error:', contentError?.message || 'No data returned');
                     continue;
                 }
 
@@ -135,33 +135,33 @@ class ContentScheduler {
                     });
 
                 if (scheduleError) {
-                    console.error('Schedule insert error:', scheduleError);
+                    console.warn('Schedule insert error:', scheduleError);
                     continue;
                 }
 
-                console.log(`✅ Scheduled: ${slot.persona.alias} - ${slot.contentType} @ ${slot.scheduledTime.toLocaleTimeString()}`);
+                console.debug(`✅ Scheduled: ${slot.persona.alias} - ${slot.contentType} @ ${slot.scheduledTime.toLocaleTimeString()}`);
 
                 // Rate limit protection
                 await this.sleep(1500);
 
             } catch (error) {
-                console.error(`Error processing slot:`, error);
+                console.warn(`Error processing slot:`, error);
             }
         }
 
-        console.log(`\n🎉 Schedule execution complete!\n`);
+        console.debug(`\n🎉 Schedule execution complete!\n`);
     }
 
     /**
      * Check and publish any content that's due
      */
     async publishDueContent() {
-        console.log('\n🔄 Checking for content to publish...\n');
+        console.debug('\n🔄 Checking for content to publish...\n');
 
         const { data, error } = await supabase.rpc('publish_scheduled_content');
 
         if (error) {
-            console.error('Publish error:', error);
+            console.warn('Publish error:', error);
             return;
         }
 
@@ -173,10 +173,10 @@ class ContentScheduler {
             .gte('published_at', new Date(Date.now() - 60000).toISOString());
 
         if (published && published.length > 0) {
-            console.log(`📰 Just published ${published.length} posts:`);
-            published.forEach(p => console.log(`   - ${p.author_alias}: ${p.content_type}`));
+            console.debug(`📰 Just published ${published.length} posts:`);
+            published.forEach(p => console.debug(`   - ${p.author_alias}: ${p.content_type}`));
         } else {
-            console.log('No content due for publishing.');
+            console.debug('No content due for publishing.');
         }
     }
 
@@ -196,7 +196,7 @@ class ContentScheduler {
      * Seed initial content immediately (for bootstrapping)
      */
     async seedImmediate(count = 50) {
-        console.log(`\n🌱 IMMEDIATE SEED: Generating ${count} posts for instant publish\n`);
+        console.debug(`\n🌱 IMMEDIATE SEED: Generating ${count} posts for instant publish\n`);
 
         const content = await contentGenerator.generateBatch(count);
 
@@ -210,11 +210,11 @@ class ContentScheduler {
                 });
 
             if (error) {
-                console.error('Insert error:', error);
+                console.warn('Insert error:', error);
             }
         }
 
-        console.log(`\n✅ Immediate seed complete! ${content.length} posts published.\n`);
+        console.debug(`\n✅ Immediate seed complete! ${content.length} posts published.\n`);
     }
 
     // Utilities
@@ -258,7 +258,7 @@ switch (command) {
         break;
 
     default:
-        console.log(`
+        console.debug(`
 📅 CONTENT SCHEDULER CLI
 
 Usage:

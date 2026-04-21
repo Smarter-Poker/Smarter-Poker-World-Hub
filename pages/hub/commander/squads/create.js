@@ -66,7 +66,7 @@ export default function CreateSquadPage() {
         setVenues(data.data?.venues || []);
       }
     } catch (err) {
-      console.error('Failed to fetch venues:', err);
+      console.warn('Failed to fetch venues:', err);
       setVenues([]);
     }
   }
@@ -83,7 +83,7 @@ export default function CreateSquadPage() {
         setFriends(data.data?.friends || []);
       }
     } catch (err) {
-      console.error('Failed to fetch friends:', err);
+      console.warn('Failed to fetch friends:', err);
       setFriends([]);
     }
   }
@@ -134,7 +134,7 @@ export default function CreateSquadPage() {
         setTimeout(() => setErrorMessage(null), 4000);
       }
     } catch (err) {
-      console.error('Create failed:', err);
+      console.warn('Create failed:', err);
       setErrorMessage('Failed to create squad. Please try again.');
       setTimeout(() => setErrorMessage(null), 4000);
     } finally {

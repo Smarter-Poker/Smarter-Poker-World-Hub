@@ -164,11 +164,11 @@ export function apiLog(endpoint) {
         // Strip undefined values for cleaner output
         Object.keys(entry).forEach(k => entry[k] === undefined && delete entry[k]);
         if (level === 'error') {
-            console.error(JSON.stringify(entry));
+            console.warn(JSON.stringify(entry));
         } else if (level === 'warn') {
             console.warn(JSON.stringify(entry));
         } else {
-            console.log(JSON.stringify(entry));
+            console.debug(JSON.stringify(entry));
         }
     };
     return {

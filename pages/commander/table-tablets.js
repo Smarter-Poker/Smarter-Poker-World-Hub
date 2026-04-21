@@ -78,7 +78,7 @@ function haptic(intensity = 'medium') {
         if (typeof navigator !== 'undefined' && navigator.vibrate) {
             navigator.vibrate(ms);
         }
-    } catch (e) { console.error("[table-tablets.js]", e); }
+    } catch (e) { console.warn("[table-tablets.js]", e); }
 }
 
 // Arc-length parameterized ellipse for equal visual spacing — matches tables.js
@@ -206,7 +206,7 @@ export default function TableTabletsPage() {
                 const { table_number, venue_id: savedVenue } = JSON.parse(saved);
                 if (table_number) setLockedTable(table_number);
             }
-        } catch (e) { console.error("[table-tablets.js]", e); }
+        } catch (e) { console.warn("[table-tablets.js]", e); }
     }, [router]);
 
     // When locked table is set, also set it as the fullscreen table
@@ -394,7 +394,7 @@ const headers = { };
                                     if (sessions.length > 0) sessionsByTable[parseInt(tNum)] = sessions;
                                 });
                             }
-                        } catch (e) { console.error("[table-tablets.js]", e); }
+                        } catch (e) { console.warn("[table-tablets.js]", e); }
                     }
 
                     // Fetch tournament entries — one floor-view call per unique tournament_id
@@ -413,7 +413,7 @@ const headers = { };
                                         players: ft.players || [] };
                                 });
                             }
-                        } catch (e) { console.error("[table-tablets.js]", e); }
+                        } catch (e) { console.warn("[table-tablets.js]", e); }
                     }));
 
                     // Merge session data for cash tables
@@ -466,7 +466,7 @@ const headers = { };
 
                 setTables(tablesArr);
             }
-        } catch (err) { console.error('Failed to fetch tables:', err); }
+        } catch (err) { console.warn('Failed to fetch tables:', err); }
 
         lastFetchAt.current = Date.now();
         setLoading(false);
@@ -486,7 +486,7 @@ const headers = { };
                 });
                 setDealerMap(map);
             }
-        } catch (err) { console.error('Failed to fetch dealer rotations:', err); }
+        } catch (err) { console.warn('Failed to fetch dealer rotations:', err); }
     }, [venueId]);
 
     useEffect(() => {
@@ -510,7 +510,7 @@ const json = await commanderFetchJSON(`/api/commander/displays/status?venue_id=$
                 });
                 setDisplayStatus(map);
             }
-        } catch (e) { console.error("[table-tablets.js]", e); }
+        } catch (e) { console.warn("[table-tablets.js]", e); }
     }, [venueId]);
 
     const copyTabletUrl = (tableNum) => {
@@ -608,7 +608,7 @@ const json = await commanderFetchJSON(`/api/commander/displays/status?venue_id=$
                                 stopDealerCamera();
                                 handleDealerScan(barcodes[0].rawValue);
                             }
-                        } catch (e) { console.error("[table-tablets.js]", e); }
+                        } catch (e) { console.warn("[table-tablets.js]", e); }
                     }, 300);
                     scanIntervalRef.current = interval;
                 }
@@ -838,7 +838,7 @@ const res = await commanderFetch('/api/commander/dealer/player-scan-in', {
                                 if (barcodes.length > 0) {
                                     handleSeatScan(barcodes[0].rawValue, tableNumber, seatNumber);
                                 }
-                            } catch (e) { console.error("[table-tablets.js]", e); }
+                            } catch (e) { console.warn("[table-tablets.js]", e); }
                         }, 300);
                     }
                 };
@@ -1482,7 +1482,7 @@ const res = await commanderFetch('/api/commander/dealer/player-scan-in', {
                         {/* BOTTOM-LEFT: Call Floor */}
                         {(() => {
                             const isA = callFloorSent; const _ss = getStaffSession() || ''; const _tk = getToken(); return (
-                                <button disabled={callFloorSending} onClick={!isA ? async () => { haptic('heavy'); setCallFloorSending(true); try { const n = fullscreenTable.table_number || fullscreenTable.number; const r = await commanderFetch('/api/commander/floor-call', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ venue_id: venueId, table_number: n, table_name: fullscreenTable.table_name || `Table ${n}` }) }).then(r => { if (!r.ok) throw new Error('fail'); return r; }); const j = await r.json(); if (j.success) { setCallFloorSent(true); setCallFloorId(j.data?.id || null); setToast({ type: 'success', text: `Floor called — Table ${n}` }); broadcastChange('floor_calls'); } else { setToast({ type: 'error', text: j.error || 'Floor call failed' }); } } catch { setToast({ type: 'error', text: 'Network error' }); } setCallFloorSending(false); } : async () => { haptic(); if (callFloorId) { try { const j = await commanderFetchJSON('/api/commander/floor-call', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'cancel', call_id: callFloorId }) }); if (j.success) { setToast({ type: 'success', text: 'Floor call cancelled' }); broadcastChange('floor_calls'); setCallFloorSent(false); setCallFloorId(null); } else { setToast({ type: 'error', text: j.error || 'Cancel failed' }); } } catch (e) { console.error("[table-tablets.js]", e); setToast({ type: 'error', text: 'Network error' }); } } }}
+                                <button disabled={callFloorSending} onClick={!isA ? async () => { haptic('heavy'); setCallFloorSending(true); try { const n = fullscreenTable.table_number || fullscreenTable.number; const r = await commanderFetch('/api/commander/floor-call', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ venue_id: venueId, table_number: n, table_name: fullscreenTable.table_name || `Table ${n}` }) }).then(r => { if (!r.ok) throw new Error('fail'); return r; }); const j = await r.json(); if (j.success) { setCallFloorSent(true); setCallFloorId(j.data?.id || null); setToast({ type: 'success', text: `Floor called — Table ${n}` }); broadcastChange('floor_calls'); } else { setToast({ type: 'error', text: j.error || 'Floor call failed' }); } } catch { setToast({ type: 'error', text: 'Network error' }); } setCallFloorSending(false); } : async () => { haptic(); if (callFloorId) { try { const j = await commanderFetchJSON('/api/commander/floor-call', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'cancel', call_id: callFloorId }) }); if (j.success) { setToast({ type: 'success', text: 'Floor call cancelled' }); broadcastChange('floor_calls'); setCallFloorSent(false); setCallFloorId(null); } else { setToast({ type: 'error', text: j.error || 'Cancel failed' }); } } catch (e) { console.warn("[table-tablets.js]", e); setToast({ type: 'error', text: 'Network error' }); } } }}
                                     style={{ position: 'fixed', bottom: 4, left: 4, zIndex: 60, height: '20.25vh', width: '27vh', border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, opacity: callFloorSending ? 0.5 : 1, transition: 'opacity 0.2s, transform 0.1s', filter: isA ? 'hue-rotate(320deg) saturate(1.5)' : 'none' }}>
 
                                     <img src='/assets/tablet-buttons/call-floor.png' alt="" style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} loading="lazy" />
@@ -1502,7 +1502,7 @@ const res = await commanderFetch('/api/commander/dealer/player-scan-in', {
 
                         {/* BOTTOM-CENTER: Tournament Clock — only on tournament tables, only when clock overlay is NOT open */}
                         {fullscreenTable && isTournamentTable(fullscreenTable) && fullscreenTable.tournament_id && !showTournamentClock && (
-                            <button onClick={() => { haptic(); const t = fullscreenTable.tournament_id; const U = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i; if (!t || !U.test(t)) { console.error('[SAFEGUARD] Invalid tournament_id:', t); return; } if (!isTournamentTable(fullscreenTable)) { console.error('[SAFEGUARD] Not tournament table'); return; } setLockedTournamentId(t); setShowTournamentClock(true); }}
+                            <button onClick={() => { haptic(); const t = fullscreenTable.tournament_id; const U = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i; if (!t || !U.test(t)) { console.warn('[SAFEGUARD] Invalid tournament_id:', t); return; } if (!isTournamentTable(fullscreenTable)) { console.warn('[SAFEGUARD] Not tournament table'); return; } setLockedTournamentId(t); setShowTournamentClock(true); }}
                                 style={{ position: 'fixed', top: 4, left: 4, zIndex: 60, height: '20.25vh', width: '27vh', border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, transition: 'opacity 0.2s, transform 0.1s' }}>
 
                                 <img src='/assets/tablet-buttons/tournament-clock.png' alt='' style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} loading="lazy" />
@@ -1540,7 +1540,7 @@ const res = await commanderFetch('/api/commander/dealer/player-scan-in', {
                                                     const u = new SpeechSynthesisUtterance('5 seconds');
                                                     u.rate = 1.1; u.pitch = 1.0; u.volume = 1.0;
                                                     speechSynthesis.speak(u);
-                                                } catch (e) { /* voice not supported */ }
+                                                } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
                                             }
                                             return p - 1;
                                         });

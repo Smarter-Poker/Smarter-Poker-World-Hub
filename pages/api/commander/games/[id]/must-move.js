@@ -49,7 +49,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -175,7 +175,7 @@ async function handlePost(req, res, gameId) {
       .maybeSingle();
 
     if (updateError) {
-      console.error('Must-move link error:', updateError);
+      console.warn('Must-move link error:', updateError);
       return res.status(500).json({
         success: false,
         error: { code: 'DATABASE_ERROR', message: 'Failed to link games' }
@@ -190,7 +190,7 @@ async function handlePost(req, res, gameId) {
       }
     });
   } catch (error) {
-    console.error('Must-move POST error:', error);
+    console.warn('Must-move POST error:', error);
     return res.status(500).json({
       success: false,
       error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }
@@ -242,7 +242,7 @@ async function handleDelete(req, res, gameId) {
       .maybeSingle();
 
     if (updateError) {
-      console.error('Must-move unlink error:', updateError);
+      console.warn('Must-move unlink error:', updateError);
       return res.status(500).json({
         success: false,
         error: { code: 'DATABASE_ERROR', message: 'Failed to unlink games' }
@@ -258,7 +258,7 @@ async function handleDelete(req, res, gameId) {
     });
   } catch (error) {
       try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('Must-move DELETE error:', error);
+    console.warn('Must-move DELETE error:', error);
     return res.status(500).json({
       success: false,
       error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }

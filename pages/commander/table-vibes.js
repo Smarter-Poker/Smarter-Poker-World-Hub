@@ -42,7 +42,7 @@ const json = await commanderFetchJSON(`/api/commander/table-ratings?venue_id=${s
         setVibes(json.data.vibes);
         setTotalRatings(json.data.total_ratings);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
     finally { setLoading(false); }
   };
 

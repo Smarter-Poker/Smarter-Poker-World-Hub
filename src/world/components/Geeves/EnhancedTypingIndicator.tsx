@@ -63,7 +63,7 @@ export function EnhancedTypingIndicator() {
                 {THINKING_MESSAGES[messageIndex]}
             </span>
 
-            <style jsx>{`
+            <style>{`
                 @keyframes bounce {
                     0%, 80%, 100% {
                         transform: scale(0);

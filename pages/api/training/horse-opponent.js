@@ -358,7 +358,7 @@ export default async function handler(req, res) {
                 _engine: horse._personality,
             });
         } catch (err) {
-            console.error('[horse-opponent] GET error:', err.message);
+            console.warn('[horse-opponent] GET error:', err.message);
             // Always return an opponent — never fail the matchmaking
             const pick = FALLBACK_HORSES[Math.floor(Math.random() * FALLBACK_HORSES.length)];
             const rating = 1200 + Math.floor(Math.random() * 400);
@@ -409,7 +409,7 @@ export default async function handler(req, res) {
             return res.status(200).json(decision);
         } catch (err) {
             try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-            console.error('[horse-opponent] POST error:', err.message);
+            console.warn('[horse-opponent] POST error:', err.message);
             // Fail gracefully — default to a check/fold
             return res.status(200).json({
                 action: 'check',

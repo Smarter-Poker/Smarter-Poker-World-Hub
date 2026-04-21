@@ -97,10 +97,7 @@ function parsePokerStars(text, heroName) {
         try {
             const hand = _parsePSHand(block, heroName);
             if (hand) hands.push(hand);
-        } catch (e) {
-            // Skip unparseable hands
-            console.warn('Failed to parse PS hand:', e.message);
-        }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     }
 
     return hands;

@@ -52,7 +52,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -104,7 +104,7 @@ async function handleGet(req, res, tableId) {
       data: { table }
     });
   } catch (error) {
-    console.error('Commander table GET error:', error);
+    console.warn('Commander table GET error:', error);
     return res.status(500).json({
       success: false,
       error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }
@@ -240,7 +240,7 @@ async function handlePatch(req, res, tableId) {
       .maybeSingle();
 
     if (updateError) {
-      console.error('Commander table PATCH error:', updateError);
+      console.warn('Commander table PATCH error:', updateError);
       return res.status(500).json({
         success: false,
         error: { code: 'DATABASE_ERROR', message: 'Failed to update table' }
@@ -265,7 +265,7 @@ async function handlePatch(req, res, tableId) {
       data: { table }
     });
   } catch (error) {
-    console.error('Commander table PATCH error:', error);
+    console.warn('Commander table PATCH error:', error);
     return res.status(500).json({
       success: false,
       error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }
@@ -311,7 +311,7 @@ async function handleDelete(req, res, tableId) {
       .eq('id', tableId);
 
     if (deleteError) {
-      console.error('Commander table DELETE error:', deleteError);
+      console.warn('Commander table DELETE error:', deleteError);
       return res.status(500).json({
         success: false,
         error: { code: 'DATABASE_ERROR', message: 'Failed to delete table' }
@@ -336,7 +336,7 @@ async function handleDelete(req, res, tableId) {
     });
   } catch (error) {
       try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('Commander table DELETE error:', error);
+    console.warn('Commander table DELETE error:', error);
     return res.status(500).json({
       success: false,
       error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }

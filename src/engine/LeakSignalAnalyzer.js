@@ -66,7 +66,7 @@ class LeakSignalAnalyzer {
         if (this._started) return;
         this._started = true;
         this._unsub = eventBus.on(EventType.DECISION_INCORRECT, (event) => this.handleIncorrectDecision(event));
-        console.log('🕵️ Leak Signal Analyzer: Online');
+        console.debug('🕵️ Leak Signal Analyzer: Online');
     }
 
     stop() {
@@ -138,7 +138,7 @@ class LeakSignalAnalyzer {
     }
 
     async triggerLeakSignal(leakType, count, scenario = null) {
-        console.log(`🚨 LEAK DETECTED: ${leakType.name} (${count} times)`);
+        console.debug(`🚨 LEAK DETECTED: ${leakType.name} (${count} times)`);
 
         // Emit event for UI to show modal/toast
         eventBus.emit('LEAK_DETECTED', {
@@ -164,7 +164,7 @@ class LeakSignalAnalyzer {
                     await leakService.pushToJarvis(this.userId, leakType, leak.id);
                 }
             } catch (err) {
-                console.error('[LeakSignalAnalyzer] Failed to persist leak:', err);
+                console.warn('[LeakSignalAnalyzer] Failed to persist leak:', err);
             }
         }
     }

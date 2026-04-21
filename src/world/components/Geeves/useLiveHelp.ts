@@ -49,7 +49,7 @@ function getAuthToken(): string | null {
             }
         }
     } catch (e) {
-        console.error('[Geeves] Error getting auth token:', e);
+        console.warn('[Geeves] Error getting auth token:', e);
     }
     return null;
 }
@@ -136,7 +136,7 @@ export function useLiveHelp() {
             setMessages([greetingMessage]);
 
         } catch (err) {
-            console.error('[Geeves] Failed to start conversation:', err);
+            console.warn('[Geeves] Failed to start conversation:', err);
             setError('Failed to connect to Geeves. Please try again.');
             // Fallback greeting so the UI isn't empty
             const fallbackMsg: Message = {
@@ -227,7 +227,7 @@ export function useLiveHelp() {
             setMessages(prev => [...prev, agentMessage]);
 
         } catch (err) {
-            console.error('[Geeves] Failed to send message:', err);
+            console.warn('[Geeves] Failed to send message:', err);
             setError('Failed to send message. Please try again.');
 
             const errorMessage: Message = {
@@ -273,7 +273,7 @@ export function useLiveHelp() {
                 })));
             }
         } catch (err) {
-            console.error('[Geeves] Resume error:', err);
+            console.warn('[Geeves] Resume error:', err);
             setError('Failed to resume conversation');
         } finally {
             setIsLoading(false);

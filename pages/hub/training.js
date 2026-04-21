@@ -30,7 +30,7 @@ async function fireConfetti(opts) {
     try {
         if (!_confetti) { const m = await import('canvas-confetti'); _confetti = m.default || m; }
         _confetti(opts);
-    } catch (e) { /* confetti is cosmetic — swallow import/execution errors */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 }
 import GameCard from '../../src/components/training/GameCard';
 import { TRAINING_LIBRARY, getGamesByCategory } from '../../src/data/TRAINING_LIBRARY';
@@ -48,7 +48,7 @@ import dynamic from 'next/dynamic';
 // Dynamic import for GodModeArena to avoid SSR issues
 const GodModeArena = dynamic(
     () => import('../../src/components/training/GodModeArena').catch(err => {
-        console.error('[Training] Failed to load GodModeArena chunk:', err);
+        console.warn('[Training] Failed to load GodModeArena chunk:', err);
         // Return a fallback component on chunk load failure
         return {
             default: () => (
@@ -145,7 +145,7 @@ function TrainingHeader({ gamesPlayed = 0 }) {
                     setDiamonds(diamondBalance);
                 }
             } catch (e) {
-                console.error('Failed to fetch profile:', e);
+                console.warn('Failed to fetch profile:', e);
             }
         };
         fetchProfile();
@@ -753,7 +753,7 @@ export default function TrainingPage() {
                     setDiamondBalance(balance);
                 }
             } catch (e) {
-                console.error('[Training] Failed to initialize DiamondEngine:', e);
+                console.warn('[Training] Failed to initialize DiamondEngine:', e);
             }
 
             // Step 2: Fetch past training sessions (uses DiamondEngine.supabase — no throwaway client)
@@ -933,7 +933,7 @@ export default function TrainingPage() {
                     toast.success(`${gamificationResult.streak.currentStreak} Day Streak!`);
                 }
             } catch (e) {
-                console.error('[Training] Gamification update failed:', e);
+                console.warn('[Training] Gamification update failed:', e);
             }
         }
     };
@@ -1519,7 +1519,7 @@ export default function TrainingPage() {
                                     style={{ background: 'linear-gradient(180deg, #1a1a2e, #0f0f1a)', border: '1px solid rgba(0,212,255,0.3)', borderRadius: 20, padding: 24, width: '90%', maxWidth: 400 }}
                                 >
                                     <JarvisRecommendations userId={userId} onGameClick={(game) => { setShowJarvisDrawer(false); handleGameClick(game); }} />
-                                    <button onClick={() => setShowJarvisDrawer(false)} style={{ width: '100%', padding: 12, borderRadius: 10, border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', marginTop: 12 }}>Close</button>
+                                    <button onClick={() => setShowJarvisDrawer(false)} style={{ width: '100%', padding: 12, borderRadius: 20, border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', marginTop: 12 }}>Close</button>
                                 </motion.div>
                             </motion.div>
                         )}

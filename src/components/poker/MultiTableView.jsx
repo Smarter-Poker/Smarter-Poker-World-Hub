@@ -383,7 +383,7 @@ function GlobalControlsHUD({ onSitOutAll }) {
 
           <button
             onClick={() => {
-              try { eventBus.emit('DATA_MUTATED', 'global_sit_in_all'); } catch (e) { console.error('SitInAll emit failed:', e); }
+              try { eventBus.emit('DATA_MUTATED', 'global_sit_in_all'); } catch (e) { console.warn('SitInAll emit failed:', e); }
               setOpen(false);
             }}
             style={{

@@ -41,7 +41,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -129,7 +129,7 @@ async function listTransactions(req, res) {
       }
     });
   } catch (error) {
-    console.error('List transactions error:', error);
+    console.warn('List transactions error:', error);
     return res.status(500).json({
       success: false,
       error: { code: 'SERVER_ERROR', message: error.message }
@@ -215,7 +215,7 @@ async function createTransaction(req, res) {
     });
   } catch (error) {
       try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('Create transaction error:', error);
+    console.warn('Create transaction error:', error);
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

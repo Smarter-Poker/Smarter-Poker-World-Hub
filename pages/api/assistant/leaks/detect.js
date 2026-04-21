@@ -50,7 +50,7 @@ Provide a concise, actionable fix in 2-3 sentences. Focus on specific adjustment
 
     return response.choices[0]?.message?.content || null;
   } catch (error) {
-    console.error('[LeakDetect] AI fix generation failed:', error.message);
+    console.warn('[LeakDetect] AI fix generation failed:', error.message);
     return null;
   }
 }
@@ -613,7 +613,7 @@ export default async function handler(req, res) {
       });
 
     } catch (error) {
-      console.error('Leak detection error:', error);
+      console.warn('Leak detection error:', error);
       return res.status(500).json({
         success: false,
         error: error.message,
@@ -622,7 +622,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -724,7 +724,7 @@ async function linkHandExamplesToLeak(supabase, userId, leakId, leakType) {
       }
     }
   } catch (error) {
-    console.error('Error linking hand examples:', error);
+    console.warn('Error linking hand examples:', error);
   }
 }
 

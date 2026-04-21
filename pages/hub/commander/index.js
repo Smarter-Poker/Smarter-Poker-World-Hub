@@ -39,7 +39,7 @@ export default function CommanderHub() {
         setVenues(data.data.venues || []);
       }
     } catch (err) {
-      console.error('Failed to fetch venues:', err);
+      console.warn('Failed to fetch venues:', err);
       setError('Failed to load venues');
     } finally {
       setLoading(false);
@@ -55,7 +55,7 @@ export default function CommanderHub() {
         setMyWaitlists(data.data.entries || []);
       }
     } catch (err) {
-      console.error('Failed to fetch waitlists:', err);
+      console.warn('Failed to fetch waitlists:', err);
     }
   }
 
@@ -68,7 +68,7 @@ export default function CommanderHub() {
         setLiveGames(data.data?.games || []);
       }
     } catch (err) {
-      console.error('Failed to fetch live games:', err);
+      console.warn('Failed to fetch live games:', err);
     }
   }
 
@@ -137,7 +137,7 @@ export default function CommanderHub() {
       const data = await res.json();
       if (data.success) fetchMyWaitlists();
     } catch (err) {
-      console.error('Failed to leave waitlist:', err);
+      console.warn('Failed to leave waitlist:', err);
     }
   }
 

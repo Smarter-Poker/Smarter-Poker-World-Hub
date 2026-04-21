@@ -133,7 +133,7 @@ export default function QuickWarmupPage() {
         setSessions(data.sessions);
       }
     } catch (e) {
-      console.error('[QuickWarmup] Error:', e);
+      console.warn('[QuickWarmup] Error:', e);
       setFetchError('Failed to load session data. Please try again.');
     }
   }, []);

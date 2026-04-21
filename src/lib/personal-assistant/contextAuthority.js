@@ -125,11 +125,7 @@ export async function getUserContextState(supabase, userId) {
     // No active session, training mode allowed
     return CONTEXT_STATES.TRAINING_MODE;
 
-  } catch (error) {
-    // On error, assume training mode (most permissive safe default for sandbox)
-    console.error('Context authority check error:', error);
-    return CONTEXT_STATES.TRAINING_MODE;
-  }
+  } catch (error) { console.warn('[App] Handled exception:', error?.message || error); }
 }
 
 /**

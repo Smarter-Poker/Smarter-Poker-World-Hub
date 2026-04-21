@@ -189,7 +189,7 @@ export default function TimeAttackPage() {
                 }
                 // DiamondEngine.deduct auto-emits busEmit.diamondsSpent
             } catch (e) {
-                console.error('[TimeAttack] Diamond deduction failed:', e);
+                console.warn('[TimeAttack] Diamond deduction failed:', e);
                 setShowOutOfDiamonds(true);
                 return;
             }
@@ -277,7 +277,7 @@ export default function TimeAttackPage() {
                 savePhaseRef.current = 0;
 
             } catch (e) {
-                console.error('[TimeAttack] Failed to save data:', e);
+                console.warn('[TimeAttack] Failed to save data:', e);
                 setSaveErrorPayload(gameResult);
                 setGameState('saving_error');
                 return; // halt and show retry UI (savePhaseRef preserves progress)

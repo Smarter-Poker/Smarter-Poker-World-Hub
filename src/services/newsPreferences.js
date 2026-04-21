@@ -57,7 +57,7 @@ export async function updateNewsPreferences(userId, preferences) {
 
         return data;
     } catch (error) {
-        console.error('Error updating news preferences:', error);
+        console.warn('Error updating news preferences:', error);
         throw error;
     }
 }

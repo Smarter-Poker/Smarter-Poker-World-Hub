@@ -77,14 +77,14 @@ async function sendSmsAlert(message) {
         const result = await response.json();
 
         if (result.sid) {
-            console.log(`[ALERT] SMS sent to ${OWNER_PHONE} — SID: ${result.sid}`);
+            console.debug(`[ALERT] SMS sent to ${OWNER_PHONE} — SID: ${result.sid}`);
             return { sent: true, sid: result.sid };
         } else {
-            console.error('[ALERT] SMS send failed:', result.message);
+            console.warn('[ALERT] SMS send failed:', result.message);
             return { sent: false, reason: result.message };
         }
     } catch (err) {
-        console.error('[ALERT] SMS error:', err.message);
+        console.warn('[ALERT] SMS error:', err.message);
         return { sent: false, reason: err.message };
     }
 }
@@ -131,7 +131,7 @@ function formatAlert(level, scraperName, reason, stats = {}) {
 export async function alertScraperCritical(scraperName, reason, stats = {}) {
     const key = `critical:${scraperName}`;
     if (isThrottled(key)) {
-        console.log(`[ALERT] Critical alert throttled for ${scraperName}`);
+        console.debug(`[ALERT] Critical alert throttled for ${scraperName}`);
         return { sent: false, reason: 'throttled' };
     }
 
@@ -148,7 +148,7 @@ export async function alertScraperCritical(scraperName, reason, stats = {}) {
 export async function alertScraperWarning(scraperName, reason, stats = {}) {
     const key = `warning:${scraperName}`;
     if (isThrottled(key)) {
-        console.log(`[ALERT] Warning alert throttled for ${scraperName}`);
+        console.debug(`[ALERT] Warning alert throttled for ${scraperName}`);
         return { sent: false, reason: 'throttled' };
     }
 
@@ -244,6 +244,6 @@ export async function evaluateAndAlert(scraperName, stats) {
     }
 
     // All good — no alert needed
-    console.log(`[ALERT] Scraper ${scraperName} ran cleanly — no alerts needed`);
+    console.debug(`[ALERT] Scraper ${scraperName} ran cleanly — no alerts needed`);
     return { sent: false, reason: 'no_alert_needed' };
 }

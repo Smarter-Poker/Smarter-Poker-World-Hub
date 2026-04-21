@@ -123,7 +123,7 @@ export default function Cashier() {
     try {
       const s = getStaffData();
       if (s.venue_id) setVenueId(s.venue_id);
-    } catch (e) { /* silent */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
   }, []);
 
   const fetchData = useCallback(async () => {
@@ -158,10 +158,10 @@ const headers = { };
               membership_status: m.membership_status,
               membership_expires: m.membership_expires } : p);
           }
-        }).catch(() => { /* silent — don't break cashier if refresh fails */ });
+        }).catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
         return prev;
       });
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
     finally { setLoading(false); }
   }, [venueId]);
 
@@ -206,7 +206,7 @@ const headers = { };
             setShowMembership(true);
           }
         }
-      } catch (err) { console.error('Auto-load member error:', err); }
+      } catch (err) { console.warn('Auto-load member error:', err); }
       // Clear URL params after handling so refresh doesn't re-trigger
       router.replace('/commander/cashier', undefined, { shallow: true });
     };
@@ -240,7 +240,7 @@ const headers = { };
         if (plansJson.success && plansJson.data?.plans) {
           setMembershipPlans(plansJson.data.plans.filter(p => p.is_active !== false));
         }
-      } catch (err) { console.error('Pricing load error:', err); }
+      } catch (err) { console.warn('Pricing load error:', err); }
     };
     loadPricing();
   }, [venueId]);
@@ -300,13 +300,13 @@ const headers = { };
               handleScanResult(barcodes[0].rawValue);
               return;
             }
-          } catch (e) { /* silent */ }
+          } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
           if (streamRef.current) requestAnimationFrame(scanLoop);
         };
         setTimeout(scanLoop, 500);
       }
     } catch (err) {
-      console.error('Camera Error:', err);
+      console.warn('Camera Error:', err);
       setMessage({ type: 'error', text: 'Camera Access Denied Or Unavailable' });
       setScanning(false);
     }
@@ -440,12 +440,12 @@ const headers = { };
       try {
         await executeAction(pendingAction, staff);
       } catch (actionErr) {
-        console.error('Action execution error:', actionErr);
+        console.warn('Action execution error:', actionErr);
         setMessage({ type: 'error', text: 'Transaction Failed — Please Try Again' });
       }
       setPendingAction(null);
     } catch (err) {
-      console.error('PIN verification error:', err);
+      console.warn('PIN verification error:', err);
       // If PIN keypad is still showing, show error there; otherwise show via message
       if (pinStep) {
         setPinError('Network Error — Check Connection');
@@ -511,7 +511,7 @@ const res = await commanderFetch('/api/commander/cashier', {
         const json = await res.json(); // Attempt to parse error message from response body
         setMessage({ type: 'error', text: json.error || 'Transaction Failed' });
       }
-    } catch (err) { console.error('Buy-in error:', err); setMessage({ type: 'error', text: 'Buy-In Failed — Please Try Again' }); }
+    } catch (err) { console.warn('Buy-in error:', err); setMessage({ type: 'error', text: 'Buy-In Failed — Please Try Again' }); }
     finally { setActionLoading(false); }
   };
 
@@ -591,7 +591,7 @@ const headers = { 'Content-Type': 'application/json' };
       } else {
         setMessage({ type: 'error', text: 'Failed to update time balance' });
       }
-    } catch (err) { console.error('Add time error:', err); setMessage({ type: 'error', text: 'Add Time Failed — Please Try Again' }); }
+    } catch (err) { console.warn('Add time error:', err); setMessage({ type: 'error', text: 'Add Time Failed — Please Try Again' }); }
     finally { setActionLoading(false); }
   };
 
@@ -657,7 +657,7 @@ const headers = { 'Content-Type': 'application/json' };
       } else {
         setMessage({ type: 'error', text: 'Failed to update membership' });
       }
-    } catch (err) { console.error('Membership update error:', err); setMessage({ type: 'error', text: 'Membership Update Failed — Please Try Again' }); }
+    } catch (err) { console.warn('Membership update error:', err); setMessage({ type: 'error', text: 'Membership Update Failed — Please Try Again' }); }
     finally { setActionLoading(false); }
   };
 
@@ -779,7 +779,7 @@ const headers = { 'Content-Type': 'application/json' };
       } else {
         setMessage({ type: 'error', text: `${actionLabel} Failed — Server Error` });
       }
-    } catch (err) { console.error('Void error:', err); setMessage({ type: 'error', text: `${actionLabel} Failed — Please Try Again` }); }
+    } catch (err) { console.warn('Void error:', err); setMessage({ type: 'error', text: `${actionLabel} Failed — Please Try Again` }); }
     finally { setActionLoading(false); }
   };
 
@@ -810,7 +810,7 @@ const headers = { 'Content-Type': 'application/json' };
       g3.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.7);
       o3.start(ctx.currentTime + 0.25); o3.stop(ctx.currentTime + 0.7);
       // Close AudioContext after sounds finish to prevent memory leak
-      setTimeout(() => { try { ctx.close(); } catch (e) { /* silent */ } }, 1000);
+      setTimeout(() => { try { ctx.close(); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); } }, 1000);
     } catch { /* audio not available */ }
   };
 

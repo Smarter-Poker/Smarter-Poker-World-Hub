@@ -76,7 +76,7 @@ export function TiltJournal({ onAskJarvis, onClose }: TiltJournalProps) {
                     }
                 }
             } catch (e) {
-                console.error('[TiltJournal] Supabase error:', e);
+                console.warn('[TiltJournal] Supabase error:', e);
             }
 
             // Fallback to localStorage
@@ -108,7 +108,7 @@ export function TiltJournal({ onAskJarvis, onClose }: TiltJournalProps) {
                 outcome: entry.outcome
             });
         } catch (e) {
-            console.error('[TiltJournal] Save error:', e);
+            console.warn('[TiltJournal] Save error:', e);
         }
     }, [userId, entries]);
 
@@ -117,7 +117,7 @@ export function TiltJournal({ onAskJarvis, onClose }: TiltJournalProps) {
         try {
             await (supabase.from('tilt_journal') as any).delete().eq('id', id);
         } catch (e) {
-            console.error('[TiltJournal] Delete error:', e);
+            console.warn('[TiltJournal] Delete error:', e);
         }
     }, [userId]);
 

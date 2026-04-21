@@ -25,7 +25,7 @@ export function JarvisDashboard({ userId, compact = false }) {
                 setInsights(data.insights);
             }
         } catch (error) {
-            console.error('Failed to fetch insights:', error);
+            console.warn('Failed to fetch insights:', error);
         }
         setLoading(false);
     };

@@ -235,7 +235,7 @@ POST body format:
                     started_at: new Date().toISOString(),
                 });
         } catch (logErr) {
-            console.error('[Venue Scraper] Failed to log run:', logErr.message);
+            console.warn('[Venue Scraper] Failed to log run:', logErr.message);
         }
 
         return res.status(200).json({
@@ -253,7 +253,7 @@ POST body format:
 
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('[Venue Scraper Trigger Error]', err);
+        console.warn('[Venue Scraper Trigger Error]', err);
         if (!res.headersSent) return res.status(500).json({ error: err.message });
     }
 }

@@ -37,16 +37,12 @@ let soundManager = null;
 try {
   const { getSoundManager } = require('../../../lib/SoundManager');
   soundManager = getSoundManager?.();
-} catch (e) {
-  // SoundManager not available -- silent fallback
-}
+} catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
 function playSound(event) {
   try {
     soundManager?.play?.(event);
-  } catch (e) {
-    // Never crash on sound failure
-  }
+  } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 }
 
 const TIMER_DURATION = 20; // seconds
@@ -143,7 +139,7 @@ export default function useGameState({
         startTimer();
       }
     } catch (err) {
-      console.error('Failed to start hand:', err);
+      console.warn('Failed to start hand:', err);
     }
   }, [numPlayers, heroSeat, startingStack, bigBlind, smallBlind, ante]);
 
@@ -199,7 +195,7 @@ export default function useGameState({
 
       syncStateFromMachine(state);
     } catch (err) {
-      console.error('Fold error:', err);
+      console.warn('Fold error:', err);
     }
   }, [hsm, heroSeat, stopTimer]);
 
@@ -227,7 +223,7 @@ export default function useGameState({
 
       syncStateFromMachine(state);
     } catch (err) {
-      console.error('Check/Call error:', err);
+      console.warn('Check/Call error:', err);
     }
   }, [hsm, heroSeat, amountToCall, stopTimer]);
 
@@ -257,7 +253,7 @@ export default function useGameState({
 
       syncStateFromMachine(state);
     } catch (err) {
-      console.error('Bet error:', err);
+      console.warn('Bet error:', err);
     }
   }, [hsm, heroSeat, players, stopTimer]);
 

@@ -88,7 +88,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
                 setUnlinkedEntries([]);
             }
         } catch (err) {
-            console.error('Error loading staking data:', err);
+            console.warn('Error loading staking data:', err);
         } finally {
             setIsLoading(false);
         }
@@ -162,7 +162,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
             setShowModal(false);
             loadData();
         } catch (err) {
-            console.error('Error saving arrangement:', err);
+            console.warn('Error saving arrangement:', err);
             toast.error('Failed to save arrangement');
         } finally {
             setSaving(false);
@@ -180,7 +180,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
             setConfirmEnd(false);
             loadData();
         } catch (err) {
-            console.error('Error ending arrangement:', err);
+            console.warn('Error ending arrangement:', err);
             toast.error('Failed to end arrangement');
         }
     };
@@ -192,7 +192,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
             setConfirmDelete(null);
             loadData();
         } catch (err) {
-            console.error('Error deleting arrangement:', err);
+            console.warn('Error deleting arrangement:', err);
             toast.error('Failed to delete');
         }
     };
@@ -213,7 +213,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
             setLinkingEntry(null);
             loadData();
         } catch (err) {
-            console.error('Error linking entry:', err);
+            console.warn('Error linking entry:', err);
             toast.error('Failed to link session');
         }
     };

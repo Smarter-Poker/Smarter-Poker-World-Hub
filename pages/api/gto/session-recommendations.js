@@ -67,7 +67,7 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('[SessionRecommendations] Error:', error);
+          console.warn('[SessionRecommendations] Error:', error);
           return res.status(200).json({
               success: true,
               recommendations: getDefaultRecommendations(),
@@ -77,7 +77,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -181,7 +181,7 @@ Return as JSON only.`
 
     } catch (error) {
         try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('[SessionRecommendations] Jarvis error:', error);
+        console.warn('[SessionRecommendations] Jarvis error:', error);
         return getDefaultRecommendations();
     }
 }

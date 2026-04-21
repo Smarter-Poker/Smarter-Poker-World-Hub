@@ -39,7 +39,7 @@ export default function useTrackedTours() {
                         emitChange();
                     }
                 } catch (e) {
-                    console.error('Failed to fetch tracked tours:', e);
+                    console.warn('Failed to fetch tracked tours:', e);
                 }
             } else {
                 setTrackedTours(globalTrackedTours);
@@ -105,14 +105,14 @@ export default function useTrackedTours() {
                 setTrackedTours(globalTrackedTours);
                 emitChange();
             } else {
-                console.error('Failed to save tracked tour:', json.error);
+                console.warn('Failed to save tracked tour:', json.error);
                 globalTrackedTours = trackedTours;
                 setTrackedTours(trackedTours);
                 emitChange();
                 alert('We had trouble saving your preference. Please try again.');
             }
         } catch (e) {
-            console.error(e);
+            console.warn(e);
             globalTrackedTours = trackedTours;
             setTrackedTours(trackedTours);
             emitChange();

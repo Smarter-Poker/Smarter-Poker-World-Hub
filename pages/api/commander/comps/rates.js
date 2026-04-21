@@ -41,7 +41,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -102,7 +102,7 @@ async function listRates(req, res) {
       }
     });
   } catch (error) {
-    console.error('List comp rates error:', error);
+    console.warn('List comp rates error:', error);
     return res.status(500).json({
       success: false,
       error: { code: 'SERVER_ERROR', message: 'Internal server error' }
@@ -204,7 +204,7 @@ async function createRate(req, res) {
     return res.status(201).json({ rate });
   } catch (error) {
       try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('Create comp rate error:', error);
+    console.warn('Create comp rate error:', error);
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

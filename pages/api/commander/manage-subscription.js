@@ -78,7 +78,7 @@ export default async function handler(req, res) {
             });
             return res.status(200).json({ url: portalSession.url });
         } catch (err) {
-            console.error('Failed to create billing portal:', err);
+            console.warn('Failed to create billing portal:', err);
             return res.status(500).json({ error: 'Failed to access billing portal.' });
         }
     } 
@@ -109,13 +109,13 @@ export default async function handler(req, res) {
 
         return res.status(200).json({ url: checkoutSession.url });
     } catch (err) {
-        console.error('Failed to create checkout session:', err);
+        console.warn('Failed to create checkout session:', err);
         return res.status(500).json({ error: 'Failed to create payment session.' });
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[Billing API API Error]', err);
+    console.warn('[Billing API API Error]', err);
     if (!res.headersSent) return res.status(500).json({ error: 'Internal server error' });
   }
 }

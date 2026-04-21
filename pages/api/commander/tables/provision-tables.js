@@ -96,7 +96,7 @@ export default async function handler(req, res) {
               .insert(tablesToInsert);
 
           if (insertErr) {
-              console.error('Table provision insert error:', insertErr);
+              console.warn('Table provision insert error:', insertErr);
               return res.status(500).json({ success: false, error: 'Failed to create tables: ' + insertErr.message });
           }
 
@@ -128,13 +128,13 @@ export default async function handler(req, res) {
           });
 
       } catch (err) {
-          console.error('Provision tables error:', err);
+          console.warn('Provision tables error:', err);
           return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

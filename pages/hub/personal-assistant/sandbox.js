@@ -559,7 +559,7 @@ export default function VirtualSandbox() {
           body: JSON.stringify({ userId: user.id, scenarioHash: hash, userAction: guess, correctAction: correctLabel, isCorrect }),
         }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       }
-    } catch (e) { /* silent */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
   };
 
   // Phase 4: Weekly spot challenge
@@ -874,7 +874,7 @@ export default function VirtualSandbox() {
           sessionStorage.removeItem('shared-sandbox-state');
         }
       } catch (err) {
-        console.error('Failed to parse shared state payload', err);
+        console.warn('Failed to parse shared state payload', err);
       }
     }
   }, [router.query.loadShared]);
@@ -968,7 +968,7 @@ export default function VirtualSandbox() {
         idbSaveSessionLog(json.sessions); // Background sync W7-4
       }
     } catch (err) {
-      console.error('[Sandbox] session fetch error (falling back to IDB):', err);
+      console.warn('[Sandbox] session fetch error (falling back to IDB):', err);
       const offlineData = await idbLoadSessionLog();
       if (offlineData && offlineData.length > 0) setSessionLog(offlineData);
     }
@@ -1010,7 +1010,7 @@ export default function VirtualSandbox() {
           handStrength: getHandStrength(heroHand)?.label || null,
         }),
       }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-    } catch (e) { /* silent */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
   }, [heroPosition, currentStreet, gameType, results, heroHand, quizRevealed, userGuess]);
 
   // Deck card selection handler — dual-card hero mode + multi-card flop
@@ -1121,7 +1121,7 @@ export default function VirtualSandbox() {
         }
       }
     } catch (err) {
-      console.error('[Sandbox] Sync error (caching offline):', err);
+      console.warn('[Sandbox] Sync error (caching offline):', err);
       // Fallback: W7-4 push to top of local index
       const offlineLog = await idbLoadSessionLog();
       const updatedLog = [payload, ...offlineLog].slice(0, 100);
@@ -1206,10 +1206,7 @@ export default function VirtualSandbox() {
             }),
           });
         }
-      } catch (e) {
-        // Non-fatal — equity history is supplementary
-        console.warn('[EquitySnapshot] Save error:', e.message);
-      }
+      } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     })();
   };
 
@@ -1295,10 +1292,7 @@ export default function VirtualSandbox() {
               }));
             }
           }
-        } catch (e) {
-          // Non-fatal — coach stats are a nice-to-have
-          console.warn('[CoachResult] Save error:', e.message);
-        }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
       })();
     }
   }, [results]); // intentionally only react to new results

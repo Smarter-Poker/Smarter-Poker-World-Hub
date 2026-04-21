@@ -138,7 +138,7 @@ export default async function handler(req, res) {
                   .trim();
               scenario = JSON.parse(cleanedResponse);
           } catch (parseError) {
-              console.error('[GenerateScenario] Failed to parse Grok response:', responseText);
+              console.warn('[GenerateScenario] Failed to parse Grok response:', responseText);
               throw new Error('Failed to parse scenario from AI response');
           }
 
@@ -159,7 +159,7 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('[GenerateScenario] Error:', error);
+          console.warn('[GenerateScenario] Error:', error);
           return res.status(500).json({
               success: false,
               error: error.message || 'Failed to generate scenario',
@@ -168,7 +168,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

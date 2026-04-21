@@ -103,7 +103,7 @@ export default async function handler(req, res) {
                             .insert(tournamentRows);
 
                         if (tErr) {
-                            console.error(`[Venue Receive] Tournament insert error for venue ${vid}:`, tErr.message);
+                            console.warn(`[Venue Receive] Tournament insert error for venue ${vid}:`, tErr.message);
                             results.errors.push(`Venue ${vid} tournaments: ${tErr.message}`);
                         } else {
                             results.tournaments_upserted += tournamentRows.length;
@@ -132,7 +132,7 @@ export default async function handler(req, res) {
                             .insert(newsRows);
 
                         if (nErr) {
-                            console.error(`[Venue Receive] News insert error for venue ${vid}:`, nErr.message);
+                            console.warn(`[Venue Receive] News insert error for venue ${vid}:`, nErr.message);
                             results.errors.push(`Venue ${vid} news: ${nErr.message}`);
                         } else {
                             results.news_inserted += newsRows.length;
@@ -146,7 +146,7 @@ export default async function handler(req, res) {
                 results.venues_updated++;
 
             } catch (venueErr) {
-                console.error(`[Venue Receive] Error processing venue:`, venueErr.message);
+                console.warn(`[Venue Receive] Error processing venue:`, venueErr.message);
                 results.errors.push(`Venue ${venueData.venue_id || '?'}: ${venueErr.message}`);
             }
         }
@@ -163,7 +163,7 @@ export default async function handler(req, res) {
                     started_at: new Date().toISOString(),
                 });
         } catch (logErr) {
-            console.error('[Venue Receive] Failed to log run:', logErr.message);
+            console.warn('[Venue Receive] Failed to log run:', logErr.message);
         }
 
         return res.status(200).json({
@@ -174,7 +174,7 @@ export default async function handler(req, res) {
 
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('[Venue Scraper Receive Error]', err);
+        console.warn('[Venue Scraper Receive Error]', err);
         if (!res.headersSent) return res.status(500).json({ error: err.message });
     }
 }

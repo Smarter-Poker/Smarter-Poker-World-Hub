@@ -64,7 +64,7 @@ export function TrainingSettingsProvider({ children }) {
                 loadFromLocalStorage();
             }
         } catch (error) {
-            console.error('[TrainingSettings] Unexpected load error:', error);
+            console.warn('[TrainingSettings] Unexpected load error:', error);
             loadFromLocalStorage();
         } finally {
             setLoading(false);
@@ -114,10 +114,10 @@ export function TrainingSettingsProvider({ children }) {
             if (error) {
                 console.warn('[TrainingSettings] Update error (saved locally):', error.message);
             } else {
-                console.log('[TrainingSettings] Updated:', updates);
+                console.debug('[TrainingSettings] Updated:', updates);
             }
         } catch (error) {
-            console.error('[TrainingSettings] Update error:', error);
+            console.warn('[TrainingSettings] Update error:', error);
         }
     };
 

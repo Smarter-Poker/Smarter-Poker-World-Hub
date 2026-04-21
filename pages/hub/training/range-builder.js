@@ -283,7 +283,7 @@ export default function RangeBuilder() {
         }
       }
     } catch (err) {
-      console.error('[RangeBuilder] Grade error:', err);
+      console.warn('[RangeBuilder] Grade error:', err);
     } finally {
       setGrading(false);
     }

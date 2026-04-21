@@ -24,11 +24,11 @@ const failures = [];
 function assert(condition, label, extra = '') {
     if (condition) {
         passed++;
-        console.log(`  ✅ ${label}${extra ? ' [' + extra + ']' : ''}`);
+        console.debug(`  ✅ ${label}${extra ? ' [' + extra + ']' : ''}`);
     } else {
         failed++;
         failures.push(label);
-        console.error(`  ❌ FAIL: ${label}${extra ? ' — ' + extra : ''}`);
+        console.warn(`  ❌ FAIL: ${label}${extra ? ' — ' + extra : ''}`);
     }
 }
 
@@ -89,9 +89,9 @@ function legal(toCall, stack = 100, pot = 10) {
 function tc() { return { bigBlind: 2, variant: 'plo4' }; }
 
 (async () => {
-    console.log('\n═══════════════════════════════════════════════════════════════');
-    console.log('  🔬 SWEEP 17: 9-BUG REGRESSION — TARGETED FIX VERIFICATION');
-    console.log('═══════════════════════════════════════════════════════════════\n');
+    console.debug('\n═══════════════════════════════════════════════════════════════');
+    console.debug('  🔬 SWEEP 17: 9-BUG REGRESSION — TARGETED FIX VERIFICATION');
+    console.debug('═══════════════════════════════════════════════════════════════\n');
 
     const horses = await Brain.loadHorseIds();
     horses.add(HR);
@@ -101,7 +101,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
     // The block was in flop/turn section with `if (street === 'river')` — unreachable.
     // Now properly placed in the river section.
     // ══════════════════════════════════════════════════════════════
-    console.log('═══ BUG-1: Module 24 River Donk-Block Reachability ═══\n');
+    console.debug('═══ BUG-1: Module 24 River Donk-Block Reachability ═══\n');
 
     // Test: River IP facing a small donk-bet with strong equity → should not fold
     // If the module was still dead code, it would never fire and the optimizer would handle it;
@@ -126,7 +126,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
     // Without await, the Promise was always truthy, causing Module 20/32
     // to skip all horses and record for everyone (including humans).
     // ══════════════════════════════════════════════════════════════
-    console.log('\n═══ BUG-2: isHorse() Await in processHandResult ═══\n');
+    console.debug('\n═══ BUG-2: isHorse() Await in processHandResult ═══\n');
 
     // Before fix: isHorse(pid) returned a Promise (truthy) → the loop skipped horses
     // After fix: await isHorse(pid) returns true for horses, false for non-horses
@@ -171,11 +171,11 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
     // These functions were called with 0 before equityFinal was computed.
     // Now they use the actual equityFinal value.
     // ══════════════════════════════════════════════════════════════
-    console.log('\n═══ BUGs 3-8: Deferred Utility Function Equity ═══\n');
+    console.debug('\n═══ BUGs 3-8: Deferred Utility Function Equity ═══\n');
 
     // BUG-3: governPLOMultiWayAggression — with 0 equity, no aggression allowed
     // After fix: with real equity > 50, should allow aggression in 4-way
-    console.log('--- BUG-3: MultiWay aggression governor receives real equity ---');
+    console.debug('--- BUG-3: MultiWay aggression governor receives real equity ---');
     // Test indirectly: with NUT_HAND in 4-way pot, horse should bet (not always check)
     const multiwayState = {
         tableId: TABLE,
@@ -196,7 +196,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
     assert(mwBets >= 1, `BUG-3: Nut hand in 4-way bets at least once (bets: ${mwBets}/10 — multiway governor throttles, was 0 before fix)`);
 
     // BUG-4: getPLOLimpedPotStrategy — with 0 equity, never stabs limped pots
-    console.log('\n--- BUG-4: Limped pot strategy receives real equity ---');
+    console.debug('\n--- BUG-4: Limped pot strategy receives real equity ---');
     const limpState = ploState(HR, DRY_FLOP, NUT_HAND, 8, 0, 100, 'btn');
     limpState.isLimpedPot = true;
     let limpBets = 0;
@@ -207,7 +207,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
     assert(limpBets >= 1, `BUG-4: Nut hand in limped pot bets at least once (bets: ${limpBets}/10 — range rotation may throttle, was 0 before fix)`);
 
     // BUG-5: getPLOSidePotAwareness — with 0 equity was suggesting fold
-    console.log('\n--- BUG-5: Side-pot awareness receives real equity ---');
+    console.debug('\n--- BUG-5: Side-pot awareness receives real equity ---');
     // Side-pot scenario: all-in player + main action
     const sidePotState = ploState(HR, WET_FLOP, NUT_HAND, 20, 5, 100, 'btn');
     sidePotState.allInPlayers = [{ id: 'allin-1', stack: 0 }];
@@ -215,7 +215,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
     assert(spDecision.action?.type !== 'fold', `BUG-5: Nut hand with side-pot doesn't fold (got: ${spDecision.action?.type})`);
 
     // BUG-6: getPLOBlindBattleStrategy — with 0 for strength → always fold range
-    console.log('\n--- BUG-6: Blind battle strategy receives real strength ---');
+    console.debug('\n--- BUG-6: Blind battle strategy receives real strength ---');
     const bbState = ploState(HR, DRY_FLOP, NUT_HAND, 4, 0, 100, 'bb', 2);
     bbState.isSBvsBB = true;
     let bbBets = 0;
@@ -228,7 +228,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
     assert(true, `BUG-6: Blind battle produces valid decision with real equity (bets: ${bbBets}/10 — BB slow-play is valid PLO strategy)`);
 
     // BUG-7: getPLODonkBetOpportunity — with 0 equity never donk bets
-    console.log('\n--- BUG-7: Donk bet opportunity receives real equity ---');
+    console.debug('\n--- BUG-7: Donk bet opportunity receives real equity ---');
     const donkState = ploState(HR, DRY_FLOP, NUT_HAND, 8, 0, 100, 'bb', 2);
     donkState.wasPFRaiser = false; // OOP vs PFR = donk opportunity
     // Note: donk opportunity requires !isIP and !wasPFRaiser and board favoring our range
@@ -237,7 +237,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
     assert(donkDecision.action?.type !== undefined, `BUG-7: Decision produced in potential donk scenario (got: ${donkDecision.action?.type})`);
 
     // BUG-8: getPLOColdCallDecision — with 0 strength always rejects
-    console.log('\n--- BUG-8: Cold-call decision receives real strength ---');
+    console.debug('\n--- BUG-8: Cold-call decision receives real strength ---');
     const coldCallState = ploState(HR, [], NUT_HAND, 6, 4, 100, 'co', 3);
     coldCallState.numCallers = 1;
     coldCallState.phase = 'preflop';
@@ -254,7 +254,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
     // Before: `multiway_topset` always overwrote `oop_check_call` and `river_call_loss`
     // After: else-if chain keeps most specific pattern
     // ══════════════════════════════════════════════════════════════
-    console.log('\n═══ BUG-9: Leak Classification Priority ═══\n');
+    console.debug('\n═══ BUG-9: Leak Classification Priority ═══\n');
 
     const leakHorse = 'dddddddd-leak-0000-0000-000000000001';
     const leakTbl = 'leak-priority-test';
@@ -313,10 +313,10 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
     // ══════════════════════════════════════════════════════════════
     // SECTION: NON-REGRESSION — All pre-existing behavior intact
     // ══════════════════════════════════════════════════════════════
-    console.log('\n═══ NON-REGRESSION CHECKS ═══\n');
+    console.debug('\n═══ NON-REGRESSION CHECKS ═══\n');
 
     // R1: PLO variant routing still works
-    console.log('--- R1: PLO routing intact ---');
+    console.debug('--- R1: PLO routing intact ---');
     for (const variant of ['plo4', 'plo5', 'omaha_hilo']) {
         const r = await Brain.getDecision(HR, {
             tableId: TABLE,
@@ -331,7 +331,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
     }
 
     // R2: processHandResult doesn't crash
-    console.log('\n--- R2: processHandResult stability ---');
+    console.debug('\n--- R2: processHandResult stability ---');
     try {
         await Brain.processHandResult({
             tableId: TABLE, bigBlind: 2, street: 'preflop', potSize: 10,
@@ -347,7 +347,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
     }
 
     // R3: Holdem fallback routing still works
-    console.log('\n--- R3: Holdem routing intact ---');
+    console.debug('\n--- R3: Holdem routing intact ---');
     const holdemR = await Brain.getDecision(HR, {
         tableId: TABLE,
         players: [
@@ -361,7 +361,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
         `R3: Holdem decision functional (got: ${holdemR.action?.type})`);
 
     // R4: All Phase 4 detector functions still return correct types
-    console.log('\n--- R4: Phase 4 detector type safety ---');
+    console.debug('\n--- R4: Phase 4 detector type safety ---');
     assert(typeof Brain.detectReverseImplied(6, 0.4, 10, 3, true).shouldBlock === 'boolean', 'R4: detectReverseImplied.shouldBlock is boolean');
     assert(typeof Brain.detectBombPotOrStraddle(4, 2, false).isBombPot === 'boolean', 'R4: detectBombPotOrStraddle.isBombPot is boolean');
     assert(typeof Brain.isMinRaiser('no-one').isMinRaiser === 'boolean', 'R4: isMinRaiser.isMinRaiser is boolean');
@@ -373,15 +373,15 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
     // ══════════════════════════════════════════════════════════════
     // FINAL RESULTS
     // ══════════════════════════════════════════════════════════════
-    console.log('\n═══════════════════════════════════════════════════════════════');
-    console.log(`  RESULTS: ${passed} passed, ${failed} failed`);
-    console.log('═══════════════════════════════════════════════════════════════');
+    console.debug('\n═══════════════════════════════════════════════════════════════');
+    console.debug(`  RESULTS: ${passed} passed, ${failed} failed`);
+    console.debug('═══════════════════════════════════════════════════════════════');
     if (failed > 0) {
-        console.log('\n❌ FAILURES:');
-        failures.forEach(f => console.error(`  - ${f}`));
+        console.debug('\n❌ FAILURES:');
+        failures.forEach(f => console.warn(`  - ${f}`));
         process.exit(1);
     } else {
-        console.log('\n✅ ALL 9 BUG FIXES VERIFIED — SWEEP 17 REGRESSION CLEAN');
+        console.debug('\n✅ ALL 9 BUG FIXES VERIFIED — SWEEP 17 REGRESSION CLEAN');
     }
-    console.log('');
+    console.debug('');
 })();

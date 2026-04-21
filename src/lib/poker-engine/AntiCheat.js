@@ -394,7 +394,7 @@ class AntiCheat {
           triggered_by: 'system',
         })));
     } catch (err) {
-      console.error('[AntiCheat] Persist flags error:', err.message);
+      console.warn('[AntiCheat] Persist flags error:', err.message);
     }
   }
 
@@ -450,7 +450,7 @@ class AntiCheat {
           triggered_by: 'system',
         });
     } catch (err) {
-      console.error('[AntiCheat] Record session error:', err.message);
+      console.warn('[AntiCheat] Record session error:', err.message);
     }
   }
 
@@ -480,7 +480,7 @@ class AntiCheat {
           triggered_by: 'system',
         });
     } catch (err) {
-      console.error('[AntiCheat] Close session error:', err.message);
+      console.warn('[AntiCheat] Close session error:', err.message);
     }
   }
 
@@ -506,7 +506,7 @@ class AntiCheat {
           triggered_by: 'system',
         });
     } catch (err) {
-      console.error('[AntiCheat] Log seat blocked error:', err.message);
+      console.warn('[AntiCheat] Log seat blocked error:', err.message);
     }
   }
 
@@ -655,7 +655,7 @@ class AntiCheat {
 
       return { allowed: true };
     } catch (err) {
-      console.error('[AntiCheat] Downline check error:', err.message);
+      console.warn('[AntiCheat] Downline check error:', err.message);
       return { allowed: true }; // Fail open on errors
     }
   }
@@ -719,7 +719,7 @@ class AntiCheat {
       this._agentCache.set(playerId, result);
       return result;
     } catch (err) {
-      console.error('[AntiCheat] Agent chain lookup error:', err.message);
+      console.warn('[AntiCheat] Agent chain lookup error:', err.message);
       return null;
     }
   }

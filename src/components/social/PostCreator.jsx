@@ -100,7 +100,7 @@ export const PostCreator = ({
       }, 1500);
 
     } catch (err) {
-      console.error('Post creation error:', err);
+      console.warn('Post creation error:', err);
       setError('Failed to create post. Please try again.');
     } finally {
       setIsSubmitting(false);

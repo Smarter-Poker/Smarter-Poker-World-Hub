@@ -48,13 +48,13 @@ export default function OrderHistory() {
                 .limit(50) // order history
 
             if (error && error.code !== 'PGRST116') {
-                console.error('Error fetching orders:', error);
+                console.warn('Error fetching orders:', error);
             }
 
             setOrders(data || []);
             setLoading(false);
         } catch (error) {
-            console.error('Error loading orders:', error);
+            console.warn('Error loading orders:', error);
             setLoading(false);
         }
     };

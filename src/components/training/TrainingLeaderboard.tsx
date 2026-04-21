@@ -31,7 +31,7 @@ export function TrainingLeaderboard({ userId, compact = false }) {
                 setLeaderboard(data.leaderboard);
             }
         } catch (error) {
-            console.error('Failed to fetch leaderboard:', error);
+            console.warn('Failed to fetch leaderboard:', error);
         }
         setLoading(false);
     };

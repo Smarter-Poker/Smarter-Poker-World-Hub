@@ -31,7 +31,7 @@ export const getAuthToken = async () => {
                 // Token expired or expiring — fall through to refresh
             }
         }
-    } catch (_) { /* localStorage unavailable, corrupted, or token parse failed */ }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
     // 2. Slow path: ask Supabase (handles token refresh automatically)
     try {

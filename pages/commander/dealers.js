@@ -371,7 +371,7 @@ const res = await commanderFetch(`/api/commander/dealers?venue_id=${venueId}`, {
         setDealers(Array.isArray(data.data) ? data.data : data.data?.dealers || []);
       }
     } catch (err) {
-      console.error('Fetch dealers failed:', err);
+      console.warn('Fetch dealers failed:', err);
       setDealers([]);
     } finally {
       setLoading(false);
@@ -388,7 +388,7 @@ const res = await commanderFetch(`/api/commander/tables?venue_id=${venueId}`, { 
       }
     } catch (err) {
       setLoading(false);
-      console.error('Fetch tables failed:', err);
+      console.warn('Fetch tables failed:', err);
       setTables([]);
     }
   }
@@ -402,7 +402,7 @@ const res = await commanderFetch(`/api/commander/dealers/rotations?venue_id=${ve
         setRotations(Array.isArray(data.data) ? data.data : data.data?.rotations || []);
       }
     } catch (err) {
-      console.error('Fetch rotations failed:', err);
+      console.warn('Fetch rotations failed:', err);
       setRotations([]);
     }
   }
@@ -423,7 +423,7 @@ const res = await commanderFetch('/api/commander/dealers', {
         }
       }
     } catch (err) {
-      console.error('Add dealer failed:', err);
+      console.warn('Add dealer failed:', err);
       setToast({ type: 'error', text: 'Failed to add dealer. Please try again.' });
     }
   }
@@ -444,7 +444,7 @@ const res = await commanderFetch(`/api/commander/dealers/${editingDealer.id}`, {
         }
       }
     } catch (err) {
-      console.error('Edit dealer failed:', err);
+      console.warn('Edit dealer failed:', err);
       setToast({ type: 'error', text: 'Failed to update dealer. Please try again.' });
     }
   }
@@ -465,7 +465,7 @@ const res = await commanderFetch('/api/commander/dealers/rotations', {
         }
       }
     } catch (err) {
-      console.error('Rotate dealer failed:', err);
+      console.warn('Rotate dealer failed:', err);
       setToast({ type: 'error', text: 'Failed to rotate dealer. Please try again.' });
     }
   }

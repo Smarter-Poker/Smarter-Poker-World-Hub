@@ -70,7 +70,7 @@ export default function GlobalErrorCatcher() {
                 return;
             }
 
-            console.error('[GlobalErrorCatcher] 🔥 Uncaught error:', event?.error || message);
+            console.warn('[GlobalErrorCatcher] 🔥 Uncaught error:', event?.error || message);
 
             // Report to Sentry silently
             try {
@@ -98,7 +98,7 @@ export default function GlobalErrorCatcher() {
                 return;
             }
 
-            console.error('[GlobalErrorCatcher] 🔥 Unhandled promise rejection:', reason);
+            console.warn('[GlobalErrorCatcher] 🔥 Unhandled promise rejection:', reason);
 
             // Report to Sentry silently
             try {

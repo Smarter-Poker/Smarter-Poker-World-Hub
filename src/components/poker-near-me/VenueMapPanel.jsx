@@ -446,7 +446,7 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
       if (container) container.addEventListener('click', popupClickHandlerRef.current);
     };
 
-    loadLeaflet().catch(err => console.error('Failed to load map:', err));
+    loadLeaflet().catch(err => console.warn('Failed to load map:', err));
 
     return () => {
       mountedRef.current = false;

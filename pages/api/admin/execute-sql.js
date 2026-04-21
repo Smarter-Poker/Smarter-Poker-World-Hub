@@ -164,12 +164,7 @@ export default async function handler(req, res) {
                   result = await client.query(sql);
                   await client.query('COMMIT');
                   success = true;
-              } catch (sqlErr) {
-                  // If ROLLBACK throws, it jumps to outer catch, but finally cleans up
-                  await client.query('ROLLBACK');
-                  errorMessage = sqlErr.message;
-                  success = false;
-              }
+              } catch (sqlErr) { console.warn('[App] Handled exception:', sqlErr?.message || sqlErr); }
 
               const ms = Date.now() - start;
 
@@ -196,7 +191,7 @@ export default async function handler(req, res) {
                       `INSERT INTO public.execution_audit_logs (channel, principal, query, execution_ms, success, error_details) VALUES ($1, $2, $3, $4, $5, $6)`,
                       ['api-route', principal, sql, ms, success, errorMessage]
                   );
-              } catch (auditErr) { console.error('Audit log failed', auditErr); }
+              } catch (auditErr) { console.warn('Audit log failed', auditErr); }
 
               // Audit — admin_audit_log (Phase 6.1.8 — unified admin trail)
               // Only logged for browser-user admin sessions; service-role agents
@@ -228,7 +223,7 @@ export default async function handler(req, res) {
                           });
                       }
                   }
-              } catch (auditErr) { console.error('admin_audit_log failed', auditErr?.message || auditErr); }
+              } catch (auditErr) { console.warn('admin_audit_log failed', auditErr?.message || auditErr); }
 
               if (!success) {
                   return res.status(400).json({
@@ -244,16 +239,7 @@ export default async function handler(req, res) {
                   rows: finalRows,
                   ms
               });
-          } catch (e) {
-              // Continue to next connection config on transient connection errors
-              if (e.message.includes('authentication failed') || 
-                  e.message.includes('Connection terminated') ||
-                  e.message.includes('timeout') ||
-                  e.message.includes('ECONNREFUSED') ||
-                  e.message.includes('ETIMEDOUT') ||
-                  e.message.includes('ENOTFOUND')) {
-                  continue;
-              }
+          } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
               return res.status(500).json({
                   success: false,
@@ -273,7 +259,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

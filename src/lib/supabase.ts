@@ -17,10 +17,10 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
 
 if (!supabaseUrl || !supabaseAnonKey) {
    const msg = '[Supabase] FATAL: Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY';
-   console.error(msg);
+   console.warn(msg);
    // In browser, show error instead of silently failing
    if (typeof window !== 'undefined') {
-      console.error(msg + ' — check your .env.local file');
+      console.warn(msg + ' — check your .env.local file');
    }
    // Don't throw — allow build-time imports to succeed
    // Runtime calls will fail with a clear error
@@ -40,7 +40,7 @@ function getSupabase() {
       const safeUrl = supabaseUrl || 'https://kuklfnapbkmacvwxktbh.supabase.co';
 
       if (!supabaseAnonKey) {
-         console.error('[Supabase] FATAL: Missing NEXT_PUBLIC_SUPABASE_ANON_KEY — cannot create authenticated client');
+         console.warn('[Supabase] FATAL: Missing NEXT_PUBLIC_SUPABASE_ANON_KEY — cannot create authenticated client');
       }
 
       _supabase = createClient(safeUrl, supabaseAnonKey || '', {

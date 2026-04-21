@@ -2022,7 +2022,7 @@ export async function getStaticProps() {
             revalidate: 60, // 60 second Edge caching
         };
     } catch (e) {
-        console.error('ISR Build Failed:', e.message);
+        console.warn('ISR Build Failed:', e.message);
         return { props: { initialTours: [] }, revalidate: 60 };
     }
 }

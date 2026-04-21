@@ -95,14 +95,14 @@ export default function AnnouncementsDisplay() {
     try {
       const json = await commanderFetchJSON(`/api/commander/announcements?venue_id=${venueId}`, { });
       if (json.success) setAnnouncements(json.data || []);
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
 
     try {
       const settingsRes = await commanderFetch(`/api/commander/settings?venue_id=${venueId}`, { });
       if (!settingsRes.ok) throw new Error(`Request failed (${settingsRes.status})`);
       const sj = await settingsRes.json();
       if (sj.success) setRoomOpen(sj.data?.room_open ?? true);
-    } catch (e) { /* silent */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
     setNow(new Date());
   }, [venueId]);
@@ -113,7 +113,7 @@ export default function AnnouncementsDisplay() {
     try {
       const json = await commanderFetchJSON(`/api/commander/announcements?venue_id=${venueId}&include_scheduled=1`, { });
       if (json.success) setAllAnnouncements(json.data || []);
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
   }, [venueId]);
 
   useEffect(() => {
@@ -175,7 +175,7 @@ export default function AnnouncementsDisplay() {
   // ─── Wake lock ───
   useEffect(() => {
     const req = async () => {
-      try { if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch (e) { /* silent */ }
+      try { if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     };
     req();
     const handleVis = () => { if (document.visibilityState === 'visible') req(); };
@@ -225,7 +225,7 @@ export default function AnnouncementsDisplay() {
       setEditingAnnouncement(null);
       fetchData(); fetchAllAnnouncements();
       broadcastChange('settings');
-    } catch (err) { console.error(err); setToast({ type: 'error', text: err.message || 'Failed to save' }); }
+    } catch (err) { console.warn(err); setToast({ type: 'error', text: err.message || 'Failed to save' }); }
     finally { setSaving(false); }
   };
 
@@ -238,7 +238,7 @@ export default function AnnouncementsDisplay() {
         fetchData(); fetchAllAnnouncements();
         broadcastChange('settings');
       }
-    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
+    } catch (err) { console.warn(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
   };
 
   const formatTime = (ts) => {

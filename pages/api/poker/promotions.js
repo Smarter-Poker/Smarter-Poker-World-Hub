@@ -117,7 +117,7 @@ try {
       const { data, error } = await query;
 
       if (error) {
-        console.error('Error fetching promotions:', error);
+        console.warn('Error fetching promotions:', error);
         return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
@@ -141,7 +141,7 @@ try {
       const { data: notifData, error: notifError } = await notifQuery;
 
       if (notifError) {
-        console.error('Error fetching promotion notifications:', notifError);
+        console.warn('Error fetching promotion notifications:', notifError);
       }
 
       // Build name lookups for enrichment
@@ -177,13 +177,13 @@ try {
         total: promotions.length,
       });
     } catch (err) {
-      console.error('Promotions API error:', err);
+      console.warn('Promotions API error:', err);
       return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

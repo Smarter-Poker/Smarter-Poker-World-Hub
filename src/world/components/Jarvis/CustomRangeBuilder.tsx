@@ -92,7 +92,7 @@ export function CustomRangeBuilder({ initialRange, onSave, onAskJarvis, onClose 
             const result = gradeRange(customRange, solverSolution, 'frequency');
             setGradeResult(result);
         } catch (e) {
-            console.error('[CustomRangeBuilder] Grade error:', e);
+            console.warn('[CustomRangeBuilder] Grade error:', e);
         }
     };
 

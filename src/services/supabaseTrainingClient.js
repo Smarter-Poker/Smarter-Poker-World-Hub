@@ -32,7 +32,7 @@ export async function fetchScenario(scenarioId) {
             .maybeSingle();
 
         if (error) {
-            console.error('[TrainingClient] Supabase error:', error);
+            console.warn('[TrainingClient] Supabase error:', error);
             return { success: false, error: `Database error: ${error.message}` };
         }
 
@@ -43,7 +43,7 @@ export async function fetchScenario(scenarioId) {
         // Validate schema (fail-closed)
         const validation = validateScenarioSchema(data);
         if (!validation.valid) {
-            console.error('[TrainingClient] Schema validation failed:', validation.errors);
+            console.warn('[TrainingClient] Schema validation failed:', validation.errors);
             return {
                 success: false,
                 error: `Invalid scenario data: ${validation.errors.join(', ')}`
@@ -62,7 +62,7 @@ export async function fetchScenario(scenarioId) {
         return { success: true, scenario: validation.sanitized };
 
     } catch (err) {
-        console.error('[TrainingClient] Unexpected error:', err);
+        console.warn('[TrainingClient] Unexpected error:', err);
         return { success: false, error: `Unexpected error: ${err.message}` };
     }
 }
@@ -112,7 +112,7 @@ export async function fetchRandomScenarioForGame(gameId) {
         return { success: true, scenario: validation.sanitized };
 
     } catch (err) {
-        console.error('[TrainingClient] Error fetching random scenario:', err);
+        console.warn('[TrainingClient] Error fetching random scenario:', err);
         return { success: false, error: err.message };
     }
 }

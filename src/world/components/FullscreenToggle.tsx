@@ -28,7 +28,7 @@ export function FullscreenToggle() {
                 await document.exitFullscreen();
             }
         } catch (err) {
-            console.error('Fullscreen error:', err);
+            console.warn('Fullscreen error:', err);
         }
     }, []);
 

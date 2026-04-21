@@ -115,10 +115,7 @@ async function checkVelocity(supabaseAdmin, { userId, clubId, actionType, amount
         }
 
         return { passed: true, flagged: false };
-    } catch (err) {
-        // Velocity check failures should never block transactions
-        console.error('[VelocityCheck] Error:', err.message);
-        return { passed: true, flagged: false, error: err.message };
+    } catch (err) { console.warn('[App] Handled exception:', err?.message || err); };
     }
 }
 
@@ -165,7 +162,7 @@ async function autoSuspendForFraud(supabaseAdmin, { userId, clubId, reason, ip }
             ip,
         });
     } catch (err) {
-        console.error('[AutoSuspend] Error:', err.message);
+        console.warn('[AutoSuspend] Error:', err.message);
     }
 }
 

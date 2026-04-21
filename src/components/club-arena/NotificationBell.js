@@ -52,7 +52,7 @@ export default function NotificationBell({ userId }) {
         setNotifications(notifs);
         setUnreadCount(notifs.filter(n => !n.read).length);
       }
-    } catch (_) { /* silent */ }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   }, [userId]);
 
   useEffect(() => {
@@ -89,9 +89,9 @@ export default function NotificationBell({ userId }) {
         eventBus.emit(EventType.NOTIFICATIONS_READ, { count: unreadCount }, 'NotificationBell');
         // Clear local storage count assumption since we wiped social
         localStorage.setItem('sp-notif-count', '0');
-      } catch (e) { /* ignore import failure if isolated */ }
+      } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
       setUnreadCount(0);
-    } catch (_) { /* silent */ }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   };
 
   return (

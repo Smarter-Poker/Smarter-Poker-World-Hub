@@ -198,13 +198,11 @@ export default function TriviaModePage() {
                         const totalQs = accuracyData.reduce((s, r) => s + (r.total_questions || 0), 0);
                         if (totalQs > 0) setCommunityAccuracy(totalCorrect / totalQs);
                     }
-                } catch (e) {
-                    // Non-critical — ghost falls back to 55%
-                }
+                } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
                 setGameState('ready');
             } catch (err) {
-                console.error('Error initializing trivia:', err);
+                console.warn('Error initializing trivia:', err);
                 setError('Failed to load trivia. Please try again.');
                 setGameState('error');
             }
@@ -402,7 +400,7 @@ export default function TriviaModePage() {
                 setDailyLeaderboard(lb);
             }
         } catch (err) {
-            console.error('[Daily Trivia] Error loading leaderboard:', err);
+            console.warn('[Daily Trivia] Error loading leaderboard:', err);
         }
     }
 
@@ -520,7 +518,7 @@ export default function TriviaModePage() {
                     .maybeSingle();
                 if (postProfile) setUserDiamonds(postProfile.diamonds || 0);
             } catch (e) {
-                console.error('[mode] Diamond deduction failed:', e);
+                console.warn('[mode] Diamond deduction failed:', e);
                 setShowOutOfDiamonds(true);
                 return;
             }
@@ -685,7 +683,7 @@ export default function TriviaModePage() {
 
                     const { error: masteryError } = await supabase.from('trivia_category_mastery')
                         .upsert(masteryRecords, { onConflict: 'user_id,category', ignoreDuplicates: false });
-                    if (masteryError) console.error('[Trivia] Category mastery upsert failed:', masteryError);
+                    if (masteryError) console.warn('[Trivia] Category mastery upsert failed:', masteryError);
                     savePhaseRef.current = 4;
                 }
 
@@ -712,7 +710,7 @@ export default function TriviaModePage() {
                     savePhaseRef.current = 5;
                 }
             } catch (err) {
-                console.error('[mode] Failed to save data:', err);
+                console.warn('[mode] Failed to save data:', err);
                 setSaveErrorPayload(gameResult);
                 setGameState('saving_error');
                 return; // halt and show retry UI (savePhaseRef preserves progress)
@@ -946,7 +944,7 @@ export default function TriviaModePage() {
                                     if (profile) setUserDiamonds(profile.diamonds || 0);
                                     if (delta > 0) busEmit.diamondsEarned(delta, `Trivia ${mode}`);
                                 } catch (e) {
-                                    console.error('[Trivia] onDiamondsChange RPC failed:', e);
+                                    console.warn('[Trivia] onDiamondsChange RPC failed:', e);
                                 }
                             }}
                         />
@@ -1063,7 +1061,7 @@ export default function TriviaModePage() {
                                         }
                                     }
                                 } catch (e) {
-                                    console.error('[DoubleOrNothing] RPC failed:', e);
+                                    console.warn('[DoubleOrNothing] RPC failed:', e);
                                 }
                                 setShowDoubleOrNothing(false);
                             }}
@@ -1096,7 +1094,7 @@ export default function TriviaModePage() {
                                         busEmit.celebration('confetti');
                                     }
                                 } catch (e) {
-                                    console.error('[PrizeWheel] RPC failed:', e);
+                                    console.warn('[PrizeWheel] RPC failed:', e);
                                 }
                                 setShowPrizeWheel(false);
                             }}

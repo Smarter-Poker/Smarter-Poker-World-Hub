@@ -86,7 +86,7 @@ const res = await commanderFetch('/api/commander/admin/leads', {
       }
     } catch (err) {
       setLoading(false);
-      console.error('Failed to update status:', err);
+      console.warn('Failed to update status:', err);
       setError('Failed to update lead status. Please try again.');
     }
   }

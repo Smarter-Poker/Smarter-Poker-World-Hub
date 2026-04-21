@@ -56,7 +56,7 @@ export default async function handler(req, res) {
                   .eq('user_id', user.id);
 
               if (deleteError) {
-                  console.error('Failed to delete reaction:', deleteError);
+                  console.warn('Failed to delete reaction:', deleteError);
                   return res.status(500).json({ success: false, error: 'Failed to delete reaction' });
               }
 
@@ -82,20 +82,20 @@ export default async function handler(req, res) {
               .maybeSingle();
 
           if (error) {
-              console.error('Failed to save reaction:', error);
+              console.warn('Failed to save reaction:', error);
               return res.status(500).json({ success: false, error: 'Failed to save reaction' });
           }
 
           return res.status(200).json({ success: true, reaction: data.reaction });
 
       } catch (error) {
-          console.error('React API error:', error);
+          console.warn('React API error:', error);
           return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

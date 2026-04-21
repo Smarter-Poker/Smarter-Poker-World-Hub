@@ -49,7 +49,7 @@ export default async function handler(req, res) {
           .eq('status', 'waiting')
           .is('checked_in_at', null)
           .lt('created_at', expiryTime);
-      } catch (cleanupErr) { /* non-critical */ }
+      } catch (cleanupErr) { console.warn('[App] Handled exception:', cleanupErr?.message || cleanupErr); }
 
       // Get all waiting entries at venue
       const { data: entries, error } = await getSupabase()
@@ -61,7 +61,7 @@ export default async function handler(req, res) {
             .limit(100)
 
       if (error) {
-        console.error('Commander venue waitlist query error:', error);
+        console.warn('Commander venue waitlist query error:', error);
         return res.status(500).json({
           success: false,
           error: { code: 'DATABASE_ERROR', message: 'Failed to fetch waitlist' }
@@ -110,7 +110,7 @@ export default async function handler(req, res) {
         data: { waitlists }
       });
     } catch (error) {
-      console.error('Commander venue waitlist API error:', error);
+      console.warn('Commander venue waitlist API error:', error);
       return res.status(500).json({
         success: false,
         error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }
@@ -119,7 +119,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

@@ -53,7 +53,7 @@ class HorseAlertingService {
                 .maybeSingle();
 
             if (error) {
-                console.error('Failed to log error:', error.message);
+                console.warn('Failed to log error:', error.message);
                 return null;
             }
 
@@ -66,7 +66,7 @@ class HorseAlertingService {
 
             return data || null;
         } catch (e) {
-            console.error('Error logging failed:', e.message);
+            console.warn('Error logging failed:', e.message);
         }
     }
 
@@ -119,9 +119,9 @@ class HorseAlertingService {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
-            console.log('📣 Alert sent to webhook');
+            console.debug('📣 Alert sent to webhook');
         } catch (e) {
-            console.error('Webhook alert failed:', e.message);
+            console.warn('Webhook alert failed:', e.message);
         }
     }
 
@@ -312,7 +312,7 @@ class ClipUsageTracker {
             .maybeSingle();
 
         if (error) {
-            console.error('Failed to record clip usage:', error.message);
+            console.warn('Failed to record clip usage:', error.message);
         }
 
         return data || null;

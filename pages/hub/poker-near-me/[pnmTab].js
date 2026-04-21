@@ -78,7 +78,7 @@ function safeSetItem(key, value) {
                 if (evictKey !== key && localStorage.getItem(evictKey)) {
                     localStorage.removeItem(evictKey);
                     freed = true;
-                    try { localStorage.setItem(key, value); return; } catch (_) { /* continue evicting */ }
+                    try { localStorage.setItem(key, value); return; } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                 }
             }
             if (!freed) console.warn('[PNM] localStorage quota exhausted — could not write:', key);
@@ -103,7 +103,7 @@ function trackSearchEvent(eventName, data) {
         // Keep last 50 events
         if (existing.length > 50) existing.splice(0, existing.length - 50);
         safeSetItem(key, JSON.stringify(existing));
-    } catch (e) { /* analytics should never break the app */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 }
 
 // Popular cities for autocomplete
@@ -239,7 +239,7 @@ function FavLiveToast({ message, onClick }) {
 class TabErrorBoundary extends React.Component {
     constructor(props) { super(props); this.state = { hasError: false, error: null }; }
     static getDerivedStateFromError(error) { return { hasError: true, error }; }
-    componentDidCatch(error, info) { console.error(`[PNM] Tab crashed:`, error, info); }
+    componentDidCatch(error, info) { console.warn(`[PNM] Tab crashed:`, error, info); }
     render() {
         if (this.state.hasError) {
             return React.createElement('div', {
@@ -345,7 +345,7 @@ export default function PokerNearMePage({ initialTab }) {
     const [showLiveTab, setShowLiveTab] = React.useState(false);
     const setActiveTab = (val) => {
         if (typeof navigator !== 'undefined' && navigator.vibrate) {
-            try { navigator.vibrate(1); } catch (e) { /* ignore */ }
+            try { navigator.vibrate(1); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         }
         // Reset More sub-tab to overview when switching to 'more' tab
         if (val === 'more') {
@@ -440,7 +440,7 @@ export default function PokerNearMePage({ initialTab }) {
         fetch('/api/poker/reviews?stats_only=true&venue_ids=' + newIds.join(','))
             .then(r => r.json())
             .then(j => { if (j.success && j.stats) setPnmReviewStatsMap(prev => ({ ...prev, ...j.stats })); })
-            .catch(() => { /* silent */ });
+            .catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
     }, [venues]);
 
     // ─── Live Cash Game Data Merger ───
@@ -478,7 +478,7 @@ export default function PokerNearMePage({ initialTab }) {
                     return merged;
                 });
             })
-            .catch(() => { /* silent — live data is best-effort */ });
+            .catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
     }, []);
     useEffect(() => {
         buildLiveDataMap(); // Initial fetch on mount
@@ -548,7 +548,7 @@ export default function PokerNearMePage({ initialTab }) {
             fetch('/api/poker/reviews?stats_only=true&venue_ids=' + venueId)
                 .then(r => r.json())
                 .then(j => { if (j.success && j.stats) setPnmReviewStatsMap(prev => ({ ...prev, ...j.stats })); })
-                .catch(() => { /* silent */ });
+                .catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
         };
         window.addEventListener('pnm:review-submitted', handleReviewSubmitted);
         return () => window.removeEventListener('pnm:review-submitted', handleReviewSubmitted);
@@ -699,7 +699,7 @@ export default function PokerNearMePage({ initialTab }) {
                     try { localStorage.setItem('poker-near-me-search-filters', JSON.stringify(parsed)); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
                     return { ...parsed };
                 }
-            } catch (e) { console.error(e); }
+            } catch (e) { console.warn(e); }
         }
         return {
             radius: 50,
@@ -859,7 +859,7 @@ export default function PokerNearMePage({ initialTab }) {
             try {
                 const saved = localStorage.getItem('poker-near-me-map-filters');
                 if (saved) return JSON.parse(saved);
-            } catch (e) { console.error(e); }
+            } catch (e) { console.warn(e); }
         }
         return {
             cashGames: false,
@@ -966,7 +966,7 @@ export default function PokerNearMePage({ initialTab }) {
                     hadCacheHit = true;
                 }
             }
-        } catch (e) { /* ignore */ }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         // [PNM1 FIX] Was ?v=Date.now() — busted Vercel edge cache on every page load.
         // [GAP 6.3 FIX] Changed to daily cache-buster to ensure daily updates aren't frozen indefinitely.
         const dailyBuster = new Date().toISOString().split('T')[0];
@@ -983,7 +983,7 @@ export default function PokerNearMePage({ initialTab }) {
                 // Cache for offline use (cache the filtered list)
                 try {
                     localStorage.setItem(CACHE_KEY, JSON.stringify({ venues: activeArr, time: Date.now() }));
-                } catch (e) { /* storage full, ignore */ }
+                } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
             })
             .catch(function () {
                 // Only show error if we have no cached data at all
@@ -1016,9 +1016,7 @@ export default function PokerNearMePage({ initialTab }) {
                     });
                 }
             }
-        } catch (e) {
-            /* silent fail */
-        }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     }, []);
 
     // Fetch live table count for map stats header
@@ -1115,10 +1113,10 @@ export default function PokerNearMePage({ initialTab }) {
                             hasSavedLocation = true; // skip GPS auto-request
                             hasSavedCity = true; // city-based — do NOT request GPS
                         }
-                    } catch (e) { /* corrupt data */ }
+                    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
                 }
             }
-        } catch (e) { /* ignore corrupt data */ }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
         // Request fresh GPS — silent refresh if we already have saved GPS location
         // SKIP entirely if a saved city was restored (user chose a city, not GPS)
@@ -1184,7 +1182,7 @@ export default function PokerNearMePage({ initialTab }) {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ venue_id: venue.id, venue_name: venue.name })
-                }).catch(console.error);
+                }).catch(console.warn);
             });
             return;
         }
@@ -1212,7 +1210,7 @@ export default function PokerNearMePage({ initialTab }) {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ venue_id: venue.id, venue_name: venue.name })
-                    }).catch(console.error);
+                    }).catch(console.warn);
                 });
 
                 setGeofenceStatus('active');
@@ -1224,7 +1222,7 @@ export default function PokerNearMePage({ initialTab }) {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ venue_id: venue.id, venue_name: venue.name })
-                    }).catch(console.error);
+                    }).catch(console.warn);
                 });
                 setGeofenceStatus('active');
             });
@@ -1476,7 +1474,7 @@ export default function PokerNearMePage({ initialTab }) {
                     busEmit.venueSaved(id, itemData.name);
                 }
             } catch (err) {
-                console.error('Error syncing favorite:', err);
+                console.warn('Error syncing favorite:', err);
                 // Rollback on failure
                 setFavorites(prev => {
                     const next = { ...prev };
@@ -1503,7 +1501,7 @@ export default function PokerNearMePage({ initialTab }) {
             addSearchHistoryToDb(userId, query.trim(), {
                 location: selectedCity ? selectedCity.name : null,
                 filters: filters
-            }).catch(() => { /* localStorage is the primary store */ });
+            }).catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
         }
     };
 
@@ -1660,7 +1658,7 @@ export default function PokerNearMePage({ initialTab }) {
             window.dispatchEvent(new Event('sp_user_gps_updated'));
             // GPS takes priority — clear any saved city selection
             localStorage.removeItem('pnm_last_selected_city');
-        } catch (e) { /* storage full */ }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         // Re-fetch location-dependent data (daily tournaments, tours); venues handled by userLocation useEffect
         setTimeout(() => { fetchAllData({ includeVenues: false, overrideLocation: loc }); }, 0);
         // Resolve city/state asynchronously and persist label
@@ -1683,7 +1681,7 @@ export default function PokerNearMePage({ initialTab }) {
                         localStorage.setItem('pnm_last_city', parts[0]);
                         localStorage.setItem('pnm_last_state', parts[parts.length - 1]);
                     }
-                } catch (e) { /* ignore */ }
+                } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
                 // Trigger a silent venue refetch now that we have the proper "City, ST" label.
                 // The initial GPS-triggered fetch runs while label is still coordinates ("41.7, -87.7"),
                 // which means user_state can't be extracted and the API returns 0 local venues.
@@ -1744,7 +1742,7 @@ export default function PokerNearMePage({ initialTab }) {
                 const favMap = {};
                 data.forEach(f => { favMap['venue-' + f.venue_id] = Date.now(); });
                 setFavorites(prev => ({ ...prev, ...favMap }));
-            }).catch(err => console.error('Error loading venue favorites:', err));
+            }).catch(err => console.warn('Error loading venue favorites:', err));
 
             // Merge search history from Supabase with localStorage
             getSearchHistoryFromDb(userId, SEARCH_HISTORY_MAX).then(dbHistory => {
@@ -1755,7 +1753,7 @@ export default function PokerNearMePage({ initialTab }) {
                         return merged;
                     });
                 }
-            }).catch(() => { /* localStorage is the primary store */ });
+            }).catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
         }
     }, [userId]);
 
@@ -1767,7 +1765,7 @@ export default function PokerNearMePage({ initialTab }) {
             try {
                 await updatePokerNearMePreferences(userId, { [key]: value });
             } catch (error) {
-                console.error('Failed to save preference:', error);
+                console.warn('Failed to save preference:', error);
             }
         }
     }, [userId]);
@@ -1830,7 +1828,7 @@ export default function PokerNearMePage({ initialTab }) {
                         try {
                             const s = (localStorage.getItem('pnm_last_state') || '').trim().toUpperCase();
                             if (s.length === 2 && /^[A-Z]{2}$/.test(s)) stateForApi = s;
-                        } catch (e) { /* ignore */ }
+                        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
                     }
                     if (stateForApi) params.set('user_state', stateForApi);
                 }
@@ -1892,7 +1890,7 @@ export default function PokerNearMePage({ initialTab }) {
             }
         } catch (e) {
             if (!silent) setLoading(false);
-            console.error('Fetch venues error:', e);
+            console.warn('Fetch venues error:', e);
             setFetchError('Failed to load venues. Tap to retry.');
             setVenues([]);
         }
@@ -1928,7 +1926,7 @@ export default function PokerNearMePage({ initialTab }) {
             
             setTours(json.data || []);
         } catch (e) {
-            console.error('Fetch tours error:', e);
+            console.warn('Fetch tours error:', e);
             setTours([]);
         }
     };
@@ -1959,7 +1957,7 @@ export default function PokerNearMePage({ initialTab }) {
             
             setSeries(json.data || []);
         } catch (e) {
-            console.error('Fetch series error:', e);
+            console.warn('Fetch series error:', e);
             setSeries([]);
         }
     };
@@ -2006,7 +2004,7 @@ export default function PokerNearMePage({ initialTab }) {
                 setDbStats(prev => ({ ...prev, tournaments: json.stats?.total || tournamentList.length }));
             }
         } catch (e) {
-            console.error('Fetch daily tournaments error:', e);
+            console.warn('Fetch daily tournaments error:', e);
             setDailyTournaments([]);
         }
     };
@@ -2031,7 +2029,7 @@ export default function PokerNearMePage({ initialTab }) {
             const json = await res.json();
             setLiveVenueList(json.venues || []);
         } catch (e) {
-            console.error('Fetch venue list error:', e);
+            console.warn('Fetch venue list error:', e);
         }
     };
 
@@ -2072,7 +2070,7 @@ export default function PokerNearMePage({ initialTab }) {
             }
             setLiveGames(games);
         } catch (e) {
-            console.error('Fetch live games error:', e);
+            console.warn('Fetch live games error:', e);
             setLiveGames([]);
         }
         setLiveLoading(false);
@@ -2177,7 +2175,7 @@ export default function PokerNearMePage({ initialTab }) {
             localStorage.setItem('pnm_last_city', city.name);
             localStorage.setItem('pnm_last_state', city.state || '');
             localStorage.setItem('pnm_last_selected_city', JSON.stringify(city));
-        } catch (e) { /* storage full */ }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     };
 
     const handleCityClick = (city) => {
@@ -2190,7 +2188,7 @@ export default function PokerNearMePage({ initialTab }) {
             localStorage.setItem('pnm_last_city', city.name);
             localStorage.setItem('pnm_last_state', city.state || '');
             localStorage.setItem('pnm_last_selected_city', JSON.stringify(city));
-        } catch (e) { /* storage full */ }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     };
 
     // ═══ DEEP LINK PERSISTENCE: write tab + search to URL (debounced) ═══
@@ -2441,7 +2439,7 @@ export default function PokerNearMePage({ initialTab }) {
                 trackSearchEvent('push_enabled', {});
             }
         } catch (e) {
-            console.error('Push permission error:', e);
+            console.warn('Push permission error:', e);
         }
     }, []);
 
@@ -2476,7 +2474,7 @@ export default function PokerNearMePage({ initialTab }) {
             selectedState: 'all'
         });
         // Clear persisted city selection so it doesn't ghost-restore on next visit
-        try { localStorage.removeItem('pnm_last_selected_city'); } catch (e) { /* */ }
+        try { localStorage.removeItem('pnm_last_selected_city'); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     }, []);
 
     // Memoize counts for tabs

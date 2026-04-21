@@ -75,7 +75,7 @@ export default async function handler(req, res) {
             .eq('id', userId);
 
         if (error) {
-            console.error('DB update error:', error);
+            console.warn('DB update error:', error);
             return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
@@ -88,7 +88,7 @@ export default async function handler(req, res) {
         });
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('[Auto-Sync Receive Error]', err);
+        console.warn('[Auto-Sync Receive Error]', err);
         return res.status(500).json({ error: err.message });
     }
 }

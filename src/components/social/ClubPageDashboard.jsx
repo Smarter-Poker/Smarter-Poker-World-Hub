@@ -133,7 +133,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
             if (session?.access_token) {
                 headers['Authorization'] = `Bearer ${session.access_token}`;
             }
-        } catch (e) { /* will fall through without auth — server will reject if required */ }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
         return headers;
     };
 
@@ -166,7 +166,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                 if (!cancelled && data.success) {
                     setTournaments(data.data.upcoming_tournaments || []);
                 }
-            } catch (err) { if (err.name !== 'AbortError') console.error('Failed to load tournaments:', err); }
+            } catch (err) { if (err.name !== 'AbortError') console.warn('Failed to load tournaments:', err); }
         })();
         return () => { cancelled = true; controller.abort(); };
     }, [page.id]);
@@ -235,12 +235,12 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                         setMetaSaved('Cover photo updated!');
                         setTimeout(() => setMetaSaved(''), 2000);
                     }
-                } catch (saveErr) { console.error('Cover save error:', saveErr); }
+                } catch (saveErr) { console.warn('Cover save error:', saveErr); }
                 setMetaSaving(false);
             } else {
                 alert('Cover upload failed: ' + (uploadJson.error || 'Unknown error'));
             }
-        } catch (err) { console.error('Cover upload error:', err); alert('Cover upload error: ' + err.message); }
+        } catch (err) { console.warn('Cover upload error:', err); alert('Cover upload error: ' + err.message); }
         setCoverUploading(false);
     };
 
@@ -282,12 +282,12 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                         setMetaSaved('Logo updated!');
                         setTimeout(() => setMetaSaved(''), 2000);
                     }
-                } catch (saveErr) { console.error('Logo save error:', saveErr); }
+                } catch (saveErr) { console.warn('Logo save error:', saveErr); }
                 setMetaSaving(false);
             } else {
                 alert('Logo upload failed: ' + (uploadJson.error || 'Unknown error'));
             }
-        } catch (err) { console.error('Logo upload error:', err); alert('Logo upload error: ' + err.message); }
+        } catch (err) { console.warn('Logo upload error:', err); alert('Logo upload error: ' + err.message); }
         setLogoUploading(false);
         if (logoInputRef.current) logoInputRef.current.value = '';
     };
@@ -355,12 +355,12 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                     if (json.success && json.url) {
                         uploaded.push({ type: json.type || 'photo', url: json.url });
                     } else {
-                        console.error('[ClubPage] Upload failed:', json.error);
+                        console.warn('[ClubPage] Upload failed:', json.error);
                         alert('Upload failed: ' + (json.error || 'Unknown error'));
                     }
                 }
             } catch (err) {
-                console.error('[ClubPage] Upload error:', err);
+                console.warn('[ClubPage] Upload error:', err);
                 alert('Upload failed: ' + err.message);
             }
         }
@@ -379,7 +379,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                     const res = await fetch(`/api/social/pages/games?page_id=${page.id}`, { signal: controller.signal });
                     const json = await res.json();
                     if (json.success) { setLiveGames(json.data || []); setTimerTick(0); }
-                } catch (e) { if (e.name !== 'AbortError') console.error('Games fetch error:', e); }
+                } catch (e) { if (e.name !== 'AbortError') console.warn('Games fetch error:', e); }
                 setLoadingGames(false);
             };
             const fetchPending = async () => {
@@ -388,7 +388,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                     const res = await fetch(`/api/social/pages/follow?page_id=${page.id}&requester_id=${userId}`, { signal: controller.signal });
                     const json = await res.json();
                     if (json.success) setPendingFollowers((json.data || []).filter(f => f.status === 'pending'));
-                } catch (e) { if (e.name !== 'AbortError') console.error('Pending fetch error:', e); }
+                } catch (e) { if (e.name !== 'AbortError') console.warn('Pending fetch error:', e); }
             };
             fetchGames();
             fetchPending();
@@ -407,7 +407,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ page_id: page.id, user_id: userId, action, follower_id: followerId }),
         }).catch(e => {
-            console.error('Approve/reject error:', e);
+            console.warn('Approve/reject error:', e);
             // Rollback on failure
             setPendingFollowers(prevPending);
         });
@@ -454,7 +454,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                     }
                 } catch (geoErr) { console.warn('[App] Handled exception:', geoErr?.message || geoErr); }
             }
-        } catch (e) { console.error('Meta save error:', e); setMetaSaved('Error saving'); }
+        } catch (e) { console.warn('Meta save error:', e); setMetaSaved('Error saving'); }
         setMetaSaving(false);
     };
 
@@ -467,7 +467,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                 const res = await fetch(`/api/social/pages/posts?page_id=${page.id}&user_id=${userId}`, { signal: controller.signal });
                 const json = await res.json();
                 if (json.success) setPosts(json.data || []);
-            } catch (e) { if (e.name !== 'AbortError') console.error('Club page posts fetch error:', e); }
+            } catch (e) { if (e.name !== 'AbortError') console.warn('Club page posts fetch error:', e); }
             setLoadingPosts(false);
         };
 
@@ -494,7 +494,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                 alert('Post failed: ' + json.error);
             }
         } catch (e) {
-            console.error('Post error:', e);
+            console.warn('Post error:', e);
             alert('Post failed: ' + e.message);
         }
         setPosting(false);
@@ -508,7 +508,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
         // Fire-and-forget with rollback on failure
         fetch(`/api/social/pages/posts?id=${postId}&author_id=${userId}`, { method: 'DELETE' })
             .catch(e => {
-                console.error('Delete error:', e);
+                console.warn('Delete error:', e);
                 setPosts(prevPosts);
             });
     };
@@ -541,7 +541,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                 // Auto-fetch QR code since save auto-publishes the page
                 if (!qrData) fetchQrCode(json.data.id);
             }
-        } catch (e) { console.error('Save error:', e); }
+        } catch (e) { console.warn('Save error:', e); }
         setSaving(false);
     };
 
@@ -567,7 +567,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                 // Auto-fetch QR code after publishing
                 fetchQrCode(json.data.id);
             }
-        } catch (e) { console.error('Publish error:', e); }
+        } catch (e) { console.warn('Publish error:', e); }
         setPublishing(false);
     };
 
@@ -578,7 +578,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
             const res = await fetch(`/api/social/pages/qrcode?page_id=${pageId || page.id}`);
             const json = await res.json();
             if (json.success && json.data) setQrData(json.data);
-        } catch (e) { console.error('QR code fetch error:', e); }
+        } catch (e) { console.warn('QR code fetch error:', e); }
         setQrLoading(false);
     };
 
@@ -597,7 +597,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
             method: 'PUT', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id: post.id, author_id: userId, is_pinned: !post.is_pinned })
         }).catch(e => {
-            console.error('Pin error:', e);
+            console.warn('Pin error:', e);
             setPosts(prevPosts);
         });
     };

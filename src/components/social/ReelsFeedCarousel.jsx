@@ -760,7 +760,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 setReelCommentMediaUrl(result.url);
                 setReelCommentMediaType('image');
             }
-        } catch (err) { console.error('[ReelComment] Upload error:', err); }
+        } catch (err) { console.warn('[ReelComment] Upload error:', err); }
         setUploadingReelImage(false);
     };
 
@@ -1909,7 +1909,7 @@ export function ReelsFeedCarousel() {
             setReels(allReels);
             setLoadError(false);
         } catch (e) {
-            console.error('Load reels error:', e);
+            console.warn('Load reels error:', e);
             setLoadError(true);
         }
         setLoading(false);

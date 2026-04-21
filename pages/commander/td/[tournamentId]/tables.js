@@ -98,7 +98,7 @@ export default function TDTablesMap() {
         const breakJson = await breakRes.json();
         if (breakJson.success) setAutoBreak(breakJson.data);
       }
-    } catch (err) { if (err.name !== 'AbortError') console.error(err); }
+    } catch (err) { if (err.name !== 'AbortError') console.warn(err); }
     finally { setLoading(false); }
   }, [tournamentId]);
 
@@ -190,7 +190,7 @@ ${receipts.map(r => `<div class="card">
           broadcastChange('tournaments');
           // Close modal after elimination — fresh data shown on next open
           setSelectedTable(null);
-        } catch (err) { console.error(err); setToast({ type: 'error', text: 'Elimination failed. Check console.' }); }
+        } catch (err) { console.warn(err); setToast({ type: 'error', text: 'Elimination failed. Check console.' }); }
         finally { setActionLoading(null); }
       }
     });
@@ -269,7 +269,7 @@ ${receipts.map(r => `<div class="card">
                   } else {
                     setToast({ type: 'error', text: json.error || 'Break failed — please try again.' });
                   }
-                } catch (err) { console.error(err); setToast({ type: 'error', text: 'Break failed. Check console.' }); }
+                } catch (err) { console.warn(err); setToast({ type: 'error', text: 'Break failed. Check console.' }); }
                 finally { setBreakExecuting(false); }
               }}
               disabled={breakExecuting}
@@ -485,7 +485,7 @@ ${receipts.map(r => `<div class="card">
                           setSelectedTable(null);
                           await fetchFloor();
                           broadcastChange('tournaments');
-                        } catch (err) { console.error(err); setToast({ type: 'error', text: 'Break failed. Check console.' }); }
+                        } catch (err) { console.warn(err); setToast({ type: 'error', text: 'Break failed. Check console.' }); }
                         finally { setActionLoading(null); }
                       }}
                       disabled={actionLoading === 'break'}

@@ -99,7 +99,7 @@ async function handler(req, res) {
             .limit(500);
 
         if (error) {
-            console.error('[venue-tournament-calendar] DB error:', error);
+            console.warn('[venue-tournament-calendar] DB error:', error);
             // [W7 FIX] Return 200 with empty fallback — never 500 (breaks Promise.all callers)
             return res.status(200).json({
                 success: false,
@@ -200,7 +200,7 @@ async function handler(req, res) {
 
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('[venue-tournament-calendar] Unhandled error:', err);
+        console.warn('[venue-tournament-calendar] Unhandled error:', err);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

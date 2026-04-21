@@ -29,8 +29,8 @@ const supabase = createClient(
 const personas = JSON.parse(readFileSync(join(__dirname, 'personas.json'), 'utf-8'));
 
 async function checkAndSeedPersonas() {
-    console.log('🐴 Ghost Fleet Horses Seeding Script\n');
-    console.log(`📦 Total personas in JSON: ${personas.personas.length}`);
+    console.debug('🐴 Ghost Fleet Horses Seeding Script\n');
+    console.debug(`📦 Total personas in JSON: ${personas.personas.length}`);
 
     // First, check if table exists by trying to select
     const { data: existing, error: checkError } = await supabase
@@ -39,24 +39,24 @@ async function checkAndSeedPersonas() {
         .limit(200);
 
     if (checkError) {
-        console.log('\n❌ Table content_authors does not exist!');
-        console.log('Please run this SQL in Supabase Dashboard SQL Editor:\n');
-        console.log('------- COPY BELOW -------');
-        console.log(readFileSync(join(__dirname, '../../supabase/migrations/008_seeded_content.sql'), 'utf-8'));
-        console.log('------- END SQL -------\n');
-        console.log('After running the SQL, execute this script again.');
+        console.debug('\n❌ Table content_authors does not exist!');
+        console.debug('Please run this SQL in Supabase Dashboard SQL Editor:\n');
+        console.debug('------- COPY BELOW -------');
+        console.debug(readFileSync(join(__dirname, '../../supabase/migrations/008_seeded_content.sql'), 'utf-8'));
+        console.debug('------- END SQL -------\n');
+        console.debug('After running the SQL, execute this script again.');
         return;
     }
 
-    console.log(`✅ Table exists! Found ${existing?.length || 0} existing authors`);
+    console.debug(`✅ Table exists! Found ${existing?.length || 0} existing authors`);
 
     const existingAliases = new Set(existing?.map(a => a.alias) || []);
     const toInsert = personas.personas.filter(p => !existingAliases.has(p.alias));
 
-    console.log(`📝 Need to insert: ${toInsert.length} new personas\n`);
+    console.debug(`📝 Need to insert: ${toInsert.length} new personas\n`);
 
     if (toInsert.length === 0) {
-        console.log('🎉 All 100 horses already in the database!');
+        console.debug('🎉 All 100 horses already in the database!');
         return;
     }
 
@@ -86,15 +86,15 @@ async function checkAndSeedPersonas() {
             .select();
 
         if (error) {
-            console.error(`❌ Batch ${Math.floor(i / batchSize) + 1} error:`, error.message);
+            console.warn(`❌ Batch ${Math.floor(i / batchSize) + 1} error:`, error.message);
         } else {
             inserted += data.length;
-            console.log(`✅ Batch ${Math.floor(i / batchSize) + 1}: Inserted ${data.length} authors`);
+            console.debug(`✅ Batch ${Math.floor(i / batchSize) + 1}: Inserted ${data.length} authors`);
         }
     }
 
-    console.log(`\n🎉 Done! ${inserted} new personas seeded to database.`);
-    console.log(`🐴 Total horses in stable: ${(existing?.length || 0) + inserted}`);
+    console.debug(`\n🎉 Done! ${inserted} new personas seeded to database.`);
+    console.debug(`🐴 Total horses in stable: ${(existing?.length || 0) + inserted}`);
 }
 
 checkAndSeedPersonas();

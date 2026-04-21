@@ -129,7 +129,7 @@ export default function useTournamentRealtime(tournamentId, onUpdate) {
 
                     if (status === 'SUBSCRIBED') {
                         reconnectCountRef.current = 0;
-                        console.log(`[Realtime] ✅ Connected: td-${tournamentId.slice(0, 8)}`);
+                        console.debug(`[Realtime] ✅ Connected: td-${tournamentId.slice(0, 8)}`);
                     } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
                         console.warn(`[Realtime] ⚠️ Channel error: td-${tournamentId.slice(0, 8)}`);
                         // Auto-reconnect with exponential backoff

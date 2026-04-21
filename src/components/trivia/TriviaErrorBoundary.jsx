@@ -26,7 +26,7 @@ class TriviaErrorBoundary extends React.Component {
     }
 
     componentDidCatch(error, errorInfo) {
-        console.error(`[TriviaErrorBoundary] ${this.props.pageName || 'Trivia'} crashed:`, error, errorInfo);
+        console.warn(`[TriviaErrorBoundary] ${this.props.pageName || 'Trivia'} crashed:`, error, errorInfo);
     }
 
     handleRetry = () => {

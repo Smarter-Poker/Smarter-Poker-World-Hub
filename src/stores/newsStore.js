@@ -70,7 +70,7 @@ export const useNewsStore = create(
 
                     set({ lastFetched: Date.now() });
                 } catch (error) {
-                    console.error('Failed to fetch news data:', error);
+                    console.warn('Failed to fetch news data:', error);
                 } finally {
                     set({ isLoading: false });
                 }

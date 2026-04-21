@@ -82,7 +82,7 @@ class ClubLedger {
       });
 
       if (error) {
-        console.error('[ClubLedger] fn_credit_chips RPC failed:', error.message);
+        console.warn('[ClubLedger] fn_credit_chips RPC failed:', error.message);
         return { success: false, error: error.message };
       }
 
@@ -170,7 +170,7 @@ class ClubLedger {
         notes: meta.type || meta.reason || type,
       });
     } catch (err) {
-      console.error('[ClubLedger] Transaction record failed:', err.message);
+      console.warn('[ClubLedger] Transaction record failed:', err.message);
     }
   }
 
@@ -250,14 +250,14 @@ class ClubLedger {
       });
 
       if (error) {
-        console.error('[ClubLedger] processRake RPC failed:', error.message);
+        console.warn('[ClubLedger] processRake RPC failed:', error.message);
         // Still record the transaction for audit trail even if treasury credit fails
       }
 
       await this._recordTransaction(clubId, null, amount, TRANSACTION_TYPE.RAKE, meta);
       return { success: true };
     } catch (err) {
-      console.error('[ClubLedger] processRake error:', err.message);
+      console.warn('[ClubLedger] processRake error:', err.message);
       return { success: false, error: err.message };
     }
   }
@@ -280,7 +280,7 @@ class ClubLedger {
       });
 
       if (error) {
-        console.error(`[ClubLedger] Overlay debit failed for club ${clubId}: ${error.message}`);
+        console.warn(`[ClubLedger] Overlay debit failed for club ${clubId}: ${error.message}`);
         // Record as pending if treasury insufficient
         await this.supabase.from('chip_transactions').insert({
           club_id: clubId,
@@ -303,7 +303,7 @@ class ClubLedger {
 
       return { success: true };
     } catch (err) {
-      console.error(`[ClubLedger] Overlay error: ${err.message}`);
+      console.warn(`[ClubLedger] Overlay error: ${err.message}`);
       return { success: false, error: err.message };
     }
   }

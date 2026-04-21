@@ -35,7 +35,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -110,7 +110,7 @@ async function createHandoff(req, res) {
 
     return res.status(201).json({ success: true, data: { handoff } });
   } catch (error) {
-    console.error('Create handoff error:', error);
+    console.warn('Create handoff error:', error);
     return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Internal server error' } });
   }
 }
@@ -137,7 +137,7 @@ async function listHandoffs(req, res) {
 
     return res.status(200).json({ success: true, data: { handoffs: handoffs || [] } });
   } catch (error) {
-    console.error('List handoffs error:', error);
+    console.warn('List handoffs error:', error);
     return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Internal server error' } });
   }
 }
@@ -177,7 +177,7 @@ async function acknowledgeHandoff(req, res) {
     return res.status(200).json({ success: true, data: { handoff } });
   } catch (error) {
       try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('Acknowledge handoff error:', error);
+    console.warn('Acknowledge handoff error:', error);
     return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Internal server error' } });
   }
 }

@@ -215,7 +215,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
             busEmit.diamondsSpent(GAME_COST, 'Trivia Game Entry');
             return true;
         } catch (err) {
-            console.error('Diamond deduction failed:', err);
+            console.warn('Diamond deduction failed:', err);
             return false;
         }
     };

@@ -124,7 +124,7 @@ function loadEventsForSeries(series) {
 
     return null;
   } catch (err) {
-    console.error(`Failed to load events for tour ${tourCode}:`, err.message);
+    console.warn(`Failed to load events for tour ${tourCode}:`, err.message);
     return null;
   }
 }
@@ -235,9 +235,7 @@ async function handler(req, res) {
               };
             }
           }
-        } catch (dbErr) {
-          // DB unavailable, fall through to JSON
-        }
+        } catch (dbErr) { console.warn('[App] Handled exception:', dbErr?.message || dbErr); }
 
         // Fall back to JSON data (only for legacy index-based IDs)
         if (!singleSeries) {
@@ -435,9 +433,7 @@ async function handler(req, res) {
         if (merged.length > 0) {
           seriesData = merged;
         }
-      } catch (dbErr) {
-        // DB unavailable, fall through to JSON
-      }
+      } catch (dbErr) { console.warn('[App] Handled exception:', dbErr?.message || dbErr); }
 
       // Fall back to JSON data if DB returned nothing
       if (!seriesData) {
@@ -536,10 +532,7 @@ async function handler(req, res) {
             }
           }
         }
-      } catch (evtErr) {
-        // Events enrichment failed, continue without events
-        console.error('Events enrichment error:', evtErr.message);
-      }
+      } catch (evtErr) { console.warn('[App] Handled exception:', evtErr?.message || evtErr); }
 
       // For series without DB events, try JSON fallback
       for (const s of limited) {
@@ -559,7 +552,7 @@ async function handler(req, res) {
         total,
       });
     } catch (error) {
-      console.error('Series API error:', error);
+      console.warn('Series API error:', error);
       // Last resort: return mapped JSON data unsorted
       const fallback = mapSeriesToApi(seriesJson.series_2026 || []);
       res.setHeader('Cache-Control', 'public, s-maxage=900, stale-while-revalidate=86400');
@@ -572,7 +565,7 @@ async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

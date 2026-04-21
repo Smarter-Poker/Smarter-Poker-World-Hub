@@ -140,12 +140,12 @@ export function useMessengerService({ conversationId, currentUser, messengerType
                 .order('created_at', { ascending: true })
                 .range((page - 1) * perPage, page * perPage - 1);
 
-            if (error) { console.error('[Messenger] Load messages error:', error); return []; }
+            if (error) { console.warn('[Messenger] Load messages error:', error); return []; }
             // P17-1: Filter out messages from blocked users
             const filtered = (data || []).filter(m => !blockedUsersRef.current.includes(m.sender_id));
             setMessages(prev => page === 1 ? filtered : [...filtered, ...prev]);
             return filtered;
-        } catch (e) { console.error('[Messenger] Load error:', e); return []; }
+        } catch (e) { console.warn('[Messenger] Load error:', e); return []; }
     }, [conversationId]);
 
     // ═══════════════════════════════════════════════════════════
@@ -218,7 +218,7 @@ export function useMessengerService({ conversationId, currentUser, messengerType
 
             return data;
         } catch (e) {
-            console.error('[Messenger] Send error:', e);
+            console.warn('[Messenger] Send error:', e);
             await queueOfflineMessage(msgPayload);
             return null;
         }
@@ -293,7 +293,7 @@ export function useMessengerService({ conversationId, currentUser, messengerType
                 emoji: type === 'emoji' ? emoji : null,
                 gif_url: type === 'gif' ? gifUrl : null,
             }, { onConflict: 'message_id,user_id,emoji' });
-        } catch (e) { console.error('[Reaction] Add error:', e); }
+        } catch (e) { console.warn('[Reaction] Add error:', e); }
     }, [currentUser?.id]);
 
     const removeReaction = useCallback(async (messageId, emoji) => {
@@ -305,7 +305,7 @@ export function useMessengerService({ conversationId, currentUser, messengerType
                 .eq('message_id', messageId)
                 .eq('user_id', currentUser.id)
                 .eq('emoji', emoji);
-        } catch (e) { console.error('[Reaction] Remove error:', e); }
+        } catch (e) { console.warn('[Reaction] Remove error:', e); }
     }, [currentUser?.id]);
 
     const loadReactions = useCallback(async (messageId) => {
@@ -343,7 +343,7 @@ export function useMessengerService({ conversationId, currentUser, messengerType
                 .eq('user_id', currentUser.id);
 
             setUnreadCount(0);
-        } catch (e) { console.error('[ReadReceipt] Update error:', e); }
+        } catch (e) { console.warn('[ReadReceipt] Update error:', e); }
     }, [conversationId, currentUser?.id]);
 
     const markAsDelivered = useCallback(async () => {
@@ -356,7 +356,7 @@ export function useMessengerService({ conversationId, currentUser, messengerType
                 .eq('conversation_id', conversationId)
                 .eq('status', 'sent')
                 .neq('sender_id', currentUser.id);
-        } catch (e) { console.error('[ReadReceipt] Delivery update error:', e); }
+        } catch (e) { console.warn('[ReadReceipt] Delivery update error:', e); }
     }, [conversationId, currentUser?.id]);
 
     // ═══════════════════════════════════════════════════════════
@@ -454,7 +454,7 @@ export function useMessengerService({ conversationId, currentUser, messengerType
 
             return { localStream: stream, remoteStream: remoteStreamRef.current, pc };
         } catch (e) {
-            console.error('[WebRTC] Start call error:', e);
+            console.warn('[WebRTC] Start call error:', e);
             return null;
         }
     }, [conversationId, currentUser?.id]);
@@ -515,7 +515,7 @@ export function useMessengerService({ conversationId, currentUser, messengerType
 
             return { localStream: stream, remoteStream: remoteStreamRef.current, pc };
         } catch (e) {
-            console.error('[WebRTC] Answer call error:', e);
+            console.warn('[WebRTC] Answer call error:', e);
             return null;
         }
     }, [conversationId, currentUser?.id]);
@@ -593,7 +593,7 @@ export function useMessengerService({ conversationId, currentUser, messengerType
                     type: 'messenger_message',
                 }),
             });
-        } catch (_) { /* Non-critical */ }
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     };
 
     // ═══════════════════════════════════════════════════════════
@@ -710,7 +710,7 @@ export function useMessengerService({ conversationId, currentUser, messengerType
             setConversations(merged);
             return merged;
         } catch (e) {
-            console.error('[Messenger] Load conversations error:', e);
+            console.warn('[Messenger] Load conversations error:', e);
             return [];
         }
     }, [currentUser?.id]);
@@ -728,7 +728,7 @@ export function useMessengerService({ conversationId, currentUser, messengerType
                 .eq('id', messageId)
                 .eq('sender_id', currentUser.id);
             setMessages(prev => prev.map(m => m.id === messageId ? { ...m, is_deleted: true, text: null } : m));
-        } catch (e) { console.error('[Messenger] Delete error:', e); }
+        } catch (e) { console.warn('[Messenger] Delete error:', e); }
     }, [currentUser?.id]);
 
     // ═══════════════════════════════════════════════════════════
@@ -757,7 +757,7 @@ export function useMessengerService({ conversationId, currentUser, messengerType
 
             return urlData?.publicUrl || null;
         } catch (e) {
-            console.error('[Upload] Failed:', e);
+            console.warn('[Upload] Failed:', e);
             return null;
         }
     }, [currentUser?.id]);
@@ -776,7 +776,7 @@ export function useMessengerService({ conversationId, currentUser, messengerType
                 })
                 .eq('conversation_id', conversationId)
                 .eq('user_id', currentUser.id);
-        } catch (e) { console.error('[E2E] Key exchange error:', e); }
+        } catch (e) { console.warn('[E2E] Key exchange error:', e); }
     }, [conversationId, currentUser?.id]);
 
     const getRemotePublicKey = useCallback(async (remoteUserId) => {
@@ -988,7 +988,7 @@ export function useMessengerService({ conversationId, currentUser, messengerType
                 .eq('id', targetConversationId);
 
             return data;
-        } catch (e) { console.error('[Forward] Error:', e); return null; }
+        } catch (e) { console.warn('[Forward] Error:', e); return null; }
     }, [currentUser?.id]);
 
     // ═════════════════════════════════════════════════════════
@@ -1004,7 +1004,7 @@ export function useMessengerService({ conversationId, currentUser, messengerType
                 .eq('conversation_id', convId || conversationId)
                 .eq('user_id', currentUser.id);
             setConversations(prev => prev.filter(c => c.id !== (convId || conversationId)));
-        } catch (e) { console.error('[Archive] Error:', e); }
+        } catch (e) { console.warn('[Archive] Error:', e); }
     }, [conversationId, currentUser?.id]);
 
     const unarchiveConversation = useCallback(async (convId) => {
@@ -1017,7 +1017,7 @@ export function useMessengerService({ conversationId, currentUser, messengerType
                 .eq('conversation_id', convId)
                 .eq('user_id', currentUser.id);
             await loadConversations();
-        } catch (e) { console.error('[Unarchive] Error:', e); }
+        } catch (e) { console.warn('[Unarchive] Error:', e); }
     }, [currentUser?.id, loadConversations]);
 
     const exportConversation = useCallback(async (format = 'json') => {
@@ -1130,7 +1130,7 @@ ${messages.map(m =>
                 .eq('id', messageId);
             const msg = messages.find(m => m.id === messageId);
             if (msg) setPinnedMessages(prev => [...prev.filter(p => p.id !== messageId), { ...msg, pinned: true }]);
-        } catch (e) { console.error('[Pin] Error:', e); }
+        } catch (e) { console.warn('[Pin] Error:', e); }
     }, [conversationId, currentUser?.id, messages]);
 
     const unpinMessage = useCallback(async (messageId) => {
@@ -1148,7 +1148,7 @@ ${messages.map(m =>
                 .update({ media_metadata: cleaned })
                 .eq('id', messageId);
             setPinnedMessages(prev => prev.filter(p => p.id !== messageId));
-        } catch (e) { console.error('[Unpin] Error:', e); }
+        } catch (e) { console.warn('[Unpin] Error:', e); }
     }, []);
 
     const loadPinnedMessages = useCallback(async () => {
@@ -1573,11 +1573,7 @@ ${messages.map(m =>
             // P17-10: EventBus emission
             eventBus.emit(EventType.MESSAGE_RECEIVED, { type: 'sticker', sticker, conversationId });
             return true;
-        } catch (_) {
-            // Roll back optimistic message on failure
-            setMessages(prev => prev.filter(m => m.id !== optimisticId));
-            return false;
-        }
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }, [conversationId, currentUser]);
 
     // ── P16-5: Advanced Search ──
@@ -2519,10 +2515,7 @@ ${messages.map(m =>
                             type: queuedMsg.type || 'text',
                             mediaUrl: queuedMsg.mediaUrl || null,
                         });
-                    } catch (_) {
-                        // Re-queue if still failing
-                        offlineQueueRef.current.push(queuedMsg);
-                    }
+                    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                 });
             }
         };

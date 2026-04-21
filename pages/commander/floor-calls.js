@@ -105,7 +105,7 @@ export default function FloorCalls() {
     const staffSession = typeof window !== 'undefined'
       ? getStaffSession() || '' : '';
     let venueId = '';
-    try { venueId = JSON.parse(staffSession).venue_id || ''; } catch (e) { /* silent */ }
+    try { venueId = JSON.parse(staffSession).venue_id || ''; } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     return { token, staffSession, venueId };
   };
 
@@ -144,7 +144,7 @@ export default function FloorCalls() {
 
       setCalls(allActive);
       setResolved(resolvedRes.data || []);
-    } catch (err) { console.error('Floor calls fetch error:', err); }
+    } catch (err) { console.warn('Floor calls fetch error:', err); }
     finally { setLoading(false); }
   }, []);
 
@@ -177,14 +177,14 @@ export default function FloorCalls() {
       audioRef.current.currentTime = 0;
       audioRef.current.play().catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
       if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-    } catch (e) { /* silent */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
   };
 
   const updateCall = async (id, status, resolution) => {
     try {
       const { token, staffSession } = getAuth();
       let respondedBy = '';
-      try { const s = JSON.parse(staffSession); respondedBy = s.name || s.id || ''; } catch (e) { /* silent */ }
+      try { const s = JSON.parse(staffSession); respondedBy = s.name || s.id || ''; } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
       const res = await commanderFetch(`/api/commander/floor-calls/${id}`, {
         method: 'PATCH',
@@ -196,7 +196,7 @@ export default function FloorCalls() {
         broadcastChange('floor_calls');
       }
       if (status === 'resolved') busEmit.celebration('confetti');
-    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
+    } catch (err) { console.warn(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
   };
 
   const createCall = async () => {
@@ -222,7 +222,7 @@ export default function FloorCalls() {
         fetchCalls();
         broadcastChange('floor_calls');
       }
-    } catch (err) { console.error(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
+    } catch (err) { console.warn(err); setToast({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
     finally { setSubmitting(false); }
   };
 

@@ -199,13 +199,13 @@ export default async function handler(req, res) {
               },
           });
       } catch (err) {
-          console.error('[smart-recommendations]', err);
+          console.warn('[smart-recommendations]', err);
           return res.status(500).json({ error: 'Internal error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

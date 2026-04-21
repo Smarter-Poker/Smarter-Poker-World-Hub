@@ -36,7 +36,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -110,7 +110,7 @@ async function getReputation(req, res) {
 
     return res.status(400).json({ success: false, error: { code: 'MISSING_FIELDS', message: 'player_id or venue_id required' } });
   } catch (error) {
-    console.error('Get reputation error:', error);
+    console.warn('Get reputation error:', error);
     return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message } });
   }
 }
@@ -188,7 +188,7 @@ async function submitReview(req, res) {
     return res.status(201).json({ success: true, data: { review } });
   } catch (error) {
       try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('Submit review error:', error);
+    console.warn('Submit review error:', error);
     return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message } });
   }
 }

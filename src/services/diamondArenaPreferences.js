@@ -26,7 +26,7 @@ export async function getDiamondArenaPreferences(userId) {
 
         return data?.diamond_arena_preferences || { soundEffects: true, animations: true, autoRebuy: false };
     } catch (error) {
-        console.error('Error fetching diamond arena preferences:', error);
+        console.warn('Error fetching diamond arena preferences:', error);
         return { soundEffects: true, animations: true, autoRebuy: false };
     }
 }
@@ -53,7 +53,7 @@ export async function updateDiamondArenaPreferences(userId, preferences) {
 
         return data;
     } catch (error) {
-        console.error('Error updating diamond arena preferences:', error);
+        console.warn('Error updating diamond arena preferences:', error);
         throw error;
     }
 }

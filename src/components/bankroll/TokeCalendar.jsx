@@ -55,7 +55,7 @@ function TokeCalendar({ userId }) {
             const data = await fetchCalendarEvents(userId);
             if (isMountedRef.current) setEvents(data);
         } catch (err) {
-            console.error('Calendar load error:', err);
+            console.warn('Calendar load error:', err);
         } finally {
             if (isMountedRef.current) setIsLoading(false);
         }
@@ -141,9 +141,7 @@ function TokeCalendar({ userId }) {
                             req.catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); // prevent unhandled rejections
                         }
                     }
-                } catch (e) {
-                    // Ignore strict-mode access throws or missing methods
-                }
+                } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
             }
 
             toast.success('Event added to calendar!');

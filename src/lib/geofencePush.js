@@ -34,7 +34,7 @@ export async function sendGeofenceNotification(venue, userId) {
 
     // Client-side cooldown check (prevents spamming server)
     if (_hasPushCooldown(venue.id)) {
-        console.log(`[GeofencePush] Push cooldown active for venue ${venue.id}`);
+        console.debug(`[GeofencePush] Push cooldown active for venue ${venue.id}`);
         return false;
     }
 
@@ -53,7 +53,7 @@ export async function sendGeofenceNotification(venue, userId) {
         const data = await res.json();
 
         if (data.success) {
-            console.log(`[GeofencePush] ✅ Push sent for venue: ${venue.name}`);
+            console.debug(`[GeofencePush] ✅ Push sent for venue: ${venue.name}`);
             _setPushCooldown(venue.id);
             return true;
         }

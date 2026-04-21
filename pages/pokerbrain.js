@@ -338,7 +338,7 @@ function SessionsTab({ userId }) {
         setTotal(json.total || 0);
       }
     } catch (e) {
-      console.error('[PokerBrain] sessions fetch error:', e);
+      console.warn('[PokerBrain] sessions fetch error:', e);
     } finally {
       setLoading(false);
     }
@@ -358,7 +358,7 @@ function SessionsTab({ userId }) {
       const json = await resp.json();
       setSessionHands(json.hands || []);
     } catch (e) {
-      console.error('[PokerBrain] session detail error:', e);
+      console.warn('[PokerBrain] session detail error:', e);
       setSessionHands([]);
     }
   }, [expandedSession]);
@@ -487,7 +487,7 @@ function SettingsTab({ userId }) {
       const json = await resp.json();
       setProfiles(json.profiles || []);
     } catch (e) {
-      console.error('[PokerBrain] calibration fetch error:', e);
+      console.warn('[PokerBrain] calibration fetch error:', e);
     } finally {
       setLoading(false);
     }
@@ -514,7 +514,7 @@ function SettingsTab({ userId }) {
       });
       fetchProfiles();
     } catch (e) {
-      console.error('[PokerBrain] save calibration error:', e);
+      console.warn('[PokerBrain] save calibration error:', e);
     }
   }, [fetchProfiles]);
 
@@ -661,7 +661,7 @@ function AuditTab({ userId }) {
             audit,
             handsCount: hands.length,
           });
-        } catch (_e) { /* skip session */ }
+        } catch (_e) { console.warn('[App] Handled exception:', _e?.message || _e); }
       }
 
       // Aggregate across all sessions
@@ -692,7 +692,7 @@ function AuditTab({ userId }) {
         aggregateLeaks: Object.values(leakMap).sort((a, b) => (b.sessions - a.sessions)),
       });
     } catch (e) {
-      console.error('[PokerBrain] audit error:', e);
+      console.warn('[PokerBrain] audit error:', e);
     } finally {
       setLoading(false);
     }
@@ -810,7 +810,7 @@ export default function PokerBrainDashboard() {
       const json = await resp.json();
       if (!json.error) setStats(json);
     } catch (e) {
-      console.error('[PokerBrain] stats fetch error:', e);
+      console.warn('[PokerBrain] stats fetch error:', e);
     } finally {
       setStatsLoading(false);
     }

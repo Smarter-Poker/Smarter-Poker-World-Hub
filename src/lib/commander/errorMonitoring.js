@@ -25,7 +25,7 @@ export async function initErrorMonitoring() {
           return event;
         }
       });
-      console.log('Sentry initialized');
+      console.debug('Sentry initialized');
     } catch (err) {
       console.warn('Sentry not available:', err.message);
     }
@@ -36,7 +36,7 @@ export async function initErrorMonitoring() {
  * Capture an exception
  */
 export function captureException(error, context = {}) {
-  console.error('Error captured:', error.message, context);
+  console.warn('Error captured:', error.message, context);
 
   if (Sentry) {
     Sentry.withScope(scope => {
@@ -68,7 +68,7 @@ export function captureException(error, context = {}) {
  * Capture a message
  */
 export function captureMessage(message, level = 'info', context = {}) {
-  console.log(`[${level.toUpperCase()}] ${message}`, context);
+  console.debug(`[${level.toUpperCase()}] ${message}`, context);
 
   if (Sentry) {
     Sentry.withScope(scope => {
@@ -142,10 +142,7 @@ async function recordErrorMetric(venueId, error, context = {}) {
         action: context.action
       }
     });
-  } catch (err) {
-    // Silently fail - don't cause more errors
-    console.error('Failed to record error metric:', err.message);
-  }
+  } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
 }
 
 /**

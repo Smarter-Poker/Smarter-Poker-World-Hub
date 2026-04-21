@@ -41,7 +41,7 @@ export function SharedLinkPreviewCard({ url }) {
                 linkPreviewCache.set(url, data);
                 setMetadata(data);
             } catch (error) {
-                console.error('Failed to fetch link metadata:', error);
+                console.warn('Failed to fetch link metadata:', error);
                 linkPreviewInflight.delete(url);
                 // Fallback to basic info
                 try {

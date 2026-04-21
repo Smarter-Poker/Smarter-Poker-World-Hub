@@ -112,7 +112,7 @@ function mapRpcError(err) {
     default:
       // Unknown error — log and 500. Don't leak internals.
       if (typeof console !== 'undefined') {
-        console.error('[home-games rpcBridge] unmapped error', code, raw);
+        console.warn('[home-games rpcBridge] unmapped error', code, raw);
       }
       return { status: 500, error: 'INTERNAL_ERROR', message: 'Something went wrong.' };
   }

@@ -29,7 +29,7 @@ export default async function handler(req, res) {
             .limit(10000);
 
         if (error) {
-            console.error('Streak leaderboard error:', error);
+            console.warn('Streak leaderboard error:', error);
             return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
@@ -99,7 +99,7 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, leaders: topLeaders });
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('[Streak Leaderboard Error]', err);
+        console.warn('[Streak Leaderboard Error]', err);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

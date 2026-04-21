@@ -86,7 +86,7 @@ export function OpponentProfiler({ onAskJarvis, onClose }: OpponentProfilerProps
                     .order('created_at', { ascending: false });
 
                 if (error) {
-                    console.error('Error loading opponent profiles:', error);
+                    console.warn('Error loading opponent profiles:', error);
                     // Fallback to localStorage
                     const saved = localStorage.getItem('jarvis_opponent_profiles');
                     if (saved) {
@@ -106,7 +106,7 @@ export function OpponentProfiler({ onAskJarvis, onClose }: OpponentProfilerProps
                     setProfiles(loaded);
                 }
             } catch (err) {
-                console.error('Failed to load profiles:', err);
+                console.warn('Failed to load profiles:', err);
             } finally {
                 setLoading(false);
             }
@@ -139,10 +139,10 @@ export function OpponentProfiler({ onAskJarvis, onClose }: OpponentProfilerProps
                 }, { onConflict: 'id' });
 
             if (error) {
-                console.error('Error saving opponent profile:', error);
+                console.warn('Error saving opponent profile:', error);
             }
         } catch (err) {
-            console.error('Failed to save profile:', err);
+            console.warn('Failed to save profile:', err);
         }
     }, [userId, profiles]);
 

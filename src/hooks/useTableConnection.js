@@ -42,7 +42,7 @@ async function apiPost(endpoint, body, token) {
     });
     return await res.json();
   } catch (err) {
-    console.error(`[API] ${endpoint} failed:`, err);
+    console.warn(`[API] ${endpoint} failed:`, err);
     return { success: false, error: err.message };
   }
 }
@@ -55,7 +55,7 @@ async function apiGet(endpoint, params = {}, token) {
     const res = await fetch(`${API_BASE}/${endpoint}${qs ? '?' + qs : ''}`, { headers });
     return await res.json();
   } catch (err) {
-    console.error(`[API] GET ${endpoint} failed:`, err);
+    console.warn(`[API] GET ${endpoint} failed:`, err);
     return null;
   }
 }
@@ -257,7 +257,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
               ts: Date.now(),
             }]);
           }
-        } catch (_) { /* non-fatal */ }
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         // Bridge to platform EventBus so hand-histories/leaderboard react
         try { busEmit.handComplete(tableId, data); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         requestState();
@@ -563,7 +563,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
               }
             }
           }
-        } catch (_) { /* chat history is optional — fail silently */ }
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         heartbeatRef.current = setInterval(() => {
           // Send GPS on every heartbeat — feeds the anti-cheat background
           // monitor for continuous proximity scanning. Fully automated.

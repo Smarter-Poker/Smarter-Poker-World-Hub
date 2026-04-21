@@ -53,7 +53,7 @@ async function processHandResult(handData, bb = 2) {
                     horseTracker.set(oppId, count);
 
                     if (count >= 3) {
-                        console.error(`[HorseBrain]  ANTI-COLLUSION TRIGGERED: ${pid} has been stacked 3x by ${oppId}! Fleeing table.`);
+                        console.warn(`[HorseBrain]  ANTI-COLLUSION TRIGGERED: ${pid} has been stacked 3x by ${oppId}! Fleeing table.`);
                         // Spike tilt to 1.0 — evaluateSessions will immediately detect this and stand them up
                         if (!tiltMap.has(pid)) tiltMap.set(pid, {});
                         const state = tiltMap.get(pid);
@@ -187,7 +187,7 @@ async function processHandResult(handData, bb = 2) {
             if (!horseExp.has(tableIdHR)) horseExp.set(tableIdHR, { showdowns: 0, handsPlayed: 0 });
             horseExp.get(tableIdHR).showdowns++;
             const { showdowns, handsPlayed } = horseExp.get(tableIdHR);
-            console.log(`[HorseBrain]  MODULE 3 EXPOSURE: ${pid.substring(0, 8)} has shown down ${showdowns}/${handsPlayed} hands at table ${tableIdHR.substring(0, 8)}`);
+            console.debug(`[HorseBrain]  MODULE 3 EXPOSURE: ${pid.substring(0, 8)} has shown down ${showdowns}/${handsPlayed} hands at table ${tableIdHR.substring(0, 8)}`);
         }
 
         // ─── MODULE 4: PATTERN EXPLOITATION DETECTOR ───

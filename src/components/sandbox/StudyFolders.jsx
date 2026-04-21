@@ -39,7 +39,7 @@ export default function StudyFolders({ onClose, onLoadTarget }) {
                 }
             }
         } catch (err) {
-            console.error(err);
+            console.warn(err);
         }
         setLoading(false);
     }, [activeFolder]);

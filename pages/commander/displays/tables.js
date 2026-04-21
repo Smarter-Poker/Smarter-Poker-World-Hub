@@ -184,7 +184,7 @@ const headers = { };
         setTables(tablesArr);
         lastFetchAt.current = Date.now();
       }
-    } catch (err) { console.error('Display fetch error:', err); }
+    } catch (err) { console.warn('Display fetch error:', err); }
     setNow(new Date());
   }, [venueId]);
 
@@ -222,7 +222,7 @@ const json = await commanderFetchJSON(`/api/commander/dealers/rotations?venue_id
     const requestWakeLock = async () => {
       try {
         if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen');
-      } catch (e) { /* silent */ }
+      } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     };
     requestWakeLock();
     document.addEventListener('visibilitychange', () => {

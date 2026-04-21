@@ -19,9 +19,9 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
-    console.error('Missing Supabase credentials');
-    console.error('URL:', SUPABASE_URL ? 'SET' : 'MISSING');
-    console.error('KEY:', SUPABASE_KEY ? 'SET' : 'MISSING');
+    console.warn('Missing Supabase credentials');
+    console.warn('URL:', SUPABASE_URL ? 'SET' : 'MISSING');
+    console.warn('KEY:', SUPABASE_KEY ? 'SET' : 'MISSING');
     process.exit(1);
 }
 
@@ -71,7 +71,7 @@ async function uploadAndAssignAvatar(filePath, horse) {
         });
 
     if (uploadError) {
-        console.error(`  ❌ Upload failed: ${uploadError.message}`);
+        console.warn(`  ❌ Upload failed: ${uploadError.message}`);
         return null;
     }
 
@@ -89,7 +89,7 @@ async function uploadAndAssignAvatar(filePath, horse) {
         .eq('id', horse.id);
 
     if (authorError) {
-        console.error(`  ❌ Author update failed: ${authorError.message}`);
+        console.warn(`  ❌ Author update failed: ${authorError.message}`);
     }
 
     // Update profiles if profile_id exists
@@ -100,11 +100,11 @@ async function uploadAndAssignAvatar(filePath, horse) {
             .eq('id', horse.profile_id);
 
         if (profileError) {
-            console.error(`  ⚠️ Profile update failed: ${profileError.message}`);
+            console.warn(`  ⚠️ Profile update failed: ${profileError.message}`);
         }
     }
 
-    console.log(`  ✅ Uploaded -> ${publicUrl.split('/').pop()}`);
+    console.debug(`  ✅ Uploaded -> ${publicUrl.split('/').pop()}`);
     return publicUrl;
 }
 
@@ -112,8 +112,8 @@ async function uploadAndAssignAvatar(filePath, horse) {
  * Main upload function
  */
 async function uploadAllAvatars() {
-    console.log('\n🐴🐴🐴 HORSE AVATAR UPLOADER 🐴🐴🐴');
-    console.log('═'.repeat(60));
+    console.debug('\n🐴🐴🐴 HORSE AVATAR UPLOADER 🐴🐴🐴');
+    console.debug('═'.repeat(60));
 
     // Get all horses from database
     const { data: horses, error } = await supabase
@@ -123,11 +123,11 @@ async function uploadAllAvatars() {
         .order('name');
 
     if (error) {
-        console.error('Failed to fetch horses:', error.message);
+        console.warn('Failed to fetch horses:', error.message);
         process.exit(1);
     }
 
-    console.log(`Found ${horses.length} horses in database\n`);
+    console.debug(`Found ${horses.length} horses in database\n`);
 
     // Create a map of horse names to horse records (lowercase for matching)
     const horseMap = new Map();
@@ -139,7 +139,7 @@ async function uploadAllAvatars() {
     const files = fs.readdirSync(AVATARS_DIR)
         .filter(f => f.startsWith('horse_avatar_') && f.endsWith('.png'));
 
-    console.log(`Found ${files.length} avatar files\n`);
+    console.debug(`Found ${files.length} avatar files\n`);
 
     // Track results
     let uploaded = 0;
@@ -160,26 +160,26 @@ async function uploadAllAvatars() {
     for (const file of files) {
         const horseName = extractHorseName(file);
         if (!horseName) {
-            console.log(`⚠️  Could not parse name from: ${file}`);
+            console.debug(`⚠️  Could not parse name from: ${file}`);
             skipped++;
             continue;
         }
 
         const horse = horseMap.get(horseName.toLowerCase());
         if (!horse) {
-            console.log(`⚠️  No horse found for "${horseName}"`);
+            console.debug(`⚠️  No horse found for "${horseName}"`);
             notFound++;
             continue;
         }
 
         // Skip if we already have a newer avatar for this horse
         if (assignedHorses.has(horse.id)) {
-            console.log(`⏭️  ${horseName} - already has newer avatar`);
+            console.debug(`⏭️  ${horseName} - already has newer avatar`);
             skipped++;
             continue;
         }
 
-        console.log(`🐴 ${horseName} (ID: ${horse.id})`);
+        console.debug(`🐴 ${horseName} (ID: ${horse.id})`);
 
         const filePath = path.join(AVATARS_DIR, file);
         const url = await uploadAndAssignAvatar(filePath, horse);
@@ -198,26 +198,26 @@ async function uploadAllAvatars() {
         await new Promise(r => setTimeout(r, 100));
     }
 
-    console.log('\n' + '═'.repeat(60));
-    console.log('📊 UPLOAD SUMMARY');
-    console.log('═'.repeat(60));
-    console.log(`✅ Uploaded: ${uploaded}`);
-    console.log(`⏭️  Skipped: ${skipped}`);
-    console.log(`❌ Not found: ${notFound}`);
-    console.log(`📋 Total horses with avatars: ${assignedHorses.size}`);
+    console.debug('\n' + '═'.repeat(60));
+    console.debug('📊 UPLOAD SUMMARY');
+    console.debug('═'.repeat(60));
+    console.debug(`✅ Uploaded: ${uploaded}`);
+    console.debug(`⏭️  Skipped: ${skipped}`);
+    console.debug(`❌ Not found: ${notFound}`);
+    console.debug(`📋 Total horses with avatars: ${assignedHorses.size}`);
 
     // Check for horses without avatars
     const horsesWithoutAvatars = horses.filter(h => !assignedHorses.has(h.id));
     if (horsesWithoutAvatars.length > 0) {
-        console.log(`\n⚠️  Horses still missing avatars (${horsesWithoutAvatars.length}):`);
-        horsesWithoutAvatars.slice(0, 10).forEach(h => console.log(`   - ${h.name}`));
+        console.debug(`\n⚠️  Horses still missing avatars (${horsesWithoutAvatars.length}):`);
+        horsesWithoutAvatars.slice(0, 10).forEach(h => console.debug(`   - ${h.name}`));
         if (horsesWithoutAvatars.length > 10) {
-            console.log(`   ... and ${horsesWithoutAvatars.length - 10} more`);
+            console.debug(`   ... and ${horsesWithoutAvatars.length - 10} more`);
         }
     }
 
-    console.log('\n✅ Upload complete! Horses now remember their faces.');
+    console.debug('\n✅ Upload complete! Horses now remember their faces.');
 }
 
 // Run it
-uploadAllAvatars().catch(console.error);
+uploadAllAvatars().catch(console.warn);

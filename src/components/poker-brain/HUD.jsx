@@ -502,7 +502,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
         const goodBoard = boardResults.filter(r => r.distance <= 8);
 
         if (goodHole.length > 0 || goodBoard.length > 0) {
-          console.log('[AutoCal] Found good matches! Hole:', goodHole.length, 'Board:', goodBoard.length);
+          console.debug('[AutoCal] Found good matches! Hole:', goodHole.length, 'Board:', goodBoard.length);
 
           // Group nearby positions (within 30px) to find distinct card locations
           const clusterPositions = (results, minDist = 30) => {
@@ -528,8 +528,8 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
           const holeClusters = clusterPositions(goodHole);
           const boardClusters = clusterPositions(goodBoard);
 
-          console.log('[AutoCal] Hole card clusters:', holeClusters.map(c => `${c.bestKey}@${c.x},${c.y} d=${c.distance}`));
-          console.log('[AutoCal] Board card clusters:', boardClusters.map(c => `${c.bestKey}@${c.x},${c.y} d=${c.distance}`));
+          console.debug('[AutoCal] Hole card clusters:', holeClusters.map(c => `${c.bestKey}@${c.x},${c.y} d=${c.distance}`));
+          console.debug('[AutoCal] Board card clusters:', boardClusters.map(c => `${c.bestKey}@${c.x},${c.y} d=${c.distance}`));
 
           // Build overrides from discovered positions
           const newOverrides = { ...(layoutOverrides || {}), _version: 4 };
@@ -563,12 +563,12 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
 
           setLayoutOverrides(newOverrides);
           saveLayoutOverrides(newOverrides);
-          console.log('[AutoCal] Layout overrides saved:', JSON.stringify(newOverrides, null, 2));
+          console.debug('[AutoCal] Layout overrides saved:', JSON.stringify(newOverrides, null, 2));
         } else {
           console.warn('[AutoCal] No good matches found. Best hole:', holeResults[0], 'Best board:', boardResults[0]);
         }
       } catch (err) {
-        console.error('[AutoCal] Error:', err);
+        console.warn('[AutoCal] Error:', err);
       } finally {
         setAutoCalRunning(false);
       }
@@ -822,7 +822,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             // Refresh the display stats
             const allStats = opponentStatsRef.current.getAllStats();
             setOpponentStatsDisplay(allStats.size > 0 ? Object.fromEntries(allStats) : null);
-          } catch (_) { /* swallow */ }
+          } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         }
         // Record to persistent SessionAnalytics
         if (sessionAnalyticsRef.current) {
@@ -846,7 +846,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               position: hand.position || positionRef.current,
             });
             setSessionStats(sessionAnalyticsRef.current.getSessionSummary());
-          } catch (_sa) { /* swallow */ }
+          } catch (_sa) { console.warn('[App] Handled exception:', _sa?.message || _sa); }
         }
         if (storage.ready && sessionIdRef.current) {
           // Pick the most recent street decision as the canonical action
@@ -915,7 +915,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
       setMatcherReady(true);
       setTemplateCount(matcher.getTemplateCount());
     }).catch((err) => {
-      console.error('[HUD] Failed to load templates:', err);
+      console.warn('[HUD] Failed to load templates:', err);
     });
   }, []);
 
@@ -1075,7 +1075,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
       try {
         const audit = analyzeSession(recentHands);
         setSessionAuditResult(audit);
-      } catch (_) { /* swallow */ }
+      } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }
     setSource(null);
     setStreamReady(false);
@@ -1170,8 +1170,8 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
         if (k && k.startsWith('pb-cal-')) keys.push(k);
       }
       keys.forEach(k => localStorage.removeItem(k));
-      if (keys.length > 0) console.log(`[HUD] Cleared ${keys.length} stale calibration hashes from localStorage`);
-    } catch (_) { /* ignore */ }
+      if (keys.length > 0) console.debug(`[HUD] Cleared ${keys.length} stale calibration hashes from localStorage`);
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
     const loop = async () => {
       if (stopped) return;
@@ -1234,7 +1234,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                   const smoothed = tableStateRef.current.snapshot().bounds;
                   if (smoothed) tableBounds = smoothed;
                 }
-              } catch (tbErr) { /* swallow */ }
+              } catch (tbErr) { console.warn('[App] Handled exception:', tbErr?.message || tbErr); }
             } else {
               // Reuse last known bounds
               const cached = tableStateRef.current.snapshot().bounds;
@@ -1328,11 +1328,11 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               const vh2 = video.videoHeight || video.height;
               const refW2 = detectionLayout.referenceSize?.w || 468;
               const refH2 = detectionLayout.referenceSize?.h || 932;
-              console.log(`[HUD detect] v12-autocal | video:${vw2}x${vh2} ref:${refW2}x${refH2} scale:${(vw2/refW2).toFixed(2)}x${(vh2/refH2).toFixed(2)} AR:${(vw2/vh2).toFixed(3)} vs ref:${(refW2/refH2).toFixed(3)}`);
+              console.debug(`[HUD detect] v12-autocal | video:${vw2}x${vh2} ref:${refW2}x${refH2} scale:${(vw2/refW2).toFixed(2)}x${(vh2/refH2).toFixed(2)} AR:${(vw2/vh2).toFixed(3)} vs ref:${(refW2/refH2).toFixed(3)}`);
               for (const p of result.probeLog) {
-                console.log(`  ${p.kind}[${p.slot}] best=${p.bestKey} d=${p.distance} region=${p.scaledRegion ? `${p.scaledRegion.x},${p.scaledRegion.y} ${p.scaledRegion.w}x${p.scaledRegion.h}` : '?'} matched=${p.matched}`);
+                console.debug(`  ${p.kind}[${p.slot}] best=${p.bestKey} d=${p.distance} region=${p.scaledRegion ? `${p.scaledRegion.x},${p.scaledRegion.y} ${p.scaledRegion.w}x${p.scaledRegion.h}` : '?'} matched=${p.matched}`);
               }
-              console.log(`  stableHole: ${stableHole.map(c=>c.key).join(',')||'none'} stableBoard: ${stableBoard.map(c=>c.key).join(',')||'none'}`);
+              console.debug(`  stableHole: ${stableHole.map(c=>c.key).join(',')||'none'} stableBoard: ${stableBoard.map(c=>c.key).join(',')||'none'}`);
             }
 
             // Feed the state machine with temporally-stable cards
@@ -1352,7 +1352,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               stackClusters = pc.clusters || [];
               const livePlayerCount = Math.max(2, pc.playerCount || 0);
               if (livePlayerCount >= 2) obs.playerCount = livePlayerCount;
-              console.log('[HUD players]', livePlayerCount, 'clusters:', stackClusters.length,
+              console.debug('[HUD players]', livePlayerCount, 'clusters:', stackClusters.length,
                 'bounds:', tableBounds ? `${Math.round(tableBounds.x)},${Math.round(tableBounds.y)} ${Math.round(tableBounds.w)}x${Math.round(tableBounds.h)}` : 'none');
             } catch (err) { console.warn('[HUD players] detect err:', err.message); }
 
@@ -1369,7 +1369,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                 // Diagnostic: log dealer detection results every slow scan
                 // so we can see if the red-pixel search is finding anything
                 if (dealer) {
-                  console.log('[HUD dealer]', dealer.seatId || 'none',
+                  console.debug('[HUD dealer]', dealer.seatId || 'none',
                     'conf:', dealer.confidence,
                     'counts:', JSON.stringify(dealer.counts || {}),
                     'btn:', dealer.buttonPoint ? `${Math.round(dealer.buttonPoint.x)},${Math.round(dealer.buttonPoint.y)} px:${dealer.buttonPoint.pixelCount}` : 'none');
@@ -1380,9 +1380,9 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                 catch (dpErr) { console.warn('[HUD dealer] global scan err:', dpErr.message); }
                 if (dealerPoint && Number.isFinite(dealerPoint.x) && Number.isFinite(dealerPoint.y)) {
                   obs.dealerPoint = { x: dealerPoint.x, y: dealerPoint.y };
-                  console.log('[HUD dealer] globalPoint:', Math.round(dealerPoint.x), Math.round(dealerPoint.y), 'px:', dealerPoint.pixelCount);
+                  console.debug('[HUD dealer] globalPoint:', Math.round(dealerPoint.x), Math.round(dealerPoint.y), 'px:', dealerPoint.pixelCount);
                 } else {
-                  console.log('[HUD dealer] globalPoint: not found (tableBounds:', tableBounds ? 'yes' : 'no', ')');
+                  console.debug('[HUD dealer] globalPoint: not found (tableBounds:', tableBounds ? 'yes' : 'no', ')');
                 }
 
                 if (stackClusters.length >= 2 && dealerPoint && Number.isFinite(dealerPoint.x) && Number.isFinite(dealerPoint.y)) {
@@ -1428,7 +1428,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                   const fallback = heroPositionFromDealer(dealer.seatId, playersRef.current || players);
                   if (fallback && fallback !== 'unknown') obs.position = fallback;
                 }
-              } catch (err) { /* swallow */ }
+              } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
             }
 
             // ── Feed observations into the temporal stabilizer ──────────
@@ -1445,7 +1445,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               if (stableSnapshot.variant && stableSnapshot.variant !== gameTypeRef.current && !(stableSnapshot.variant === 'plo' && gameTypeRef.current === 'plo_hilo')) {
                 setGameType(stableSnapshot.variant);
               }
-            } catch (trkErr) { /* swallow */ }
+            } catch (trkErr) { console.warn('[App] Handled exception:', trkErr?.message || trkErr); }
 
             // ── Populate card region data for the debug overlay ──────────
             // Merge layout regions with probeLog match results so the overlay
@@ -1469,7 +1469,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               });
               if (hRegs.length) snapHoleRegions = annotate(hRegs, 'hole');
               if (bRegs.length) snapBoardRegions = annotate(bRegs, 'board');
-            } catch (_annErr) { /* keep nulls if anything fails */ }
+            } catch (_annErr) { console.warn('[App] Handled exception:', _annErr?.message || _annErr); }
 
             detectionSnapshotRef.current = {
               tableBounds: (stableSnapshot && stableSnapshot.bounds) || obs.tableBounds || null,
@@ -1483,7 +1483,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             try {
               const actions = detectAvailableActions(video, effectiveLayoutRef.current);
               setAvailableActions(actions);
-            } catch (err) { /* swallow */ }
+            } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
           } catch (err) {
             console.warn('[HUD] detection pass failed', err);
           }
@@ -1537,7 +1537,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                     try { playCue('allIn'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                   }
                 }
-              } catch (_atErr) { /* swallow action tracker errors */ }
+              } catch (_atErr) { console.warn('[App] Handled exception:', _atErr?.message || _atErr); }
             }
             // Auto-detect tournament stage from OCR-derived blind level.
             // Only fires when in tournament mode AND the detected stage
@@ -1563,7 +1563,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                   setAutoTournamentStage(tInfo);
                   setTournamentStage(tInfo.stage);
                 }
-              } catch (_te) { /* ignore tournament detection errors */ }
+              } catch (_te) { console.warn('[App] Handled exception:', _te?.message || _te); }
             }
           }).catch(console.warn);
         }
@@ -1679,7 +1679,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             } else {
               setValidator(null);
             }
-          } catch (err) { /* swallow */ }
+          } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
 
           // Action-button consistency: does the recommendation actually
           // correspond to a button that is visible right now?
@@ -1690,12 +1690,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
           } else {
             setActionValidation(null);
           }
-        } catch (err) {
-          // Horse Brain API or fallback engine failed — don't crash the HUD
-          console.error('[HUD] Decision computation error:', err);
-          if (generation === decisionGenerationRef.current) {
-            setDecision(null);
-          }
+        } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
         }
       })();
     }, 200);
@@ -2288,9 +2283,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                     let crops;
                     try {
                       crops = extractTemplatesFromFrame(video, layout, { variant: gameType });
-                    } catch (_) {
-                      // Fallback to old capture if extractor fails
-                      crops = captureCardCrops(video, layout, { variant: gameType });
+                    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); });
                     }
                     const fullFrame = captureFullFrame(video);
                     setCapturePreview({ crops, fullFrame });

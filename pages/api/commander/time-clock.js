@@ -38,7 +38,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -104,7 +104,7 @@ async function handleGet(req, res) {
             }
         });
     } catch (err) {
-        console.error('Time clock GET error:', err);
+        console.warn('Time clock GET error:', err);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }
@@ -220,7 +220,7 @@ async function handlePost(req, res) {
         }
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('Time clock POST error:', err);
+        console.warn('Time clock POST error:', err);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

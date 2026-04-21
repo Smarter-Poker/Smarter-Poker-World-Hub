@@ -90,7 +90,7 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
           setLiveData(map);
         }
       })
-      .catch(err => console.error('Failed to load live data for compare:', err));
+      .catch(err => console.warn('Failed to load live data for compare:', err));
   }, []);
 
   const selectedVenues = useMemo(() =>

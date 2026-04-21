@@ -409,7 +409,7 @@ export default function NodelockingPage() {
       setNewProfileName('');
       setTimeout(() => setProfileSaveStatus(null), 3000);
     } catch (e) {
-      console.error('[Nodelocking] Profile save error:', e);
+      console.warn('[Nodelocking] Profile save error:', e);
       setFetchError('Failed to load nodelocking data. Please try again.');
       setProfileSaveStatus('error');
       setTimeout(() => setProfileSaveStatus(null), 3000);
@@ -462,9 +462,7 @@ export default function NodelockingPage() {
     try {
       const saved = localStorage.getItem('sp_nodelock_profile');
       if (saved && VILLAIN_PROFILES[saved]) setSelectedProfile(saved);
-    } catch (e) {
-      /* SSG safety */
-    }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
   }, []);
 
   const handleProfileChange = useCallback((key) => {
@@ -555,7 +553,7 @@ export default function NodelockingPage() {
       setSaveStatus('saved');
       setTimeout(() => setSaveStatus(null), 3000);
     } catch (e) {
-      console.error('[Nodelocking] Save error:', e);
+      console.warn('[Nodelocking] Save error:', e);
       setSaveStatus('error');
       setTimeout(() => setSaveStatus(null), 3000);
     }

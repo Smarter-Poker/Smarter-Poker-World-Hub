@@ -390,7 +390,7 @@ export default async function handler(req, res) {
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     // eslint-disable-next-line no-console
-    console.error('[public/home-games/discover]', err);
+    console.warn('[public/home-games/discover]', err);
     if (!res.headersSent) {
       return res.status(500).json({ success: false, error: err?.message || 'Internal server error' });
     }

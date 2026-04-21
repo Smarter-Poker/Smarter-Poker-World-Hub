@@ -179,7 +179,7 @@ const json = await commanderFetchJSON('/api/commander/clock-presets', { });
         const found = (json.data || []).find(p => p.id === presetId);
         if (found) setPreset(found);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
   }, []);
 
   // Fetch floor-view data
@@ -229,7 +229,7 @@ const res = await commanderFetch(`/api/commander/tournaments/${id}/floor-view`, 
           fetchPreset(json.data.tournament.clock_preset_id);
         }
       }
-    } catch (err) { if (err.name !== 'AbortError') console.error(err); }
+    } catch (err) { if (err.name !== 'AbortError') console.warn(err); }
   }, [id, preset, fetchPreset]);
 
   // Initial fetch and polling fallback
@@ -258,7 +258,7 @@ const res = await commanderFetch(`/api/commander/tournaments/${id}/floor-view`, 
       else { osc.frequency.setValueAtTime(523, ctx.currentTime); }
       osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + 0.8);
-    } catch (e) { /* silent */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
   };
 
   // Countdown tick
@@ -341,7 +341,7 @@ const res = await commanderFetch(`/api/commander/tournaments/${id}/clock`, {
         }
         broadcastChange('tournaments');
       }
-    } catch (err) { console.error('Clock action error:', err); }
+    } catch (err) { console.warn('Clock action error:', err); }
     setActionLoading(false);
   };
 

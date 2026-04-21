@@ -158,14 +158,14 @@ export function useGamePhaseController(config: Partial<PhaseControllerConfig> = 
                         return { ...prev, shotClockRemaining: remaining - 1 };
                     });
                 } catch (tickError) {
-                    console.error('[PhaseController] Error in shot clock tick:', tickError);
+                    console.warn('[PhaseController] Error in shot clock tick:', tickError);
                     if (shotClockRef.current) {
                         clearInterval(shotClockRef.current);
                     }
                 }
             }, 1000);
         } catch (error) {
-            console.error('[PhaseController] Error starting shot clock:', error);
+            console.warn('[PhaseController] Error starting shot clock:', error);
         }
     }, [fullConfig?.shotClockDuration]);
 
@@ -177,7 +177,7 @@ export function useGamePhaseController(config: Partial<PhaseControllerConfig> = 
             }
             setState(prev => ({ ...prev, shotClockActive: false }));
         } catch (error) {
-            console.error('[PhaseController] Error stopping shot clock:', error);
+            console.warn('[PhaseController] Error stopping shot clock:', error);
         }
     }, []);
 
@@ -208,11 +208,11 @@ export function useGamePhaseController(config: Partial<PhaseControllerConfig> = 
                     startShotClock();
                     fullConfig?.onPhaseChange?.('AWAITING_ACTION');
                 } catch (transitionError) {
-                    console.error('[PhaseController] Error transitioning to awaiting action:', transitionError);
+                    console.warn('[PhaseController] Error transitioning to awaiting action:', transitionError);
                 }
             }, 1500);
         } catch (error) {
-            console.error('[PhaseController] Critical error in startGame:', error);
+            console.warn('[PhaseController] Critical error in startGame:', error);
         }
     }, [fullConfig, startShotClock]);
 
@@ -227,7 +227,7 @@ export function useGamePhaseController(config: Partial<PhaseControllerConfig> = 
         try {
             // Null safety checks
             if (!userAction || !solverResult) {
-                console.error('[PhaseController] Invalid action or solver result');
+                console.warn('[PhaseController] Invalid action or solver result');
                 return;
             }
 
@@ -310,7 +310,7 @@ export function useGamePhaseController(config: Partial<PhaseControllerConfig> = 
                         sessionStats: newStats
                     };
                 } catch (stateError) {
-                    console.error('[PhaseController] Error updating state:', stateError);
+                    console.warn('[PhaseController] Error updating state:', stateError);
                     return prev;
                 }
             });
@@ -322,7 +322,7 @@ export function useGamePhaseController(config: Partial<PhaseControllerConfig> = 
                 console.warn('[PhaseController] Error calling callbacks (non-critical):', callbackError);
             }
         } catch (error) {
-            console.error('[PhaseController] Critical error in handleUserAction:', error);
+            console.warn('[PhaseController] Critical error in handleUserAction:', error);
             // Unlock buttons on critical error
             setState(prev => ({ ...prev, isButtonsLocked: false }));
         }
@@ -343,7 +343,7 @@ export function useGamePhaseController(config: Partial<PhaseControllerConfig> = 
                 };
             });
         } catch (error) {
-            console.error('[PhaseController] Error toggling heatmap:', error);
+            console.warn('[PhaseController] Error toggling heatmap:', error);
         }
     }, []);
 
@@ -355,7 +355,7 @@ export function useGamePhaseController(config: Partial<PhaseControllerConfig> = 
                 showHeatmap: false
             }));
         } catch (error) {
-            console.error('[PhaseController] Error closing heatmap:', error);
+            console.warn('[PhaseController] Error closing heatmap:', error);
         }
     }, []);
 
@@ -378,7 +378,7 @@ export function useGamePhaseController(config: Partial<PhaseControllerConfig> = 
                     phase: 'TRANSITIONING'
                 }));
             } catch (stateError) {
-                console.error('[PhaseController] Error closing feedback:', stateError);
+                console.warn('[PhaseController] Error closing feedback:', stateError);
                 return;
             }
 
@@ -406,7 +406,7 @@ export function useGamePhaseController(config: Partial<PhaseControllerConfig> = 
                             console.warn('[PhaseController] Debrief callbacks error (non-critical):', callbackError);
                         }
                     } catch (debriefError) {
-                        console.error('[PhaseController] Error transitioning to debrief:', debriefError);
+                        console.warn('[PhaseController] Error transitioning to debrief:', debriefError);
                     }
                 }, 500);
                 return;
@@ -435,15 +435,15 @@ export function useGamePhaseController(config: Partial<PhaseControllerConfig> = 
                             startShotClock();
                             fullConfig?.onPhaseChange?.('AWAITING_ACTION');
                         } catch (awaitError) {
-                            console.error('[PhaseController] Error starting awaiting phase:', awaitError);
+                            console.warn('[PhaseController] Error starting awaiting phase:', awaitError);
                         }
                     }, 1500);
                 } catch (dealError) {
-                    console.error('[PhaseController] Error starting deal phase:', dealError);
+                    console.warn('[PhaseController] Error starting deal phase:', dealError);
                 }
             }, 300);
         } catch (error) {
-            console.error('[PhaseController] Critical error in nextHand:', error);
+            console.warn('[PhaseController] Critical error in nextHand:', error);
         }
     }, [state.handIndex, state.sessionStats, fullConfig, startShotClock]);
 
@@ -455,7 +455,7 @@ export function useGamePhaseController(config: Partial<PhaseControllerConfig> = 
         try {
             const handResults = state?.sessionStats?.handResults;
             if (!Array.isArray(handResults)) {
-                console.error('[PhaseController] No hand results available for review');
+                console.warn('[PhaseController] No hand results available for review');
                 return;
             }
 
@@ -482,7 +482,7 @@ export function useGamePhaseController(config: Partial<PhaseControllerConfig> = 
                 console.warn('[PhaseController] Review mode callback error (non-critical):', callbackError);
             }
         } catch (error) {
-            console.error('[PhaseController] Error entering review mode:', error);
+            console.warn('[PhaseController] Error entering review mode:', error);
         }
     }, [state?.sessionStats?.handResults, fullConfig]);
 
@@ -503,7 +503,7 @@ export function useGamePhaseController(config: Partial<PhaseControllerConfig> = 
                 console.warn('[PhaseController] Exit review callback error (non-critical):', callbackError);
             }
         } catch (error) {
-            console.error('[PhaseController] Error exiting review mode:', error);
+            console.warn('[PhaseController] Error exiting review mode:', error);
         }
     }, [fullConfig]);
 

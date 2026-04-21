@@ -112,7 +112,7 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
                 setDistribution(data.rating_distribution || { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 });
             }
         } catch (err) {
-            console.error('Failed to fetch reviews:', err);
+            console.warn('Failed to fetch reviews:', err);
         } finally {
             setLoading(false);
         }
@@ -180,7 +180,7 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
                 } catch { /* silent */ }
             }
         } catch (err) {
-            console.error('Failed to submit review:', err);
+            console.warn('Failed to submit review:', err);
         } finally {
             setSubmitting(false);
         }

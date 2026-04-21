@@ -38,14 +38,14 @@ import { getCityCoordinatesMap } from '../../../src/data/city-coordinates';
 // Dynamic import — 2D lobby background (client-only, no SSR)
 const LobbyCanvas = dynamic(
   () => import('../../../src/components/poker-near-me/lobby/LobbyCanvas').catch(err => {
-    console.error('[PokerNearMeLobby] LobbyCanvas module failed to load:', err);
+    console.warn('[PokerNearMeLobby] LobbyCanvas module failed to load:', err);
     return { default: () => null };
   }),
   { ssr: false }
 );
 const LobbyOverlay = dynamic(
   () => import('../../../src/components/poker-near-me/lobby/LobbyOverlay').catch(err => {
-    console.error('[PokerNearMeLobby] LobbyOverlay failed to load:', err);
+    console.warn('[PokerNearMeLobby] LobbyOverlay failed to load:', err);
     return { default: () => null };
   }),
   { ssr: false }
@@ -83,7 +83,7 @@ const PodSeries = dynamic(() => import('../../../src/components/poker-near-me/lo
 class PodErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { hasError: false, error: null }; }
   static getDerivedStateFromError(error) { return { hasError: true, error }; }
-  componentDidCatch(error, info) { console.error(`[PNM] Pod "${this.props.podName}" crashed:`, error, info); }
+  componentDidCatch(error, info) { console.warn(`[PNM] Pod "${this.props.podName}" crashed:`, error, info); }
   render() {
     if (this.state.hasError) {
       return React.createElement('div', { style: { textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.5)' } },
@@ -172,9 +172,7 @@ export default function PokerNearMeLobby() {
             try {
                 const savedStr = localStorage.getItem('poker-near-me-search-filters');
                 parsed = savedStr ? JSON.parse(savedStr) : {};
-            } catch (_parseErr) {
-                // Corrupt localStorage — start fresh
-                parsed = {};
+            } catch (_parseErr) { console.warn('[App] Handled exception:', _parseErr?.message || _parseErr); };
             }
             parsed.radius = 50;
             localStorage.setItem('poker-near-me-search-filters', JSON.stringify(parsed));
@@ -262,7 +260,7 @@ export default function PokerNearMeLobby() {
             setReviewStatsMap(prev => ({ ...prev, ...j.stats }));
           }
         })
-        .catch(() => { /* silent */ });
+        .catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
     };
     window.addEventListener('pnm:review-submitted', handleReviewSubmitted);
     return () => window.removeEventListener('pnm:review-submitted', handleReviewSubmitted);
@@ -373,7 +371,7 @@ export default function PokerNearMeLobby() {
         setVenues(newVenues);
         setHasMore(newVenues.length >= PAGE_SIZE);
         setPage(0);
-      }).catch(err => console.error('Deep-link venue fetch failed:', err));
+      }).catch(err => console.warn('Deep-link venue fetch failed:', err));
     }
 
     if (pod && POD_FEATURES[pod]) {
@@ -487,7 +485,7 @@ export default function PokerNearMeLobby() {
       setPage(pageNum);
     } catch (err) {
       if (fetchSequenceRef.current !== currentSeq) return;
-      console.error('Failed to fetch venues:', err);
+      console.warn('Failed to fetch venues:', err);
       setFetchError('Unable to load venues. Please try again.');
     } finally {
       if (fetchSequenceRef.current === currentSeq) {
@@ -510,7 +508,7 @@ export default function PokerNearMeLobby() {
       const tourData = data?.data || data?.tours || (Array.isArray(data) ? data : []);
       setTours(tourData);
     } catch (err) {
-      console.error('Failed to fetch tours:', err);
+      console.warn('Failed to fetch tours:', err);
     } finally {
       setToursLoaded(true);
     }
@@ -581,7 +579,7 @@ export default function PokerNearMeLobby() {
           });
         });
       } catch (err) {
-        console.error('Failed to fetch venue favorites:', err);
+        console.warn('Failed to fetch venue favorites:', err);
       }
     }
     
@@ -598,7 +596,7 @@ export default function PokerNearMeLobby() {
       const seriesData = data?.data || data?.series || (Array.isArray(data) ? data : []);
       setSeries(seriesData);
     } catch (err) {
-      console.error('Failed to fetch series:', err);
+      console.warn('Failed to fetch series:', err);
     } finally {
       setSeriesLoaded(true);
     }
@@ -621,7 +619,7 @@ export default function PokerNearMeLobby() {
       }
     } catch (err) {
       if (fetchDailySeqRef.current !== currentSeq) return;
-      console.error('Failed to fetch daily tournaments:', err);
+      console.warn('Failed to fetch daily tournaments:', err);
     }
   }, []); // No userLocation dep — API doesn’t accept lat/lng
 
@@ -660,7 +658,7 @@ export default function PokerNearMeLobby() {
       const history = await getSearchHistory(userId, 10);
       setSearchHistory(history || []);
     } catch (err) {
-      console.error('Failed to fetch search history:', err);
+      console.warn('Failed to fetch search history:', err);
     }
   }, [userId]);
 
@@ -674,7 +672,7 @@ export default function PokerNearMeLobby() {
       const prefs = await getPokerNearMePreferences(userId);
       setPreferences(prefs);
     } catch (err) {
-      console.error('Failed to fetch preferences:', err);
+      console.warn('Failed to fetch preferences:', err);
     } finally {
       setPrefsLoaded(true);
     }
@@ -745,7 +743,7 @@ export default function PokerNearMeLobby() {
                 else if (Array.isArray(data)) setDailyTournaments(data);
                 if (data?.stats?.total != null) setTodaysTournamentCount(data.stats.total);
             })
-            .catch(console.error);
+            .catch(console.warn);
     }
   });
 
@@ -769,7 +767,7 @@ export default function PokerNearMeLobby() {
     fetch('/api/poker/checkins/batch-counts?venue_ids=' + ids)
       .then(r => r.json())
       .then(j => { if (j.success && j.counts) setCheckinCounts(prev => ({ ...prev, ...j.counts })); })
-      .catch(() => { /* silent */ });
+      .catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
   }, [venues]);
 
   // ─── Batch fetch review stats for venue cards (star ratings) ───
@@ -788,7 +786,7 @@ export default function PokerNearMeLobby() {
     fetch('/api/poker/reviews?stats_only=true&venue_ids=' + idStr)
       .then(r => r.json())
       .then(j => { if (j.success && j.stats) setReviewStatsMap(prev => ({ ...prev, ...j.stats })); })
-      .catch(() => { /* silent — review stats are non-critical */ });
+      .catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
   }, [venues]);
 
   // ─── Fetch global check-in leaderboard (cross-venue top users) ───
@@ -828,7 +826,7 @@ export default function PokerNearMeLobby() {
           setLiveDataMap(map);
         }
       })
-      .catch(() => { /* live game count unavailable */ });
+      .catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
   }, []);
   useEffect(() => {
     buildLobbyLiveDataMap(); // Initial fetch on mount
@@ -876,7 +874,7 @@ export default function PokerNearMeLobby() {
         const count = filteredVenues.length;
         if (count > 0) setTotalVenueCount(count);
       })
-      .catch(() => { /* silent */ });
+      .catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
   }, []);
 
   // ─── Refresh all data callback ───
@@ -1049,10 +1047,7 @@ export default function PokerNearMeLobby() {
             handleGpsClick({ fromModal: true });
           }
         };
-      }).catch(() => {
-        // Permissions API not supported — fall back to 'prompt'
-        setPermissionState('prompt');
-      });
+      }).catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1164,7 +1159,7 @@ export default function PokerNearMeLobby() {
       setVenues(newVenues);
       setHasMore(newVenues.length >= PAGE_SIZE);
       setPage(0);
-    }).catch(err => console.error('GPS venue fetch failed:', err));
+    }).catch(err => console.warn('GPS venue fetch failed:', err));
     // GPS updates location + venues silently — user must click search to see results
   }, [reverseGeocode, showLocationSuccessToast, userId]);
 
@@ -1491,7 +1486,7 @@ export default function PokerNearMeLobby() {
           setVenues(newVenues);
           setHasMore(newVenues.length >= PAGE_SIZE);
           setPage(0);
-        }).catch(err => console.error('Manual location venue fetch failed:', err));
+        }).catch(err => console.warn('Manual location venue fetch failed:', err));
         // Manual location set — user must click search to see results
       } else {
         setGpsError('Could not find that location — try a different city');
@@ -1499,7 +1494,7 @@ export default function PokerNearMeLobby() {
         gpsErrorTimeoutRef.current = setTimeout(() => setGpsError(null), 3500);
       }
     } catch (err) {
-      console.error('Manual geocode failed:', err);
+      console.warn('Manual geocode failed:', err);
       setGpsError('Geocoding failed — check your connection');
       if (gpsErrorTimeoutRef.current) clearTimeout(gpsErrorTimeoutRef.current);
       gpsErrorTimeoutRef.current = setTimeout(() => setGpsError(null), 3500);
@@ -1646,7 +1641,7 @@ export default function PokerNearMeLobby() {
         }
       }
     } catch (err) {
-      console.error(`Failed to toggle favorite for ${type} ${id}:`, err);
+      console.warn(`Failed to toggle favorite for ${type} ${id}:`, err);
       // Full rollback on error — both state maps
       setFavorites(prev => ({ ...prev, [favKey]: wasFavorited }));
       if (wasFavorited) {
@@ -1707,7 +1702,7 @@ export default function PokerNearMeLobby() {
           cachedFetch(apiUrl).then(data => {
             const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
             setPodSearchVenues(newVenues);
-          }).catch(err => console.error('Search fetch failed:', err))
+          }).catch(err => console.warn('Search fetch failed:', err))
           .finally(() => setLoading(false));
         };
 
@@ -1778,7 +1773,7 @@ export default function PokerNearMeLobby() {
             setVenues(newVenues);
             setHasMore(newVenues.length >= PAGE_SIZE);
             setPage(0);
-          }).catch(err => console.error('Search fetch failed:', err))
+          }).catch(err => console.warn('Search fetch failed:', err))
           .finally(() => setLoading(false));
         };
 
@@ -2177,7 +2172,7 @@ export default function PokerNearMeLobby() {
                       const refUrl = new URL(referrer);
                       if (refUrl.hostname === window.location.hostname) safeBack = true;
                     }
-                  } catch (e) { /* ignore invalid referrer URLs */ }
+                  } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
                   
                   if (safeBack) {
                     router.back();

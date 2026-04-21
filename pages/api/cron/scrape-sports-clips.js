@@ -100,7 +100,7 @@ async function fetchPage(url) {
         return await response.text();
     } catch (error) {
         clearTimeout(timeout);
-        console.error(`   Failed to fetch ${url}:`, error.message);
+        console.warn(`   Failed to fetch ${url}:`, error.message);
         return null;
     }
 }
@@ -192,7 +192,7 @@ async function saveClips(clips) {
             saved++;
             existingUrls.add(clip.source_url);
         } else if (error) {
-            console.error(`   Error saving clip:`, error.message);
+            console.warn(`   Error saving clip:`, error.message);
         }
     }
 
@@ -235,13 +235,13 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('❌ Scraper error:', error);
+          console.warn('❌ Scraper error:', error);
           return res.status(500).json({ success: false, error: error.message });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

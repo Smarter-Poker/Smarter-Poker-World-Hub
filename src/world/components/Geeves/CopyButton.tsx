@@ -21,7 +21,7 @@ export function CopyButton({ content, onCopy }: CopyButtonProps) {
             // Reset after 2 seconds
             setTimeout(() => setCopied(false), 2000);
         } catch (error) {
-            console.error('Failed to copy:', error);
+            console.warn('Failed to copy:', error);
         }
     };
 

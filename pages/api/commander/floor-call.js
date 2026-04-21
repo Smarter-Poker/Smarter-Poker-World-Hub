@@ -58,7 +58,7 @@ export default async function handler(req, res) {
                   .eq('id', call_id);
 
               if (error) {
-                  console.error('Floor call cancel error:', error);
+                  console.warn('Floor call cancel error:', error);
                   return res.status(500).json({ success: false, error: 'Failed to cancel floor call' });
               }
               return res.status(200).json({ success: true, data: { cancelled: true } });
@@ -109,7 +109,7 @@ export default async function handler(req, res) {
               .maybeSingle();
 
           if (error) {
-              console.error('Floor call create error:', error);
+              console.warn('Floor call create error:', error);
               return res.status(500).json({ success: false, error: 'Failed to create floor call' });
           }
 
@@ -118,13 +118,13 @@ export default async function handler(req, res) {
               data: { id: call.id, table_number, description: call.description }
           });
       } catch (error) {
-          console.error('Floor call error:', error);
+          console.warn('Floor call error:', error);
           return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

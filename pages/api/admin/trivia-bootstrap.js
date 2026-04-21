@@ -220,7 +220,7 @@ Return ONLY valid JSON array:
                 created_at: new Date().toISOString()
             }));
     } catch (error) {
-        console.error(`[Bootstrap] Error generating for ${category.name}/${topic}:`, error.message);
+        console.warn(`[Bootstrap] Error generating for ${category.name}/${topic}:`, error.message);
         return [];
     }
 }
@@ -305,7 +305,7 @@ export default async function handler(req, res) {
                       if (!error && data) {
                           generated += data.length;
                       } else if (error) {
-                          console.error(`[Bootstrap] Insert error:`, error.message);
+                          console.warn(`[Bootstrap] Insert error:`, error.message);
                       }
                   }
               }
@@ -345,7 +345,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

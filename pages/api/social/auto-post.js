@@ -100,20 +100,20 @@ export default async function handler(req, res) {
               .maybeSingle();
 
           if (error) {
-              console.error('[AutoPost] Failed to create auto-post:', error.message);
+              console.warn('[AutoPost] Failed to create auto-post:', error.message);
               return res.status(500).json({ success: false, error: 'Internal server error' });
           }
 
           return res.status(201).json({ success: true, data });
 
       } catch (e) {
-          console.error('[AutoPost] Error:', e.message);
+          console.warn('[AutoPost] Error:', e.message);
           return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

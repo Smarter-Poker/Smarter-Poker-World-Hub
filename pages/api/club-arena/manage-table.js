@@ -117,7 +117,7 @@ export default async function handler(req, res) {
             bus.emit(eventName, { clubId, tableId, ...tableData });
           }
         } catch (e) {
-          console.error(`[manage-table] EventBus error (${eventName}):`, e.message);
+          console.warn(`[manage-table] EventBus error (${eventName}):`, e.message);
         }
       };
 
@@ -181,7 +181,7 @@ export default async function handler(req, res) {
             const { getController } = require('../../../src/lib/poker-engine/GameController');
             const controller = await getController();
             await controller.closeTable(tableId);
-          } catch (_) { /* intentionally silent */ }
+          } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
           // Decrement club table count (C-02 wrapper — atomic JS fallback if RPC fails)
           await getSupabase().rpc('decrement_club_table_count', { p_club_id: clubId }).catch(async () => {
@@ -225,7 +225,7 @@ export default async function handler(req, res) {
               entry.table.status = 'paused';
               entry.table.emit('table_paused', { by: user.id });
             }
-          } catch (_) { /* intentionally silent */ }
+          } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
           emitUnionEvent('union:table-updated', { status: 'paused' });
 
@@ -262,7 +262,7 @@ export default async function handler(req, res) {
               // Trigger auto-start to begin dealing hands again
               entry.table._checkAutoStart?.();
             }
-          } catch (_) { /* intentionally silent */ }
+          } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
           emitUnionEvent('union:table-updated', { status: 'running' });
 
@@ -275,13 +275,13 @@ export default async function handler(req, res) {
           return res.status(400).json({ success: false, error: `Unknown action: ${action}. Use: close, delete, pause, resume` });
       }
     } catch (err) {
-      console.error('[manage-table]', err);
+      console.warn('[manage-table]', err);
       return res.status(500).json(safeErrorResponse(err, 'Failed to manage table'));
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

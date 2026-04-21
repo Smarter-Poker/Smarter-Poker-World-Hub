@@ -274,7 +274,7 @@ export default function TiltGuardPage() {
         setTiltData(analyzeTiltRisk(data.sessions));
       }
     } catch (e) {
-      console.error('[TiltGuard] Error:', e);
+      console.warn('[TiltGuard] Error:', e);
       setFetchError('Failed to load tilt data. Please try again.');
     }
     setLoading(false);

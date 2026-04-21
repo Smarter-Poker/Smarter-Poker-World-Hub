@@ -224,7 +224,7 @@ export function StoriesBar({ userId, userAvatar, onCreateStory }) {
     };
 
     const loadStories = async () => {
-        console.log('[Stories] Loading stories for userId:', userId);
+        console.debug('[Stories] Loading stories for userId:', userId);
         setLoading(true);
         try {
             // Use native fetch to avoid AbortError
@@ -242,12 +242,12 @@ export function StoriesBar({ userId, userAvatar, onCreateStory }) {
 
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error('[Stories] RPC fetch failed:', response.status, errorText);
+                console.warn('[Stories] RPC fetch failed:', response.status, errorText);
                 throw new Error(`HTTP ${response.status}: ${errorText}`);
             }
 
             const data = await response.json();
-            console.log('[Stories] RPC response:', { data: data?.length || 0 });
+            console.debug('[Stories] RPC response:', { data: data?.length || 0 });
 
             if (data) {
                 const grouped = {};
@@ -258,11 +258,11 @@ export function StoriesBar({ userId, userAvatar, onCreateStory }) {
                         grouped[story.author_id].stories.push(story);
                     }
                 });
-                console.log('[Stories] Grouped stories:', Object.keys(grouped).length);
+                console.debug('[Stories] Grouped stories:', Object.keys(grouped).length);
                 setStories(Object.values(grouped));
             }
         } catch (e) {
-            console.error('Error loading stories:', e);
+            console.warn('Error loading stories:', e);
         }
         setLoading(false);
     };
@@ -586,7 +586,7 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
                 });
 
             if (uploadError) {
-                console.error('Upload error:', uploadError);
+                console.warn('Upload error:', uploadError);
                 setError(`Upload failed: ${uploadError.message}`);
                 setUploading(false);
                 return;
@@ -594,20 +594,20 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
 
             const { data: { publicUrl } } = supabase.storage.from('stories').getPublicUrl(filePath);
             setMediaUrl(publicUrl);
-            console.log('✅ Uploaded to:', publicUrl);
+            console.debug('✅ Uploaded to:', publicUrl);
         } catch (err) {
-            console.error('Upload error:', err);
+            console.warn('Upload error:', err);
             setError(`Upload failed: ${err.message}`);
         }
         setUploading(false);
     };
 
     const handleCreate = async () => {
-        console.log('[Stories] handleCreate called');
-        console.log('[Stories] userId:', userId);
-        console.log('[Stories] text:', text);
-        console.log('[Stories] mediaUrl:', mediaUrl);
-        console.log('[Stories] mode:', mode);
+        console.debug('[Stories] handleCreate called');
+        console.debug('[Stories] userId:', userId);
+        console.debug('[Stories] text:', text);
+        console.debug('[Stories] mediaUrl:', mediaUrl);
+        console.debug('[Stories] mode:', mode);
 
         // Validate based on mode
         if (mode === 'select') {
@@ -628,13 +628,13 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
         // But we need SOMETHING for media mode
         if (mode !== 'text' && !text && !mediaUrl) {
             setError('Nothing to post');
-            console.log('[Stories] No content to post, returning');
+            console.debug('[Stories] No content to post, returning');
             return;
         }
 
         if (!userId) {
             setError('You must be logged in to post a story');
-            console.log('[Stories] No userId!');
+            console.debug('[Stories] No userId!');
             return;
         }
 
@@ -642,7 +642,7 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
         setError(null);
 
         try {
-            console.log('[Stories] Calling fn_create_story...');
+            console.debug('[Stories] Calling fn_create_story...');
             const { data: storyId, error: createError } = await supabase.rpc('fn_create_story', {
                 p_user_id: userId,
                 p_content: text || null,
@@ -653,11 +653,11 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
             });
 
             if (createError) {
-                console.log('[Stories] Create error:', createError);
+                console.debug('[Stories] Create error:', createError);
                 throw createError;
             }
 
-            console.log('[Stories] ✅ Story created! ID:', storyId);
+            console.debug('[Stories] ✅ Story created! ID:', storyId);
 
             // Auto-save videos to Reels
             if (mediaType === 'video' && mediaUrl) {
@@ -679,7 +679,7 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
                 onCreated();
             }, 2000);
         } catch (e) {
-            console.error('Create story error:', e);
+            console.warn('Create story error:', e);
             setError(`Failed to create story: ${e.message}`);
         }
         setCreating(false);
@@ -1067,7 +1067,7 @@ export function ShareToStoryPrompt({ mediaUrl, mediaType, userId, onClose, onSha
             });
             onShared?.();
         } catch (e) {
-            console.error('Share to story error:', e);
+            console.warn('Share to story error:', e);
         }
         setSharing(false);
     };

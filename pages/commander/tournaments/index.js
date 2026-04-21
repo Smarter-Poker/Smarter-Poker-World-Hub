@@ -99,7 +99,7 @@ export default function CommanderTournamentsPage() {
       if (filter !== 'all') params.set('status', filter);
       const data = await commanderFetchJSON(`/api/commander/tournaments?${params}`);
       if (data.success) setTournaments(data.data.tournaments || []);
-    } catch (err) { console.error('Fetch tournaments:', err); }
+    } catch (err) { console.warn('Fetch tournaments:', err); }
     finally { setLoading(false); setRefreshing(false); }
   }, [venueId, filter]);
 

@@ -26,9 +26,9 @@ class TrainingSounds {
         try {
             this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
             this.initialized = true;
-            console.log('[TrainingSounds] Audio context initialized');
+            console.debug('[TrainingSounds] Audio context initialized');
         } catch (error) {
-            console.error('[TrainingSounds] Failed to initialize audio:', error);
+            console.warn('[TrainingSounds] Failed to initialize audio:', error);
         }
     }
 

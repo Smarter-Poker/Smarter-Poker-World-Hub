@@ -82,7 +82,7 @@ try {
                 flag_reason = 'AI auto-flagged for toxicity';
              }
            } catch (aiErr) {
-             console.error("[Moderation AI] error:", aiErr);
+             console.warn("[Moderation AI] error:", aiErr);
            }
         }
 
@@ -96,7 +96,7 @@ try {
             .eq('venue_id', venue_id)
             .limit(1);
           is_verified_player = sessions && sessions.length > 0;
-        } catch (_) { /* non-fatal */ }
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
         // Fallback: check venue check-ins if bankroll didn't match
         if (!is_verified_player) {
@@ -108,7 +108,7 @@ try {
               .eq('venue_id', venueIdStr)
               .limit(1);
             is_verified_player = checkins && checkins.length > 0;
-          } catch (_) { /* non-fatal */ }
+          } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         }
 
         // Also check venue_checkins (the social check-in table)
@@ -121,7 +121,7 @@ try {
               .eq('venue_id', venueIdStr)
               .limit(1);
             is_verified_player = socialCheckins && socialCheckins.length > 0;
-          } catch (_) { /* non-fatal */ }
+          } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         }
 
         // Build insert payload
@@ -168,7 +168,7 @@ try {
           .maybeSingle();
 
         if (error) {
-          console.error('Error creating review:', error);
+          console.warn('Error creating review:', error);
           return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
@@ -205,7 +205,7 @@ try {
             .in('venue_id', ids);
 
           if (rErr) {
-            console.error('Error fetching bulk stats:', rErr);
+            console.warn('Error fetching bulk stats:', rErr);
             return res.status(500).json({ success: false, error: rErr.message });
           }
 
@@ -246,7 +246,7 @@ try {
           .limit(200);
 
         if (reviewError) {
-          console.error('Error fetching reviews:', reviewError);
+          console.warn('Error fetching reviews:', reviewError);
           return res.status(500).json({ success: false, error: reviewError.message });
         }
 
@@ -310,7 +310,7 @@ try {
             if (profiles) {
               for (const p of profiles) profileMap[p.id] = p;
             }
-          } catch (_) { /* non-fatal */ }
+          } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         }
 
         // Attach profile to each review
@@ -357,7 +357,7 @@ try {
           .select();
 
         if (error) {
-          console.error('Error deleting review:', error);
+          console.warn('Error deleting review:', error);
           return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
@@ -370,7 +370,7 @@ try {
         if (deletedVenueId) {
           try {
             await getSupabase().rpc('recalculate_venue_trust_score', { p_venue_id: String(deletedVenueId) });
-          } catch (_) { /* non-fatal */ }
+          } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         }
 
         return res.status(200).json({ success: true, deleted: data[0] });
@@ -405,7 +405,7 @@ try {
           .eq('id', review_id);
 
         if (updateErr) {
-          console.error(`Error updating ${action} count:`, updateErr);
+          console.warn(`Error updating ${action} count:`, updateErr);
           return res.status(500).json({ success: false, error: updateErr.message });
         }
 
@@ -414,13 +414,13 @@ try {
 
       return res.status(405).json({ success: false, error: `Method ${req.method} not allowed` });
     } catch (err) {
-      console.error('Reviews API error:', err);
+      console.warn('Reviews API error:', err);
       return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

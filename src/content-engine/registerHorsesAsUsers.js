@@ -43,7 +43,7 @@ const supabase = createClient(
 const personas = JSON.parse(readFileSync(join(__dirname, 'personas.json'), 'utf-8'));
 
 async function registerHorsesAsUsers() {
-    console.log('📋 Registering personas as official users...\n');
+    console.debug('📋 Registering personas as official users...\n');
 
     // Create profiles for each persona
     const profiles = personas.personas.map((p, index) => {
@@ -66,7 +66,7 @@ async function registerHorsesAsUsers() {
         };
     });
 
-    console.log(`📋 Preparing ${profiles.length} profiles...\n`);
+    console.debug(`📋 Preparing ${profiles.length} profiles...\n`);
 
     // Insert in batches
     const batchSize = 25;
@@ -86,30 +86,30 @@ async function registerHorsesAsUsers() {
             .select();
 
         if (error) {
-            console.error(`❌ Batch ${batchNum} error:`, error.message);
+            console.warn(`❌ Batch ${batchNum} error:`, error.message);
             errors.push({ batch: batchNum, error: error.message });
         } else {
             inserted += data?.length || 0;
-            console.log(`✅ Batch ${batchNum}: Registered ${data?.length || 0} players`);
+            console.debug(`✅ Batch ${batchNum}: Registered ${data?.length || 0} players`);
 
             // Show first few names
             if (data?.length > 0) {
                 const names = data.slice(0, 3).map(p => p.display_name);
-                console.log(`   → ${names.join(', ')}${data.length > 3 ? '...' : ''}`);
+                console.debug(`   → ${names.join(', ')}${data.length > 3 ? '...' : ''}`);
             }
         }
     }
 
-    console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log(`🎉 Done! ${inserted} players registered as official users.`);
-    console.log(`   Player Numbers: 101-${100 + inserted}`);
+    console.debug('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.debug(`🎉 Done! ${inserted} players registered as official users.`);
+    console.debug(`   Player Numbers: 101-${100 + inserted}`);
 
     if (errors.length > 0) {
-        console.log(`\n⚠️  ${errors.length} batches had errors`);
+        console.debug(`\n⚠️  ${errors.length} batches had errors`);
     }
 
     // Show sample users
-    console.log('\n📊 Sample registered players:');
+    console.debug('\n📊 Sample registered players:');
     const { data: samples } = await supabase
         .from('profiles')
         .select('id, username, display_name, player_number')
@@ -118,10 +118,10 @@ async function registerHorsesAsUsers() {
 
     if (samples) {
         samples.forEach(p => {
-            console.log(`   #${p.player_number} - ${p.display_name} (@${p.username})`);
+            console.debug(`   #${p.player_number} - ${p.display_name} (@${p.username})`);
         });
     }
 }
 
 // Run
-registerHorsesAsUsers().catch(console.error);
+registerHorsesAsUsers().catch(console.warn);

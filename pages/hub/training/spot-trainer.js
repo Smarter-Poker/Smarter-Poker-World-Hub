@@ -205,9 +205,7 @@ export default function SpotTrainerPage() {
           'SpotTrainer'
         );
         eventBus?.emit?.('training:drill-complete', {}, 'SpotTrainer');
-      } catch (_) {
-        /* SSG guard */
-      }
+      } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
       // Reset question timer and auto-next after 2 seconds
       autoNextTimer.current = setTimeout(() => {

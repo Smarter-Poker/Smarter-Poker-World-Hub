@@ -279,9 +279,7 @@ export default async function handler(req, res) {
         data_quality: 'pdf_extracted',
         pdf_source_url: row.pdf_source_url || null,
       }));
-    } catch (_pdfErr) {
-      // PDF detail is supplementary — don't fail the whole request
-    }
+    } catch (_pdfErr) { console.warn('[App] Handled exception:', _pdfErr?.message || _pdfErr); }
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -423,7 +421,7 @@ export default async function handler(req, res) {
     });
 
   } catch (err) {
-    console.error('[tour-schedule] Error:', err);
+    console.warn('[tour-schedule] Error:', err);
     // Fallback to registry data if DB fails
     return returnRegistryFallback(tour_code?.toUpperCase(), stop, res);
   }

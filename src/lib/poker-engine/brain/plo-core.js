@@ -2254,10 +2254,7 @@ async function updatePLOOpponentRead(horseId, opponentId, revealedHand, opponent
         };
 
         await supabaseClient.from('horse_opponent_reads').upsert(mergedUpdate, { onConflict: 'horse_id,opponent_id' });
-    } catch (err) {
-        // Non-fatal: opponent reads are enrichment data
-        console.warn('[PLO][OpponentRead] Update failed:', err?.message);
-    }
+    } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
 }
 
 // ── 4g. VARIANCE PROTECTION MODE ──
@@ -3020,7 +3017,7 @@ function optimizePLORiverDecision({
 
         // Strong enough to call?
         // Debug: uncomment for tracing river optimizer decisions
-        // console.log(`[HorseBrain]  RIVER OPT: callEq=${callEquity.toFixed(1)} hvrEq=${hvrInfo.hvrEquity?.toFixed(1)} riverEq=${riverEquity.toFixed(1)} thr=${(58+vulnerabilityPenalty-multiwayPenalty).toFixed(1)} vulnPen=${vulnerabilityPenalty}`);
+        // console.debug(`[HorseBrain]  RIVER OPT: callEq=${callEquity.toFixed(1)} hvrEq=${hvrInfo.hvrEquity?.toFixed(1)} riverEq=${riverEquity.toFixed(1)} thr=${(58+vulnerabilityPenalty-multiwayPenalty).toFixed(1)} vulnPen=${vulnerabilityPenalty}`);
         if (callEquity >= 58 + vulnerabilityPenalty - multiwayPenalty) {
             // Raise with nuts or near-nuts (never raise with non-nut flush/straight)
             // Bug #144: Non-nut straights also shouldn't raise river facing bet (same death-trap logic as flushes)
@@ -5930,7 +5927,7 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
             ploLiveBluffAdj += 5;
         }
         if (street !== 'preflop') {
-            console.log(`[HorseBrain]  PLO LIVE-READ: opp=${ploPrimaryOppId?.substring(0, 8)} conf=${Math.round(ploLiveConf * 100)}% agg=${ploLiveRead.aggFreq?.toFixed(2)} call=${ploLiveRead.callFreq?.toFixed(2)} fold=${ploLiveRead.foldFreq?.toFixed(2)} foldAdj=${ploLiveFoldAdj} valAdj=${ploLiveValueAdj} bluffAdj=${ploLiveBluffAdj}`);
+            console.debug(`[HorseBrain]  PLO LIVE-READ: opp=${ploPrimaryOppId?.substring(0, 8)} conf=${Math.round(ploLiveConf * 100)}% agg=${ploLiveRead.aggFreq?.toFixed(2)} call=${ploLiveRead.callFreq?.toFixed(2)} fold=${ploLiveRead.foldFreq?.toFixed(2)} foldAdj=${ploLiveFoldAdj} valAdj=${ploLiveValueAdj} bluffAdj=${ploLiveBluffAdj}`);
         }
     }
 
@@ -6024,11 +6021,11 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
 
             if (stackPctCommitted >= 0.60) {
                 // 60%+ of stack goes in = pot-raise to commit (PLO is pot-limit, no shove)
-                console.log(`[HorseBrain]  AAxx POT-COMMIT: pot-raise commits ${Math.round(stackPctCommitted * 100)}% of stack`);
+                console.debug(`[HorseBrain]  AAxx POT-COMMIT: pot-raise commits ${Math.round(stackPctCommitted * 100)}% of stack`);
                 return { type: raiseAction?.type || 'raise', amount: Math.min(potRaiseSize, raiseAction?.maxAmount || potRaiseSize) };
             } else if (stackPctCommitted >= 0.40) {
                 // 40-60%: pot it aggressively (sets up all-in on flop)
-                console.log(`[HorseBrain]  AAxx POT-RAISE: commits ${Math.round(stackPctCommitted * 100)}% of stack`);
+                console.debug(`[HorseBrain]  AAxx POT-RAISE: commits ${Math.round(stackPctCommitted * 100)}% of stack`);
                 return { type: raiseAction?.type || 'raise', amount: Math.min(potRaiseSize, raiseAction?.maxAmount || potRaiseSize) };
             }
             // < 40% committed: still raise but handled by normal logic below (AA will always raise)
@@ -6441,7 +6438,7 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         ? reevaluatePLORunoutEquity(prevEquityEstimate, equityP4, street)
         : { multiplier: 1.0, runoutType: 'blank' };
     if (runoutReeval.runoutType !== 'blank') {
-        console.log(`[HorseBrain]  MODULE 17 RUNOUT: ${runoutReeval.runoutType} (×${runoutReeval.multiplier.toFixed(2)}) on ${street}`);
+        console.debug(`[HorseBrain]  MODULE 17 RUNOUT: ${runoutReeval.runoutType} (×${runoutReeval.multiplier.toFixed(2)}) on ${street}`);
     }
 
     // ─── MODULE 23: OOP POSITIONAL EQUITY LEAK GUARD ───
@@ -6565,8 +6562,8 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     // Cold-call trap reduces equity to dampen barrel aggression; chip-leak adjusts OOP/multiway over-aggression.
     if (coldCallPenalty > 0 || chipLeakFoldAdjust > 0) {
         equityFinal = Math.max(0, equityFinal - coldCallPenalty - chipLeakFoldAdjust);
-        if (coldCallPenalty > 0) console.log(`[HorseBrain]  MODULE 28 COLD-CALL TRAP: applying -${coldCallPenalty} global equity penalty to reduce barrel freq.`);
-        if (chipLeakFoldAdjust > 0) console.log(`[HorseBrain]  MODULE 32 CHIP LEAK: applying -${chipLeakFoldAdjust} equity penalty for OOP/multiway leaks.`);
+        if (coldCallPenalty > 0) console.debug(`[HorseBrain]  MODULE 28 COLD-CALL TRAP: applying -${coldCallPenalty} global equity penalty to reduce barrel freq.`);
+        if (chipLeakFoldAdjust > 0) console.debug(`[HorseBrain]  MODULE 32 CHIP LEAK: applying -${chipLeakFoldAdjust} equity penalty for OOP/multiway leaks.`);
     }
 
     // ═══ Bugs #164-#171: PLO ANTI-EXPLOIT SYSTEM (8 dead functions now wired) ═══
@@ -6602,13 +6599,13 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         equityFinal = Math.max(0, Math.min(100,
             (equityFinal + ploCounterProfile.finalEquityAdjust) / ploCounterProfile.finalTightenFactor
         ));
-        console.log(`[HorseBrain]  PLO ANTI-EXPLOIT: ${ploCounterProfile.activeExploits.join('+')} style=${ploCounterProfile.playStyle} eqAdj=${ploCounterProfile.finalEquityAdjust > 0 ? '+' : ''}${ploCounterProfile.finalEquityAdjust} tighten=${ploCounterProfile.finalTightenFactor.toFixed(2)}`);
+        console.debug(`[HorseBrain]  PLO ANTI-EXPLOIT: ${ploCounterProfile.activeExploits.join('+')} style=${ploCounterProfile.playStyle} eqAdj=${ploCounterProfile.finalEquityAdjust > 0 ? '+' : ''}${ploCounterProfile.finalEquityAdjust} tighten=${ploCounterProfile.finalTightenFactor.toFixed(2)}`);
     }
 
     // Bug #169: Sandwich tightens fold threshold (fold more in squeeze situations)
     if (ploSandwich.isSandwich) {
         exploitFoldThreshold = Math.min(55, exploitFoldThreshold + Math.round((ploSandwich.tightenFactor - 1.0) * 20));
-        console.log(`[HorseBrain]  PLO SANDWICH: severity=${ploSandwich.sandwichSeverity} foldThreshold→${exploitFoldThreshold}`);
+        console.debug(`[HorseBrain]  PLO SANDWICH: severity=${ploSandwich.sandwichSeverity} foldThreshold→${exploitFoldThreshold}`);
     }
 
     // Bug #170: Obfuscate PLO decision frequencies — jitter fold/call/value thresholds
@@ -6659,7 +6656,7 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     // ─── MODULE 29 & 31: ADJUSTED COMMIT THRESHOLDS ───
     const bombPotBoost = state.bombPotBoost || 0;
     const adjustedCommitThreshold = icmCommitThreshold + bombPotBoost;
-    if (bombPotBoost > 0) console.log(`[HorseBrain]  MODULE 29: commit threshold raised to ${adjustedCommitThreshold} (bomb-pot/straddle boost +${bombPotBoost})`);
+    if (bombPotBoost > 0) console.debug(`[HorseBrain]  MODULE 29: commit threshold raised to ${adjustedCommitThreshold} (bomb-pot/straddle boost +${bombPotBoost})`);
 
     const ritRefuserBoost = (state.isRITRefuser) ? 5 : 0;
     const finalCommitThreshold = adjustedCommitThreshold + ritRefuserBoost;
@@ -6677,13 +6674,13 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         boardTexture.isWet || false,
         street
     );
-    if (rioGuard.shouldBlock) console.log(`[HorseBrain]  MODULE 27 RIO BLOCK: ${rioGuard.reason}`);
+    if (rioGuard.shouldBlock) console.debug(`[HorseBrain]  MODULE 27 RIO BLOCK: ${rioGuard.reason}`);
 
     // Bug #171b: PLO GTO Chaos Injector — inject unpredictable actions to prevent pattern mining
     // Per-street chaos rates (4-8%) with equity-bucketed action selection
     const ploChaos = injectPLOGTOChaos(street, equityFinal, isIP, madeHand, legalActions);
     if (ploChaos.chaosAction) {
-        console.log(`[HorseBrain]  PLO CHAOS: ${ploChaos.chaosMagnitude} on ${street} (eq=${equityFinal.toFixed(0)})`);
+        console.debug(`[HorseBrain]  PLO CHAOS: ${ploChaos.chaosMagnitude} on ${street} (eq=${equityFinal.toFixed(0)})`);
         if ((ploChaos.chaosAction.type === 'raise' || ploChaos.chaosAction.type === 'bet') && canRaise) {
             return { type: raiseAction.type, amount: adaptiveBetSize };
         } else if (ploChaos.chaosAction.type === 'call' && canCall) {
@@ -6740,7 +6737,7 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
             // On boards where humans expect us to have nothing (nut-unlikely),
             // we trap by checking medium-strength hands and check-raising their probe bet.
             if (nutBiasInfo.shouldAddCheckRaise && equityFinal >= 35 && equityFinal <= 60 && Math.random() < 0.45) {
-                console.log(`[HorseBrain]  MODULE 13 NUT-BIAS TRAP: checking to check-raise on dry board (equity=${equityFinal.toFixed(0)}, nutUnlikely=${nutBiasInfo.nutUnlikelyScore})`);
+                console.debug(`[HorseBrain]  MODULE 13 NUT-BIAS TRAP: checking to check-raise on dry board (equity=${equityFinal.toFixed(0)}, nutUnlikely=${nutBiasInfo.nutUnlikelyScore})`);
                 return { type: 'check' };
             }
         }
@@ -6764,17 +6761,17 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
             const isVulnerableRaiser = (madeHand.category === 'flush' && !madeHand.isNut)
                 || (madeHand.category === 'straight' && !madeHand.isNut);
             if (donkBlock.action === 'raise' && canRaise && !isVulnerableRaiser) {
-                console.log(`[HorseBrain]  MODULE 24 DONK BLOCK: ${donkBlock.reason}`);
+                console.debug(`[HorseBrain]  MODULE 24 DONK BLOCK: ${donkBlock.reason}`);
                 const raiseAmt = clamp(Math.round(potSize * 0.75));
                 return { type: raiseAction?.type || 'raise', amount: raiseAmt };
             }
             if (donkBlock.action === 'fold') {
                 // Bug #198: PLO8 nut low override — never fold nut low, even to donk bets
                 if (isHiLo && lo8?.hasNutLow && canCall) {
-                    console.log('[HorseBrain]  PLO8 NUT LOW DONK-OVERRIDE: calling river donk with nut low');
+                    console.debug('[HorseBrain]  PLO8 NUT LOW DONK-OVERRIDE: calling river donk with nut low');
                     return { type: 'call' };
                 }
-                console.log(`[HorseBrain]  MODULE 24 DONK FOLD: ${donkBlock.reason}`);
+                console.debug(`[HorseBrain]  MODULE 24 DONK FOLD: ${donkBlock.reason}`);
                 return { type: 'fold' };
             }
             // 'call' or 'none' — fall through to optimizer
@@ -6808,7 +6805,7 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         // Bug #200: PLO8 nut low override — if river optimizer says fold, override with call.
         // Nut low guarantees half the pot. NEVER fold it on any street.
         if (optimizedRiver.type === 'fold' && isHiLo && lo8?.hasNutLow && canCall) {
-            console.log('[HorseBrain]  PLO8 NUT LOW RIVER-OPTIMIZER-OVERRIDE: calling (guaranteed half pot)');
+            console.debug('[HorseBrain]  PLO8 NUT LOW RIVER-OPTIMIZER-OVERRIDE: calling (guaranteed half pot)');
             return { type: 'call' };
         }
 
@@ -6832,7 +6829,7 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         if (donkResponse) {
             // Bug #198: PLO8 nut low override — never fold nut low, even facing donk bets
             if (donkResponse.action === 'fold' && isHiLo && lo8?.hasNutLow && canCall) {
-                console.log('[HorseBrain]  PLO8 NUT LOW DONK-FLOP-OVERRIDE: calling donk with nut low');
+                console.debug('[HorseBrain]  PLO8 NUT LOW DONK-FLOP-OVERRIDE: calling donk with nut low');
                 return { type: 'call' };
             }
             return { type: donkResponse.action, amount: donkResponse.amount };
@@ -6864,7 +6861,7 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         // Bug #156: PLO8 nut low override — NEVER fold when we have the nut low.
         // Nut low guarantees at least half the pot. Must fire BEFORE the commit-fold.
         if (isHiLo && lo8?.hasNutLow && canCall) {
-            console.log('[HorseBrain]  PLO8 NUT LOW COMMIT-OVERRIDE: calling with nut low (guaranteed half pot)');
+            console.debug('[HorseBrain]  PLO8 NUT LOW COMMIT-OVERRIDE: calling with nut low (guaranteed half pot)');
             return { type: 'call' };
         }
         return canCheck ? { type: 'check' } : { type: 'fold' };
@@ -6890,7 +6887,7 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         // ─── MODULE 28: COLD-CALL TRAP GUARD ───
         // Passively check draws and marginal hands vs opponents who flat preflop to trap
         if (state.isColdCallTrap && !madeHand.isMade) {
-            console.log("[HorseBrain]  MODULE 28 COLD-CALL TRAP: suppressing barrel with draw/air.");
+            console.debug("[HorseBrain]  MODULE 28 COLD-CALL TRAP: suppressing barrel with draw/air.");
             return { type: 'check' };
         }
 
@@ -6978,7 +6975,7 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
             const hasBigCombo = exactOuts >= 15; // huge combo draw
             const hasStrongHigh = madeHand.strength >= 65;
             if (hasNutHighDraw || hasBigCombo || hasStrongHigh) {
-                console.log(`[HorseBrain] PLO8 FREEROLL: nut low + ${hasStrongHigh ? 'strong high' : 'nut high draw'} — raising aggressively (guaranteed half)`);
+                console.debug(`[HorseBrain] PLO8 FREEROLL: nut low + ${hasStrongHigh ? 'strong high' : 'nut high draw'} — raising aggressively (guaranteed half)`);
                 return { type: raiseAction.type, amount: clampedPotRaise };
             }
         }
@@ -6992,7 +6989,7 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
                 // When only moderate scoop chance, use 60% pot to manage risk.
                 const scoopSize = madeHand.strength >= 70 ? adaptiveBetSize
                     : clamp(Math.round(potSize * 0.60));
-                console.log(`[HorseBrain] PLO8 SCOOP: low + strong high (${madeHand.strength}) — building pot`);
+                console.debug(`[HorseBrain] PLO8 SCOOP: low + strong high (${madeHand.strength}) — building pot`);
                 return { type: raiseAction.type, amount: scoopSize };
             }
         }
@@ -7003,7 +7000,7 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         if (isHiLo && lo8?.hasNutLow && madeHand.strength < 55) {
             // Bug #209: Exception — if counterfeited, we might not even have a good low anymore.
             // Still check but for a different reason (our low is degraded).
-            console.log(`[HorseBrain] PLO8 POT-CONTROL: nut low but weak high (${madeHand.strength}) — checking`);
+            console.debug(`[HorseBrain] PLO8 POT-CONTROL: nut low but weak high (${madeHand.strength}) — checking`);
             return { type: 'check' };
         }
 
@@ -7150,11 +7147,11 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         const stack = stackBB * bb;
         const callFraction = stack > 0 ? toCall / stack : 0;
         if (callFraction >= 0.60) {
-            console.log(`[HorseBrain]  BUG #118 PLO FREEROLL OVERRIDE: call is ${Math.round(callFraction * 100)}% of stack — pot-raising with nut straight.`);
+            console.debug(`[HorseBrain]  BUG #118 PLO FREEROLL OVERRIDE: call is ${Math.round(callFraction * 100)}% of stack — pot-raising with nut straight.`);
             return ploPotCommit();
         }
         if (canCall) {
-            console.log('[HorseBrain]  BUG #118 PLO FREEROLL GUARD: naked nut straight facing bet on flop — flatting to avoid freeroll.');
+            console.debug('[HorseBrain]  BUG #118 PLO FREEROLL GUARD: naked nut straight facing bet on flop — flatting to avoid freeroll.');
             return { type: 'call' };
         }
     }
@@ -7168,7 +7165,7 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         for (const r of boardCards.map(c => c.rank)) boardRankFreq[r] = (boardRankFreq[r] || 0) + 1;
         const boardPaired = Object.values(boardRankFreq).some(c => c >= 2);
         if (!flushPossible && !boardPaired) {
-            console.log('[HorseBrain]  BUG #118 PLO SAFE TURN: naked nut straight on safe turn — raising now.');
+            console.debug('[HorseBrain]  BUG #118 PLO SAFE TURN: naked nut straight on safe turn — raising now.');
             return { type: raiseAction.type, amount: clampedPotRaise };
         }
         // Unsafe turn (flush possible or board paired): still just call
@@ -7243,18 +7240,18 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     // Calling a pot-sized bet with 3rd-best low risks quartering and counterfeiting.
     if (rioGuard.shouldBlock && toCall > 0 && !madeHand.isMade && !isNutDraw) {
         if (isHiLo && lo8?.hasNutLow && canCall) {
-            console.log('[HorseBrain]  PLO8 NUT LOW RIO-OVERRIDE: calling with nut low (guaranteed half pot)');
+            console.debug('[HorseBrain]  PLO8 NUT LOW RIO-OVERRIDE: calling with nut low (guaranteed half pot)');
             return { type: 'call' };
         }
         if (isHiLo && lo8?.hasLow && canCall) {
             const betFraction = potSize > 0 ? toCall / potSize : 1.0;
             if (betFraction <= 0.60 || lo8.quarteringRisk === 'low') {
-                console.log('[HorseBrain]  PLO8 LOW RIO-OVERRIDE: calling with made low (likely half pot)');
+                console.debug('[HorseBrain]  PLO8 LOW RIO-OVERRIDE: calling with made low (likely half pot)');
                 return { type: 'call' };
             }
             // Large bet + quartering risk → non-nut low doesn't justify calling
         }
-        console.log(`[HorseBrain]  MODULE 27 RIO VETO: folding draw — ${rioGuard.reason}`);
+        console.debug(`[HorseBrain]  MODULE 27 RIO VETO: folding draw — ${rioGuard.reason}`);
         return canCheck ? { type: 'check' } : { type: 'fold' };
     }
 
@@ -7262,7 +7259,7 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     if (continuanceScore >= flopContinuance.raiseThreshold && canRaise && multiWayGov.allowAggression) {
         // Module 32: Donk-overcall penalty
         if (!isIP && toCall > 0 && donkBoost > 0 && continuanceScore < flopContinuance.raiseThreshold + donkBoost) {
-            console.log(`[HorseBrain]  MODULE 32 DONK LEAK: passing on marginal raise OOP due to leak pattern.`);
+            console.debug(`[HorseBrain]  MODULE 32 DONK LEAK: passing on marginal raise OOP due to leak pattern.`);
             return { type: 'call' };
         }
         return { type: raiseAction?.type || 'call', amount: clamp(Math.round(potSize * 0.75)) };

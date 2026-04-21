@@ -51,7 +51,7 @@ export default async function handler(req, res) {
               .limit(5);
 
           if (error) {
-              console.error('Failed to fetch conversations:', error);
+              console.warn('Failed to fetch conversations:', error);
               return res.status(500).json({ error: 'Failed to fetch conversations' });
           }
 
@@ -65,13 +65,13 @@ export default async function handler(req, res) {
           return res.status(200).json({ conversations: formattedConversations });
 
       } catch (error) {
-          console.error('Conversations API error:', error);
+          console.warn('Conversations API error:', error);
           return res.status(500).json({ error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

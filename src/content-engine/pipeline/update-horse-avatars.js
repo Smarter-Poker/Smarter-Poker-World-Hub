@@ -37,8 +37,8 @@ async function updateProfileAvatar(profileId, avatarUrl) {
 }
 
 async function main() {
-    console.log('\n🖼️ HORSE AVATAR UPDATER (DiceBear)');
-    console.log('═'.repeat(50));
+    console.debug('\n🖼️ HORSE AVATAR UPDATER (DiceBear)');
+    console.debug('═'.repeat(50));
 
     // Get all horses
     const { data: horses } = await supabase
@@ -47,11 +47,11 @@ async function main() {
         .eq('is_active', true);
 
     if (!horses?.length) {
-        console.log('No horses found');
+        console.debug('No horses found');
         return;
     }
 
-    console.log(`Found ${horses.length} horses to update\n`);
+    console.debug(`Found ${horses.length} horses to update\n`);
 
     let success = 0;
     let failed = 0;
@@ -66,20 +66,20 @@ async function main() {
         try {
             const updated = await updateProfileAvatar(horse.profile_id, avatarUrl);
             if (updated) {
-                console.log(`✅ ${horse.name}: ${avatarUrl.substring(0, 60)}...`);
+                console.debug(`✅ ${horse.name}: ${avatarUrl.substring(0, 60)}...`);
                 success++;
             } else {
-                console.log(`❌ ${horse.name}: Profile update failed`);
+                console.debug(`❌ ${horse.name}: Profile update failed`);
                 failed++;
             }
         } catch (error) {
-            console.error(`❌ ${horse.name}: ${error.message}`);
+            console.warn(`❌ ${horse.name}: ${error.message}`);
             failed++;
         }
     }
 
-    console.log('\n' + '═'.repeat(50));
-    console.log(`COMPLETE: ${success} success, ${failed} failed`);
+    console.debug('\n' + '═'.repeat(50));
+    console.debug(`COMPLETE: ${success} success, ${failed} failed`);
 }
 
-main().catch(console.error);
+main().catch(console.warn);

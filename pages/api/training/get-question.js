@@ -125,7 +125,7 @@ export default async function handler(req, res) {
                       console.debug(`[Training] Deterministic engine served: ${question.source}`);
                   }
               } catch (detErr) {
-                  console.error('[Training] ⚠️ Deterministic engine failed, falling back:', detErr.message);
+                  console.warn('[Training] ⚠️ Deterministic engine failed, falling back:', detErr.message);
               }
           }
 
@@ -143,7 +143,7 @@ export default async function handler(req, res) {
                           question = await generateQuestionFromPIO(pioScenarios, gameId, level, game);
                       }
                   } catch (pioError) {
-                      console.error('[Training] ⚠️ PIO query failed:', pioError.message);
+                      console.warn('[Training] ⚠️ PIO query failed:', pioError.message);
                   }
               }
           }
@@ -208,13 +208,13 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('[Training] ❌ Get question error:', error);
+          console.warn('[Training] ❌ Get question error:', error);
           return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -435,7 +435,7 @@ async function generateQuestionFromPIO(pioScenarios, gameId, level, game) {
         return question;
 
     } catch (error) {
-        console.error('[Training] ❌ Error generating PIO question:', error);
+        console.warn('[Training] ❌ Error generating PIO question:', error);
         return null;
     }
 }
@@ -638,7 +638,7 @@ IMPORTANT RULES:
         }
     } catch (error) {
         try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('[Training] ❌ Grok question generation failed:', error.message);
+        console.warn('[Training] ❌ Grok question generation failed:', error.message);
     }
 
     // Return hardcoded fallback question if Grok fails

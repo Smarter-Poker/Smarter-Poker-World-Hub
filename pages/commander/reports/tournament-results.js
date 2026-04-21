@@ -29,7 +29,7 @@ const json = await commanderFetchJSON('/api/commander/tournaments?status=complet
           const list = json.data?.tournaments || (Array.isArray(json.data) ? json.data : []);
           setTournaments(list);
         }
-      } catch (err) { console.error(err); }
+      } catch (err) { console.warn(err); }
       finally { setLoading(false); }
     };
     fetchTournaments();
@@ -45,7 +45,7 @@ const json = await commanderFetchJSON(`/api/commander/tournaments/${tournamentId
           t.id === tournamentId ? { ...t, entries: json.data } : t
         ));
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
   };
 
   return (

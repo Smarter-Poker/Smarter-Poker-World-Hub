@@ -96,7 +96,7 @@ export default async function handler(req, res) {
           const { data: sessions, error } = await query.limit(500);
 
           if (error) {
-              console.error('[GTOReports] Query error:', error);
+              console.warn('[GTOReports] Query error:', error);
               return res.status(500).json({ success: false, error: 'Database query failed' });
           }
 
@@ -243,13 +243,13 @@ export default async function handler(req, res) {
           });
 
       } catch (err) {
-          console.error('[GTOReports] Error:', err);
+          console.warn('[GTOReports] Error:', err);
           return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

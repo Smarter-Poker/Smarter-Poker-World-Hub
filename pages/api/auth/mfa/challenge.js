@@ -94,7 +94,7 @@ export default async function handler(req, res) {
                     p_hashed_code: hashed
                 });
             if (rpcError) {
-                console.error('[mfa/challenge] consume RPC error:', rpcError);
+                console.warn('[mfa/challenge] consume RPC error:', rpcError);
                 return res.status(500).json({ error: 'Failed to verify backup code' });
             }
             const row = Array.isArray(rpcResult) ? rpcResult[0] : rpcResult;
@@ -122,7 +122,7 @@ export default async function handler(req, res) {
             process.env.SUPABASE_SERVICE_ROLE_KEY;
 
         if (!secret) {
-            console.error('[mfa/challenge] MFA_SESSION_SECRET not configured');
+            console.warn('[mfa/challenge] MFA_SESSION_SECRET not configured');
             return res.status(500).json({ error: 'MFA service not configured' });
         }
 
@@ -143,7 +143,7 @@ export default async function handler(req, res) {
         });
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('[mfa/challenge] Error:', err);
+        console.warn('[mfa/challenge] Error:', err);
         if (!res.headersSent) {
             return res.status(500).json({ error: 'Internal server error' });
         }

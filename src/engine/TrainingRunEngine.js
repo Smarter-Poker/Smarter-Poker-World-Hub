@@ -308,7 +308,7 @@ class TrainingRunEngineClass {
     async _showCurrentQuestion() {
         const question = this.questions[this.currentQuestionIndex];
         if (!question) {
-            console.error('[TrainingRunEngine] No question at index:', this.currentQuestionIndex);
+            console.warn('[TrainingRunEngine] No question at index:', this.currentQuestionIndex);
             return;
         }
 

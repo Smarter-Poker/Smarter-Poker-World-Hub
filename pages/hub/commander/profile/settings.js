@@ -83,7 +83,7 @@ export default function ProfileSettingsPage() {
         setTimeout(() => setSuccess(false), 2000);
       }
     } catch (err) {
-      console.error('Save settings failed:', err);
+      console.warn('Save settings failed:', err);
     } finally {
       setSaving(false);
     }

@@ -76,14 +76,14 @@ export default async function handler(req, res) {
         });
 
         if (error) {
-            console.error("[kyc/start] RPC error:", error);
+            console.warn("[kyc/start] RPC error:", error);
             return res.status(500).json({ error: 'Internal server error' });
         }
 
         return res.status(200).json(data);
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error("[kyc/start] unhandled:", err);
+        console.warn("[kyc/start] unhandled:", err);
         return res
             .status(500)
             .json({ error: err?.message || "unhandled failure" });

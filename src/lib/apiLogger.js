@@ -1,7 +1,7 @@
 /**
  * apiLogger.js — Structured logging for API endpoints
  * ═══════════════════════════════════════════════════════════════════════════
- * Drop-in replacement for console.log/warn/error with structured JSON,
+ * Drop-in replacement for console.debug/warn/error with structured JSON,
  * timestamps, correlation IDs, and log levels.
  * 
  * Usage:
@@ -38,9 +38,9 @@ export function createLogger(namespace) {
         const output = JSON.stringify(entry);
 
         switch (level) {
-            case 'error': console.error(output); break;
+            case 'error': console.warn(output); break;
             case 'warn':  console.warn(output);  break;
-            default:      console.log(output);   break;
+            default:      console.debug(output);   break;
         }
     }
 

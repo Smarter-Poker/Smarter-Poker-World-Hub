@@ -13,8 +13,8 @@ const supabase = createClient(
 );
 
 async function testDeduplication() {
-    console.log('\n🔍 TESTING VIDEO DEDUPLICATION');
-    console.log('═'.repeat(50));
+    console.debug('\n🔍 TESTING VIDEO DEDUPLICATION');
+    console.debug('═'.repeat(50));
 
     const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000);
 
@@ -32,12 +32,12 @@ async function testDeduplication() {
         if (post.metadata?.source_video_id) usedClipIds.add(post.metadata.source_video_id);
     });
 
-    console.log(`\nRecent video posts: ${recentPosts?.length || 0}`);
-    console.log(`Posts with metadata.clip_id: ${recentPosts?.filter(p => p.metadata?.clip_id).length || 0}`);
-    console.log(`Used clip IDs to exclude: ${usedClipIds.size}`);
+    console.debug(`\nRecent video posts: ${recentPosts?.length || 0}`);
+    console.debug(`Posts with metadata.clip_id: ${recentPosts?.filter(p => p.metadata?.clip_id).length || 0}`);
+    console.debug(`Used clip IDs to exclude: ${usedClipIds.size}`);
 
     // Try to select 5 unique clips
-    console.log('\n📋 Selecting 5 unique clips:');
+    console.debug('\n📋 Selecting 5 unique clips:');
     const usedThisSession = new Set();
 
     for (let i = 0; i < 5; i++) {
@@ -57,18 +57,18 @@ async function testDeduplication() {
         }
 
         if (clip) {
-            console.log(`  ✅ Clip ${i + 1}: ${clip.id} (found in ${attempts} attempts)`);
+            console.debug(`  ✅ Clip ${i + 1}: ${clip.id} (found in ${attempts} attempts)`);
         } else {
-            console.log(`  ❌ Failed to find unique clip after ${attempts} attempts`);
+            console.debug(`  ❌ Failed to find unique clip after ${attempts} attempts`);
         }
     }
 
     // Check if all selected clips are unique
-    console.log(`\n📊 Session clips selected: ${usedThisSession.size}`);
-    console.log(`All unique: ${usedThisSession.size === 5 ? '✅ YES' : '❌ NO'}`);
+    console.debug(`\n📊 Session clips selected: ${usedThisSession.size}`);
+    console.debug(`All unique: ${usedThisSession.size === 5 ? '✅ YES' : '❌ NO'}`);
 
-    console.log('\n' + '═'.repeat(50));
-    console.log('✅ Deduplication test complete!\n');
+    console.debug('\n' + '═'.repeat(50));
+    console.debug('✅ Deduplication test complete!\n');
 }
 
-testDeduplication().catch(console.error);
+testDeduplication().catch(console.warn);

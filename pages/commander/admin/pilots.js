@@ -57,7 +57,7 @@ export default function PilotVenuesPage() {
         setPilots(data.pilots || []);
       }
     } catch (err) {
-      console.error('Failed to fetch pilots:', err);
+      console.warn('Failed to fetch pilots:', err);
       setPilots([]);
     } finally {
       setLoading(false);

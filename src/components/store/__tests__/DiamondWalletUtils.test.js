@@ -42,7 +42,7 @@ function getPersistedRecipients() {
 function persistRecipients(recipients) {
     try {
         localStorage.setItem('sp-wallet-recent-recipients', JSON.stringify(recipients.slice(0, 5)));
-    } catch (_) { /* quota exceeded */ }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 }
 
 const TX_TYPES = {

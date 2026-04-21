@@ -115,7 +115,7 @@ export default async function handler(req, res) {
               .createSignedUploadUrl(storagePath);
 
           if (signError) {
-              console.error('[Upload-URL API] Signed URL error:', signError.message);
+              console.warn('[Upload-URL API] Signed URL error:', signError.message);
               return res.status(500).json({ success: false, error: 'Failed to create upload URL: ' + signError.message });
           }
 
@@ -142,13 +142,13 @@ export default async function handler(req, res) {
           });
 
       } catch (err) {
-          console.error('[Upload-URL API] Error:', err.message);
+          console.warn('[Upload-URL API] Error:', err.message);
           return res.status(500).json({ success: false, error: 'Upload URL generation failed: ' + err.message });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

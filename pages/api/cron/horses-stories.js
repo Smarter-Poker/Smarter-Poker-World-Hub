@@ -27,7 +27,7 @@ async function loadClipLibrary() {
         clipLibraryLoaded = true;
         return true;
     } catch (e) {
-        console.error('Failed to load ClipLibrary:', e.message);
+        console.warn('Failed to load ClipLibrary:', e.message);
         return false;
     }
 }
@@ -85,7 +85,7 @@ async function validateYouTubeThumbnail(videoId) {
         // Real thumbnails are usually 20KB+, placeholders are ~2-3KB
         return sizeKB > 10;
     } catch (e) {
-        console.error(`   Thumbnail validation failed: ${e.message}`);
+        console.warn(`   Thumbnail validation failed: ${e.message}`);
         return false;
     }
 }
@@ -131,13 +131,13 @@ async function postVideoStory(horse) {
         });
 
         if (error) {
-            console.error(`   Story creation failed: ${error.message}`);
+            console.warn(`   Story creation failed: ${error.message}`);
             return null;
         }
 
         return { type: 'video_story', story_id: storyId };
     } catch (e) {
-        console.error(`❌ ${horse.name}: Video story failed - ${e.message}`);
+        console.warn(`❌ ${horse.name}: Video story failed - ${e.message}`);
         return null;
     }
 }
@@ -169,7 +169,7 @@ async function postTextStory(horse) {
                 .replace(/\s+/g, ' ')
                 .trim();
         } catch (e) {
-            console.error(`   Using default topic (Grok error)`);
+            console.warn(`   Using default topic (Grok error)`);
         }
 
         const { data: storyId, error } = await getSupabase().rpc('fn_create_story', {
@@ -182,13 +182,13 @@ async function postTextStory(horse) {
         });
 
         if (error) {
-            console.error(`   Story creation failed: ${error.message}`);
+            console.warn(`   Story creation failed: ${error.message}`);
             return null;
         }
 
         return { type: 'text_story', story_id: storyId };
     } catch (e) {
-        console.error(`❌ ${horse.name}: Text story failed - ${e.message}`);
+        console.warn(`❌ ${horse.name}: Text story failed - ${e.message}`);
         return null;
     }
 }
@@ -287,13 +287,13 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('Cron error:', error);
+          console.warn('Cron error:', error);
           return res.status(500).json({ success: false, error: error.message });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }

@@ -309,7 +309,7 @@ export default function ReplayTheaterPage() {
         setMistakes(reconstructMistakes(data.sessions));
       }
     } catch (e) {
-      console.error('[ReplayTheater] Error:', e);
+      console.warn('[ReplayTheater] Error:', e);
       setFetchError('Failed to load replay data. Please try again.');
     }
     setLoading(false);

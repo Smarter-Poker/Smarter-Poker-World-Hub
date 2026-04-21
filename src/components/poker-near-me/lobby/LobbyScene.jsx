@@ -54,7 +54,7 @@ async function initSingleton(propsRef) {
   singletonInitialized = true;
   singletonPropsRef = propsRef;
 
-  console.log('[LobbyScene] Initializing R3F singleton via createRoot API...');
+  console.debug('[LobbyScene] Initializing R3F singleton via createRoot API...');
 
   try {
     // Create the wrapper div and canvas element at module scope
@@ -79,7 +79,7 @@ async function initSingleton(propsRef) {
       stencil: true,
       depth: true,
     });
-    console.log('[LobbyScene] WebGL context pre-created with alpha:false');
+    console.debug('[LobbyScene] WebGL context pre-created with alpha:false');
 
     singletonWrapper.appendChild(singletonCanvas);
 
@@ -101,7 +101,7 @@ async function initSingleton(propsRef) {
     const THREE = await import('three');
     extend(THREE);
 
-    console.log('[LobbyScene] Creating R3F root on canvas element...');
+    console.debug('[LobbyScene] Creating R3F root on canvas element...');
 
     // Create R3F root directly on the canvas element
     // It will reuse the pre-created WebGL context with alpha:false
@@ -126,8 +126,8 @@ async function initSingleton(propsRef) {
       shadows: INITIAL_QUALITY === 'high',
       events: r3f.createPointerEvents,
       onCreated: (state) => {
-        console.log('[LobbyScene] R3F root created! Renderer:', state.gl.constructor.name);
-        console.log('[LobbyScene] Canvas size:', state.gl.domElement.width, 'x', state.gl.domElement.height);
+        console.debug('[LobbyScene] R3F root created! Renderer:', state.gl.constructor.name);
+        console.debug('[LobbyScene] Canvas size:', state.gl.domElement.width, 'x', state.gl.domElement.height);
         state.gl.setClearColor(0x030818, 1);
         state.gl.toneMapping = 4; // ACESFilmicToneMapping
         state.gl.toneMappingExposure = 1.2; // Phase 1: brighter cinematic exposure
@@ -143,9 +143,9 @@ async function initSingleton(propsRef) {
       />
     );
 
-    console.log('[LobbyScene] R3F singleton fully initialized and rendering!');
+    console.debug('[LobbyScene] R3F singleton fully initialized and rendering!');
   } catch (err) {
-    console.error('[LobbyScene] Failed to initialize R3F singleton:', err);
+    console.warn('[LobbyScene] Failed to initialize R3F singleton:', err);
     singletonError = err.message;
   }
 }
@@ -156,7 +156,7 @@ async function initSingleton(propsRef) {
  */
 function destroySingleton() {
   if (!singletonInitialized) return;
-  console.log('[LobbyScene] Destroying R3F singleton...');
+  console.debug('[LobbyScene] Destroying R3F singleton...');
 
   if (singletonR3FRoot) {
     try {
@@ -228,14 +228,14 @@ export default function LobbyScene({ onPodClick, activePod, liveData }) {
     // Attach the R3F wrapper to our container
     if (singletonWrapper && singletonWrapper.parentNode !== container) {
       container.appendChild(singletonWrapper);
-      console.log('[LobbyScene] R3F singleton canvas attached to DOM');
+      console.debug('[LobbyScene] R3F singleton canvas attached to DOM');
     }
 
     // Poll briefly for the wrapper to be ready (async init)
     const attachInterval = setInterval(() => {
       if (singletonWrapper && singletonWrapper.parentNode !== container) {
         container.appendChild(singletonWrapper);
-        console.log('[LobbyScene] R3F singleton canvas attached to DOM (deferred)');
+        console.debug('[LobbyScene] R3F singleton canvas attached to DOM (deferred)');
         clearInterval(attachInterval);
       } else if (singletonWrapper?.parentNode === container) {
         clearInterval(attachInterval);
@@ -248,7 +248,7 @@ export default function LobbyScene({ onPodClick, activePod, liveData }) {
       // This preserves the WebGL context across hydration remounts
       if (singletonWrapper && singletonWrapper.parentNode === container) {
         container.removeChild(singletonWrapper);
-        console.log('[LobbyScene] R3F singleton canvas detached from DOM (preserved)');
+        console.debug('[LobbyScene] R3F singleton canvas detached from DOM (preserved)');
       }
     };
   }, []);

@@ -157,7 +157,7 @@ return { };
         });
         setWaitlists(grouped);
       }
-    } catch (err) { console.error('Floor fetch error:', err); }
+    } catch (err) { console.warn('Floor fetch error:', err); }
     finally { setLoading(false); }
   }, [venueId]);
 
@@ -190,7 +190,7 @@ return { };
       busEmit.celebration('confetti');
       setTimeout(() => setSaved(false), 2000);
       broadcastChange('tables');
-    } catch (err) { console.error('Save error:', err); setToast({ type: 'error', text: 'Action failed: Save. Please try again.' }); }
+    } catch (err) { console.warn('Save error:', err); setToast({ type: 'error', text: 'Action failed: Save. Please try again.' }); }
     finally { setSaving(false); }
   };
 

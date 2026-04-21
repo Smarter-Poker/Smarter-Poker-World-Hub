@@ -46,7 +46,7 @@ export default async function handler(req, res) {
               .limit(20);
 
           if (error) {
-              console.error('[GetWeakSpots] DB Error:', error);
+              console.warn('[GetWeakSpots] DB Error:', error);
               throw error;
           }
 
@@ -68,7 +68,7 @@ export default async function handler(req, res) {
           });
 
       } catch (error) {
-          console.error('[GetWeakSpots] Error:', error);
+          console.warn('[GetWeakSpots] Error:', error);
           return res.status(500).json({
               success: false, error: 'Failed to analyze weak spots',
               success: false
@@ -77,7 +77,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

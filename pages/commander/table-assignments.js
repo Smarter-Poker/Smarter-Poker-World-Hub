@@ -70,7 +70,7 @@ return {
         setError(errMsg);
       }
     } catch (err) {
-      console.error(err);
+      console.warn(err);
       setError('Failed to load table data');
     }
     finally { setLoading(false); }
@@ -123,7 +123,7 @@ return {
         setError(errMsg);
       }
     } catch (err) {
-      console.error(err);
+      console.warn(err);
       setError('Failed to save assignment');
     }
     finally { setSaving(false); }
@@ -150,7 +150,7 @@ return {
         setTimeout(() => setSuccess(null), 3000);
         await fetchData();
       }
-    } catch (err) { console.error(err); setError('Action failed. Please check your connection and try again.'); }
+    } catch (err) { console.warn(err); setError('Action failed. Please check your connection and try again.'); }
     finally { setClosing(null); }
   };
 

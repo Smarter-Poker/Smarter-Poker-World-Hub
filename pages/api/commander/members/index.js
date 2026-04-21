@@ -39,7 +39,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -82,7 +82,7 @@ async function handleList(req, res) {
     const { data: members, error, count } = await query;
 
     if (error) {
-        console.error('Members list error:', error);
+        console.warn('Members list error:', error);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
@@ -212,7 +212,7 @@ async function handleCreate(req, res) {
             .maybeSingle();
 
         if (error) {
-            console.error('Member create error:', error);
+            console.warn('Member create error:', error);
             return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
@@ -221,7 +221,7 @@ async function handleCreate(req, res) {
         return res.status(201).json({ success: true, data: { member } });
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('Member create exception:', err);
+        console.warn('Member create exception:', err);
         return res.status(500).json({ success: false, error: 'Failed to create member' });
     }
 }

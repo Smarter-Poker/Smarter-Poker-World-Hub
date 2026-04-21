@@ -126,9 +126,7 @@ export async function sendDirectMessage(supabase, { conversationId, senderId, co
           updated_at: new Date().toISOString(),
         })
         .eq('id', conversationId);
-    } catch (_) {
-      // non-fatal
-    }
+    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
     return inserted?.id || null;
   } catch (err) {

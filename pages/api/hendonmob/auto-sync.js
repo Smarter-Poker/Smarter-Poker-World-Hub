@@ -156,7 +156,7 @@ export default async function handler(req, res) {
         const manusData = await manusResponse.json();
 
         if (!manusResponse.ok) {
-            console.error('Manus API error:', manusData);
+            console.warn('Manus API error:', manusData);
             return res.status(500).json({
                 success: false,
                 error: 'Manus task creation failed',
@@ -174,7 +174,7 @@ export default async function handler(req, res) {
 
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('[Auto-Sync Error]', err);
+        console.warn('[Auto-Sync Error]', err);
         return res.status(500).json({ error: err.message });
     }
 }

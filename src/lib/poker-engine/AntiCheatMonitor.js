@@ -50,7 +50,7 @@ class AntiCheatMonitor {
 
   start() {
     if (this._interval) return;
-    console.log('[AntiCheatMonitor] ✅ Started — scanning every', SCAN_INTERVAL_MS / 1000, 'seconds');
+    console.debug('[AntiCheatMonitor] ✅ Started — scanning every', SCAN_INTERVAL_MS / 1000, 'seconds');
     this._interval = setInterval(() => this.scan(), SCAN_INTERVAL_MS);
     // Run first scan after 10s to let tables initialize
     setTimeout(() => this.scan(), 10_000);
@@ -60,7 +60,7 @@ class AntiCheatMonitor {
     if (this._interval) {
       clearInterval(this._interval);
       this._interval = null;
-      console.log('[AntiCheatMonitor] ⏹️  Stopped');
+      console.debug('[AntiCheatMonitor] ⏹️  Stopped');
     }
   }
 
@@ -143,10 +143,10 @@ class AntiCheatMonitor {
       }
 
       if (violationsFound > 0) {
-        console.log(`[AntiCheatMonitor] Scan complete: ${tablesScanned} tables, ${violationsFound} violations → auto-booted`);
+        console.debug(`[AntiCheatMonitor] Scan complete: ${tablesScanned} tables, ${violationsFound} violations → auto-booted`);
       }
     } catch (err) {
-      console.error('[AntiCheatMonitor] Scan error:', err.message);
+      console.warn('[AntiCheatMonitor] Scan error:', err.message);
     } finally {
       this._running = false;
     }
@@ -174,7 +174,7 @@ class AntiCheatMonitor {
       // 2. Unlock chips back to balance
       if (clubId && cashoutAmount > 0) {
         await ChipBridge.unlockChips(clubId, playerId, tableId, cashoutAmount)
-          .catch(err => console.error('[AntiCheatMonitor] Chip unlock failed:', err.message));
+          .catch(err => console.warn('[AntiCheatMonitor] Chip unlock failed:', err.message));
       }
 
       // 3. Clean up anti-cheat tracking
@@ -192,7 +192,7 @@ class AntiCheatMonitor {
           reason: `[AUTO-BOOT] ${reason}`,
           severity,
           status: 'actioned',
-        }).catch(err => console.error('[AntiCheatMonitor] Flag insert failed:', err.message));
+        }).catch(err => console.warn('[AntiCheatMonitor] Flag insert failed:', err.message));
 
         // 5. Log event
         await this.supabase.from('anti_cheat_events').insert({
@@ -202,10 +202,10 @@ class AntiCheatMonitor {
           table_id: tableId,
           details: { reason, severity, flagType, cashoutAmount, automated: true },
           triggered_by: 'anti_cheat_monitor',
-        }).catch(err => console.error('[AntiCheatMonitor] Event insert failed:', err.message));
+        }).catch(err => console.warn('[AntiCheatMonitor] Event insert failed:', err.message));
       }
     } catch (err) {
-      console.error(`[AntiCheatMonitor] Auto-boot failed for ${playerId}:`, err.message);
+      console.warn(`[AntiCheatMonitor] Auto-boot failed for ${playerId}:`, err.message);
     }
   }
 
@@ -294,9 +294,7 @@ class AntiCheatMonitor {
             }
           }
         }
-      } catch (err) {
-        // Skip on error — don't crash scan
-      }
+      } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
     }
 
     // Check each agent's player count at this table

@@ -53,7 +53,7 @@ export default function LiveSessionToggle({ currentUser }) {
                 if (s) setProfitInput(String(s.current_profit || 0));
             }
         } catch (err) {
-            console.error('[LiveSession] Fetch error:', err);
+            console.warn('[LiveSession] Fetch error:', err);
         }
     }, []);
 

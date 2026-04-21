@@ -52,7 +52,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -241,7 +241,7 @@ async function handleRegister(req, res, tournamentId, staff) {
             background_color: 'linear-gradient(135deg, #1877F2 0%, #0A5DC2 100%)'
           });
       } catch (err) {
-        console.error('[register.js] Auto-story failed:', err.message);
+        console.warn('[register.js] Auto-story failed:', err.message);
       }
     }
 
@@ -261,7 +261,7 @@ async function handleRegister(req, res, tournamentId, staff) {
       data: { entry }
     });
   } catch (error) {
-    console.error('Register error:', error);
+    console.warn('Register error:', error);
     return res.status(500).json({
       success: false,
       error: { code: 'SERVER_ERROR', message: 'Failed to register' }
@@ -322,7 +322,7 @@ async function handleUnregister(req, res, tournamentId, staff) {
     });
   } catch (error) {
       try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('Unregister error:', error);
+    console.warn('Unregister error:', error);
     return res.status(500).json({
       success: false,
       error: { code: 'SERVER_ERROR', message: 'Failed to unregister' }

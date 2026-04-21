@@ -46,7 +46,7 @@ export async function joinMatchmakingQueue(userId, stakeAmount) {
 
         return { data };
     } catch (error) {
-        console.error('[PvP Matchmaking] Error joining queue:', error);
+        console.warn('[PvP Matchmaking] Error joining queue:', error);
         return { error };
     }
 }
@@ -65,7 +65,7 @@ export async function leaveMatchmakingQueue(userId) {
 
         return { success: true };
     } catch (error) {
-        console.error('[PvP Matchmaking] Error leaving queue:', error);
+        console.warn('[PvP Matchmaking] Error leaving queue:', error);
         return { error };
     }
 }
@@ -176,7 +176,7 @@ export async function findMatch(userId, stakeAmount) {
             questions: matchQuestions
         };
     } catch (error) {
-        console.error('[PvP Matchmaking] Error finding match:', error);
+        console.warn('[PvP Matchmaking] Error finding match:', error);
         return null;
     }
 }
@@ -272,7 +272,7 @@ export async function submitMatchScore(matchId, playerId, score, isPlayer1) {
 
         return { match, complete: false };
     } catch (error) {
-        console.error('[PvP Matchmaking] Error submitting score:', error);
+        console.warn('[PvP Matchmaking] Error submitting score:', error);
         return { error };
     }
 }
@@ -300,7 +300,7 @@ export async function processMatchReward(winnerId, loserId, stakeAmount) {
         });
 
         if (rpcError) {
-            console.error('[PvP Matchmaking] RPC error awarding winner:', rpcError);
+            console.warn('[PvP Matchmaking] RPC error awarding winner:', rpcError);
             // Fallback: use add_diamonds_to_balance RPC (less ideal but still audit-safe)
             const { data: winner } = await supabase
                 .from('profiles')
@@ -308,7 +308,7 @@ export async function processMatchReward(winnerId, loserId, stakeAmount) {
                 .eq('id', winnerId)
                 .maybeSingle();
 
-            if (!winner) { console.error('[PvP] Winner profile not found:', winnerId); return { success: false, error: 'Winner profile not found' }; }
+            if (!winner) { console.warn('[PvP] Winner profile not found:', winnerId); return { success: false, error: 'Winner profile not found' }; }
             await supabase.rpc('add_diamonds_to_balance', {
                 p_user_id: winnerId,
                 p_amount: winnerPayout,
@@ -332,7 +332,7 @@ export async function processMatchReward(winnerId, loserId, stakeAmount) {
 
         return { success: true, winnerPayout, rakeAmount };
     } catch (error) {
-        console.error('[PvP Matchmaking] Error processing reward:', error);
+        console.warn('[PvP Matchmaking] Error processing reward:', error);
         return { error };
     }
 }

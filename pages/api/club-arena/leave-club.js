@@ -180,7 +180,7 @@ export default async function handler(req, res) {
       });
 
       if (debitErr) {
-        console.error('[leave-club] Player debit failed (possible race):', debitErr.message);
+        console.warn('[leave-club] Player debit failed (possible race):', debitErr.message);
         // Don't credit treasury — chips weren't actually debited
       } else {
         await supabaseAdmin.rpc('fn_credit_treasury', {
@@ -297,7 +297,7 @@ export default async function handler(req, res) {
       message: notifMessage,
       data: notifMetadata,
       read: false,
-    }).catch(e => console.error('[leave-club] Owner notification error:', e.message));
+    }).catch(e => console.warn('[leave-club] Owner notification error:', e.message));
 
     // Notify assigned agent (in-app) — if different from owner
     if (member.agent_id && member.agent_id !== club.owner_id) {
@@ -308,7 +308,7 @@ export default async function handler(req, res) {
         message: notifMessage,
         data: notifMetadata,
         read: false,
-      }).catch(e => console.error('[leave-club] Agent notification error:', e.message));
+      }).catch(e => console.warn('[leave-club] Agent notification error:', e.message));
     }
 
     // Push notifications — fire-and-forget
@@ -360,7 +360,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[leave-club]', err);
+    console.warn('[leave-club]', err);
     return res.status(500).json(safeErrorResponse(err, 'Failed to leave club'));
   }
 }

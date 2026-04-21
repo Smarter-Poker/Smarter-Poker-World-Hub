@@ -32,7 +32,7 @@ export function AntiGravityProvider({ children }) {
                 const state = await initAntiGravity();
                 setBootState(state);
             } catch (error) {
-                console.error('Anti-Gravity background health check failed:', error);
+                console.warn('Anti-Gravity background health check failed:', error);
             }
         }
         backgroundHealthCheck();

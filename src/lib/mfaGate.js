@@ -86,7 +86,7 @@ export function verifyMfaCookie(req, expectedUserId = null) {
 
     const secret = getSigningSecret();
     if (!secret) {
-        console.error('[mfaGate] MFA_SESSION_SECRET not configured');
+        console.warn('[mfaGate] MFA_SESSION_SECRET not configured');
         return { ok: false, reason: 'MFA service not configured', status: 500 };
     }
 

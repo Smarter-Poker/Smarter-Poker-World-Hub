@@ -221,12 +221,7 @@ export function getMultiwayStrategy(params) {
             },
             explanation: generateMultiwayExplanation(players, betMotivation, handClass, position, street, isPFR),
         };
-    } catch (e) {
-        // Fallback to conservative multiway play
-        return {
-            action: 'check',
-            sizing: null,
-            frequencies: { check: 1.0 },
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); },
             betFrequency: 0,
             checkFrequency: 1.0,
             motivation: 'fallback',

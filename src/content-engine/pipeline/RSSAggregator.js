@@ -79,7 +79,7 @@ class RSSAggregator {
                 guid: item.guid || item.link
             }));
         } catch (error) {
-            console.error(`Error fetching ${source.name}:`, error.message);
+            console.warn(`Error fetching ${source.name}:`, error.message);
             return [];
         }
     }
@@ -88,7 +88,7 @@ class RSSAggregator {
      * Fetch from all sources
      */
     async fetchAll() {
-        console.log('📡 Fetching from all RSS sources...\n');
+        console.debug('📡 Fetching from all RSS sources...\n');
 
         const results = await Promise.all(
             RSS_SOURCES.map(source => this.fetchSource(source))
@@ -99,7 +99,7 @@ class RSSAggregator {
             .flat()
             .sort((a, b) => b.published - a.published);
 
-        console.log(`📰 Found ${allArticles.length} articles total\n`);
+        console.debug(`📰 Found ${allArticles.length} articles total\n`);
 
         return allArticles;
     }

@@ -418,7 +418,7 @@ export function useBBJ(clubId, supabase) {
         setBbjData(data);
       }
     } catch (err) {
-      console.error('[BBJ] Fetch error:', err);
+      console.warn('[BBJ] Fetch error:', err);
     } finally {
       setLoading(false);
     }

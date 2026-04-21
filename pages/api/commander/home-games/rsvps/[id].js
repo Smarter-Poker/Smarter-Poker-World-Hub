@@ -252,9 +252,7 @@ export default async function handler(req, res) {
             .eq('group_id', group.id)
             .eq('user_id', rsvp.user_id)
             .eq('status', 'pending');
-        } catch (_) {
-          // non-fatal
-        }
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
       }
 
       // Fire requester notification ONLY on state-change approve.
@@ -271,7 +269,7 @@ export default async function handler(req, res) {
             rsvp: updated,
           });
         } catch (notifyErr) {
-          console.error('[rsvps/[id]] notification dispatch failed:', notifyErr?.message || notifyErr);
+          console.warn('[rsvps/[id]] notification dispatch failed:', notifyErr?.message || notifyErr);
         }
       }
 
@@ -289,7 +287,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
 
   } catch (err) {
-    console.error('[pages/api/commander/home-games/rsvps/[id].js]', err);
+    console.warn('[pages/api/commander/home-games/rsvps/[id].js]', err);
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -311,9 +309,7 @@ async function callerIsGroupStaff(supabase, user_id, group_id) {
     if (member && member.status === 'approved' && ['owner', 'admin'].includes(member.role)) {
       return true;
     }
-  } catch (_) {
-    // fall through
-  }
+  } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   // Fallback: check commander_home_groups.owner_id directly — covers the
   // brand-new-group case where the auto_add_group_owner trigger may have
   // raced or been skipped.
@@ -324,9 +320,7 @@ async function callerIsGroupStaff(supabase, user_id, group_id) {
       .eq('id', group_id)
       .maybeSingle();
     if (group && group.owner_id === user_id) return true;
-  } catch (_) {
-    // fall through
-  }
+  } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
   return false;
 }
 

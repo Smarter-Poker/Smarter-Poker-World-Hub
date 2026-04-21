@@ -166,11 +166,7 @@ export default async function handler(req, res) {
               getSupabase()
                   .rpc('increment_page_views', { page_uuid: data.id })
                   .then(() => {})
-                  .catch(() => {
-                      // Fallback: direct update if RPC doesn't exist
-                      getSupabase()
-                          .from('social_pages')
-                          .update({ view_count: (data.view_count || 0) + 1 })
+                  .catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); })
                           .eq('id', data.id)
                           .then(() => {})
                           .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
@@ -214,7 +210,7 @@ export default async function handler(req, res) {
                   .limit(parseInt(limit, 10) || 1);
 
               if (error) {
-                  console.error('[SocialPages] linked_venue_id query error:', error);
+                  console.warn('[SocialPages] linked_venue_id query error:', error);
                   return res.status(500).json({ success: false, error: 'Database query failed' });
               }
               return res.status(200).json({ success: true, data: data || [] });
@@ -261,7 +257,7 @@ export default async function handler(req, res) {
           const { data, error, count } = await query;
 
           if (error) {
-              console.error('[SocialPages] List query error:', error);
+              console.warn('[SocialPages] List query error:', error);
               return res.status(500).json({ success: false, error: 'Database query failed' });
           }
 
@@ -312,7 +308,7 @@ export default async function handler(req, res) {
                       console.warn('[SocialPages] Report insert warning:', error.message);
                   }
               } catch (e) {
-                  console.error('[SocialPages] Report error:', e.message);
+                  console.warn('[SocialPages] Report error:', e.message);
               }
               return res.status(200).json({ success: true, message: 'Report submitted' });
           }
@@ -387,7 +383,7 @@ export default async function handler(req, res) {
               .maybeSingle();
 
           if (error) {
-              console.error('[SocialPages] Insert error:', error);
+              console.warn('[SocialPages] Insert error:', error);
               return res.status(500).json({ success: false, error: 'Failed to create page' });
           }
 
@@ -401,7 +397,7 @@ export default async function handler(req, res) {
               role: 'owner',
               status: 'approved'
           });
-          if (followErr) console.error('[SocialPages] Auto-follow failed:', followErr.message);
+          if (followErr) console.warn('[SocialPages] Auto-follow failed:', followErr.message);
 
           // Auto-geocode primary location in background (non-blocking)
           if (data.location_city) {
@@ -415,7 +411,7 @@ export default async function handler(req, res) {
                       body: JSON.stringify({ page_id: data.id, locations: [locStr] }),
                   }).then(r => {
                       if (!r.ok) {
-                          console.error(`[geocode] Failed for page ${data.id}: HTTP ${r.status}`);
+                          console.warn(`[geocode] Failed for page ${data.id}: HTTP ${r.status}`);
                           // Report to Sentry so we can track geocoding failures
                           import('../../../../src/lib/sentry').then(({ captureMessage }) => {
                               captureMessage(`Geocoding failed for page ${data.id}`, 'warning', {
@@ -427,7 +423,7 @@ export default async function handler(req, res) {
                           console.debug(`[geocode] Success for page ${data.id}`);
                       }
                   }).catch(e => {
-                      console.error(`[geocode] Error for page ${data.id}:`, e.message);
+                      console.warn(`[geocode] Error for page ${data.id}:`, e.message);
                       import('../../../../src/lib/sentry').then(({ captureError }) => {
                           captureError(e, {
                               tags: { api: 'social-pages', stage: 'geocoding' },
@@ -435,7 +431,7 @@ export default async function handler(req, res) {
                           });
                       }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                   });
-              } catch (e) { /* non-critical */ }
+              } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
           }
 
           return res.status(201).json({ success: true, data });
@@ -504,7 +500,7 @@ export default async function handler(req, res) {
               .maybeSingle();
 
           if (error) {
-              console.error('[SocialPages] Update error:', error);
+              console.warn('[SocialPages] Update error:', error);
               return res.status(500).json({ success: false, error: 'Failed to update page' });
           }
 
@@ -528,9 +524,9 @@ export default async function handler(req, res) {
                       location: location || null
                   }),
               }).then(r => {
-                  if (!r.ok) console.error(`[AutoPost] Failed ${postType} for page ${id}: HTTP ${r.status}`);
+                  if (!r.ok) console.warn(`[AutoPost] Failed ${postType} for page ${id}: HTTP ${r.status}`);
                   else console.debug(`[AutoPost] Created ${postType} post.`);
-              }).catch(e => console.error(`[AutoPost] Error ${postType}:`, e.message));
+              }).catch(e => console.warn(`[AutoPost] Error ${postType}:`, e.message));
           };
 
           // Detect changes and trigger auto-posts
@@ -571,10 +567,10 @@ export default async function handler(req, res) {
                       const { error: venueErr } = await getSupabase().from('poker_venues')
                           .update(venueUpdates)
                           .eq('id', data.linked_venue_id);
-                      if (venueErr) console.error('[VenueSync] Failed to sync:', venueErr.message);
+                      if (venueErr) console.warn('[VenueSync] Failed to sync:', venueErr.message);
                       else console.debug('[VenueSync] Synced venue updates.');
                   } catch (err) {
-                      console.error('[VenueSync] Error:', err.message);
+                      console.warn('[VenueSync] Error:', err.message);
                   }
               }
           }
@@ -618,7 +614,7 @@ export default async function handler(req, res) {
               .eq('id', id);
 
           if (error) {
-              console.error('[SocialPages] Delete error:', error);
+              console.warn('[SocialPages] Delete error:', error);
               return res.status(500).json({ success: false, error: 'Failed to delete page' });
           }
           return res.status(200).json({ success: true });
@@ -629,7 +625,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

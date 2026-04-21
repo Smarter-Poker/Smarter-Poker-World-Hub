@@ -49,11 +49,11 @@ class AutoPoster {
             .maybeSingle();
 
         if (error || !data) {
-            console.error('Post failed:', error);
+            console.warn('Post failed:', error);
             throw error || new Error('Failed to create post');
         }
 
-        console.log(`📤 Posted: ${persona_alias} - ${content.slice(0, 50)}...`);
+        console.debug(`📤 Posted: ${persona_alias} - ${content.slice(0, 50)}...`);
         return data;
     }
 
@@ -80,7 +80,7 @@ class AutoPoster {
             });
 
         if (uploadError) {
-            console.error('Video upload failed:', uploadError);
+            console.warn('Video upload failed:', uploadError);
             throw uploadError;
         }
 
@@ -111,11 +111,11 @@ class AutoPoster {
             .maybeSingle();
 
         if (error || !data) {
-            console.error('Video post failed:', error);
+            console.warn('Video post failed:', error);
             throw error || new Error('Failed to create video post');
         }
 
-        console.log(`🎬 Video posted: ${persona_alias} - ${metadata.duration}s`);
+        console.debug(`🎬 Video posted: ${persona_alias} - ${metadata.duration}s`);
         return data;
     }
 
@@ -151,9 +151,9 @@ class AutoPoster {
 
             if (!error && data) {
                 results.push(data);
-                console.log(`📅 Scheduled: ${content.author_alias} for ${currentTime.toLocaleString()}`);
+                console.debug(`📅 Scheduled: ${content.author_alias} for ${currentTime.toLocaleString()}`);
             } else {
-                console.error('[AutoPoster] Batch insert failed:', error?.message || 'No data returned');
+                console.warn('[AutoPoster] Batch insert failed:', error?.message || 'No data returned');
             }
 
             currentTime = new Date(currentTime.getTime() + delay * 60 * 1000);
@@ -176,12 +176,12 @@ class AutoPoster {
             .lte('scheduled_for', now);
 
         if (fetchError) {
-            console.error('Fetch due posts failed:', fetchError);
+            console.warn('Fetch due posts failed:', fetchError);
             return [];
         }
 
         if (!duePosts || duePosts.length === 0) {
-            console.log('No posts due for publishing');
+            console.debug('No posts due for publishing');
             return [];
         }
 
@@ -197,11 +197,11 @@ class AutoPoster {
             .in('id', ids);
 
         if (updateError) {
-            console.error('Publish update failed:', updateError);
+            console.warn('Publish update failed:', updateError);
             return [];
         }
 
-        console.log(`✅ Published ${duePosts.length} posts`);
+        console.debug(`✅ Published ${duePosts.length} posts`);
         return duePosts;
     }
 
@@ -214,7 +214,7 @@ class AutoPoster {
             .select('status, content_type');
 
         if (error) {
-            console.error('Stats fetch failed:', error);
+            console.warn('Stats fetch failed:', error);
             return null;
         }
 
@@ -249,11 +249,11 @@ class AutoPoster {
             .select();
 
         if (error) {
-            console.error('Cleanup failed:', error);
+            console.warn('Cleanup failed:', error);
             return 0;
         }
 
-        console.log(`🗑️  Cleaned up ${data?.length || 0} old posts`);
+        console.debug(`🗑️  Cleaned up ${data?.length || 0} old posts`);
         return data?.length || 0;
     }
 }

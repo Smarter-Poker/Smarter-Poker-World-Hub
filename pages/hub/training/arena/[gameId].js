@@ -55,7 +55,7 @@ class ArenaErrorBoundary extends React.Component {
     }
     componentDidCatch(error, errorInfo) {
         this.setState({ errorInfo });
-        console.error('[ArenaErrorBoundary] Crash:', error?.message, error?.stack);
+        console.warn('[ArenaErrorBoundary] Crash:', error?.message, error?.stack);
     }
     render() {
         if (this.state.hasError) {

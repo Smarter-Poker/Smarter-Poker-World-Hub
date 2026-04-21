@@ -44,7 +44,7 @@ async function _flushPendingSettings() {
         // CRITICAL: If read fails, do NOT proceed — writing with empty 'current'
         // would overwrite all existing settings with only the new keys.
         if (readError) {
-            console.error('[AppSettings] Flush aborted — SELECT failed:', readError.message);
+            console.warn('[AppSettings] Flush aborted — SELECT failed:', readError.message);
             // Re-queue the values so they're retried on the next flush cycle
             Object.assign(_pendingValues, toSave);
             if (!_flushTimer) _flushTimer = setTimeout(_flushPendingSettings, 2000);
@@ -55,9 +55,9 @@ async function _flushPendingSettings() {
         const merged = { ...current, ...toSave };
 
         const { error } = await supabase.from('profiles').update({ app_settings: merged }).eq('id', user.id);
-        if (error) console.error('[AppSettings] Flush DB error:', error.message, 'Keys:', Object.keys(toSave));
+        if (error) console.warn('[AppSettings] Flush DB error:', error.message, 'Keys:', Object.keys(toSave));
     } catch (err) {
-        console.error('[AppSettings] Flush failed:', err, 'Keys:', Object.keys(toSave));
+        console.warn('[AppSettings] Flush failed:', err, 'Keys:', Object.keys(toSave));
     }
 }
 
@@ -101,7 +101,7 @@ export async function saveAppSettingsBatch(settingsMap) {
 
         // CRITICAL: If read fails, do NOT proceed — would overwrite all settings
         if (readError) {
-            console.error('[AppSettings] Batch aborted — SELECT failed:', readError.message);
+            console.warn('[AppSettings] Batch aborted — SELECT failed:', readError.message);
             return;
         }
 
@@ -109,9 +109,9 @@ export async function saveAppSettingsBatch(settingsMap) {
         const merged = { ...current, ...settingsMap };
 
         const { error } = await supabase.from('profiles').update({ app_settings: merged }).eq('id', user.id);
-        if (error) console.error('[AppSettings] Batch DB error:', error.message);
+        if (error) console.warn('[AppSettings] Batch DB error:', error.message);
     } catch (err) {
-        console.error('[AppSettings] Batch save failed:', err);
+        console.warn('[AppSettings] Batch save failed:', err);
     }
 }
 
@@ -135,7 +135,7 @@ export async function loadAppSettings(userId) {
 
         return profile?.app_settings || {};
     } catch (err) {
-        console.error('[AppSettings] Load failed:', err);
+        console.warn('[AppSettings] Load failed:', err);
         return {};
     }
 }
@@ -191,8 +191,8 @@ export async function seedLocalStorageFromDB(userId) {
                 try { localStorage.setItem(lsKey, str); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
             }
         }
-        console.log('[AppSettings] ✅ Seeded localStorage from DB —', Object.keys(settings).length, 'keys');
+        console.debug('[AppSettings] ✅ Seeded localStorage from DB —', Object.keys(settings).length, 'keys');
     } catch (err) {
-        console.error('[AppSettings] Seed failed:', err);
+        console.warn('[AppSettings] Seed failed:', err);
     }
 }

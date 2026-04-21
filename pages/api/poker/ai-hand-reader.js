@@ -117,7 +117,7 @@ export default async function handler(req, res) {
                 p_reference_id: null
             });
             if (directError) {
-                console.error('[AI-Hand-Reader] Diamond deduction failed:', directError);
+                console.warn('[AI-Hand-Reader] Diamond deduction failed:', directError);
                 return res.status(500).json({ error: 'Failed to process diamond payment' });
             }
         }
@@ -166,7 +166,7 @@ export default async function handler(req, res) {
 
         if (!grokResponse.ok) {
             const errText = await grokResponse.text().catch(() => 'Unknown error');
-            console.error('[AI-Hand-Reader] Grok API error:', grokResponse.status, errText);
+            console.warn('[AI-Hand-Reader] Grok API error:', grokResponse.status, errText);
             return res.status(502).json({ error: 'AI analysis failed' });
         }
 
@@ -180,7 +180,7 @@ export default async function handler(req, res) {
             const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
             handData = JSON.parse(jsonMatch ? jsonMatch[0] : rawContent);
         } catch (parseError) {
-            console.error('[AI-Hand-Reader] Failed to parse Grok response:', rawContent);
+            console.warn('[AI-Hand-Reader] Failed to parse Grok response:', rawContent);
             return res.status(422).json({
                 error: 'Could not parse hand data from image',
                 rawResponse: rawContent.substring(0, 500),
@@ -194,7 +194,7 @@ export default async function handler(req, res) {
         });
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('[AI-Hand-Reader] Error:', err);
+        console.warn('[AI-Hand-Reader] Error:', err);
         return res.status(500).json({ error: 'Internal server error' });
     }
 }

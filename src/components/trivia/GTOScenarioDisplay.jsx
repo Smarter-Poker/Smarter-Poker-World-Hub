@@ -140,7 +140,7 @@ export default function GTOScenarioDisplay({
                 }
             }
         } catch (error) {
-            console.error('Failed to fetch AI panel:', error);
+            console.warn('Failed to fetch AI panel:', error);
         } finally {
             setIsLoadingImage(false);
         }

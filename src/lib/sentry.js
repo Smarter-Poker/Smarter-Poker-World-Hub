@@ -33,7 +33,7 @@ async function getSentry() {
 export async function captureError(error, context = {}) {
     const sentry = await getSentry();
     if (!sentry) {
-        console.error('[Sentry Fallback]', error, context);
+        console.warn('[Sentry Fallback]', error, context);
         return;
     }
 
@@ -75,7 +75,7 @@ export async function captureError(error, context = {}) {
 export async function captureMessage(message, level = 'info', context = {}) {
     const sentry = await getSentry();
     if (!sentry) {
-        console.log(`[Sentry Fallback] [${level}]`, message);
+        console.debug(`[Sentry Fallback] [${level}]`, message);
         return;
     }
 

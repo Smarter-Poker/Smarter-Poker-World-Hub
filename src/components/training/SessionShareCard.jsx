@@ -191,10 +191,7 @@ export default function SessionShareCard({
             ]);
             setStatus('copied');
             setTimeout(() => setStatus('ready'), 2000);
-        } catch (err) {
-            // Fallback: copy URL
-            try {
-                await navigator.clipboard.writeText(`Check out my GTO Training results on smarter.poker! Score: ${gtowScore}%`);
+        } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }%`);
                 setStatus('copied');
                 setTimeout(() => setStatus('ready'), 2000);
             } catch {

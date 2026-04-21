@@ -230,7 +230,7 @@ const SoundEngine = {
                     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
                     osc.start(now); osc.stop(now + 0.15);
             }
-        } catch (e) { /* Silent fail — audio not critical */ }
+        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     }
 };
 

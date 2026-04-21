@@ -167,7 +167,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true, id: data.id });
   } catch (error) {
       try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('Email error:', error);
+    console.warn('Email error:', error);
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

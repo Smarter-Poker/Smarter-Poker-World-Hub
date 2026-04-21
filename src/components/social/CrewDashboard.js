@@ -30,7 +30,7 @@ export default function CrewDashboard({ currentUser }) {
                 setCrews(formattedCrews);
             }
         } catch (e) {
-            console.error('Error loading crews:', e);
+            console.warn('Error loading crews:', e);
         } finally {
             setLoading(false);
         }

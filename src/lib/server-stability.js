@@ -14,7 +14,7 @@ if (typeof window === 'undefined' && process.env.NODE_ENV === 'development') {
         global.__STABILITY_INSTALLED__ = true;
 
         process.on('unhandledRejection', (reason, promise) => {
-            console.error('[STABILITY] Unhandled Rejection caught (server stayed alive):', reason?.message || reason);
+            console.warn('[STABILITY] Unhandled Rejection caught (server stayed alive):', reason?.message || reason);
         });
 
         process.on('uncaughtException', (error) => {
@@ -22,9 +22,9 @@ if (typeof window === 'undefined' && process.env.NODE_ENV === 'development') {
             if (error?.code === 'MODULE_NOT_FOUND' || error?.message?.includes('webpack')) {
                 return;
             }
-            console.error('[STABILITY] Uncaught Exception caught (server stayed alive):', error?.message || error);
+            console.warn('[STABILITY] Uncaught Exception caught (server stayed alive):', error?.message || error);
         });
 
-        console.log('[STABILITY] Server-side crash prevention installed');
+        console.debug('[STABILITY] Server-side crash prevention installed');
     }
 }

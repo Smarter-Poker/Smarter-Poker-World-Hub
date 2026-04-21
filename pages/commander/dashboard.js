@@ -200,12 +200,12 @@ export default function CommanderDashboard() {
             }
           }
         }
-      } catch (e) { /* silent */ }
+      } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
       try {
         const sub = JSON.parse(localStorage.getItem('commander_subscription') || '{}');
         if (sub.tier) setCurrentTier(sub.tier);
-      } catch (e) { /* silent */ }
+      } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
     }
     validateSession();
     return () => controller.abort();
@@ -243,7 +243,7 @@ const venueId = staff?.venue_id;
           }
         })
         .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e))
-    } catch (e) { /* silent */ }
+    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
   }, [staff]);
 
   useEffect(() => {

@@ -150,7 +150,7 @@ export default async function handler(req, res) {
       });
 
     } catch (error) {
-      console.error('Matchmaker error:', error);
+      console.warn('Matchmaker error:', error);
       return res.status(500).json({
         success: false,
         error: { code: 'SERVER_ERROR', message: 'Matchmaker failed' }
@@ -159,7 +159,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[API Error]', err);
+    console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -186,7 +186,7 @@ async function fetchAvailableGroups({ city, state, game_type }) {
 
   const { data, error } = await query;
   if (error) {
-    console.error('Fetch groups error:', error);
+    console.warn('Fetch groups error:', error);
     return [];
   }
   return data || [];
@@ -217,7 +217,7 @@ async function fetchUpcomingGames({ city, state, game_type }) {
 
   const { data, error } = await query;
   if (error) {
-    console.error('Fetch upcoming games error:', error);
+    console.warn('Fetch upcoming games error:', error);
     return [];
   }
 
@@ -407,7 +407,7 @@ Find the best matches for this player.`;
       }));
 
   } catch (err) {
-    console.error('Grok matchmaker error:', err);
+    console.warn('Grok matchmaker error:', err);
     // Fallback: basic scoring without AI
     return fallbackMatching(playerCtx, groups, games, maxResults);
   }

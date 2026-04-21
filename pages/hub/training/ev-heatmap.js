@@ -113,7 +113,7 @@ export default function EvHeatmapPage() {
           'ev-heatmap'
         );
       } catch (e) {
-        console.error(e);
+        console.warn(e);
       }
     }
   };

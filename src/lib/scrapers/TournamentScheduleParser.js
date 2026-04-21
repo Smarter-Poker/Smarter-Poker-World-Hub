@@ -300,7 +300,7 @@ export class TournamentScheduleParser {
                         notes: item.notes || null
                     });
                 } catch (error) {
-                    console.error('Error parsing tournament:', error);
+                    console.warn('Error parsing tournament:', error);
                 }
             }
         }
@@ -339,7 +339,7 @@ export class TournamentScheduleParser {
 
             return { saved: data?.length || 0 };
         } catch (error) {
-            console.error('Error saving tournaments:', error);
+            console.warn('Error saving tournaments:', error);
             throw error;
         }
     }

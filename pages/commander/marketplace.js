@@ -60,7 +60,7 @@ const res = await commanderFetch(`/api/commander/marketplace/equipment/${equipme
         }, 2000);
       }
     } catch (error) {
-      console.error('Rent equipment failed:', error);
+      console.warn('Rent equipment failed:', error);
     } finally {
       setSubmitting(false);
     }
@@ -204,7 +204,7 @@ const res = await commanderFetch(`/api/commander/marketplace/dealers/${dealer.id
         }, 2000);
       }
     } catch (error) {
-      console.error('Book dealer failed:', error);
+      console.warn('Book dealer failed:', error);
     } finally {
       setSubmitting(false);
     }
@@ -472,7 +472,7 @@ const data = await commanderFetchJSON('/api/commander/marketplace/dealers?limit=
         setDealers(data.data?.dealers || []);
       }
     } catch (error) {
-      console.error('Fetch dealers failed:', error);
+      console.warn('Fetch dealers failed:', error);
     }
   }, []);
 
@@ -483,7 +483,7 @@ const data = await commanderFetchJSON('/api/commander/marketplace/equipment?limi
         setEquipment(data.data?.equipment || []);
       }
     } catch (error) {
-      console.error('Fetch equipment failed:', error);
+      console.warn('Fetch equipment failed:', error);
     }
   }, []);
 

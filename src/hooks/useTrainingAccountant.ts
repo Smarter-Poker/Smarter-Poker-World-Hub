@@ -97,7 +97,7 @@ export function useTrainingAccountant(userId: string | null) {
                 .maybeSingle();
 
             if (insertError) {
-                console.error('[ACCOUNTANT] XP log error:', insertError);
+                console.warn('[ACCOUNTANT] XP log error:', insertError);
                 setError(insertError.message);
                 return null;
             }
@@ -106,7 +106,7 @@ export function useTrainingAccountant(userId: string | null) {
             return { xpAwarded, streakCount: streakData.count };
 
         } catch (err) {
-            console.error('[ACCOUNTANT] Error logging correct answer:', err);
+            console.warn('[ACCOUNTANT] Error logging correct answer:', err);
             setError(err instanceof Error ? err.message : 'Unknown error');
             return null;
         } finally {
@@ -146,7 +146,7 @@ export function useTrainingAccountant(userId: string | null) {
                 .maybeSingle();
 
             if (fetchError && fetchError.code !== 'PGRST116') {
-                console.error('[ACCOUNTANT] Error fetching existing leak:', fetchError);
+                console.warn('[ACCOUNTANT] Error fetching existing leak:', fetchError);
                 setError(fetchError.message);
                 return null;
             }
@@ -170,7 +170,7 @@ export function useTrainingAccountant(userId: string | null) {
                     .eq('id', existingLeak.id);
 
                 if (updateError) {
-                    console.error('[ACCOUNTANT] Leak update error:', updateError);
+                    console.warn('[ACCOUNTANT] Leak update error:', updateError);
                     setError(updateError.message);
                     return null;
                 }
@@ -203,7 +203,7 @@ export function useTrainingAccountant(userId: string | null) {
                     .maybeSingle();
 
                 if (insertError) {
-                    console.error('[ACCOUNTANT] Leak insert error:', insertError);
+                    console.warn('[ACCOUNTANT] Leak insert error:', insertError);
                     setError(insertError.message);
                     return null;
                 }
@@ -234,7 +234,7 @@ export function useTrainingAccountant(userId: string | null) {
             });
 
         } catch (err) {
-            console.error('[ACCOUNTANT] Error logging mistake:', err);
+            console.warn('[ACCOUNTANT] Error logging mistake:', err);
             setError(err instanceof Error ? err.message : 'Unknown error');
             return null;
         } finally {
@@ -292,13 +292,13 @@ export function useTrainingAccountant(userId: string | null) {
                 .rpc('get_user_total_xp', { p_user_id: userId });
 
             if (error) {
-                console.error('[ACCOUNTANT] Error getting total XP:', error);
+                console.warn('[ACCOUNTANT] Error getting total XP:', error);
                 return 0;
             }
 
             return data || 0;
         } catch (err) {
-            console.error('[ACCOUNTANT] Error getting total XP:', err);
+            console.warn('[ACCOUNTANT] Error getting total XP:', err);
             return 0;
         }
     }, [userId, supabase]);
@@ -314,13 +314,13 @@ export function useTrainingAccountant(userId: string | null) {
                 .rpc('get_active_leaks', { p_user_id: userId });
 
             if (error) {
-                console.error('[ACCOUNTANT] Error getting leaks:', error);
+                console.warn('[ACCOUNTANT] Error getting leaks:', error);
                 return [];
             }
 
             return data || [];
         } catch (err) {
-            console.error('[ACCOUNTANT] Error getting leaks:', err);
+            console.warn('[ACCOUNTANT] Error getting leaks:', err);
             return [];
         }
     }, [userId, supabase]);

@@ -59,17 +59,17 @@ const TABLE = 'diag-table';
 
             if (!r.action || !r.action.type) {
                 issues++;
-                console.error('UNDEFINED at i=' + i);
-                console.error('  board=' + boardKeys[i % boardKeys.length] + ' hand=' + ['NUT', 'DRAW', 'WEAK', 'TRASH'][i % 4]);
-                console.error('  pot=' + pot + ' toCall=' + toCall + ' stack=' + stack + ' pos=' + pos);
-                console.error('  full result:', JSON.stringify(r, null, 2));
+                console.warn('UNDEFINED at i=' + i);
+                console.warn('  board=' + boardKeys[i % boardKeys.length] + ' hand=' + ['NUT', 'DRAW', 'WEAK', 'TRASH'][i % 4]);
+                console.warn('  pot=' + pot + ' toCall=' + toCall + ' stack=' + stack + ' pos=' + pos);
+                console.warn('  full result:', JSON.stringify(r, null, 2));
             }
         } catch (e) {
             issues++;
-            console.error('CRASH at i=' + i + ': ' + e.message);
-            console.error('  board=' + boardKeys[i % boardKeys.length] + ' hand=' + ['NUT', 'DRAW', 'WEAK', 'TRASH'][i % 4]);
-            console.error('  pot=' + pot + ' toCall=' + toCall + ' stack=' + stack + ' pos=' + pos);
+            console.warn('CRASH at i=' + i + ': ' + e.message);
+            console.warn('  board=' + boardKeys[i % boardKeys.length] + ' hand=' + ['NUT', 'DRAW', 'WEAK', 'TRASH'][i % 4]);
+            console.warn('  pot=' + pot + ' toCall=' + toCall + ' stack=' + stack + ' pos=' + pos);
         }
     }
-    console.log('Total issues: ' + issues);
+    console.debug('Total issues: ' + issues);
 })();

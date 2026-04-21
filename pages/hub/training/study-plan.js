@@ -458,7 +458,7 @@ export default function StudyPlanPage() {
         setSessions(data.sessions);
       }
     } catch (e) {
-      console.error('[StudyPlan] Fetch error:', e);
+      console.warn('[StudyPlan] Fetch error:', e);
       setFetchError('Unable to load study plan data. Please try again.');
     }
     setLoading(false);

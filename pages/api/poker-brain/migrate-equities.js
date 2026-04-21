@@ -61,7 +61,7 @@ export default async function handler(req, res) {
       .limit(safeBatch);
 
     if (queryErr) {
-      console.error('[poker-brain/migrate] query error:', queryErr);
+      console.warn('[poker-brain/migrate] query error:', queryErr);
       return res.status(500).json({ error: 'Failed to query hands' });
     }
 
@@ -89,7 +89,7 @@ export default async function handler(req, res) {
 
       if (updateErr) {
         errors++;
-        console.error(`[poker-brain/migrate] update error for hand ${hand.id}:`, updateErr);
+        console.warn(`[poker-brain/migrate] update error for hand ${hand.id}:`, updateErr);
       } else {
         updated++;
       }
@@ -104,7 +104,7 @@ export default async function handler(req, res) {
     });
   } catch (err) {
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.error('[poker-brain/migrate] error:', err);
+    console.warn('[poker-brain/migrate] error:', err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

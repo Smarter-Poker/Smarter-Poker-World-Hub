@@ -100,7 +100,7 @@ export default function PodHomeGames({
         setPodHomeGames(groups.map(adaptHomeGameToVenueShape));
       })
       .catch(err => {
-        console.error('[PodHomeGames] discover fetch failed:', err);
+        console.warn('[PodHomeGames] discover fetch failed:', err);
         setPodHomeGames([]);
       })
       .finally(() => setLoading(false));

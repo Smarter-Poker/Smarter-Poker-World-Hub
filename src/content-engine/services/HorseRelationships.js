@@ -203,7 +203,7 @@ export async function getFriendGroupPosts(horseProfileId, limit = 5) {
 
         return posts || [];
     } catch (error) {
-        console.error('Error fetching friend group posts:', error);
+        console.warn('Error fetching friend group posts:', error);
         return [];
     }
 }

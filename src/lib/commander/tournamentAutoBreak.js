@@ -242,7 +242,7 @@ export async function checkAndExecuteAutoBreak(tournamentId, tournament) {
                 .eq('tournament_id', tournamentId)
                 .eq('table_number', breakCandidate.table_number);
             if (releaseErr) {
-                console.error(`[auto-break] Table ${breakCandidate.table_number} release failed:`, releaseErr.message);
+                console.warn(`[auto-break] Table ${breakCandidate.table_number} release failed:`, releaseErr.message);
             }
         } else {
             console.warn(`[auto-break] Table ${breakCandidate.table_number} not released because ${errors.length} player moves failed.`);
@@ -276,9 +276,5 @@ export async function checkAndExecuteAutoBreak(tournamentId, tournament) {
             errors: errors.length > 0 ? errors : undefined
         };
 
-    } catch (err) {
-        // Never throw — auto-break is a best-effort feature, should not block the main action
-        console.error('[auto-break] Auto-break check failed:', err.message);
-        return null;
-    }
+    } catch (err) { console.warn('[App] Handled exception:', err?.message || err); }
 }

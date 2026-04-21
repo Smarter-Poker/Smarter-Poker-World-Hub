@@ -148,9 +148,9 @@ function autoCalibrate(videoElement, layout, matcher, scaleX, scaleY, offsetX, o
   const refDy = Math.round(medianDy / scaleY);
   const refDx = Math.round(medianDx / scaleX);
 
-  console.log(`[AutoCalibrate] Found ${goodOffsets.length} cards. Offset: dx=${refDx} dy=${refDy} (pixel: dx=${medianDx} dy=${medianDy})`);
+  console.debug(`[AutoCalibrate] Found ${goodOffsets.length} cards. Offset: dx=${refDx} dy=${refDy} (pixel: dx=${medianDx} dy=${medianDy})`);
   for (const o of goodOffsets) {
-    console.log(`  ${o.kind}[${o.idx}] → ${o.key} d=${o.distance} dy=${o.dy} dx=${o.dx}`);
+    console.debug(`  ${o.kind}[${o.idx}] → ${o.key} d=${o.distance} dy=${o.dy} dx=${o.dx}`);
   }
 
   return {
@@ -326,7 +326,7 @@ export function hardwiredDetect(videoElement, layout, matcher, options = {}) {
       const calibResult = autoCalibrate(videoElement, layout, matcher, scaleX, scaleY, offsetX, offsetY);
       if (calibResult && calibResult.cardsFound >= 2) {
         _calibrationCache = calibResult;
-        console.log(`[HardwiredDetect] Auto-calibration LOCKED after ${_calibrationAttempts} frames: dx=${calibResult.refDx} dy=${calibResult.refDy} (${calibResult.cardsFound} cards)`);
+        console.debug(`[HardwiredDetect] Auto-calibration LOCKED after ${_calibrationAttempts} frames: dx=${calibResult.refDx} dy=${calibResult.refDy} (${calibResult.cardsFound} cards)`);
       }
     } catch (e) {
       console.warn('[HardwiredDetect] Auto-calibration error:', e.message);

@@ -45,7 +45,7 @@ export default async function handler(req, res) {
             .order('created_at', { ascending: false });
 
         if (error) {
-            console.error('[Whos-here] Query error:', error);
+            console.warn('[Whos-here] Query error:', error);
             return res.status(500).json({ success: false, error: 'Database query failed' });
         }
 
@@ -126,7 +126,7 @@ export default async function handler(req, res) {
 
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-        console.error('[Whos-Here API Error]', err);
+        console.warn('[Whos-Here API Error]', err);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

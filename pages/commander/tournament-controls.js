@@ -40,7 +40,7 @@ const data = await commanderFetchJSON('/api/commander/tournaments', { });
                     .filter(t => !['completed', 'cancelled'].includes(t.status));
                 setTournaments(active);
             }
-        } catch (err) { console.error(err); }
+        } catch (err) { console.warn(err); }
         finally { setLoading(false); }
     }, []);
 
