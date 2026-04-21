@@ -88,8 +88,47 @@ export default function MyTournaments() {
     };
 
     if (loading) return (
-        <div className="min-h-screen bg-[#18191A] flex items-center justify-center">
-            <Loader2 className="w-8 h-8 text-[#1877F2] animate-spin" />
+        <div className="min-h-screen bg-[#18191A] pb-20">
+            <style>{`
+                @keyframes mt-shimmer { 0% { background-position: -600px 0; } 100% { background-position: 600px 0; } }
+                .mt-skel { background-image: linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.10) 50%, rgba(255,255,255,0.04) 100%); background-size: 600px 100%; animation: mt-shimmer 1.4s ease-in-out infinite; border-radius: 6px; }
+            `}</style>
+            {/* Header */}
+            <div style={{ background: '#242526', borderBottom: '1px solid #3A3B3C', padding: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div className="mt-skel" style={{ width: 20, height: 20, borderRadius: 4 }} />
+                    <div>
+                        <div className="mt-skel" style={{ width: 160, height: 20, marginBottom: 6 }} />
+                        <div className="mt-skel" style={{ width: 120, height: 12 }} />
+                    </div>
+                </div>
+            </div>
+            {/* Stats grid skeleton */}
+            <div style={{ padding: '16px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+                {[1,2,3,4].map(i => (
+                    <div key={i} style={{ background: '#242526', border: '1px solid #3A3B3C', borderRadius: 12, padding: 12, textAlign: 'center' }}>
+                        <div className="mt-skel" style={{ width: 36, height: 22, margin: '0 auto 6px' }} />
+                        <div className="mt-skel" style={{ width: 44, height: 10, margin: '0 auto' }} />
+                    </div>
+                ))}
+            </div>
+            {/* Tournament row skeletons */}
+            <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {[1,2,3,4,5].map(i => (
+                    <div key={i} style={{ background: '#242526', border: '1px solid #3A3B3C', borderRadius: 12, padding: 16 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <div style={{ flex: 1 }}>
+                                <div className="mt-skel" style={{ width: '65%', height: 14, marginBottom: 8 }} />
+                                <div className="mt-skel" style={{ width: '45%', height: 11 }} />
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+                                <div className="mt-skel" style={{ width: 40, height: 16 }} />
+                                <div className="mt-skel" style={{ width: 16, height: 16 }} />
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
         </div>
     );
 

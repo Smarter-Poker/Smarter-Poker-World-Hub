@@ -869,17 +869,53 @@ function FriendsPage() {
     // ═══════════════════════════════════════════════════════════════════════
 
     if (loading) return (
-        <div style={{
-            minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
-            background: C.bg,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: C.text
-        }}>
-            <div style={{ textAlign: 'center' }}>
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" style={{ marginBottom: 16, animation: 'pulse 1.5s infinite' }}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-                <div>Loading Connections...</div>
+        <div style={{ minHeight: '100vh', background: C.bg, paddingBottom: 70 }}>
+            <style>{`
+                @keyframes fr-shimmer {
+                    0%   { background-position: -600px 0; }
+                    100% { background-position: 600px 0; }
+                }
+                .fr-skel {
+                    background-image: linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.11) 50%, rgba(255,255,255,0.04) 100%);
+                    background-size: 600px 100%;
+                    animation: fr-shimmer 1.4s ease-in-out infinite;
+                    border-radius: 6px;
+                }
+            `}</style>
+            {/* Header skeleton */}
+            <div style={{ height: 56, background: C.card, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', padding: '0 16px', gap: 12 }}>
+                <div className="fr-skel" style={{ width: 28, height: 28, borderRadius: '50%' }} />
+                <div className="fr-skel" style={{ flex: 1, height: 14, maxWidth: 120 }} />
+            </div>
+            {/* Stats bar skeleton */}
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 48, padding: '20px 16px', background: C.card, borderBottom: `1px solid ${C.border}` }}>
+                {[1,2,3].map(i => (
+                    <div key={i} style={{ textAlign: 'center' }}>
+                        <div className="fr-skel" style={{ width: 32, height: 28, marginBottom: 6, borderRadius: 4 }} />
+                        <div className="fr-skel" style={{ width: 52, height: 11 }} />
+                    </div>
+                ))}
+            </div>
+            {/* Search bar skeleton */}
+            <div style={{ padding: '16px 20px', background: C.card, borderBottom: `1px solid ${C.border}` }}>
+                <div className="fr-skel" style={{ width: '100%', height: 44, borderRadius: 24 }} />
+            </div>
+            {/* Tabs skeleton */}
+            <div style={{ display: 'flex', gap: 8, padding: 16, borderBottom: `1px solid ${C.border}` }}>
+                {[80, 90, 70, 90, 90].map((w, i) => <div key={i} className="fr-skel" style={{ width: w, height: 34, borderRadius: 20 }} />)}
+            </div>
+            {/* Friend card skeletons */}
+            <div style={{ maxWidth: 700, margin: '0 auto', padding: 16 }}>
+                {[1,2,3,4].map(i => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 16, background: C.card, borderRadius: 12, marginBottom: 12, border: `1px solid ${C.border}` }}>
+                        <div className="fr-skel" style={{ width: 52, height: 52, borderRadius: '50%', flexShrink: 0 }} />
+                        <div style={{ flex: 1 }}>
+                            <div className="fr-skel" style={{ width: '45%', height: 14, marginBottom: 8 }} />
+                            <div className="fr-skel" style={{ width: '60%', height: 12 }} />
+                        </div>
+                        <div className="fr-skel" style={{ width: 80, height: 34, borderRadius: 20 }} />
+                    </div>
+                ))}
             </div>
         </div>
     );

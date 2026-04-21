@@ -90,6 +90,8 @@ try {
       }
 
       if (req.method === 'GET') {
+        // Live game lists change slowly — safe to cache 60s at the CDN edge.
+        res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
         const venue_id = safeQ(req.query.venue_id);
         const active = safeQ(req.query.active);
         const game_type = safeQ(req.query.game_type);
