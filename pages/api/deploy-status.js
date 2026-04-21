@@ -21,15 +21,34 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Fetch recent deployments
-    const deploymentsRes = await fetch(
-      `https://api.vercel.com/v6/deployments?projectId=${PROJECT_ID}&teamId=${TEAM_ID}&limit=20`,
-      { headers: { Authorization: `Bearer ${vercelToken}` } }
-    );
-    if (!deploymentsRes.ok) {
-      return res.status(502).json({ error: `Vercel API error: ${deploymentsRes.status}` });
+    // Fire both Vercel and GitHub fetches IN PARALLEL — sequential calls add 2-4s
+    // to every dashboard refresh. Both have 10s AbortController guards so a slow API
+    // can't consume the full 30s maxDuration budget.
+    const vercelAbort = new AbortController();
+    const vercelTimeout = setTimeout(() => vercelAbort.abort(), 10000);
+    const ghAbort = new AbortController();
+    const ghTimeout = setTimeout(() => ghAbort.abort(), 10000);
+
+    const [deploymentsRes, commitsRes] = await Promise.allSettled([
+      fetch(
+        `https://api.vercel.com/v6/deployments?projectId=${PROJECT_ID}&teamId=${TEAM_ID}&limit=25`,
+        { headers: { Authorization: `Bearer ${vercelToken}` }, signal: vercelAbort.signal }
+      ).finally(() => clearTimeout(vercelTimeout)),
+      ghPat
+        ? fetch(
+            `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/commits?sha=main&per_page=50`,
+            { headers: { Authorization: `Bearer ${ghPat}`, Accept: 'application/vnd.github.v3+json' }, signal: ghAbort.signal }
+          ).finally(() => clearTimeout(ghTimeout))
+        : Promise.resolve(null),
+    ]);
+    clearTimeout(vercelTimeout);
+    clearTimeout(ghTimeout);
+
+    if (deploymentsRes.status === 'rejected' || !deploymentsRes.value?.ok) {
+      const status = deploymentsRes.value?.status || 'timeout';
+      return res.status(502).json({ error: `Vercel API error: ${status}` });
     }
-    const deploymentsData = await deploymentsRes.json();
+    const deploymentsData = await deploymentsRes.value.json();
     // Filter to main branch only — preview branch deploys clutter the dashboard
     const deployments = (deploymentsData.deployments || [])
       .filter(d => (d.meta?.githubCommitRef || '') === 'main')
@@ -51,25 +70,19 @@ export default async function handler(req, res) {
     const autofixSuccess = deployments.filter(d => d.isAutofix && d.state === 'READY').length;
     const autofixFailed = deployments.filter(d => d.isAutofix && d.state === 'ERROR').length;
 
-    // Fetch recent [autofix] commits from GitHub
+    // Fetch recent [autofix] commits from GitHub (parallel result)
     let autofixCommits = [];
-    if (ghPat) {
+    if (commitsRes.status === 'fulfilled' && commitsRes.value?.ok) {
       try {
-        const commitsRes = await fetch(
-          `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/commits?sha=main&per_page=50`,
-          { headers: { Authorization: `Bearer ${ghPat}`, Accept: 'application/vnd.github.v3+json' } }
-        );
-        if (commitsRes.ok) {
-          const commits = await commitsRes.json();
-          autofixCommits = commits
-            .filter(c => c.commit?.message?.includes('[autofix]'))
-            .map(c => ({
-              sha: c.sha.substring(0, 9),
-              message: c.commit.message.split('\n')[0],
-              date: c.commit.committer?.date,
-              author: c.commit.author?.name,
-            }));
-        }
+        const commits = await commitsRes.value.json();
+        autofixCommits = commits
+          .filter(c => c.commit?.message?.includes('[autofix]'))
+          .map(c => ({
+            sha: c.sha.substring(0, 9),
+            message: c.commit.message.split('\n')[0],
+            date: c.commit.committer?.date,
+            author: c.commit.author?.name,
+          }));
       } catch (_) { /* ignore */ }
     }
 

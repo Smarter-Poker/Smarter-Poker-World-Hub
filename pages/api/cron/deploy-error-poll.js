@@ -115,15 +115,19 @@ export default async function handler(req, res) {
   }
 
   try {
-    // ── Step 1: Fetch recent deployments ──
-    // CRITICAL: Use limit=25 — with 4+ QUEUED + 1 BUILDING + CANCELED deploys in flight,
-    // a limit=10 window means ERROR deploys at position 11+ are COMPLETELY INVISIBLE.
-    // Confirmed failure: b0f1a1058 (OOM) at position 10, 788d4a365 at 14, eb1389692 at 20
-    // — all silently skipped because they were past the window.
-    const deploymentsRes = await fetch(
-      `https://api.vercel.com/v6/deployments?projectId=${PROJECT_ID}&teamId=${TEAM_ID}&limit=25`,
-      { headers: { Authorization: `Bearer ${vercelToken}` } }
-    );
+    // 10s timeout on Step 1 Vercel deployments fetch — prevents hanging the whole
+    // 60s function budget while waiting on a slow Vercel API.
+    const step1Abort = new AbortController();
+    const step1Timeout = setTimeout(() => step1Abort.abort(), 10000);
+    let deploymentsRes;
+    try {
+      deploymentsRes = await fetch(
+        `https://api.vercel.com/v6/deployments?projectId=${PROJECT_ID}&teamId=${TEAM_ID}&limit=25`,
+        { headers: { Authorization: `Bearer ${vercelToken}` }, signal: step1Abort.signal }
+      );
+    } finally {
+      clearTimeout(step1Timeout);
+    }
 
     if (!deploymentsRes.ok) {
       const errText = await deploymentsRes.text();
@@ -154,19 +158,25 @@ export default async function handler(req, res) {
 
     const buildsToCancel = [...stalePreviewQueued, ...hungBuilds, ...redundantMainQueued];
     const uniqueToCancel = [...new Map(buildsToCancel.map(item => [item.uid, item])).values()];
+    // Track which UIDs were actually canceled so we exclude them from the
+    // newerBuilding guard below — otherwise a just-canceled BUILDING build
+    // still appears BUILDING in our in-memory array and causes a 1-cycle skip.
+    const canceledUids = new Set();
 
-    for (const stale of uniqueToCancel) {
+    // Cancel ALL stale builds in PARALLEL — sequential await adds N×1s latency
+    await Promise.all(uniqueToCancel.map(async (stale) => {
       try {
         await fetch(`https://api.vercel.com/v12/deployments/${stale.uid}/cancel?teamId=${TEAM_ID}`, {
           method: 'PATCH',
           headers: { Authorization: `Bearer ${vercelToken}` },
         });
+        canceledUids.add(stale.uid);
         const reason = stale.state === 'BUILDING' ? 'Hung >15m' : (stale.meta?.githubCommitRef === 'main' ? 'Redundant Queue' : 'Preview >5m');
         console.log(`[deploy-error-poll] Cancelled ${stale.state} build ${stale.uid} (${reason}, branch: ${stale.meta?.githubCommitRef})`);
       } catch (e) {
         console.error(`[deploy-error-poll] Failed to cancel ${stale.uid}: ${e.message}`);
       }
-    }
+    }));
 
     // CRITICAL: Filter to main branch only. Preview branch deploys (sentry-autofix/,
     // fix/, feature/) must not affect production error detection. Without this filter,
@@ -253,10 +263,18 @@ export default async function handler(req, res) {
     }
     if (ghPat && commitSha) {
       try {
-        const commitsRes = await fetch(
-          `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/commits?sha=main&per_page=20`,
-          { headers: { Authorization: `Bearer ${ghPat}`, Accept: 'application/vnd.github.v3+json' } }
-        );
+        // 10s timeout — prevents this GitHub check from eating 10-30s of the 60s budget
+        const cbAbort = new AbortController();
+        const cbTimeout = setTimeout(() => cbAbort.abort(), 10000);
+        let commitsRes;
+        try {
+          commitsRes = await fetch(
+            `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/commits?sha=main&per_page=20`,
+            { headers: { Authorization: `Bearer ${ghPat}`, Accept: 'application/vnd.github.v3+json' }, signal: cbAbort.signal }
+          );
+        } finally {
+          clearTimeout(cbTimeout);
+        }
         if (commitsRes.ok) {
           const commits = await commitsRes.json();
           const autofixCount = commits.filter(
@@ -287,8 +305,10 @@ export default async function handler(req, res) {
     // ── Step 3b: Guard — don't autofix ERROR if a NEWER BUILDING deploy exists ──
     // If the most recent BUILDING deploy started AFTER the ERROR deploy, a manual fix
     // is already in flight. Wait for it to complete before generating a competing autofix.
+    // EXCLUDE builds that were JUST canceled in Step 1b — they still appear as BUILDING
+    // in our in-memory array but are actually canceling on Vercel's side.
     const newerBuilding = deployments.find(
-      (d) => d.state === 'BUILDING' && d.createdAt > latestError.createdAt
+      (d) => d.state === 'BUILDING' && d.createdAt > latestError.createdAt && !canceledUids.has(d.uid)
     );
     if (newerBuilding) {
       return res.status(200).json({
