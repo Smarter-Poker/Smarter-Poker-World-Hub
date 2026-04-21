@@ -675,8 +675,8 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                         <div style={{ fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 12 }}>Delete This Post?</div>
                         <div style={{ fontSize: 14, color: C.textSec, marginBottom: 20 }}>This post will be permanently removed. This action cannot be undone.</div>
                         <div style={{ display: 'flex', gap: 8 }}>
-                            <button onClick={() => setConfirmDelete(false)} style={{ flex: 1, padding: '10px 16px', background: C.bg, color: C.text, border: `1px solid ${C.border}`, borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
-                            <button onClick={() => { onDelete(post.id); setConfirmDelete(false); }} style={{ flex: 1, padding: '10px 16px', background: '#F02849', color: 'white', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Delete</button>
+                            <button onClick={() => setConfirmDelete(false)} style={{ flex: 1, padding: '10px 16px', background: C.bg, color: C.text, border: `1px solid ${C.border}`, borderRadius: 20, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+                            <button onClick={() => { onDelete(post.id); setConfirmDelete(false); }} style={{ flex: 1, padding: '10px 16px', background: '#F02849', color: 'white', border: 'none', borderRadius: 20, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Delete</button>
                         </div>
                     </div>
                 </div>
@@ -1707,7 +1707,7 @@ export default function SocialPageDetail() {
                         <p style={{ color: C.textSec }}>This Page May Have Been Removed Or The Link Is Incorrect.</p>
                         <button onClick={() => router.push('/hub/social-pages')} style={{
                             marginTop: 16, padding: '10px 24px', background: C.blue, border: 'none',
-                            borderRadius: 8, color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                            borderRadius: 20, color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer',
                         }}>
                             Browse Pages
                         </button>

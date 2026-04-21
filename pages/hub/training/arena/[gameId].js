@@ -153,13 +153,15 @@ export default function TrainingArenaPage() {
             <div style={{
                 minHeight: '100vh',
                 background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#64748b',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontFamily: "'Inter', -apple-system, sans-serif",
             }}>
-                Loading...
+                <style>{`@keyframes arena-spin{to{transform:rotate(360deg)}}`}</style>
+                <div style={{ textAlign: 'center' }}>
+                    <div style={{ width: 44, height: 44, border: '3px solid rgba(0,212,255,0.15)', borderTopColor: '#00d4ff', borderRadius: '50%', animation: 'arena-spin 0.8s linear infinite', margin: '0 auto 14px' }} />
+                    <div style={{ fontSize: 15, fontWeight: 600, color: '#00d4ff', letterSpacing: 1 }}>Loading Arena...</div>
+                    <div style={{ fontSize: 12, color: '#334155', marginTop: 6 }}>Preparing your training session</div>
+                </div>
             </div>
         );
     }

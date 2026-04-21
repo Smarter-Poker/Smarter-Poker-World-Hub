@@ -31,6 +31,8 @@ export default async function handler(req, res) {
 
     try {
       if (req.method === 'GET') {
+        // Activity log: venue-specific, near-realtime — 15s CDN cache is safe
+        res.setHeader('Cache-Control', 'public, s-maxage=15, stale-while-revalidate=60');
         const { venue_id, event_type, limit: lim } = req.query;
         let query = getSupabase().from('commander_activity_log')
           .select('*')

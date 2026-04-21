@@ -191,7 +191,15 @@ function ScheduleTab({ staffId, venueId, token }) {
             </div>
 
             {loading ? (
-                <div style={{ textAlign: 'center', padding: 40, color: C.textMuted }}>Loading schedule...</div>
+                <div>
+                    <style>{`@keyframes mv-shim{0%{background-position:-400px 0}100%{background-position:400px 0}}.mv-sk{background-image:linear-gradient(90deg,rgba(255,255,255,0.04) 0%,rgba(255,255,255,0.10) 50%,rgba(255,255,255,0.04) 100%);background-size:400px 100%;animation:mv-shim 1.4s ease-in-out infinite;border-radius:6px}`}</style>
+                    {[1,2,3].map(i => (
+                        <div key={i} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: '12px 16px', marginBottom: 8 }}>
+                            <div className="mv-sk" style={{ width: 80, height: 13, marginBottom: 10 }} />
+                            <div className="mv-sk" style={{ width: '70%', height: 12 }} />
+                        </div>
+                    ))}
+                </div>
             ) : shifts.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px 20px', background: C.surface, borderRadius: 12, border: `1px solid ${C.border}` }}>
                     <Calendar size={32} color={C.textMuted} style={{ marginBottom: 8 }} />
@@ -246,7 +254,20 @@ function DownsTab({ staffId, venueId, token }) {
         fetch_();
     }, [staffId, venueId, token]);
 
-    if (loading) return <div style={{ textAlign: 'center', padding: 40, color: C.textMuted }}>Loading downs...</div>;
+    if (loading) return (
+        <div>
+            <style>{`@keyframes mv-shim{0%{background-position:-400px 0}100%{background-position:400px 0}}.mv-sk{background-image:linear-gradient(90deg,rgba(255,255,255,0.04) 0%,rgba(255,255,255,0.10) 50%,rgba(255,255,255,0.04) 100%);background-size:400px 100%;animation:mv-shim 1.4s ease-in-out infinite;border-radius:6px}`}</style>
+            <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+                {[1,2,3,4].map(i => <div key={i} className="mv-sk" style={{ flex: 1, minWidth: 120, height: 64, borderRadius: 10 }} />)}
+            </div>
+            {[1,2,3,4,5].map(i => (
+                <div key={i} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: '10px 14px', marginBottom: 6, display: 'flex', justifyContent: 'space-between' }}>
+                    <div><div className="mv-sk" style={{ width: 70, height: 13, marginBottom: 6 }} /><div className="mv-sk" style={{ width: 110, height: 11 }} /></div>
+                    <div className="mv-sk" style={{ width: 45, height: 13, alignSelf: 'center' }} />
+                </div>
+            ))}
+        </div>
+    );
     if (!data) return <div style={{ textAlign: 'center', padding: 40, color: C.textMuted }}>Unable to load data</div>;
 
     const { stats, downs, active_tables } = data;
@@ -329,7 +350,26 @@ function TimeClockTab({ staffId, venueId, token }) {
         fetch_();
     }, [staffId, venueId, token]);
 
-    if (loading) return <div style={{ textAlign: 'center', padding: 40, color: C.textMuted }}>Loading time clock...</div>;
+    if (loading) return (
+        <div>
+            <style>{`@keyframes mv-shim{0%{background-position:-400px 0}100%{background-position:400px 0}}.mv-sk{background-image:linear-gradient(90deg,rgba(255,255,255,0.04) 0%,rgba(255,255,255,0.10) 50%,rgba(255,255,255,0.04) 100%);background-size:400px 100%;animation:mv-shim 1.4s ease-in-out infinite;border-radius:6px}`}</style>
+            <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+                {[1,2,3,4].map(i => <div key={i} className="mv-sk" style={{ flex: 1, minWidth: 120, height: 64, borderRadius: 10 }} />)}
+            </div>
+            {[1,2,3,4].map(i => (
+                <div key={i} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: '12px 14px', marginBottom: 6 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <div className="mv-sk" style={{ width: 80, height: 14 }} />
+                        <div className="mv-sk" style={{ width: 50, height: 22, borderRadius: 6 }} />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
+                        <div className="mv-sk" style={{ width: '45%', height: 12 }} />
+                        <div className="mv-sk" style={{ width: '35%', height: 12 }} />
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
     if (!data) return <div style={{ textAlign: 'center', padding: 40, color: C.textMuted }}>Unable to load data</div>;
 
     const { stats, entries } = data;

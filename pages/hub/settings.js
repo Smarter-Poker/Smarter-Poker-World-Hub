@@ -2616,7 +2616,7 @@ export default function SettingsPage() {
                                                 padding: '14px 20px',
                                                 background: 'rgba(255, 255, 255, 0.08)',
                                                 border: '1px solid rgba(255, 255, 255, 0.15)',
-                                                borderRadius: 10,
+                                                borderRadius: 20,
                                                 color: '#fff',
                                                 fontSize: 14,
                                                 fontWeight: 600,
@@ -2633,7 +2633,7 @@ export default function SettingsPage() {
                                                 padding: '14px 20px',
                                                 background: cancelReason ? '#1877F2' : 'rgba(24, 119, 242, 0.3)',
                                                 border: 'none',
-                                                borderRadius: 10,
+                                                borderRadius: 20,
                                                 color: '#fff',
                                                 fontSize: 14,
                                                 fontWeight: 600,
@@ -2691,7 +2691,7 @@ export default function SettingsPage() {
                                                 padding: '14px 20px',
                                                 background: 'linear-gradient(135deg, #1877F2, #166FE5)',
                                                 border: 'none',
-                                                borderRadius: 10,
+                                                borderRadius: 20,
                                                 color: '#fff',
                                                 fontSize: 14,
                                                 fontWeight: 700,
@@ -2736,7 +2736,7 @@ export default function SettingsPage() {
                                                 padding: '14px 20px',
                                                 background: 'rgba(24, 119, 242, 0.1)',
                                                 border: '1px solid rgba(24, 119, 242, 0.25)',
-                                                borderRadius: 10,
+                                                borderRadius: 20,
                                                 color: '#1877F2',
                                                 fontSize: 14,
                                                 fontWeight: 600,
@@ -2776,7 +2776,7 @@ export default function SettingsPage() {
                                             padding: '14px 40px',
                                             background: 'linear-gradient(135deg, #1877F2, #166FE5)',
                                             border: 'none',
-                                            borderRadius: 10,
+                                            borderRadius: 20,
                                             color: '#fff',
                                             fontSize: 14,
                                             fontWeight: 600,
@@ -2807,7 +2807,7 @@ export default function SettingsPage() {
                                             padding: '14px 40px',
                                             background: 'linear-gradient(135deg, #1877F2, #166FE5)',
                                             border: 'none',
-                                            borderRadius: 10,
+                                            borderRadius: 20,
                                             color: '#fff',
                                             fontSize: 14,
                                             fontWeight: 700,
@@ -2850,7 +2850,7 @@ export default function SettingsPage() {
                             right: '20px',
                             background: 'rgba(255, 255, 255, 0.2)',
                             border: 'none',
-                            borderRadius: '8px',
+                            borderRadius: '20px',
                             padding: '12px 24px',
                             color: '#fff',
                             fontSize: '16px',
@@ -2965,7 +2965,7 @@ export default function SettingsPage() {
                                             padding: '12px 24px',
                                             background: loadingMFA || verificationCode.length !== 6 ? '#666' : '#00D4FF',
                                             border: 'none',
-                                            borderRadius: 8,
+                                            borderRadius: 20,
                                             color: loadingMFA || verificationCode.length !== 6 ? '#999' : '#000',
                                             fontSize: 14,
                                             fontWeight: 600,
@@ -2985,7 +2985,7 @@ export default function SettingsPage() {
                                             padding: '12px 24px',
                                             background: 'rgba(255, 255, 255, 0.1)',
                                             border: '1px solid rgba(255, 255, 255, 0.2)',
-                                            borderRadius: 8,
+                                            borderRadius: 20,
                                             color: '#fff',
                                             fontSize: 14,
                                             fontWeight: 600,
@@ -3020,7 +3020,7 @@ export default function SettingsPage() {
                                                     setBackupCodesCopied(true);
                                                     setTimeout(() => setBackupCodesCopied(false), 2000);
                                                 }}
-                                                style={{ padding: '4px 12px', background: backupCodesCopied ? 'rgba(49, 162, 76, 0.2)' : 'rgba(0, 212, 255, 0.15)', border: `1px solid ${backupCodesCopied ? 'rgba(49, 162, 76, 0.4)' : 'rgba(0, 212, 255, 0.3)'}`, borderRadius: 6, color: backupCodesCopied ? '#31A24C' : '#00D4FF', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+                                                style={{ padding: '4px 12px', background: backupCodesCopied ? 'rgba(49, 162, 76, 0.2)' : 'rgba(0, 212, 255, 0.15)', border: `1px solid ${backupCodesCopied ? 'rgba(49, 162, 76, 0.4)' : 'rgba(0, 212, 255, 0.3)'}`, borderRadius: 20, color: backupCodesCopied ? '#31A24C' : '#00D4FF', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
                                             >
                                                 {backupCodesCopied ? 'Copied!' : 'Copy All'}
                                             </button>
@@ -3060,7 +3060,7 @@ export default function SettingsPage() {
                                             padding: '12px 24px',
                                             background: loadingMFA ? '#999' : '#ff4757',
                                             border: 'none',
-                                            borderRadius: 8,
+                                            borderRadius: 20,
                                             color: '#fff',
                                             fontSize: 14,
                                             fontWeight: 600,
@@ -3074,10 +3074,10 @@ export default function SettingsPage() {
                                     <div style={{ background: 'rgba(255, 71, 87, 0.1)', border: '1px solid rgba(255, 71, 87, 0.3)', borderRadius: 10, padding: 16, marginBottom: 12 }}>
                                         <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, marginBottom: 12 }}>Are you sure? This will make your account less secure.</p>
                                         <div style={{ display: 'flex', gap: 8 }}>
-                                            <button onClick={disable2FA} disabled={loadingMFA} style={{ flex: 1, padding: '10px', background: '#ff4757', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                                            <button onClick={disable2FA} disabled={loadingMFA} style={{ flex: 1, padding: '10px', background: '#ff4757', border: 'none', borderRadius: 20, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
                                                 {loadingMFA ? 'Disabling...' : 'Yes, Disable'}
                                             </button>
-                                            <button onClick={() => setShowDisable2FAConfirm(false)} style={{ flex: 1, padding: '10px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                                            <button onClick={() => setShowDisable2FAConfirm(false)} style={{ flex: 1, padding: '10px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 20, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
                                                 Keep Enabled
                                             </button>
                                         </div>
@@ -3189,7 +3189,7 @@ export default function SettingsPage() {
                                                     padding: '8px 16px',
                                                     background: '#ff4757',
                                                     border: 'none',
-                                                    borderRadius: 6,
+                                                    borderRadius: 20,
                                                     color: '#fff',
                                                     fontSize: 12,
                                                     fontWeight: 600,
@@ -3231,13 +3231,13 @@ export default function SettingsPage() {
                                                 setRevokeDeviceTarget(null);
                                             }
                                         }}
-                                        style={{ flex: 1, padding: '10px', background: '#ff4757', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                                        style={{ flex: 1, padding: '10px', background: '#ff4757', border: 'none', borderRadius: 20, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
                                     >
                                         Yes, Revoke
                                     </button>
                                     <button
                                         onClick={() => setRevokeDeviceTarget(null)}
-                                        style={{ flex: 1, padding: '10px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                                        style={{ flex: 1, padding: '10px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 20, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
                                     >
                                         Cancel
                                     </button>
@@ -3252,7 +3252,7 @@ export default function SettingsPage() {
                                 padding: '12px 24px',
                                 background: 'rgba(255, 255, 255, 0.1)',
                                 border: '1px solid rgba(255, 255, 255, 0.2)',
-                                borderRadius: 8,
+                                borderRadius: 20,
                                 color: '#fff',
                                 fontSize: 14,
                                 fontWeight: 600,
@@ -3376,7 +3376,7 @@ export default function SettingsPage() {
                                         ? '#ff4757'
                                         : 'rgba(255, 71, 87, 0.2)',
                                     border: 'none',
-                                    borderRadius: 8,
+                                    borderRadius: 20,
                                     color: deleteConfirmText === 'DELETE' && !deleteLoading
                                         ? '#fff'
                                         : 'rgba(255,255,255,0.4)',
@@ -3401,7 +3401,7 @@ export default function SettingsPage() {
                                     padding: '14px 24px',
                                     background: 'rgba(255, 255, 255, 0.08)',
                                     border: '1px solid rgba(255, 255, 255, 0.15)',
-                                    borderRadius: 8,
+                                    borderRadius: 20,
                                     color: '#fff',
                                     fontSize: 14,
                                     fontWeight: 600,

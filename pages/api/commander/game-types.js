@@ -61,6 +61,8 @@ export default async function handler(req, res) {
 
       // GET - List all game types
       if (req.method === 'GET') {
+        // Game type catalog changes rarely — safe to cache 5 minutes at edge
+        res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
         const showInactive = req.query.include_inactive === 'true';
         let query = getSupabase()
           .from('commander_game_types')

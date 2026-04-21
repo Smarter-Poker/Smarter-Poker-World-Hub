@@ -95,6 +95,9 @@ async function getVibes(req, res) {
     return res.status(400).json({ success: false, error: { code: 'MISSING_FIELDS', message: 'venue_id required' } });
   }
 
+  // Table ratings are aggregates — safe to cache 30s at the CDN edge
+  res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=120');
+
   try {
     const since = new Date(Date.now() - parseInt(days) * 86400000).toISOString();
 

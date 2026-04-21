@@ -3780,44 +3780,59 @@ function MessengerPage() {
         setEditText(message.content);
     };
 
-    const handleEditSave = async () => {
+    const handleEditSave = () => {
         if (!editingMessage || !editText.trim() || !user) return;
-        try {
-            const token = getAccessToken();
-            const resp = await fetch('/api/messenger/edit-message', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                },
-                body: JSON.stringify({
-                    messageId: editingMessage.id,
-                    userId: user.id,
-                    content: editText.trim(),
-                }),
-            });
-            const result = await resp.json();
-            if (result.success) {
-                // Use server-returned sanitized content (not raw editText) for UI parity
-                const sanitizedContent = result.content || editText.trim();
-                setMessages(prev => prev.map(m =>
-                    m.id === editingMessage.id
-                        ? { ...m, content: sanitizedContent, is_edited: true }
-                        : m
-                ));
-                setToast({ type: 'success', message: 'Message Edited' });
-                // DEEP SWEEP FIX: Push native global Message Edited event
-                busEmit.messageEdited(activeConversation?.id, editingMessage.id);
-            } else {
-                setToast({ type: 'error', message: result.error || 'Edit Failed' });
-            }
-        } catch (e) {
-            console.error('Edit message error:', e);
-            setToast({ type: 'error', message: 'Failed To Edit Message' });
-        }
+
+        // EAGER STATE SYNCHRONIZATION: Update message content immediately (BFCache-safe)
+        const prevMessages = messages;
+        const newContent = editText.trim();
+        const editingId = editingMessage.id;
+        setMessages(prev => prev.map(m =>
+            m.id === editingId ? { ...m, content: newContent, is_edited: true } : m
+        ));
         setEditingMessage(null);
         setEditText('');
+
+        // Fire-and-forget API call in background
+        (async () => {
+            try {
+                const token = getAccessToken();
+                const resp = await fetch('/api/messenger/edit-message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                    },
+                    body: JSON.stringify({
+                        messageId: editingId,
+                        userId: user.id,
+                        content: newContent,
+                    }),
+                });
+                const result = await resp.json();
+                if (result.success) {
+                    // Apply server sanitized content if different
+                    const sanitizedContent = result.content || newContent;
+                    if (sanitizedContent !== newContent) {
+                        setMessages(prev => prev.map(m =>
+                            m.id === editingId ? { ...m, content: sanitizedContent } : m
+                        ));
+                    }
+                    setToast({ type: 'success', message: 'Message Edited' });
+                    busEmit.messageEdited(activeConversation?.id, editingId);
+                } else {
+                    // Rollback on API error
+                    setMessages(prevMessages);
+                    setToast({ type: 'error', message: result.error || 'Edit Failed' });
+                }
+            } catch (e) {
+                console.error('Edit message error:', e);
+                setMessages(prevMessages);
+                setToast({ type: 'error', message: 'Failed To Edit Message' });
+            }
+        })();
     };
+
 
     const handleEditCancel = () => {
         setEditingMessage(null);
@@ -5891,7 +5906,7 @@ function MessengerPage() {
                                             />
                                         </div>
                                         <button onClick={handleEditCancel} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec, fontSize: 18 }}>×</button>
-                                        <button onClick={handleEditSave} style={{ background: C.blue, border: 'none', borderRadius: 6, color: 'white', padding: '6px 12px', cursor: 'pointer', fontSize: 13 }}>Save</button>
+                                        <button onClick={handleEditSave} style={{ background: C.blue, border: 'none', borderRadius: 20, color: 'white', padding: '6px 12px', cursor: 'pointer', fontSize: 13 }}>Save</button>
                                     </div>
                                 )}
 

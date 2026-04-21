@@ -41,6 +41,8 @@ export default async function handler(req, res) {
     try {
       // GET - List floor calls with filters
       if (req.method === 'GET') {
+        // Floor calls are polled by multiple staff devices — 10s CDN cache prevents fan-out
+        res.setHeader('Cache-Control', 'public, s-maxage=10, stale-while-revalidate=30');
         const { venue_id, status, reason, priority, responded_by, limit = '50' } = req.query;
 
         let query = getSupabase()

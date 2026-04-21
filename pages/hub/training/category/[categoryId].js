@@ -92,8 +92,17 @@ export default function CategoryPage() {
 
     if (!categoryId || games.length === 0) {
         return (
-            <div style={styles.loading}>
-                <p>Loading...</p>
+            <div style={{ minHeight: '100vh', background: '#0a0a15', paddingBottom: 70 }}>
+                <style>{`@keyframes tc-shim{0%{background-position:-600px 0}100%{background-position:600px 0}}.tc-sk{background-image:linear-gradient(90deg,rgba(255,255,255,0.04) 0%,rgba(255,255,255,0.11) 50%,rgba(255,255,255,0.04) 100%);background-size:600px 100%;animation:tc-shim 1.4s ease-in-out infinite;border-radius:8px}`}</style>
+                <div style={{ height: 56, background: 'rgba(10,10,21,0.98)', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', padding: '0 16px', gap: 12 }}>
+                    <div className="tc-sk" style={{ width: 28, height: 28, borderRadius: '50%' }} />
+                    <div className="tc-sk" style={{ flex: 1, height: 14, maxWidth: 140 }} />
+                </div>
+                <div style={{ padding: '20px 16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 16, maxWidth: 1200, margin: '0 auto' }}>
+                    {[1,2,3,4,5,6].map(i => (
+                        <div key={i} className="tc-sk" style={{ height: 180, borderRadius: 12 }} />
+                    ))}
+                </div>
             </div>
         );
     }

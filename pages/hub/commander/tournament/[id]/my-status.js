@@ -229,8 +229,47 @@ export default function MyTournamentStatus() {
     };
 
     if (loading) return (
-        <div className="min-h-screen bg-[#18191A] flex items-center justify-center">
-            <Loader2 className="w-8 h-8 text-[#1877F2] animate-spin" />
+        <div className="min-h-screen bg-[#18191A] pb-20">
+            <style>{`@keyframes ms-shim{0%{background-position:-500px 0}100%{background-position:500px 0}}.ms-sk{background-image:linear-gradient(90deg,rgba(255,255,255,0.04) 0%,rgba(255,255,255,0.11) 50%,rgba(255,255,255,0.04) 100%);background-size:500px 100%;animation:ms-shim 1.4s ease-in-out infinite;border-radius:6px}`}</style>
+            {/* Header skeleton */}
+            <div style={{ background: '#242526', borderBottom: '1px solid #3A3B3C', padding: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div className="ms-sk" style={{ width: 20, height: 20 }} />
+                    <div style={{ flex: 1 }}>
+                        <div className="ms-sk" style={{ width: '60%', height: 18, marginBottom: 6 }} />
+                        <div className="ms-sk" style={{ width: '30%', height: 12 }} />
+                    </div>
+                </div>
+            </div>
+            {/* Clock card skeleton */}
+            <div style={{ margin: '16px', background: '#242526', border: '1px solid #3A3B3C', borderRadius: 16, padding: 16 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, textAlign: 'center' }}>
+                    {[1,2,3].map(i => (
+                        <div key={i}>
+                            <div className="ms-sk" style={{ width: 36, height: 10, margin: '0 auto 8px' }} />
+                            <div className="ms-sk" style={{ width: 50, height: 22, margin: '0 auto' }} />
+                        </div>
+                    ))}
+                </div>
+            </div>
+            {/* Player info card skeleton */}
+            <div style={{ margin: '0 16px 12px', background: '#242526', border: '1px solid #3A3B3C', borderRadius: 16, padding: 16 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, textAlign: 'center' }}>
+                    {[1,2,3].map(i => (
+                        <div key={i}>
+                            <div className="ms-sk" style={{ width: 20, height: 20, margin: '0 auto 8px', borderRadius: '50%' }} />
+                            <div className="ms-sk" style={{ width: 44, height: 20, margin: '0 auto 4px' }} />
+                            <div className="ms-sk" style={{ width: 36, height: 8, margin: '0 auto' }} />
+                        </div>
+                    ))}
+                </div>
+            </div>
+            {/* Chip count panel skeleton */}
+            <div style={{ margin: '0 16px', background: '#242526', border: '1px solid #3A3B3C', borderRadius: 16, padding: 16 }}>
+                <div className="ms-sk" style={{ width: 160, height: 14, marginBottom: 12 }} />
+                <div className="ms-sk" style={{ width: '100%', height: 56, borderRadius: 12, marginBottom: 12 }} />
+                <div className="ms-sk" style={{ width: '100%', height: 44, borderRadius: 12 }} />
+            </div>
         </div>
     );
 

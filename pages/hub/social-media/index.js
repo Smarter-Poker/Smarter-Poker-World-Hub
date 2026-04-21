@@ -1727,9 +1727,9 @@ function ClubPageCreateModal({ C, commanderData, userId, onCreated, onClose }) {
                 {error && <p style={{ color: C.red, fontSize: 13, margin: '0 0 10px' }}>{error}</p>}
 
                 <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                    <button onClick={onClose} style={{ padding: '10px 20px', borderRadius: 8, border: 'none', background: '#E4E6EB', color: C.text, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+                    <button onClick={onClose} style={{ padding: '10px 20px', borderRadius: 20, border: 'none', background: '#E4E6EB', color: C.text, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
                     <button onClick={handleCreate} disabled={creating || !pageName.trim()} style={{
-                        padding: '10px 24px', borderRadius: 8, border: 'none', background: C.blue, color: '#fff',
+                        padding: '10px 24px', borderRadius: 20, border: 'none', background: C.blue, color: '#fff',
                         fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
                         opacity: creating || !pageName.trim() ? 0.5 : 1
                     }}>{creating ? 'Creating...' : 'Create Page'}</button>
@@ -3140,7 +3140,13 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
 
     const handleFollow = async () => {
         if (!userId) { showMsg('You must be logged in to follow this page'); return; }
+        if (followLoading) return;
         setFollowLoading(true);
+
+        // EAGER STATE: Show optimistic pending state immediately
+        const prevStatus = followStatus;
+        setFollowStatus('pending');
+
         try {
             const res = await fetch('/api/social/pages/follow', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -3153,9 +3159,16 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                 setFollowStatus(newStatus);
                 if (newStatus === 'pending') showMsg('Follow request sent! Waiting for approval.');
                 else showMsg('You are now following this page!');
-            } else { showMsg(json.error || 'Could not follow page'); }
-        } catch { showMsg('Error following page'); }
-        setFollowLoading(false);
+            } else {
+                setFollowStatus(prevStatus);
+                showMsg(json.error || 'Could not follow page');
+            }
+        } catch {
+            setFollowStatus(prevStatus);
+            showMsg('Error following page');
+        } finally {
+            setFollowLoading(false);
+        }
     };
 
     const handleTakeSeat = async (gameId, seatNumber) => {
@@ -3170,7 +3183,6 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
             if (json.success) { showMsg(`Seat ${seatNumber} reserved!`); fetchGames(); }
             else { showMsg(json.error || 'Could not take seat'); }
         } catch (e) { showMsg('Error reserving seat'); }
-    setFollowLoading(false);
     };
 
     const handleJoinWaitlist = async (gameId) => {
@@ -3190,7 +3202,6 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
             if (json.success) { showMsg(`Added to waitlist (position #${json.position})`); fetchGames(); }
             else { showMsg(json.error || 'Could not join waitlist'); }
         } catch (e) { showMsg('Error joining waitlist'); }
-    setFollowLoading(false);
     };
 
     const handleLeave = async (gameId) => {
