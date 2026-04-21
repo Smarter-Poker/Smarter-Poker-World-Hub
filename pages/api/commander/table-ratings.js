@@ -57,7 +57,8 @@ async function submitRating(req, res) {
     const authHeader = req.headers.authorization;
     if (authHeader && !userId) {
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user } } = await getSupabase().auth.getUser(token);
+      const { data: authData } = await getSupabase().auth.getUser(token);
+      const user = authData?.user;
       userId = user?.id || null;
     }
 

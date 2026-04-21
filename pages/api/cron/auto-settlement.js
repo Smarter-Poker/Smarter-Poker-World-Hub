@@ -40,7 +40,8 @@ export default async function handler(req, res) {
     // Not a valid cron invocation — require JWT auth + admin role
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (token) {
-      const { data: { user } } = await supabaseAdmin.auth.getUser(token);
+      const { data: authData } = await supabaseAdmin.auth.getUser(token);
+      const user = authData?.user;
       if (!user) return res.status(401).json({ error: 'Unauthorized' });
       // BUG #123 FIX: Manual trigger requires platform admin or club owner role
       // Any authenticated user could previously trigger settlement for ALL clubs

@@ -14,7 +14,8 @@ export default async function handler(req, res) {
       );
 
       // Get the user's most recent notifications with actor data
-      const { data: { user } } = await sb.auth.getUser();
+      const { data: authData } = await sb.auth.getUser();
+      const user = authData?.user;
 
       // Find Dan's profile using email
       const { data: danProfile } = await sb

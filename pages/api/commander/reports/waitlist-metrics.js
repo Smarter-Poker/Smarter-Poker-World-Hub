@@ -39,7 +39,8 @@ export default async function handler(req, res) {
       const authHeader = req.headers.authorization;
       if (!authHeader) return res.status(401).json({ success: false, error: 'Auth required' });
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user } } = await getSupabase().auth.getUser(token);
+      const { data: authData } = await getSupabase().auth.getUser(token);
+      const user = authData?.user;
       if (!user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       const { venue_id, range = 'week' } = req.query;

@@ -55,7 +55,8 @@ export default async function handler(req, res) {
           const authHeader = req.headers.authorization;
           if (authHeader) {
             const token = authHeader.replace('Bearer ', '');
-            const { data: { user } } = await getSupabase().auth.getUser(token);
+            const { data: authData } = await getSupabase().auth.getUser(token);
+            const user = authData?.user;
             if (user) {
               const { data: staff } = await getSupabase()
                 .from('commander_staff')

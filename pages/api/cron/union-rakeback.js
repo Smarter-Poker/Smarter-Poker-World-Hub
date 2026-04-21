@@ -53,7 +53,8 @@ export default async function handler(req, res) {
     if (!process.env.CRON_SECRET || cronSecret !== process.env.CRON_SECRET) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (token) {
-        const { data: { user } } = await supabaseAdmin.auth.getUser(token);
+        const { data: authData } = await supabaseAdmin.auth.getUser(token);
+        const user = authData?.user;
         if (!user) return res.status(401).json({ error: 'Unauthorized' });
         const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).maybeSingle();
         if (!['admin', 'superadmin', 'god'].includes(profile?.role)) {

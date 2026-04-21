@@ -120,7 +120,8 @@ export default async function handler(req, res) {
               process.env.NEXT_PUBLIC_SUPABASE_URL,
               process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
             );
-            const { data: { user } } = await supabaseAnon.auth.getUser(accessToken);
+            const { data: authData } = await supabaseAnon.auth.getUser(accessToken);
+            const user = authData?.user;
             if (user && entry.player_id && user.id === entry.player_id) {
               authorized = true;
             }

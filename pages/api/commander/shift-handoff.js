@@ -52,7 +52,8 @@ async function createHandoff(req, res) {
     const token = authHeader?.replace('Bearer ', '');
     let userId = null;
     if (token) {
-      const { data: { user } } = await getSupabase().auth.getUser(token);
+      const { data: authData } = await getSupabase().auth.getUser(token);
+      const user = authData?.user;
       userId = user?.id;
     }
 
@@ -153,7 +154,8 @@ async function acknowledgeHandoff(req, res) {
     const token = authHeader?.replace('Bearer ', '');
     let userId = null;
     if (token) {
-      const { data: { user } } = await getSupabase().auth.getUser(token);
+      const { data: authData } = await getSupabase().auth.getUser(token);
+      const user = authData?.user;
       userId = user?.id;
     }
 

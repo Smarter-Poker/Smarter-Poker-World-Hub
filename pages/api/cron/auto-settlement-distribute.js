@@ -37,7 +37,8 @@ export default async function handler(req, res) {
     if (cronSecret !== process.env.CRON_SECRET || !process.env.CRON_SECRET) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (token) {
-        const { data: { user } } = await getSupabaseAdmin().auth.getUser(token);
+        const { data: authData } = await getSupabaseAdmin().auth.getUser(token);
+        const user = authData?.user;
         if (!user) return res.status(401).json({ error: 'Unauthorized' });
         // BUG #123 FIX: Require platform admin or club owner
         const { data: adminCheck } = await getSupabaseAdmin()

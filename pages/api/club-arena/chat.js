@@ -51,7 +51,8 @@ export default async function handler(req, res) {
     let userId = null;
     if (authHeader?.startsWith('Bearer ')) {
         try {
-            const { data: { user } } = await getSupabase().auth.getUser(authHeader.split(' ')[1]);
+            const { data: authData } = await getSupabase().auth.getUser(authHeader.split(' ')[1]);
+            const user = authData?.user;
             userId = user?.id;
         } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }

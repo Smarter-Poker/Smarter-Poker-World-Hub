@@ -34,7 +34,8 @@ export default async function handler(req, res) {
 
       let userId = null;
       if (token) {
-        const { data: { user } } = await getSupabase().auth.getUser(token);
+        const { data: authData } = await getSupabase().auth.getUser(token);
+        const user = authData?.user;
         userId = user?.id;
       }
 

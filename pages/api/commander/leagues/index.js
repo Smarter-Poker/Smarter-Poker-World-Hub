@@ -125,7 +125,8 @@ async function createLeague(req, res) {
     const token = authHeader?.replace('Bearer ', '');
     let organizerId = null;
     if (token) {
-      const { data: { user } } = await getSupabase().auth.getUser(token);
+      const { data: authData } = await getSupabase().auth.getUser(token);
+      const user = authData?.user;
       organizerId = user?.id;
     }
 

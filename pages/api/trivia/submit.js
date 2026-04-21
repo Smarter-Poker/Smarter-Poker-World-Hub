@@ -55,7 +55,8 @@ export default async function handler(req, res) {
           if (authHeader?.startsWith('Bearer ')) {
               try {
                   const token = authHeader.replace('Bearer ', '');
-                  const { data: { user } } = await getSupabase().auth.getUser(token);
+                  const { data: authData } = await getSupabase().auth.getUser(token);
+                  const user = authData?.user;
                   if (user) {
                       // Try to get their profile username
                       const { data: profile } = await getSupabase()

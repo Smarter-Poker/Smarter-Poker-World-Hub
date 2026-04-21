@@ -27,7 +27,8 @@ export default async function handler(req, res) {
     if (cronSecret !== process.env.CRON_SECRET || !process.env.CRON_SECRET) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (token) {
-        const { data: { user } } = await getSupabase().auth.getUser(token);
+        const { data: authData } = await getSupabase().auth.getUser(token);
+        const user = authData?.user;
         if (!user) return res.status(401).json({ error: 'Unauthorized' });
       } else {
         return res.status(401).json({ error: 'Unauthorized — missing cron secret or auth token' });

@@ -92,7 +92,8 @@ async function registerPlayer(req, res, tournamentId) {
 
     let userId = null;
     if (token) {
-      const { data: { user } } = await getSupabase().auth.getUser(token);
+      const { data: authData } = await getSupabase().auth.getUser(token);
+      const user = authData?.user;
       userId = user?.id;
     }
 
