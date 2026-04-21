@@ -706,9 +706,9 @@ function ReelViewer({ reels, startIndex, onClose }) {
         const nextIdx = (speeds.indexOf(playbackSpeed) + 1) % speeds.length;
         const newSpeed = speeds[nextIdx];
         setPlaybackSpeed(newSpeed);
-        const video = document.querySelector('video');
-        if (video) video.playbackRate = newSpeed;
-        const iframe = document.querySelector('iframe[src*="youtube"]');
+        // Use videoRef instead of document.querySelector to avoid grabbing wrong element
+        if (videoRef.current) videoRef.current.playbackRate = newSpeed;
+        const iframe = containerRef.current?.querySelector('iframe[src*="youtube"]');
         if (iframe) {
             iframe.contentWindow?.postMessage(JSON.stringify({
                 event: 'command', func: 'setPlaybackRate', args: [newSpeed]
@@ -901,6 +901,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
     };
 
     // Reset on reel change + track view
+    // dep: currentIndex ONLY — do NOT add `reels` (causes double-fire + play on unloaded src)
     useEffect(() => {
         setShowComments(false);
         setReelComments([]);
@@ -916,23 +917,38 @@ function ReelViewer({ reels, startIndex, onClose }) {
         setReportSubmitted(false);
         setShareToast(false);
         setShowShareModal(false);
+
+        // Cancel any running RAF from the previous reel immediately
+        if (progressRAF.current) {
+            cancelAnimationFrame(progressRAF.current);
+            progressRAF.current = null;
+        }
+
         // Deduplicated view count — only fire once per reel per session (auth only)
         const reelId = reels[currentIndex]?.id;
         if (reelId && authUser?.id && !viewedReelsRef.current.has(reelId)) {
             viewedReelsRef.current.add(reelId);
-            // Optimistic UI update + DB increment
             setViewCounts(prev => ({ ...prev, [reelId]: (prev[reelId] || reels[currentIndex]?.view_count || 0) + 1 }));
             (async () => { try { await supabase.rpc('increment_post_count', { p_post_id: reelId, p_field: 'view_count' }); } catch {} })();
         }
 
-        // Force explicit autoplay since React autoPlay property is unreliable across tabs
-        if (videoRef.current) {
-            const playPromise = videoRef.current.play();
-            if (playPromise !== undefined) {
-                playPromise.catch(error => console.warn('Autoplay blocked initially:', error));
-            }
+        // Play via canplay event — video element may be remounting due to key change,
+        // calling play() immediately causes AbortError on mobile Safari.
+        const video = videoRef.current;
+        if (!video) return;
+        const onCanPlay = () => {
+            const p = video.play();
+            if (p !== undefined) p.catch(() => {}); // suppress AbortError
+        };
+        if (video.readyState >= 3) {
+            const p = video.play();
+            if (p !== undefined) p.catch(() => {});
+        } else {
+            video.addEventListener('canplay', onCanPlay, { once: true });
         }
-    }, [currentIndex, reels]);
+        return () => video.removeEventListener('canplay', onCanPlay);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentIndex]);
 
     // Haptic helper
     const haptic = (ms = 10) => { try { navigator?.vibrate?.(ms); } catch {} };
@@ -1842,6 +1858,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
 export function ReelsFeedCarousel() {
     const [reels, setReels] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState(false);
     const [viewerOpen, setViewerOpen] = useState(false);
     const [viewerStartIndex, setViewerStartIndex] = useState(0);
     const scrollRef = useRef(null);
@@ -1898,8 +1915,10 @@ export function ReelsFeedCarousel() {
             }
 
             setReels(allReels);
+            setLoadError(false);
         } catch (e) {
             console.error('Load reels error:', e);
+            setLoadError(true);
         }
         setLoading(false);
     };
