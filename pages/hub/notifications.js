@@ -52,22 +52,48 @@ function NotificationsPage() {
     // ── Delete notification ──────────────────────────────────────
     const handleDelete = useCallback(async (notifId, e) => {
         if (e) { e.stopPropagation(); e.preventDefault(); }
+        // [Audit#5] Skip synthetic poker-prefixed IDs — they have no DB row
+        const isPokerNotif = typeof notifId === 'string' && notifId.startsWith('poker-');
         setConfirmDeleteId(null);
         setSwipedId(null);
-        // Optimistic removal
+        // [Audit#2] Snapshot state for rollback on API failure
+        let snapshot;
+        setNotifications(prev => { snapshot = prev; return prev; });
+        // Optimistic removal with fade
         setDeletingIds(prev => new Set([...prev, notifId]));
         setTimeout(() => {
             setNotifications(prev => prev.filter(n => n.id !== notifId));
             setDeletingIds(prev => { const s = new Set(prev); s.delete(notifId); return s; });
+            // [Audit#4] Sync localStorage cache on delete so deleted items don't reappear
+            try {
+                const cached = localStorage.getItem('sp-notif-cache');
+                if (cached) {
+                    const parsed = JSON.parse(cached).filter(n => n.id !== notifId);
+                    localStorage.setItem('sp-notif-cache', JSON.stringify(parsed));
+                }
+            } catch (_) {}
         }, 300);
+        if (isPokerNotif) return; // [Audit#5] Don't hit API for synthetic IDs
         try {
+            // [Audit#1] getAccessToken() is async — was missing await
             const token = await getAccessToken();
-            await fetch('/api/notifications/delete', {
+            const resp = await fetch('/api/notifications/delete', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
                 body: JSON.stringify({ id: notifId })
             });
-        } catch (err) { console.error('[Delete Notif]', err); }
+            // [Audit#2] Rollback optimistic remove on API failure
+            if (!resp.ok && snapshot && mounted.current) {
+                console.warn('[Delete Notif] API error, rolling back UI');
+                setNotifications(snapshot);
+                setDeletingIds(prev => { const s = new Set(prev); s.delete(notifId); return s; });
+            }
+        } catch (err) {
+            // [Audit#2] Rollback on network error
+            console.error('[Delete Notif]', err);
+            if (snapshot && mounted.current) setNotifications(snapshot);
+            setDeletingIds(prev => { const s = new Set(prev); s.delete(notifId); return s; });
+        }
     }, []);
 
     // ── Swipe handlers (mobile) ──────────────────────────────────
@@ -124,7 +150,8 @@ function NotificationsPage() {
                 setUser(au);
 
                 // Fetch social & poker notifications through API (service role, bypasses RLS)
-                const token = getAccessToken();
+                // [Audit#1] getAccessToken is async — was missing await here too
+                const token = await getAccessToken();
                 const headers = { 'Authorization': 'Bearer ' + token };
 
                 const [socialRes, pokerRes] = await Promise.all([
@@ -273,14 +300,29 @@ function NotificationsPage() {
                     }
                 }
             })
+            // [Audit#3] Subscribe to DELETE events so other-device deletes sync to this tab
+            .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, (payload) => {
+                if (payload.old?.id && mounted.current) {
+                    setNotifications(prev => prev.filter(n => n.id !== payload.old.id));
+                    try {
+                        const cached = localStorage.getItem('sp-notif-cache');
+                        if (cached) {
+                            const parsed = JSON.parse(cached).filter(n => n.id !== payload.old.id);
+                            localStorage.setItem('sp-notif-cache', JSON.stringify(parsed));
+                        }
+                    } catch (_) {}
+                }
+            })
             .subscribe();
 
-        // BroadcastChannel: listen for cross-tab notif sync (with self-tab suppression)
+        // BroadcastChannel: cross-tab notif sync
         const cleanupNotifBc = listenBroadcast('smarter_poker_notif_sync', (msg) => {
-            // Skip if this tab sent the broadcast (local state already updated)
             if (msg?.tabId === BROADCAST_TAB_ID) return;
-            // Another tab marked notifications as read — refresh local state
-            if (mounted.current) {
+            // [Audit#3] Another tab deleted a notif — sync it here too
+            if (msg?.action === 'delete' && msg?.id && mounted.current) {
+                setNotifications(prev => prev.filter(n => n.id !== msg.id));
+            } else if (mounted.current) {
+                // Another tab marked all as read
                 setNotifications(prev => prev.map(n => ({ ...n, read: true })));
             }
         });
@@ -642,7 +684,8 @@ function NotificationsPage() {
                                         position: 'relative', overflow: 'hidden',
                                         borderBottom: `1px solid ${C.border}`,
                                         opacity: isDeleting ? 0 : 1,
-                                        maxHeight: isDeleting ? 0 : 200,
+                                        // [Audit#10] 200px clips friend_request rows with Accept+Decline buttons
+                                        maxHeight: isDeleting ? 0 : 500,
                                         transition: 'opacity 0.3s ease, max-height 0.3s ease',
                                     }}
                                 >
@@ -773,7 +816,14 @@ function NotificationsPage() {
                                                 background: 'rgba(0,0,0,0.75)', zIndex: 10,
                                                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12
                                             }}
-                                            onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null); }}
+                                            // [Audit#9] Use e.target check so backdrop click fires Cancel
+                                            // but inner button clicks are NOT intercepted by backdrop
+                                            onClick={(e) => {
+                                                if (e.target === e.currentTarget) {
+                                                    e.stopPropagation();
+                                                    setConfirmDeleteId(null);
+                                                }
+                                            }}
                                         >
                                             <button
                                                 onClick={(e) => handleDelete(n.id, e)}
