@@ -367,12 +367,15 @@ function NotificationsPage() {
     const markAsRead = async (id) => {
         // [Audit#12] Guard poker-prefixed IDs — they don't exist in DB
         const isPoker = typeof id === 'string' && id.startsWith('poker-');
-        if (!isPoker) {
-            await supabase.from('notifications').update({ read: true }).eq('id', id);
+        if (!isPoker && user?.id) {
+            // [Pass3-Fix] Include user_id for defense-in-depth (RLS also enforces this)
+            await supabase.from('notifications').update({ read: true }).eq('id', id).eq('user_id', user.id);
         }
         if (mounted.current) {
             setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
         }
+        // Sync badge localStorage and broadcast to header
+        try { localStorage.setItem('sp-notif-count', String(Math.max(0, parseInt(localStorage.getItem('sp-notif-count') || '0', 10) - 1))); } catch (_) {}
         broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID });
         eventBus.emit(EventType.NOTIFICATIONS_READ, { count: 1 }, 'NotificationsPage');
         busEmit.dataMutated('notifications');
