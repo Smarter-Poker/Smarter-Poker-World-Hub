@@ -15,6 +15,8 @@
  *   8. Only dedup on successful fix — retries failures
  */
 
+import { sendSMS } from '../../../src/lib/commander/twilio';
+
 export const config = {
   maxDuration: 60,
 };
@@ -32,6 +34,13 @@ const fixedDeployments = new Set();
 const attemptTracker = {};
 
 // ── Notification helper ──────────────────────────────────────────────────────
+async function sendErrorSMS(title, message) {
+  const adminPhone = process.env.MY_PHONE_NUMBER || process.env.ADMIN_PHONE;
+  if (!adminPhone) return;
+  const body = `🚨 SMARTER.POKER ALERT 🚨\n\n${title}\n${message}`;
+  await sendSMS(adminPhone, body).catch(e => console.error('[deploy-error-poll] SMS failed:', e));
+}
+
 async function sendNotification({ title, message, color, fields }) {
   const webhookUrl = process.env.SLACK_WEBHOOK_URL || process.env.DISCORD_WEBHOOK_URL;
   if (!webhookUrl) return;
@@ -120,22 +129,36 @@ export default async function handler(req, res) {
     const data = await deploymentsRes.json();
     const allDeployments = data.deployments || [];
 
-    // ── Step 1b: Auto-cancel stale preview-branch QUEUED builds (>5 min) ──
-    // Preview branch builds (sentry-autofix/, fix/, feature/) can clog the
-    // Vercel build concurrency slot, starving main from ever starting.
-    // We cancel any QUEUED preview build older than 5 minutes.
-    const stalePreviewQueueds = allDeployments.filter(d => {
+    // ── Step 1b: Auto-cancel stale, hung, and redundant builds ──
+    const nowMs = Date.now();
+
+    // 1. Stale Preview Queue: Cancel QUEUED preview branches >5m old (they clog concurrency)
+    const stalePreviewQueued = allDeployments.filter(d => {
       const branch = d.meta?.githubCommitRef || '';
-      const ageMs = Date.now() - d.createdAt;
-      return d.state === 'QUEUED' && branch !== 'main' && ageMs > 5 * 60 * 1000;
+      return d.state === 'QUEUED' && branch !== 'main' && (nowMs - d.createdAt) > 5 * 60 * 1000;
     });
-    for (const stale of stalePreviewQueueds) {
+
+    // 2. Hung Builds: Cancel ANY build (main or preview) stuck BUILDING for >15m
+    const hungBuilds = allDeployments.filter(d =>
+      d.state === 'BUILDING' && (nowMs - d.createdAt) > 15 * 60 * 1000
+    );
+
+    // 3. Redundant Main Queue: Keep only the NEWEST queued main build, cancel the rest
+    const mainQueued = allDeployments.filter(d => d.state === 'QUEUED' && (d.meta?.githubCommitRef || '') === 'main');
+    mainQueued.sort((a, b) => b.createdAt - a.createdAt); // newest first
+    const redundantMainQueued = mainQueued.slice(1);
+
+    const buildsToCancel = [...stalePreviewQueued, ...hungBuilds, ...redundantMainQueued];
+    const uniqueToCancel = [...new Map(buildsToCancel.map(item => [item.uid, item])).values()];
+
+    for (const stale of uniqueToCancel) {
       try {
         await fetch(`https://api.vercel.com/v12/deployments/${stale.uid}/cancel?teamId=${TEAM_ID}`, {
           method: 'PATCH',
           headers: { Authorization: `Bearer ${vercelToken}` },
         });
-        console.log(`[deploy-error-poll] Cancelled stale preview QUEUED build ${stale.uid} (branch: ${stale.meta?.githubCommitRef}, age: ${Math.round((Date.now()-stale.createdAt)/60000)}m)`);
+        const reason = stale.state === 'BUILDING' ? 'Hung >15m' : (stale.meta?.githubCommitRef === 'main' ? 'Redundant Queue' : 'Preview >5m');
+        console.log(`[deploy-error-poll] Cancelled ${stale.state} build ${stale.uid} (${reason}, branch: ${stale.meta?.githubCommitRef})`);
       } catch (e) {
         console.error(`[deploy-error-poll] Failed to cancel ${stale.uid}: ${e.message}`);
       }
@@ -210,6 +233,7 @@ export default async function handler(req, res) {
           { title: 'SHA', value: commitSha.substring(0, 9), short: true },
         ],
       }).catch(() => {});
+      sendErrorSMS('Autofix Rebuild Failed', `The autofix commit ${commitSha.substring(0, 9)} itself failed to build. Manual intervention may be needed.`).catch(() => {});
 
       return res.status(200).json({ action: 'skipped', deployId, reason: 'is an [autofix] commit — skipping to prevent loops' });
     }
@@ -241,6 +265,7 @@ export default async function handler(req, res) {
               color: 'danger',
               fields: [{ title: 'Attempts', value: String(autofixCount), short: true }],
             }).catch(() => {});
+            sendErrorSMS('Autofix Circuit Breaker', `Reached ${MAX_FIX_ATTEMPTS} fix attempts for ${commitSha.substring(0, 9)}. Stopping. Manual fix required.`).catch(() => {});
 
             return res.status(200).json({ action: 'circuit_breaker', deployId, commitSha: commitSha.substring(0, 8), attempts: autofixCount });
           }
@@ -288,6 +313,7 @@ export default async function handler(req, res) {
               color: 'danger',
               fields: [{ title: 'SHA', value: commitSha.substring(0, 9), short: true }],
             }).catch(() => {});
+            sendErrorSMS('Build OOM/SIGKILL', `Deploy ${commitSha.substring(0, 9)} killed by SIGKILL (out of memory). Not fixable by autofix.`).catch(() => {});
 
             return res.status(200).json({
               action: 'skipped', deployId, commitSha: commitSha.substring(0, 8),
@@ -403,6 +429,7 @@ export default async function handler(req, res) {
             { title: 'Attempt', value: `${attempt}/${MAX_FIX_ATTEMPTS}`, short: true },
           ],
         }).catch(() => {});
+        sendErrorSMS('Autofix PR Opened', `Fix for ${autofixResult.filePath || 'unknown'} staged in PR #${autofixResult.prNumber}. Review and merge to unblock deploy.`).catch(() => {});
       } else {
         console.log(`[deploy-error-poll] Autofix returned: ${autofixResult.action} — will retry`);
       }
