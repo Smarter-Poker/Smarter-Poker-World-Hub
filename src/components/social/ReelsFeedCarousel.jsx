@@ -939,7 +939,15 @@ function ReelViewer({ reels, startIndex, onClose }) {
             setViewCounts(prev => ({ ...prev, [reelId]: (prev[reelId] || reels[currentIndex]?.view_count || 0) + 1 }));
             (async () => { try { await supabase.rpc('increment_post_count', { p_post_id: reelId, p_field: 'view_count' }); } catch {} })();
         }
-    }, [currentIndex]);
+
+        // Force explicit autoplay since React autoPlay property is unreliable across tabs
+        if (videoRef.current) {
+            const playPromise = videoRef.current.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(error => console.warn('Autoplay blocked initially:', error));
+            }
+        }
+    }, [currentIndex, reels]);
 
     // Haptic helper
     const haptic = (ms = 10) => { try { navigator?.vibrate?.(ms); } catch {} };
@@ -1043,34 +1051,35 @@ function ReelViewer({ reels, startIndex, onClose }) {
             return;
         }
         lastTapRef.current = now;
-        // Single tap (after 300ms delay fails to double-tap)
-        setTimeout(() => {
-            if (lastTapRef.current !== now) return; // was overridden by double-tap
-            if (!showOverlay) {
-                setShowOverlay(true);
-                if (videoRef.current && !videoRef.current.paused) {
+        
+        // Execute playback changes synchronously to avoid mobile Safari blocking deferred play()
+        if (!showOverlay) {
+            setShowOverlay(true);
+            if (videoRef.current && !videoRef.current.paused) {
+                if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+                overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
+            }
+        } else {
+            if (videoRef.current) {
+                if (videoRef.current.paused) {
+                    const playPromise = videoRef.current.play();
+                    if (playPromise !== undefined) {
+                        playPromise.catch(e => console.warn('Play intercepted:', e));
+                    }
+                    // Playing = Auto hide
                     if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
                     overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
+                } else {
+                    videoRef.current.pause();
+                    // Paused = Anchor HUD
+                    if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
                 }
             } else {
-                if (videoRef.current) {
-                    if (videoRef.current.paused) {
-                        videoRef.current.play();
-                        // Playing = Auto hide
-                        if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
-                        overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
-                    } else {
-                        videoRef.current.pause();
-                        // Paused = Anchor HUD
-                        if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
-                    }
-                } else {
-                     // Non-native (YouTube) -> just extend timer
-                     if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
-                     overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2000);
-                }
+                 // Non-native (YouTube) -> just extend timer
+                 if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+                 overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2000);
             }
-        }, DOUBLE_TAP_WINDOW);
+        }
     };
 
     // Progress bar update loop for native videos
