@@ -33,6 +33,20 @@ function timeAgo(d) {
 
 // Full-screen Reel Viewer
 export function ReelsViewer({ onClose }) {
+
+    // Source-aware engagement counter. Reels may come from social_reels OR social_posts.
+    const incrementMetric = async (reel, field, amount) => {
+        if (!reel?.id) return;
+        try {
+            const table = reel.source === 'posts' ? 'social_posts' : 'social_reels';
+            const { data } = await supabase.from(table).select(field).eq('id', reel.id).maybeSingle();
+            if (data) {
+                await supabase.from(table).update({ [field]: Math.max(0, (data[field] || 0) + amount) }).eq('id', reel.id);
+            }
+        } catch (e) {
+            console.warn('[ReelsViewer] Engagement update failed:', e);
+        }
+    };
     const [reels, setReels] = useState([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [loading, setLoading] = useState(true);
@@ -274,7 +288,7 @@ export function ReelsViewer({ onClose }) {
         if (reelId && currentUserId && !viewedReelsRef.current.has(reelId)) {
             viewedReelsRef.current.add(reelId);
             setViewCounts(prev => ({ ...prev, [reelId]: (prev[reelId] || reels[currentIndex]?.view_count || 0) + 1 }));
-            (async () => { try { await supabase.rpc('increment_post_count', { p_post_id: reelId, p_field: 'view_count' }); } catch (e) { console.warn('Handled exception:', e); } })();
+            incrementMetric(reels[currentIndex], 'view_count', 1);
         }
 
         // Play via canplay event — video element may be remounting due to key change,
@@ -483,11 +497,11 @@ export function ReelsViewer({ onClose }) {
             if (wasLiked) {
                 await supabase.from('social_likes').delete().eq('post_id', currentReel.id).eq('user_id', userId).eq('reaction_type', 'like');
                 busEmit.socialPostLiked(currentReel.id, userId, { added: false, reactionType: 'like' });
-                try { await supabase.rpc('decrement_post_count', { p_post_id: currentReel.id, p_field: 'like_count' }); } catch (e) { console.warn('Handled exception:', e); }
+                incrementMetric(currentReel, 'like_count', -1);
             } else {
                 await supabase.from('social_likes').insert({ post_id: currentReel.id, user_id: userId, reaction_type: 'like' });
                 busEmit.socialPostLiked(currentReel.id, userId, { added: true, reactionType: 'like' });
-                try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'like_count' }); } catch (e) { console.warn('Handled exception:', e); }
+                incrementMetric(currentReel, 'like_count', 1);
             }
         } catch (err) {
             console.warn('Reel like persistence failed:', err.message);
@@ -519,7 +533,7 @@ export function ReelsViewer({ onClose }) {
         if (!wasDisliked && liked[currentReel.id]) {
             try {
                 await supabase.from('social_likes').delete().eq('post_id', currentReel.id).eq('user_id', userId).eq('reaction_type', 'like');
-                try { await supabase.rpc('decrement_post_count', { p_post_id: currentReel.id, p_field: 'like_count' }); } catch (e) { console.warn('Handled exception:', e); }
+                incrementMetric(currentReel, 'like_count', -1);
             } catch (e) { console.warn('Handled exception:', e); }
         }
 
@@ -616,7 +630,7 @@ export function ReelsViewer({ onClose }) {
             const { error } = await supabase.from('social_comments').insert(payload);
             if (error) throw error;
             busEmit.socialCommentAdded(currentReel.id, currentUserId);
-            try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'comment_count' }); } catch (e) { console.warn('Handled exception:', e); }
+            incrementMetric(currentReel, 'comment_count', 1);
             setCommentCounts(prev => ({ ...prev, [currentReel.id]: (prev[currentReel.id] || 0) + 1 }));
         } catch {
             setReelComments(prev => prev.filter(c => c.id !== tempId));
@@ -655,7 +669,7 @@ export function ReelsViewer({ onClose }) {
             const { error } = await supabase.from('social_comments').delete()
                 .eq('id', commentId).eq('author_id', currentUserId);
             if (error) throw error;
-            try { await supabase.rpc('decrement_post_count', { p_post_id: currentReel.id, p_field: 'comment_count' }); } catch (e) { console.warn('Handled exception:', e); }
+            incrementMetric(currentReel, 'comment_count', -1);
             setCommentCounts(p => ({ ...p, [currentReel.id]: Math.max(0, (p[currentReel.id] || 1) - 1) }));
             busEmit.socialCommentAdded && busEmit.socialCommentAdded(currentReel.id, currentUserId, { removed: true });
         } catch { setReelComments(prev); }
@@ -755,7 +769,7 @@ export function ReelsViewer({ onClose }) {
             } else if (platform === 'whatsapp') {
                 window.open(`https://wa.me/?text=${encodeURIComponent(title + ' ' + url)}`, '_blank');
             }
-            (async () => { try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'share_count' }); } catch (e) { console.warn('Handled exception:', e); } })();
+            if (platform !== 'copy') incrementMetric(currentReel, 'share_count', 1);
             if (currentUserId) busEmit.socialPostShared(currentReel.id, currentUserId);
         } catch {
             setShareToast(true);
@@ -792,7 +806,7 @@ export function ReelsViewer({ onClose }) {
                 link_url: reelLink,
             });
             if (error) throw error;
-            try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'share_count' }); } catch (e) { console.warn('Handled exception:', e); }
+            incrementMetric(currentReel, 'share_count', 1);
             busEmit.socialPostShared(currentReel.id, currentUserId);
             busEmit.dataMutated('social');
             setSharedToFeed(true);
