@@ -775,7 +775,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
         }
     };
 
-    const shareReelUrl = currentReel ? `${window.location.origin}/hub/social-media?reel=${currentReel.id}` : '';
+    const shareReelUrl = currentReel ? `${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}/hub/social-media?reel=${currentReel.id}` : '';
 
     const handleShareAction = async (platform) => {
         setShowShareModal(false);

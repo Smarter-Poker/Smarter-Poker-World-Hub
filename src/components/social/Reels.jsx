@@ -706,7 +706,7 @@ export function ReelsViewer({ onClose }) {
         }
     };
 
-    const shareReelUrl = currentReel ? `${window.location.origin}/hub/reels?id=${currentReel.id}` : '';
+    const shareReelUrl = currentReel ? `${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}/hub/reels?id=${currentReel.id}` : '';
 
     const handleShareAction = async (platform) => {
         setShowShareModal(false);
