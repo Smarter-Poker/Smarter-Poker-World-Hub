@@ -19,14 +19,14 @@ const AntiGravityContext = createContext(null);
  */
 export function AntiGravityProvider({ children }) {
     const [bootState, setBootState] = useState(() => {
-        // Synchronous init — env check + Supabase singleton (instant, no network)
+        // Synchronous init - env check + Supabase singleton (instant, no network)
         const syncState = initAntiGravitySync();
         return syncState;
     });
-    const [loading, setLoading] = useState(false); // No gate — render immediately
+    const [loading, setLoading] = useState(false); // No gate - render immediately
 
     useEffect(() => {
-        // Background async health check — does NOT block rendering
+        // Background async health check - does NOT block rendering
         async function backgroundHealthCheck() {
             try {
                 const state = await initAntiGravity();
