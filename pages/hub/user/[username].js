@@ -611,7 +611,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
                                                     style={{ width: '100%', border: `1px solid ${C.border}`, borderRadius: 8, padding: '6px 10px', fontSize: 14, outline: 'none', resize: 'vertical', minHeight: 40, fontFamily: 'inherit', boxSizing: 'border-box' }}
                                                 />
                                                 <div style={{ display: 'flex', gap: 8, marginTop: 6, justifyContent: 'flex-end' }}>
-                                                    <button onClick={() => setEditingCommentId(null)} style={{ padding: '4px 12px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent', color: C.textSec, cursor: 'pointer', fontSize: 12, fontWeight: 500 }}>Cancel</button>
+                                                    <button onClick={() => setEditingCommentId(null)} style={{ padding: '4px 12px', borderRadius: 20, border: `1px solid ${C.border}`, background: 'transparent', color: C.textSec, cursor: 'pointer', fontSize: 12, fontWeight: 500 }}>Cancel</button>
                                                     <button onClick={async () => {
                                                         if (!editCommentText.trim()) return;
                                                         try {
@@ -622,7 +622,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
                                                             busEmit.dataMutated?.('social_comments');
                                                             toast.success('Comment updated');
                                                         } catch (e) { console.error('Edit comment error:', e); toast.error('Could not update comment'); }
-                                                    }} disabled={!editCommentText.trim()} style={{ padding: '4px 12px', borderRadius: 6, border: 'none', background: C.blue, color: 'white', cursor: 'pointer', fontSize: 12, fontWeight: 600, opacity: editCommentText.trim() ? 1 : 0.5 }}>Save</button>
+                                                    }} disabled={!editCommentText.trim()} style={{ padding: '4px 12px', borderRadius: 20, border: 'none', background: C.blue, color: 'white', cursor: 'pointer', fontSize: 12, fontWeight: 600, opacity: editCommentText.trim() ? 1 : 0.5 }}>Save</button>
                                                 </div>
                                             </div>
                                         ) : (
