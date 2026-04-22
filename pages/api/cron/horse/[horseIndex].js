@@ -23,7 +23,7 @@ function getSupabase() {
 
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import Parser from 'rss-parser';
-import { getGrokClient } from '../../../../src/lib/grokClient.js';
+import { generatePostCaption, generateNewsCaption, seedHorseMemory } from '../../../../src/content-engine/pipeline/HumanVoiceEngine.js';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 // ClipLibrary for poker video clips - loaded dynamically
@@ -69,8 +69,6 @@ async function validateYouTubeVideo(url) {
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-const grok = getGrokClient();
 
 // BANNED PHRASES - never use these
 const BANNED_PHRASES = [
@@ -396,25 +394,20 @@ async function postVideoClip(horse, assignedSources, horseIndex, clipType = 'spo
         }
     }
 
-    const voice = getHorseVoice(horseIndex);
-
-    let caption = '';
-    try {
-        const clipTitle = clip.title || clip.description || 'video clip';
-        const response = await grok.chat.completions.create({
-            model: 'grok-3-mini',
-            messages: [{
-                role: 'user',
-                content: `Write a ${voice.style} reaction to this ${clipType} video title in 3-10 words. NO emojis. NO "yo", "check out", "pretty cool". Just ${voice.style}. Example: "${voice.example}". Title: "${clipTitle}"`
-            }],
-            max_tokens: 30
-        });
-        caption = response.choices[0]?.message?.content?.trim() || clipTitle.slice(0, 50);
-    } catch (e) {
-        caption = (clip.title || clip.description || 'Worth watching').slice(0, 50);
+    // Seed horse memory from recent posts (prevents cross-session repeats)
+    const { data: recentCaptions } = await getSupabase()
+        .from('social_posts')
+        .select('content')
+        .eq('author_id', horse.profile_id)
+        .order('created_at', { ascending: false })
+        .limit(15);
+    if (recentCaptions?.length) {
+        seedHorseMemory(horse.profile_id, recentCaptions.map(p => p.content?.split('\n')[0] || ''));
     }
 
-    caption = voice.opener + cleanCaption(caption, horseIndex);
+    // Generate human-sounding caption — no API call, no cost
+    const clipCategory = clip.category || (clipType === 'poker' ? 'massive_pot' : 'general');
+    const caption = generatePostCaption(clipCategory, horse.profile_id, clip.title || '');
 
     const { data: post, error } = await getSupabase().from('social_posts').insert({
         author_id: horse.profile_id,
@@ -465,24 +458,19 @@ async function postNewsLink(horse, horseIndex, newsType) {
 
         // Pick random from FRESH articles only
         const article = freshArticles[Math.floor(Math.random() * freshArticles.length)];
-        const voice = getHorseVoice(horseIndex);
-
-        let caption = '';
-        try {
-            const response = await grok.chat.completions.create({
-                model: 'grok-3-mini',
-                messages: [{
-                    role: 'user',
-                    content: `Write a ${voice.style} reaction to this headline in 3-10 words. NO emojis. NO "yo", "check out", "pretty cool". Just ${voice.style}. Example: "${voice.example}". Headline: "${article.title}"`
-                }],
-                max_tokens: 30
-            });
-            caption = response.choices[0]?.message?.content?.trim() || article.title?.slice(0, 40);
-        } catch (e) {
-            caption = article.title?.slice(0, 40) || 'Worth reading';
+        // Seed horse memory from recent posts (prevents cross-session repeats)
+        const { data: recentNewsCaptions } = await getSupabase()
+            .from('social_posts')
+            .select('content')
+            .eq('author_id', horse.profile_id)
+            .order('created_at', { ascending: false })
+            .limit(15);
+        if (recentNewsCaptions?.length) {
+            seedHorseMemory(horse.profile_id, recentNewsCaptions.map(p => p.content?.split('\n')[0] || ''));
         }
 
-        caption = voice.opener + cleanCaption(caption, horseIndex);
+        // Generate human-sounding caption — no API call, no cost
+        const caption = generateNewsCaption(article.title || '', horse.profile_id, newsType);
         const postContent = `${caption}\n\n${article.link}`;
 
         const { data: post, error } = await getSupabase().from('social_posts').insert({
