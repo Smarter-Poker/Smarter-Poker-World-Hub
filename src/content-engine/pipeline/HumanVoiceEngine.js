@@ -70,7 +70,7 @@ function getHorseHash(profileId) {
 const ARCHETYPES = [
   { id: 'blunt',      capStyle: 'all_lower',  punct: 'none',        flair: ['real talk', 'honestly', 'ngl'] },
   { id: 'analytical', capStyle: 'normal',     punct: 'minimal',     flair: ['solver take', 'range-wise', 'GTO note'] },
-  { id: 'hype',       capStyle: 'all_caps_words', punct: 'none',    flair: ['LFG', 'let\'s go', 'huge'] },
+  { id: 'hype',       capStyle: 'normal',         punct: 'none',         flair: ['LFG', 'massive', 'huge'] },
   { id: 'dry',        capStyle: 'all_lower',  punct: 'none',        flair: ['sure', 'of course', 'classic'] },
   { id: 'veteran',    capStyle: 'normal',     punct: 'minimal',     flair: ['textbook', 'seen it', 'classic spot'] },
   { id: 'casual',     capStyle: 'all_lower',  punct: 'ellipsis',    flair: ['ngl', 'lowkey', 'kinda'] },
