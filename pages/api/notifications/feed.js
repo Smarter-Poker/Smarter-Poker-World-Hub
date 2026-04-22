@@ -15,6 +15,38 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
+// ── Server-side in-memory TTL cache ──────────────────────────────────────────
+// On warm Vercel instances, repeated fetches within 15s return instantly (<5ms)
+// instead of paying the full Supabase round-trip cost every call.
+// TTL matches the Cache-Control header (private, max-age=15).
+const CACHE_TTL_MS = 15_000;
+const _feedCache = new Map(); // userId → { payload, expiresAt }
+
+// Called by mark-read / delete APIs to invalidate the cache for a user.
+// (Exported so those handlers can import and call it)
+export function invalidateFeedCache(userId) {
+    _feedCache.delete(userId);
+}
+
+function setCachedFeed(userId, payload) {
+    _feedCache.set(userId, { payload, expiresAt: Date.now() + CACHE_TTL_MS });
+    // Prune stale entries to prevent unbounded growth (keep map ≤500 entries)
+    if (_feedCache.size > 500) {
+        const now = Date.now();
+        for (const [k, v] of _feedCache) {
+            if (v.expiresAt < now) _feedCache.delete(k);
+            if (_feedCache.size <= 500) break;
+        }
+    }
+}
+
+function getCachedFeed(userId) {
+    const entry = _feedCache.get(userId);
+    if (!entry) return null;
+    if (Date.now() > entry.expiresAt) { _feedCache.delete(userId); return null; }
+    return entry.payload;
+}
+
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -37,8 +69,18 @@ export default async function handler(req, res) {
             return res.status(401).json({ success: false, error: 'Auth required' });
         }
         const userId = serverUser.id;
-
         const limit = Math.min(parseInt(req.query.limit || '50', 10), 100);
+        const bustCache = req.query.bust === '1';
+
+        // ── Serve from in-memory cache if available ───────────────────────────
+        if (!bustCache) {
+            const cached = getCachedFeed(userId);
+            if (cached) {
+                res.setHeader('Cache-Control', 'private, max-age=15, stale-while-revalidate=60');
+                res.setHeader('X-Cache', 'HIT');
+                return res.status(200).json(cached);
+            }
+        }
 
         // ── Phase 1: Fetch social notifications + page_followers in parallel ──
         const [socialResult, followsResult] = await Promise.all([
@@ -182,15 +224,18 @@ export default async function handler(req, res) {
 
         const totalUnread = enriched.filter(n => !n.read).length;
 
+        const payload = { success: true, notifications: enriched, totalUnread };
+
+        // Store in server-side TTL cache (15s) — future calls on same warm instance return instantly
+        setCachedFeed(userId, payload);
+
         // Short private cache: browser reuses within 15s, stale for 60s
         // User-specific — never shared via CDN
         res.setHeader('Cache-Control', 'private, max-age=15, stale-while-revalidate=60');
+        res.setHeader('X-Cache', 'MISS');
 
-        return res.status(200).json({
-            success: true,
-            notifications: enriched,
-            totalUnread,
-        });
+        return res.status(200).json(payload);
+
 
     } catch (err) {
         try { reportApiError(err, req); } catch (_) {}

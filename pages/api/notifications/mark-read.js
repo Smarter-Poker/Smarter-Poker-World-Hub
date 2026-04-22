@@ -1,13 +1,9 @@
-/**
- * POST /api/notifications/mark-read
- * 
- * Mark one or all notifications as read for the authenticated user.
- * Body: { notificationId } — mark one, or {} — mark all
- * Auth: Bearer token
- */
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { invalidateFeedCache } from './feed';
+
 
 let _supabase = null;
 function getSupabase() {
@@ -24,12 +20,10 @@ export default async function handler(req, res) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
     if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'Auth required' });
+    // PERF-FIX: Local HMAC JWT validation — eliminates ~1.5s GoTrue network round-trip
+    const { user } = await getServerUserWithFallback(req, getSupabase());
+    if (!user) return res.status(401).json({ error: 'Auth required' });
 
-    const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
-    const user = authData?.user;
-    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
     try {
       const { notificationId } = req.body || {};
@@ -50,7 +44,11 @@ export default async function handler(req, res) {
           .eq('read', false);
       }
 
+      // Invalidate server-side feed cache so next fetch reflects updated read state
+      invalidateFeedCache(user.id);
+
       return res.json({ success: true });
+
     } catch (err) {
       console.warn('[mark-read]', err);
       return res.status(500).json({ error: 'Failed to mark notifications' });
