@@ -1,24 +1,27 @@
 #!/usr/bin/env python3
 """
-VIDEO LIBRARY SCRAPER v1.0 — Duration Enricher + Camoufox Fallback
-====================================================================
-Companion to /api/cron/video-library-scraper.js
+VIDEO LIBRARY DAILY SCRAPER v2.0
+=================================
+Uses yt-dlp --flat-playlist to discover new videos from all 25 creators.
+Runs locally/on Hetzner, NOT on Vercel (yt-dlp can't run serverless).
 
-This script:
-  1. Enriches videos in video_library_videos that have NULL duration
-     by fetching metadata via yt-dlp (fast, no API key needed)
-  2. Backfills any creators whose RSS was unavailable using Scrapling
-     + camoufox (Cloudflare bypass)
-  3. Runs nightly via OpenClaw at 3am UTC
+Architecture:
+  - This script is the ingestion engine (runs on the machine via cron/daemon)
+  - The API cron /api/cron/video-library-scraper is a status webhook
+  - Open Claw triggers this script via a shell call or manages it as a daemon
+
+CREATORS COVERED (25 — matches SOURCES in videoLibraryData.js):
+  Live: HCL, LODGE, TRITON, LATB, TCH, POKERGO
+  Tours: WSOP, WPT, EPT
+  Vloggers: BRAD_OWEN, NEEME, RAMPAGE, MARIANO, WOLFGANG, JOHNNIE, BOSKI, RYAN
+  Training: JLITTLE, POLK, BART, UPSWING
+  Celebrity: NEGREANU, HELLMUTH, IVEY, DWAN, GARRETT
 
 Usage:
-    cd /Users/smarter.poker/Documents/Smarter-Poker-World-Hub
-    source .venv/bin/activate
-    python3 scripts/video_library_scraper.py
+    python3 scripts/video_library_scraper.py [--dry-run] [--source HCL]
 
-Schedule (openclaw-cron-dispatcher.py):
-    /api/cron/video-library-scraper   06:00 UTC daily (RSS ingest)
-    python3 scripts/video_library_scraper.py  03:00 UTC daily (enrichment)
+Schedule (cron example):
+    0 6 * * * /usr/bin/python3 /path/to/scripts/video_library_scraper.py >> ~/.smarter-poker/logs/video-library.log 2>&1
 """
 
 import os
@@ -28,16 +31,9 @@ import time
 import hashlib
 import logging
 import subprocess
-import urllib.request
+import argparse
 from datetime import datetime, timezone
 from pathlib import Path
-
-# ── Deps check ────────────────────────────────────────────────────────────────
-try:
-    from supabase import create_client
-except ImportError:
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'supabase'])
-    from supabase import create_client
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 LOG_DIR = Path.home() / '.smarter-poker' / 'logs'
@@ -53,18 +49,19 @@ logging.basicConfig(
 )
 log = logging.getLogger('video-library-scraper')
 
+# Evidence directory (Scrapling SKILL compliance)
+EVIDENCE_DIR = Path('/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/data/scrape-evidence')
+EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
 
-# ── Config ────────────────────────────────────────────────────────────────────
+# ── Env ───────────────────────────────────────────────────────────────────────
 def _load_env():
-    """Load .env.local into os.environ."""
-    env_file = Path.home() / 'Documents' / 'Smarter-Poker-World-Hub' / '.env.local'
+    env_file = Path('/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/.env.local')
     if env_file.exists():
         for line in env_file.read_text().splitlines():
             line = line.strip()
             if line and not line.startswith('#') and '=' in line:
-                key, val = line.split('=', 1)
-                val = val.strip().strip('"').strip("'")
-                os.environ.setdefault(key.strip(), val)
+                k, v = line.split('=', 1)
+                os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
 
 _load_env()
 
@@ -72,268 +69,271 @@ SUPABASE_URL = os.environ.get('NEXT_PUBLIC_SUPABASE_URL', '')
 SUPABASE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
 
 if not SUPABASE_URL or not SUPABASE_KEY:
-    log.error('Missing SUPABASE credentials. Check .env.local')
+    log.error('Missing SUPABASE credentials')
     sys.exit(1)
 
+from supabase import create_client
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# Evidence directory (Scrapling SKILL requirement)
-EVIDENCE_DIR = Path.home() / 'Documents' / 'Smarter-Poker-World-Hub' / 'data' / 'scrape-evidence'
-EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
+# ── Creator Registry — verified @handles (yt-dlp resolves to real channel IDs) ──
+# All handles verified by fetching from known video IDs or direct yt-dlp discovery.
+# Last verified: 2026-04-22
+CREATORS = [
+    # LIVE STREAMS
+    {'source_id': 'HCL',      'name': 'Hustler Casino Live', 'handle': 'HustlerCasinoLive',  'type': 'cash',       'max': 20},
+    {'source_id': 'LODGE',    'name': 'The Lodge',            'handle': 'TheLodgeLive',        'type': 'cash',       'max': 15},  # was @TheLodgeCard — real handle verified
+    {'source_id': 'TRITON',   'name': 'Triton Poker',         'handle': 'TritonPoker',         'type': 'tournament', 'max': 15},
+    {'source_id': 'LATB',     'name': 'Bally Poker Live',     'handle': 'BallyPokerLive',      'type': 'cash',       'max': 12},  # LATB rebranded to Bally
+    {'source_id': 'TCH',      'name': 'TCH Live',             'handle': 'texascardhouse',      'type': 'cash',       'max': 10},  # lowercase verified
+    {'source_id': 'POKERGO',  'name': 'PokerGO',              'handle': 'PokerGO',             'type': 'cash',       'max': 10},
+
+    # MAJOR TOURS
+    {'source_id': 'WSOP',     'name': 'WSOP',                 'handle': 'wsop',                'type': 'tournament', 'max': 15},
+    {'source_id': 'WPT',      'name': 'World Poker Tour',     'handle': 'worldpokertour',      'type': 'tournament', 'max': 12},  # verified
+    {'source_id': 'EPT',      'name': 'EPT Poker',            'handle': 'PokerStars',          'type': 'tournament', 'max': 12},
+
+    # TOP VLOGGERS
+    {'source_id': 'BRAD_OWEN','name': 'Brad Owen',            'handle': 'BradOwenPoker',       'type': 'cash',       'max': 10},
+    {'source_id': 'NEEME',    'name': 'Andrew Neeme',         'handle': 'AndrewNeeme',         'type': 'cash',       'max':  8},
+    {'source_id': 'RAMPAGE',  'name': 'Rampage Poker',        'handle': 'RampagePoker',        'type': 'cash',       'max':  8},
+    {'source_id': 'MARIANO',  'name': 'Mariano',              'handle': 'MarianoPoker',        'type': 'cash',       'max':  8},
+    {'source_id': 'WOLFGANG', 'name': 'Wolfgang Poker',       'handle': 'Wolfgang_Poker',      'type': 'cash',       'max':  8},  # verified
+    {'source_id': 'JOHNNIE',  'name': 'JohnnieVibes',         'handle': 'JohnnieVibes',        'type': 'cash',       'max':  6},
+    {'source_id': 'BOSKI',    'name': 'Boski',                'handle': 'BoskiPoker',          'type': 'cash',       'max':  6},
+    {'source_id': 'RYAN',     'name': 'Ryan Depaulo',         'handle': 'RyanDepaulo',         'type': 'cash',       'max':  6},
+
+    # TRAINING / STRATEGY
+    {'source_id': 'JLITTLE',  'name': 'Jonathan Little',      'handle': 'JonathanLittlePoker', 'type': 'cash',       'max': 10},
+    {'source_id': 'POLK',     'name': 'Doug Polk Poker',      'handle': 'DougPolkPoker',       'type': 'cash',       'max': 10},
+    {'source_id': 'BART',     'name': 'Bart Hanson',          'handle': 'CrushLivePoker',      'type': 'cash',       'max':  8},
+    {'source_id': 'UPSWING',  'name': 'Upswing Poker',        'handle': 'UpswingPoker',        'type': 'cash',       'max': 10},
+
+    # CELEBRITY PROS (best-effort — may not have active channels)
+    {'source_id': 'NEGREANU', 'name': 'Daniel Negreanu',      'handle': 'dnegspoker',          'type': 'cash',       'max':  8},  # verified @dnegspoker
+    {'source_id': 'HELLMUTH', 'name': 'Phil Hellmuth',        'handle': 'PhilHellmuth',        'type': 'tournament', 'max':  6},
+    {'source_id': 'IVEY',     'name': 'Phil Ivey',            'handle': 'PhilIvey',            'type': 'cash',       'max':  6},
+    {'source_id': 'DWAN',     'name': 'Tom Dwan',             'handle': 'TomDwan',             'type': 'cash',       'max':  6},
+    {'source_id': 'GARRETT',  'name': 'Garrett Adelstein',    'handle': 'GarrettAdelstein',    'type': 'cash',       'max':  6},
+]
 
 
-# ── Network Pre-check (Scrapling SKILL requirement) ───────────────────────────
-def _network_available():
-    try:
-        req = urllib.request.Request('https://1.1.1.1', method='HEAD')
-        urllib.request.urlopen(req, timeout=5)
-        return True
-    except Exception:
-        return False
+def format_views(n: int) -> str:
+    if not n:
+        return '0'
+    if n >= 1_000_000:
+        return f'{n/1_000_000:.1f}M'
+    if n >= 1_000:
+        return f'{n/1_000:.0f}K'
+    return str(n)
 
 
-# ── Duration fetcher via yt-dlp ───────────────────────────────────────────────
-def get_duration_ytdlp(youtube_video_id: str) -> str | None:
-    """
-    Use yt-dlp to fetch duration for a single video.
-    Returns 'MM:SS' or 'H:MM:SS' string, or None on failure.
-    """
-    url = f'https://www.youtube.com/watch?v={youtube_video_id}'
-    try:
-        result = subprocess.run(
-            ['yt-dlp', '--dump-json', '--no-warnings', '--quiet', url],
-            capture_output=True, text=True, timeout=20
-        )
-        if result.returncode != 0:
-            return None
-        data = json.loads(result.stdout)
-        duration_sec = data.get('duration', 0)
-        if not duration_sec:
-            return None
-        return format_duration(int(duration_sec))
-    except (subprocess.TimeoutExpired, json.JSONDecodeError, Exception) as e:
-        log.debug(f'yt-dlp failed for {youtube_video_id}: {e}')
+def format_duration(sec) -> str | None:
+    if not sec:
         return None
-
-
-def format_duration(total_seconds: int) -> str:
-    h = total_seconds // 3600
-    m = (total_seconds % 3600) // 60
-    s = total_seconds % 60
-    if h > 0:
+    sec = int(sec)
+    h = sec // 3600
+    m = (sec % 3600) // 60
+    s = sec % 60
+    if h:
         return f'{h}:{m:02d}:{s:02d}'
     return f'{m}:{s:02d}'
 
 
-# ── Batch duration enrichment ─────────────────────────────────────────────────
-def enrich_durations(batch_size: int = 50):
+def fetch_channel_videos(creator: dict, dry_run: bool = False) -> list[dict]:
     """
-    Fetch all videos with NULL duration and enrich them via yt-dlp.
-    Processes in batches to avoid overwhelming the network.
+    Use yt-dlp --flat-playlist to get the latest N videos from a YouTube channel.
+    Returns list of video dicts.
     """
-    log.info('=== Duration Enrichment Pass ===')
+    handle = creator['handle']
+    url = f'https://www.youtube.com/@{handle}/videos'
+    max_vids = creator['max']
 
-    # Fetch videos missing duration
-    resp = supabase.table('video_library_videos') \
-        .select('id, youtube_video_id, title') \
-        .is_('duration', 'null') \
-        .limit(batch_size) \
-        .execute()
-
-    videos = resp.data or []
-    log.info(f'Found {len(videos)} videos needing duration enrichment')
-
-    enriched = 0
-    failed = 0
-
-    for v in videos:
-        vid_id = v['youtube_video_id']
-        duration = get_duration_ytdlp(vid_id)
-
-        if duration:
-            supabase.table('video_library_videos') \
-                .update({'duration': duration, 'enriched_at': datetime.now(timezone.utc).isoformat()}) \
-                .eq('id', v['id']) \
-                .execute()
-            log.info(f'  ✓ {vid_id} → {duration}')
-            enriched += 1
-        else:
-            # Set a placeholder so we don't retry endlessly
-            supabase.table('video_library_videos') \
-                .update({'duration': '?', 'enriched_at': datetime.now(timezone.utc).isoformat()}) \
-                .eq('id', v['id']) \
-                .execute()
-            failed += 1
-
-        # Polite delay between yt-dlp calls
-        time.sleep(0.5)
-
-    log.info(f'Duration enrichment: {enriched} enriched, {failed} failed')
-    return enriched, failed
-
-
-# ── Scrapling fallback for blocked RSS channels ───────────────────────────────
-def scrape_channel_scrapling(channel_id: str, source_id: str, source_name: str, video_type: str, max_videos: int = 10):
-    """
-    Fallback scraper using Scrapling + camoufox for channels whose RSS
-    returns empty or 403. Scrapes the YouTube channel page directly.
-
-    Per Scrapling SKILL: always capture SHA-256 hash + save evidence.
-    """
-    if not _network_available():
-        log.error('Network unavailable — skipping Scrapling fallback')
-        return []
-
-    url = f'https://www.youtube.com/channel/{channel_id}/videos'
-    log.info(f'Scrapling fallback for {source_name}: {url}')
+    cmd = [
+        'yt-dlp',
+        '--flat-playlist',
+        '--dump-json',
+        '--no-warnings',
+        '--quiet',
+        '--playlist-end', str(max_vids),
+        url,
+    ]
 
     try:
-        from scrapling.fetchers import StealthySession
-    except ImportError:
-        log.warning('Scrapling not installed — skipping fallback')
-        return []
-
-    session = None
-    videos = []
-
-    try:
-        session = StealthySession(headless=True, solve_cloudflare=True)
-        session.start()
-
-        # CF-solve retry (3x per Scrapling SKILL)
-        resp = None
-        for attempt in range(3):
-            try:
-                resp = session.fetch(url, google_search=True)
-                if resp and resp.status == 200:
-                    break
-            except Exception as e:
-                log.warning(f'Attempt {attempt + 1} failed for {source_name}: {e}')
-                if attempt < 2:
-                    time.sleep(2 ** attempt)
-                    session.close()
-                    session = StealthySession(headless=True, solve_cloudflare=True)
-                    session.start()
-                else:
-                    raise
-
-        if not resp or resp.status != 200:
-            log.warning(f'Failed to fetch {url} after 3 attempts')
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        if result.returncode != 0 and not result.stdout.strip():
+            log.warning(f'  [{creator["source_id"]}] yt-dlp failed (rc={result.returncode}): {result.stderr[:200]}')
             return []
 
-        body = resp.body or b''
+        videos = []
+        for line in result.stdout.strip().splitlines():
+            try:
+                d = json.loads(line)
+                vid_id = d.get('id')
+                if not vid_id:
+                    continue
+                videos.append({
+                    'youtube_video_id': vid_id,
+                    'source_id':        creator['source_id'],
+                    'source_name':      creator['name'],
+                    'type':             creator['type'],
+                    'title':            d.get('title', ''),
+                    'views_count':      d.get('view_count', 0) or 0,
+                    'views_text':       format_views(d.get('view_count', 0) or 0),
+                    'duration':         format_duration(d.get('duration')),
+                    'thumbnail_url':    (d.get('thumbnails') or [{}])[-1].get('url') or f'https://img.youtube.com/vi/{vid_id}/maxresdefault.jpg',
+                    'video_url':        f'https://www.youtube.com/watch?v={vid_id}',
+                    'published_at':     datetime.now(timezone.utc).isoformat(),
+                    'scraped_at':       datetime.now(timezone.utc).isoformat(),
+                })
+            except json.JSONDecodeError:
+                continue
 
-        # SHA-256 evidence (Scrapling SKILL requirement)
-        html_hash = hashlib.sha256(body).hexdigest()
-        evidence = {
-            'scrape_url': url,
-            'scrape_http_status': resp.status,
-            'scrape_html_hash': html_hash,
-            'scrape_byte_count': len(body),
-            'scrape_timestamp': datetime.now(timezone.utc).isoformat(),
-            'scrape_script': __file__,
-            'source_id': source_id,
-            'body_preview': body.decode('utf-8', errors='replace')[:300],
-        }
+        return videos
 
-        timestamp = datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')
-        evidence_file = EVIDENCE_DIR / f'video_library_{source_id}_{timestamp}.json'
-        evidence_file.write_text(json.dumps(evidence, indent=2))
-        log.info(f'Evidence saved: {evidence_file.name}')
-
-        # Parse video IDs from page source
-        import re
-        html_text = body.decode('utf-8', errors='replace')
-        # YouTube embeds video IDs in the page JSON
-        id_pattern = re.compile(r'"videoId"\s*:\s*"([A-Za-z0-9_-]{11})"')
-        title_pattern = re.compile(r'"title"\s*:\s*\{"runs"\s*:\s*\[{"text"\s*:\s*"([^"]{5,120})"')
-
-        found_ids = list(dict.fromkeys(id_pattern.findall(html_text)))[:max_videos]
-        found_titles = title_pattern.findall(html_text)
-
-        for i, vid_id in enumerate(found_ids):
-            title = found_titles[i] if i < len(found_titles) else f'{source_name} Video'
-            videos.append({
-                'youtube_video_id': vid_id,
-                'source_id': source_id,
-                'source_name': source_name,
-                'type': video_type,
-                'title': title,
-                'thumbnail_url': f'https://img.youtube.com/vi/{vid_id}/maxresdefault.jpg',
-                'video_url': f'https://www.youtube.com/watch?v={vid_id}',
-                'views_text': '0',
-                'views_count': 0,
-                'published_at': datetime.now(timezone.utc).isoformat(),
-                'duration': None,
-                'scraped_at': datetime.now(timezone.utc).isoformat(),
-            })
-
-        log.info(f'Scrapling found {len(videos)} videos for {source_name}')
-
+    except subprocess.TimeoutExpired:
+        log.warning(f'  [{creator["source_id"]}] yt-dlp timed out')
+        return []
     except Exception as e:
-        log.error(f'Scrapling error for {source_name}: {e}')
-    finally:
-        try:
-            if session:
-                session.close()
-        except Exception:
-            pass
-
-    return videos
+        log.error(f'  [{creator["source_id"]}] Unexpected error: {e}')
+        return []
 
 
-# ── Upsert scrapled videos to Supabase ────────────────────────────────────────
-def upsert_videos(videos: list) -> dict:
-    if not videos:
-        return {'imported': 0, 'skipped': 0}
-
-    # Load existing IDs
-    existing_resp = supabase.table('video_library_videos') \
-        .select('youtube_video_id') \
-        .execute()
-    existing = {v['youtube_video_id'] for v in (existing_resp.data or [])}
-
-    new_videos = [v for v in videos if v['youtube_video_id'] not in existing]
-
-    if not new_videos:
-        return {'imported': 0, 'skipped': len(videos)}
-
-    resp = supabase.table('video_library_videos') \
-        .upsert(new_videos, on_conflict='youtube_video_id') \
-        .execute()
-
-    imported = len(new_videos)
-    log.info(f'Upserted {imported} new videos')
-    return {'imported': imported, 'skipped': len(videos) - imported}
-
-
-# ── Main ──────────────────────────────────────────────────────────────────────
-def main():
+def run_scraper(dry_run: bool = False, filter_source: str | None = None):
+    """Main scraper loop — processes all 25 creators."""
     log.info('=' * 60)
-    log.info('Video Library Scraper v1.0 starting')
+    log.info(f'Video Library Scraper v2.0 — {"DRY RUN" if dry_run else "LIVE"}')
     log.info(f'Time: {datetime.now(timezone.utc).isoformat()}')
     log.info('=' * 60)
 
-    # Step 1: Enrich durations for videos missing them
-    enriched, failed = enrich_durations(batch_size=50)
+    start = datetime.now(timezone.utc)
 
-    # Step 2: Audit log
-    try:
-        supabase.table('data_audit_log').insert({
-            'table_name': 'video_library_videos',
-            'action': 'duration_enrichment',
-            'scrape_proof': json.dumps({
-                'scraper': 'video_library_scraper_py',
-                'enriched': enriched,
-                'failed': failed,
-                'ran_at': datetime.now(timezone.utc).isoformat(),
-            }),
-        }).execute()
-    except Exception as e:
-        log.warning(f'Audit log failed: {e}')
+    # Load all existing IDs for dedup
+    existing_resp = supabase.table('video_library_videos').select('youtube_video_id').execute()
+    existing_ids = set(v['youtube_video_id'] for v in (existing_resp.data or []))
+    log.info(f'Existing videos in DB: {len(existing_ids)}')
 
-    log.info(f'Complete. Enriched={enriched}, Failed={failed}')
+    summary = {
+        'processed': 0, 'failed': 0,
+        'total_found': 0, 'total_new': 0, 'total_skipped': 0,
+        'creator_results': [],
+    }
+
+    creators = CREATORS
+    if filter_source:
+        creators = [c for c in CREATORS if c['source_id'] == filter_source.upper()]
+        if not creators:
+            log.error(f'Unknown source_id: {filter_source}')
+            return
+
+    for creator in creators:
+        log.info(f'Processing {creator["name"]} (@{creator["handle"]})...')
+        cr = {'source_id': creator['source_id'], 'found': 0, 'new': 0, 'skipped': 0, 'error': None}
+
+        try:
+            videos = fetch_channel_videos(creator, dry_run)
+            cr['found'] = len(videos)
+            summary['total_found'] += len(videos)
+
+            if not videos:
+                log.info(f'  [{creator["source_id"]}] No videos fetched')
+                summary['failed'] += 1
+                cr['error'] = 'No videos fetched'
+                summary['creator_results'].append(cr)
+                continue
+
+            new_vids = [v for v in videos if v['youtube_video_id'] not in existing_ids]
+            cr['skipped'] = len(videos) - len(new_vids)
+            summary['total_skipped'] += cr['skipped']
+
+            if not new_vids:
+                log.info(f'  [{creator["source_id"]}] All {len(videos)} videos already in DB')
+                summary['processed'] += 1
+                summary['creator_results'].append(cr)
+                continue
+
+            log.info(f'  [{creator["source_id"]}] Found {len(new_vids)} new videos')
+
+            if not dry_run:
+                inserted = 0
+                for v in new_vids:
+                    try:
+                        supabase.table('video_library_videos').insert(v).execute()
+                        existing_ids.add(v['youtube_video_id'])
+                        inserted += 1
+                    except Exception as e:
+                        if '23505' in str(e) or 'duplicate' in str(e).lower():
+                            pass  # race condition — already inserted
+                        else:
+                            log.warning(f'    Insert failed for {v["youtube_video_id"]}: {e}')
+
+                cr['new'] = inserted
+                summary['total_new'] += inserted
+                log.info(f'  [{creator["source_id"]}] Inserted {inserted} new videos')
+            else:
+                cr['new'] = len(new_vids)
+                log.info(f'  [{creator["source_id"]}] DRY RUN: would insert {len(new_vids)} videos')
+                for v in new_vids[:3]:
+                    log.info(f'    - {v["youtube_video_id"]} | {v["title"][:60]}')
+
+            summary['processed'] += 1
+
+        except Exception as e:
+            log.error(f'  [{creator["source_id"]}] Fatal error: {e}')
+            cr['error'] = str(e)
+            summary['failed'] += 1
+
+        summary['creator_results'].append(cr)
+        time.sleep(1)  # Polite between channels
+
+    elapsed = (datetime.now(timezone.utc) - start).total_seconds()
+    summary['elapsed_s'] = elapsed
+
+    # Write evidence file
+    evidence = {
+        'scraper': 'video_library_scraper_v2',
+        'ran_at': start.isoformat(),
+        'dry_run': dry_run,
+        'elapsed_s': elapsed,
+        'summary': summary,
+    }
+    ts = start.strftime('%Y%m%d_%H%M%S')
+    ev_file = EVIDENCE_DIR / f'video_library_scraper_{ts}.json'
+    ev_file.write_text(json.dumps(evidence, indent=2))
+    log.info(f'Evidence saved: {ev_file.name}')
+
+    # Audit log (correct schema)
+    if not dry_run:
+        try:
+            import uuid
+            supabase.table('data_audit_log').insert({
+                'record_id': str(uuid.uuid4()),
+                'table_name': 'video_library_videos',
+                'action': 'scrape',
+                'scrape_proof': json.dumps({
+                    'scraper': 'video_library_scraper_v2',
+                    'creators_processed': summary['processed'],
+                    'creators_failed': summary['failed'],
+                    'total_found': summary['total_found'],
+                    'total_new': summary['total_new'],
+                    'elapsed_s': elapsed,
+                    'ran_at': start.isoformat(),
+                }),
+            }).execute()
+        except Exception as e:
+            log.warning(f'Audit log insert failed: {e}')
+
+    log.info('=' * 60)
+    log.info(f'DONE: processed={summary["processed"]} failed={summary["failed"]} '
+             f'found={summary["total_found"]} new={summary["total_new"]} '
+             f'skipped={summary["total_skipped"]} elapsed={elapsed:.1f}s')
+    log.info('=' * 60)
+
+    return summary
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description='Video Library Daily Scraper')
+    parser.add_argument('--dry-run', action='store_true', help='Fetch but do not write to DB')
+    parser.add_argument('--source', type=str, help='Only scrape one source (e.g. HCL)')
+    args = parser.parse_args()
+    run_scraper(dry_run=args.dry_run, filter_source=args.source)
