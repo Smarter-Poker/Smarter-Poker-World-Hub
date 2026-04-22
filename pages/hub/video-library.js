@@ -978,8 +978,6 @@ export default function VideoLibraryPage() {
                             );
                         })}
                     </div>
-
-                    </div>
                 </div>
 
                 {/* Watch Stats moved to hamburger menu - removed from main page */}
