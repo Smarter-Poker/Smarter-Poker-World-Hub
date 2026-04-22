@@ -165,11 +165,20 @@ const useMessengerPrefs = () => {
     const syncToSupabase = async (state) => {
         const sb = await getSupabase();
         if (!sb) return;
-        const { data: { session } } = await sb.auth.getSession();
-        if (!session?.user?.id) return;
-        
-        const uid = session.user.id;
-        
+        // Read token from localStorage — avoids supabase.auth.getSession() lock contention
+        let _uid = null;
+        try {
+            const _raw = localStorage.getItem('smarter-poker-auth');
+            const _parsed = _raw ? JSON.parse(_raw) : null;
+            _uid = _parsed?.user?.id || null;
+            if (!_uid) {
+                const _sbKey = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+                if (_sbKey) _uid = JSON.parse(localStorage.getItem(_sbKey) || '{}')?.user?.id || null;
+            }
+        } catch (_) {}
+        if (!_uid) return;
+        const uid = _uid;
+
         // Non-blocking fire-and-forget sync
         setTimeout(async () => {
             try {
@@ -1404,14 +1413,33 @@ export const ChatWindow = ({
                 setIsRecording(false);
                 setRecordingTime(0);
 
-                const sb = await getSupabase();
-                if (!sb) return;
-                const fileName = `${conversationId}/voice-${Date.now()}.webm`;
-                const { error } = await sb.storage.from('messenger_media').upload(fileName, audioBlob, { contentType: 'audio/webm' });
-                if (!error) {
-                    const { data: { publicUrl } } = sb.storage.from('messenger_media').getPublicUrl(fileName);
-                    onSend?.(`🎤 Voice message`, { audioUrl: publicUrl });
+                // Use signed-URL upload to avoid supabase.auth.getSession() lock contention
+                try {
+                    let _voiceToken = null;
+                    try {
+                        const _raw = localStorage.getItem('smarter-poker-auth');
+                        if (_raw) _voiceToken = JSON.parse(_raw)?.access_token || null;
+                        if (!_voiceToken) {
+                            const _sbKey = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+                            if (_sbKey) _voiceToken = JSON.parse(localStorage.getItem(_sbKey) || '{}')?.access_token || null;
+                        }
+                    } catch (_) {}
+
+                    const fileName = `voice-${Date.now()}.webm`;
+                    const metaRes = await fetch('/api/social/upload-url', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', ...(_voiceToken ? { Authorization: `Bearer ${_voiceToken}` } : {}) },
+                        body: JSON.stringify({ fileName, fileSize: audioBlob.size, mimeType: 'audio/webm', folder: 'messenger', prefix: conversationId, bucket: 'social-media' }),
+                    });
+                    if (!metaRes.ok) throw new Error(`Upload auth failed (${metaRes.status})`);
+                    const metaJson = await metaRes.json();
+                    if (!metaJson.success) throw new Error(metaJson.error || 'Upload URL error');
+                    const putRes = await fetch(metaJson.signedUrl, { method: 'PUT', headers: { 'Content-Type': 'audio/webm' }, body: audioBlob });
+                    if (!putRes.ok) throw new Error('Voice upload failed');
+                    onSend?.(`🎤 Voice message`, { audioUrl: metaJson.publicUrl });
                     busEmit.voiceMessageSent(conversationId, recordingTime.toString());
+                } catch (err) {
+                    console.warn('[Messenger] Voice upload failed:', err.message);
                 }
             };
 

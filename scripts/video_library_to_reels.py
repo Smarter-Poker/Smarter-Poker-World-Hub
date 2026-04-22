@@ -54,14 +54,24 @@ EVIDENCE_DIR = Path('/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/data
 EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
 
 # ── Env ──────────────────────────────────────────────────────────────────────
+_BASE = Path('/Users/smarter.poker/Documents/Smarter-Poker-World-Hub')
+
 def _load_env():
-    env_file = Path('/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/.env.local')
-    if env_file.exists():
-        for line in env_file.read_text().splitlines():
-            line = line.strip()
-            if line and not line.startswith('#') and '=' in line:
-                k, v = line.split('=', 1)
-                os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+    """Load env vars from all candidate files (highest priority first)."""
+    candidates = [
+        _BASE / '.env.local',
+        _BASE / '.env.production',
+        _BASE / '.env.vercel-db',
+        _BASE / '.env',
+        _BASE / '.env.prod',
+    ]
+    for env_file in candidates:
+        if env_file.exists():
+            for line in env_file.read_text().splitlines():
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    k, v = line.split('=', 1)
+                    os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
 
 _load_env()
 
@@ -69,7 +79,7 @@ SUPABASE_URL = os.environ.get('NEXT_PUBLIC_SUPABASE_URL', '')
 SUPABASE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
 
 if not SUPABASE_URL or not SUPABASE_KEY:
-    log.error('Missing SUPABASE credentials — check .env.local')
+    log.error('Missing SUPABASE credentials — checked .env.local, .env.production, .env.vercel-db')
     sys.exit(1)
 
 # ── Supabase REST helpers ────────────────────────────────────────────────────
@@ -236,7 +246,7 @@ def run_bridge(args):
     log.info(f"  {len(existing_ids)} videos already in social_reels as video_library source")
 
     # 3. Fetch videos from video_library_videos
-    filters = {'is_public': 'not.is.false'}  # allow nulls (no is_public column = all public)
+    filters = {}
     if args.source:
         filters['source_id'] = f'eq.{args.source.upper()}'
 

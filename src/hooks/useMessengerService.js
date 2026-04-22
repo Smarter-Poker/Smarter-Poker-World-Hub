@@ -1651,21 +1651,39 @@ ${messages.map(m =>
     }, [conversationId, currentUser, getConversationSettings]);
 
     const uploadWallpaper = useCallback(async (file) => {
-        const supabase = getSupabase();
-        if (!supabase || !conversationId || !file) return null;
+        if (!conversationId || !file) return null;
         try {
-            const fileName = `wallpapers/${conversationId}/${Date.now()}_${file.name}`;
-            const { error } = await supabase.storage.from('messenger_media').upload(fileName, file);
-            if (error) return null;
-            const { data: urlData } = supabase.storage.from('messenger_media').getPublicUrl(fileName);
-            const publicUrl = urlData?.publicUrl;
+            // Read token from localStorage — avoids auth.getSession() lock contention
+            let _wpToken = null;
+            try {
+                const _raw = localStorage.getItem('smarter-poker-auth');
+                if (_raw) _wpToken = JSON.parse(_raw)?.access_token || null;
+                if (!_wpToken) {
+                    const _sbKey = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+                    if (_sbKey) _wpToken = JSON.parse(localStorage.getItem(_sbKey) || '{}')?.access_token || null;
+                }
+            } catch (_) {}
+            const mimeType = file.type.startsWith('image/') ? file.type.split(';')[0] : 'image/jpeg';
+            const metaRes = await fetch('/api/social/upload-url', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...(_wpToken ? { Authorization: `Bearer ${_wpToken}` } : {}) },
+                body: JSON.stringify({ fileName: file.name, fileSize: file.size, mimeType, folder: 'messenger-wallpapers', prefix: conversationId }),
+            });
+            if (!metaRes.ok) return null;
+            const metaJson = await metaRes.json();
+            if (!metaJson.success) return null;
+            const putRes = await fetch(metaJson.signedUrl, { method: 'PUT', headers: { 'Content-Type': mimeType }, body: file });
+            if (!putRes.ok) return null;
+            const publicUrl = metaJson.publicUrl;
             if (publicUrl) {
-                // BUG-FIX: Merge wallpaper into existing settings instead of overwriting
                 const existingSettings = await getConversationSettings();
-                await supabase.from('messenger_participants')
-                    .update({ settings: { ...existingSettings, wallpaper: publicUrl } })
-                    .eq('conversation_id', conversationId)
-                    .eq('user_id', currentUser?.id);
+                const supabase = getSupabase();
+                if (supabase) {
+                    await supabase.from('messenger_participants')
+                        .update({ settings: { ...existingSettings, wallpaper: publicUrl } })
+                        .eq('conversation_id', conversationId)
+                        .eq('user_id', currentUser?.id);
+                }
                 setConversationWallpaper(publicUrl);
             }
             return publicUrl;

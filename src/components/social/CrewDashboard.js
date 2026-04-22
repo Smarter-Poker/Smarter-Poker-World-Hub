@@ -3,6 +3,17 @@ import { supabase } from '../../lib/supabase';
 import toast from '../../stores/toastStore';
 import Link from 'next/link';
 
+/** Read auth token without triggering supabase.auth.getSession() lock contention */
+const getCrewToken = () => {
+    try {
+        const raw = localStorage.getItem('smarter-poker-auth');
+        if (raw) { const t = JSON.parse(raw)?.access_token; if (t) return t; }
+        const sbKey = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+        if (sbKey) return JSON.parse(localStorage.getItem(sbKey) || '{}')?.access_token || null;
+    } catch (_) {}
+    return null;
+};
+
 export default function CrewDashboard({ currentUser }) {
     const [crews, setCrews] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -43,7 +54,7 @@ export default function CrewDashboard({ currentUser }) {
     const handleCreateCrew = async () => {
         if (!newCrewName.trim()) return toast.error('Crew name required');
         try {
-            const token = (await supabase.auth.getSession()).data.session?.access_token;
+            const token = getCrewToken();
             const res = await fetch('/api/social/crews', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
@@ -63,7 +74,7 @@ export default function CrewDashboard({ currentUser }) {
     const handleJoinCrew = async () => {
         if (!joinCode.trim()) return toast.error('Join code required');
         try {
-            const token = (await supabase.auth.getSession()).data.session?.access_token;
+            const token = getCrewToken();
             const res = await fetch('/api/social/crews', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
@@ -88,7 +99,7 @@ export default function CrewDashboard({ currentUser }) {
         }
         setConfirmLeaveId(null);
         try {
-            const token = (await supabase.auth.getSession()).data.session?.access_token;
+            const token = getCrewToken();
             const res = await fetch('/api/social/crews', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
