@@ -142,7 +142,41 @@ export default function UniversalHeader({
 
     // ── OVERLAY HELPERS ──
     const openOverlay = (page) => setOverlayPage(page);
-    const closeOverlay = () => setOverlayPage(null);
+
+    // Re-fetch real notification count after overlay closes so the badge reflects DB truth.
+    // BroadcastChannel cannot bridge an iframe → parent in the same tab, so we poll on close.
+    const closeOverlay = (closedPage) => {
+        setOverlayPage(null);
+        if (closedPage === 'notifications') {
+            // Give the iframe a moment to finish marking rows read, then re-query
+            setTimeout(async () => {
+                try {
+                    let authUser = null;
+                    if (typeof window !== 'undefined') {
+                        try {
+                            const explicitAuth = localStorage.getItem('smarter-poker-auth');
+                            if (explicitAuth) { authUser = JSON.parse(explicitAuth)?.user || null; }
+                            if (!authUser) {
+                                const sbKeys = Object.keys(localStorage || {}).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+                                if (sbKeys.length > 0) authUser = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}')?.user || null;
+                            }
+                        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+                    }
+                    if (!authUser?.id) return;
+                    const { count } = await supabase
+                        .from('notifications')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('user_id', authUser.id)
+                        .eq('read', false);
+                    const freshCount = count || 0;
+                    setNotificationCount(freshCount);
+                    try { localStorage.setItem('sp-notif-count', String(freshCount)); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+                } catch (e) {
+                    console.warn('[UniversalHeader] Post-overlay notif re-fetch failed:', e);
+                }
+            }, 800); // 800ms: enough for the iframe's DB update to land
+        }
+    };
 
     const overlayUrlMap = {
         profile: profileHref,
@@ -1029,7 +1063,7 @@ export default function UniversalHeader({
             {overlayPage && (
                 <FullScreenPageOverlay
                     isOpen={true}
-                    onClose={closeOverlay}
+                    onClose={() => closeOverlay(overlayPage)}
                     url={overlayUrlMap[overlayPage]}
                     title={overlayTitleMap[overlayPage]}
                 />
