@@ -358,7 +358,7 @@ export function applyWritingStyle(comment, profileId) {
 // TIME-OF-DAY ENERGY - Posts feel different at 2am vs 10am
 // ═══════════════════════════════════════════════════════════════════════════
 export function getTimeOfDayEnergy(hour = new Date().getHours()) {
-    if (hour >= 0 && Hour < 5) {
+    if (hour >= 0 && hour < 5) {
         return {
             mode: 'degen',
             emojiBoost: 1.5,
@@ -367,7 +367,7 @@ export function getTimeOfDayEnergy(hour = new Date().getHours()) {
             lengthMod: 0.7, // Shorter posts
             fillers: ['bruh', 'lmao', 'yo', 'sheesh']
         };
-    } else if (hour >= 5 && Hour < 11) {
+    } else if (hour >= 5 && hour < 11) {
         return {
             mode: 'mellow',
             emojiBoost: 0.7,
@@ -376,7 +376,7 @@ export function getTimeOfDayEnergy(hour = new Date().getHours()) {
             lengthMod: 0.9,
             fillers: ['morning', 'coffee needed', 'early']
         };
-    } else if (hour >= 11 && Hour < 17) {
+    } else if (hour >= 11 && hour < 17) {
         return {
             mode: 'professional',
             emojiBoost: 1.0,

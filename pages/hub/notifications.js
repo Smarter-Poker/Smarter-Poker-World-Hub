@@ -61,15 +61,18 @@ function NotificationsPage() {
         const isPokerNotif = typeof notifId === 'string' && notifId.startsWith('poker-');
         setConfirmDeleteId(null);
         setSwipedId(null);
-        // [Audit#2] Snapshot state for rollback on API failure
+        // [Audit#20] FIX: Read wasUnread synchronously from current state snapshot BEFORE
+        // calling setState. The previous pattern mutated wasUnread inside the updater (async)
+        // then read it synchronously — same closure timing bug as the old isReadOptimistic.
+        const wasUnread = notifications.some(n => n.id === notifId && !n.read);
         let snapshot;
-        let wasUnread = false;
-        setNotifications(prev => { snapshot = prev; wasUnread = !!prev.find(n => n.id === notifId && !n.read); return prev; });
-        // [Pass3-Fix] If deleting an unread notification, decrement header badge immediately
+        setNotifications(prev => { snapshot = prev; return prev; });
+        // If deleting an unread notification, decrement header badge immediately
         if (wasUnread) {
             eventBus.emit(EventType.NOTIFICATIONS_READ, { count: 1 }, 'NotificationsPage');
             try { localStorage.setItem('sp-notif-count', String(Math.max(0, parseInt(localStorage.getItem('sp-notif-count') || '0', 10) - 1))); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         }
+
         // Optimistic removal with fade
         setDeletingIds(prev => new Set([...prev, notifId]));
         setTimeout(() => {
@@ -133,12 +136,16 @@ function NotificationsPage() {
     }, []);
 
     // 🛡️ INSTANT UI: Hydrate from localStorage AFTER mount (prevents SSR mismatch)
+    // [Audit#20] Added 5-minute TTL — discard stale cache to prevent old data flashing
     useEffect(() => {
         try {
             const cached = localStorage.getItem('sp-notif-cache');
             if (cached) {
                 const parsed = JSON.parse(cached);
-                if (parsed && parsed.length > 0) {
+                // Discard if older than 5 minutes (300_000 ms)
+                const ts = parsed?.[0]?._cache_ts || 0;
+                const age = Date.now() - ts;
+                if (parsed && parsed.length > 0 && age < 300_000) {
                     setNotifications(parsed);
                     setLoading(false); // Skip shimmer — show cached data immediately
                     hasCacheRef.current = true;
@@ -146,6 +153,7 @@ function NotificationsPage() {
             }
         } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }, []);
+
 
     const mounted = useRef(true);
     useEffect(() => {
@@ -270,29 +278,51 @@ function NotificationsPage() {
                         setNotifications(enriched);
                         setLoading(false);
                         // Cache for instant load next time (keep last 30 for storage space)
+                        // [Audit#20] Stamp _cache_ts so the 5-minute TTL check on load works
                         try {
-                            localStorage.setItem('sp-notif-cache', JSON.stringify(enriched.slice(0, 30)));
+                            const now = Date.now();
+                            localStorage.setItem('sp-notif-cache', JSON.stringify(enriched.slice(0, 30).map((n, i) => i === 0 ? { ...n, _cache_ts: now } : n)));
                         } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                     }
 
                     // Auto-mark social notifications as read (only social ones use supabase table)
-                    const unreadIds = enriched.filter(n => !n.read && n._source === 'social').map(n => n.id);
-                    if (unreadIds.length > 0) {
-                        await supabase.from('notifications').update({ read: true }).in('id', unreadIds);
+                    const unreadSocialIds = enriched.filter(n => !n.read && n._source === 'social').map(n => n.id);
+                    const hasUnreadPoker = enriched.some(n => !n.read && n._source === 'poker');
+                    const totalUnread = enriched.filter(n => !n.read).length;
+
+                    if (unreadSocialIds.length > 0) {
+                        await supabase.from('notifications').update({ read: true }).in('id', unreadSocialIds);
                         if (mounted.current) {
                             setNotifications(prev => prev.map(n => ({ ...n, read: true })));
                             // Update cache with read status
                             try {
+                                const now = Date.now();
                                 const updated = enriched.map(n => ({ ...n, read: true }));
-                                localStorage.setItem('sp-notif-cache', JSON.stringify(updated.slice(0, 30)));
+                                localStorage.setItem('sp-notif-cache', JSON.stringify(updated.slice(0, 30).map((n, i) => i === 0 ? { ...n, _cache_ts: now } : n)));
                             } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                         }
+                    }
+
+                    // [Audit#20] Also auto-mark poker/page notifications as read on page load
+                    // so badge can reach 0 (get-header-stats counts both sources in the badge total)
+                    if (hasUnreadPoker) {
+                        getAccessToken().then(token =>
+                            fetch('/api/poker/notifications', {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                                body: JSON.stringify({ mark_all: true })
+                            }).catch(e => console.warn('[Notifications] poker mark_all failed:', e))
+                        );
+                    }
+
+                    if (totalUnread > 0) {
                         // [Pass1-Fix] Sync badge to 0 AND broadcast so header tab re-fetches immediately
                         try { localStorage.setItem('sp-notif-count', '0'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                         broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID });
                         // Also instant-update same-tab badge via EventBus
-                        eventBus.emit(EventType.NOTIFICATIONS_READ, { count: unreadIds.length }, 'NotificationsPage');
+                        eventBus.emit(EventType.NOTIFICATIONS_READ, { count: totalUnread }, 'NotificationsPage');
                     }
+
                 } else if (mounted.current) {
                     // [Audit#14] No notifications — clear state
                     setNotifications([]);

@@ -68,16 +68,16 @@ function getHorseHash(profileId) {
 // Each horse gets one locked-in archetype via hash.
 // Archetypes change capitalization, cadence, and word-choice tendencies.
 const ARCHETYPES = [
-  { id: 'blunt',      capStyle: 'all_lower',  punct: 'none',        flair: ['real talk', 'honestly', 'no bs'] },
-  { id: 'analytical', capStyle: 'normal',     punct: 'minimal',     flair: ['from a range perspective', 'the math checks out', 'solver agrees'] },
+  { id: 'blunt',      capStyle: 'all_lower',  punct: 'none',        flair: ['real talk', 'honestly', 'ngl'] },
+  { id: 'analytical', capStyle: 'normal',     punct: 'minimal',     flair: ['solver take', 'range-wise', 'GTO note'] },
   { id: 'hype',       capStyle: 'all_caps_words', punct: 'none',    flair: ['LFG', 'let\'s go', 'huge'] },
   { id: 'dry',        capStyle: 'all_lower',  punct: 'none',        flair: ['sure', 'of course', 'classic'] },
-  { id: 'veteran',    capStyle: 'normal',     punct: 'minimal',     flair: ['seen this before', 'nothing new but', 'textbook'] },
+  { id: 'veteran',    capStyle: 'normal',     punct: 'minimal',     flair: ['textbook', 'seen it', 'classic spot'] },
   { id: 'casual',     capStyle: 'all_lower',  punct: 'ellipsis',    flair: ['ngl', 'lowkey', 'kinda'] },
   { id: 'skeptical',  capStyle: 'all_lower',  punct: 'none',        flair: ['idk', 'not convinced', 'questionable'] },
   { id: 'excitable',  capStyle: 'first_cap',  punct: 'enthusiastic', flair: ['wait', 'hold on', 'ok but'] },
   { id: 'terse',      capStyle: 'all_lower',  punct: 'none',        flair: [] },   // no flair — extremely short
-  { id: 'conversational', capStyle: 'first_cap', punct: 'normal',  flair: ['honestly', 'the thing is', 'here\'s the deal'] },
+  { id: 'conversational', capStyle: 'first_cap', punct: 'normal',  flair: ['honestly', 'look', 'thing is'] },
 ];
 
 function getArchetype(profileId) {
