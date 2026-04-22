@@ -215,15 +215,16 @@ export class SocialService {
                 try {
                     // Get first media URL if available
                     const mediaUrl = mediaUrls?.[0] || null;
-                    const _videoExts = /\.(mp4|webm|mov|m4v|3gp|3g2|hevc|mkv|avi)$/i;
-                    const mediaType = mediaUrl && _videoExts.test(mediaUrl) ? 'video' : 'image';
+                    // Use the contentType already computed by the caller — avoids fragile URL-regex re-detection
+                    // contentType is 'video', 'image', or 'text'; map to story media_type values
+                    const storyMediaType = contentType === 'video' ? 'video' : contentType === 'image' ? 'image' : null;
 
                     // Create story using RPC function
                     const { error: storyError } = await this.supabase.rpc('fn_create_story', {
                         p_user_id: authorId,
                         p_content: content?.substring(0, 200) || '', // Story content limit
                         p_media_url: mediaUrl,
-                        p_media_type: mediaUrl ? mediaType : null,
+                        p_media_type: mediaUrl ? storyMediaType : null,
                         p_background_color: null,
                         p_link_url: null
                     });

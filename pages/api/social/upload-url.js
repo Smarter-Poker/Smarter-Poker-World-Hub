@@ -56,7 +56,7 @@ function getSupabase() {
 export default async function handler(req, res) {
   try {
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-      if (!applyRateLimit(req, res, LIMITS.write)) return;
+      if (!applyRateLimit(req, res, LIMITS.upload)) return;
     }
 
       if (req.method !== 'POST') {

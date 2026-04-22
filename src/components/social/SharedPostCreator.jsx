@@ -365,7 +365,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         if (!content.trim() && !media.length && !linkPreview && !checkInVenue) return;
         setError('');
         let urls = media.map(m => m.url);
-        let type = media.some(m => m.type === 'video') ? 'video' : media.length ? 'photo' : 'text';
+        let type = media.some(m => m.type === 'video') ? 'video' : media.length ? 'image' : 'text';
         let cleanContent = content;
 
         if (linkPreview && type === 'text') {
