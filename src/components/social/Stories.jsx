@@ -13,6 +13,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
+import { sniffMimeType } from '../../lib/socialHelpers';
 import toast from '../../stores/toastStore';
 
 const C = {
@@ -569,7 +570,9 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
         setMediaPreview(localPreviewUrl);
         setMode('preview');
 
-        const isVideo = file.type.startsWith('video/');
+        // Use sniffMimeType — iOS Photo Library may return empty or codec-suffixed file.type
+        const cleanMime = sniffMimeType(file);
+        const isVideo = cleanMime.startsWith('video/');
         setMediaType(isVideo ? 'video' : 'image');
 
         // Upload in background
@@ -581,6 +584,7 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
             const { error: uploadError } = await supabase.storage
                 .from('stories')
                 .upload(filePath, file, {
+                    contentType: cleanMime,  // Explicit — prevents Supabase SDK from forwarding codec-suffixed MIME
                     cacheControl: '3600',
                     upsert: false
                 });

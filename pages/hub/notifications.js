@@ -731,14 +731,22 @@ function NotificationsPage() {
                                 const t = n.type || '';
                                 const d = n.data || {};
 
+                                // ── BUG-14 FIX: Use DB-precomputed link/action_url FIRST ────
+                                // home_game_new, home_group_announcement, new_follow etc all have
+                                // a 'link' column set by the backend trigger. Use it directly.
+                                if (n.link) { navigate(n.link); return; }
+                                if (n.action_url) { navigate(n.action_url); return; }
+
                                 // ── Home Games / Groups ──────────────────────────────
                                 if (t.startsWith('home_group') || t.startsWith('home_game') || t === 'member_joined') {
                                     if (d.group_id) navigate(`/hub/home-games/${d.group_id}`);
                                     else navigate('/hub/home-games');
 
                                 // ── Friends ──────────────────────────────────────────
+                                // BUG-17 FIX: friend_request has sender_id (not actor_id) in data
                                 } else if (t === 'friend_request' || t === 'friend_accepted' || t === 'friend_accept' || t === 'new_follow' || t === 'follow') {
-                                    if (d.sender_id && n.actor_username) navigate(`/hub/user/${n.actor_username}`);
+                                    if (n.actor_username) navigate(`/hub/user/${n.actor_username}`);
+                                    else if (d.sender_id && n.actor_username) navigate(`/hub/user/${n.actor_username}`);
                                     else navigate('/hub/friends');
 
                                 // ── Poker Pages / Clubs ──────────────────────────────
@@ -784,15 +792,18 @@ function NotificationsPage() {
 
 
                             
-                            // If it matches any of our routing criteria, it's clickable
+                            // BUG-16 fix: include home_game/home_group types in isClickable
+                            // BUG-14 fix: n.link / n.action_url makes any notification clickable
                             const isClickable = !!(
+                                n.link ||
+                                n.action_url ||
                                 n.data?.page_id || 
                                 n.data?.club_id || 
                                 n.data?.group_id || 
                                 n.data?.post_id || 
                                 n.data?.tournament_id || 
                                 n.actor_username || 
-                                (n.type && n.type.includes('friend')) || 
+                                (n.type && (n.type.includes('friend') || n.type.includes('follow') || n.type.startsWith('home_'))) || 
                                 n._source === 'social'
                             );
 

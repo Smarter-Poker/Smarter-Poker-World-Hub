@@ -86,10 +86,11 @@ export default async function handler(req, res) {
         const [socialResult, followsResult] = await Promise.all([
             supabase
                 .from('notifications')
-                .select('id, type, title, message, data, read, created_at, user_id')
+                .select('id, type, title, message, data, read, is_read, created_at, user_id, actor_id, action_url, link')
                 .eq('user_id', userId)
                 .order('created_at', { ascending: false })
                 .limit(limit),
+
             supabase
                 .from('page_followers')
                 .select('page_type, page_id')
@@ -153,7 +154,11 @@ export default async function handler(req, res) {
         // so those get avatar/username resolution too (was previously invisible to enrichment).
         const actorIds = [...new Set(
             socialNotifs
-                .map(n => n.data?.actor_id || n.data?.sender_id || n.data?.friend_id)
+                .map(n => {
+                    // BUG-17 fix: friend_request stores sender_id (not actor_id) — include it
+                    // Also check the top-level actor_id column (not just data JSONB)
+                    return n.actor_id || n.data?.actor_id || n.data?.sender_id || n.data?.friend_id;
+                })
                 .filter(Boolean)
         )];
 
@@ -200,8 +205,7 @@ export default async function handler(req, res) {
         const enriched = combined.map(n => {
             if (n._source === 'poker') return n; // poker notifs don't have actor profiles
 
-            // BUG-FIX: Also look up friend_id for home_group_friend_joined
-            const actorId = n.data?.actor_id || n.data?.sender_id || n.data?.friend_id;
+            const actorId = n.actor_id || n.data?.actor_id || n.data?.sender_id || n.data?.friend_id;
             const profile = actorId
                 ? profileById[actorId]
                 : (() => {
@@ -216,10 +220,13 @@ export default async function handler(req, res) {
 
             return {
                 ...n,
+                // BUG-14 fix: pass DB-computed link/action_url through to client for routing
+                link: n.link || n.action_url || null,
                 actor_avatar_url: profile?.avatar_url || null,
                 actor_name: displayName,
                 actor_username: profile?.username || null,
             };
+
         });
 
         const totalUnread = enriched.filter(n => !n.read).length;

@@ -14,6 +14,26 @@ const C = {
 };
 
 // Utility helpers
+
+// Strip codec suffixes from MIME types — Supabase bucket allowed_mime_types does exact matching.
+// e.g. "video/quicktime; codecs=avc1" → "video/quicktime"
+// Falls back to extension map when browser reports empty or generic type (iOS Photo Library).
+const _EXT_MIME = {
+    mp4: 'video/mp4', mov: 'video/quicktime', m4v: 'video/x-m4v',
+    avi: 'video/x-msvideo', webm: 'video/webm',
+    '3gp': 'video/3gpp', '3g2': 'video/3gpp2',
+    hevc: 'video/hevc', mkv: 'video/x-matroska',
+    jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp',
+};
+function _sniffCleanMime(file) {
+    let mime = (file.type || '').split(';')[0].trim();
+    if (!mime || mime === 'application/octet-stream') {
+        const ext = (file.name || '').split('.').pop().toLowerCase();
+        mime = _EXT_MIME[ext] || 'application/octet-stream';
+    }
+    return mime;
+}
+
 const timeAgo = (d) => {
     if (!d) return '';
     const s = Math.floor((Date.now() - new Date(d)) / 1000);
@@ -315,7 +335,8 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                         body: JSON.stringify({
                             fileName: file.name,
                             fileSize: file.size,
-                            mimeType: file.type,
+                            // Use sniffed MIME — strips codec suffixes (iOS/Android compatibility)
+                            mimeType: _sniffCleanMime(file),
                             folder: 'club-posts',
                             prefix: page.id,
                         }),
@@ -327,7 +348,8 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                     }
                     const uploadRes = await fetch(meta.signedUrl, {
                         method: 'PUT',
-                        headers: { 'Content-Type': file.type },
+                        // Use clean MIME — raw file.type may include codec suffix causing bucket rejection
+                        headers: { 'Content-Type': _sniffCleanMime(file) },
                         body: file,
                     });
                     if (!uploadRes.ok) {

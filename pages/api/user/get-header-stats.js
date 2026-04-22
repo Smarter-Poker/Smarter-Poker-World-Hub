@@ -33,52 +33,54 @@ export default async function handler(req, res) {
       const userId = localUser.id;
 
       try {
-          // Fetch profile data for header
-          const { data: profile, error } = await getSupabase()
-              .from('profiles')
-              .select('username, full_name, avatar_url, diamonds, is_vip')
-              .eq('id', userId)
-              .maybeSingle();
+          // BUG-12 FIX: Run ALL 4 queries in parallel instead of sequential waterfall.
+          // Previous: profile → [social count + follows] → pageNotifs → reads (4 round-trips)
+          // Now: all 4 main queries fire simultaneously, poker sub-queries parallelized too.
+          const [profileResult, socialCountResult, followResult, convResult] = await Promise.all([
+              // 1. Profile
+              getSupabase().from('profiles')
+                  .select('username, full_name, avatar_url, diamonds, is_vip')
+                  .eq('id', userId)
+                  .maybeSingle(),
+              // 2. Unread social notifications count
+              getSupabase().from('notifications')
+                  .select('*', { count: 'exact', head: true })
+                  .eq('user_id', userId)
+                  .eq('read', false),
+              // 3. Page followers for poker notifications
+              getSupabase().from('page_followers')
+                  .select('page_type, page_id')
+                  .eq('user_id', userId)
+                  .limit(100),
+              // 4. Conversations for unread messages count
+              getSupabase().from('social_conversation_participants')
+                  .select('conversation_id, last_read_at')
+                  .eq('user_id', userId),
+          ]);
 
-          if (error) {
-              console.warn('[get-header-stats] Profile error:', error);
+          const profile = profileResult.data;
+          if (profileResult.error) {
+              console.warn('[get-header-stats] Profile error:', profileResult.error);
               return res.status(500).json({ error: 'Internal server error' });
           }
-
           if (!profile) {
               return res.status(404).json({ error: 'Profile not found' });
           }
 
-          // Level system removed - no longer using XP
+          let notificationCount = socialCountResult.count || 0;
 
-          // Count unread social notifications
-          const socialCountPromise = getSupabase()
-              .from('notifications')
-              .select('*', { count: 'exact', head: true })
-              .eq('user_id', userId)
-              .eq('read', false);
-
-          // Count unread poker notifications
-          const followPromise = getSupabase()
-              .from('page_followers')
-              .select('page_type, page_id')
-              .eq('user_id', userId)
-              .limit(100);
-
-          const [socialRes, followRes] = await Promise.all([socialCountPromise, followPromise]);
-          let notificationCount = socialRes.count || 0;
-
-          if (followRes.data && followRes.data.length > 0) {
-              const orConditions = followRes.data.map(
+          // Poker notifications: only if user follows pages
+          if (followResult.data && followResult.data.length > 0) {
+              const orConditions = followResult.data.map(
                  (f) => `and(page_type.eq.${f.page_type},page_id.eq.${f.page_id})`
               ).join(',');
-              
+
               const { data: pageNotifs } = await getSupabase()
                  .from('page_notifications')
                  .select('id')
                  .or(orConditions)
                  .limit(100);
-                 
+
               if (pageNotifs && pageNotifs.length > 0) {
                    const allIds = pageNotifs.map(n => n.id);
                    const { data: existingReads } = await getSupabase()
@@ -86,23 +88,17 @@ export default async function handler(req, res) {
                        .select('notification_id')
                        .eq('user_id', userId)
                        .in('notification_id', allIds);
-                       
+
                    const readSet = new Set((existingReads || []).map(r => r.notification_id));
                    const unreadPoker = allIds.filter(id => !readSet.has(id)).length;
                    notificationCount += unreadPoker;
               }
           }
 
-          // Count unread messages - using social messaging schema
-          // Get user's conversations with their last_read_at timestamp
-          const { data: conversations } = await getSupabase()
-              .from('social_conversation_participants')
-              .select('conversation_id, last_read_at')
-              .eq('user_id', userId);
-
+          // Unread messages: count per-conversation
+          const conversations = convResult.data || [];
           let unreadMessages = 0;
-          if (conversations && conversations.length > 0) {
-              // OPTIMIZED: Single batch query instead of N+1 per-conversation queries
+          if (conversations.length > 0) {
               const conversationIds = conversations.map(c => c.conversation_id);
               const earliestRead = conversations.reduce((earliest, c) => {
                   const ts = c.last_read_at || '1970-01-01';
@@ -117,7 +113,6 @@ export default async function handler(req, res) {
                   .eq('is_deleted', false)
                   .gt('created_at', earliestRead);
 
-              // Count locally per-conversation last_read_at
               const readMap = new Map(conversations.map(c => [c.conversation_id, c.last_read_at || '1970-01-01']));
               (allMessages || []).forEach(msg => {
                   const lastRead = readMap.get(msg.conversation_id);

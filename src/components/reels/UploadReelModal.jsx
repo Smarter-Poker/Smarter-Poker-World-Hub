@@ -8,6 +8,7 @@
 
 import { useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { sniffMimeType } from '../../lib/socialHelpers';
 
 export default function UploadReelModal({ user, onClose, onSuccess }) {
     const [uploading, setUploading] = useState(false);
@@ -20,8 +21,9 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // Validate file type
-        if (!file.type || !file.type.startsWith('video/')) {
+        // Use sniffMimeType — iOS Photo Library may return empty or codec-suffixed file.type
+        const mime = sniffMimeType(file);
+        if (!mime.startsWith('video/')) {
             setError('Please select a valid video file');
             return;
         }
@@ -40,6 +42,8 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
 
         try {
             // 1. Get signed upload URL from our API (metadata only, no file body)
+            // Use sniffMimeType — iOS may return empty or codec-suffixed file.type
+            const cleanMime = sniffMimeType(videoFile);
             const _reelSess = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
             const metaRes = await fetch('/api/social/upload-url', {
                 method: 'POST',
@@ -50,7 +54,7 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
                 body: JSON.stringify({
                     fileName: videoFile.name,
                     fileSize: videoFile.size,
-                    mimeType: videoFile.type,
+                    mimeType: cleanMime,
                     folder: 'reels',
                     prefix: user.id,
                 }),
@@ -81,7 +85,9 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
                 xhr.addEventListener('error', () => reject(new Error('Network error during upload')));
                 xhr.addEventListener('abort', () => reject(new Error('Upload cancelled')));
                 xhr.open('PUT', meta.signedUrl);
-                xhr.setRequestHeader('Content-Type', videoFile.type);
+                // Use the already-sniffed cleanMime — NOT videoFile.type which may
+                // contain codec suffixes that cause Supabase bucket rejection
+                xhr.setRequestHeader('Content-Type', cleanMime || 'video/mp4');
                 xhr.send(videoFile);
             });
 

@@ -34,6 +34,23 @@ import {
 } from 'lucide-react';
 
 
+// Strip codec suffixes from MIME types (iOS/Android report e.g. "video/quicktime; codecs=avc1")
+// Supabase bucket allowed_mime_types uses exact string matching — codec suffix causes rejection.
+const _CLUB_EXT_MIME = {
+  mp4: 'video/mp4', mov: 'video/quicktime', m4v: 'video/x-m4v',
+  avi: 'video/x-msvideo', webm: 'video/webm',
+  '3gp': 'video/3gpp', '3g2': 'video/3gpp2',
+  hevc: 'video/hevc', mkv: 'video/x-matroska',
+};
+function _sniffCleanMime(file) {
+  let mime = (file.type || '').split(';')[0].trim();
+  if (!mime || mime === 'application/octet-stream') {
+    const ext = (file.name || '').split('.').pop().toLowerCase();
+    mime = _CLUB_EXT_MIME[ext] || 'application/octet-stream';
+  }
+  return mime;
+}
+
 const GAME_TYPE_LABELS = {
   nlh: 'No-Limit Hold\'em',
   nlhe: 'No-Limit Hold\'em',
@@ -650,7 +667,8 @@ export default function ClubPage() {
             body: JSON.stringify({
               fileName: file.name,
               fileSize: file.size,
-              mimeType: file.type,
+              // Clean MIME — strips codec suffixes that cause Supabase bucket rejection
+              mimeType: _sniffCleanMime(file),
               folder: 'club-posts',
               prefix: venue?.social_page_id || id,
             }),
@@ -663,7 +681,8 @@ export default function ClubPage() {
           }
           const uploadRes = await fetch(meta.signedUrl, {
             method: 'PUT',
-            headers: { 'Content-Type': file.type },
+            // Clean MIME — raw file.type may include codec suffix causing Supabase bucket rejection
+            headers: { 'Content-Type': _sniffCleanMime(file) },
             body: file,
           });
           if (!uploadRes.ok) {

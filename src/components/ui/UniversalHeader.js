@@ -386,8 +386,9 @@ export default function UniversalHeader({
                         }
                     }
 
-                    // FETCH NOTIFICATION COUNT (unread) via get-header-stats so poker notifications are included
-                    // Note: get-header-stats counts both social (notifications table) + poker (page_notifications table)
+                    // BUG-11 FIX: fetchProfileWithRetry already sets notificationCount (line 291-292)
+                    // above. The separate fetchUnreadCount() call here was a duplicate 3s API hit.
+                    // fetchUnreadCount is now only used by the BroadcastChannel refresh listener below.
                     const fetchUnreadCount = async () => {
                         try {
                             let accessToken = null;
@@ -410,8 +411,7 @@ export default function UniversalHeader({
                             }
                         } catch (e) { console.warn('[UniversalHeader] fetchUnreadCount failed:', e); }
                     };
-
-                    await fetchUnreadCount();
+                    // NOTE: Do NOT call fetchUnreadCount() here — count already set by fetchProfileWithRetry above.
 
                     // ── CROSS-TAB SYNC: Listen for read notifications in other tabs ──
                     cleanupNotifSync = listenBroadcast('smarter_poker_notif_sync', (msg) => {
