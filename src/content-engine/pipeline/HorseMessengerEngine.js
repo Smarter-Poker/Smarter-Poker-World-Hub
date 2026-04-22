@@ -1,10 +1,10 @@
 /**
- * 🐴 HORSE MESSENGER ENGINE - Automated Direct Messaging via Grok AI
+ * 🐴 HORSE MESSENGER ENGINE - Automated Direct Messaging via HumanVoiceEngine
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * Automates 2-3 turn realistic DM conversations between Horses and real users.
  * Triggered by users liking or commenting on a horse's post, or directly DMing a horse.
- * Uses xAI's Grok API to generate contextual, personality-driven, emoji-free responses.
+ * Uses HumanVoiceEngine to generate zero-cost, personality-driven, emoji-free responses.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -12,6 +12,7 @@ import { createClient } from '@supabase/supabase-js';
 import { config } from 'dotenv';
 import { fileURLToPath } from 'url';
 import path from 'path';
+import { generateDMReply, seedHorseMemory } from './HumanVoiceEngine.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 config({ path: path.resolve(__dirname, '../../../.env.local') });
@@ -27,76 +28,6 @@ function getSupabase() {
     }
     return _supabase;
 }
-const XAI_API_KEY = process.env.XAI_API_KEY;
-
-/**
- * Interface with xAI / Grok API
- */
-async function generateGrokReply(horseContext, conversationHistory) {
-    if (!XAI_API_KEY) {
-        console.warn('⚠️ Missing XAI_API_KEY. Cannot generate DM response.');
-        return null;
-    }
-
-    try {
-        const systemPrompt = `You are ${horseContext.name}, a poker player playing in the Smarter.Poker World Hub. 
-Your specialty is ${horseContext.specialty || 'cash games'}.
-You are currently replying to a Direct Message on the platform.
-CRITICAL RULES:
-1. Keep the response SHORT, like a real text message (1-2 sentences max).
-2. DO NOT USE ANY EMOJIS EVER.
-3. Be causal, authentic, and use poker terminology naturally.
-4. If this conversation has 2-3 turns already, naturally conclude it (e.g. "Gotta head back to the tables, catch you later", "Back to the grind for me, gl").
-5. Do not sound like an AI assistant.`;
-
-        const messages = [
-            { role: 'system', content: systemPrompt },
-            ...conversationHistory.map(msg => ({
-                role: msg.isMe ? 'assistant' : 'user',
-                content: msg.content
-            }))
-        ];
-
-        const response = await fetch('https://api.x.ai/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${XAI_API_KEY}`
-            },
-            body: JSON.stringify({
-                model: 'grok-2-latest',
-                messages: messages,
-                temperature: 0.8,
-                max_tokens: 60
-            })
-        });
-
-        if (!response.ok) {
-            console.warn('Grok API Error:', await response.text());
-            return null;
-        }
-
-        const data = await response.json();
-        let replyText = data.choices[0].message.content.trim();
-        
-        // Final safety check against emojis (just in case)
-        replyText = replyText.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F1E6}-\u{1F1FF}]/gu, '');
-        
-        // Remove quotes if grok wrapped it
-        if (replyText.startsWith('"') && replyText.endsWith('"')) {
-            replyText = replyText.slice(1, -1);
-        }
-
-        return replyText;
-    } catch (e) {
-        console.warn('Error generating Grok reply:', e);
-        return null;
-    }
-}
-
-/**
- * Scan for pending messages directed at horses and reply
- */
 async function processDirectMessages() {
     console.debug('\n💬 HORSE MESSENGER ENGINE RUNNING...');
 
@@ -205,14 +136,20 @@ async function processDirectMessages() {
         await new Promise(r => setTimeout(r, thinkDelay));
 
         // 4. Generate AI Reply
-        const conversationContext = history.map(h => ({
-            isMe: h.sender_id === targetHorseId,
-            content: h.content
-        }));
-
         console.debug(`   Generating DM reply for ${horse.name} (Conv ~ ${history.length} msgs)...`);
         
-        const replyContent = await generateGrokReply(horse, conversationContext);
+        // Seed horse memory from recent DMs (prevents cross-session repeats)
+        const { data: recentDMs } = await getSupabase()
+            .from('social_messages')
+            .select('content')
+            .eq('sender_id', targetHorseId)
+            .order('created_at', { ascending: false })
+            .limit(15);
+        if (recentDMs?.length) {
+            seedHorseMemory(targetHorseId, recentDMs.map(p => p.content || '').filter(Boolean));
+        }
+
+        const replyContent = generateDMReply(history.length, targetHorseId);
 
         if (!replyContent) continue;
 

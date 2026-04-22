@@ -17,21 +17,68 @@ const supabase = createClient(
 );
 const grok = getGrokClient();
 
-// Avatar prompt variations for diversity
-const AVATAR_STYLES = [
-    { gender: 'male', age: '25-35', style: 'professional headshot, wearing smart casual' },
-    { gender: 'male', age: '35-45', style: 'confident poker player, casual blazer' },
-    { gender: 'male', age: '28-38', style: 'modern professional, relaxed vibe' },
-    { gender: 'female', age: '25-35', style: 'professional headshot, elegant' },
-    { gender: 'female', age: '30-40', style: 'confident businesswoman, smart casual' },
-    { gender: 'female', age: '28-38', style: 'modern professional, approachable' },
+// Extensive variety for highly realistic and distinct poker players
+const BODY_TYPES = [
+    'thin and slim build', 
+    'athletic and fit build', 
+    'average build', 
+    'fuller-figured / stocky build', 
+    'heavy-set / broad-shouldered build'
+];
+
+const FACE_SHAPES = [
+    'round face with soft features', 
+    'square jaw with strong facial features', 
+    'thin face with sharp features', 
+    'full face with warm, approachable features', 
+    'weathered, leathery face with character',
+    'oval face with high cheekbones'
+];
+
+const AGES = [
+    'early 20s', 'late 20s', 'early 30s', 'late 30s', 
+    '40s', '50s', 'older (60s+)'
+];
+
+const MALE_HAIR = [
+    'short dark hair', 'shaved head/bald with a full beard', 'wavy brown hair', 
+    'graying hair', 'messy casual hair', 'clean-cut fade', 'goatee and a sports cap'
+];
+
+const FEMALE_HAIR = [
+    'long dark hair', 'short athletic haircut', 'curly dark hair', 
+    'blonde shoulder-length hair', 'elegant styled hair', 'casual ponytail', 'messy bun with glasses'
+];
+
+const ATTIRE = [
+    'casual dark hoodie', 'denim jacket', 'athletic tank top/sportswear', 
+    'polo shirt', 'casual t-shirt and a baseball cap', 'smart casual blazer or sweater', 
+    'luxury designer t-shirt with a nice watch'
+];
+
+const EXPRESSIONS = [
+    'big warm, genuine smile', 'intense, focused stare', 'serious poker face', 
+    'casual and approachable grin', 'triumphant/celebratory look', 'slight, confident smirk'
+];
+
+const CASINOS = ['Bellagio', 'Aria', 'Wynn', 'Venetian', 'WSOP', 'MGM Grand', 'Hard Rock'];
+const TABLE_COLORS = ['classic green', 'deep blue', 'burgundy/red'];
+const CHIP_STYLES = [
+    'neatly stacked casino chips with visible denominations ($5 red, $25 green, $100 black)',
+    'massive colorful chip stack showing a tournament win, with real casino branding',
+    'modest, realistic 2/5 cash game chip stack sorted by color and denomination',
+    'large chip stacks in front of them with authentic casino markings'
 ];
 
 // Ethnic diversity for realistic variety
 const ETHNICITIES = [
-    'Caucasian', 'Asian', 'Hispanic', 'African American',
+    'Caucasian', 'Asian', 'Hispanic/Latino', 'African American',
     'Middle Eastern', 'South Asian', 'Mixed ethnicity'
 ];
+
+function getRandom(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+}
 
 async function downloadImage(url, filepath) {
     return new Promise((resolve, reject) => {
@@ -51,11 +98,24 @@ async function downloadImage(url, filepath) {
 
 async function generateAvatar(horse, index) {
     const ethnicity = ETHNICITIES[index % ETHNICITIES.length];
+    const age = getRandom(AGES);
+    const bodyType = getRandom(BODY_TYPES);
+    const faceShape = getRandom(FACE_SHAPES);
+    const hair = horse.gender === 'female' ? getRandom(FEMALE_HAIR) : getRandom(MALE_HAIR);
+    const attire = getRandom(ATTIRE);
+    const expression = getRandom(EXPRESSIONS);
+    const casino = getRandom(CASINOS);
+    const tableColor = getRandom(TABLE_COLORS);
+    const chips = getRandom(CHIP_STYLES);
 
-    const prompt = `Professional headshot portrait of a ${ethnicity} ${horse.gender} poker player named ${horse.name}, age 25-45. 
-Location: ${horse.location}. Specialty: ${horse.specialty?.replace('_', ' ')}. Stakes: ${horse.stakes}. 
-Bio: ${horse.bio}.
-Style: Authentic poker player aesthetic, highly realistic, professional lighting, sharp focus, looking at camera. Neutral casino or studio background.`;
+    // Provide extremely descriptive and distinct prompts to prevent the AI from defaulting to "generic skinny model"
+    const prompt = `Candid, highly realistic POV photo of a poker player seated at a ${casino} casino poker table with ${tableColor} felt. 
+Player Details: ${ethnicity} ${horse.gender}, age: ${age}. They have a ${bodyType} and a ${faceShape}. 
+Hair and Styling: ${hair}. Wearing a ${attire}. 
+Expression: ${expression}. 
+Setting & Details: ${chips}. The chips MUST look authentic with values printed on them, not generic colored discs. Dealer button visible. Background is a blurred, bustling casino poker room with overhead fluorescent lighting and rows of tables. 
+Photography style: Shot on iPhone 14, unedited candid photo, flat realistic casino lighting (NO cinematic/dramatic lighting, NO golden hour, NO studio lighting). Looks exactly like a real amateur photo posted to social media by a real person. 
+DO NOT MAKE EVERYONE LOOK LIKE A SUPERMODEL. We want real, everyday diverse people of different shapes and sizes.`;
 
     console.debug(`🎨 Generating avatar for ${horse.name} (${horse.gender})...`);
 

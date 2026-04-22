@@ -5,14 +5,14 @@ import { config } from 'dotenv';
 config({ path: '.env.local' });
 
 import { createClient } from '@supabase/supabase-js';
-import { getGrokClient } from '../../lib/grokClient.js';
+import { generatePostCaption, generateNewsCaption } from './HumanVoiceEngine.js';
 import { getRandomClip, getRandomCaption, CLIP_CATEGORIES } from './ClipLibrary.js';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
-const openai = getGrokClient();
+
 
 async function testVideoPost() {
     console.debug('\n🎬 TESTING VIDEO CLIP POSTING');
@@ -38,57 +38,7 @@ async function testVideoPost() {
     console.debug(`Clip: ${clip.id}`);
     console.debug(`URL: ${clip.source_url}`);
 
-    // Generate caption
-    const templateCaption = getRandomCaption(clip.category || CLIP_CATEGORIES.FUNNY);
+    // Generate caption using HumanVoiceEngine
+    const caption = generatePostCaption(clip.category || 'massive_pot', horse.profile_id, clip.title || '');
 
-    console.debug(`\nGenerating caption from template: "${templateCaption}"`);
-
-    const response = await openai.chat.completions.create({
-        model: 'gpt-4o',
-        messages: [{
-            role: 'system',
-            content: `You are ${horse.name}, a poker player posting a video clip. Keep it VERY short (1-2 sentences max).`
-        }, {
-            role: 'user',
-            content: `Write a brief caption for sharing this poker clip: ${clip.description || 'sick hand'}. Reference: "${templateCaption}"`
-        }],
-        max_tokens: 60,
-        temperature: 0.9
-    });
-
-    const caption = response.choices[0].message.content;
-    console.debug(`Caption: ${caption}`);
-
-    // Create post with YouTube URL
-    console.debug('\nCreating post...');
-    const { data: post, error: postError } = await supabase
-        .from('social_posts')
-        .insert({
-            author_id: horse.profile_id,
-            content: caption,
-            content_type: 'video',
-            media_urls: [clip.source_url],
-            visibility: 'public',
-            metadata: {
-                clip_id: clip.id,
-                source_video_id: clip.video_id || clip.id,
-                source: clip.source || 'unknown',
-                category: clip.category || 'unknown'
-            }
-        })
-        .select()
-        .maybeSingle();
-
-    if (postError) {
-        console.debug(`\n❌ Post error: ${postError.message}`);
-        console.debug('Error details:', postError);
-    } else {
-        console.debug(`\n✅ Post created successfully!`);
-        console.debug(`Post ID: ${post.id}`);
-        console.debug(`Clip ID in metadata: ${post.metadata?.clip_id}`);
-    }
-
-    console.debug('\n' + '═'.repeat(50));
-}
-
-testVideoPost().catch(console.warn);
+    

@@ -11,14 +11,14 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 config({ path: path.resolve(__dirname, '../../../.env.local') });
 
 import { createClient } from '@supabase/supabase-js';
-import { getGrokClient } from '../../lib/grokClient.js';
+import { generatePostCaption, generateNewsCaption } from './HumanVoiceEngine.js';
 import Parser from 'rss-parser';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
-const openai = getGrokClient();
+
 const rssParser = new Parser();
 
 const NEWS_SOURCES = [

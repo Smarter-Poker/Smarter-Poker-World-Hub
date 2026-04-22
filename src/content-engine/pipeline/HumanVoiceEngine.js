@@ -374,11 +374,34 @@ const COMMENT_PHRASES = {
 
   general: [
     'facts', '100%', 'real talk', 'same honestly', 'valid', 'W post',
-    'fr', 'no cap', 'true', 'i felt this', 'let\'s go', 'banger',
+    'true', 'i felt this', 'let\'s go', 'banger',
     'needed this', 'dead on', 'this hits', 'hard agree', 'say it louder',
     'exactly', 'not wrong', 'always', 'every time', 'preach', 'that\'s the one',
     'couldn\'t have said it better', 'this is why I follow this page', 'the truth',
   ],
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// DM POOLS
+// ═══════════════════════════════════════════════════════════════════════════════
+const DM_PHRASES = {
+  reply: [
+    'yeah for sure', 'definitely', 'makes sense', 'for real', 'i hear that',
+    'variance is brutal man', 'gotta keep grinding', 'tough spot', 'standard cooler', 
+    'next hand', 'always happens at the worst time', 'just part of the game',
+    'happens to the best of us', 'keep pushing', 'can\'t win them all',
+    'sometimes the math doesn\'t matter', 'good luck at the tables today',
+    'been there too many times to count', 'shake it off and keep playing'
+  ],
+  conclude: [
+    'gotta head back to the tables, catch you later', 
+    'back to the grind for me, gl', 
+    'table is starting, talk later', 
+    'good luck at the tables',
+    'about to sit down for a session, ttyl',
+    'anyway back to the tables',
+    'gonna go punt a buy in, catch you later'
+  ]
 };
 
 // ─── Pick with dedup ──────────────────────────────────────────────────────────
@@ -479,6 +502,18 @@ export function generateNewsCaption(headline, profileId, newsType = 'poker') {
 }
 
 /**
+ * Generate a direct message reply.
+ * Concludes the conversation if history is getting long.
+ */
+export function generateDMReply(historyLength, profileId) {
+  const isConcluding = historyLength >= 3;
+  const pool = isConcluding ? DM_PHRASES.conclude : DM_PHRASES.reply;
+  const archetype = getArchetype(profileId);
+  const phrase = pick(pool, profileId, 3);
+  return applyStyle(phrase, archetype);
+}
+
+/**
  * Seed a horse's memory from Supabase (call on startup/cron boot).
  * Prevents cross-session repeats.
  *
@@ -495,4 +530,4 @@ export function seedHorseMemory(profileId, recentPhrases = []) {
   for (const p of mem.lastUsed) mem.dayUsed.add(p.toLowerCase().trim());
 }
 
-export default { generatePostCaption, generateComment, generateNewsCaption, seedHorseMemory };
+export default { generatePostCaption, generateComment, generateNewsCaption, generateDMReply, seedHorseMemory };

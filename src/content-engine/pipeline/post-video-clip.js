@@ -13,7 +13,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 config({ path: path.resolve(__dirname, '../../../.env.local') });
 
 import { createClient } from '@supabase/supabase-js';
-import { getGrokClient } from '../../lib/grokClient.js';
+import { generatePostCaption, generateNewsCaption } from './HumanVoiceEngine.js';
 import { videoClipper } from './VideoClipper.js';
 import { getRandomClip, getRandomCaption } from './ClipLibrary.js';
 
@@ -22,7 +22,7 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
-const openai = getGrokClient();
+
 
 async function postVideoClipToHorse() {
     console.debug('\n🎬 POSTING VIDEO CLIP TO HORSE');
@@ -79,27 +79,8 @@ async function postVideoClipToHorse() {
         return;
     }
 
-    // Generate caption
-    const templateCaption = getRandomCaption(clip.category);
-    let caption = templateCaption;
-
-    try {
-        const response = await openai.chat.completions.create({
-            model: 'gpt-4o',
-            messages: [{
-                role: 'system',
-                content: `You are ${horse.name}, a poker player sharing a clip. Style: ${horse.voice || 'casual'}. Keep it VERY short (1-2 sentences).`
-            }, {
-                role: 'user',
-                content: `Write a brief caption for this poker clip: ${clip.title}. Reference: "${templateCaption}"`
-            }],
-            max_tokens: 60,
-            temperature: 0.9
-        });
-        caption = response.choices[0].message.content;
-    } catch (e) {
-        console.debug('Using template caption');
-    }
+    // Generate caption using HumanVoiceEngine
+    const caption = generatePostCaption(clip.category || 'massive_pot', horse.profile_id, clip.title || '');
 
     console.debug(`\n📝 Caption: ${caption}`);
 
