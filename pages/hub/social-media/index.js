@@ -80,6 +80,7 @@ import { SOCIAL_COLORS, SOCIAL_COLORS as C, timeAgo, decodeHtmlEntities, isYouTu
 import { SharedAvatar as Avatar } from '../../../src/components/social/SharedAvatar';
 import { VideoThumbnail, VideoPostWrapper } from '../../../src/components/social/SharedVideoComponents';
 
+import { feedCache } from '../../../src/lib/feedCache';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🔗 LINK PREVIEW CARD - Fetches and displays rich link metadata for feed posts
@@ -239,7 +240,7 @@ function LinkPreviewCard({ url }) {
     );
 }
 
-function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onLike, onDelete, onComment, onOpenArticle, onBlock, horseProfileIds = new Set() }) {
+const PostCard = React.memo(function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onLike, onDelete, onComment, onOpenArticle, onBlock, horseProfileIds = new Set() }) {
     const router = useRouter();
     const [liked, setLiked] = useState(post.isLiked);
     const [likeCount, setLikeCount] = useState(post.likeCount);
@@ -1555,7 +1556,19 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
             )}
         </div>
     );
-}
+}, (prevProps, nextProps) => {
+    // Custom comparator: only re-render if meaningful post data changed
+    // Avoids re-rendering all posts when parent state (e.g. user typing) changes
+    return (
+        prevProps.post.id === nextProps.post.id &&
+        prevProps.post.likeCount === nextProps.post.likeCount &&
+        prevProps.post.commentCount === nextProps.post.commentCount &&
+        prevProps.post.isLiked === nextProps.post.isLiked &&
+        prevProps.post.isBookmarked === nextProps.post.isBookmarked &&
+        prevProps.post.content === nextProps.post.content &&
+        prevProps.currentUserId === nextProps.currentUserId
+    );
+});
 
 function ChatWindow({ chat, messages, currentUserId, onSend, onClose }) {
     const [text, setText] = useState('');
@@ -4426,18 +4439,18 @@ function SocialMediaPage() {
                     console.warn('[Social] ❌ No valid auth session found');
                 }
 
-                // ⚡ INSTANT RENDER: Hydrate feed from cache BEFORE any network calls
-                // Dismiss loading spinner immediately so cached posts are visible instantly
+                // ⚡ INSTANT RENDER: Hydrate from IndexedDB cache BEFORE any network calls
+                // feedCache checks IndexedDB first (50MB+), falls back to localStorage (5MB)
                 try {
-                    const feedCacheRaw = localStorage.getItem('sp-feed-cache');
-                    if (feedCacheRaw) {
-                        const feedCache = JSON.parse(feedCacheRaw);
-                        if (feedCache._cachedAt && (Date.now() - feedCache._cachedAt) < 15 * 60 * 1000 && feedCache.posts?.length) {
-                            setPosts(feedCache.posts);
-                            setLoading(false); // Show cached posts IMMEDIATELY — network fetch happens in background
-                        }
+                    const cached = await feedCache.getPosts();
+                    if (cached?.posts?.length) {
+                        setPosts(cached.posts);
+                        setLoading(false); // Show cached posts IMMEDIATELY — network fetch happens in background
                     }
-                } catch { /* cache miss */ }
+                    // Warm in-memory profile cache from IndexedDB (avatars, names — instant re-use)
+                    feedCache.warmProfileCache().catch(() => {});
+                } catch { /* cache miss is fine */ }
+
 
                 if (authUser) {
                     // Profile fetch — needed for user state before other operations
@@ -4736,270 +4749,122 @@ function SocialMediaPage() {
         try {
             if (append) setLoadingMore(true);
 
-            // Read user from localStorage to avoid getSession AbortError
-            let authUser = null;
+            // Read user ID from localStorage (avoids getSession AbortError)
+            let authUserId = null;
             try {
-                // PRIMARY: Check smarter-poker-auth key first  
                 const explicitAuth = localStorage.getItem('smarter-poker-auth');
                 if (explicitAuth) {
-                    const tokenData = JSON.parse(explicitAuth);
-                    authUser = tokenData?.user || null;
+                    authUserId = JSON.parse(explicitAuth)?.user?.id || null;
                 }
-                // FALLBACK: Legacy sb-* keys
-                if (!authUser) {
+                if (!authUserId) {
                     const sbKeys = Object.keys(localStorage || {}).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
                     if (sbKeys.length > 0) {
-                        let tokenData = {};
-                        try { tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}'); } catch { /* corrupted */ }
-                        authUser = tokenData?.user || null;
+                        const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+                        authUserId = tokenData?.user?.id || null;
                     }
                 }
             } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
-            // ⚡ PERF: Use cached social graph — only fetch friends/follows ONCE per session
-            // On first load: fetch and cache. On subsequent scroll pages: reuse refs instantly.
+            // ⚡ PERF: Fetch social graph ONCE, cache in refs for all subsequent scroll pages
             let friendIds = friendIdsRef.current;
             let followingIds = followingIdsRef.current;
 
-            if (authUser && !socialGraphLoadedRef.current) {
-                socialGraphLoadedRef.current = true; // Mark as loading to prevent duplicate fetches
+            if (authUserId && !socialGraphLoadedRef.current) {
+                socialGraphLoadedRef.current = true;
                 try {
-                    // ⚡ Fetch friends AND follows in PARALLEL (independent queries)
                     const [{ data: friendships }, { data: follows }] = await Promise.all([
-                        supabase.from('friendships').select('user_id, friend_id').or(`user_id.eq.${authUser.id},friend_id.eq.${authUser.id}`).eq('status', 'accepted'),
-                        supabase.from('follows').select('following_id').eq('follower_id', authUser.id),
+                        supabase.from('friendships').select('user_id, friend_id').or(`user_id.eq.${authUserId},friend_id.eq.${authUserId}`).eq('status', 'accepted'),
+                        supabase.from('follows').select('following_id').eq('follower_id', authUserId),
                     ]);
-                    if (friendships) friendIds = [...new Set(friendships.map(f => f.user_id === authUser.id ? f.friend_id : f.user_id))];
+                    if (friendships) friendIds = [...new Set(friendships.map(f => f.user_id === authUserId ? f.friend_id : f.user_id))];
                     if (follows) followingIds = follows.map(f => f.following_id);
-                    // Cache in refs — no re-render, instant reuse on next scroll
                     friendIdsRef.current = friendIds;
                     followingIdsRef.current = followingIds;
                 } catch (e) {
-                    socialGraphLoadedRef.current = false; // Allow retry on error
+                    socialGraphLoadedRef.current = false;
                     console.warn('[Social] Social graph fetch failed:', e);
                 }
             }
 
-            // Combine friends and following for priority
-            const priorityUserIds = [...new Set([...friendIds, ...followingIds])];
+            const prioritySet = new Set([...friendIds, ...followingIds]);
 
-            // ♾️ INFINITE SCROLL: Fetch posts using native fetch to bypass Supabase client AbortError
-            if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Loading feed via native fetch, offset:', offset);
+            // ─────────────────────────────────────────────────────────────────────
+            // ⚡ UNIFIED API CALL: 1 round trip = posts + author profiles + bookmarks
+            //    Previously: 3 sequential client→Supabase fetches (~240ms+)
+            //    Now: 1 server-side Next.js API call with service role key (~60-80ms)
+            // ─────────────────────────────────────────────────────────────────────
+            const apiUrl = `/api/social/feed?offset=${offset}&limit=${POSTS_PER_PAGE}${authUserId ? `&user_id=${authUserId}` : ''}`;
+            const response = await fetch(apiUrl);
 
-            let allPostsData = null;
-            let error = null;
-
-
-            // Define Supabase credentials for native fetch (needed for both posts and profiles)
-            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-            const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-
-            // Use native fetch directly to Supabase REST API
-            try {
-                const queryParams = new URLSearchParams({
-                    select: 'id,content,content_type,media_urls,like_count,comment_count,share_count,created_at,author_id,link_url,link_title,link_description,link_image,link_site_name,metadata,social_likes(user_id,reaction_type)',
-                    or: '(visibility.eq.public,visibility.is.null)',
-                    order: 'created_at.desc',
-                    offset: offset.toString(),
-                    limit: POSTS_PER_PAGE.toString()
-                });
-
-                const response = await fetch(`${supabaseUrl}/rest/v1/social_posts?${queryParams}`, {
-                    headers: {
-                        'apikey': supabaseKey,
-                        'Authorization': `Bearer ${supabaseKey}`,
-                        'Content-Type': 'application/json',
-                        'Prefer': 'return=representation'
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${await response.text()}`);
-                }
-
-                allPostsData = await response.json();
-                if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] ✅ Feed loaded via fetch - count:', allPostsData?.length);
-            } catch (e) {
-                console.warn('[Social] Feed fetch error:', e);
-                error = { message: e.message };
+            if (!response.ok) {
+                throw new Error(`Feed API error: ${response.status}`);
             }
 
-            if (error) throw error;
+            const { posts: rawPosts, hasMore } = await response.json();
 
-            // ♾️ INFINITE SCROLL: Continue as long as we get ANY posts back
-            // Only stop when absolutely no more posts are returned
-            if (!allPostsData || allPostsData.length === 0) {
-                // No posts returned - truly at the end
+            // Pagination state
+            if (!rawPosts || rawPosts.length === 0) {
                 if (feedCycle < MAX_FEED_CYCLES) {
-                    // Loop back from the beginning for endless scroll experience
-                    if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Looping feed - cycle', feedCycle + 1);
                     setFeedCycle(prev => prev + 1);
                     setFeedOffset(0);
-                    // Don't set hasMorePosts false - let next scroll trigger the loop
                 } else {
-                    if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Max cycles reached - ending feed');
                     setHasMorePosts(false);
                 }
             } else {
-                // Got posts - continue infinite scroll
-                setHasMorePosts(true);
+                setHasMorePosts(hasMore !== false);
             }
 
-            //  smarter-poker-style RANKING: Score posts by relevance
+            if (!rawPosts?.length) return;
+
+            // ── Client-side ranking (uses cached social graph — zero extra fetches) ──
+            const now = Date.now();
             const calculatePostScore = (post) => {
                 let score = 0;
-
-                // Friends get highest priority (+100)
-                if (friendIds.includes(post.author_id)) score += 100;
-
-                // Following gets medium priority (+50)
-                if (followingIds.includes(post.author_id)) score += 50;
-
-                // Engagement boost
-                score += Math.min((post.like_count || 0) * 2, 30); // Max 30 from likes
-                score += Math.min((post.comment_count || 0) * 3, 30); // Max 30 from comments
-                score += Math.min((post.share_count || 0) * 4, 20); // Max 20 from shares
-
-                // Recency boost - posts less than 24h old get +40
-                const ageHours = (Date.now() - new Date(post.created_at).getTime()) / 3600000;
-                if (ageHours < 6) score += 50; // Very fresh
-                else if (ageHours < 24) score += 40; // Last 24h
-                else if (ageHours < 72) score += 20; // Last 3 days
-
-                // Decay older posts
-                const ageDays = ageHours / 24;
-                score -= Math.min(ageDays * 2, 20); // Max -20 for old posts
-
-                // If we've seen this post before (on loop), reduce score
+                if (friendIds.includes(post.authorId)) score += 100;
+                else if (followingIds.includes(post.authorId)) score += 50;
+                score += Math.min((post.likeCount || 0) * 2, 30);
+                score += Math.min((post.commentCount || 0) * 3, 30);
+                score += Math.min((post.shareCount || 0) * 4, 20);
+                const ageHours = (now - new Date(post.createdAt).getTime()) / 3600000;
+                if (ageHours < 6) score += 50;
+                else if (ageHours < 24) score += 40;
+                else if (ageHours < 72) score += 20;
+                score -= Math.min((ageHours / 24) * 2, 20);
                 if (seenPostIdsRef.current.has(post.id)) score -= 30;
-
-                // Add some randomization for variety (+/- 15)
                 score += (Math.random() * 30) - 15;
-
                 return score;
             };
 
-            // Mark priority posts and calculate scores
-            const mixedFeed = (allPostsData || []).map(p => ({
+            // Enrich + rank (API already returns profiles & likes embedded)
+            const formattedPosts = rawPosts.map(p => ({
                 ...p,
-                isPriority: priorityUserIds.includes(p.author_id),
+                timeAgo: timeAgo(p.createdAt),
+                isPriority: prioritySet.has(p.authorId),
+                isSuggested: feedCycle > 0,
+                isFriend: friendIds.includes(p.authorId),
+                isFollowing: followingIds.includes(p.authorId),
                 score: calculatePostScore(p),
-                isSuggested: feedCycle > 0 // Mark as suggested on loop
             }));
 
-            // Sort by score (SmarterPoker-style ranking)
-            mixedFeed.sort((a, b) => b.score - a.score);
+            formattedPosts.sort((a, b) => b.score - a.score);
 
-            // Fetch author profiles AND bookmarks in PARALLEL (independent queries)
-            if (mixedFeed.length > 0) {
-                const authorIds = [...new Set(mixedFeed.map(p => p.author_id).filter(Boolean))];
-                if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social]  Processing', mixedFeed.length, 'posts with', authorIds.length, 'unique authors');
-                let authorMap = {};
-                let bookmarkedPostIds = new Set();
+            // Track seen post IDs (ref = no re-render)
+            formattedPosts.forEach(p => seenPostIdsRef.current.add(p.id));
 
-                // ⚡ Fire BOTH queries in parallel
-                const [profileResult, bookmarkResult] = await Promise.allSettled([
-                    // 1. Fetch author profiles
-                    (async () => {
-                        if (!authorIds.length) return {};
-                        try {
-                            const profilesRes = await fetch(`${supabaseUrl}/rest/v1/profiles?id=in.(${authorIds.join(',')})&select=id,username,full_name,display_name,avatar_url`, {
-                                headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
-                            });
-                            if (!profilesRes.ok) {
-                                console.warn('[Social] Profile fetch failed:', profilesRes.status);
-                                return {};
-                            }
-                            const profiles = await profilesRes.json();
-                            return (profiles && profiles.length > 0) ? Object.fromEntries(profiles.map(p => [p.id, p])) : {};
-                        } catch (e) { console.warn('[Social] Profile fetch error:', e); return {}; }
-                    })(),
-                    // 2. Fetch bookmarks
-                    (async () => {
-                        if (!authUser?.id) return new Set();
-                        try {
-                            const bookmarkRes = await fetch(
-                                `${supabaseUrl}/rest/v1/social_interactions?user_id=eq.${authUser.id}&interaction_type=eq.bookmark&select=post_id`,
-                                { headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` } }
-                            );
-                            if (bookmarkRes.ok) {
-                                const bookmarks = await bookmarkRes.json();
-                                return new Set(bookmarks.map(b => b.post_id));
-                            }
-                        } catch { /* bookmark fetch non-critical */ }
-                        return new Set();
-                    })(),
-                ]);
+            // Cache author profiles in IndexedDB for instant avatar render next visit
+            const profileMap = {};
+            formattedPosts.forEach(p => { if (p.authorId && p.author) profileMap[p.authorId] = p.author; });
+            if (Object.keys(profileMap).length > 0) feedCache.setProfiles(profileMap);
 
-                authorMap = profileResult.status === 'fulfilled' ? profileResult.value : {};
-                bookmarkedPostIds = bookmarkResult.status === 'fulfilled' ? bookmarkResult.value : new Set();
-
-                const formattedPosts = mixedFeed.map(p => {
-                    const likesArray = p.social_likes || [];
-                    const reactions = likesArray.map(l => l.reaction_type || 'like');
-                    
-                    return {
-                        id: p.id,
-                        authorId: p.author_id,
-                        content: p.content,
-                        contentType: p.content_type,
-                        mediaUrls: p.media_urls || [],
-                        likeCount: Math.max(p.like_count || 0, reactions.length), // Prefer accurate length if higher
-                        reactions: reactions,
-                        isLiked: likesArray.some(l => l.user_id === authUser?.id),
-                        commentCount: p.comment_count || 0,
-                        shareCount: p.share_count || 0,
-                        // Link metadata for ArticleCard
-                        link_url: p.link_url || null,
-                        link_title: p.link_title || null,
-                        link_description: p.link_description || null,
-                        link_image: p.link_image || null,
-                        link_site_name: p.link_site_name || null,
-                        timeAgo: timeAgo(p.created_at),
-                        isPriority: p.isPriority,
-                    isSuggested: p.isSuggested || false, // Mark as suggested on feed loop
-                    isFriend: friendIds.includes(p.author_id),
-                    isFollowing: followingIds.includes(p.author_id),
-                    metadata: p.metadata || null,
-                    author: {
-                        // For page posts (mirrored/auto-posts), show the page name instead of personal name
-                        name: (() => {
-                            const meta = p.metadata;
-                            if (meta?.page_name) return meta.page_name;
-                            if (meta?.auto_generated && meta?.entity_type) return p.content?.split(' updated ')[0] || 'Page';
-                            const a = authorMap[p.author_id];
-                            if (!a) return 'Player';
-                            return a.display_name || a.full_name || a.username || 'Player';
-                        })(),
-                        username: authorMap[p.author_id]?.username || null,
-                        avatar: (() => {
-                            const meta = p.metadata;
-                            if (meta?.page_avatar_url) return meta.page_avatar_url;
-                            return authorMap[p.author_id]?.avatar_url || null;
-                        })()
-                    },
-                    isBookmarked: bookmarkedPostIds.has(p.id)
-                };
-            });
-
-                // ⚡ PERF: Track seen posts via ref (no setState = no re-render)
-                formattedPosts.forEach(p => seenPostIdsRef.current.add(p.id));
-
-                if (append) {
-                    setPosts(prev => [...prev, ...formattedPosts]);
-                } else {
-                    setPosts(formattedPosts);
-                    // Cache first 20 posts for instant render on next visit
-                    try {
-                        const cacheSlice = formattedPosts.slice(0, 20);
-                        localStorage.setItem('sp-feed-cache', JSON.stringify({
-                            _cachedAt: Date.now(),
-                            posts: cacheSlice,
-                        }));
-                    } catch { /* quota exceeded */ }
-                }
+            if (append) {
+                setPosts(prev => [...prev, ...formattedPosts]);
+            } else {
+                setPosts(formattedPosts);
+                // Persist to IndexedDB (50MB+) and localStorage fallback
+                feedCache.setPosts(formattedPosts);
             }
-        } catch (e) { console.warn('Feed error:', e); }
+
+        } catch (e) { console.warn('[Social] Feed error:', e); }
         finally {
             setLoadingMore(false);
         }
