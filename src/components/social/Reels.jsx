@@ -1546,7 +1546,6 @@ export function ReelsViewer({ onClose }) {
                             </div>
                         )}
                         </div>
-                    </div>
                 )}
 
                 {/* Share Toast */}
