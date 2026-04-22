@@ -672,7 +672,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
             const { error } = await supabase.from('social_comments').insert(payload);
             if (error) throw error;
             busEmit.socialCommentAdded(currentReel.id, authUser.id);
-            incrementMetric(currentReel, 'comment_count', 1);
+            // DB trigger handles comment_count increment atomically
             setCommentCounts(prev => ({ ...prev, [currentReel.id]: (prev[currentReel.id] || 0) + 1 }));
         } catch {
             setReelComments(prev => prev.filter(c => c.id !== tempId));
@@ -711,7 +711,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
             const { error } = await supabase.from('social_comments').delete()
                 .eq('id', commentId).eq('author_id', authUser.id);
             if (error) throw error;
-            incrementMetric(currentReel, 'comment_count', -1);
+            // DB trigger handles comment_count decrement atomically
             setCommentCounts(p => ({ ...p, [currentReel.id]: Math.max(0, (p[currentReel.id] || 1) - 1) }));
             busEmit.socialCommentAdded && busEmit.socialCommentAdded(currentReel.id, authUser.id, { removed: true });
         } catch { setReelComments(prev); }

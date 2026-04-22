@@ -655,7 +655,8 @@ export function ReelsViewer({ onClose }) {
             const { error } = await supabase.from('social_comments').insert(payload);
             if (error) throw error;
             busEmit.socialCommentAdded(currentReel.id, currentUserId);
-            incrementMetric(currentReel, 'comment_count', 1);
+            // DB trigger (trig_update_reel_comment_count / trig_update_post_comment_count)
+            // handles comment_count increment atomically — no RPC needed here
             setCommentCounts(prev => ({ ...prev, [currentReel.id]: (prev[currentReel.id] || 0) + 1 }));
         } catch {
             setReelComments(prev => prev.filter(c => c.id !== tempId));
@@ -694,7 +695,7 @@ export function ReelsViewer({ onClose }) {
             const { error } = await supabase.from('social_comments').delete()
                 .eq('id', commentId).eq('author_id', currentUserId);
             if (error) throw error;
-            incrementMetric(currentReel, 'comment_count', -1);
+            // DB trigger handles comment_count decrement atomically
             setCommentCounts(p => ({ ...p, [currentReel.id]: Math.max(0, (p[currentReel.id] || 1) - 1) }));
             busEmit.socialCommentAdded && busEmit.socialCommentAdded(currentReel.id, currentUserId, { removed: true });
         } catch { setReelComments(prev); }

@@ -225,8 +225,9 @@ export default async function handler(req, res) {
 
               if (!data) return res.status(500).json({ success: false, error: 'Failed to create comment' });
 
-              // Atomic increment comment_count on the correct table
-              await atomicIncrement('comment_count', 1);
+              // Note: comment_count is updated atomically by DB trigger
+              // (trig_update_post_comment_count / trig_update_reel_comment_count)
+              // Calling atomicIncrement here would double-count.
 
               return res.status(201).json({ comment: data });
 

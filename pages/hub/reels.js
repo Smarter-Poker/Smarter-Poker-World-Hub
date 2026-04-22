@@ -374,7 +374,7 @@ export default function ReelsPage() {
                     .from('profiles')
                     .select('id, username, avatar_url, full_name')
                     .in('id', authorIds)
-                    .limit(50) // reel profiles
+                    .limit(200) // Up to 150 reels+posts in initial load — need all profiles
 
                 const profileMap = {};
                 (profiles || []).forEach(p => { profileMap[p.id] = p; });
@@ -869,7 +869,7 @@ export default function ReelsPage() {
             const { error } = await supabase.from('social_comments').insert(payload);
             if (error) throw error;
             busEmit.socialCommentAdded(currentReel.id, user.id);
-            incrementMetric(currentReel, 'comment_count', 1);
+            // DB trigger handles comment_count increment atomically
             setCommentCounts(prev => ({ ...prev, [currentReel.id]: (prev[currentReel.id] || 0) + 1 }));
         } catch (err) {
             console.error('[CommentInsert] Failed:', err);
@@ -910,7 +910,7 @@ export default function ReelsPage() {
             const { error } = await supabase.from('social_comments').delete()
                 .eq('id', commentId).eq('author_id', user.id);
             if (error) throw error;
-            incrementMetric(currentReel, 'comment_count', -1);
+            // DB trigger handles comment_count decrement atomically
             setCommentCounts(p => ({ ...p, [currentReel.id]: Math.max(0, (p[currentReel.id] || 1) - 1) }));
             busEmit.socialCommentAdded && busEmit.socialCommentAdded(currentReel.id, user.id, { removed: true });
         } catch { setComments(prev); }
