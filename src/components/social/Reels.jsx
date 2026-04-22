@@ -265,15 +265,19 @@ export function ReelsViewer({ onClose }) {
     }, [currentUserId]);
 
     // Realtime subscription — live updates when new reels are posted
+    // Debounced to 3s to batch rapid inserts and avoid feed-flash
     useEffect(() => {
         if (!currentUserId) return;
+        let reloadTimer = null;
         const _ch = supabase
             .channel(`reels-viewer:${currentUserId}`)
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_reels' }, () => {
-                loadReels();
+                // Debounce: wait 3s before reloading so multiple rapid inserts collapse into one reload
+                clearTimeout(reloadTimer);
+                reloadTimer = setTimeout(() => { loadReels(); }, 3000);
             })
             .subscribe();
-        return () => { supabase.removeChannel(_ch); };
+        return () => { clearTimeout(reloadTimer); supabase.removeChannel(_ch); };
     }, [currentUserId]);
 
     // Reset paused state when changing reels + track view
@@ -406,24 +410,35 @@ export function ReelsViewer({ onClose }) {
                 supabase
                     .from('social_posts')
                     .select(`
-                        id, author_id, content, media_url, media_type, like_count, comment_count, view_count, created_at,
+                        id, author_id, content, content_type, media_urls, like_count, comment_count, created_at,
                         profiles:author_id (id, username, avatar_url, full_name)
                     `)
-                    .or('media_type.eq.youtube,media_type.eq.video')
+                    .eq('visibility', 'public')
+                    .not('media_urls', 'is', null)
                     .order('created_at', { ascending: false })
                     .limit(20)
             ]);
 
             const reelsData = reelsResult.data || [];
             // Map social_posts to reel-compatible shape
+            // Filter to posts that have actual video/YouTube content
             // CRITICAL: source flag tells incrementMetric which table to update
-            const postsAsReels = (postsResult.data || []).map(p => ({
-                ...p,
-                source: 'posts',
-                video_url: p.media_url,
-                caption: p.content,
-                is_public: true,
-            }));
+            const postsAsReels = (postsResult.data || [])
+                .filter(p => {
+                    const url = p.media_urls?.[0];
+                    return p.content_type === 'video' || (url && (
+                        url.includes('youtube.com') || url.includes('youtu.be') ||
+                        url.match(/\.(mp4|webm|mov)(\?|$)/i)
+                    ));
+                })
+                .map(p => ({
+                    ...p,
+                    source: 'posts',
+                    video_url: p.media_urls?.[0],
+                    caption: p.content,
+                    view_count: p.view_count || 0,
+                    is_public: true,
+                }));
 
             // Merge, deduplicate by id, sort by date
             const idSet = new Set();

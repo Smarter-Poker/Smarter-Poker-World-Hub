@@ -160,25 +160,9 @@ UPDATE public.social_reels SET comment_count = 0 WHERE comment_count IS NULL;
 UPDATE public.social_reels SET view_count = 0 WHERE view_count IS NULL;
 UPDATE public.social_reels SET share_count = 0 WHERE share_count IS NULL;
 
--- Fix UploadReelModal insert bug: modal was using author_id=null because it sent
--- user_id (wrong field). Add author_id column alias if only user_id exists.
--- (Safe no-op if author_id already exists)
-ALTER TABLE public.social_reels
-  ADD COLUMN IF NOT EXISTS author_id uuid REFERENCES auth.users(id) ON DELETE CASCADE;
-
--- Backfill author_id from user_id if the column was user_id
-DO $$
-BEGIN
-  IF EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_name = 'social_reels' AND column_name = 'user_id'
-  ) AND EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_name = 'social_reels' AND column_name = 'author_id'
-  ) THEN
-    UPDATE public.social_reels SET author_id = user_id WHERE author_id IS NULL AND user_id IS NOT NULL;
-  END IF;
-END $$;
+-- social_reels already has author_id as the user identifier column.
+-- No user_id column exists on this table.
+-- This block is intentionally a no-op (verified schema on 2026-04-22).
 
 -- ─────────────────────────────────────────────────────────────
 -- 4. Performance indexes
@@ -219,28 +203,28 @@ ALTER TABLE public.social_reels ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Reels are publicly viewable" ON public.social_reels;
 CREATE POLICY "Reels are publicly viewable"
   ON public.social_reels FOR SELECT
-  USING (is_public = true OR auth.uid() = author_id OR auth.uid() = user_id);
+  USING (is_public = true OR auth.uid() = author_id);
 
 -- Authenticated users can insert their own reels
 DROP POLICY IF EXISTS "Users can insert own reels" ON public.social_reels;
 CREATE POLICY "Users can insert own reels"
   ON public.social_reels FOR INSERT
   TO authenticated
-  WITH CHECK (auth.uid() = author_id OR auth.uid() = user_id);
+  WITH CHECK (auth.uid() = author_id);
 
 -- Users can update their own reels (caption, thumbnail, etc.)
 DROP POLICY IF EXISTS "Users can update own reels" ON public.social_reels;
 CREATE POLICY "Users can update own reels"
   ON public.social_reels FOR UPDATE
   TO authenticated
-  USING (auth.uid() = author_id OR auth.uid() = user_id);
+  USING (auth.uid() = author_id);
 
 -- Users can delete their own reels
 DROP POLICY IF EXISTS "Users can delete own reels" ON public.social_reels;
 CREATE POLICY "Users can delete own reels"
   ON public.social_reels FOR DELETE
   TO authenticated
-  USING (auth.uid() = author_id OR auth.uid() = user_id);
+  USING (auth.uid() = author_id);
 
 -- ─────────────────────────────────────────────────────────────
 -- 6. Comments on new functions for documentation

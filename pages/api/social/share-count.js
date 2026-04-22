@@ -2,7 +2,8 @@
  * 📊 SHARE COUNT INCREMENT API
  * pages/api/social/share-count.js
  * 
- * Increments the share_count on social_posts when a user shares a post.
+ * Increments the share_count on social_posts OR social_reels when a user shares content.
+ * Detects which table the ID belongs to and routes to the correct atomic RPC.
  * Fire-and-forget endpoint — non-critical if it fails.
  * 
  * SECURITY: JWT auth required + rate limiting.
@@ -34,7 +35,7 @@ export default async function handler(req, res) {
     // JWT authentication
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ error: 'Authentication required' });
-    
+
     const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
     const user = authData?.user;
     if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
@@ -46,26 +47,40 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Try RPC first (if fn exists)
-        const { error: rpcError } = await getSupabase().rpc('increment_share_count', { p_post_id: post_id });
+        // Detect whether this is a native reel (social_reels) or post (social_posts)
+        let source = 'posts';
+        const { data: reelCheck } = await getSupabase()
+            .from('social_reels')
+            .select('id')
+            .eq('id', post_id)
+            .maybeSingle();
+        if (reelCheck) source = 'reels';
 
-        if (rpcError) {
-            // Fallback: read current count and increment by 1
-            const { data: post, error: readError } = await getSupabase()
-                .from('social_posts')
-                .select('share_count')
-                .eq('id', post_id)
-                .maybeSingle();
-
-            if (!readError && post) {
-                const newCount = (post.share_count || 0) + 1;
-                const { error: updateError } = await getSupabase()
+        if (source === 'reels') {
+            // Atomic increment on social_reels via RPC
+            const { error: rpcError } = await getSupabase().rpc('increment_reel_count', {
+                p_reel_id: post_id, p_field: 'share_count'
+            });
+            if (rpcError) {
+                console.warn('[share-count] Reel RPC failed (non-critical):', rpcError.message);
+            }
+        } else {
+            // Atomic increment on social_posts via RPC
+            const { error: rpcError } = await getSupabase().rpc('increment_post_count', {
+                p_post_id: post_id, p_field: 'share_count'
+            });
+            if (rpcError) {
+                // Fallback: read-then-write (shares are idempotent, race is non-critical)
+                const { data: post } = await getSupabase()
                     .from('social_posts')
-                    .update({ share_count: newCount })
-                    .eq('id', post_id);
-
-                if (updateError) {
-                    console.warn('Share count update failed (non-critical):', updateError.message);
+                    .select('share_count')
+                    .eq('id', post_id)
+                    .maybeSingle();
+                if (post) {
+                    await getSupabase()
+                        .from('social_posts')
+                        .update({ share_count: (post.share_count || 0) + 1 })
+                        .eq('id', post_id);
                 }
             }
         }
