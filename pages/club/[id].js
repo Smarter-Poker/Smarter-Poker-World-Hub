@@ -657,12 +657,21 @@ export default function ClubPage() {
       try {
         if (isVideo) {
           // Direct-to-Supabase upload for videos (bypasses Vercel body limit)
-          const { data: { session: _clubVidSess } } = await supabase.auth.getSession();
+          // Read token from localStorage — avoids supabase.auth.getSession() lock contention
+          let _clubVidToken = null;
+          try {
+            const _raw = localStorage.getItem('smarter-poker-auth');
+            if (_raw) _clubVidToken = JSON.parse(_raw)?.access_token || null;
+            if (!_clubVidToken) {
+              const _sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+              if (_sbKeys.length > 0) _clubVidToken = JSON.parse(localStorage.getItem(_sbKeys[0]) || '{}')?.access_token || null;
+            }
+          } catch (_) {}
           const metaRes = await fetch('/api/social/upload-url', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              ...(_clubVidSess?.access_token ? { Authorization: `Bearer ${_clubVidSess.access_token}` } : {}),
+              ...(_clubVidToken ? { Authorization: `Bearer ${_clubVidToken}` } : {}),
             },
             body: JSON.stringify({
               fileName: file.name,
@@ -696,10 +705,19 @@ export default function ClubPage() {
           formData.append('file', file);
           formData.append('folder', 'club-posts');
           formData.append('prefix', venue?.social_page_id || id);
-          const { data: { session: _clubImgSess } } = await supabase.auth.getSession();
+          // Image upload — read token from localStorage (no lock)
+          let _clubImgToken = null;
+          try {
+            const _raw2 = localStorage.getItem('smarter-poker-auth');
+            if (_raw2) _clubImgToken = JSON.parse(_raw2)?.access_token || null;
+            if (!_clubImgToken) {
+              const _sbKeys2 = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+              if (_sbKeys2.length > 0) _clubImgToken = JSON.parse(localStorage.getItem(_sbKeys2[0]) || '{}')?.access_token || null;
+            }
+          } catch (_) {}
           const res = await fetch('/api/social/upload', {
             method: 'POST',
-            headers: _clubImgSess?.access_token ? { Authorization: `Bearer ${_clubImgSess.access_token}` } : {},
+            headers: _clubImgToken ? { Authorization: `Bearer ${_clubImgToken}` } : {},
             body: formData,
           });
           if (!res.ok) throw new Error(`Request failed (${res.status})`);

@@ -300,10 +300,14 @@ export default function ReelsPage() {
         }
     };
 
+    // Wait for router.isReady so router.query.id is populated before loadReels runs.
+    // Without this, ?id= deep-links arrive as undefined on first render and the
+    // direct-query fallback inside loadReels never fires.
     useEffect(() => {
+        if (!router.isReady) return;
         loadReels();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [router.isReady]);
 
     const loadReels = useCallback(async () => {
         setLoading(true);
@@ -485,14 +489,47 @@ export default function ReelsPage() {
     };
 
 
-    // Deep-link: if ?id= is in URL, scroll to that reel after load
+    // Deep-link: if ?id= is in URL, scroll to that reel after load.
+    // Fires when reels load OR when router.query.id becomes available.
     useEffect(() => {
-        if (reels.length > 0 && router.query.id) {
-            const targetIdx = reels.findIndex(r => r.id === router.query.id);
-            if (targetIdx > 0 && targetIdx !== currentIndex) {
-                setCurrentIndex(targetIdx);
-            }
+        if (!router.query.id || reels.length === 0) return;
+        const targetIdx = reels.findIndex(r => r.id === router.query.id);
+        if (targetIdx !== -1 && targetIdx !== currentIndex) {
+            // Found in current batch — jump to it
+            setCurrentIndex(targetIdx);
+        } else if (targetIdx === -1) {
+            // Not in loaded batch — direct-query for this specific reel and prepend
+            (async () => {
+                try {
+                    const { supabase } = await import('../../src/lib/supabase');
+                    let directReel = null;
+                    const { data: pData } = await supabase.from('social_posts')
+                        .select('id, author_id, content, content_type, media_urls, like_count, comment_count, created_at')
+                        .eq('id', router.query.id).maybeSingle();
+                    if (pData && pData.media_urls?.length) {
+                        const { data: profile } = await supabase.from('profiles')
+                            .select('id, username, avatar_url, full_name').eq('id', pData.author_id).maybeSingle();
+                        directReel = {
+                            id: pData.id, author_id: pData.author_id, source: 'posts',
+                            video_url: pData.media_urls[0], caption: pData.content,
+                            like_count: pData.like_count || 0, comment_count: pData.comment_count || 0,
+                            view_count: 0, created_at: pData.created_at,
+                            profiles: profile || { username: 'Player' },
+                        };
+                    } else {
+                        const { data: rData } = await supabase.from('social_reels')
+                            .select('*, profiles:author_id (id, username, avatar_url, full_name)')
+                            .eq('id', router.query.id).maybeSingle();
+                        if (rData) directReel = { ...rData, source: 'reels' };
+                    }
+                    if (directReel) {
+                        setReels(prev => [directReel, ...prev.filter(r => r.id !== directReel.id)]);
+                        setCurrentIndex(0);
+                    }
+                } catch (e) { console.warn('[Reels] Direct-query fallback failed:', e?.message); }
+            })();
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [reels.length, router.query.id]);
 
 

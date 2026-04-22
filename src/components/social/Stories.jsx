@@ -565,6 +565,13 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
 
         setError(null);
 
+        // Validate file size (50MB limit for stories bucket)
+        const MAX_STORY_BYTES = 50 * 1024 * 1024;
+        if (file.size > MAX_STORY_BYTES) {
+            setError(`File too large — max 50MB for stories (your file: ${(file.size / 1024 / 1024).toFixed(1)}MB)`);
+            return;
+        }
+
         // Create immediate local preview
         const localPreviewUrl = URL.createObjectURL(file);
         setMediaPreview(localPreviewUrl);
@@ -575,32 +582,60 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
         const isVideo = cleanMime.startsWith('video/');
         setMediaType(isVideo ? 'video' : 'image');
 
-        // Upload in background
+        // Upload via signed URL — avoids supabase.auth.getSession() lock contention.
+        // The SDK's storage.upload() calls getSession() internally, which fights with
+        // realtime subscriptions / feed polling for the "lock:smarter-poker-auth" named lock.
         setUploading(true);
         try {
-            const fileExt = file.name.split('.').pop();
-            const filePath = `stories/${userId}/${Date.now()}.${fileExt}`;
+            // Read token directly from localStorage — zero lock contention
+            let accessToken = null;
+            try {
+                const raw = localStorage.getItem('smarter-poker-auth');
+                if (raw) accessToken = JSON.parse(raw)?.access_token || null;
+                if (!accessToken) {
+                    const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+                    if (sbKeys.length > 0) accessToken = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}')?.access_token || null;
+                }
+            } catch (_) {}
 
-            const { error: uploadError } = await supabase.storage
-                .from('stories')
-                .upload(filePath, file, {
-                    contentType: cleanMime,  // Explicit — prevents Supabase SDK from forwarding codec-suffixed MIME
-                    cacheControl: '3600',
-                    upsert: false
-                });
+            // Step 1: Get a signed upload URL from our API
+            const metaRes = await fetch('/api/social/upload-url', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+                },
+                body: JSON.stringify({
+                    fileName: file.name,
+                    fileSize: file.size,
+                    mimeType: cleanMime,
+                    folder: 'stories',
+                    prefix: userId,
+                    bucket: 'stories',
+                }),
+            });
 
-            if (uploadError) {
-                console.warn('Upload error:', uploadError);
-                setError(`Upload failed: ${uploadError.message}`);
-                setUploading(false);
-                return;
+            if (!metaRes.ok) {
+                const errJson = await metaRes.json().catch(() => ({}));
+                throw new Error(errJson.error || `Upload auth failed (${metaRes.status})`);
+            }
+            const meta = await metaRes.json();
+            if (!meta.success) throw new Error(meta.error || 'Upload URL request failed');
+
+            // Step 2: PUT the file directly to Supabase — no lock, no SDK
+            const putRes = await fetch(meta.signedUrl, {
+                method: 'PUT',
+                headers: { 'Content-Type': cleanMime },
+                body: file,
+            });
+            if (!putRes.ok) {
+                throw new Error(`Upload failed (HTTP ${putRes.status}) — please try again`);
             }
 
-            const { data: { publicUrl } } = supabase.storage.from('stories').getPublicUrl(filePath);
-            setMediaUrl(publicUrl);
-            console.debug('✅ Uploaded to:', publicUrl);
+            setMediaUrl(meta.publicUrl);
+            console.debug('✅ Story uploaded to:', meta.publicUrl);
         } catch (err) {
-            console.warn('Upload error:', err);
+            console.warn('[Stories] Upload error:', err);
             setError(`Upload failed: ${err.message}`);
         }
         setUploading(false);

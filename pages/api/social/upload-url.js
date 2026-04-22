@@ -16,8 +16,12 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const BUCKET = 'social-media';
-const MAX_VIDEO_SIZE = 5 * 1024 * 1024 * 1024; // 5GB — Supabase Pro max, no practical limit
+// Bucket allowlist — NEVER trust client blindly
+const ALLOWED_BUCKETS = ['social-media', 'stories'];
+const DEFAULT_BUCKET = 'social-media';
+
+const MAX_VIDEO_SIZE = 5 * 1024 * 1024 * 1024; // 5GB — Supabase Pro max (social-media bucket)
+const MAX_STORY_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB — stories bucket config
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;        // 10MB for images
 
 const ALLOWED_TYPES = [
@@ -77,6 +81,9 @@ export default async function handler(req, res) {
 
       try {
           const { fileName, fileSize, folder, prefix } = req.body || {};
+          // Bucket: strict allowlist — default to social-media
+          const requestedBucket = req.body?.bucket || DEFAULT_BUCKET;
+          const BUCKET = ALLOWED_BUCKETS.includes(requestedBucket) ? requestedBucket : DEFAULT_BUCKET;
           // mimeType may be empty from iOS Photo Library — sniff from extension as fallback
           let mimeType = (req.body?.mimeType || '').split(';')[0].trim(); // strip codec suffix
           if (!mimeType && fileName) mimeType = sniffMimeFromExt(fileName) || '';
@@ -95,24 +102,28 @@ export default async function handler(req, res) {
               return res.status(400).json({ success: false, error: `File type not allowed: ${mimeType}` });
           }
 
-          // Validate file size based on type
+          // Validate file size based on type and bucket
           const isVideo = mimeType.startsWith('video/');
-          const maxSize = isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE;
+          // Stories bucket has a 50MB hard cap (Supabase bucket config)
+          const maxSize = isVideo
+              ? (BUCKET === 'stories' ? MAX_STORY_VIDEO_SIZE : MAX_VIDEO_SIZE)
+              : MAX_IMAGE_SIZE;
           if (fileSize > maxSize) {
               const maxMB = Math.round(maxSize / 1024 / 1024);
               return res.status(400).json({
-                  success: false, error: `File too large (max ${maxMB}MB for ${isVideo ? 'video' : 'image'})`
+                  success: false, error: `File too large (max ${maxMB}MB for ${isVideo ? 'video' : 'image'} in ${BUCKET})`
               });
           }
 
 
           // Build storage path
-          const ext = fileName.split('.').pop() || 'bin';
-          const timestamp = Date.now();
           const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
-          const subFolder = isVideo ? (folder || 'videos') : (folder || 'photos');
-          const pathParts = [subFolder, prefix, `${timestamp}_${safeName}`].filter(Boolean);
-          const storagePath = pathParts.join('/');
+          const timestamp = Date.now();
+          // Stories: flat path — stories/{userId}/{timestamp}_{name}
+          // Social-media: grouped by type — {type}/{prefix}/{timestamp}_{name}
+          const storagePath = BUCKET === 'stories'
+              ? [folder || 'stories', prefix, `${timestamp}_${safeName}`].filter(Boolean).join('/')
+              : [isVideo ? (folder || 'videos') : (folder || 'photos'), prefix, `${timestamp}_${safeName}`].filter(Boolean).join('/');
 
           // Create signed upload URL (one-time use, expires in 5 minutes)
           const { data, error: signError } = await getSupabase().storage

@@ -1731,15 +1731,22 @@ export default function SocialPageDetail() {
                                 if (!file) return;
                                 setUploadingCover(true);
                                 try {
-                                    const ext = file.name.split('.').pop();
-                                    const path = `social-pages/${page.id}/cover_${Date.now()}.${ext}`;
-                                    const { error: upErr } = await supabase.storage.from('uploads').upload(path, file, { upsert: true });
-                                    if (upErr) throw upErr;
-                                    const { data: { publicUrl } } = supabase.storage.from('uploads').getPublicUrl(path);
-                                    const token = getAccessToken();
+                                    const _cToken = getAccessToken();
+                                    const _cMime = file.type.startsWith('image/') ? file.type.split(';')[0] : 'image/jpeg';
+                                    const _cMeta = await fetch('/api/social/upload-url', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json', ..._cToken ? { Authorization: `Bearer ${_cToken}` } : {} },
+                                        body: JSON.stringify({ fileName: file.name, fileSize: file.size, mimeType: _cMime, folder: 'social-pages', prefix: page.id }),
+                                    });
+                                    if (!_cMeta.ok) throw new Error(`Upload auth failed (${_cMeta.status})`);
+                                    const _cJson = await _cMeta.json();
+                                    if (!_cJson.success) throw new Error(_cJson.error || 'Upload URL failed');
+                                    const _cPut = await fetch(_cJson.signedUrl, { method: 'PUT', headers: { 'Content-Type': _cMime }, body: file });
+                                    if (!_cPut.ok) throw new Error('Upload failed');
+                                    const publicUrl = _cJson.publicUrl;
                                     await fetch('/api/social/pages', {
                                         method: 'PUT',
-                                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${_cToken}` },
                                         body: JSON.stringify({ id: page.id, cover_url: publicUrl }),
                                     });
                                     setPage(prev => ({ ...prev, cover_url: publicUrl }));
@@ -1783,15 +1790,22 @@ export default function SocialPageDetail() {
                                         if (!file) return;
                                         setUploadingAvatar(true);
                                         try {
-                                            const ext = file.name.split('.').pop();
-                                            const path = `social-pages/${page.id}/avatar_${Date.now()}.${ext}`;
-                                            const { error: upErr } = await supabase.storage.from('uploads').upload(path, file, { upsert: true });
-                                            if (upErr) throw upErr;
-                                            const { data: { publicUrl } } = supabase.storage.from('uploads').getPublicUrl(path);
-                                            const token = getAccessToken();
+                                            const _aToken = getAccessToken();
+                                            const _aMime = file.type.startsWith('image/') ? file.type.split(';')[0] : 'image/jpeg';
+                                            const _aMeta = await fetch('/api/social/upload-url', {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json', ..._aToken ? { Authorization: `Bearer ${_aToken}` } : {} },
+                                                body: JSON.stringify({ fileName: file.name, fileSize: file.size, mimeType: _aMime, folder: 'social-pages', prefix: page.id }),
+                                            });
+                                            if (!_aMeta.ok) throw new Error(`Upload auth failed (${_aMeta.status})`);
+                                            const _aJson = await _aMeta.json();
+                                            if (!_aJson.success) throw new Error(_aJson.error || 'Upload URL failed');
+                                            const _aPut = await fetch(_aJson.signedUrl, { method: 'PUT', headers: { 'Content-Type': _aMime }, body: file });
+                                            if (!_aPut.ok) throw new Error('Upload failed');
+                                            const publicUrl = _aJson.publicUrl;
                                             await fetch('/api/social/pages', {
                                                 method: 'PUT',
-                                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${_aToken}` },
                                                 body: JSON.stringify({ id: page.id, avatar_url: publicUrl }),
                                             });
                                             setPage(prev => ({ ...prev, avatar_url: publicUrl }));
