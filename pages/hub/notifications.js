@@ -700,34 +700,52 @@ function NotificationsPage() {
                                 // [Audit#17] Dismiss any open swipe
                                 setSwipedId(null);
                                 
+                                // When rendered inside FullScreenPageOverlay, router.push navigates
+                                // the iframe's own URL — useless. Break out to the parent window instead.
+                                const navigate = (path) => {
+                                    try {
+                                        if (window.self !== window.top) {
+                                            // Escape the iframe — navigate parent window directly
+                                            window.top.location.href = path;
+                                        } else {
+                                            router.push(path);
+                                        }
+                                    } catch (_) {
+                                        // Cross-origin safety: fall back to router if top access blocked
+                                        router.push(path);
+                                    }
+                                };
+
                                 // Extensive routing fallback tree based on notification payload
                                 if (n.data?.page_type && n.data?.page_id) {
                                     const pt = n.data.page_type;
                                     const pid = n.data.page_id;
-                                    if (pt === 'venue') router.push(`/hub/venues/${pid}`);
-                                    else if (pt === 'tour') router.push(`/hub/tours/${pid}`);
-                                    else if (pt === 'series') router.push(`/hub/series/${pid}`);
-                                    else router.push(`/club/${pid}`); // fallback to club for unknown page_types
-                                } else if (n.data?.club_id || n.data?.group_id || n.data?.page_id) {
-                                    const id = n.data.club_id || n.data.group_id || n.data.page_id;
-                                    router.push(`/club/${id}`);
+                                    if (pt === 'venue') navigate(`/hub/venues/${pid}`);
+                                    else if (pt === 'tour') navigate(`/hub/tours/${pid}`);
+                                    else if (pt === 'series') navigate(`/hub/series/${pid}`);
+                                    else navigate(`/club/${pid}`);
+                                } else if (n.data?.club_id || n.data?.group_id) {
+                                    const id = n.data.club_id || n.data.group_id;
+                                    navigate(`/club/${id}`);
+                                } else if (n.data?.page_id) {
+                                    navigate(`/hub/social-pages/${n.data.page_id}`);
                                 } else if (n.data?.post_id) {
                                     if (n.data?.is_reel || n.data?.post_type === 'reel') {
-                                        router.push(`/hub/reels?id=${n.data.post_id}`);
+                                        navigate(`/hub/reels?id=${n.data.post_id}`);
                                     } else {
-                                        router.push('/hub/social-media'); // Smarter Poker currently lacks a single-post view
+                                        navigate('/hub/social-media');
                                     }
                                 } else if (n.data?.tournament_id) {
-                                    router.push('/hub/tournaments');
+                                    navigate('/hub/tournaments');
                                 } else if (n.actor_username) {
-                                    router.push(`/hub/user/${n.actor_username}`);
+                                    navigate(`/hub/user/${n.actor_username}`);
                                 } else if (n.type && n.type.includes('friend')) {
-                                    router.push('/hub/friends');
-                                } else {
-                                    // Ultimate fallback: if it's a social notification, take them to the social feed
-                                    if (n._source === 'social') router.push('/hub/social-media');
+                                    navigate('/hub/friends');
+                                } else if (n._source === 'social') {
+                                    navigate('/hub/social-media');
                                 }
                             };
+
                             
                             // If it matches any of our routing criteria, it's clickable
                             const isClickable = !!(
