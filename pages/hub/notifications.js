@@ -699,18 +699,47 @@ function NotificationsPage() {
                                 if (!n.read) markAsRead(n.id);
                                 // [Audit#17] Dismiss any open swipe
                                 setSwipedId(null);
+                                
+                                // Extensive routing fallback tree based on notification payload
                                 if (n.data?.page_type && n.data?.page_id) {
                                     const pt = n.data.page_type;
                                     const pid = n.data.page_id;
                                     if (pt === 'venue') router.push(`/hub/venues/${pid}`);
                                     else if (pt === 'tour') router.push(`/hub/tours/${pid}`);
                                     else if (pt === 'series') router.push(`/hub/series/${pid}`);
-                                    else router.push('/hub/pages');
+                                    else router.push(`/club/${pid}`); // fallback to club for unknown page_types
+                                } else if (n.data?.club_id || n.data?.group_id || n.data?.page_id) {
+                                    const id = n.data.club_id || n.data.group_id || n.data.page_id;
+                                    router.push(`/club/${id}`);
+                                } else if (n.data?.post_id) {
+                                    if (n.data?.is_reel || n.data?.post_type === 'reel') {
+                                        router.push(`/hub/reels?id=${n.data.post_id}`);
+                                    } else {
+                                        router.push('/hub/social-media'); // Smarter Poker currently lacks a single-post view
+                                    }
+                                } else if (n.data?.tournament_id) {
+                                    router.push('/hub/tournaments');
                                 } else if (n.actor_username) {
                                     router.push(`/hub/user/${n.actor_username}`);
+                                } else if (n.type && n.type.includes('friend')) {
+                                    router.push('/hub/friends');
+                                } else {
+                                    // Ultimate fallback: if it's a social notification, take them to the social feed
+                                    if (n._source === 'social') router.push('/hub/social-media');
                                 }
                             };
-                            const isClickable = !!(n.data?.page_type && n.data?.page_id) || !!n.actor_username;
+                            
+                            // If it matches any of our routing criteria, it's clickable
+                            const isClickable = !!(
+                                n.data?.page_id || 
+                                n.data?.club_id || 
+                                n.data?.group_id || 
+                                n.data?.post_id || 
+                                n.data?.tournament_id || 
+                                n.actor_username || 
+                                (n.type && n.type.includes('friend')) || 
+                                n._source === 'social'
+                            );
 
                             const isSwiped = swipedId === n.id;
                             const isDeleting = deletingIds.has(n.id);
