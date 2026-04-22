@@ -135,25 +135,44 @@ export async function compressImage(file, maxDim = 1920, quality = 0.85) {
 // Video Upload Helpers (Direct-to-S3 signed URL uploads)
 // ═══════════════════════════════════════════════════════════════════════════
 
+// Extension-to-MIME fallback map (shared by sniffMimeType)
+const EXT_MIME_MAP = {
+    mp4: 'video/mp4', mov: 'video/quicktime', m4v: 'video/x-m4v',
+    avi: 'video/x-msvideo', webm: 'video/webm',
+    '3gp': 'video/3gpp', '3g2': 'video/3gpp2',
+    hevc: 'video/hevc', mkv: 'video/x-matroska',
+    jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
+    gif: 'image/gif', webp: 'image/webp',
+};
+
+/**
+ * Sniff a clean MIME type from a File object.
+ * - Strips codec suffixes (e.g. "video/quicktime; codecs=avc1.4D401E")
+ * - Upgrades generic "application/octet-stream" via file extension
+ * - Falls back to extension map when browser reports no type (iOS Photo Library)
+ * - Normalises iPhone HEVC clips (.mov) to video/quicktime for Supabase compat
+ */
 export const sniffMimeType = (file) => {
-    if (file.type) return file.type;
-    const ext = (file.name || '').split('.').pop().toLowerCase();
-    const map = {
-        mp4: 'video/mp4', mov: 'video/quicktime', m4v: 'video/x-m4v',
-        avi: 'video/x-msvideo', webm: 'video/webm',
-        '3gp': 'video/3gpp', '3g2': 'video/3gpp2',
-        hevc: 'video/hevc', mkv: 'video/x-matroska',
-        jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
-        gif: 'image/gif', webp: 'image/webp',
-    };
-    return map[ext] || 'application/octet-stream';
+    // Strip codec suffix — Supabase bucket allowed_mime_types does exact matching
+    let mime = (file.type || '').split(';')[0].trim();
+
+    // Upgrade generic octet-stream or empty via extension
+    if (!mime || mime === 'application/octet-stream') {
+        const ext = (file.name || '').split('.').pop().toLowerCase();
+        mime = EXT_MIME_MAP[ext] || 'application/octet-stream';
+    }
+
+    return mime;
 };
 
 export const uploadVideoWithProgress = (signedUrl, file, mimeType, onProgress, xhrCallback) => {
     return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open('PUT', signedUrl);
-        xhr.setRequestHeader('Content-Type', mimeType);
+        // Always use a clean MIME type (no codec suffix) — Supabase storage enforces
+        // exact matching against the bucket's allowed_mime_types whitelist.
+        const cleanMime = (mimeType || '').split(';')[0].trim();
+        xhr.setRequestHeader('Content-Type', cleanMime || 'video/mp4');
         // Expose the XHR handle to the caller so it can be aborted on unmount
         if (typeof xhrCallback === 'function') xhrCallback(xhr);
         xhr.upload.onprogress = (evt) => {

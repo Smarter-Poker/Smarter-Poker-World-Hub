@@ -21,6 +21,27 @@ const C = {
     pink: '#FF2D55',
 };
 
+// ─── YouTube URL helpers ──────────────────────────────────────────────────────
+function getYouTubeVideoId(url) {
+    if (!url) return null;
+    // watch?v=ID  |  youtu.be/ID  |  /embed/ID  |  /shorts/ID
+    const patterns = [
+        /[?&]v=([a-zA-Z0-9_-]{11})/,
+        /youtu\.be\/([a-zA-Z0-9_-]{11})/,
+        /\/embed\/([a-zA-Z0-9_-]{11})/,
+        /\/shorts\/([a-zA-Z0-9_-]{11})/,
+    ];
+    for (const re of patterns) {
+        const m = url.match(re);
+        if (m) return m[1];
+    }
+    return null;
+}
+
+function isYouTubeUrl(url) {
+    return !!(url && (url.includes('youtube.com') || url.includes('youtu.be')));
+}
+
 // Time ago helper
 function timeAgo(d) {
     if (!d) return '';
@@ -1095,23 +1116,53 @@ export function ReelsViewer({ onClose }) {
                 width: '100%', maxWidth: 420, height: '100vh',
                 position: 'relative', background: '#000',
             }}>
-                {/* Video */}
-                <video
-                    ref={videoRef}
-                    key={currentReel?.id}
-                    src={currentReel?.video_url}
-                    autoPlay
-                    muted={muted}
-                    playsInline
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    onPlay={() => { progressRAF.current = requestAnimationFrame(updateProgressRef.current); }}
-                    onPause={() => { if (progressRAF.current) cancelAnimationFrame(progressRAF.current); }}
-                    onEnded={() => {
-                        if (progressRAF.current) cancelAnimationFrame(progressRAF.current);
-                        setProgress(0);
-                        if (currentIndex < reels.length - 1) goNext();
-                    }}
-                />
+                {/* Video / YouTube iframe — smart renderer */}
+                {(() => {
+                    const url = currentReel?.video_url;
+                    const ytId = getYouTubeVideoId(url);
+                    if (ytId) {
+                        // YouTube embed — autoplay, muted, loop
+                        const embedSrc = `https://www.youtube.com/embed/${ytId}?autoplay=1&mute=${muted ? 1 : 0}&loop=1&playlist=${ytId}&rel=0&modestbranding=1&playsinline=1&enablejsapi=0`;
+                        return (
+                            <iframe
+                                key={`yt-${currentReel?.id}`}
+                                src={embedSrc}
+                                allow="autoplay; fullscreen"
+                                allowFullScreen
+                                style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    border: 'none',
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    objectFit: 'cover',
+                                    pointerEvents: 'none', // let our swipe/tap handlers work
+                                }}
+                                title={currentReel?.caption || 'Poker Reel'}
+                            />
+                        );
+                    }
+                    // Raw video (MP4, WebM, etc.)
+                    return (
+                        <video
+                            ref={videoRef}
+                            key={currentReel?.id}
+                            src={url}
+                            autoPlay
+                            muted={muted}
+                            playsInline
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            onPlay={() => { progressRAF.current = requestAnimationFrame(updateProgressRef.current); }}
+                            onPause={() => { if (progressRAF.current) cancelAnimationFrame(progressRAF.current); }}
+                            onEnded={() => {
+                                if (progressRAF.current) cancelAnimationFrame(progressRAF.current);
+                                setProgress(0);
+                                if (currentIndex < reels.length - 1) goNext();
+                            }}
+                        />
+                    );
+                })()}
 
                 {/* Preload next video */}
                 {reels[currentIndex + 1]?.video_url && (

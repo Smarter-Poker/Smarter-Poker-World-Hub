@@ -425,6 +425,151 @@ function detectCategory(text = '') {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// CONTEXT-AWARE TITLE INJECTION
+// Extracts meaningful signals from the clip title / article headline and
+// constructs a caption that actually references the content.
+// ~60% of the time we use context; 40% we fall back to the category pool.
+// This ensures variety while never feeling completely disconnected from the post.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Known player names (first name OR last name match is enough)
+const KNOWN_PLAYERS = [
+  'Negreanu', 'Ivey', 'Hellmuth', 'Polk', 'Brunson', 'Esfandiari', 'Selbst',
+  'Holz', 'Cada', 'Moneymaker', 'Chan', 'Hachem', 'Antonius', 'Dwan', 'Galfond',
+  'Solberg', 'Rampage', 'Brad Owen', 'Neeme', 'Mariano', 'Wolfgang', 'Jaman',
+  'Johnnie Vibes', 'Boski', 'Ryan Depaulo', 'Frankie', 'Doug', 'Berkey',
+  'Persson', 'Reinkemeier', 'Kenney', 'Yockey', 'Aldemir', 'Koroknai',
+  'Phil', 'Daniel', 'Tom', 'Ike', 'Uri', 'Biluzin',
+];
+
+// Known venues / shows
+const KNOWN_VENUES = [
+  { match: /hustler/i,      name: 'Hustler Casino Live' },
+  { match: /bellagio/i,     name: 'Bellagio' },
+  { match: /lodge/i,        name: 'the Lodge' },
+  { match: /live at the bike/i, name: 'Live at the Bike' },
+  { match: /triton/i,       name: 'Triton' },
+  { match: /pokergo/i,      name: 'PokerGO' },
+  { match: /high stakes poker/i, name: 'High Stakes Poker' },
+  { match: /poker after dark/i,  name: 'Poker After Dark' },
+  { match: /wynn/i,         name: 'Wynn' },
+  { match: /aria/i,         name: 'Aria' },
+  { match: /stones/i,       name: 'Stones' },
+  { match: /wsop/i,         name: 'the WSOP' },
+  { match: /wpt/i,          name: 'the WPT' },
+  { match: /ept/i,          name: 'the EPT' },
+  { match: /cgwc/i,         name: 'the CGWC' },
+];
+
+// Context-aware caption templates keyed by what was detected
+// {{subject}} = player name or show/venue name
+const CONTEXT_TEMPLATES = {
+  player: [
+    '{{subject}} in this one',
+    'watching {{subject}} is always interesting',
+    'that {{subject}} hand was something',
+    'classic {{subject}} at the table',
+    '{{subject}} knows what he\'s doing out there',
+    '{{subject}} runs hot and cold like everyone else',
+    'always something to learn from watching {{subject}}',
+    '{{subject}} makes it look easy',
+    'hard to argue with how {{subject}} played that',
+    '{{subject}} doing {{subject}} things',
+  ],
+  venue: [
+    '{{subject}} always delivers',
+    'another one from {{subject}}',
+    '{{subject}} — never a dull hand',
+    'the action at {{subject}} never stops',
+    '{{subject}} has been running wild lately',
+    'if you\'re not watching {{subject}} you\'re missing out',
+    '{{subject}} is where the real hands happen',
+    'back at {{subject}}, back at it',
+  ],
+  concept: {
+    bluff:       ['had to be a bluff. had to be.', 'the nerve on that bet', 'stone cold execution', 'run it and pray strategy', 'that sizing was a statement'],
+    hero_call:   ['that\'s a hero call if I\'ve ever seen one', 'no way I make that call', 'the read was real', 'pure instinct', 'dialed in on that one'],
+    full_house:  ['flopped a monster', 'river full house hits different', 'when the board gives you everything', 'flopped the world'],
+    bad_beat:    ['brutal runout', 'the deck said no', 'one outer special', 'variance is a beast'],
+    vlog:        ['the grind on camera is something else', 'raw look at the real game', 'day in the life stuff always hits', 'respect for documenting the grind'],
+    wsop:        ['every WSOP hand matters at this stage', 'bubble pressure is different', 'deep run energy', 'WSOP is the standard'],
+    day_final:   ['every chip counts late in a tournament', 'the pressure ramps up fast', 'this is what tournament poker looks like'],
+    breakdown:   ['breaking it down hand by hand is how you get better', 'the analysis is always worth watching', 'street-by-street breakdowns are underrated'],
+  }
+};
+
+/**
+ * Extract context from a title string.
+ * Returns { type: 'player'|'venue'|'concept'|null, value: string|null }
+ */
+function extractTitleContext(title) {
+  if (!title || title.length < 3) return { type: null, value: null };
+  const t = title;
+
+  // 1. Check for known players
+  for (const p of KNOWN_PLAYERS) {
+    if (new RegExp(`\\b${p}\\b`, 'i').test(t)) {
+      return { type: 'player', value: p };
+    }
+  }
+
+  // 2. Check for known venues/shows
+  for (const v of KNOWN_VENUES) {
+    if (v.match.test(t)) return { type: 'venue', value: v.name };
+  }
+
+  // 3. Check for key concepts
+  if (/hero\s*call/i.test(t)) return { type: 'concept', value: 'hero_call' };
+  if (/full\s*house/i.test(t)) return { type: 'concept', value: 'full_house' };
+  if (/bluff/i.test(t)) return { type: 'concept', value: 'bluff' };
+  if (/bad\s*beat|suck\s*out|cooler/i.test(t)) return { type: 'concept', value: 'bad_beat' };
+  if (/vlog|day\s*\d/i.test(t)) return { type: 'concept', value: 'vlog' };
+  if (/wsop|world\s*series/i.test(t)) return { type: 'concept', value: 'wsop' };
+  if (/day\s*(\d+|final|2|3)/i.test(t)) return { type: 'concept', value: 'day_final' };
+  if (/breakdown|analysis|hand history|street.by.street/i.test(t)) return { type: 'concept', value: 'breakdown' };
+
+  return { type: null, value: null };
+}
+
+/**
+ * Build a context-aware caption from the extracted title context.
+ * Returns null if no useful context found (fallback to pool).
+ */
+function buildContextCaption(ctx, profileId) {
+  if (!ctx || ctx.type === null) return null;
+
+  const archetype = getArchetype(profileId);
+
+  if (ctx.type === 'player') {
+    const templates = CONTEXT_TEMPLATES.player;
+    const h = getHorseHash(profileId);
+    const template = templates[(h + Math.floor(Math.random() * 3)) % templates.length];
+    const phrase = template.replace(/{{subject}}/g, ctx.value);
+    recordUsed(profileId, phrase);
+    return applyStyle(phrase, archetype);
+  }
+
+  if (ctx.type === 'venue') {
+    const templates = CONTEXT_TEMPLATES.venue;
+    const h = getHorseHash(profileId);
+    const template = templates[(h + Math.floor(Math.random() * 3)) % templates.length];
+    const phrase = template.replace(/{{subject}}/g, ctx.value);
+    recordUsed(profileId, phrase);
+    return applyStyle(phrase, archetype);
+  }
+
+  if (ctx.type === 'concept') {
+    const pool = CONTEXT_TEMPLATES.concept[ctx.value];
+    if (!pool) return null;
+    const phrase = pool[Math.floor(Math.random() * pool.length)];
+    recordUsed(profileId, phrase);
+    return applyStyle(phrase, archetype);
+  }
+
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // PUBLIC API
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -433,6 +578,14 @@ function detectCategory(text = '') {
  * No API calls, no cost. Deduplication built in.
  */
 export function generatePostCaption(category, profileId, clipTitle = '') {
+  // 60% of the time: try to generate a title-aware, contextual caption
+  if (clipTitle && Math.random() < 0.60) {
+    const ctx = extractTitleContext(clipTitle);
+    const contextCaption = buildContextCaption(ctx, profileId);
+    if (contextCaption) return contextCaption;
+  }
+
+  // Fallback: pick from category-appropriate phrase pool
   const pool = POST_CAPTIONS[category] ||
                POST_CAPTIONS[detectCategory(clipTitle)] ||
                POST_CAPTIONS.massive_pot;
@@ -468,7 +621,14 @@ export function generateComment(commentType, profileId) {
 export function generateNewsCaption(headline, profileId, newsType = 'poker') {
   const archetype = getArchetype(profileId);
 
-  // Detect pool from headline
+  // 65% of the time: try to build a title-aware caption from the headline
+  if (headline && Math.random() < 0.65) {
+    const ctx = extractTitleContext(headline);
+    const contextCaption = buildContextCaption(ctx, profileId);
+    if (contextCaption) return contextCaption;
+  }
+
+  // Fallback: detect pool from headline
   const detected = detectCategory(headline);
   const pool = detected
     ? POST_CAPTIONS[detected]

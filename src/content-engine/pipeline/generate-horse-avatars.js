@@ -204,21 +204,17 @@ async function main() {
     console.debug('\n🖼️ HORSE AVATAR GENERATOR');
     console.debug('═'.repeat(50));
 
-    // Get specific horses with issues
-    const targetNames = [
-        'Maria Rodriguez', 'Vanessa Morgan',
-        'Brittany Collins', 'Heather Adams',
-        'Richard Wells', 'Isaac Stone',
-        'Seth Gordon', 'Nathan Cooper',
-        'Thomas Hart', 'Trevor Hayes', 'Andrew Wilson'
-    ];
-
-    // Get all horses but filter by target names
-    const { data: horses } = await supabase
+    // Get all active horses
+    const { data: horses, error } = await supabase
         .from('content_authors')
         .select('id, name, profile_id, gender, location, specialty, stakes, bio')
         .eq('is_active', true)
-        .in('name', targetNames);
+        .order('id');
+        
+    if (error) {
+        console.error('Error fetching horses:', error);
+        return;
+    }
 
     if (!horses?.length) {
         console.debug('No horses found');
