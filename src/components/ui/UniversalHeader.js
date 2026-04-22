@@ -148,35 +148,53 @@ export default function UniversalHeader({
     const closeOverlay = (closedPage) => {
         setOverlayPage(null);
         if (closedPage === 'notifications') {
-            // Give the iframe a moment to finish marking rows read, then re-query
+            // Give the iframe a moment to finish marking rows read, then re-query via API
+            // (API counts both social + poker notifications — direct supabase query only gets social)
             setTimeout(async () => {
                 try {
-                    let authUser = null;
-                    if (typeof window !== 'undefined') {
-                        try {
-                            const explicitAuth = localStorage.getItem('smarter-poker-auth');
-                            if (explicitAuth) { authUser = JSON.parse(explicitAuth)?.user || null; }
-                            if (!authUser) {
-                                const sbKeys = Object.keys(localStorage || {}).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-                                if (sbKeys.length > 0) authUser = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}')?.user || null;
-                            }
-                        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+                    let accessToken = null;
+                    try {
+                        const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+                        accessToken = authData?.access_token || null;
+                        if (!accessToken) {
+                            const sbKeys = Object.keys(localStorage || {}).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+                            if (sbKeys.length > 0) accessToken = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}')?.access_token || null;
+                        }
+                    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+
+                    // We need userId for the API call — get from stored auth
+                    let userId = null;
+                    try {
+                        const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+                        userId = authData?.user?.id || null;
+                        if (!userId) {
+                            const sbKeys = Object.keys(localStorage || {}).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+                            if (sbKeys.length > 0) userId = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}')?.user?.id || null;
+                        }
+                    } catch (_) {}
+                    if (!userId) return;
+
+                    const res = await fetch('/api/user/get-header-stats', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+                        },
+                        body: JSON.stringify({ userId }),
+                    });
+                    const result = await res.json();
+                    if (result.success && typeof result.notificationCount === 'number') {
+                        const freshCount = result.notificationCount;
+                        setNotificationCount(freshCount);
+                        try { localStorage.setItem('sp-notif-count', String(freshCount)); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                     }
-                    if (!authUser?.id) return;
-                    const { count } = await supabase
-                        .from('notifications')
-                        .select('*', { count: 'exact', head: true })
-                        .eq('user_id', authUser.id)
-                        .eq('read', false);
-                    const freshCount = count || 0;
-                    setNotificationCount(freshCount);
-                    try { localStorage.setItem('sp-notif-count', String(freshCount)); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                 } catch (e) {
                     console.warn('[UniversalHeader] Post-overlay notif re-fetch failed:', e);
                 }
             }, 800); // 800ms: enough for the iframe's DB update to land
         }
     };
+
 
     const overlayUrlMap = {
         profile: profileHref,
@@ -364,18 +382,31 @@ export default function UniversalHeader({
                         }
                     }
 
-                    // FETCH NOTIFICATION COUNT (unread)
+                    // FETCH NOTIFICATION COUNT (unread) via get-header-stats so poker notifications are included
+                    // Note: get-header-stats counts both social (notifications table) + poker (page_notifications table)
                     const fetchUnreadCount = async () => {
-                        const { count: notifCount } = await supabase
-                            .from('notifications')
-                            .select('*', { count: 'exact', head: true })
-                            .eq('user_id', authUser.id)
-                            .eq('read', false);
-                        if (mounted) {
-                            setNotificationCount(notifCount || 0);
-                            try { localStorage.setItem('sp-notif-count', String(notifCount || 0)); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-                        }
+                        try {
+                            let accessToken = null;
+                            try {
+                                const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+                                accessToken = authData?.access_token || null;
+                            } catch (_) {}
+                            const res = await fetch('/api/user/get-header-stats', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+                                },
+                                body: JSON.stringify({ userId: authUser.id }),
+                            });
+                            const result = await res.json();
+                            if (result.success && typeof result.notificationCount === 'number' && mounted) {
+                                setNotificationCount(result.notificationCount);
+                                try { localStorage.setItem('sp-notif-count', String(result.notificationCount)); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+                            }
+                        } catch (e) { console.warn('[UniversalHeader] fetchUnreadCount failed:', e); }
                     };
+
                     await fetchUnreadCount();
 
                     // ── CROSS-TAB SYNC: Listen for read notifications in other tabs ──

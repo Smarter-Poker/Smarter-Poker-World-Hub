@@ -179,7 +179,10 @@ export default function ThreePillHeader({
                             setNotificationCount(result.notificationCount);
                         }
 
-                        // ── REAL-TIME SUPABASE SYNC (matches UniversalHeader) ──
+                        // ── REAL-TIME SUPABASE SYNC ──
+                        // NOTE: UPDATE listener removed — Supabase DEFAULT REPLICA IDENTITY sends
+                        // empty payload.old, so payload.old.read is always undefined (never fires).
+                        // Same-tab read decrements are handled by EventBus.NOTIFICATIONS_READ.
                         notifChannel = supabase
                             .channel('threepill-notifications')
                             .on('postgres_changes', {
@@ -191,38 +194,43 @@ export default function ThreePillHeader({
                                 setNotificationCount(prev => prev + 1);
                             })
                             .on('postgres_changes', {
-                                event: 'UPDATE',
-                                schema: 'public',
-                                table: 'notifications',
-                                filter: `user_id=eq.${authUser.id}`
-                            }, (payload) => {
-                                if (payload.new.read && !payload.old.read) {
-                                    setNotificationCount(prev => Math.max(0, prev - 1));
-                                }
-                            })
-                            .on('postgres_changes', {
                                 event: 'DELETE',
                                 schema: 'public',
                                 table: 'notifications',
                                 filter: `user_id=eq.${authUser.id}`
                             }, (payload) => {
-                                if (!payload.old.read) {
+                                // payload.old.read may be undefined with DEFAULT REPLICA IDENTITY
+                                // be optimistic: decrement if we can't confirm it was already read
+                                if (!payload.old?.read) {
                                     setNotificationCount(prev => Math.max(0, prev - 1));
                                 }
                             })
                             .subscribe();
 
                         // ── CROSS-TAB SYNC FOR THREE-PILL HEADER ──
+                        // Use get-header-stats (not direct Supabase query) so poker/page
+                        // notifications are included in the re-fetched count
                         const fetchUnreadCount = async () => {
-                            const { count: notifCount } = await supabase
-                                .from('notifications')
-                                .select('*', { count: 'exact', head: true })
-                                .eq('user_id', authUser.id)
-                                .eq('read', false);
-                            if (mounted) {
-                                setNotificationCount(notifCount || 0);
-                                try { localStorage.setItem('sp-notif-count', String(notifCount || 0)); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-                            }
+                            try {
+                                let accessToken = null;
+                                try {
+                                    const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+                                    accessToken = authData?.access_token || null;
+                                } catch (_) {}
+                                const res = await fetch('/api/user/get-header-stats', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+                                    },
+                                    body: JSON.stringify({ userId: authUser.id }),
+                                });
+                                const result = await res.json();
+                                if (result.success && typeof result.notificationCount === 'number' && mounted) {
+                                    setNotificationCount(result.notificationCount);
+                                    try { localStorage.setItem('sp-notif-count', String(result.notificationCount)); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+                                }
+                            } catch (e) { console.warn('[ThreePillHeader] fetchUnreadCount failed:', e); }
                         };
 
                         cleanupNotifSync = listenBroadcast('smarter_poker_notif_sync', (msg) => {
