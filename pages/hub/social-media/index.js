@@ -710,19 +710,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                 
                 // Emit EventBus for cross-component comment count updates
                 busEmit.socialCommentAdded(post.id, currentUserId);
-                
-                // Sync the denormalized comment_count column on social_posts (fire-and-forget)
-                (async () => {
-                    try {
-                        const { error: rpcErr } = await supabase.rpc('increment_post_count', { p_post_id: post.id, p_field: 'comment_count' });
-                        if (rpcErr) throw rpcErr;
-                    } catch {
-                        try {
-                            const { data: postData } = await supabase.from('social_posts').select('comment_count').eq('id', post.id).maybeSingle();
-                            if (postData) await supabase.from('social_posts').update({ comment_count: (postData.comment_count || 0) + 1 }).eq('id', post.id);
-                        } catch (e) { console.warn('[Social] comment_count fallback failed:', e.message); }
-                    }
-                })();
+
                 
                 // Secondary operations: notifications (isolated — failure must NOT affect comment UX)
                 try {
