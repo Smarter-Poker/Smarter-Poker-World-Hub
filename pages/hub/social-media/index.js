@@ -6288,6 +6288,14 @@ function SocialMediaPage() {
                                                     currentUserAvatar={user?.avatar}
                                                     onLike={handleLike}
                                                     onDelete={handleDelete}
+                                                    onComment={(postId) => {
+                                                        // Optimistically update commentCount in parent's post list
+                                                        setPosts(prev => prev.map(post =>
+                                                            post.id === postId
+                                                                ? { ...post, commentCount: (post.commentCount || 0) + 1 }
+                                                                : post
+                                                        ));
+                                                    }}
                                                     onBlock={handleBlockUser}
                                                     onOpenArticle={(url) => {
                                                         // All articles open in-app via the proxy reader.
