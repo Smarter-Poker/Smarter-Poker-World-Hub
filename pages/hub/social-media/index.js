@@ -493,7 +493,14 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
         }
         try {
             await onLike(post.id, reactionType || null);
-        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+        } catch (e) {
+            // Revert optimistic UI to pre-click snapshot on any DB/network failure
+            setLiked(prevLiked);
+            setLikeCount(prevLikeCount);
+            setReactions(prevReactions);
+            toast.error('Could not save reaction — please try again');
+            console.warn('[PostCard] handleLike error (reverted):', e?.message || e);
+        }
     };
 
     const loadComments = async (offset = 0) => {
@@ -4003,6 +4010,16 @@ function SocialMediaPage() {
     const lastScrollY = useRef(null);
     // Stable ref to always-fresh loadFeed — prevents stale closure in BroadcastChannel/Realtime listeners
     const loadFeedRef = useRef(null);
+
+    // Unmount cleanup: cancel deferred timers to prevent zombie state writes
+    // after component unmount (e.g., page navigation mid-undo-window or mid-search-debounce)
+    useEffect(() => {
+        return () => {
+            if (undoDeleteRef.current) clearTimeout(undoDeleteRef.current);
+            if (searchTimeout.current) clearTimeout(searchTimeout.current);
+            if (globalSearchTimeout.current) clearTimeout(globalSearchTimeout.current);
+        };
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Article Reader Modal State
     const [articleReader, setArticleReader] = useState({ open: false, url: null, title: null });
