@@ -463,23 +463,27 @@ export default function ReelsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [notInterestedIds]);
 
-    // Helper to safely increment counts for reels OR posts
+    // Helper to atomically increment/decrement counts for reels OR posts
+    // Uses SECURITY DEFINER RPCs — no race condition, no read-then-write
     const incrementMetric = async (reel, field, amount) => {
         if (!reel?.id) return;
         try {
-            if (reel.source === 'reels') {
-                const { data } = await supabase.from('social_reels').select(field).eq('id', reel.id).maybeSingle();
-                if (data) {
-                    await supabase.from('social_reels').update({ [field]: Math.max(0, (data[field] || 0) + amount) }).eq('id', reel.id);
-                }
-            } else {
+            if (reel.source === 'posts') {
+                // social_posts path — use post-specific RPC
                 const rpc = amount > 0 ? 'increment_post_count' : 'decrement_post_count';
-                await supabase.rpc(rpc, { p_post_id: reel.id, p_field: field });
+                const { error } = await supabase.rpc(rpc, { p_post_id: reel.id, p_field: field });
+                if (error) throw error;
+            } else {
+                // social_reels path (native reels) — use reel-specific RPC
+                const rpc = amount > 0 ? 'increment_reel_count' : 'decrement_reel_count';
+                const { error } = await supabase.rpc(rpc, { p_reel_id: reel.id, p_field: field });
+                if (error) throw error;
             }
         } catch (e) {
-            console.warn('[Engagement] Update failed:', e);
+            console.warn('[Engagement] Atomic counter update failed:', e?.message || e);
         }
     };
+
 
     // Deep-link: if ?id= is in URL, scroll to that reel after load
     useEffect(() => {

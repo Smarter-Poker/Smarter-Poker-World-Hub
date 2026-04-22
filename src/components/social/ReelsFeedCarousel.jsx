@@ -205,20 +205,26 @@ function ReelCard({ reel, onClick }) {
 function ReelViewer({ reels, startIndex, onClose }) {
     const { user: authUser } = useSupabase();
 
-    // Source-aware engagement counter. Reels in the carousel may come from
-    // social_reels OR social_posts — increment the correct table each time.
+    // Source-aware atomic engagement counter.
+    // Reels in the carousel may come from social_reels OR social_posts.
+    // Uses SECURITY DEFINER RPCs — single UPDATE, no read-then-write race condition.
     const incrementMetric = async (reel, field, amount) => {
         if (!reel?.id) return;
         try {
-            const table = reel.source === 'posts' ? 'social_posts' : 'social_reels';
-            const { data } = await supabase.from(table).select(field).eq('id', reel.id).maybeSingle();
-            if (data) {
-                await supabase.from(table).update({ [field]: Math.max(0, (data[field] || 0) + amount) }).eq('id', reel.id);
+            if (reel.source === 'posts') {
+                const rpc = amount > 0 ? 'increment_post_count' : 'decrement_post_count';
+                const { error } = await supabase.rpc(rpc, { p_post_id: reel.id, p_field: field });
+                if (error) throw error;
+            } else {
+                const rpc = amount > 0 ? 'increment_reel_count' : 'decrement_reel_count';
+                const { error } = await supabase.rpc(rpc, { p_reel_id: reel.id, p_field: field });
+                if (error) throw error;
             }
         } catch (e) {
-            console.warn('[ReelViewer] Engagement update failed:', e);
+            console.warn('[ReelCarousel] Atomic counter update failed:', e?.message || e);
         }
     };
+
 
     const [currentIndex, setCurrentIndex] = useState(startIndex);
     const [muted, setMuted] = useState(() => {

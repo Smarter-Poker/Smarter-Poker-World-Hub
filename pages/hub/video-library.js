@@ -852,7 +852,7 @@ export default function VideoLibraryPage() {
                             scrollbarWidth: 'thin',
                         }}>
                             {recentlyWatched.map(item => {
-                                const video = FULL_VIDEOS.find(v => v.id === item.video_id);
+                                const video = allVideos.find(v => v.id === item.video_id);
                                 if (!video) return null;
                                 const progress = getProgressPercent(video.id, video.duration);
                                 return (
@@ -1138,7 +1138,7 @@ export default function VideoLibraryPage() {
                     color: C.textSec,
                     fontSize: 14,
                 }}>
-                    Showing {videos.length} of {FULL_VIDEOS.length} videos
+                    Showing {videos.length} of {allVideos.length} videos
                 </div>
             </div>
 

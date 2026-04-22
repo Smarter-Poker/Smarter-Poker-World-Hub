@@ -320,11 +320,14 @@ def main():
     # Step 2: Audit log
     try:
         supabase.table('data_audit_log').insert({
-            'source': 'video_library_scraper_py',
-            'event': 'duration_enrichment',
-            'records_ingested': enriched,
-            'errors': [f'{failed} videos failed enrichment'] if failed else None,
-            'scraped_at': datetime.now(timezone.utc).isoformat(),
+            'table_name': 'video_library_videos',
+            'action': 'duration_enrichment',
+            'scrape_proof': json.dumps({
+                'scraper': 'video_library_scraper_py',
+                'enriched': enriched,
+                'failed': failed,
+                'ran_at': datetime.now(timezone.utc).isoformat(),
+            }),
         }).execute()
     except Exception as e:
         log.warning(f'Audit log failed: {e}')

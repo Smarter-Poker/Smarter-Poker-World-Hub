@@ -88,33 +88,47 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
             setUploadProgress(92);
 
             // 3. Create social_reels entry
-            const { error: insertError } = await supabase
+            // CRITICAL: use author_id (not user_id), like_count (not likes_count)
+            const { data: reelRow, error: insertError } = await supabase
                 .from('social_reels')
                 .insert({
-                    user_id: user.id,
+                    author_id: user.id,
                     video_url: publicUrl,
-                    caption: caption || null,
-                    likes_count: 0,
-                    comments_count: 0,
-                    shares_count: 0
-                });
+                    caption: caption.trim() || null,
+                    like_count: 0,
+                    comment_count: 0,
+                    share_count: 0,
+                    view_count: 0,
+                    is_public: true,
+                })
+                .select('id')
+                .maybeSingle();
 
             if (insertError) throw insertError;
 
             setUploadProgress(96);
 
-            // 4. Also create a social_posts entry for feed integration
-            await supabase
-                .from('social_posts')
-                .insert({
-                    author_id: user.id,
-                    content: caption || '',
-                    content_type: 'video',
-                    media_urls: [publicUrl],
-                    visibility: 'public',
-                    like_count: 0,
-                    comment_count: 0
-                });
+            // 4. Create a social_posts entry for feed integration so the reel appears in the main feed
+            //    Errors here are non-fatal — the reel is already created
+            try {
+                await supabase
+                    .from('social_posts')
+                    .insert({
+                        author_id: user.id,
+                        content: caption.trim() || '',
+                        content_type: 'video',
+                        media_urls: [publicUrl],
+                        visibility: 'public',
+                        like_count: 0,
+                        comment_count: 0,
+                        share_count: 0,
+                        // link back to the reel row for cross-reference
+                        link_url: reelRow?.id ? `/hub/reels?id=${reelRow.id}` : null,
+                    });
+            } catch (feedErr) {
+                // Non-fatal: reel is already created, just won't appear in main feed
+                console.warn('[UploadReel] Feed post creation failed (non-fatal):', feedErr.message);
+            }
 
             setUploadProgress(100);
             onSuccess();
@@ -159,6 +173,9 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
                         style={styles.textarea}
                         maxLength={500}
                     />
+                    <div style={{ textAlign: 'right', fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: -12, marginBottom: 12 }}>
+                        {caption.length}/500
+                    </div>
 
                     {/* Upload Progress Bar */}
                     {uploading && (
