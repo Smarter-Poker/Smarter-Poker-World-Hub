@@ -4000,7 +4000,9 @@ function SocialMediaPage() {
     const [globalSearchLoading, setGlobalSearchLoading] = useState(false);
     const searchTimeout = useRef(null);
     const globalSearchTimeout = useRef(null);
-    const lastScrollY = useRef(0);
+    const lastScrollY = useRef(null);
+    // Stable ref to always-fresh loadFeed — prevents stale closure in BroadcastChannel/Realtime listeners
+    const loadFeedRef = useRef(null);
 
     // Article Reader Modal State
     const [articleReader, setArticleReader] = useState({ open: false, url: null, title: null });
@@ -4292,7 +4294,8 @@ function SocialMediaPage() {
             const isSameTab = msg?.tabId === BROADCAST_TAB_ID;
             if (isRefresh && !isSameTab) {
                 if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Refreshing feed from other tab');
-                loadFeed(0, false);
+                // Use ref to get always-fresh loadFeed (avoids stale closure from mount-time capture)
+                (loadFeedRef.current || loadFeed)(0, false);
             }
         });
 
@@ -4301,7 +4304,7 @@ function SocialMediaPage() {
             // Self-tab suppression + support both string and object payloads
             if (msg?.tabId === BROADCAST_TAB_ID) return;
             if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Friends changed in other tab — refreshing feed');
-            loadFeed(0, false);
+            (loadFeedRef.current || loadFeed)(0, false);
         });
 
         // Block sync: when user blocks someone in another tab, hide their posts here too
@@ -4695,6 +4698,8 @@ function SocialMediaPage() {
     }, [showNotifications, notifications.length, user]);
 
     const loadFeed = async (offset = 0, append = false) => {
+        // Always keep ref up-to-date so BroadcastChannel listeners get the fresh closure
+        loadFeedRef.current = loadFeed;
         try {
             if (append) setLoadingMore(true);
 

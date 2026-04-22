@@ -105,7 +105,8 @@ export const MAX_MEDIA = 10;
 export { SOCIAL_COLORS as C };
 
 export async function compressImage(file, maxDim = 1920, quality = 0.85) {
-    if (file.type === 'image/gif' || file.size < 200 * 1024) return file;
+    const mime = sniffMimeType(file);
+    if (mime === 'image/gif' || file.size < 200 * 1024) return file;
     return new Promise((resolve) => {
         const img = new Image();
         img.onload = () => {
