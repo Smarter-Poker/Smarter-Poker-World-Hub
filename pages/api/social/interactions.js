@@ -103,18 +103,31 @@ export default async function handler(req, res) {
               }
           }
 
-          // Read stored counts from social_posts for accuracy (not from limited query results)
+          // Read stored counts — check social_reels first, then social_posts
           let like_count = 0, share_count = 0, comment_count = 0;
           try {
-              const { data: postCounts } = await getSupabase()
-                  .from('social_posts')
+              // Try social_reels first
+              const { data: reelCounts } = await getSupabase()
+                  .from('social_reels')
                   .select('like_count, share_count, comment_count')
                   .eq('id', post_id)
                   .maybeSingle();
-              if (postCounts) {
-                  like_count = postCounts.like_count || 0;
-                  share_count = postCounts.share_count || 0;
-                  comment_count = postCounts.comment_count || 0;
+              if (reelCounts) {
+                  like_count = reelCounts.like_count || 0;
+                  share_count = reelCounts.share_count || 0;
+                  comment_count = reelCounts.comment_count || 0;
+              } else {
+                  // Fall back to social_posts
+                  const { data: postCounts } = await getSupabase()
+                      .from('social_posts')
+                      .select('like_count, share_count, comment_count')
+                      .eq('id', post_id)
+                      .maybeSingle();
+                  if (postCounts) {
+                      like_count = postCounts.like_count || 0;
+                      share_count = postCounts.share_count || 0;
+                      comment_count = postCounts.comment_count || 0;
+                  }
               }
           } catch {
               // Fallback to counting from query results if post lookup fails
@@ -144,15 +157,44 @@ export default async function handler(req, res) {
               return res.status(400).json({ success: false, error: 'post_id and interaction_type required' });
           }
 
-          // Validate post exists before any interaction
+          // Validate post exists — check BOTH social_posts AND social_reels
+          // Native reels have IDs in social_reels, not social_posts
+          let postSource = null;
           const { data: postExists } = await getSupabase()
               .from('social_posts')
               .select('id')
               .eq('id', post_id)
               .maybeSingle();
-          if (!postExists) {
+          if (postExists) {
+              postSource = 'posts';
+          } else {
+              const { data: reelExists } = await getSupabase()
+                  .from('social_reels')
+                  .select('id')
+                  .eq('id', post_id)
+                  .maybeSingle();
+              if (reelExists) postSource = 'reels';
+          }
+          if (!postSource) {
               return res.status(404).json({ success: false, error: 'Post not found' });
           }
+
+          // Helper: atomically increment/decrement the correct table
+          const atomicIncrement = async (field, delta) => {
+              try {
+                  if (postSource === 'reels') {
+                      const rpc = delta > 0 ? 'increment_reel_count' : 'decrement_reel_count';
+                      const { error: rpcErr } = await getSupabase().rpc(rpc, { p_reel_id: post_id, p_field: field });
+                      if (rpcErr) console.warn('[Interactions] Reel count RPC failed:', rpcErr.message);
+                  } else {
+                      const rpc = delta > 0 ? 'increment_post_count' : 'decrement_post_count';
+                      const { error: rpcErr } = await getSupabase().rpc(rpc, { p_post_id: post_id, p_field: field });
+                      if (rpcErr) console.warn('[Interactions] Post count RPC failed:', rpcErr.message);
+                  }
+              } catch (e) {
+                  console.warn('[Interactions] Atomic counter failed:', e.message);
+              }
+          };
 
           if (interaction_type === 'comment') {
               // Insert into social_comments table
@@ -183,19 +225,8 @@ export default async function handler(req, res) {
 
               if (!data) return res.status(500).json({ success: false, error: 'Failed to create comment' });
 
-              // Update comment count on post
-              try {
-                  const { error: rpcErr } = await getSupabase().rpc('increment_post_count', { p_post_id: post_id, p_field: 'comment_count' });
-                  if (rpcErr) {
-                      // RPC doesn't exist or failed — try direct update
-                      const { data: p } = await getSupabase().from('social_posts').select('comment_count').eq('id', post_id).maybeSingle();
-                      if (p) {
-                          await getSupabase().from('social_posts').update({ comment_count: (p.comment_count || 0) + 1 }).eq('id', post_id);
-                      }
-                  }
-              } catch (e) {
-                  console.warn('[Interactions] Comment count update failed:', e.message);
-              }
+              // Atomic increment comment_count on the correct table
+              await atomicIncrement('comment_count', 1);
 
               return res.status(201).json({ comment: data });
 
@@ -214,20 +245,7 @@ export default async function handler(req, res) {
                   if (existing.interaction_type === interaction_type) {
                       // Same reaction — toggle OFF (remove)
                       await getSupabase().from('social_interactions').delete().eq('id', existing.id);
-
-                      // Decrement like count
-                      try {
-                          const { error: rpcErr } = await getSupabase().rpc('decrement_post_count', { p_post_id: post_id, p_field: 'like_count' });
-                          if (rpcErr) {
-                              const { data: post } = await getSupabase().from('social_posts').select('like_count').eq('id', post_id).maybeSingle();
-                              if (post) {
-                                  await getSupabase().from('social_posts').update({ like_count: Math.max(0, (post.like_count || 1) - 1) }).eq('id', post_id);
-                              }
-                          }
-                      } catch (e) {
-                          console.warn('[Interactions] Like count decrement failed:', e.message);
-                      }
-
+                      await atomicIncrement('like_count', -1);
                       return res.status(200).json({ action: 'unreacted', reacted: false });
                   } else {
                       // Different reaction — SWITCH type (no count change)
@@ -235,7 +253,6 @@ export default async function handler(req, res) {
                           .from('social_interactions')
                           .update({ interaction_type })
                           .eq('id', existing.id);
-
                       return res.status(200).json({ action: 'switched', reacted: true, from: existing.interaction_type, to: interaction_type });
                   }
               } else {
@@ -243,22 +260,8 @@ export default async function handler(req, res) {
                   const { error } = await getSupabase()
                       .from('social_interactions')
                       .insert({ post_id, user_id, interaction_type });
-
                   if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
-
-                  // Increment like count
-                  try {
-                      const { error: rpcErr } = await getSupabase().rpc('increment_post_count', { p_post_id: post_id, p_field: 'like_count' });
-                      if (rpcErr) {
-                          const { data: post } = await getSupabase().from('social_posts').select('like_count').eq('id', post_id).maybeSingle();
-                          if (post) {
-                              await getSupabase().from('social_posts').update({ like_count: (post.like_count || 0) + 1 }).eq('id', post_id);
-                          }
-                      }
-                  } catch (e) {
-                      console.warn('[Interactions] Like count increment failed:', e.message);
-                  }
-
+                  await atomicIncrement('like_count', 1);
                   return res.status(201).json({ action: 'reacted', reacted: true });
               }
 
@@ -267,24 +270,11 @@ export default async function handler(req, res) {
               const { error } = await getSupabase()
                   .from('social_interactions')
                   .upsert({ post_id, user_id, interaction_type: 'share' }, { onConflict: 'post_id,user_id,interaction_type' });
-
               if (error && error.code !== '23505') {
                   return res.status(500).json({ success: false, error: 'Internal server error' });
               }
-
-              // Atomic increment share count
-              try {
-                  const { error: rpcErr } = await getSupabase().rpc('increment_post_count', { p_post_id: post_id, p_field: 'share_count' });
-                  if (rpcErr) {
-                      const { data: post } = await getSupabase().from('social_posts').select('share_count').eq('id', post_id).maybeSingle();
-                      if (post) {
-                          await getSupabase().from('social_posts').update({ share_count: (post.share_count || 0) + 1 }).eq('id', post_id);
-                      }
-                  }
-              } catch (e) {
-                  console.warn('[Interactions] Share count increment failed:', e.message);
-              }
-
+              // Atomic increment share count on the correct table
+              await atomicIncrement('share_count', 1);
               return res.status(201).json({ action: 'shared' });
           }
 
@@ -323,29 +313,46 @@ export default async function handler(req, res) {
               deleteQuery = deleteQuery.eq('interaction_type', interaction_type);
           }
 
-          const { error } = await deleteQuery;
-          if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
+          // Execute the delete
+          const { error: deleteError } = await deleteQuery;
+          if (deleteError) return res.status(500).json({ success: false, error: 'Internal server error' });
 
-           // Decrement counts on social_posts for deleted interactions
+          // Detect whether this post_id belongs to social_reels or social_posts
+          let deleteSource = 'posts';
+          const { data: reelCheck } = await getSupabase()
+              .from('social_reels')
+              .select('id')
+              .eq('id', post_id)
+              .maybeSingle();
+          if (reelCheck) deleteSource = 'reels';
+
+
+           // Decrement counts using atomic RPCs for deleted interactions
           if (toDelete && toDelete.length > 0) {
               const reactionTypes = new Set(['like', 'love', 'haha', 'wow', 'sad', 'angry']);
               const reactionsRemoved = toDelete.filter(i => reactionTypes.has(i.interaction_type)).length;
               const sharesRemoved = toDelete.filter(i => i.interaction_type === 'share').length;
-              try {
-                  if (reactionsRemoved > 0) {
-                      const { data: p } = await getSupabase().from('social_posts').select('like_count').eq('id', post_id).maybeSingle();
-                      if (p) await getSupabase().from('social_posts').update({ like_count: Math.max(0, (p.like_count || 0) - reactionsRemoved) }).eq('id', post_id);
+
+              const atomicDecrement = async (field) => {
+                  try {
+                      if (deleteSource === 'reels') {
+                          await getSupabase().rpc('decrement_reel_count', { p_reel_id: post_id, p_field: field });
+                      } else {
+                          await getSupabase().rpc('decrement_post_count', { p_post_id: post_id, p_field: field });
+                      }
+                  } catch (e) {
+                      console.warn('[Interactions] DELETE decrement failed:', e.message);
                   }
-                  if (sharesRemoved > 0) {
-                      const { data: p } = await getSupabase().from('social_posts').select('share_count').eq('id', post_id).maybeSingle();
-                      if (p) await getSupabase().from('social_posts').update({ share_count: Math.max(0, (p.share_count || 0) - sharesRemoved) }).eq('id', post_id);
-                  }
-              } catch (e) {
-                  console.warn('[Interactions] Count decrement on DELETE failed:', e.message);
-              }
+              };
+
+              const decrements = [];
+              for (let i = 0; i < reactionsRemoved; i++) decrements.push(atomicDecrement('like_count'));
+              for (let i = 0; i < sharesRemoved; i++) decrements.push(atomicDecrement('share_count'));
+              await Promise.all(decrements);
           }
 
           return res.status(200).json({ success: true });
+
 
       } else {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
