@@ -24,6 +24,7 @@ import PageTransition from '../../src/components/transitions/PageTransition';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { getAccessToken } from '../../src/lib/authUtils';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
+import { ReelsViewer } from '../../src/components/social/Reels';
 
 // Static fallback catalog — used until DB fetch resolves
 import {
@@ -141,6 +142,7 @@ export default function VideoLibraryPage() {
         }
     }, [router.query]);
     const [searchQuery, setSearchQuery] = useState('');
+    const [showReelsModal, setShowReelsModal] = useState(false);
     const modalRef = useRef(null);
     const modalOverlayRef = useRef(null); // ref for native fullscreen
     const [menuOpen, setMenuOpen] = useState(false);
@@ -790,6 +792,33 @@ export default function VideoLibraryPage() {
                                 </button>
                             );
                         })}
+
+                        {/* Reels Button — opens TikTok doom-scroll */}
+                        <button
+                            id="vl-reels-tab-btn"
+                            onClick={() => setShowReelsModal(true)}
+                            style={{
+                                padding: '9px 22px',
+                                background: 'linear-gradient(135deg, rgba(255,45,85,0.18) 0%, rgba(120,0,255,0.18) 100%)',
+                                border: '1.5px solid rgba(255,45,85,0.45)',
+                                borderRadius: 10,
+                                color: '#FF2D55',
+                                fontSize: 13,
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                letterSpacing: '0.3px',
+                                transition: 'all 0.2s ease',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                whiteSpace: 'nowrap',
+                                boxShadow: '0 0 12px rgba(255,45,85,0.2), 0 2px 8px rgba(0,0,0,0.3)',
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255,45,85,0.32) 0%, rgba(120,0,255,0.28) 100%)'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 0 20px rgba(255,45,85,0.4), 0 4px 12px rgba(0,0,0,0.4)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255,45,85,0.18) 0%, rgba(120,0,255,0.18) 100%)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 0 12px rgba(255,45,85,0.2), 0 2px 8px rgba(0,0,0,0.3)'; }}
+                        >
+                            <span style={{ fontSize: 15 }}>▶</span> Reels
+                        </button>
 
                         {/* Play Random Button */}
                         <button
@@ -2361,6 +2390,19 @@ export default function VideoLibraryPage() {
                 }
             `}</style>
               <BottomNavBar />
+
+            {/* Reels Modal — full-screen TikTok doom-scroll */}
+            {showReelsModal && (
+                <div style={{
+                    position: 'fixed', inset: 0,
+                    zIndex: 9999,
+                    background: '#000',
+                    display: 'flex',
+                    flexDirection: 'column',
+                }}>
+                    <ReelsViewer onClose={() => setShowReelsModal(false)} />
+                </div>
+            )}
     </PageTransition>
     );
 }
