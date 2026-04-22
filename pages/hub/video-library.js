@@ -142,7 +142,13 @@ export default function VideoLibraryPage() {
     }, [router.query]);
     const [searchQuery, setSearchQuery] = useState('');
     const modalRef = useRef(null);
+    const modalOverlayRef = useRef(null); // ref for native fullscreen
     const [menuOpen, setMenuOpen] = useState(false);
+    const [iframeKey, setIframeKey] = useState(0); // bump to force iframe remount (guarantees autoplay)
+
+    // Swipe / TikTok navigation state
+    const swipeTouchStart = useRef(null);
+    const swipeTouchStartY = useRef(null);
 
     // Content tracking state
     const [favorites, setFavorites] = useState(new Set());
@@ -153,17 +159,17 @@ export default function VideoLibraryPage() {
     const [watchStats, setWatchStats] = useState(null); // User's watch statistics
     const [showStats, setShowStats] = useState(false); // Stats modal visibility
 
-    // Jarvis Insights state - Timestamp-synced contextual commentary
-    const [aiAnalysis, setAiAnalysis] = useState(null); // Current video AI analysis
+    // Jarvis state kept minimal (panel hidden, no auto-fetch)
+    const [aiAnalysis, setAiAnalysis] = useState(null);
     const [aiAnalysisLoading, setAiAnalysisLoading] = useState(false);
-    const [aiAnalysisSource, setAiAnalysisSource] = useState(null); // 'cache' or 'generated'
-    const [showAiPanel, setShowAiPanel] = useState(false); // Toggle AI panel visibility
-    const [bottomSheetExpanded, setBottomSheetExpanded] = useState(false); // Mobile bottom sheet expanded state
-    const [currentVideoTime, setCurrentVideoTime] = useState(0); // Current playback position in seconds
-    const [activeInsight, setActiveInsight] = useState(null); // Current insight being displayed
-    const [insightHistory, setInsightHistory] = useState([]); // Past insights shown
-    const ytPlayerRef = useRef(null); // YouTube player instance
-    const timeTrackingInterval = useRef(null); // Interval for tracking video time
+    const [aiAnalysisSource, setAiAnalysisSource] = useState(null);
+    const [showAiPanel] = useState(false);
+    const [bottomSheetExpanded] = useState(false);
+    const [currentVideoTime, setCurrentVideoTime] = useState(0);
+    const [activeInsight] = useState(null);
+    const [insightHistory] = useState([]);
+    const ytPlayerRef = useRef(null);
+    const timeTrackingInterval = useRef(null);
 
     // Watch time tracking
     const watchStartTimeRef = useRef(null);
@@ -333,14 +339,50 @@ export default function VideoLibraryPage() {
         }
     }, [userId, watchLater]);
 
-    // Handle opening a video - start timer (Jarvis is now on-demand)
+    // Navigate to a specific video in the current filtered list
     const handleOpenVideo = useCallback(async (video) => {
         watchStartTimeRef.current = Date.now();
         currentWatchingVideoRef.current = video;
         setSelectedVideo(video);
-        setShowAiPanel(false);
-        setAiAnalysis(null); // Reset for new video
+        setAiAnalysis(null);
         setAiAnalysisSource(null);
+        setIframeKey(k => k + 1); // force iframe remount → guaranteed autoplay
+    }, []);
+
+    // Navigate to next video in list (TikTok swipe down / arrow right)
+    const handleNextVideo = useCallback(() => {
+        if (!selectedVideo || videos.length === 0) return;
+        const idx = videos.findIndex(v => v.videoId === selectedVideo.videoId);
+        const next = videos[(idx + 1) % videos.length];
+        handleOpenVideo(next);
+    }, [selectedVideo, videos, handleOpenVideo]);
+
+    // Navigate to previous video (arrow left)
+    const handlePrevVideo = useCallback(() => {
+        if (!selectedVideo || videos.length === 0) return;
+        const idx = videos.findIndex(v => v.videoId === selectedVideo.videoId);
+        const prev = videos[(idx - 1 + videos.length) % videos.length];
+        handleOpenVideo(prev);
+    }, [selectedVideo, videos, handleOpenVideo]);
+
+    // Play a random video from the current filtered list
+    const handlePlayRandom = useCallback(() => {
+        if (videos.length === 0) return;
+        const rand = videos[Math.floor(Math.random() * videos.length)];
+        handleOpenVideo(rand);
+    }, [videos, handleOpenVideo]);
+
+    // Native fullscreen — puts the entire overlay element into browser fullscreen
+    const handleFullscreen = useCallback(() => {
+        const el = modalOverlayRef.current;
+        if (!el) return;
+        if (!document.fullscreenElement) {
+            el.requestFullscreen?.() ||
+            el.webkitRequestFullscreen?.() ||
+            el.mozRequestFullScreen?.();
+        } else {
+            document.exitFullscreen?.();
+        }
     }, []);
 
     // Handle Jarvis button click - fetch analysis ON DEMAND only
@@ -467,14 +509,18 @@ export default function VideoLibraryPage() {
     }, [selectedSource, selectedType, searchQuery, watchedVideos, allVideos]);
 
 
-    // Close modal on escape
+    // Keyboard navigation in modal
     useEffect(() => {
         const handleKey = (e) => {
+            if (!selectedVideo) return;
             if (e.key === 'Escape') handleCloseVideo();
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') handleNextVideo();
+            if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   handlePrevVideo();
+            if (e.key === 'f' || e.key === 'F') handleFullscreen();
         };
         window.addEventListener('keydown', handleKey);
         return () => window.removeEventListener('keydown', handleKey);
-    }, []);
+    }, [selectedVideo, handleCloseVideo, handleNextVideo, handlePrevVideo, handleFullscreen]);
 
     // Get YouTube thumbnail
     const getThumbnail = (videoId) => `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
@@ -750,6 +796,35 @@ export default function VideoLibraryPage() {
                                 {type.name}
                             </button>
                         ))}
+
+                        {/* Play Random Button */}
+                        <button
+                            id="vl-play-random-btn"
+                            onClick={handlePlayRandom}
+                            className="metal-frame-sm"
+                            style={{
+                                padding: '10px 20px',
+                                background: 'linear-gradient(135deg, rgba(255,180,0,0.2), rgba(255,120,0,0.2))',
+                                border: '1px solid rgba(255,160,0,0.5)',
+                                color: '#FFA500',
+                                fontSize: 14,
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8,
+                                borderRadius: 10,
+                                transition: 'all 0.2s',
+                                letterSpacing: '0.3px',
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255,180,0,0.4), rgba(255,120,0,0.4))'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255,180,0,0.2), rgba(255,120,0,0.2))'; e.currentTarget.style.transform = 'none'; }}
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/>
+                            </svg>
+                            Play Random
+                        </button>
 
                         {/* Search Input */}
                         <div className="vl-search-wrap" style={{
@@ -1161,9 +1236,7 @@ export default function VideoLibraryPage() {
             {/* Video Modal */}
             {selectedVideo && (
                 <div
-                    onClick={(e) => {
-                        if (e.target === e.currentTarget) handleCloseVideo();
-                    }}
+                    ref={modalOverlayRef}
                     style={{
                         position: 'fixed',
                         top: 0,
@@ -1175,8 +1248,28 @@ export default function VideoLibraryPage() {
                         display: 'flex',
                         flexDirection: 'column',
                     }}
+                    /* Touch-swipe for TikTok-style navigation */
+                    onTouchStart={e => {
+                        swipeTouchStart.current = e.touches[0].clientX;
+                        swipeTouchStartY.current = e.touches[0].clientY;
+                    }}
+                    onTouchEnd={e => {
+                        if (swipeTouchStart.current === null) return;
+                        const dx = e.changedTouches[0].clientX - swipeTouchStart.current;
+                        const dy = e.changedTouches[0].clientY - swipeTouchStartY.current;
+                        swipeTouchStart.current = null;
+                        swipeTouchStartY.current = null;
+                        // Vertical swipe (TikTok-style): up = next, down = prev
+                        if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 50) {
+                            if (dy < 0) handleNextVideo(); else handlePrevVideo();
+                        }
+                        // Horizontal swipe: left = next, right = prev
+                        else if (Math.abs(dx) > 50) {
+                            if (dx < 0) handleNextVideo(); else handlePrevVideo();
+                        }
+                    }}
                 >
-                    {/* Close button - always visible */}
+                    {/* Close button */}
                     <button
                         onClick={handleCloseVideo}
                         className="vl-modal-close"
@@ -1186,7 +1279,7 @@ export default function VideoLibraryPage() {
                             right: 16,
                             width: 48,
                             height: 48,
-                            background: 'rgba(255,255,255,0.2)',
+                            background: 'rgba(255,255,255,0.18)',
                             border: 'none',
                             borderRadius: '50%',
                             color: 'white',
@@ -1197,74 +1290,86 @@ export default function VideoLibraryPage() {
                         }}
                     >×</button>
 
-                    {/* Jarvis Insights button - ON DEMAND analysis */}
+                    {/* Fullscreen button */}
                     <button
-                        onClick={handleJarvisClick}
-                        className="jarvis-button"
+                        onClick={handleFullscreen}
+                        title="Fullscreen (F)"
                         style={{
                             position: 'absolute',
                             top: 16,
-                            right: 80,
-                            height: 46,
-                            padding: '0 18px',
-                            background: showAiPanel
-                                ? 'linear-gradient(135deg, #00D4FF 0%, #0099CC 50%, #7B2CBF 100%)'
-                                : 'linear-gradient(135deg, rgba(0,212,255,0.25) 0%, rgba(123,44,191,0.25) 100%)',
-                            border: '1px solid rgba(0,212,255,0.5)',
-                            borderRadius: 23,
+                            right: 76,
+                            width: 48,
+                            height: 48,
+                            background: 'rgba(255,255,255,0.18)',
+                            border: 'none',
+                            borderRadius: '50%',
                             color: 'white',
-                            fontSize: 13,
-                            fontWeight: 600,
                             cursor: 'pointer',
                             zIndex: 1001,
-                            backdropFilter: 'blur(12px)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 10,
-                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                            boxShadow: showAiPanel
-                                ? '0 0 20px rgba(0,212,255,0.4), 0 4px 15px rgba(0,0,0,0.3)'
-                                : '0 4px 15px rgba(0,0,0,0.3)',
-                            letterSpacing: '0.3px',
-                        }}
-                    >
-                        <div style={{
-                            width: 26,
-                            height: 26,
-                            borderRadius: '50%',
-                            background: 'linear-gradient(135deg, rgba(0,212,255,0.3) 0%, rgba(123,44,191,0.3) 100%)',
+                            backdropFilter: 'blur(10px)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            border: '1px solid rgba(255,255,255,0.2)',
-                        }}>
-                            <Image src="/images/jarvis-avatar.png" alt="Jarvis" width={1024} height={682} style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover' }} />
-                        </div>
-                        {aiAnalysisLoading ? (
-                            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <span style={{
-                                    width: 6,
-                                    height: 6,
-                                    borderRadius: '50%',
-                                    background: '#00D4FF',
-                                    animation: 'pulse 1s infinite'
-                                }} />
-                                Loading...
-                            </span>
-                        ) : aiAnalysis && aiAnalysisSource === 'cache' ? (
-                            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                Jarvis Insights
-                                <span style={{
-                                    fontSize: 9,
-                                    background: 'rgba(0,200,83,0.3)',
-                                    color: '#00C853',
-                                    padding: '2px 6px',
-                                    borderRadius: 4,
-                                    fontWeight: 600
-                                }}>CACHED</span>
-                            </span>
-                        ) : 'Jarvis Insights'}
+                        }}
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                            <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+                        </svg>
                     </button>
+
+                    {/* Prev / Next navigation arrows */}
+                    <button
+                        onClick={handlePrevVideo}
+                        title="Previous video (←)"
+                        style={{
+                            position: 'absolute',
+                            left: 16,
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            width: 52,
+                            height: 52,
+                            background: 'rgba(255,255,255,0.15)',
+                            border: 'none',
+                            borderRadius: '50%',
+                            color: 'white',
+                            fontSize: 26,
+                            cursor: 'pointer',
+                            zIndex: 1001,
+                            backdropFilter: 'blur(10px)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'background 0.2s',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.3)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
+                    >‹</button>
+                    <button
+                        onClick={handleNextVideo}
+                        title="Next video (→)"
+                        style={{
+                            position: 'absolute',
+                            right: 16,
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            width: 52,
+                            height: 52,
+                            background: 'rgba(255,255,255,0.15)',
+                            border: 'none',
+                            borderRadius: '50%',
+                            color: 'white',
+                            fontSize: 26,
+                            cursor: 'pointer',
+                            zIndex: 1001,
+                            backdropFilter: 'blur(10px)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'background 0.2s',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.3)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
+                    >›</button>
 
                     {/* Fullscreen YouTube embed with IFrame API for time tracking */}
                     <div style={{
@@ -1274,55 +1379,12 @@ export default function VideoLibraryPage() {
                         position: 'relative',
                     }}>
                         <iframe
+                            key={iframeKey}
                             id="youtube-player"
-                            src={`https://www.youtube.com/embed/${selectedVideo.videoId}?autoplay=1&rel=0&modestbranding=1&fs=1&iv_load_policy=3&showinfo=0&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
+                            src={`https://www.youtube.com/embed/${selectedVideo.videoId}?autoplay=1&mute=0&rel=0&modestbranding=1&fs=1&iv_load_policy=3&showinfo=0&enablejsapi=1&playsinline=1&origin=${typeof window !== 'undefined' ? encodeURIComponent(window.location.origin) : ''}`}
                             title={selectedVideo.title}
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
                             allowFullScreen
-                            ref={(el) => {
-                                // Setup time tracking using postMessage API
-                                if (el && !ytPlayerRef.current) {
-                                    ytPlayerRef.current = {
-                                        iframe: el,
-                                        getCurrentTime: () => currentVideoTime,
-                                    };
-
-                                    // Listen for messages from YouTube player
-                                    const handleMessage = (event) => {
-                                        if (event.origin !== 'https://www.youtube.com') return;
-                                        try {
-                                            const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-                                            if (data.info && typeof data.info.currentTime === 'number') {
-                                                setCurrentVideoTime(data.info.currentTime);
-                                            }
-                                        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-                                    };
-                                    window.addEventListener('message', handleMessage);
-                                    ytPlayerRef.current.messageHandler = handleMessage; // store for cleanup
-
-                                    // Request current time every second when panel is open
-                                    const requestTime = () => {
-                                        if (el && el.contentWindow) {
-                                            el.contentWindow.postMessage(JSON.stringify({
-                                                event: 'listening',
-                                                id: 1,
-                                                channel: 'widget'
-                                            }), '*');
-                                            el.contentWindow.postMessage(JSON.stringify({
-                                                event: 'command',
-                                                func: 'getCurrentTime',
-                                                args: []
-                                            }), '*');
-                                        }
-                                    };
-
-                                    // Start polling when AI panel opens
-                                    if (showAiPanel) {
-                                        const pollInterval = setInterval(requestTime, 1000);
-                                        ytPlayerRef.current.pollInterval = pollInterval;
-                                    }
-                                }
-                            }}
                             style={{
                                 width: '100%',
                                 height: '100%',
@@ -1330,8 +1392,8 @@ export default function VideoLibraryPage() {
                             }}
                         />
 
-                        {/* Jarvis Caption-Style Insight Overlay - appears at bottom like subtitles */}
-                        {showAiPanel && activeInsight && (
+                        {/* Jarvis panel removed per user request */}
+                        {false && activeInsight && (
                             <div style={{
                                 position: 'absolute',
                                 bottom: 60,
@@ -2069,7 +2131,7 @@ export default function VideoLibraryPage() {
                 </div>
             )}
 
-            {/* CSS for hover effects and responsive Jarvis panel */}
+            {/* CSS */}
             <style>{`
                 div:hover .play-btn {
                     opacity: 1 !important;
