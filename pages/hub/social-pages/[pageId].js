@@ -189,7 +189,10 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
         if (comments.length > 0) { setShowComments(!showComments); return; }
         setLoadingComments(true);
         try {
-            const res = await fetch(`/api/social/pages/engage?post_id=${post.id}${user ? `&user_id=${user.id}` : ''}`);
+            // Send Bearer token so engage.js can verify identity for personalized like state
+            const token = getAccessToken();
+            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+            const res = await fetch(`/api/social/pages/engage?post_id=${post.id}`, { headers });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) setComments(json.data || []);
@@ -725,8 +728,8 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                                     {c.user_liked_comment ? 'Liked' : 'Like'}{c.comment_like_count > 0 ? ` (${c.comment_like_count})` : ''}
                                                 </button>}
                                                 {user && <button onClick={() => { setReplyTo(replyTo === c.id ? null : c.id); setReplyText(''); }} style={{ border: 'none', background: 'none', cursor: 'pointer', fontWeight: 600, color: C.textSec, fontSize: 11, padding: 0, fontFamily: 'inherit' }}>Reply</button>}
-                                                {/* P8-1: Comment delete */}
-                                                {user && (c.user_id === user.id || isPageOwner) && <button onClick={() => { setComments(prev => prev.filter(x => x.id !== c.id)); if (onDeleteComment) onDeleteComment(post.id, c.id); }} style={{ border: 'none', background: 'none', cursor: 'pointer', fontWeight: 600, color: '#FA383E', fontSize: 11, padding: 0, fontFamily: 'inherit' }}>Delete</button>}
+                                                {/* P8-1: Comment delete — server-first; UI update driven by SOCIAL_COMMENT_UPDATE event on success */}
+                                                {user && (c.user_id === user.id || isPageOwner) && <button onClick={() => { if (onDeleteComment) onDeleteComment(post.id, c.id); }} style={{ border: 'none', background: 'none', cursor: 'pointer', fontWeight: 600, color: '#FA383E', fontSize: 11, padding: 0, fontFamily: 'inherit' }}>Delete</button>}
                                                 {/* P8-11: Comment edit */}
                                                 {user && c.user_id === user.id && <button onClick={() => { setEditingComment(c.id); setEditCommentText(c.content || ''); }} style={{ border: 'none', background: 'none', cursor: 'pointer', fontWeight: 600, color: C.textSec, fontSize: 11, padding: 0, fontFamily: 'inherit' }}>Edit</button>}
                                             </div>
@@ -748,7 +751,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                                 </div>
                                                 <div style={{ display: 'flex', gap: 10, fontSize: 10, color: C.textSec, padding: '2px 8px' }}>
                                                     <span>{timeAgo(r.created_at)}</span>
-                                                    {user && (r.user_id === user.id || isPageOwner) && <button onClick={() => { setComments(prev => prev.filter(x => x.id !== r.id)); if (onDeleteComment) onDeleteComment(post.id, r.id); }} style={{ border: 'none', background: 'none', cursor: 'pointer', fontWeight: 600, color: '#FA383E', fontSize: 10, padding: 0, fontFamily: 'inherit' }}>Delete</button>}
+                                                    {user && (r.user_id === user.id || isPageOwner) && <button onClick={() => { if (onDeleteComment) onDeleteComment(post.id, r.id); }} style={{ border: 'none', background: 'none', cursor: 'pointer', fontWeight: 600, color: '#FA383E', fontSize: 10, padding: 0, fontFamily: 'inherit' }}>Delete</button>}
                                                 </div>
                                             </div>
                                         </div>

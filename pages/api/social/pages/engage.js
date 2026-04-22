@@ -270,12 +270,21 @@ export default async function handler(req, res) {
                   commentLikeCounts[l.comment_id] = (commentLikeCounts[l.comment_id] || 0) + 1;
               });
               // Check if requesting user liked each comment
-              const reqUserId = req.query.user_id;
-              if (reqUserId) {
+              // SECURITY: verify identity from Bearer token, not client-supplied user_id
+              let verifiedUserId = null;
+              const authHeader = req.headers.authorization;
+              if (authHeader?.startsWith('Bearer ')) {
+                  try {
+                      const token = authHeader.replace('Bearer ', '');
+                      const { data: authData } = await getSupabase().auth.getUser(token);
+                      verifiedUserId = authData?.user?.id || null;
+                  } catch { /* non-fatal — unauthenticated users get no personalized state */ }
+              }
+              if (verifiedUserId) {
                   const { data: userCLikes } = await getSupabase()
                       .from('social_page_comment_likes')
                       .select('comment_id')
-                      .eq('user_id', reqUserId)
+                      .eq('user_id', verifiedUserId)
                       .in('comment_id', commentIds);
                   (userCLikes || []).forEach(l => userCommentLikes.add(l.comment_id));
               }
