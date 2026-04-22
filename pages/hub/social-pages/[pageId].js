@@ -1080,8 +1080,9 @@ export default function SocialPageDetail() {
         if (!page?.id) return;
         try {
             const params = new URLSearchParams({ page_id: page.id, limit: '30' });
-            if (user?.id) params.set('user_id', user.id);
-            const res = await fetch(`/api/social/pages/posts?${params}`, { signal });
+            const token = getAccessToken();
+            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+            const res = await fetch(`/api/social/pages/posts?${params}`, { signal, headers });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) setPosts(json.data || []);
@@ -1386,7 +1387,9 @@ export default function SocialPageDetail() {
             if (entries[0].isIntersecting && !loadMoreFetchRef.current && hasMorePosts) {
                 loadMoreFetchRef.current = true;
                 setLoadingMore(true);
-                fetch(`/api/social/pages/posts?page_id=${page.id}&offset=${posts.length}&limit=10${user?.id ? `&user_id=${user.id}` : ''}`)
+                fetch(`/api/social/pages/posts?page_id=${page.id}&offset=${posts.length}&limit=10`, {
+                    headers: (() => { const t = getAccessToken(); return t ? { 'Authorization': `Bearer ${t}` } : {}; })()
+                })
                     .then(r => r.json())
                     .then(json => {
                         if (json.success && json.data?.length > 0) {

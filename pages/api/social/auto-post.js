@@ -19,8 +19,12 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+let _supabase = null;
 function getSupabase() {
-    return createClient(supabaseUrl, supabaseServiceKey);
+    if (!_supabase) {
+        _supabase = createClient(supabaseUrl, supabaseServiceKey);
+    }
+    return _supabase;
 }
 
 const POST_TEMPLATES = {
@@ -48,8 +52,13 @@ export default async function handler(req, res) {
       let verified_user_id = null;
 
       if (internalSecret === process.env.CRON_SECRET) {
-          // Internal server-to-server call — trust user_id from body
-          verified_user_id = req.body.user_id;
+          // Internal server-to-server call — validate user_id exists before trusting it
+          const rawUserId = req.body.user_id;
+          if (!rawUserId) return res.status(400).json({ success: false, error: 'user_id required for internal calls' });
+          // Verify the user_id is a real profile to prevent forged posts
+          const { data: profileCheck } = await getSupabase().from('profiles').select('id').eq('id', rawUserId).maybeSingle();
+          if (!profileCheck) return res.status(403).json({ success: false, error: 'Invalid user_id: profile not found' });
+          verified_user_id = rawUserId;
       } else if (token) {
           const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
           const authUser = authData?.user;

@@ -83,17 +83,28 @@ export default async function handler(req, res) {
               (profileData || []).forEach(p => { profiles[p.id] = p; });
           }
 
-          // Check user likes
+          // Check user likes — derive identity from JWT, never from client query params
           let userLikes = new Set();
-          if (user_id && data && data.length > 0) {
-              const postIds = data.map(p => p.id);
-              const { data: likes } = await getSupabase()
-                  .from('social_page_post_likes')
-                  .select('post_id')
-                  .eq('user_id', user_id)
-                  .in('post_id', postIds)
-                      .limit(100);
-              (likes || []).forEach(l => userLikes.add(l.post_id));
+          if (data && data.length > 0) {
+              // JWT-verified personalization: only apply when Authorization header is present
+              const authHeader = req.headers.authorization;
+              const jwtToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+              if (jwtToken) {
+                  try {
+                      const { data: authData } = await getSupabase().auth.getUser(jwtToken);
+                      const verifiedUserId = authData?.user?.id;
+                      if (verifiedUserId) {
+                          const postIds = data.map(p => p.id);
+                          const { data: likes } = await getSupabase()
+                              .from('social_page_post_likes')
+                              .select('post_id')
+                              .eq('user_id', verifiedUserId)
+                              .in('post_id', postIds)
+                              .limit(100);
+                          (likes || []).forEach(l => userLikes.add(l.post_id));
+                      }
+                  } catch { /* JWT verification failed — return un-liked state */ }
+              }
           }
 
           const enriched = (data || []).map(p => ({
@@ -315,6 +326,19 @@ export default async function handler(req, res) {
               .eq('id', id);
 
           if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
+
+          // ── Mirror cleanup: delete the corresponding social_posts global feed row ──
+          // When the page post was created it was mirrored via metadata.source_post_id.
+          // Deleting the page post must cascade to the global feed mirror.
+          try {
+              await getSupabase()
+                  .from('social_posts')
+                  .delete()
+                  .contains('metadata', { source_post_id: id });
+          } catch (mirrorDeleteErr) {
+              console.warn('[PagePosts DELETE] Failed to remove global feed mirror (non-blocking):', mirrorDeleteErr?.message);
+          }
+
           return res.status(200).json({ success: true });
 
       } else {
