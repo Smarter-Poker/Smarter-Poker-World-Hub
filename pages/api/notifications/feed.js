@@ -86,7 +86,7 @@ export default async function handler(req, res) {
         const [socialResult, followsResult] = await Promise.all([
             supabase
                 .from('notifications')
-                .select('*')
+                .select('id, type, title, message, data, read, created_at, user_id')
                 .eq('user_id', userId)
                 .order('created_at', { ascending: false })
                 .limit(limit),
