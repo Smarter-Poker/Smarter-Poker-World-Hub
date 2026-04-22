@@ -59,10 +59,10 @@ export default async function handler(req, res) {
               return res.status(401).json({ success: false, error: 'Profile not found' });
           }
 
-          // Get the post to check ownership
+          // Get the post to check ownership AND capture media_urls for storage cleanup
           const { data: post } = await supabaseAdmin
               .from('social_posts')
-              .select('id, author_id')
+              .select('id, author_id, media_urls')
               .eq('id', postId)
               .maybeSingle();
 
@@ -76,6 +76,29 @@ export default async function handler(req, res) {
 
           if (!isOwnPost && !isGodMode) {
               return res.status(403).json({ success: false, error: 'Forbidden - not authorized to delete this post' });
+          }
+
+          // ── Storage cleanup: purge orphaned blobs before deleting the DB row ──
+          // Fire-and-forget: we log failures but never block deletion on storage errors.
+          if (Array.isArray(post.media_urls) && post.media_urls.length > 0) {
+              try {
+                  const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, '');
+                  const BUCKET = 'social-media';
+                  const publicPrefix = `${supabaseUrl}/storage/v1/object/public/${BUCKET}/`;
+                  const storagePaths = post.media_urls
+                      .filter(url => typeof url === 'string' && url.startsWith(publicPrefix))
+                      .map(url => url.slice(publicPrefix.length).split('?')[0]); // strip query params
+                  if (storagePaths.length > 0) {
+                      const { error: storageErr } = await supabaseAdmin.storage
+                          .from(BUCKET)
+                          .remove(storagePaths);
+                      if (storageErr) {
+                          console.warn('[Delete Post] Storage cleanup partial failure:', storageErr.message, 'paths:', storagePaths);
+                      }
+                  }
+              } catch (storageEx) {
+                  console.warn('[Delete Post] Storage cleanup exception (non-blocking):', storageEx?.message);
+              }
           }
 
           // Delete the post using admin client (bypasses RLS)
