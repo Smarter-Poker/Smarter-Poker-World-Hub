@@ -4730,15 +4730,28 @@ function SocialMediaPage() {
         if (unreadIds.length === 0) return; // Nothing to mark — skip entirely
         if (markReadFiredRef.current) return; // Already fired this open cycle
         markReadFiredRef.current = true;
-    // Mark all as read IMMEDIATELY (with error boundary)
+    // BUG-25 FIX: Was marking read directly via Supabase client (bypassed server cache).
+    // Now uses mark-read API so server-side feed cache is invalidated on write.
         (async () => {
             try {
-                await supabase.from('notifications').update({ read: true }).in('id', unreadIds);
+                let accessToken = null;
+                try {
+                    const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+                    accessToken = authData?.access_token || null;
+                } catch (_) {}
+                await fetch('/api/notifications/mark-read', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+                    },
+                    body: JSON.stringify({ ids: unreadIds }),
+                });
                 setNotifications(prev => prev.map(n => ({ ...n, read: true })));
             } catch (e) {
                 console.warn('[Social] Notification mark-read failed:', e);
             }
-            // BUG-10 FIX: Update localStorage badge count so header reflects cleared state
+            // Update localStorage badge count so header reflects cleared state
             try { localStorage.setItem('sp-notif-count', '0'); } catch (_) {}
             // Sync: tell other tabs + header to update badge count
             broadcastSync('smarter_poker_notif_sync', 'refresh_notifications');

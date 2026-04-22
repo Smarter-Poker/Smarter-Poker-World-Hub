@@ -149,6 +149,27 @@ export default async function handler(req, res) {
             .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
             .slice(0, 60);
 
+        // ── Phase 3.5: BUG-28 FIX — Enrich home_group notifications with real group names ──
+        // home_group_friend_joined messages were showing raw slugs like 'PHASE40_DM_FEATURE'
+        // because the message was stored at insert-time with the slug. Now we resolve the
+        // real group name from commander_home_groups and rewrite the message.
+        const groupIds = [...new Set(
+            combined
+                .filter(n => n.type === 'home_group_friend_joined' || n.type === 'home_group_announcement')
+                .map(n => n.data?.group_id)
+                .filter(Boolean)
+        )];
+
+        let groupNameById = {};
+        if (groupIds.length > 0) {
+            const { data: groups } = await supabase
+                .from('commander_home_groups')
+                .select('id, name')
+                .in('id', groupIds)
+                .limit(50);
+            (groups || []).forEach(g => { groupNameById[g.id] = g.name; });
+        }
+
         // ── Phase 4: Enrich social notifications with actor profiles (server-side) ──
         // BUG-FIX: Also collect friend_id for home_group_friend_joined type notifications
         // so those get avatar/username resolution too (was previously invisible to enrichment).
@@ -218,8 +239,18 @@ export default async function handler(req, res) {
                 || n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/)?.[1]
                 || n.title;
 
+            // BUG-28 FIX: Rewrite home_group message with real group name
+            let message = n.message;
+            if ((n.type === 'home_group_friend_joined' || n.type === 'home_group_announcement') && n.data?.group_id) {
+                const realGroupName = groupNameById[n.data.group_id];
+                if (realGroupName) {
+                    message = `Your friend is now in ${realGroupName} — check it out`;
+                }
+            }
+
             return {
                 ...n,
+                message,
                 // BUG-14 fix: pass DB-computed link/action_url through to client for routing
                 link: n.link || n.action_url || null,
                 actor_avatar_url: profile?.avatar_url || null,

@@ -7,8 +7,10 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+
 
 const ONESIGNAL_APP_ID = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
 const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
@@ -43,14 +45,12 @@ export default async function handler(req, res) {
       const hasAdminAuth = envSecret && adminSecret === envSecret;
 
       if (!hasAdminAuth) {
-          const token = req.headers.authorization?.replace('Bearer ', '');
-          if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-          const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
-          const user = authData?.user;
-          if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+          // BUG-21 FIX: Use local HMAC JWT validation instead of GoTrue network roundtrip
+          const supabaseForAuth = getSupabase();
+          const { user } = await getServerUserWithFallback(req, supabaseForAuth);
+          if (!user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
           // BUG #243 FIX: JWT users can only send to specific users (not broadcast to segments)
-          // This prevents any authenticated user from spamming all users via segments: ['All']
           const { segments, playerIds, externalUserIds, tags } = req.body;
           if (segments || tags || (playerIds && playerIds.length > 5) || (externalUserIds && externalUserIds.length > 5)) {
               return res.status(403).json({ success: false, error: 'Broadcast notifications require admin access' });

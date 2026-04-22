@@ -8,8 +8,10 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+
 
 let _supabase = null;
 function getSupabase() {
@@ -29,14 +31,11 @@ export default async function handler(req, res) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
 
     try {
-        const token = req.headers.authorization?.replace('Bearer ', '');
-        if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-        
+        // BUG-21 FIX: Use local HMAC JWT validation instead of GoTrue network roundtrip (~1.5s saved)
         const supabase = getSupabase();
-        const { data: authData, error: authErr } = await supabase.auth.getUser(token);
-        const user = authData?.user;
+        const { user } = await getServerUserWithFallback(req, supabase);
         
-        if (authErr || !user) {
+        if (!user) {
             return res.status(401).json({ success: false, error: 'Invalid or expired session token' });
         }
 
