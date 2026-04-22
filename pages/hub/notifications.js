@@ -699,52 +699,75 @@ function NotificationsPage() {
                                 if (!n.read) markAsRead(n.id);
                                 // [Audit#17] Dismiss any open swipe
                                 setSwipedId(null);
-                                
+
                                 // When rendered inside FullScreenPageOverlay, router.push navigates
                                 // the iframe's own URL — useless. Break out to the parent window instead.
                                 const navigate = (path) => {
                                     try {
                                         if (window.self !== window.top) {
-                                            // Escape the iframe — navigate parent window directly
                                             window.top.location.href = path;
                                         } else {
                                             router.push(path);
                                         }
                                     } catch (_) {
-                                        // Cross-origin safety: fall back to router if top access blocked
                                         router.push(path);
                                     }
                                 };
 
-                                // Extensive routing fallback tree based on notification payload
-                                if (n.data?.page_type && n.data?.page_id) {
-                                    const pt = n.data.page_type;
-                                    const pid = n.data.page_id;
+                                const t = n.type || '';
+                                const d = n.data || {};
+
+                                // ── Home Games / Groups ──────────────────────────────
+                                if (t.startsWith('home_group') || t.startsWith('home_game') || t === 'member_joined') {
+                                    if (d.group_id) navigate(`/hub/home-games/${d.group_id}`);
+                                    else navigate('/hub/home-games');
+
+                                // ── Friends ──────────────────────────────────────────
+                                } else if (t === 'friend_request' || t === 'friend_accepted' || t === 'friend_accept' || t === 'new_follow' || t === 'follow') {
+                                    if (d.sender_id && n.actor_username) navigate(`/hub/user/${n.actor_username}`);
+                                    else navigate('/hub/friends');
+
+                                // ── Poker Pages / Clubs ──────────────────────────────
+                                } else if (d.page_type && d.page_id) {
+                                    const pt = d.page_type;
+                                    const pid = d.page_id;
                                     if (pt === 'venue') navigate(`/hub/venues/${pid}`);
                                     else if (pt === 'tour') navigate(`/hub/tours/${pid}`);
                                     else if (pt === 'series') navigate(`/hub/series/${pid}`);
                                     else navigate(`/club/${pid}`);
-                                } else if (n.data?.club_id || n.data?.group_id) {
-                                    const id = n.data.club_id || n.data.group_id;
-                                    navigate(`/club/${id}`);
-                                } else if (n.data?.page_id) {
-                                    navigate(`/hub/social-pages/${n.data.page_id}`);
-                                } else if (n.data?.post_id) {
-                                    if (n.data?.is_reel || n.data?.post_type === 'reel') {
-                                        navigate(`/hub/reels?id=${n.data.post_id}`);
+
+                                // ── Social Pages (Commander clubs) ───────────────────
+                                } else if (d.club_id) {
+                                    navigate(`/club/${d.club_id}`);
+                                } else if (d.page_id) {
+                                    navigate(`/hub/social-pages/${d.page_id}`);
+
+                                // ── Posts ────────────────────────────────────────────
+                                } else if (d.post_id) {
+                                    if (d.is_reel || d.post_type === 'reel') {
+                                        navigate(`/hub/reels?id=${d.post_id}`);
                                     } else {
                                         navigate('/hub/social-media');
                                     }
-                                } else if (n.data?.tournament_id) {
+
+                                // ── Tournaments ──────────────────────────────────────
+                                } else if (d.tournament_id) {
                                     navigate('/hub/tournaments');
+
+                                // ── User Profile ─────────────────────────────────────
                                 } else if (n.actor_username) {
                                     navigate(`/hub/user/${n.actor_username}`);
-                                } else if (n.type && n.type.includes('friend')) {
+
+                                // ── Generic friend types ─────────────────────────────
+                                } else if (t.includes('friend') || t.includes('follow')) {
                                     navigate('/hub/friends');
+
+                                // ── Social fallback ──────────────────────────────────
                                 } else if (n._source === 'social') {
                                     navigate('/hub/social-media');
                                 }
                             };
+
 
                             
                             // If it matches any of our routing criteria, it's clickable
