@@ -117,6 +117,7 @@ function ReelCard({ reel, onClick }) {
                 <img
                     src={youtubeThumbnail || '/default-reel-thumb.jpg'}
                     alt={reel.caption || 'Reel'}
+                    loading="lazy"
                     style={{
                         width: '100%',
                         height: '100%',
@@ -130,6 +131,8 @@ function ReelCard({ reel, onClick }) {
                     muted
                     loop
                     playsInline
+                    preload="none"
+                    poster={reel.thumbnail_url || undefined}
                     style={{
                         width: '100%',
                         height: '100%',
@@ -245,9 +248,10 @@ function ReelViewer({ reels, startIndex, onClose }) {
     // Phase 9: Long Press Context Menu
     const [showContextMenu, setShowContextMenu] = useState(false);
     const longPressTimerRef = useRef(null);
-    const handleTouchStart = () => {
+    // Long-press handlers (haptic defined later — accessed via ref)
+    const handleLongPressTouchStart = () => {
         longPressTimerRef.current = setTimeout(() => {
-            haptic(20);
+            try { navigator?.vibrate?.(20); } catch (e) { console.warn('[ReelsFeedCarousel] Handled exception:', e); }
             setShowContextMenu(true);
         }, 500);
     };
@@ -1123,15 +1127,15 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
             onClick={handleTap}
-            onTouchStart={handleTouchStart}
+            onTouchStart={handleLongPressTouchStart}
             onTouchEnd={cancelLongPress}
             onTouchMove={cancelLongPress}
-            onMouseDown={handleTouchStart}
+            onMouseDown={handleLongPressTouchStart}
             onMouseUp={cancelLongPress}
             onMouseMove={cancelLongPress}
             onContextMenu={(e) => { e.preventDefault(); setShowContextMenu(true); }}
         >
-            {/* Close button */}
+            {/* Close button — always touchable; fades when overlay hidden but stays accessible */}
             <button
                 onClick={(e) => { e.stopPropagation(); onClose(); }}
                 aria-label="Close reels"
@@ -1141,7 +1145,9 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     background: 'rgba(255,255,255,0.1)',
                     border: 'none', color: 'white', fontSize: 20,
                     cursor: 'pointer', zIndex: 10,
-                    opacity: showOverlay ? 1 : 0, transition: 'opacity 0.3s ease', pointerEvents: showOverlay ? 'auto' : 'none',
+                    opacity: showOverlay ? 1 : 0.3,
+                    transition: 'opacity 0.3s ease',
+                    pointerEvents: 'auto',
                 }}
             >✕</button>
 
@@ -1468,16 +1474,17 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     }}>❤️</div>
                 )}
 
-                {/* Progress bar for native videos */}
-                {!isYouTubeUrl(currentReel.video_url) && progress > 0 && (
+                {/* Progress bar for native videos — rail always rendered, fill tracks playback */}
+                {!isYouTubeUrl(currentReel.video_url) && (
                     <div style={{
                         position: 'absolute', bottom: 0, left: 0, right: 0,
-                        height: 3, background: 'rgba(255,255,255,0.2)', zIndex: 25,
+                        height: 3, background: 'rgba(255,255,255,0.15)', zIndex: 25,
                     }}>
                         <div style={{
                             width: `${progress}%`, height: '100%',
                             background: 'linear-gradient(90deg, #FF2D55, #FF6B6B)',
                             transition: 'width 0.1s linear',
+                            willChange: 'width',
                         }} />
                     </div>
                 )}
@@ -1559,7 +1566,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> 
                                 Share / Repost
                             </button>
-                            <button onClick={(e) => { e.stopPropagation(); setShowContextMenu(false); handleReport(); }} style={{
+                            <button onClick={(e) => { e.stopPropagation(); setShowContextMenu(false); setShowReportModal(true); }} style={{
                                 background: 'transparent', border: 'none',
                                 padding: '16px 20px', color: '#ff3b30', fontSize: 16, fontWeight: 600, textAlign: 'left',
                                 display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
@@ -1889,49 +1896,67 @@ export function ReelsFeedCarousel() {
     const loadReels = useCallback(async () => {
         setLoading(true);
         try {
-            const allReels = [];
+            // Parallel fetch: social_reels + social_posts with video content
+            const [reelsResult, postsResult] = await Promise.all([
+                supabase
+                    .from('social_reels')
+                    .select(`
+                        id, author_id, caption, video_url, thumbnail_url, view_count, like_count, comment_count, created_at, is_public,
+                        profiles:author_id (id, username, avatar_url, full_name)
+                    `)
+                    .eq('is_public', true)
+                    .order('created_at', { ascending: false })
+                    .limit(20),
+                supabase
+                    .from('social_posts')
+                    .select('id, author_id, content, content_type, media_urls, like_count, comment_count, created_at, visibility')
+                    .eq('visibility', 'public')
+                    .not('media_urls', 'is', null)
+                    .order('created_at', { ascending: false })
+                    .limit(30),
+            ]);
 
-            // Fetch from social_reels
-            const { data: reelsData } = await supabase
-                .from('social_reels')
-                .select(`
-                    id, author_id, caption, video_url, thumbnail_url, view_count, like_count, comment_count, created_at, is_public,
-                    profiles:author_id (id, username, avatar_url, full_name)
-                `)
-                .eq('is_public', true)
-                .order('created_at', { ascending: false })
-                .limit(20);
-            if (reelsData) allReels.push(...reelsData);
+            const allReels = reelsResult.data || [];
 
-            // Also fetch social_posts with YouTube URLs
-            const { data: postsData } = await supabase
-                .from('social_posts')
-                .select('id, author_id, content, content_type, media_urls, like_count, comment_count, created_at, visibility')
-                .eq('visibility', 'public')
-                .not('media_urls', 'is', null)
-                .order('created_at', { ascending: false })
-                .limit(30);
-            const ytPosts = (postsData || []).filter(p => {
+            // Filter posts to video/YouTube only
+            const ytPosts = (postsResult.data || []).filter(p => {
                 const url = p.media_urls?.[0];
-                return p.content_type === 'video' || (url && (url.includes('youtube.com') || url.includes('youtu.be') || url.match(/\.(mp4|webm|mov)(\?|$)/i)));
+                return p.content_type === 'video' || (url && (
+                    url.includes('youtube.com') || url.includes('youtu.be') ||
+                    url.match(/\.(mp4|webm|mov)(\?|$)/i)
+                ));
             });
+
             if (ytPosts.length > 0) {
                 const authorIds = [...new Set(ytPosts.map(p => p.author_id))];
-                const { data: profiles } = await supabase.from('profiles').select('id, username, avatar_url, full_name').in('id', authorIds);
-                const pm = {}; (profiles || []).forEach(p => { pm[p.id] = p; });
+                const { data: profiles } = await supabase
+                    .from('profiles')
+                    .select('id, username, avatar_url, full_name')
+                    .in('id', authorIds);
+                const pm = {};
+                (profiles || []).forEach(p => { pm[p.id] = p; });
                 const existingIds = new Set(allReels.map(r => r.id));
                 ytPosts.forEach(p => {
                     if (!existingIds.has(p.id)) {
                         allReels.push({
-                            id: p.id, author_id: p.author_id,
-                            video_url: p.media_urls[0], caption: p.content,
-                            like_count: p.like_count || 0, comment_count: p.comment_count || 0,
-                            view_count: 0, created_at: p.created_at,
+                            // CRITICAL: source flag tells incrementMetric which table to update
+                            source: 'posts',
+                            id: p.id,
+                            author_id: p.author_id,
+                            video_url: p.media_urls[0],
+                            caption: p.content,
+                            like_count: p.like_count || 0,
+                            comment_count: p.comment_count || 0,
+                            view_count: 0,
+                            created_at: p.created_at,
                             profiles: pm[p.author_id] || { username: 'Anonymous' },
                         });
                     }
                 });
             }
+
+            // Sort merged set by date descending
+            allReels.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
             setReels(allReels);
             setLoadError(false);
@@ -1977,7 +2002,7 @@ export function ReelsFeedCarousel() {
     // Don't render if no reels
     if (!loading && reels.length === 0) return null;
 
-    // Loading state
+    // Loading state — skeleton shimmer
     if (loading) {
         return (
             <div style={{
@@ -1991,8 +2016,8 @@ export function ReelsFeedCarousel() {
                     {[1, 2, 3].map(i => (
                         <div key={i} style={{
                             width: 140, height: 250, borderRadius: 12,
-                            background: '#E4E6EB', flexShrink: 0,
-                            animation: 'pulse 1.5s infinite',
+                            background: C.border, flexShrink: 0,
+                            animation: 'pulse 1.5s ease-in-out infinite',
                         }} />
                     ))}
                 </div>

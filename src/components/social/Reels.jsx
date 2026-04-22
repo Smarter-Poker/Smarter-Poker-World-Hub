@@ -409,8 +409,10 @@ export function ReelsViewer({ onClose }) {
 
             const reelsData = reelsResult.data || [];
             // Map social_posts to reel-compatible shape
+            // CRITICAL: source flag tells incrementMetric which table to update
             const postsAsReels = (postsResult.data || []).map(p => ({
                 ...p,
+                source: 'posts',
                 video_url: p.media_url,
                 caption: p.content,
                 is_public: true,
