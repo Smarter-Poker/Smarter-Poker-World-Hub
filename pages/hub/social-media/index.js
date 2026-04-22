@@ -2139,6 +2139,9 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                 setPosts(prev => [{ ...json.data, author: { username: 'You' }, user_liked: false }, ...prev]);
                 setPostContent('');
                 setPostMedia([]);
+                // Notify global social feed so other tabs pick up the mirrored post
+                busEmit.dataMutated('social');
+                broadcastSync('smarter_poker_social_sync', { action: 'refresh_feed', tabId: BROADCAST_TAB_ID });
             } else if (json.error) {
                 toast.error('Post failed: ' + json.error);
             }
@@ -2155,13 +2158,19 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
         setPosts(prev => prev.filter(p => p.id !== postId));
         try {
             const token = getAccessToken();
-            await fetch(`/api/social/pages/posts?id=${postId}&author_id=${userId}`, {
+            const res = await fetch(`/api/social/pages/posts?id=${postId}`, {
                 method: 'DELETE',
                 headers: token ? { 'Authorization': `Bearer ${token}` } : {}
             });
+            if (!res.ok) {
+                // Server refused — revert optimistic removal so post stays visible
+                const errBody = await res.json().catch(() => ({}));
+                throw new Error(errBody.error || `Delete failed (${res.status})`);
+            }
         } catch (e) {
             console.warn('Delete error:', e);
             setPosts(prevPosts); // Rollback on failure
+            toast.error('Could not delete post — please try again');
         }
     };
 

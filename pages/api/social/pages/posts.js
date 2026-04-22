@@ -174,7 +174,7 @@ export default async function handler(req, res) {
                   await getSupabase()
                       .from('social_posts')
                       .insert({
-                          author_id: page.owner_id,
+                          author_id: author_id, // Use actual poster, not page owner
                           content: data.content,
                           content_type: data.content_type || 'text',
                           media_urls: data.media_urls || [],
@@ -267,10 +267,10 @@ export default async function handler(req, res) {
 
           if (!id) return res.status(400).json({ success: false, error: 'id required' });
 
-          // Verify ownership
+          // Verify ownership — also fetch media_urls for storage cleanup
           const { data: post } = await getSupabase()
               .from('social_page_posts')
-              .select('author_id, page_id')
+              .select('author_id, page_id, media_urls')
               .eq('id', id)
               .maybeSingle();
 
@@ -289,6 +289,24 @@ export default async function handler(req, res) {
 
           if (!isAuthor && !isPageOwner) {
               return res.status(403).json({ success: false, error: 'Not authorized' });
+          }
+
+          // ── Storage cleanup: purge orphaned blobs before deleting the DB row ──
+          if (Array.isArray(post.media_urls) && post.media_urls.length > 0) {
+              try {
+                  const supabaseStorageUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, '');
+                  const BUCKET = 'social-media';
+                  const publicPrefix = `${supabaseStorageUrl}/storage/v1/object/public/${BUCKET}/`;
+                  const storagePaths = post.media_urls
+                      .filter(url => typeof url === 'string' && url.startsWith(publicPrefix))
+                      .map(url => url.slice(publicPrefix.length).split('?')[0]);
+                  if (storagePaths.length > 0) {
+                      const { error: storageErr } = await getSupabase().storage.from(BUCKET).remove(storagePaths);
+                      if (storageErr) console.warn('[PagePosts DELETE] Storage cleanup failure:', storageErr.message);
+                  }
+              } catch (storageEx) {
+                  console.warn('[PagePosts DELETE] Storage cleanup exception (non-blocking):', storageEx?.message);
+              }
           }
 
           const { error } = await getSupabase()
