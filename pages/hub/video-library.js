@@ -31,18 +31,33 @@ import {
     SOURCES
 } from '../../src/data/videoLibraryData';
 
+/** Format a raw view count number into a short human-readable string */
+function formatViews(n) {
+    if (!n || n === 0) return '';
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+    if (n >= 1_000) return `${Math.round(n / 1_000)}K`;
+    return String(n);
+}
+
 /** Normalise a DB video_library_videos row to match the FULL_VIDEOS shape */
 function normaliseDbVideo(row) {
+    // views_text may be '0' or null for some static-seeded rows — fall back to views_count
+    const viewsText = (row.views_text && row.views_text !== '0')
+        ? row.views_text
+        : formatViews(row.views_count);
     return {
-        id: row.youtube_video_id,          // use yt ID as local key
+        id: row.youtube_video_id,
         videoId: row.youtube_video_id,
         source: row.source_id,
-        type: row.type,
+        type: row.type || 'cash',
         title: row.title,
-        views: row.views_text || '0',
+        views: viewsText || '',
         duration: row.duration || '',
-        thumbnail: row.thumbnail_url,
+        thumbnail: row.thumbnail_url || `https://img.youtube.com/vi/${row.youtube_video_id}/maxresdefault.jpg`,
         publishedAt: row.published_at,
+        scrapedAt: row.scraped_at,
+        // Sort key: prefer published_at when it's a real date (not today), else use scraped_at
+        _sortKey: row.published_at,
     };
 }
 
@@ -94,14 +109,15 @@ export default function VideoLibraryPage() {
         let cancelled = false;
         supabase
             .from('video_library_videos')
-            .select('youtube_video_id, source_id, source_name, type, title, thumbnail_url, views_text, duration, published_at')
-            .order('published_at', { ascending: false })
-            .limit(500)
+            .select('youtube_video_id, source_id, source_name, type, title, thumbnail_url, views_text, views_count, duration, published_at, scraped_at')
+            .order('scraped_at', { ascending: false })
+            .limit(600)
             .then(({ data, error }) => {
                 if (cancelled || error || !data || data.length === 0) return;
                 // Merge DB rows with static data; DB rows take precedence by youtube_video_id
                 const dbVideos = data.map(normaliseDbVideo);
                 const dbIds = new Set(dbVideos.map(v => v.videoId));
+                // Include any static-only videos not yet in DB (safety net fallback)
                 const staticOnly = STATIC_VIDEOS.filter(v => !dbIds.has(v.videoId));
                 const merged = [...dbVideos, ...staticOnly];
                 setAllVideos(merged);

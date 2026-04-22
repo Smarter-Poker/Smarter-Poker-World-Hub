@@ -301,7 +301,7 @@ export const SOURCES = [
     { id: 'HCL', name: 'Hustler Casino Live', logo: '/images/video-sources/hcl.png' },
     { id: 'LODGE', name: 'The Lodge', logo: '/images/video-sources/lodge.png' },
     { id: 'TRITON', name: 'Triton Poker', logo: '/images/video-sources/triton.png' },
-    { id: 'LATB', name: 'Live at the Bike', logo: '/images/video-sources/latb.png' },
+    { id: 'LATB', name: 'Bally Poker Live', logo: '/images/video-sources/latb.png' },
     { id: 'TCH', name: 'TCH Live', logo: '/images/video-sources/tch.png' },
     { id: 'POKERGO', name: 'PokerGO', logo: null },
     // Major Tours
@@ -315,8 +315,6 @@ export const SOURCES = [
     { id: 'MARIANO', name: 'Mariano', logo: null },
     { id: 'WOLFGANG', name: 'Wolfgang Poker', logo: null },
     { id: 'JOHNNIE', name: 'JohnnieVibes', logo: null },
-    { id: 'BOSKI', name: 'Boski', logo: null },
-    { id: 'RYAN', name: 'Ryan Depaulo', logo: null },
     // Training/Strategy
     { id: 'JLITTLE', name: 'Jonathan Little', logo: null },
     { id: 'POLK', name: 'Doug Polk', logo: null },
