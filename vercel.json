@@ -51,6 +51,40 @@
       ]
     },
     {
+      "source": "/api/social/feed",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, s-maxage=15, stale-while-revalidate=60"
+        },
+        {
+          "key": "Pragma",
+          "value": ""
+        },
+        {
+          "key": "Expires",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "source": "/api/social/stories",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, s-maxage=30, stale-while-revalidate=120"
+        },
+        {
+          "key": "Pragma",
+          "value": ""
+        },
+        {
+          "key": "Expires",
+          "value": ""
+        }
+      ]
+    },
+    {
       "source": "/api/public/:path*",
       "headers": [
         {

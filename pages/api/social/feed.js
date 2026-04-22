@@ -151,7 +151,7 @@ export default async function handler(req, res) {
         });
 
     } catch (err) {
-        console.error('[API/feed] Unhandled error:', err.message);
+        console.warn('[API/feed] Unhandled error:', err.message);
         return res.status(500).json({ error: 'Internal server error' });
     }
 }
