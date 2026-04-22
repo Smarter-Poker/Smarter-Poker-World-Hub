@@ -3,7 +3,7 @@
  * Videos from Stories are saved here permanently
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { getAuthUser, getAccessToken } from '../../lib/authUtils';
 import { busEmit, eventBus, EventType } from '../../engine/EventBus';
@@ -75,11 +75,12 @@ export function ReelsViewer({ onClose }) {
     const [viewCounts, setViewCounts] = useState({});
 
     // Phase 9: Long Press Context Menu
+    // Named distinctly from the swipe useEffect's local handleTouchStart to prevent shadowing
     const [showContextMenu, setShowContextMenu] = useState(false);
     const longPressTimerRef = useRef(null);
-    const handleTouchStart = () => {
+    const handleLongPressTouchStart = () => {
         longPressTimerRef.current = setTimeout(() => {
-            haptic(20);
+            try { navigator?.vibrate?.(20); } catch (err) { console.warn('[ReelsViewer] vibrate failed:', err); }
             setShowContextMenu(true);
         }, 500);
     };
@@ -381,7 +382,7 @@ export function ReelsViewer({ onClose }) {
         return () => { if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current); };
     }, [showOverlay]);
 
-    async function loadReels() {
+    const loadReels = useCallback(async () => {
         setLoading(true);
         setLoadError(false);
         try {
@@ -441,7 +442,8 @@ export function ReelsViewer({ onClose }) {
             setLoadError(true);
         }
         setLoading(false);
-    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const currentReel = reels[currentIndex];
 
@@ -1018,12 +1020,13 @@ export function ReelsViewer({ onClose }) {
         }
     };
 
-    // Progress bar update loop
-    const updateProgress = () => {
+    // Progress bar update loop — stored in ref to prevent stale closure in RAF
+    const updateProgressRef = useRef(null);
+    updateProgressRef.current = () => {
         if (videoRef.current && videoRef.current.duration) {
             setProgress((videoRef.current.currentTime / videoRef.current.duration) * 100);
         }
-        progressRAF.current = requestAnimationFrame(updateProgress);
+        progressRAF.current = requestAnimationFrame(updateProgressRef.current);
     };
 
     // Cleanup RAF on unmount to prevent memory leak
@@ -1040,17 +1043,18 @@ export function ReelsViewer({ onClose }) {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
             onClick={handleTap}
-            onTouchStart={handleTouchStart}
+            onTouchStart={handleLongPressTouchStart}
             onTouchEnd={cancelLongPress}
             onTouchMove={cancelLongPress}
-            onMouseDown={handleTouchStart}
+            onMouseDown={handleLongPressTouchStart}
             onMouseUp={cancelLongPress}
             onMouseMove={cancelLongPress}
             onContextMenu={(e) => { e.preventDefault(); setShowContextMenu(true); }}
         >
-            {/* Close button */}
+            {/* Close / Back button — always touchable; fades when overlay hidden */}
             <button
                 onClick={(e) => { e.stopPropagation(); onClose(); }}
+                aria-label="Close reels"
                 style={{
                     position: 'absolute', top: 20, left: 20,
                     width: 44, height: 44, borderRadius: '50%',
@@ -1058,7 +1062,9 @@ export function ReelsViewer({ onClose }) {
                     border: 'none', color: 'white', fontSize: 20,
                     cursor: 'pointer', zIndex: 10,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    opacity: showOverlay ? 1 : 0, transition: 'opacity 0.3s ease', pointerEvents: showOverlay ? 'auto' : 'none',
+                    opacity: showOverlay ? 1 : 0.3,
+                    transition: 'opacity 0.3s ease',
+                    pointerEvents: 'auto',
                 }}
             >←</button>
 
@@ -1076,7 +1082,7 @@ export function ReelsViewer({ onClose }) {
                     muted={muted}
                     playsInline
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    onPlay={() => { progressRAF.current = requestAnimationFrame(updateProgress); }}
+                    onPlay={() => { progressRAF.current = requestAnimationFrame(updateProgressRef.current); }}
                     onPause={() => { if (progressRAF.current) cancelAnimationFrame(progressRAF.current); }}
                     onEnded={() => {
                         if (progressRAF.current) cancelAnimationFrame(progressRAF.current);
