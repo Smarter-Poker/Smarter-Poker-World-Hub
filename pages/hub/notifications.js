@@ -70,7 +70,12 @@ function NotificationsPage() {
         // If deleting an unread notification, decrement header badge immediately
         if (wasUnread) {
             eventBus.emit(EventType.NOTIFICATIONS_READ, { count: 1 }, 'NotificationsPage');
-            try { localStorage.setItem('sp-notif-count', String(Math.max(0, parseInt(localStorage.getItem('sp-notif-count') || '0', 10) - 1))); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+            let newCount = 0;
+            try { 
+                newCount = Math.max(0, parseInt(localStorage.getItem('sp-notif-count') || '0', 10) - 1);
+                localStorage.setItem('sp-notif-count', String(newCount)); 
+            } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+            try { if (window.self !== window.top) window.parent.postMessage({ type: 'SP_NOTIF_CLEARED', count: newCount }, '*'); } catch (_) {}
         }
 
         // Optimistic removal with fade
@@ -220,6 +225,7 @@ function NotificationsPage() {
                     try { localStorage.setItem('sp-notif-count', '0'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                     broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID });
                     eventBus.emit(EventType.NOTIFICATIONS_READ, { count: totalUnread }, 'NotificationsPage');
+                    try { if (window.self !== window.top) window.parent.postMessage({ type: 'SP_NOTIF_CLEARED', count: 0 }, '*'); } catch (_) {}
 
                     // Mark social notifications read (non-blocking — user already sees the page)
                     const unreadSocialIds = enriched.filter(n => !n.read && n._source === 'social').map(n => n.id);
@@ -336,10 +342,15 @@ function NotificationsPage() {
         }
 
         // Sync badge localStorage and broadcast to header eagerly
-        try { localStorage.setItem('sp-notif-count', String(Math.max(0, parseInt(localStorage.getItem('sp-notif-count') || '0', 10) - 1))); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+        let newCount = 0;
+        try { 
+            newCount = Math.max(0, parseInt(localStorage.getItem('sp-notif-count') || '0', 10) - 1);
+            localStorage.setItem('sp-notif-count', String(newCount)); 
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID });
         eventBus.emit(EventType.NOTIFICATIONS_READ, { count: 1 }, 'NotificationsPage');
         busEmit.dataMutated('notifications');
+        try { if (window.self !== window.top) window.parent.postMessage({ type: 'SP_NOTIF_CLEARED', count: newCount }, '*'); } catch (_) {}
 
         // Fire-and-forget DB update (do not block execution)
         const isPoker = typeof id === 'string' && id.startsWith('poker-');
@@ -374,6 +385,7 @@ function NotificationsPage() {
         broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID });
         eventBus.emit(EventType.NOTIFICATIONS_READ, { count: unreadCount }, 'NotificationsPage');
         busEmit.dataMutated('notifications');
+        try { if (window.self !== window.top) window.parent.postMessage({ type: 'SP_NOTIF_CLEARED', count: 0 }, '*'); } catch (_) {}
         
         const hasSocial = notifications.some(n => !n.read && n._source === 'social');
         const hasPoker = notifications.some(n => !n.read && n._source === 'poker');

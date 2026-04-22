@@ -24,7 +24,7 @@ function getSupabase() {
 
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import Parser from 'rss-parser';
-import { getGrokClient } from '../../../../src/lib/grokClient.js';
+import { generatePostCaption, generateNewsCaption, seedHorseMemory } from '../../../../src/content-engine/pipeline/HumanVoiceEngine.js';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 // ClipLibrary for poker video clips - loaded dynamically
@@ -71,170 +71,6 @@ async function validateYouTubeVideo(url) {
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-const grok = getGrokClient();
-
-// 100 UNIQUE VOICE PATTERNS - each horse gets ONE pattern
-const VOICE_PATTERNS = [
-    { opener: '', style: 'direct and matter-of-fact', example: 'Negreanu giving away WSOP seat' },
-    { opener: '', style: 'observational', example: 'Another big pot at high stakes tables' },
-    { opener: '', style: 'analytical', example: 'Interesting line here from the chip leader' },
-    { opener: '', style: 'understated', example: 'Solid run so far this week' },
-    { opener: '', style: 'dry wit', example: 'Called it. Again.' },
-    { opener: '', style: 'veteran perspective', example: 'Old school move paying off here' },
-    { opener: 'Not surprised - ', style: 'knowing', example: 'Not surprised - this was expected' },
-    { opener: '', style: 'brief reaction', example: 'Makes sense given the stack sizes' },
-    { opener: '', style: 'casual observation', example: 'Spot on with that read' },
-    { opener: '', style: 'appreciative', example: 'Good to see this finally happening' },
-    { opener: 'Well - ', style: 'thoughtful', example: 'Well - that changes things' },
-    { opener: '', style: 'straightforward', example: 'Standard play in this spot' },
-    { opener: '', style: 'terse', example: 'Big if true' },
-    { opener: '', style: 'measured', example: 'Worth following this development' },
-    { opener: '', style: 'laconic', example: 'About time' },
-    { opener: '', style: 'grounded', example: 'Results speak for themselves' },
-    { opener: 'Finally - ', style: 'relieved', example: 'Finally - some good news' },
-    { opener: '', style: 'pragmatic', example: 'Makes you think about the meta' },
-    { opener: '', style: 'reserved', example: 'Noted' },
-    { opener: '', style: 'wry', example: 'Of course this would happen today' },
-    { opener: 'Hmm - ', style: 'contemplative', example: 'Hmm - not what I expected' },
-    { opener: '', style: 'stoic', example: 'Part of the game' },
-    { opener: '', style: 'seasoned', example: 'Seen this pattern before' },
-    { opener: '', style: 'level-headed', example: 'Keeping perspective on this one' },
-    { opener: '', style: 'crisp', example: 'Clean execution' },
-    { opener: '', style: 'subtle approval', example: 'Respect the approach' },
-    { opener: '', style: 'neutral observation', example: 'Developing story here' },
-    { opener: '', style: 'patient', example: 'Waiting to see how this plays out' },
-    { opener: '', style: 'sardonic', example: 'Sure, why not' },
-    { opener: '', style: 'composed', example: 'Handled it well' },
-    { opener: 'Look - ', style: 'frank', example: 'Look - it is what it is' },
-    { opener: '', style: 'watchful', example: 'Eyes on this one' },
-    { opener: '', style: 'accepting', example: 'Fair enough' },
-    { opener: '', style: 'knowing nod', example: 'Expected nothing less' },
-    { opener: '', style: 'deadpan', example: 'And there it is' },
-    { opener: '', style: 'succinct', example: 'Done deal' },
-    { opener: '', style: 'calm assessment', example: 'Reasonable outcome' },
-    { opener: '', style: 'sparse', example: 'Says it all' },
-    { opener: 'Alright - ', style: 'conceding', example: 'Alright - fair point' },
-    { opener: '', style: 'minimal', example: 'Speaks for itself' },
-    { opener: '', style: 'quiet confidence', example: 'Called this weeks ago' },
-    { opener: '', style: 'even-keeled', example: 'On pace as expected' },
-    { opener: '', style: 'restrained', example: 'Keeping tabs on this' },
-    { opener: '', style: 'muted', example: 'Tracking' },
-    { opener: '', style: 'guarded optimism', example: 'Early days but promising' },
-    { opener: 'So - ', style: 'transitional', example: 'So - here we are' },
-    { opener: '', style: 'practical', example: 'Works for the situation' },
-    { opener: '', style: 'sober', example: 'Reality check incoming' },
-    { opener: '', style: 'reflective', example: 'Something to think about' },
-    { opener: '', style: 'gruff', example: 'Get it done' },
-    { opener: '', style: 'no-nonsense', example: 'Moving on' },
-    { opener: '', style: 'unflappable', example: 'Business as usual' },
-    { opener: '', style: 'concise approval', example: 'Good call' },
-    { opener: '', style: 'temperate', example: 'Measured response here' },
-    { opener: '', style: 'realist', example: 'That tracks' },
-    { opener: 'Right - ', style: 'confirmatory', example: 'Right - makes sense now' },
-    { opener: '', style: 'economical', example: 'Point taken' },
-    { opener: '', style: 'collected', example: 'Staying the course' },
-    { opener: '', style: 'veteran tone', example: 'Been here before' },
-    { opener: '', style: 'detached', example: 'Interesting development' },
-    { opener: '', style: 'pithy', example: 'Tough spot, handled it' },
-    { opener: '', style: 'grave', example: 'This matters' },
-    { opener: '', style: 'stark', example: 'No other way to read this' },
-    { opener: 'Okay - ', style: 'accepting reality', example: 'Okay - adjusting expectations' },
-    { opener: '', style: 'plain-spoken', example: 'It happened' },
-    { opener: '', style: 'unfazed', example: 'Next hand' },
-    { opener: '', style: 'controlled', example: 'Managed well' },
-    { opener: '', style: 'spare', example: 'On the money' },
-    { opener: '', style: 'low-key', example: 'Solid' },
-    { opener: '', style: 'flat', example: 'There you go' },
-    { opener: '', style: 'unadorned', example: 'Done' },
-    { opener: '', style: 'blunt', example: 'True' },
-    { opener: '', style: 'impassive', example: 'Expected' },
-    { opener: '', style: 'curt', example: 'Noted this' },
-    { opener: '', style: 'brief acknowledgment', example: 'Acknowledged' },
-    { opener: 'Figured - ', style: 'knowing', example: 'Figured this would happen' },
-    { opener: '', style: 'mild', example: 'Fair play' },
-    { opener: '', style: 'steady', example: 'Holding the line' },
-    { opener: '', style: 'unhurried', example: 'All in due time' },
-    { opener: '', style: 'lean', example: 'Straight to the point' },
-    { opener: '', style: 'grounded take', example: 'Feet on the ground here' },
-    { opener: '', style: 'quiet observation', example: 'Worth noting' },
-    { opener: '', style: 'seasoned calm', example: 'Another day at the tables' },
-    { opener: '', style: 'focused', example: 'Eyes on the prize' },
-    { opener: 'Yeah - ', style: 'casual agreement', example: 'Yeah - that adds up' },
-    { opener: '', style: 'subdued', example: 'Quietly impressive' },
-    { opener: '', style: 'hard-nosed', example: 'Numbers dont lie' },
-    { opener: '', style: 'stripped down', example: 'Bare facts' },
-    { opener: '', style: 'taciturn', example: 'Says enough' },
-    { opener: '', style: 'workmanlike', example: 'Job done' },
-    { opener: '', style: 'unsentimental', example: 'Moving forward' },
-    { opener: '', style: 'taut', example: 'Tight spot' },
-    { opener: '', style: 'clipped', example: 'Clear' },
-    { opener: '', style: 'bare', example: 'As stated' },
-    { opener: '', style: 'unembellished', example: 'Plain and simple' },
-    { opener: '', style: 'crisp delivery', example: 'Sharp move' },
-    { opener: '', style: 'frank take', example: 'Straight talk' },
-    { opener: '', style: 'compact', example: 'In brief' },
-    { opener: '', style: 'understated pride', example: 'Quietly getting it done' },
-    { opener: '', style: 'reserved approval', example: 'Cant argue with results' }
-];
-
-// Get this horse's unique voice pattern
-function getHorseVoice(horseIndex) {
-    return VOICE_PATTERNS[horseIndex % VOICE_PATTERNS.length];
-}
-
-// AGGRESSIVE caption cleanup - strip ALL banned patterns
-function cleanCaption(text, horseIndex) {
-    if (!text) return '';
-
-    // Strip ALL emojis
-    const emojiRegex = /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F600}-\u{1F64F}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2300}-\u{23FF}]|[\u{2B50}]|[\u{1F004}]|[\u{1F0CF}]|[\u{1F170}-\u{1F251}]/gu;
-    let clean = text.replace(emojiRegex, '');
-
-    // NUKE "yo" at start (any casing, with optional comma/space)
-    clean = clean.replace(/^[Yy][Oo][,\s]*/i, '');
-    clean = clean.replace(/^[Yy][Oo][,\s]*/i, ''); // double-check
-
-    // Remove banned phrases (case insensitive)
-    const bannedPatterns = [
-        /\byo\b[,\s]*/gi,
-        /\bjust saw this\b/gi,
-        /\bcheck out\b/gi,
-        /\bcheck this\b/gi,
-        /\bpretty cool\b/gi,
-        /\bwild stuff\b/gi,
-        /\bwilddddd+\b/gi,
-        /\bbruh\b/gi,
-        /\bgotta check\b/gi,
-        /\blook at this\b/gi,
-        /\bcool stuff\b/gi,
-        /\bawesome stuff\b/gi,
-        /\bso cool\b/gi,
-        /\bthis is fire\b/gi,
-        /\bfire content\b/gi,
-        /\bong\b/gi,
-        /\btbh\b/gi,
-        /\bfrfr\b/gi,
-        /\bno cap\b/gi,
-        /\bvibin\b/gi,
-        /\bvibes\b/gi,
-        /\bhey,\s*/gi
-    ];
-
-    for (const pattern of bannedPatterns) {
-        clean = clean.replace(pattern, '');
-    }
-
-    // Clean up whitespace and punctuation
-    clean = clean.replace(/^[\s,.\-:!]+/, ''); // strip leading punctuation
-    clean = clean.replace(/\s+/g, ' ').trim();
-
-    // Capitalize first letter
-    if (clean.length > 0) {
-        clean = clean.charAt(0).toUpperCase() + clean.slice(1);
-    }
-
-    return clean;
-}
 
 const rssParser = new Parser({
     headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
@@ -380,25 +216,20 @@ async function postVideoClip(horse, assignedSources, horseIndex, clipType = 'spo
         }
     }
 
-    const voice = getHorseVoice(horseIndex);
-
-    let caption = '';
-    try {
-        const clipTitle = clip.title || clip.description || 'video clip';
-        const response = await grok.chat.completions.create({
-            model: 'grok-3-mini',
-            messages: [{
-                role: 'user',
-                content: `Write a ${voice.style} reaction to this ${clipType} video title in 3-10 words. NO emojis. NO "yo", "check out", "pretty cool". Just ${voice.style}. Example: "${voice.example}". Title: "${clipTitle}"`
-            }],
-            max_tokens: 30
-        });
-        caption = response.choices[0]?.message?.content?.trim() || clipTitle.slice(0, 50);
-    } catch (e) {
-        caption = (clip.title || clip.description || 'Worth watching').slice(0, 50);
+    // Seed horse memory from recent posts (prevents cross-session repeats)
+    const { data: recentCaptions } = await getSupabase()
+        .from('social_posts')
+        .select('content')
+        .eq('author_id', horse.profile_id)
+        .order('created_at', { ascending: false })
+        .limit(15);
+    if (recentCaptions?.length) {
+        seedHorseMemory(horse.profile_id, recentCaptions.map(p => p.content?.split('\n')[0] || '').filter(Boolean));
     }
 
-    caption = voice.opener + cleanCaption(caption, horseIndex);
+    // Generate human-sounding caption — zero API cost, no Grok
+    const clipCategory = clip.category || (clipType === 'poker' ? 'massive_pot' : 'general');
+    const caption = generatePostCaption(clipCategory, horse.profile_id, clip.title || '');
 
     const { data: post, error } = await getSupabase().from('social_posts').insert({
         author_id: horse.profile_id,
@@ -445,24 +276,20 @@ async function postNewsLink(horse, horseIndex, newsType) {
         }
 
         const article = freshArticles[Math.floor(Math.random() * freshArticles.length)];
-        const voice = getHorseVoice(horseIndex);
 
-        let caption = '';
-        try {
-            const response = await grok.chat.completions.create({
-                model: 'grok-3-mini',
-                messages: [{
-                    role: 'user',
-                    content: `Write a ${voice.style} reaction to this headline in 3-10 words. NO emojis. NO "yo", "check out", "pretty cool". Just ${voice.style}. Example: "${voice.example}". Headline: "${article.title}"`
-                }],
-                max_tokens: 30
-            });
-            caption = response.choices[0]?.message?.content?.trim() || article.title?.slice(0, 40);
-        } catch (e) {
-            caption = article.title?.slice(0, 40) || 'Worth reading';
+        // Seed horse memory from recent posts (prevents cross-session repeats)
+        const { data: recentNewsCaptions } = await getSupabase()
+            .from('social_posts')
+            .select('content')
+            .eq('author_id', horse.profile_id)
+            .order('created_at', { ascending: false })
+            .limit(15);
+        if (recentNewsCaptions?.length) {
+            seedHorseMemory(horse.profile_id, recentNewsCaptions.map(p => p.content?.split('\n')[0] || '').filter(Boolean));
         }
 
-        caption = voice.opener + cleanCaption(caption, horseIndex);
+        // Generate human-sounding caption — zero API cost, no Grok
+        const caption = generateNewsCaption(article.title || '', horse.profile_id, newsType);
         const postContent = `${caption}\n\n${article.link}`;
 
         const { data: post, error } = await getSupabase().from('social_posts').insert({
@@ -541,10 +368,6 @@ export default async function handler(req, res) {
                   .limit(100);
 
           if (horseError || !horses?.length) {
-              return res.status(200).json({ success: false, error: 'No horses found' });
-          }
-
-          if (!horses?.length) {
               return res.status(200).json({ success: false, error: 'No horses found' });
           }
 

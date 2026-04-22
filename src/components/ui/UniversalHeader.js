@@ -77,8 +77,12 @@ export default function UniversalHeader({
     const [user, setUser] = useState(_cachedHeader);
     const [notificationCount, setNotificationCount] = useState(() => {
         if (typeof window === 'undefined') return 0;
-        try { return parseInt(localStorage.getItem('sp-notif-count') || '0', 10); } catch (_) { return 0; }
+        try {
+            const n = parseInt(localStorage.getItem('sp-notif-count') || '0', 10);
+            return isNaN(n) ? 0 : Math.max(0, n); // NaN-safe + clamp to 0
+        } catch (_) { return 0; }
     });
+
     const [isWalletOpen, setIsWalletOpen] = useState(false);
 
     // ── FULL-SCREEN OVERLAY STATES ──
@@ -1099,6 +1103,10 @@ export default function UniversalHeader({
                     onClose={() => closeOverlay(overlayPage)}
                     url={overlayUrlMap[overlayPage]}
                     title={overlayTitleMap[overlayPage]}
+                    onNotifCleared={(count) => {
+                        setNotificationCount(count);
+                        try { localStorage.setItem('sp-notif-count', String(count)); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+                    }}
                 />
             )}
         </>

@@ -10,7 +10,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 
-export default function FullScreenPageOverlay({ isOpen, onClose, url, title }) {
+export default function FullScreenPageOverlay({ isOpen, onClose, url, title, onNotifCleared }) {
     const [loaded, setLoaded] = useState(false);
     const iframeRef = useRef(null);
 
@@ -35,7 +35,25 @@ export default function FullScreenPageOverlay({ isOpen, onClose, url, title }) {
         };
     }, [isOpen, onClose]);
 
+    // ── postMessage bridge: receive read-clear signal from notifications iframe ──
+    // The notifications page fires window.parent.postMessage({ type: 'SP_NOTIF_CLEARED', count })
+    // which lands here. We surface it to UniversalHeader via onNotifCleared(count).
+    // This replaces the 800ms setTimeout in closeOverlay for deterministic badge sync.
+    useEffect(() => {
+        if (!onNotifCleared) return;
+        const handler = (e) => {
+            // Same-origin only — reject cross-origin messages for security
+            if (e.origin !== window.location.origin) return;
+            if (e.data?.type === 'SP_NOTIF_CLEARED') {
+                onNotifCleared(typeof e.data.count === 'number' ? e.data.count : 0);
+            }
+        };
+        window.addEventListener('message', handler);
+        return () => window.removeEventListener('message', handler);
+    }, [onNotifCleared]);
+
     if (!isOpen) return null;
+
 
     return (
         <>

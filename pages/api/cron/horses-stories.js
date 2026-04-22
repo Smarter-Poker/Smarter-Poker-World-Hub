@@ -10,7 +10,7 @@
  */
 
 import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
-import { getGrokClient } from '../../../src/lib/grokClient';
+import { generateComment, seedHorseMemory } from '../../../src/content-engine/pipeline/HumanVoiceEngine.js';
 import { shouldHorseBeActive, isHorseActiveHour, getHorseActivityRate } from '../../../src/content-engine/pipeline/HorseScheduler.js';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
@@ -34,8 +34,6 @@ async function loadClipLibrary() {
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const grok = getGrokClient();
-
 const CONFIG = {
     HORSES_PER_TRIGGER: 2,  // 2 stories per trigger (runs 4x/hour = 8 stories/hour)
     VIDEO_STORY_PROBABILITY: 0.70,  // 70% video stories
@@ -51,18 +49,23 @@ const STORY_GRADIENTS = [
     'linear-gradient(135deg, #833AB4 0%, #FD1D1D 50%, #FCB045 100%)',
 ];
 
-// Text story prompts
+// Text story topics — clean, emoji-free, human-sounding
 const TEXT_STORY_TOPICS = [
-    "Just saw the sickest cooler on stream 🤯",
-    "My thoughts on solver vs exploitative play...",
-    "Hot take: 3bet sizing in 2026 should be...",
-    "The worst beat I've ever witnessed 💀",
-    "Midnight grinding vibes 🌙",
-    "Position is everything in poker 📍",
-    "That feeling when you flop the nuts 🔥",
-    "Live poker reads > Online reads",
-    "Bankroll management tip of the day 💰",
-    "The river is such a cruel mistress 🌊",
+    'just watched the sickest cooler on stream',
+    'solver vs exploitative — the debate never ends',
+    'hot take: 3bet sizing in live poker is way too small',
+    'worst beat I have ever seen at a live table',
+    'late night grinding is a different kind of focus',
+    'position is everything — been saying this for years',
+    'flopping the nuts and nobody gives you action',
+    'live reads hit different than online tells',
+    'bankroll management is the most underrated skill in poker',
+    'the river is always the cruelest street',
+    'ran into the top of his range again',
+    'three-bet or fold is the laziest range construction',
+    'the mental game matters more than the technical game',
+    'a good session is one where you made good decisions',
+    'variance is real and nobody is immune',
 ];
 
 
@@ -149,28 +152,8 @@ async function postTextStory(horse) {
         const topic = TEXT_STORY_TOPICS[Math.floor(Math.random() * TEXT_STORY_TOPICS.length)];
         const gradient = STORY_GRADIENTS[Math.floor(Math.random() * STORY_GRADIENTS.length)];
 
-        // Generate unique content with Grok
-        let content = topic;
-        try {
-            const response = await grok.chat.completions.create({
-                model: 'grok-3-mini',
-                messages: [{
-                    role: 'user',
-                    content: `Write a short, authentic poker story text (max 15 words). RULES: NO quotation marks. NO em-dashes. Natural casual text. Topic: ${topic}`
-                }],
-                max_tokens: 40
-            });
-            content = response.choices[0].message.content || topic;
-            // Clean all quote/dash variants
-            content = content
-                .replace(/[\"""''`]/g, '')
-                .replace(/[—–]/g, ' ')
-                .replace(/:/g, '')
-                .replace(/\s+/g, ' ')
-                .trim();
-        } catch (e) {
-            console.warn(`   Using default topic (Grok error)`);
-        }
+        // Generate human-sounding story text — zero API cost
+        const content = generateComment('general', horse.profile_id) || topic;
 
         const { data: storyId, error } = await getSupabase().rpc('fn_create_story', {
             p_user_id: horse.profile_id,
