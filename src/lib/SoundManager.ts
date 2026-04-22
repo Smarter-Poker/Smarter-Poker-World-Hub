@@ -108,7 +108,8 @@ export class SoundManager {
                 });
 
                 this.audioCache.set(event, audio);
-            } catch (error) { console.warn('[App] Handled exception:', error?.message || error); }:`, (error as Error).message);
+            } catch (error) {
+                console.warn('[App] Handled exception:', error?.message || error);
                 this.failedSounds.add(event);
             }
         });
@@ -160,8 +161,7 @@ export class SoundManager {
             }
 
             audio.play().catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
-        } catch (error) { console.warn('[App] Handled exception:', error?.message || error); }:`, error);
-        }
+        } catch (error) { console.warn('[App] Handled exception:', error?.message || error); }
     }
 
     /**
