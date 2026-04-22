@@ -3,7 +3,7 @@
  * Swipe up/down to navigate, tap to mute/unmute
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Head from 'next/head';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
@@ -150,9 +150,10 @@ export default function ReelsPage() {
     const pullStartY = useRef(null);
     
     // Phase 9: Long Press Context Menu
-    const handleTouchStart = () => {
+    // Named distinctly to avoid collision with the swipe useEffect's local handleTouchStart
+    const handleLongPressTouchStart = () => {
         longPressTimerRef.current = setTimeout(() => {
-            haptic(20);
+            try { navigator?.vibrate?.(20); } catch (err) { console.warn('[ReelsPage] vibrate failed:', err); }
             setShowContextMenu(true);
         }, 500);
     };
@@ -248,13 +249,14 @@ export default function ReelsPage() {
     }, []);
 
     // YouTube API: Send command to iframe via postMessage
+    // Scoped to youtube-nocookie.com to prevent cross-origin data leakage
     const sendYouTubeCommand = (command, args = []) => {
         if (iframeRef.current?.contentWindow) {
             iframeRef.current.contentWindow.postMessage(JSON.stringify({
                 event: 'command',
                 func: command,
                 args: args
-            }), '*');
+            }), 'https://www.youtube-nocookie.com');
         }
     };
 
@@ -300,9 +302,10 @@ export default function ReelsPage() {
 
     useEffect(() => {
         loadReels();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const loadReels = async(signal) => {
+    const loadReels = useCallback(async () => {
         setLoading(true);
         try {
             const initialId = router.query.id;
@@ -377,6 +380,7 @@ export default function ReelsPage() {
                 (profiles || []).forEach(p => { profileMap[p.id] = p; });
 
                 // Map videos with profile data
+                // CRITICAL: preserve the source flag so incrementMetric routes to the right table
                 const mappedReels = allVideos.map(video => ({
                     id: video.id,
                     author_id: video.author_id,
@@ -386,6 +390,7 @@ export default function ReelsPage() {
                     comment_count: video.comment_count,
                     view_count: video.view_count,
                     created_at: video.created_at,
+                    source: video.source || 'reels', // MUST be preserved — drives DB table routing
                     profiles: profileMap[video.author_id] || { username: 'Anonymous' },
                 }));
 
@@ -435,11 +440,13 @@ export default function ReelsPage() {
                     setCurrentIndex(0);
                 }
 
-                setReels([...fresh, ...stale]);
+                const finalReels = [...fresh, ...stale];
+                setReels(finalReels);
 
-                // Initialize like/comment/view counts from loaded data
+                // Initialize like/comment/view counts from the FINAL displayed array
+                // (not shuffled — fresh/stale order may differ, and Not Interested IDs may be excluded)
                 const lc = {}, cc = {}, vc = {};
-                shuffled.forEach(r => {
+                finalReels.forEach(r => {
                     lc[r.id] = r.like_count || 0;
                     cc[r.id] = r.comment_count || 0;
                     vc[r.id] = r.view_count || 0;
@@ -453,7 +460,8 @@ export default function ReelsPage() {
             setLoadError(true);
         }
         setLoading(false);
-    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [notInterestedIds]);
 
     // Helper to safely increment counts for reels OR posts
     const incrementMetric = async (reel, field, amount) => {
@@ -593,7 +601,9 @@ export default function ReelsPage() {
                     const mapped = uniqueNew.map(v => ({
                         id: v.id, author_id: v.author_id, video_url: v.video_url, caption: v.caption,
                         like_count: v.like_count, comment_count: v.comment_count, view_count: v.view_count,
-                        created_at: v.created_at, profiles: pm[v.author_id] || { username: 'Anonymous' },
+                        created_at: v.created_at,
+                        source: v.source || 'reels', // preserve source for incrementMetric routing
+                        profiles: pm[v.author_id] || { username: 'Anonymous' },
                     }));
                     setReels(prev => [...prev, ...mapped]);
                     const lc = {}, cc = {}, vc = {};
@@ -1220,7 +1230,11 @@ export default function ReelsPage() {
         };
 
         // YouTube API message listener — auto-advance on video end
+        // Origin-validated: only accept messages from YouTube embed domains
+        const YOUTUBE_ORIGINS = ['https://www.youtube-nocookie.com', 'https://www.youtube.com', 'https://youtube.com'];
         const handleYTMessage = (e) => {
+            // Security: reject messages not from YouTube
+            if (!YOUTUBE_ORIGINS.includes(e.origin)) return;
             try {
                 if (typeof e.data !== 'string') return;
                 const data = JSON.parse(e.data);
@@ -1240,7 +1254,7 @@ export default function ReelsPage() {
                     const pct = (data.info.currentTime / data.info.duration) * 100;
                     setVideoProgress(Math.min(100, Math.max(0, pct)));
                 }
-            } catch (e) { console.warn('[App] Handled exception:', e); }
+            } catch (e) { console.warn('[ReelsPage] YT message parse error:', e); }
         };
 
         document.addEventListener('touchstart', handleTouchStart, { passive: true, capture: true });
@@ -1254,19 +1268,19 @@ export default function ReelsPage() {
             window.removeEventListener('message', handleYTMessage);
         };
     }, []);
-  // Realtime subscription — live updates
+  // Realtime subscription — only reload on new social_reels; social_posts inserts are too
+  // frequent (every post, not just video posts) to trigger a full feed reload
   useEffect(() => {
     if (!user?.id) return;
     const _ch = supabase
       .channel(`reels:${user.id}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_reels' }, () => {
-        loadReels();
-      })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_posts' }, () => {
+        // New native reel — prepend to feed without full reload
         loadReels();
       })
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
     // EventBus listeners — sync state from other video viewers
@@ -1611,10 +1625,10 @@ export default function ReelsPage() {
                 />
                 {/* CENTER ZONE - tap to toggle overlay, double-tap to like, long-press to context menu */}
                 <div
-                    onTouchStart={handleTouchStart}
+                    onTouchStart={handleLongPressTouchStart}
                     onTouchEnd={cancelLongPress}
                     onTouchMove={cancelLongPress}
-                    onMouseDown={handleTouchStart}
+                    onMouseDown={handleLongPressTouchStart}
                     onMouseUp={cancelLongPress}
                     onMouseMove={cancelLongPress}
                     onContextMenu={(e) => { e.preventDefault(); setShowContextMenu(true); }}

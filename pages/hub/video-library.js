@@ -25,11 +25,26 @@ import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { getAccessToken } from '../../src/lib/authUtils';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
-// Full video catalog with YouTube embeds - 138 VIDEOS (96 cash + 42 tournaments)
+// Static fallback catalog — used until DB fetch resolves
 import {
-    FULL_VIDEOS,
+    FULL_VIDEOS as STATIC_VIDEOS,
     SOURCES
 } from '../../src/data/videoLibraryData';
+
+/** Normalise a DB video_library_videos row to match the FULL_VIDEOS shape */
+function normaliseDbVideo(row) {
+    return {
+        id: row.youtube_video_id,          // use yt ID as local key
+        videoId: row.youtube_video_id,
+        source: row.source_id,
+        type: row.type,
+        title: row.title,
+        views: row.views_text || '0',
+        duration: row.duration || '',
+        thumbnail: row.thumbnail_url,
+        publishedAt: row.published_at,
+    };
+}
 
 const C = {
     bg: '#0a0a0a',
@@ -69,8 +84,33 @@ export default function VideoLibraryPage() {
     const setSelectedSource = (val) => setFilter('selectedSource', val);
     const setSelectedType = (val) => setFilter('selectedType', val);
 
-    // Local state (keep for data/filtering)
-    const [videos, setVideos] = useState(FULL_VIDEOS);
+    // Local state — initialise with static data instantly, then hydrate from DB
+    const [videos, setVideos] = useState(STATIC_VIDEOS);
+    const [allVideos, setAllVideos] = useState(STATIC_VIDEOS); // unfiltered master list
+    const [dbLoaded, setDbLoaded] = useState(false);
+
+    // Fetch live videos from Supabase (replaces / extends static list)
+    useEffect(() => {
+        let cancelled = false;
+        supabase
+            .from('video_library_videos')
+            .select('youtube_video_id, source_id, source_name, type, title, thumbnail_url, views_text, duration, published_at')
+            .order('published_at', { ascending: false })
+            .limit(500)
+            .then(({ data, error }) => {
+                if (cancelled || error || !data || data.length === 0) return;
+                // Merge DB rows with static data; DB rows take precedence by youtube_video_id
+                const dbVideos = data.map(normaliseDbVideo);
+                const dbIds = new Set(dbVideos.map(v => v.videoId));
+                const staticOnly = STATIC_VIDEOS.filter(v => !dbIds.has(v.videoId));
+                const merged = [...dbVideos, ...staticOnly];
+                setAllVideos(merged);
+                setVideos(merged);
+                setDbLoaded(true);
+            });
+        return () => { cancelled = true; };
+    }, []);
+
 
     // Handle query parameters for deep linking
     useEffect(() => {
@@ -385,18 +425,15 @@ export default function VideoLibraryPage() {
         setSelectedVideo(null);
     }, [userId, watchProgress]);
 
-    // Filter videos
+    // Filter videos (runs when any filter changes OR when DB data loads)
     useEffect(() => {
-        let filtered = FULL_VIDEOS;
-        // Type filter (cash/tournament)
+        let filtered = allVideos;
         if (selectedType !== 'ALL') {
             filtered = filtered.filter(v => v.type === selectedType);
         }
-        // Source filter
         if (selectedSource !== 'ALL') {
             filtered = filtered.filter(v => v.source === selectedSource);
         }
-        // Search filter
         if (searchQuery) {
             const q = searchQuery.toLowerCase();
             filtered = filtered.filter(v =>
@@ -404,15 +441,15 @@ export default function VideoLibraryPage() {
                 v.source.toLowerCase().includes(q)
             );
         }
-        // Sort watched videos to end of list
         filtered = filtered.sort((a, b) => {
             const aWatched = watchedVideos.has(a.id);
             const bWatched = watchedVideos.has(b.id);
             if (aWatched === bWatched) return 0;
-            return aWatched ? 1 : -1; // Watched videos go to end
+            return aWatched ? 1 : -1;
         });
         setVideos(filtered);
-    }, [selectedSource, selectedType, searchQuery, watchedVideos]);
+    }, [selectedSource, selectedType, searchQuery, watchedVideos, allVideos]);
+
 
     // Close modal on escape
     useEffect(() => {
