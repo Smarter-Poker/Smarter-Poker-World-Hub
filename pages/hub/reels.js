@@ -866,9 +866,6 @@ export default function ReelsPage() {
             const payload = { post_id: currentReel.id, author_id: user.id, content: text || '' };
             if (mediaUrl) { payload.media_url = mediaUrl; payload.media_type = mediaType; }
             if (parentId) { payload.parent_id = parentId; }
-            if (currentReel.source === 'reels') {
-                // If it's a social_reel, we might hit FK issues on social_comments if it enforces posts. Assume it works or is unconstrained here.
-            }
             const { error } = await supabase.from('social_comments').insert(payload);
             if (error) throw error;
             busEmit.socialCommentAdded(currentReel.id, user.id);
