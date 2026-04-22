@@ -133,6 +133,17 @@ export default async function handler(req, res) {
                   return res.status(400).json({ success: false, error: 'content or media_url required for comments' });
               }
 
+              // Validate the post exists before inserting — prevents orphaned comments
+              // via arbitrary post_id UUIDs using the service role bypass
+              const { data: postCheck } = await getSupabase()
+                  .from('social_page_posts')
+                  .select('id')
+                  .eq('id', post_id)
+                  .maybeSingle();
+              if (!postCheck) {
+                  return res.status(404).json({ success: false, error: 'Post not found' });
+              }
+
               const insertPayload = {
                   post_id,
                   user_id,

@@ -35,13 +35,16 @@ export default async function handler(req, res) {
       try {
           const { content, content_type = 'text', visibility = 'public', metadata, media_urls } = req.body;
 
-          if (!content || content.trim().length === 0) {
-              return res.status(400).json({ success: false, error: 'Content is required' });
+          const hasContent = content && content.trim().length > 0;
+          const hasMedia = Array.isArray(media_urls) && media_urls.length > 0;
+
+          if (!hasContent && !hasMedia) {
+              return res.status(400).json({ success: false, error: 'Content or media required' });
           }
-          if (content.length > 10000) {
+          if (hasContent && content.length > 10000) {
               return res.status(400).json({ success: false, error: 'Content exceeds maximum length of 10,000 characters' });
           }
-          if (media_urls && media_urls.length > 10) {
+          if (hasMedia && media_urls.length > 10) {
               return res.status(400).json({ success: false, error: 'Maximum 10 media attachments allowed' });
           }
 
