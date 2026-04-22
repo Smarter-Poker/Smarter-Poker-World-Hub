@@ -272,9 +272,11 @@ export default function ThreePillHeader({
     // ── Diamond balance: All refresh/realtime/cross-tab logic handled by useDiamondBalance hook ──
 
     // ── EventBus: Instant badge update when notifications are read (same-tab) ──
+    // NOTE: eventBus.on() callback receives the full event object: { type, payload, timestamp, source }
+    // The actual count lives at event.payload.count
     useEffect(() => {
-        const unsub = eventBus.on(EventType.NOTIFICATIONS_READ, (payload) => {
-            const count = payload?.count || 1;
+        const unsub = eventBus.on(EventType.NOTIFICATIONS_READ, (event) => {
+            const count = event?.payload?.count || 1;
             setNotificationCount(prev => Math.max(0, prev - count));
         });
         return () => unsub();

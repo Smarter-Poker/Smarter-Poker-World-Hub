@@ -361,22 +361,20 @@ function NotificationsPage() {
     }, [user?.id]);
 
     const markAsRead = (id) => {
-        // [Audit#18] EAGER STATE SYNCHRONIZATION: Update BFCache and React before DB
-        let isReadOptimistic = false;
+        // [Audit#19] FIX: Check read status from current state snapshot SYNCHRONOUSLY
+        // before calling setState. The previous pattern mutated isReadOptimistic inside
+        // a React setState updater (async) then read it synchronously — always false.
+        const alreadyRead = notifications.some(n => n.id === id && n.read);
+        if (alreadyRead) return; // already read — no badge decrement needed
+
+        // EAGER STATE SYNCHRONIZATION: Update React state before DB
         if (mounted.current) {
             setNotifications(prev => {
-                const target = prev.find(n => n.id === id);
-                if (target?.read) {
-                    isReadOptimistic = true;
-                    return prev;
-                }
                 const next = prev.map(n => n.id === id ? { ...n, read: true } : n);
                 try { localStorage.setItem('sp-notif-cache', JSON.stringify(next.slice(0, 30))); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                 return next;
             });
         }
-        
-        if (isReadOptimistic) return; // already read
 
         // Sync badge localStorage and broadcast to header eagerly
         try { localStorage.setItem('sp-notif-count', String(Math.max(0, parseInt(localStorage.getItem('sp-notif-count') || '0', 10) - 1))); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
