@@ -169,175 +169,104 @@ function NotificationsPage() {
         const { signal } = controller;
 
         const fetchNotifications = async () => {
-            //  BULLETPROOF: Use authUtils to avoid AbortError
             const au = getAuthUser();
-            if (au) {
-                setUser(au);
+            if (!au) {
+                if (mounted.current) setLoading(false);
+                return;
+            }
+            setUser(au);
 
-                // Fetch social & poker notifications through API (service role, bypasses RLS)
-                // [Audit#1] getAccessToken is async — was missing await here too
+            try {
                 const token = await getAccessToken();
-                const headers = { 'Authorization': 'Bearer ' + token };
 
-                const [socialRes, pokerRes] = await Promise.all([
-                    fetch('/api/notifications/list?limit=50', { headers, signal })
-                        .then(r => {
-                            if (!r.ok) { console.warn('[Notifications] list API returned', r.status); return { success: false }; }
-                            return r.json();
-                        })
-                        .catch(() => ({ success: false })),
-                    fetch('/api/poker/notifications?user_id=' + encodeURIComponent(au.id) + '&limit=30', { headers, signal })
-                        .then(r => {
-                            if (!r.ok) { console.warn('[Notifications] poker API returned', r.status); return { success: false }; }
-                            return r.json();
-                        })
-                        .catch(() => ({ success: false })),
-                ]);
+                // ── Single unified API call: social + poker + actor profiles server-side ──
+                // Replaces 4 round-trips (2 APIs + 2 Supabase profile queries) with one.
+                const res = await fetch('/api/notifications/feed?limit=50', {
+                    headers: { Authorization: 'Bearer ' + token },
+                    signal,
+                });
 
-                // Merge poker page notifications into the stream
-                const pokerNotifs = (pokerRes.success && pokerRes.notifications) ? pokerRes.notifications.map(pn => ({
-                    id: 'poker-' + pn.id,
-                    user_id: au.id,
-                    title: pn.title || 'Page Update',
-                    message: pn.message || pn.content || '',
-                    type: pn.notification_type || 'page_update',
-                    read: pn.is_read || false,
-                    created_at: pn.created_at,
-                    data: { page_type: pn.page_type, page_id: pn.page_id },
-                    _source: 'poker',
-                })) : [];
+                if (!res.ok) {
+                    console.warn('[Notifications] feed API returned', res.status);
+                    if (mounted.current) setLoading(false);
+                    return;
+                }
 
-                const data = (socialRes.success && socialRes.notifications) ? socialRes.notifications : [];
-                const combined = [...(data || []).map(n => ({ ...n, _source: 'social' })), ...pokerNotifs]
-                    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-                    .slice(0, 60);
+                const feedData = await res.json();
+                if (!feedData.success) {
+                    if (mounted.current) setLoading(false);
+                    return;
+                }
 
-                if (combined.length > 0) {
-                    // Collect actor IDs from the data JSONB column
-                    const actorIds = [...new Set(combined.map(n =>
-                        n.data?.actor_id || n.data?.sender_id
-                    ).filter(Boolean))];
+                const enriched = feedData.notifications || [];
+                const totalUnread = feedData.totalUnread ?? enriched.filter(n => !n.read).length;
 
-                    // Also parse actor names from notification titles as fallback
-                    const actorNames = [...new Set(combined.map(n => {
-                        const match = n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
-                        return match ? match[1] : null;
-                    }).filter(Boolean))];
+                if (mounted.current) {
+                    setNotifications(enriched);
+                    setLoading(false);
 
-                    // Fetch profiles by ID AND by name IN PARALLEL (saves 100-300ms)
-                    let profileById = {};
-                    let profileByName = {};
+                    // ── Cache with timestamp for 5-min TTL on next load ──
+                    try {
+                        const now = Date.now();
+                        localStorage.setItem('sp-notif-cache', JSON.stringify(
+                            enriched.slice(0, 30).map((n, i) => i === 0 ? { ...n, _cache_ts: now } : n)
+                        ));
+                    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+                }
 
-                    const [profilesByIdResult, profilesByNameResult] = await Promise.all([
-                        actorIds.length > 0
-                            ? supabase.from('profiles')
-                                .select('id, username, full_name, avatar_url')
-                                .in('id', actorIds)
-                                .limit(50)
-                            : Promise.resolve({ data: null }),
-                        actorNames.length > 0
-                            ? supabase.from('profiles')
-                                .select('id, username, full_name, avatar_url')
-                                .in('full_name', actorNames)
-                                .limit(50)
-                            : Promise.resolve({ data: null }),
-                    ]);
+                // ── Mark all as read FIRE-AND-FORGET (do not block UI render) ──
+                if (totalUnread > 0) {
+                    // Instantly update badge (optimistic) 
+                    try { localStorage.setItem('sp-notif-count', '0'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+                    broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID });
+                    eventBus.emit(EventType.NOTIFICATIONS_READ, { count: totalUnread }, 'NotificationsPage');
 
-                    if (profilesByIdResult.data) {
-                        profilesByIdResult.data.forEach(p => { profileById[p.id] = p; });
-                    }
-                    if (profilesByNameResult.data) {
-                        profilesByNameResult.data.forEach(p => {
-                            if (p.full_name) profileByName[p.full_name.toLowerCase()] = p;
-                        });
-                    }
-
-                    // Merge actor data
-                    const enriched = combined.map(n => {
-                        // Get actor ID from the data JSONB column
-                        const actorId = n.data?.actor_id || n.data?.sender_id;
-                        let profile = actorId ? profileById[actorId] : null;
-
-                        // Fallback to name matching
-                        if (!profile) {
-                            const match = n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
-                            const actorName = match ? match[1] : null;
-                            profile = actorName ? profileByName[actorName.toLowerCase()] : null;
-                        }
-
-                        const displayName = n.data?.actor_name || n.data?.sender_name || n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/)?.[1] || n.title;
-
-                        return {
-                            ...n,
-                            actor_avatar_url: profile?.avatar_url || null,
-                            actor_name: displayName,
-                            actor_username: profile?.username || null
-                        };
-                    });
-                    if (mounted.current) {
-                        setNotifications(enriched);
-                        setLoading(false);
-                        // Cache for instant load next time (keep last 30 for storage space)
-                        // [Audit#20] Stamp _cache_ts so the 5-minute TTL check on load works
-                        try {
-                            const now = Date.now();
-                            localStorage.setItem('sp-notif-cache', JSON.stringify(enriched.slice(0, 30).map((n, i) => i === 0 ? { ...n, _cache_ts: now } : n)));
-                        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-                    }
-
-                    // Auto-mark social notifications as read (only social ones use supabase table)
+                    // Mark social notifications read (non-blocking — user already sees the page)
                     const unreadSocialIds = enriched.filter(n => !n.read && n._source === 'social').map(n => n.id);
                     const hasUnreadPoker = enriched.some(n => !n.read && n._source === 'poker');
-                    const totalUnread = enriched.filter(n => !n.read).length;
 
                     if (unreadSocialIds.length > 0) {
-                        await supabase.from('notifications').update({ read: true }).in('id', unreadSocialIds);
-                        if (mounted.current) {
-                            setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-                            // Update cache with read status
-                            try {
-                                const now = Date.now();
-                                const updated = enriched.map(n => ({ ...n, read: true }));
-                                localStorage.setItem('sp-notif-cache', JSON.stringify(updated.slice(0, 30).map((n, i) => i === 0 ? { ...n, _cache_ts: now } : n)));
-                            } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-                        }
+                        supabase.from('notifications').update({ read: true }).in('id', unreadSocialIds)
+                            .then(() => {
+                                if (mounted.current) {
+                                    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+                                    try {
+                                        const now = Date.now();
+                                        const updated = enriched.map(n => ({ ...n, read: true }));
+                                        localStorage.setItem('sp-notif-cache', JSON.stringify(
+                                            updated.slice(0, 30).map((n, i) => i === 0 ? { ...n, _cache_ts: now } : n)
+                                        ));
+                                    } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+                                }
+                            })
+                            .catch(e => console.warn('[Notifications] mark-social-read failed:', e));
                     }
 
-                    // [Audit#20] Also auto-mark poker/page notifications as read on page load
-                    // so badge can reach 0 (get-header-stats counts both sources in the badge total)
                     if (hasUnreadPoker) {
-                        getAccessToken().then(token =>
+                        getAccessToken().then(t =>
                             fetch('/api/poker/notifications', {
                                 method: 'PUT',
-                                headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                                headers: { 'Content-Type': 'application/json', ...(t ? { Authorization: `Bearer ${t}` } : {}) },
                                 body: JSON.stringify({ mark_all: true })
                             }).catch(e => console.warn('[Notifications] poker mark_all failed:', e))
                         );
                     }
-
-                    if (totalUnread > 0) {
-                        // [Pass1-Fix] Sync badge to 0 AND broadcast so header tab re-fetches immediately
-                        try { localStorage.setItem('sp-notif-count', '0'); } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-                        broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID });
-                        // Also instant-update same-tab badge via EventBus
-                        eventBus.emit(EventType.NOTIFICATIONS_READ, { count: totalUnread }, 'NotificationsPage');
-                    }
-
-                } else if (mounted.current) {
-                    // [Audit#14] No notifications — clear state
-                    setNotifications([]);
+                } else if (enriched.length === 0 && mounted.current) {
                     setLoading(false);
                 }
-            } else {
-                // [Audit#14] Not logged in — clear loading state to avoid infinite shimmer
-                if (mounted.current) setLoading(false);
+
+            } catch (err) {
+                if (err?.name !== 'AbortError') {
+                    console.warn('[Notifications] fetch failed:', err);
+                    if (mounted.current) setLoading(false);
+                }
             }
         };
-        // Note: setLoading(false) for logged-in path is called inside the if-block above
-        // (after notifications are set), NOT here, to avoid a double-render.
+
         fetchNotifications();
         return () => controller.abort();
     }, []);
+
     // Realtime subscription — live updates
     useEffect(() => {
         if (!user?.id) return;
