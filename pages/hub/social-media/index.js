@@ -1061,7 +1061,8 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                 })()}</span>
                 <span style={{ cursor: 'pointer' }} onClick={handleToggleComments}>{commentCount > 0 && `${fmtCount(commentCount)} ${commentCount === 1 ? 'comment' : 'comments'}`}</span>
             </div>
-            <div style={{ borderTop: `1px solid ${C.border}`, display: 'flex' }}>
+            {/* Action buttons row — overflow:visible so reaction picker escapes card border-radius clip */}
+            <div style={{ borderTop: `1px solid ${C.border}`, display: 'flex', overflow: 'visible' }}>
                 <div style={{ flex: 1, position: 'relative' }}>
                     <button
                         onClick={() => {
@@ -1077,13 +1078,21 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                         aria-label={liked ? 'Unlike this post' : 'Like this post'}
                     >{liked ? '👍 Liked' : '👍 Like'}</button>
                     {showReactionPicker && (
+                        <style>{`@keyframes reactionFadeUp { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+                    )}
+                    {showReactionPicker && (
                         <div
                             onMouseEnter={() => setShowReactionPicker(true)}
                             onMouseLeave={() => setShowReactionPicker(false)}
                             style={{
-                                position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)',
-                                background: C.card, borderRadius: 24, padding: '6px 8px', boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
-                                display: 'flex', gap: 4, zIndex: 10, border: `1px solid ${C.border}`
+                                position: 'absolute', bottom: 'calc(100% + 4px)',
+                                left: 0,              // anchor to left edge of Like button — no viewport clip
+                                whiteSpace: 'nowrap', // never wrap onto second line
+                                background: C.card, borderRadius: 24, padding: '6px 10px',
+                                boxShadow: '0 4px 20px rgba(0,0,0,0.18)',
+                                display: 'flex', gap: 2, zIndex: 9999,
+                                border: `1px solid ${C.border}`,
+                                animation: 'reactionFadeUp 0.15s ease',
                             }}
                         >
                             {[['like','👍'],['love','❤️'],['haha','😂'],['wow','😮'],['sad','😢'],['angry','😡']].map(([type, emoji]) => (
@@ -1091,12 +1100,14 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                     key={type}
                                     onClick={(e) => { e.stopPropagation(); handleLike(type); setShowReactionPicker(false); }}
                                     style={{
-                                        background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, padding: '4px 6px',
+                                        background: 'none', border: 'none', cursor: 'pointer',
+                                        fontSize: 24, padding: '4px 6px',
                                         borderRadius: 8, transition: 'transform 0.15s',
+                                        lineHeight: 1,
                                     }}
-                                    onMouseEnter={e => e.target.style.transform = 'scale(1.3)'}
-                                    onMouseLeave={e => e.target.style.transform = 'scale(1)'}
-                                    title={type}
+                                    onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.35)'}
+                                    onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                                    title={type.charAt(0).toUpperCase() + type.slice(1)}
                                 >{emoji}</button>
                             ))}
                         </div>
