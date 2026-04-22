@@ -58,26 +58,23 @@ export default async function handler(req, res) {
         const socialNotifs = (socialResult.data || []).map(n => ({ ...n, _source: 'social' }));
 
         // ── Phase 2: Fetch poker notifs (only if user follows pages) ──
+        // BUG-FIX: Removed dead Promise.resolve() placeholder. page_notifications
+        // and notification_reads now run sequentially only when needed (can't
+        // parallelize because we need page_notification IDs first).
         let pokerNotifs = [];
         if (followsResult.data && followsResult.data.length > 0) {
             const orConditions = followsResult.data
                 .map(f => `and(page_type.eq.${f.page_type},page_id.eq.${f.page_id})`)
                 .join(',');
 
-            const [pageNotifResult, readResult] = await Promise.all([
-                supabase
-                    .from('page_notifications')
-                    .select('*')
-                    .or(orConditions)
-                    .order('created_at', { ascending: false })
-                    .limit(30),
-                // We'll get reads after we have the IDs — skip for now, batch below
-                Promise.resolve({ data: [] }),
-            ]);
+            const { data: pageNotifRows } = await supabase
+                .from('page_notifications')
+                .select('*')
+                .or(orConditions)
+                .order('created_at', { ascending: false })
+                .limit(30);
 
-            const pageNotifRows = pageNotifResult.data || [];
-
-            if (pageNotifRows.length > 0) {
+            if (pageNotifRows && pageNotifRows.length > 0) {
                 const allIds = pageNotifRows.map(n => n.id);
                 const { data: reads } = await supabase
                     .from('notification_reads')
@@ -110,15 +107,24 @@ export default async function handler(req, res) {
             .slice(0, 60);
 
         // ── Phase 4: Enrich social notifications with actor profiles (server-side) ──
+        // BUG-FIX: Also collect friend_id for home_group_friend_joined type notifications
+        // so those get avatar/username resolution too (was previously invisible to enrichment).
         const actorIds = [...new Set(
-            socialNotifs.map(n => n.data?.actor_id || n.data?.sender_id).filter(Boolean)
+            socialNotifs
+                .map(n => n.data?.actor_id || n.data?.sender_id || n.data?.friend_id)
+                .filter(Boolean)
         )];
+
+        // BUG-FIX: Old regex /^([A-Za-z]+\s+[A-Za-z]+)/ required TWO words,
+        // breaking enrichment for single-name actors. Now also tries single-word match.
         const actorNames = [...new Set(
             socialNotifs
-                .filter(n => !n.data?.actor_id && !n.data?.sender_id)
+                .filter(n => !n.data?.actor_id && !n.data?.sender_id && !n.data?.friend_id)
                 .map(n => {
-                    const match = n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
-                    return match ? match[1] : null;
+                    const twoWord = n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
+                    if (twoWord) return twoWord[1];
+                    const oneWord = n.title?.match(/^([A-Za-z][A-Za-z0-9_]+)/);
+                    return oneWord ? oneWord[1] : null;
                 })
                 .filter(Boolean)
         )];
@@ -152,12 +158,14 @@ export default async function handler(req, res) {
         const enriched = combined.map(n => {
             if (n._source === 'poker') return n; // poker notifs don't have actor profiles
 
-            const actorId = n.data?.actor_id || n.data?.sender_id;
+            // BUG-FIX: Also look up friend_id for home_group_friend_joined
+            const actorId = n.data?.actor_id || n.data?.sender_id || n.data?.friend_id;
             const profile = actorId
                 ? profileById[actorId]
                 : (() => {
-                    const match = n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
-                    return match ? profileByName[match[1].toLowerCase()] : null;
+                    const twoWord = n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
+                    const key = twoWord?.[1] ?? n.title?.match(/^([A-Za-z][A-Za-z0-9_]+)/)?.[1];
+                    return key ? profileByName[key.toLowerCase()] : null;
                 })();
 
             const displayName = n.data?.actor_name || n.data?.sender_name

@@ -76,7 +76,7 @@ import CheckInModal from '../../../src/components/social/CheckInModal';
 import TrendingVenues from '../../../src/components/social/TrendingVenues';
 import { SharedPostCreator } from '../../../src/components/social/SharedPostCreator';
 // Shared utilities — single source of truth (extracted from this file)
-import { SOCIAL_COLORS, SOCIAL_COLORS as C, timeAgo, decodeHtmlEntities, isYouTubeUrl, getYouTubeVideoId, getYouTubeEmbedUrl, getYouTubeThumbnail, validateYouTubeVideo } from '../../../src/lib/socialHelpers';
+import { SOCIAL_COLORS, SOCIAL_COLORS as C, timeAgo, decodeHtmlEntities, isYouTubeUrl, getYouTubeVideoId, getYouTubeEmbedUrl, getYouTubeThumbnail, validateYouTubeVideo, sniffMimeType } from '../../../src/lib/socialHelpers';
 import { SharedAvatar as Avatar } from '../../../src/components/social/SharedAvatar';
 import { VideoThumbnail, VideoPostWrapper } from '../../../src/components/social/SharedVideoComponents';
 
@@ -1961,7 +1961,8 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                         body: JSON.stringify({
                             fileName: file.name,
                             fileSize: file.size,
-                            mimeType: file.type,
+                            // Strip codec suffixes (iOS/Android) — bucket uses exact MIME matching
+                            mimeType: sniffMimeType(file),
                             folder: 'club-posts',
                             prefix: page.id,
                         }),
@@ -1974,7 +1975,8 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                     }
                     const uploadRes = await fetch(meta.signedUrl, {
                         method: 'PUT',
-                        headers: { 'Content-Type': file.type },
+                        // Clean MIME — raw file.type may include codec suffix causing Supabase bucket rejection
+                        headers: { 'Content-Type': sniffMimeType(file) },
                         body: file,
                     });
                     if (!uploadRes.ok) {
@@ -4728,7 +4730,7 @@ function SocialMediaPage() {
         if (unreadIds.length === 0) return; // Nothing to mark — skip entirely
         if (markReadFiredRef.current) return; // Already fired this open cycle
         markReadFiredRef.current = true;
-        // Mark all as read IMMEDIATELY (with error boundary)
+    // Mark all as read IMMEDIATELY (with error boundary)
         (async () => {
             try {
                 await supabase.from('notifications').update({ read: true }).in('id', unreadIds);
@@ -4736,6 +4738,8 @@ function SocialMediaPage() {
             } catch (e) {
                 console.warn('[Social] Notification mark-read failed:', e);
             }
+            // BUG-10 FIX: Update localStorage badge count so header reflects cleared state
+            try { localStorage.setItem('sp-notif-count', '0'); } catch (_) {}
             // Sync: tell other tabs + header to update badge count
             broadcastSync('smarter_poker_notif_sync', 'refresh_notifications');
             eventBus.emit(EventType.NOTIFICATIONS_READ, { count: unreadIds.length }, 'SocialNotifDropdown');

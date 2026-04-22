@@ -391,8 +391,17 @@ function NotificationsPage() {
         const hasPoker = notifications.some(n => !n.read && n._source === 'poker');
 
         if (hasSocial) {
-            supabase.from('notifications').update({ read: true }).eq('user_id', user.id).eq('read', false).then().catch(e => console.warn('Exception:', e));
+            // Fire-and-forget DB update — mark all social unread as read (scoped to unread only)
+            supabase
+                .from('notifications')
+                .update({ read: true })
+                .eq('user_id', user.id)
+                .eq('read', false)
+                .select('id')
+                .then(({ error }) => { if (error) console.warn('[markAllAsRead] DB error:', error); })
+                .catch(e => console.warn('[markAllAsRead] Exception:', e));
         }
+
         if (hasPoker) {
             getAccessToken().then(token => 
                 fetch('/api/poker/notifications', {
@@ -454,7 +463,10 @@ function NotificationsPage() {
                 // Fire-and-forget DB updates (do not block execution)
                 supabase.from('friendships').update({ status: 'accepted' }).eq('id', requestId).then().catch(e => console.warn('Exception:', e));
                 supabase.from('friendships').upsert({ user_id: user.id, friend_id: requesterId, status: 'accepted' }, { onConflict: 'user_id,friend_id' }).then().catch(e => console.warn('Exception:', e));
-                supabase.from('notifications').update({ message: 'Is Now Your Friend!', type: 'friend_accepted' }).eq('id', notification.id).then().catch(e => console.warn('Exception:', e));
+                // BUG-FIX: Removed mutation of notification type/message in DB.
+                // Changing type from 'friend_request' to 'friend_accepted' corrupts
+                // notification history. Only mark it as read.
+                supabase.from('notifications').update({ read: true }).eq('id', notification.id).then().catch(e => console.warn('Exception:', e));
 
                 // Sync friends page cross-tab + EventBus
                 busEmit.dataMutated('friends');
@@ -505,7 +517,9 @@ function NotificationsPage() {
             }
 
             supabase.from('follows').upsert({ follower_id: requesterId, following_id: user.id, source: 'declined_friend_request' }, { onConflict: 'follower_id,following_id' }).then().catch(e => console.warn('Exception:', e));
-            supabase.from('notifications').update({ message: 'Is Now Following You', type: 'new_follow' }).eq('id', notification.id).then().catch(e => console.warn('Exception:', e));
+            // BUG-FIX: Removed mutation of notification type/message in DB.
+            // Only mark as read — do not change type from 'friend_request' to 'new_follow'.
+            supabase.from('notifications').update({ read: true }).eq('id', notification.id).then().catch(e => console.warn('Exception:', e));
 
             // Sync friends page cross-tab + EventBus
             busEmit.dataMutated('friends');
