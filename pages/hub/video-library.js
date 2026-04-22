@@ -746,56 +746,50 @@ export default function VideoLibraryPage() {
                     {/* Type toggle + Search Row */}
                     <div className="vl-type-toggle-row" style={{
                         display: 'flex',
-                        gap: 12,
+                        gap: 8,
                         marginBottom: 16,
-                        justifyContent: 'center',
+                        justifyContent: 'flex-start',
                         alignItems: 'center',
                         flexWrap: 'wrap',
                     }}>
                         {[
-                            { id: 'cash', name: 'Cash Games', icon: '' },
-                            { id: 'ALL', name: 'All Videos', icon: '' },
-                            { id: 'tournament', name: 'Tournaments', icon: '' },
-                        ].map(type => (
-                            <button
-                                key={type.id}
-                                onClick={() => setSelectedType(type.id)}
-                                className="metal-frame-sm"
-                                style={{
-                                    padding: '10px 20px',
-                                    background: selectedType === type.id
-                                        ? 'linear-gradient(135deg, #FF4444, #FF6B6B)'
-                                        : 'transparent',
-                                    border: 'none',
-                                    color: C.text,
-                                    fontSize: 14,
-                                    fontWeight: 600,
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 10,
-                                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                                    transform: selectedType === type.id ? 'translateY(-2px)' : 'none',
-                                }}
-                                onMouseEnter={(e) => {
-                                    if (selectedType !== type.id) {
-                                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
-                                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-                                        e.currentTarget.style.transform = 'translateY(-2px)';
-                                    }
-                                }}
-                                onMouseLeave={(e) => {
-                                    if (selectedType !== type.id) {
-                                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-                                        e.currentTarget.style.transform = 'none';
-                                    }
-                                }}
-                            >
-                                <span style={{ fontSize: 20 }}>{type.icon}</span>
-                                {type.name}
-                            </button>
-                        ))}
+                            { id: 'ALL',        name: 'All Videos' },
+                            { id: 'cash',       name: 'Cash Games' },
+                            { id: 'tournament', name: 'Tournaments' },
+                        ].map(type => {
+                            const isActive = selectedType === type.id;
+                            return (
+                                <button
+                                    key={type.id}
+                                    onClick={() => setSelectedType(type.id)}
+                                    style={{
+                                        padding: '9px 22px',
+                                        background: isActive
+                                            ? 'linear-gradient(135deg, #FF3333 0%, #FF6B6B 100%)'
+                                            : 'linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)',
+                                        border: isActive
+                                            ? '1.5px solid rgba(255,100,100,0.7)'
+                                            : '1.5px solid rgba(255,255,255,0.12)',
+                                        borderRadius: 10,
+                                        color: isActive ? '#fff' : 'rgba(255,255,255,0.75)',
+                                        fontSize: 13,
+                                        fontWeight: isActive ? 700 : 500,
+                                        cursor: 'pointer',
+                                        letterSpacing: '0.3px',
+                                        transition: 'all 0.2s ease',
+                                        transform: isActive ? 'translateY(-1px)' : 'none',
+                                        boxShadow: isActive
+                                            ? '0 0 16px rgba(255,60,60,0.35), 0 4px 12px rgba(0,0,0,0.4)'
+                                            : '0 2px 8px rgba(0,0,0,0.3)',
+                                        whiteSpace: 'nowrap',
+                                    }}
+                                    onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.transform = 'translateY(-1px)'; } }}
+                                    onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)'; e.currentTarget.style.transform = 'none'; } }}
+                                >
+                                    {type.name}
+                                </button>
+                            );
+                        })}
 
                         {/* Play Random Button */}
                         <button
@@ -864,55 +858,127 @@ export default function VideoLibraryPage() {
                         </div>
                     </div>
 
-                    {/* Source filter pills */}
+                    {/* Premium Creator Cards */}
                     <div className="vl-source-pills" style={{
                         display: 'flex',
-                        gap: 10,
+                        gap: 12,
                         overflowX: 'auto',
-                        padding: '8px 0',
+                        padding: '8px 4px 12px',
+                        scrollbarWidth: 'none',
                     }}>
-                        {SOURCES.filter(source => source.id !== 'ALL').map(source => (
-                            <button
-                                key={source.id}
-                                onClick={() => setSelectedSource(source.id)}
-                                style={{
-                                    padding: '10px 18px',
-                                    background: selectedSource === source.id
-                                        ? 'linear-gradient(135deg, #FF4444, #FF6B6B)'
-                                        : '#0a0a0a',
-                                    border: 'none',
-                                    borderRadius: 24,
-                                    color: C.text,
-                                    fontSize: 14,
-                                    fontWeight: 600,
-                                    cursor: 'pointer',
-                                    whiteSpace: 'nowrap',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 10,
-                                    transition: 'all 0.2s',
-                                    boxShadow: selectedSource === source.id
-                                        ? '0 0 0 2px rgba(255, 68, 68, 0.6), 0 4px 16px rgba(255, 68, 68, 0.3)'
-                                        : '0 0 0 2px rgba(160, 170, 180, 0.7), 0 0 0 3px rgba(80, 90, 100, 0.5), 0 4px 12px rgba(0, 0, 0, 0.4)',
-                                }}
-                            >
-                                {source.logo && (
-                                    <div style={{
-                                        width: 32,
-                                        height: 32,
-                                        borderRadius: 10,
-                                        background: 'rgba(255, 255, 255, 0.08)',
+                        {SOURCES.filter(source => source.id !== 'ALL').map(source => {
+                            const isActive = selectedSource === source.id;
+                            const initials = source.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+                            return (
+                                <button
+                                    key={source.id}
+                                    onClick={() => setSelectedSource(source.id)}
+                                    style={{
+                                        flexShrink: 0,
                                         display: 'flex',
+                                        flexDirection: 'column',
                                         alignItems: 'center',
-                                        justifyContent: 'center',
-                                        padding: 4,
+                                        gap: 7,
+                                        background: 'none',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        padding: '4px 2px',
+                                        outline: 'none',
+                                        transition: 'transform 0.2s ease',
+                                        transform: isActive ? 'translateY(-5px)' : 'none',
+                                    }}
+                                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.transform = 'translateY(-3px)'; }}
+                                    onMouseLeave={e => { if (!isActive) e.currentTarget.style.transform = 'none'; }}
+                                    title={source.name}
+                                >
+                                    {/* Logo ring — glows red when active */}
+                                    <div style={{
+                                        width: 70,
+                                        height: 70,
+                                        borderRadius: 18,
+                                        padding: 2.5,
+                                        background: isActive
+                                            ? 'linear-gradient(135deg, #FF2222 0%, #FF8C00 50%, #FF2222 100%)'
+                                            : 'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(100,115,135,0.3) 100%)',
+                                        boxShadow: isActive
+                                            ? '0 0 24px rgba(255,50,50,0.6), 0 0 10px rgba(255,50,50,0.3), 0 8px 24px rgba(0,0,0,0.7)'
+                                            : '0 4px 18px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1)',
+                                        transition: 'all 0.25s ease',
                                     }}>
-                                        <img src={source.logo} alt={source.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} loading="lazy" />
+                                        <div style={{
+                                            width: '100%',
+                                            height: '100%',
+                                            borderRadius: 15,
+                                            background: isActive
+                                                ? 'linear-gradient(160deg, #1c0808 0%, #2e0a0a 100%)'
+                                                : 'linear-gradient(160deg, #0c1018 0%, #141c28 100%)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            overflow: 'hidden',
+                                            border: isActive
+                                                ? '1px solid rgba(255,80,80,0.35)'
+                                                : '1px solid rgba(255,255,255,0.07)',
+                                        }}>
+                                            {source.logo ? (
+                                                <img
+                                                    src={source.logo}
+                                                    alt={source.name}
+                                                    style={{
+                                                        width: '80%',
+                                                        height: '80%',
+                                                        objectFit: 'contain',
+                                                        filter: isActive
+                                                            ? 'brightness(1.2) drop-shadow(0 0 8px rgba(255,80,80,0.7))'
+                                                            : 'brightness(0.85) saturate(0.9)',
+                                                        transition: 'filter 0.25s',
+                                                    }}
+                                                    loading="lazy"
+                                                />
+                                            ) : (
+                                                <span style={{
+                                                    fontSize: 17,
+                                                    fontWeight: 800,
+                                                    color: isActive ? '#FF6060' : 'rgba(190,205,225,0.7)',
+                                                    letterSpacing: '-0.5px',
+                                                    fontFamily: "'Inter', system-ui, sans-serif",
+                                                    textShadow: isActive ? '0 0 14px rgba(255,80,80,0.9)' : 'none',
+                                                    transition: 'all 0.25s',
+                                                }}>{initials}</span>
+                                            )}
+                                        </div>
                                     </div>
-                                )}
-                                {source.name}
-                            </button>
-                        ))}
+                                    {/* Name plate */}
+                                    <div style={{
+                                        width: 72,
+                                        textAlign: 'center',
+                                        fontSize: 9.5,
+                                        fontWeight: isActive ? 700 : 500,
+                                        color: isActive ? '#FF7575' : 'rgba(185,200,220,0.6)',
+                                        letterSpacing: '0.15px',
+                                        lineHeight: 1.3,
+                                        textShadow: isActive ? '0 0 10px rgba(255,80,80,0.6)' : 'none',
+                                        transition: 'all 0.25s',
+                                        wordBreak: 'break-word',
+                                    }}>
+                                        {source.name}
+                                    </div>
+                                    {/* Active dot */}
+                                    {isActive && (
+                                        <div style={{
+                                            width: 5,
+                                            height: 5,
+                                            borderRadius: '50%',
+                                            background: '#FF4444',
+                                            boxShadow: '0 0 8px rgba(255,68,68,0.9)',
+                                            marginTop: -4,
+                                        }} />
+                                    )}
+                                </button>
+                            );
+                        })}
+                    </div>
+
                     </div>
                 </div>
 
