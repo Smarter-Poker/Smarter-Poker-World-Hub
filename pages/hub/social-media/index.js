@@ -4062,9 +4062,14 @@ function SocialMediaPage() {
     const [hasMorePosts, setHasMorePosts] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
     const [feedCycle, setFeedCycle] = useState(0); // Track how many times we've looped
-    const [seenPostIds, setSeenPostIds] = useState(new Set()); // Track seen posts for variety
+    const seenPostIdsRef = useRef(new Set()); // Ref instead of state — avoids re-render on every scroll
     const POSTS_PER_PAGE = 20;
     const MAX_FEED_CYCLES = 10; // Maximum loops before truly ending (shows tons of content)
+
+    // ⚡ PERF: Cache friends/follows in refs — fetched ONCE on mount, reused on every infinite scroll page
+    const friendIdsRef = useRef([]);
+    const followingIdsRef = useRef([]);
+    const socialGraphLoadedRef = useRef(false); // Guard against duplicate fetches
 
     //  GOD MODE STATE
     const [isGodMode, setIsGodMode] = useState(false);
@@ -4422,12 +4427,14 @@ function SocialMediaPage() {
                 }
 
                 // ⚡ INSTANT RENDER: Hydrate feed from cache BEFORE any network calls
+                // Dismiss loading spinner immediately so cached posts are visible instantly
                 try {
                     const feedCacheRaw = localStorage.getItem('sp-feed-cache');
                     if (feedCacheRaw) {
                         const feedCache = JSON.parse(feedCacheRaw);
                         if (feedCache._cachedAt && (Date.now() - feedCache._cachedAt) < 15 * 60 * 1000 && feedCache.posts?.length) {
                             setPosts(feedCache.posts);
+                            setLoading(false); // Show cached posts IMMEDIATELY — network fetch happens in background
                         }
                     }
                 } catch { /* cache miss */ }
@@ -4550,6 +4557,7 @@ function SocialMediaPage() {
                     await loadFeed();
                 }
             } catch (e) { console.warn('[Social] Auth error:', e); }
+            // Only set loading false here if cache didn't already do it
             setLoading(false);
         })();
     }, []);
@@ -4748,18 +4756,28 @@ function SocialMediaPage() {
                 }
             } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
-            // Get friend IDs for prioritization
-            let friendIds = [];
-            let followingIds = [];
+            // ⚡ PERF: Use cached social graph — only fetch friends/follows ONCE per session
+            // On first load: fetch and cache. On subsequent scroll pages: reuse refs instantly.
+            let friendIds = friendIdsRef.current;
+            let followingIds = followingIdsRef.current;
 
-            if (authUser) {
-                // ⚡ Fetch friends AND follows in PARALLEL (independent queries)
-                const [{ data: friendships }, { data: follows }] = await Promise.all([
-                    supabase.from('friendships').select('user_id, friend_id').or(`user_id.eq.${authUser.id},friend_id.eq.${authUser.id}`).eq('status', 'accepted'),
-                    supabase.from('follows').select('following_id').eq('follower_id', authUser.id),
-                ]);
-                if (friendships) friendIds = [...new Set(friendships.map(f => f.user_id === authUser.id ? f.friend_id : f.user_id))];
-                if (follows) followingIds = follows.map(f => f.following_id);
+            if (authUser && !socialGraphLoadedRef.current) {
+                socialGraphLoadedRef.current = true; // Mark as loading to prevent duplicate fetches
+                try {
+                    // ⚡ Fetch friends AND follows in PARALLEL (independent queries)
+                    const [{ data: friendships }, { data: follows }] = await Promise.all([
+                        supabase.from('friendships').select('user_id, friend_id').or(`user_id.eq.${authUser.id},friend_id.eq.${authUser.id}`).eq('status', 'accepted'),
+                        supabase.from('follows').select('following_id').eq('follower_id', authUser.id),
+                    ]);
+                    if (friendships) friendIds = [...new Set(friendships.map(f => f.user_id === authUser.id ? f.friend_id : f.user_id))];
+                    if (follows) followingIds = follows.map(f => f.following_id);
+                    // Cache in refs — no re-render, instant reuse on next scroll
+                    friendIdsRef.current = friendIds;
+                    followingIdsRef.current = followingIds;
+                } catch (e) {
+                    socialGraphLoadedRef.current = false; // Allow retry on error
+                    console.warn('[Social] Social graph fetch failed:', e);
+                }
             }
 
             // Combine friends and following for priority
@@ -4853,7 +4871,7 @@ function SocialMediaPage() {
                 score -= Math.min(ageDays * 2, 20); // Max -20 for old posts
 
                 // If we've seen this post before (on loop), reduce score
-                if (seenPostIds.has(post.id)) score -= 30;
+                if (seenPostIdsRef.current.has(post.id)) score -= 30;
 
                 // Add some randomization for variety (+/- 15)
                 score += (Math.random() * 30) - 15;
@@ -4964,10 +4982,8 @@ function SocialMediaPage() {
                 };
             });
 
-                // Track seen posts for variety on loop
-                const newSeenIds = new Set(seenPostIds);
-                formattedPosts.forEach(p => newSeenIds.add(p.id));
-                setSeenPostIds(newSeenIds);
+                // ⚡ PERF: Track seen posts via ref (no setState = no re-render)
+                formattedPosts.forEach(p => seenPostIdsRef.current.add(p.id));
 
                 if (append) {
                     setPosts(prev => [...prev, ...formattedPosts]);
@@ -5036,7 +5052,7 @@ function SocialMediaPage() {
                     loadMorePosts();
                 }
             },
-            { threshold: 0.1, rootMargin: '200px' }
+            { threshold: 0.1, rootMargin: '600px' } // Pre-fetch 600px before bottom — feels instant
         );
 
         observerRef.current.observe(node);
