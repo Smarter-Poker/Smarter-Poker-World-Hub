@@ -487,7 +487,11 @@ export function generateNewsCaption(headline, profileId, newsType = 'poker') {
  */
 export function seedHorseMemory(profileId, recentPhrases = []) {
   const mem = getHorseMemory(profileId);
-  mem.lastUsed = recentPhrases.slice(0, MEMORY_DEPTH);
+  // Guard: Supabase may return null data — treat as empty
+  const safe = Array.isArray(recentPhrases) ? recentPhrases : [];
+  mem.lastUsed = safe
+    .filter(p => p != null && typeof p === 'string' && p.trim().length > 0)
+    .slice(0, MEMORY_DEPTH);
   for (const p of mem.lastUsed) mem.dayUsed.add(p.toLowerCase().trim());
 }
 
