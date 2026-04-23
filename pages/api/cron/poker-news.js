@@ -191,6 +191,7 @@ async function saveToNewsArchive(article) {
 async function isArticleRecentlyShared(link) {
     // Check both social_posts AND poker_news archive
     const cutoff = new Date(Date.now() - CONFIG.NEWS_COOLDOWN_HOURS * 60 * 60 * 1000);
+    const supabase = getSupabase();
 
     // Check social posts
     const { data: socialData } = await supabase
@@ -217,16 +218,10 @@ async function isArticleRecentlyShared(link) {
 // POST NEWS ARTICLE (with dual posting to archive)
 // ═══════════════════════════════════════════════════════════════════════════
 async function postNewsArticle(article, newsId = null) {
+    const supabase = getSupabase();
 
-    // Format post content with in-app viewer link
-    const emoji = getCategoryEmoji(article.category);
-    const viewerUrl = `/hub/article?url=${encodeURIComponent(article.link)}&source=${encodeURIComponent(article.source)}`;
-
-    const postContent = `${emoji} **${article.title}**
-
-${article.summary}
-
-📖 Read full article`;
+    // Format post content — no emojis, no markdown bold, plain text with link
+    const postContent = `${article.title}\n\nvia ${article.source}\n${article.link}`;
 
     try {
         // Prepare media URLs array with article image
@@ -237,33 +232,29 @@ ${article.summary}
             .rpc('fn_create_social_post', {
                 p_author_id: SYSTEM_UUID,
                 p_content: postContent,
-                p_content_type: 'news',
+                p_content_type: 'link',
                 p_media_urls: mediaUrls,
                 p_visibility: 'public',
                 p_achievement_data: {
                     article_url: article.link,
                     article_source: article.source,
-                    article_title: article.title,
-                    viewer_url: viewerUrl
+                    article_title: article.title
                 }
             });
 
         if (rpcError) {
-            // Fallback to direct insert
+            // Fallback to direct insert — always set link_url (fixes BUG-L01)
             const { data: directPost, error: directError } = await supabase
                 .from('social_posts')
                 .insert({
                     author_id: SYSTEM_UUID,
                     content: postContent,
-                    content_type: 'news',
+                    content_type: 'link',
+                    link_url: article.link,
+                    link_title: article.title,
+                    link_site_name: article.source,
                     media_urls: mediaUrls,
                     visibility: 'public',
-                    achievement_data: {
-                        article_url: article.link,
-                        article_source: article.source,
-                        article_title: article.title,
-                        viewer_url: viewerUrl
-                    },
                     created_at: new Date().toISOString()
                 })
                 .select()
