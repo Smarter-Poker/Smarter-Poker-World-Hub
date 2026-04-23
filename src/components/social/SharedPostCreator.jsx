@@ -364,7 +364,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
     const handlePost = async () => {
         if (isPosting || _submittingRef.current) return; // Double-submit guard
         _submittingRef.current = true;
-        if (!content.trim() && !media.length && !linkPreview && !checkInVenue) return;
+        if (!content.trim() && !media.length && !linkPreview && !checkInVenue) { _submittingRef.current = false; return; }
         setError('');
         let urls = media.map(m => m.url);
         let type = media.some(m => m.type === 'video') ? 'video' : media.length ? 'image' : 'text';
