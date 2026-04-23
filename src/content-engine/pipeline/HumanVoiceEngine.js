@@ -699,25 +699,38 @@ export function generateNewsCaption(headline, profileId, newsType = 'poker') {
   // Null-guard: callers may pass explicit null
   const safeHeadline = (headline && typeof headline === 'string') ? headline : '';
 
-  // 65% of the time: try to build a title-aware caption from the headline
-  if (safeHeadline && Math.random() < 0.65) {
-    const ctx = extractTitleContext(safeHeadline);
-    const contextCaption = buildContextCaption(ctx, profileId);
-    // BUG-FIX: contextCaption early-return previously bypassed sanitizeHorseOutput
-    if (contextCaption && contextCaption.trim().length >= 10) return sanitizeHorseOutput(contextCaption);
+  // Only attempt poker-context extraction if it's actually poker news
+  if (newsType === 'poker') {
+    // 65% of the time: try to build a title-aware caption from the headline
+    if (safeHeadline && Math.random() < 0.65) {
+      const ctx = extractTitleContext(safeHeadline);
+      const contextCaption = buildContextCaption(ctx, profileId);
+      // BUG-FIX: contextCaption early-return previously bypassed sanitizeHorseOutput
+      if (contextCaption && contextCaption.trim().length >= 10) return sanitizeHorseOutput(contextCaption);
+    }
   }
 
-  // Fallback: detect pool from headline
-  const detected = detectCategory(safeHeadline);
-  const pool = detected
-    ? POST_CAPTIONS[detected]
-    : newsType === 'sports'
-      ? [
-          'game of the week type stuff', 'the numbers really do not lie',
-          'hard to argue with that performance', 'watching this one closely',
-          'not many people are talking about this yet', 'the sport has a moment here',
-          'every season has a story, this might be it', 'the pressure is real here',
-          'respect the grind no matter the sport', 'that stat line tells the whole story',
+  // Determine the pool based on newsType
+  let pool;
+  if (newsType === 'sports') {
+    pool = [
+      'game of the week type stuff', 'the numbers really do not lie',
+      'hard to argue with that performance', 'watching this one closely',
+      'not many people are talking about this yet', 'the sport has a moment here',
+      'every season has a story, this might be it', 'the pressure is real here',
+      'respect the grind no matter the sport', 'that stat line tells the whole story',
+    ];
+  } else {
+    // Fallback: detect pool from headline only if it's poker (or fallback to generic news)
+    const detected = detectCategory(safeHeadline);
+    pool = detected
+      ? POST_CAPTIONS[detected] || [
+          'worth reading if you follow the scene', 'good context for where things stand right now',
+          'hadn\'t heard this one yet', 'makes sense when you think about it',
+          'this changes a few things going forward', 'filed this one away',
+          'relevant if you\'re paying attention to the scene', 'the poker world keeps moving',
+          'worth knowing about', 'the story keeps going on this one',
+          'not surprised honestly but still worth noting', 'this one actually matters',
         ]
       : [
           'worth reading if you follow the scene', 'good context for where things stand right now',
@@ -727,6 +740,7 @@ export function generateNewsCaption(headline, profileId, newsType = 'poker') {
           'worth knowing about', 'the story keeps going on this one',
           'not surprised honestly but still worth noting', 'this one actually matters',
         ];
+  }
 
   // Min-length guard: retry up to 3x to avoid sub-10-char captions
   let phrase = '';
@@ -736,10 +750,21 @@ export function generateNewsCaption(headline, profileId, newsType = 'poker') {
     if (!phrase || candidate.length > phrase.length) phrase = candidate || phrase;
   }
 
-  // 20% chance: prefix with archetype flair (randomized pick)
+  // 20% chance: prefix with archetype flair
+  // ONLY prefix poker-specific flairs if newsType is poker to avoid weird sports terminology
+  // Safe flairs that are fine anywhere: honestly, facts, real talk, wild, sick, crazy
   if (archetype.flair.length > 0 && Math.random() < 0.20) {
-    const flair = archetype.flair[Math.floor(Math.random() * archetype.flair.length)];
-    phrase = `${flair}, ${phrase.toLowerCase()}`;
+    let allowedFlairs = archetype.flair;
+    if (newsType !== 'poker') {
+      // Filter out overly poker-specific flairs
+      const pokerFlairs = ['solver take', 'GTO note', 'range perspective', 'EV check', 'solver approved', 'study note'];
+      allowedFlairs = archetype.flair.filter(f => !pokerFlairs.includes(f));
+    }
+    
+    if (allowedFlairs.length > 0) {
+      const flair = allowedFlairs[Math.floor(Math.random() * allowedFlairs.length)];
+      phrase = `${flair}, ${phrase.toLowerCase()}`;
+    }
   }
 
   return sanitizeHorseOutput(applyStyle(phrase, archetype));

@@ -189,6 +189,12 @@ const COMMENT_TEMPLATES = {
         "standard deviation in action", "the swings are real",
         "trust the process", "keep playing your game", "sample size matters"
     ],
+    sports: [
+        "love watching this play out", "the numbers don't lie", "wild to see",
+        "such an unpredictable season", "the talent level right now is insane",
+        "they really have a chance this year", "every week is a movie",
+        "always tune in for these games", "could watch this all day", "respect the grind"
+    ],
     bankroll: [
         "bankroll management is key", "protect the roll",
         "smart money management", "never risk more than you can afford",
@@ -490,7 +496,7 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
     // Get recent posts
     let postsQuery = getSupabase()
         .from('social_posts')
-        .select('id, author_id, content_type, content')
+        .select('id, author_id, content_type, content, link_site_name')
         .order('created_at', { ascending: false })
         .limit(50);
 
@@ -530,7 +536,17 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
         // Phase 26: Keyword-based contextual comment selection
         let commentType = 'general';
         const lc = (post.content || '').toLowerCase();
-        if (post.content_type === 'video') commentType = 'video';
+        
+        // Guard against sports posts triggering poker regexes (e.g. 'beat', 'record')
+        const isSports = post.link_site_name && (
+            post.link_site_name.includes('ESPN') || 
+            post.link_site_name.includes('Yahoo') || 
+            post.link_site_name.includes('CBS') ||
+            post.link_site_name.includes('Sports')
+        );
+
+        if (isSports) commentType = 'sports';
+        else if (post.content_type === 'video') commentType = 'video';
         else if (post.content_type === 'photo') commentType = 'photo';
         else if (lc.includes('beat') || lc.includes('suck') || lc.includes('cooler') || lc.includes('one-outer')) commentType = 'bad_beat';
         else if (lc.includes('wsop') || lc.includes('bracelet') || lc.includes('world series')) commentType = 'wsop';
