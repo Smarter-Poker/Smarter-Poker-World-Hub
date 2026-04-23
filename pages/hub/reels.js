@@ -314,99 +314,100 @@ export default function ReelsPage() {
         try {
             const initialId = router.query.id;
 
-            // Load from social_reels (YouTube shorts posted by SmarterPokerOfficial)
-            const { data: reelsData } = await supabase
-                .from('social_reels')
-                .select('id, author_id, caption, video_url, view_count, like_count, comment_count, created_at, is_public')
-                .eq('is_public', true)
-                .order('created_at', { ascending: false })
-                .limit(50);
+            // BUG FIX: single limit-50 query let video_library (newest timestamps) monopolize feed.
+            // Fix: 3 parallel per-source queries, interleaved 2:1 (user:library) so both always appear.
+            const REEL_SELECT = 'id, author_id, caption, video_url, view_count, like_count, comment_count, created_at, is_public, source_type';
+            const [userResult, libraryResult, postsResult] = await Promise.all([
+                supabase.from('social_reels').select(REEL_SELECT)
+                    .eq('is_public', true).eq('source_type', 'user')
+                    .order('created_at', { ascending: false }).limit(60),
+                supabase.from('social_reels').select(REEL_SELECT)
+                    .eq('is_public', true).eq('source_type', 'video_library')
+                    .order('created_at', { ascending: false }).limit(60),
+                supabase.from('social_posts')
+                    .select('id, author_id, content, content_type, media_urls, like_count, comment_count, created_at, visibility')
+                    .eq('visibility', 'public').not('media_urls', 'is', null)
+                    .order('created_at', { ascending: false }).limit(100),
+            ]);
 
-            // Load from social_posts (posts with YouTube videos in media_urls)
-            const { data: postsData } = await supabase
-                .from('social_posts')
-                .select('id, author_id, content, content_type, media_urls, like_count, comment_count, created_at, visibility')
-                .eq('visibility', 'public')
-                .not('media_urls', 'is', null)
-                .order('created_at', { ascending: false })
-                .limit(100); // Get more to filter for YouTube links
+            const userReels = (userResult.data || []).map(r => ({ ...r, source: 'reels' }));
+            const libReels = (libraryResult.data || []).map(r => ({ ...r, source: 'reels' }));
 
-            // Combine both sources
+            const postsAsReels = (postsResult.data || [])
+                .filter(post => {
+                    if (!post.media_urls || post.media_urls.length === 0) return false;
+                    const url = post.media_urls[0];
+                    return post.content_type === 'video' || (url && (url.includes('youtube.com') || url.includes('youtu.be') || url.match(/\.(mp4|webm|mov)(\?|$)/i)));
+                })
+                .map(post => ({
+                    id: post.id, author_id: post.author_id,
+                    video_url: post.media_urls[0], caption: post.content,
+                    like_count: post.like_count || 0, comment_count: post.comment_count || 0,
+                    view_count: 0, created_at: post.created_at, source: 'posts'
+                }));
+
+            // Interleave 2:1 (user:library)
             const allVideos = [];
-
-            // Add reels from social_reels
-            if (reelsData && reelsData.length > 0) {
-                allVideos.push(...reelsData.map(reel => ({
-                    id: reel.id,
-                    author_id: reel.author_id,
-                    video_url: reel.video_url,
-                    caption: reel.caption,
-                    like_count: reel.like_count || 0,
-                    comment_count: reel.comment_count || 0,
-                    view_count: reel.view_count || 0,
-                    created_at: reel.created_at,
-                    source: 'reels'
-                })));
+            let uIdx = 0, lIdx = 0;
+            for (let i = 0; i < Math.max(userReels.length, libReels.length) * 3 && allVideos.length < 120; i++) {
+                const slot = i % 3;
+                if (slot === 0 || slot === 1) {
+                    if (uIdx < userReels.length) allVideos.push(userReels[uIdx++]);
+                    else if (lIdx < libReels.length) allVideos.push(libReels[lIdx++]);
+                } else {
+                    if (lIdx < libReels.length) allVideos.push(libReels[lIdx++]);
+                    else if (uIdx < userReels.length) allVideos.push(userReels[uIdx++]);
+                }
+                // Splice a post every 10 reels
+                if (allVideos.length > 0 && allVideos.length % 10 === 0) {
+                    const post = postsAsReels.shift();
+                    if (post) allVideos.push(post);
+                }
             }
+            while (uIdx < userReels.length) allVideos.push(userReels[uIdx++]);
+            while (lIdx < libReels.length) allVideos.push(libReels[lIdx++]);
+            postsAsReels.forEach(p => allVideos.push(p));
 
-            // Add videos from social_posts (only YouTube links)
-            if (postsData && postsData.length > 0) {
-                allVideos.push(...postsData
-                    .filter(post => {
-                        if (!post.media_urls || post.media_urls.length === 0) return false;
-                        // Include posts with YouTube URLs or native video uploads
-                        const url = post.media_urls[0];
-                        return post.content_type === 'video' || (url && (url.includes('youtube.com') || url.includes('youtu.be') || url.match(/\.(mp4|webm|mov)(\?|$)/i)));
-                    })
-                    .map(post => ({
-                        id: post.id,
-                        author_id: post.author_id,
-                        video_url: post.media_urls[0],
-                        caption: post.content,
-                        like_count: post.like_count || 0,
-                        comment_count: post.comment_count || 0,
-                        view_count: 0,
-                        created_at: post.created_at,
-                        source: 'posts'
-                    })));
-            }
+            // Deduplicate
+            const seenIds = new Set();
+            const deduped = allVideos.filter(v => {
+                if (seenIds.has(v.id)) return false;
+                seenIds.add(v.id);
+                return true;
+            });
 
-            if (allVideos.length > 0) {
+            if (deduped.length > 0) {
                 // Get all unique author IDs
-                const authorIds = [...new Set(allVideos.map(v => v.author_id))];
+                const authorIds = [...new Set(deduped.map(v => v.author_id))];
                 const { data: profiles } = await supabase
                     .from('profiles')
                     .select('id, username, avatar_url, full_name')
                     .in('id', authorIds)
-                    .limit(200) // Up to 150 reels+posts in initial load — need all profiles
+                    .limit(200)
 
                 const profileMap = {};
                 (profiles || []).forEach(p => { profileMap[p.id] = p; });
 
                 // Map videos with profile data
                 // CRITICAL: preserve the source flag so incrementMetric routes to the right table
-                const mappedReels = allVideos.map(video => ({
+                const mappedReels = deduped.map(video => ({
                     id: video.id,
                     author_id: video.author_id,
                     video_url: video.video_url,
                     caption: video.caption,
                     like_count: video.like_count,
                     comment_count: video.comment_count,
-                    view_count: video.view_count,
+                    view_count: video.view_count || 0,
                     created_at: video.created_at,
                     source: video.source || 'reels', // MUST be preserved — drives DB table routing
                     profiles: profileMap[video.author_id] || { username: 'Anonymous' },
                 }));
 
-                // Fisher-Yates shuffle for unbiased randomization
-                const shuffled = [...mappedReels];
-                for (let i = shuffled.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-                }
                 // #4 Not Interested — move disliked reels to end of feed
-                const fresh = shuffled.filter(r => !notInterestedIds.has(r.id));
-                const stale = shuffled.filter(r => notInterestedIds.has(r.id));
+                // NOTE: no shuffle here — interleave order already provides diversity
+                const fresh = mappedReels.filter(r => !notInterestedIds.has(r.id));
+                const stale = mappedReels.filter(r => notInterestedIds.has(r.id));
+
 
                 if (initialId) {
                     const targetIdx = fresh.findIndex(r => r.id === initialId);

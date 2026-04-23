@@ -1072,13 +1072,13 @@ export function ReelsViewer({ onClose }) {
         // Execute playback changes synchronously to avoid mobile Safari blocking deferred play()
         if (!showOverlay) {
             setShowOverlay(true);
-            if (videoRef.current && !videoRef.current.paused) {
-                if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
-                overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
-            }
+            if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+            overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
         } else {
             // Tap while overlay visible = toggle play/pause
-            if (videoRef.current) {
+            // BUG FIX: YouTube iframes have no native videoRef — skip play/pause for them
+            const isYT = isYouTubeUrl(currentReel?.video_url);
+            if (!isYT && videoRef.current) {
                 if (videoRef.current.paused) {
                     const playPromise = videoRef.current.play();
                     if (playPromise !== undefined) {
@@ -1094,6 +1094,10 @@ export function ReelsViewer({ onClose }) {
                     // Paused = Anchor HUD
                     if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
                 }
+            } else if (isYT) {
+                // YouTube: just auto-hide the overlay after 2.5s
+                if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+                overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
             }
         }
     };
@@ -1201,13 +1205,14 @@ export function ReelsViewer({ onClose }) {
                     );
                 })()}
 
-                {/* Preload next video */}
-                {reels[currentIndex + 1]?.video_url && (
+                {/* Preload next video — only for MP4/WebM (not YouTube iframes) */}
+                {reels[currentIndex + 1]?.video_url &&
+                 !isYouTubeUrl(reels[currentIndex + 1]?.video_url) && (
                     <link rel="preload" href={reels[currentIndex + 1].video_url} as="video" />
                 )}
 
-                {/* Play Button Overlay — only when paused */}
-                {paused && (
+                {/* Play Button Overlay — only when paused AND using native video */}
+                {paused && !isYouTubeUrl(currentReel?.video_url) && (
                     <div style={{
                         position: 'absolute', top: '50%', left: '50%',
                         transform: 'translate(-50%, -50%)',
