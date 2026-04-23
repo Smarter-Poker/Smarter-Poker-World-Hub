@@ -10,6 +10,8 @@ import { useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { sniffMimeType } from '../../lib/socialHelpers';
 import bgUpload from '../../lib/backgroundVideoUpload';
+import toast from '../../stores/toastStore';
+
 
 
 export default function UploadReelModal({ user, onClose, onSuccess }) {
@@ -48,19 +50,25 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
         setUploadLabel('Preparing…');
 
         try {
-            // bgUpload handles: signed URL, XHR progress, 10-second background rule, completion toast
+            // bgUpload: signed URL + XHR with 10-second background rule.
+            // wasBackground = true if modal was auto-dismissed before upload finished.
             let bgUnsub = null;
+            let wasBackground = false;
+
             const publicUrl = await new Promise((resolve, reject) => {
                 bgUnsub = bgUpload.subscribe({
                     onProgress: ({ pct, label }) => {
                         setUploadProgress(pct);
                         setUploadLabel(label);
                     },
-                    onComplete: ({ publicUrl }) => resolve(publicUrl),
+                    onComplete: ({ publicUrl, wasBackground: bg }) => {
+                        wasBackground = bg;
+                        resolve(publicUrl);
+                    },
                     onError: ({ error }) => reject(error),
                     onBackground: () => {
-                        // Upload taking >10s — close modal so user can browse.
-                        // bgUpload already shows a persistent info toast.
+                        // Upload taking >10s — close modal so user can browse freely.
+                        // bgUpload shows the persistent "uploading in background" info toast.
                         onClose?.();
                     },
                 });
@@ -118,7 +126,18 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
 
             setUploadProgress(100);
             setUploadLabel('Done!');
-            onSuccess?.();
+
+            if (wasBackground) {
+                // Modal already closed — fire persistent clickable "Your reel is live!" toast
+                toast.action(
+                    '✅ Your reel is live! Tap to see it.',
+                    () => { window.location.href = '/hub/social-media'; },
+                    'success'
+                );
+            } else {
+                // Quick upload — normal success callback (closes modal)
+                onSuccess?.();
+            }
         } catch (err) {
             console.warn('Upload error:', err);
             setError(err.message || 'Failed to upload reel');
@@ -126,6 +145,7 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
             setUploading(false);
         }
     };
+
 
 
 

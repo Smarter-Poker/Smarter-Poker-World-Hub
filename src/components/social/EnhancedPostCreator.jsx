@@ -303,11 +303,11 @@ export const EnhancedPostCreator = ({
         try {
           if (isVideo) {
             // ── Background-capable video upload ───────────────────────────────
-            // bgUpload manages the XHR at module level so it survives modal
-            // unmount. If the upload takes >10 seconds the modal auto-closes
-            // and the user can browse while we continue in the background.
-            const videoIndex = i; // capture for closure
+            // XHR lives at module level — survives modal unmount.
+            // >10s: modal auto-closes, user can browse, completion fires clickable toast.
+            const videoIndex = i;
             let bgUnsub = null;
+            let wasBackground = false;
 
             const videoUrl = await new Promise((resolve, reject) => {
               bgUnsub = bgUpload.subscribe({
@@ -315,29 +315,26 @@ export const EnhancedPostCreator = ({
                   setUploadProgress(prev => ({ ...prev, [videoIndex]: pct }));
                   setUploadStatus(prev => ({ ...prev, [videoIndex]: label }));
                 },
-                onComplete: ({ publicUrl }) => resolve(publicUrl),
+                onComplete: ({ publicUrl, wasBackground: bg }) => {
+                  wasBackground = bg;
+                  resolve(publicUrl);
+                },
                 onError: ({ error }) => reject(error),
                 onBackground: () => {
-                  // User has been waiting >10s — dismiss the modal so they can browse
-                  // The upload continues running in the background.
+                  // Upload taking >10s — close modal, let user browse
                   if (onClose) onClose();
                 },
               });
 
-              bgUpload.start({
-                file,
-                userId: user.id,
-                folder,
-              }).catch(reject);
+              bgUpload.start({ file, userId: user.id, folder }).catch(reject);
             });
 
             if (bgUnsub) bgUnsub();
-
-            uploadedMedia.push({ url: videoUrl, type: 'video', name: file.name });
+            uploadedMedia.push({ url: videoUrl, type: 'video', name: file.name, wasBackground });
             setUploadProgress(prev => ({ ...prev, [videoIndex]: 100 }));
             setUploadStatus(prev => ({ ...prev, [videoIndex]: 'Done' }));
 
-            
+
           } else {
             // Compress image before upload
             setUploadProgress(prev => ({ ...prev, [i]: 10 }));
@@ -416,21 +413,36 @@ export const EnhancedPostCreator = ({
       // Cross-tab sync — refresh feed in other open tabs
       broadcastSync('smarter_poker_social_sync', { action: 'refresh_feed', tabId: BROADCAST_TAB_ID });
 
-      // Show toast notification
-      toast.success('Posted Successfully!', 2000);
+      // ── Success UX: differs based on whether we went background ──────────
+      const videoWentBackground = uploadedMedia.some(m => m.wasBackground);
 
-      setTimeout(() => {
-        setContent('');
-        setMediaFiles([]);
-        setUploadProgress({});
-        setUploadStatus({});
-        setShowSuccess(false);
-        xhrRef.current = null;
-        // Clear the saved draft on successful post
+      if (videoWentBackground) {
+        // Modal is already closed — fire a persistent clickable toast pointing to the feed
+        toast.action(
+          '✅ Your video is live! Tap to see it in the feed.',
+          () => { window.location.href = '/hub/social-media'; },
+          'success'
+        );
+        // Clean up state even though modal is gone
         try { localStorage.removeItem('sp-enhanced-post-draft'); } catch (_) {}
         onPostCreated?.(newPost);
-        if (onClose) onClose();
-      }, 1500);
+      } else {
+        // Quick upload (<10s) — stay in modal, show success animation
+        setShowSuccess(true);
+        triggerSuccessParticles();
+        toast.success('Posted Successfully!', 2000);
+        setTimeout(() => {
+          setContent('');
+          setMediaFiles([]);
+          setUploadProgress({});
+          setUploadStatus({});
+          setShowSuccess(false);
+          try { localStorage.removeItem('sp-enhanced-post-draft'); } catch (_) {}
+          onPostCreated?.(newPost);
+          if (onClose) onClose();
+        }, 1500);
+      }
+
 
     } catch (err) {
       // Log full error to Sentry for post-mortem visibility before sanitizing for users

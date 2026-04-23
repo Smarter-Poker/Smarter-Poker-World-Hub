@@ -160,28 +160,26 @@ const bgUpload = {
             // ── Upload complete ───────────────────────────────────────────────
             clearTimeout(_bgTimer);
             _bgTimer = null;
+            const wasBackground = (_state === 'background');
             _setState('done', 100, 'Upload complete!');
-            _emit('onComplete', { publicUrl: meta.publicUrl });
+            _emit('onComplete', { publicUrl: meta.publicUrl, wasBackground });
 
-            // Fire clickable completion toast
-            toast.action(
-                '✅ Your video is live!',
-                () => onRouter ? onRouter('/hub/social-media') : (window.location.href = '/hub/social-media'),
-                'success'
-            );
+            // NOTE: callers fire the "Video is live" toast AFTER their DB insert
+            // so we don't announce too early. bgUpload only handles XHR.
 
-            return { publicUrl: meta.publicUrl };
+            return { publicUrl: meta.publicUrl, wasBackground };
 
         } catch (err) {
             clearTimeout(_bgTimer);
             _bgTimer = null;
             _activeXhr = null;
+            const wasBackground = (_state === 'background');
             _setState('error', 0, err.message || 'Upload failed');
             _emit('onError', { error: err });
 
-            // Only show error toast if in background mode (modal already gone)
-            if (_state === 'background') {
-                toast.error(`📹 Video upload failed: ${err.message}`);
+            // Only show error toast if modal is already gone (background mode)
+            if (wasBackground) {
+                toast.error(`🎥 Video upload failed: ${err.message}`);
             }
 
             throw err;

@@ -108,28 +108,45 @@ export default function VideoLibraryPage() {
     // Fetch live videos from Supabase (replaces / extends static list)
     useEffect(() => {
         let cancelled = false;
-        supabase
-            .from('video_library_videos')
-            .select('youtube_video_id, source_id, source_name, type, title, thumbnail_url, views_text, views_count, duration, published_at, scraped_at')
-            .order('scraped_at', { ascending: false })
-            .limit(600)
-            .then(({ data, error }) => {
-                if (cancelled || error || !data || data.length === 0) return;
-                // Merge DB rows with static data; DB rows take precedence by youtube_video_id
-                const dbVideos = data.map(normaliseDbVideo);
-                const dbIds = new Set(dbVideos.map(v => v.videoId));
-                // Include any static-only videos not yet in DB (safety net fallback)
-                const staticOnly = STATIC_VIDEOS.filter(v => !dbIds.has(v.videoId));
-                const merged = [...dbVideos, ...staticOnly];
-                setAllVideos(merged);
-                setVideos(merged);
-                setDbLoaded(true);
-            });
+        const PAGE_SIZE = 1000;
+        let allDbVideos = [];
+
+        async function fetchAllPages() {
+            let from = 0;
+            while (true) {
+                const { data, error } = await supabase
+                    .from('video_library_videos')
+                    .select('youtube_video_id, source_id, source_name, type, title, thumbnail_url, views_text, views_count, duration, published_at, scraped_at')
+                    .order('scraped_at', { ascending: false })
+                    .range(from, from + PAGE_SIZE - 1);
+                if (cancelled || error || !data || data.length === 0) break;
+                allDbVideos = allDbVideos.concat(data.map(normaliseDbVideo));
+                if (data.length < PAGE_SIZE) break; // last page
+                from += PAGE_SIZE;
+            }
+            if (cancelled) return;
+            // Deduplicate by videoId (DB takes precedence over static)
+            const seen = new Set();
+            const deduped = [];
+            for (const v of allDbVideos) {
+                if (!seen.has(v.videoId)) { seen.add(v.videoId); deduped.push(v); }
+            }
+            const dbIds = seen;
+            // Include any static-only videos not yet in DB (safety net fallback)
+            const staticOnly = STATIC_VIDEOS.filter(v => !dbIds.has(v.videoId));
+            const merged = [...deduped, ...staticOnly];
+            setAllVideos(merged);
+            setVideos(merged);
+            setDbLoaded(true);
+        }
+
+        fetchAllPages();
         return () => { cancelled = true; };
     }, []);
 
 
     // Handle query parameters for deep linking
+    const savedScrollY = useRef(0); // restore scroll when modal closes
     useEffect(() => {
         if (router.query.type) {
             setSelectedType(router.query.type.toUpperCase());
@@ -140,7 +157,12 @@ export default function VideoLibraryPage() {
         if (router.query.filter) {
             setSearchQuery(router.query.filter);
         }
-    }, [router.query]);
+        // ?v=VIDEO_ID — auto-open a specific video
+        if (router.query.v && allVideos.length > 0) {
+            const target = allVideos.find(v => v.videoId === router.query.v);
+            if (target) handleOpenVideo(target);
+        }
+    }, [router.query, allVideos]);
     const [searchQuery, setSearchQuery] = useState('');
     const [showReelsModal, setShowReelsModal] = useState(false);
     const modalRef = useRef(null);
@@ -156,22 +178,21 @@ export default function VideoLibraryPage() {
     const [favorites, setFavorites] = useState(new Set());
     const [watchLater, setWatchLater] = useState(new Set());
     const [watchedVideos, setWatchedVideos] = useState(new Set()); // Videos watched 60+ seconds
-    const [watchProgress, setWatchProgress] = useState(new Map()); // video_id -> { watchedSeconds, watchedAt }
+    const [watchProgress, setWatchProgress] = useState(new Map()); // video_id → { watchedSeconds, watchedAt }
     const [recentlyWatched, setRecentlyWatched] = useState([]); // Recently watched videos
     const [watchStats, setWatchStats] = useState(null); // User's watch statistics
     const [showStats, setShowStats] = useState(false); // Stats modal visibility
 
-    // Jarvis state kept minimal (panel hidden, no auto-fetch)
-    const [aiAnalysis, setAiAnalysis] = useState(null);
-    const [aiAnalysisLoading, setAiAnalysisLoading] = useState(false);
-    const [aiAnalysisSource, setAiAnalysisSource] = useState(null);
-    const [showAiPanel] = useState(false);
-    const [bottomSheetExpanded] = useState(false);
-    const [currentVideoTime, setCurrentVideoTime] = useState(0);
-    const [activeInsight] = useState(null);
-    const [insightHistory] = useState([]);
-    const ytPlayerRef = useRef(null);
-    const timeTrackingInterval = useRef(null);
+    // ── Stage 2/3 Feature State ──────────────────────────────────────────────
+    // Duration filter: 'ALL' | 'SHORT' (<15 min) | 'MEDIUM' (15-30) | 'LONG' (>30)
+    const [selectedDuration, setSelectedDuration] = useState('ALL');
+    // Share toast (copy-to-clipboard feedback)
+    const [shareToast, setShareToast] = useState(null); // { message, videoId }
+    const shareToastTimer = useRef(null);
+    // "New This Week" rail dismiss state
+    const [newThisWeekDismissed, setNewThisWeekDismissed] = useState(false);
+
+    const timeTrackingInterval = useRef(null); // keep for watch-time ticking
 
     // Watch time tracking
     const watchStartTimeRef = useRef(null);
@@ -343,11 +364,10 @@ export default function VideoLibraryPage() {
 
     // Navigate to a specific video in the current filtered list
     const handleOpenVideo = useCallback(async (video) => {
+        savedScrollY.current = typeof window !== 'undefined' ? window.scrollY : 0;
         watchStartTimeRef.current = Date.now();
         currentWatchingVideoRef.current = video;
         setSelectedVideo(video);
-        setAiAnalysis(null);
-        setAiAnalysisSource(null);
         setIframeKey(k => k + 1); // force iframe remount → guaranteed autoplay
     }, []);
 
@@ -483,7 +503,27 @@ export default function VideoLibraryPage() {
         watchStartTimeRef.current = null;
         currentWatchingVideoRef.current = null;
         setSelectedVideo(null);
+        // Restore scroll position after modal closes
+        if (typeof window !== 'undefined' && savedScrollY.current > 0) {
+            requestAnimationFrame(() => window.scrollTo({ top: savedScrollY.current, behavior: 'instant' }));
+        }
     }, [userId, watchProgress]);
+
+    // Share a video — copy deep-link to clipboard and show toast
+    const handleShareVideo = useCallback((video) => {
+        if (shareToastTimer.current) clearTimeout(shareToastTimer.current);
+        const url = `${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}/hub/video-library?v=${video.videoId}`;
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(url).catch(() => {});
+        }
+        setShareToast({ message: 'Link copied!', videoId: video.videoId });
+        shareToastTimer.current = setTimeout(() => setShareToast(null), 2500);
+    }, []);
+
+    // Mark a video as unwatched (remove from watchedVideos set)
+    const handleMarkUnwatched = useCallback((videoId) => {
+        setWatchedVideos(prev => { const s = new Set(prev); s.delete(videoId); return s; });
+    }, []);
 
     // Filter videos (runs when any filter changes OR when DB data loads)
     useEffect(() => {
@@ -493,6 +533,16 @@ export default function VideoLibraryPage() {
         }
         if (selectedSource !== 'ALL') {
             filtered = filtered.filter(v => v.source === selectedSource);
+        }
+        // Duration filter
+        if (selectedDuration !== 'ALL') {
+            filtered = filtered.filter(v => {
+                const secs = parseDuration(v.duration);
+                if (selectedDuration === 'SHORT')  return secs > 0 && secs < 15 * 60;
+                if (selectedDuration === 'MEDIUM') return secs >= 15 * 60 && secs <= 30 * 60;
+                if (selectedDuration === 'LONG')   return secs > 30 * 60;
+                return true;
+            });
         }
         if (searchQuery) {
             const q = searchQuery.toLowerCase();
@@ -508,7 +558,7 @@ export default function VideoLibraryPage() {
             return aWatched ? 1 : -1;
         });
         setVideos(filtered);
-    }, [selectedSource, selectedType, searchQuery, watchedVideos, allVideos]);
+    }, [selectedSource, selectedType, selectedDuration, searchQuery, watchedVideos, allVideos]);
 
 
     // Keyboard navigation in modal

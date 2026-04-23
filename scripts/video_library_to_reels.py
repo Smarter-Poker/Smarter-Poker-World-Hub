@@ -21,6 +21,7 @@ Usage:
     python3 scripts/video_library_to_reels.py --limit 50    # Process only N videos
     python3 scripts/video_library_to_reels.py --source HCL  # Single creator only
     python3 scripts/video_library_to_reels.py --verify      # Scrapling verify mode
+    python3 scripts/video_library_to_reels.py --sync-captions  # Update stale captions only
 """
 
 import os
@@ -77,6 +78,10 @@ _load_env()
 
 SUPABASE_URL = os.environ.get('NEXT_PUBLIC_SUPABASE_URL', '')
 SUPABASE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
+# Pinned bot profile_id for all video library reels — prevents accidental human profile selection
+# Set VIDEO_LIBRARY_BOT_PROFILE_ID in .env.local to override.
+# Falls back to the legacy alphabetical-first lookup if not set.
+VIDEO_LIBRARY_BOT_PROFILE_ID = os.environ.get('VIDEO_LIBRARY_BOT_PROFILE_ID', '')
 
 if not SUPABASE_URL or not SUPABASE_KEY:
     log.error('Missing SUPABASE credentials — checked .env.local, .env.production, .env.vercel-db')
@@ -183,20 +188,32 @@ def verify_youtube_video_scrapling(video_id):
 # ── System bot lookup ────────────────────────────────────────────────────────
 def get_system_bot_id():
     """
-    Find the system bot profile_id used for automated content.
-    Uses the same pattern as pokernews-videos.js:
-    look for a content_author with a valid profile_id.
+    Return the stable bot profile_id for automated video library reels.
+    Priority:
+      1. VIDEO_LIBRARY_BOT_PROFILE_ID env var (pinned, safest)
+      2. Legacy fallback: first content_author with a valid profile_id (alphabetical by id)
     """
+    # 1. Use pinned env var if set
+    if VIDEO_LIBRARY_BOT_PROFILE_ID:
+        log.info(f"Using pinned bot profile_id from env: {VIDEO_LIBRARY_BOT_PROFILE_ID}")
+        return VIDEO_LIBRARY_BOT_PROFILE_ID
+
+    # 2. Legacy lookup — alphabetical first content_author with a profile_id
+    #    NOTE: This is fragile — set VIDEO_LIBRARY_BOT_PROFILE_ID to eliminate this risk.
+    log.warning("VIDEO_LIBRARY_BOT_PROFILE_ID not set — falling back to alphabetical lookup")
     rows = _select(
         'content_authors',
         select='id,profile_id,name',
-        filters={'profile_id': 'not.is.null'},
+        filters={
+            'profile_id': 'not.is.null',
+            'name': 'not.ilike.*human*',   # exclude human-named authors as a safety guard
+        },
         limit=1,
         order='id.asc',
     )
     if rows and rows[0].get('profile_id'):
         bot = rows[0]
-        log.info(f"Using bot author: {bot.get('name')} / profile_id={bot['profile_id']}")
+        log.info(f"Using bot author (fallback): {bot.get('name')} / profile_id={bot['profile_id']}")
         return bot['profile_id']
 
     log.error("No valid content_author with profile_id found — cannot insert reels")
@@ -339,6 +356,75 @@ def run_bridge(args):
     return stats
 
 # ── Entry point ──────────────────────────────────────────────────────────────
+def sync_captions(dry_run=False):
+    """
+    Update stale social_reels captions from video_library_videos titles.
+    Only fixes rows where source_type = 'video_library' and the title has changed.
+    Run weekly or on-demand: python3 scripts/video_library_to_reels.py --sync-captions
+    """
+    log.info("Caption sync: fetching all video_library reels...")
+    reels = _select(
+        'social_reels',
+        select='id,video_url,caption',
+        filters={'source_type': 'eq.video_library'},
+        limit=5000,
+    )
+    log.info(f"  {len(reels)} video_library reels found")
+
+    # Build a map: youtube_video_id -> reel {id, caption}
+    reel_map = {}
+    for reel in reels:
+        url = reel.get('video_url', '')
+        for pattern in ['watch?v=', '/embed/', '/shorts/']:
+            if pattern in url:
+                vid_id = url.split(pattern)[-1].split('&')[0].split('?')[0][:11]
+                reel_map[vid_id] = reel
+                break
+
+    log.info(f"  {len(reel_map)} reels with extractable video IDs")
+
+    # Fetch current titles from video_library_videos
+    vl_rows = _select(
+        'video_library_videos',
+        select='youtube_video_id,title',
+        limit=5000,
+    )
+
+    updated = skipped = mismatched = 0
+    for row in vl_rows:
+        vid_id = row.get('youtube_video_id', '')
+        new_title = row.get('title', '').strip()
+        reel = reel_map.get(vid_id)
+        if not reel or not new_title:
+            skipped += 1
+            continue
+
+        old_caption = (reel.get('caption') or '').strip()
+        if old_caption == new_title:
+            skipped += 1
+            continue
+
+        mismatched += 1
+        log.info(f"  Caption mismatch [{vid_id}]: '{old_caption[:60]}' → '{new_title[:60]}'")
+
+        if not dry_run:
+            req_headers = dict(HEADERS)
+            req_headers.pop('Prefer', None)
+            url = f"{SUPABASE_URL}/rest/v1/social_reels?id=eq.{reel['id']}"
+            data = json.dumps({'caption': new_title}).encode()
+            req = urllib.request.Request(url, data=data, headers=req_headers, method='PATCH')
+            try:
+                with urllib.request.urlopen(req, timeout=15):
+                    updated += 1
+            except Exception as e:
+                log.warning(f"  Caption update failed for {vid_id}: {e}")
+        else:
+            updated += 1
+
+    log.info(f"Caption sync done — mismatched={mismatched} updated={updated} skipped={skipped}")
+    return {'mismatched': mismatched, 'updated': updated, 'skipped': skipped}
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Bridge video_library_videos → social_reels via Open Claw'
@@ -351,14 +437,22 @@ def main():
                         help='Process a single creator only (e.g. HCL, WSOP, BRAD_OWEN)')
     parser.add_argument('--verify', action='store_true',
                         help='Use Scrapling to verify videos are still live before inserting')
+    parser.add_argument('--sync-captions', action='store_true', dest='sync_captions',
+                        help='Update stale social_reels captions from video_library_videos titles')
     args = parser.parse_args()
 
     log.info("=" * 65)
     log.info("VIDEO LIBRARY → SOCIAL REELS BRIDGE")
-    log.info(f"  dry_run={args.dry_run} | limit={args.limit} | source={args.source} | verify={args.verify}")
+    log.info(f"  dry_run={args.dry_run} | limit={args.limit} | source={args.source} | verify={args.verify} | sync_captions={args.sync_captions}")
     log.info("=" * 65)
 
     start = time.time()
+
+    if args.sync_captions:
+        result = sync_captions(dry_run=args.dry_run)
+        log.info(f"Caption sync complete: {result}")
+        return
+
     stats = run_bridge(args)
     elapsed = time.time() - start
 

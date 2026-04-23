@@ -499,7 +499,7 @@ const PostCard = React.memo(function PostCard({ post, currentUserId, currentUser
             setLiked(prevLiked);
             setLikeCount(prevLikeCount);
             setReactions(prevReactions);
-            toast.error('Could not save reaction — please try again');
+            toast.error('Could not save reaction, please try again');
             console.warn('[PostCard] handleLike error (reverted):', e?.message || e);
         }
     };
@@ -1980,7 +1980,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                         body: file,
                     });
                     if (!uploadRes.ok) {
-                        toast.error('Video upload failed — please try again');
+                        toast.error('Video upload failed, please try again');
                         continue;
                     }
                     uploaded.push({ type: 'video', url: meta.publicUrl });
@@ -2184,7 +2184,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
         } catch (e) {
             console.warn('Delete error:', e);
             setPosts(prevPosts); // Rollback on failure
-            toast.error('Could not delete post — please try again');
+            toast.error('Could not delete post, please try again');
         }
     };
 
