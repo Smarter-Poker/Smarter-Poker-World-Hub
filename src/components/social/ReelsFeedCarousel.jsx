@@ -1032,18 +1032,6 @@ function ReelViewer({ reels, startIndex, onClose }) {
     }, [ytError, reels.length]);
 
     // Haptic helper
-    // Auto-advance on YouTube error after 3 seconds
-    useEffect(() => {
-        if (!ytError) return;
-        const timer = setTimeout(() => {
-            setCurrentIndex(prev => {
-                if (prev < reels.length - 1) return prev + 1;
-                return prev;
-            });
-        }, 3000);
-        return () => clearTimeout(timer);
-    }, [ytError, reels.length]);
-
     const haptic = (ms = 10) => { try { navigator?.vibrate?.(ms); } catch (e) { console.warn('[ReelsFeedCarousel] Handled exception:', e); } };
 
     // Save/Bookmark handler
