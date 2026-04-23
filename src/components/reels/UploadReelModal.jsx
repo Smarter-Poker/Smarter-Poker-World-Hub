@@ -6,7 +6,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { sniffMimeType } from '../../lib/socialHelpers';
 import bgUpload from '../../lib/backgroundVideoUpload';
@@ -22,6 +22,13 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
     const [caption, setCaption] = useState('');
     const [videoFile, setVideoFile] = useState(null);
     const [error, setError] = useState('');
+
+    // Mounted guard — prevents state updates after modal is unmounted by background mode
+    const mountedRef = useRef(true);
+    useEffect(() => {
+        mountedRef.current = true;
+        return () => { mountedRef.current = false; };
+    }, []);
 
     const handleFileSelect = (e) => {
         const file = e.target.files?.[0];
@@ -64,6 +71,7 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
             const publicUrl = await new Promise((resolve, reject) => {
                 bgUnsub = bgUpload.subscribe({
                     onProgress: ({ pct, label }) => {
+                        if (!mountedRef.current) return; // Guard: modal may be unmounted
                         setUploadProgress(pct);
                         setUploadLabel(label);
                     },
@@ -154,10 +162,12 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
             console.warn('Upload error:', err);
             // Only update error state if modal is still mounted
             // (bgUpload already shows an error toast if it was in background mode)
-            setUploading(false);
-            setError(err.message || 'Failed to upload reel');
+            if (mountedRef.current) {
+                setUploading(false);
+                setError(err.message || 'Failed to upload reel');
+            }
         } finally {
-            setUploading(false);
+            if (mountedRef.current) setUploading(false);
         }
     };
 

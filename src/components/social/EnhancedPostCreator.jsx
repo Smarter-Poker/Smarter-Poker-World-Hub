@@ -151,6 +151,13 @@ export const EnhancedPostCreator = ({
   const fileInputRef = useRef(null);
   const xhrRef = useRef(null);          // holds active video XHR so we can abort on unmount
   const draftTimeout = useRef(null);    // debounce handle for draft auto-save
+  const mountedRef = useRef(true);      // unmount guard for background upload callbacks
+
+  // Track mount lifecycle
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   // Character count
   const charCount = content.length;
@@ -342,6 +349,7 @@ export const EnhancedPostCreator = ({
             const videoUrl = await new Promise((resolve, reject) => {
               bgUnsub = bgUpload.subscribe({
                 onProgress: ({ pct, label }) => {
+                  if (!mountedRef.current) return; // Guard: modal may be unmounted
                   setUploadProgress(prev => ({ ...prev, [videoIndex]: pct }));
                   setUploadStatus(prev => ({ ...prev, [videoIndex]: label }));
                   // Update ghost post progress
