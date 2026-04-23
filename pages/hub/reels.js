@@ -63,7 +63,7 @@ export default function ReelsPage() {
         return true; // default muted until user interaction (browser autoplay policy)
     });
     // BUG FIX (Bug 29): userWantsSound must be consistent with muted state from localStorage
-    // Old: always true — the unmute retry loop would fight user's saved mute preference
+    // Old: always true - the unmute retry loop would fight user's saved mute preference
     const [userWantsSound, setUserWantsSound] = useState(() => {
         if (typeof window !== 'undefined') {
             const savedSound = localStorage.getItem('reels-sound-enabled');
@@ -119,7 +119,7 @@ export default function ReelsPage() {
     const overlayTimerRef = useRef(null);
     const viewedReelsRef = useRef(new Set());
     const [refreshing, setRefreshing] = useState(false);
-    // #4 Not Interested — persist disliked reel IDs in localStorage
+    // #4 Not Interested - persist disliked reel IDs in localStorage
     const [notInterestedIds, setNotInterestedIds] = useState(() => {
         if (typeof window !== 'undefined') {
             try { return new Set(JSON.parse(localStorage.getItem('reels-not-interested') || '[]')); } catch { return new Set(); }
@@ -136,16 +136,16 @@ export default function ReelsPage() {
     const [commentPage, setCommentPage] = useState(0);
     const [hasMoreComments, setHasMoreComments] = useState(false);
     const [loadingMoreComments, setLoadingMoreComments] = useState(false);
-    // Phase 6 — Comment engagement
+    // Phase 6 - Comment engagement
     const [commentLikes, setCommentLikes] = useState({});
     const [replyTo, setReplyTo] = useState(null);
-    // Phase 7 — Power features
+    // Phase 7 - Power features
     const [editingComment, setEditingComment] = useState(null);
     const [editCommentText, setEditCommentText] = useState('');
     const [playbackSpeed, setPlaybackSpeed] = useState(1);
     const [showContextMenu, setShowContextMenu] = useState(false);
     const longPressTimerRef = useRef(null);
-    // Phase 8 — Comment sort, char counter, copy link
+    // Phase 8 - Comment sort, char counter, copy link
     const [commentSort, setCommentSort] = useState('newest');
     const [copyToast, setCopyToast] = useState(false);
     const COMMENT_MAX_LENGTH = 280;
@@ -154,11 +154,11 @@ export default function ReelsPage() {
     const showErrorToast = (msg) => { setErrorToast(msg); setTimeout(() => setErrorToast(null), 3000); };
     // #6 Comment Like Counts (per-comment)
     const [commentLikeCounts, setCommentLikeCounts] = useState({});
-    // UX Overhaul — More menu + Reaction picker
+    // UX Overhaul - More menu + Reaction picker
     const [showMoreMenu, setShowMoreMenu] = useState(false);
     const [showReactionPicker, setShowReactionPicker] = useState(false);
     const reactionTimerRef = useRef(null);
-    // Phase 10 — Universal HUD auto-hide (5s timeout for usability)
+    // Phase 10 - Universal HUD auto-hide (5s timeout for usability)
     const [showOverlay, setShowOverlay] = useState(false);
     const hudTimerRef = useRef(null);
     const revealOverlay = () => {
@@ -206,7 +206,7 @@ export default function ReelsPage() {
     useEffect(() => {
         if (typeof window !== 'undefined') {
             const savedPref = localStorage.getItem('reels-sound-enabled');
-            // Sound is ON by default — only turn off if explicitly set to false
+            // Sound is ON by default - only turn off if explicitly set to false
             if (savedPref === 'false') {
                 setUserWantsSound(false);
                 setMuted(true);
@@ -281,7 +281,7 @@ export default function ReelsPage() {
         }
     };
 
-    // Auto-play AND auto-unmute on every reel — sound must ALWAYS be on
+    // Auto-play AND auto-unmute on every reel - sound must ALWAYS be on
     useEffect(() => {
         if (!loading && reels.length > 0) {
             // Aggressive unmute retry loop: 300ms, 800ms, 1500ms, 3000ms
@@ -420,12 +420,12 @@ export default function ReelsPage() {
                     comment_count: video.comment_count,
                     view_count: video.view_count || 0,
                     created_at: video.created_at,
-                    source: video.source || 'reels', // MUST be preserved — drives DB table routing
+                    source: video.source || 'reels', // MUST be preserved - drives DB table routing
                     profiles: profileMap[video.author_id] || { username: 'Anonymous' },
                 }));
 
-                // #4 Not Interested — move disliked reels to end of feed
-                // NOTE: no shuffle here — interleave order already provides diversity
+                // #4 Not Interested - move disliked reels to end of feed
+                // NOTE: no shuffle here - interleave order already provides diversity
                 const fresh = mappedReels.filter(r => !notInterestedIds.has(r.id));
                 const stale = mappedReels.filter(r => notInterestedIds.has(r.id));
 
@@ -470,7 +470,7 @@ export default function ReelsPage() {
                 setReels(finalReels);
 
                 // Initialize like/comment/view counts from the FINAL displayed array
-                // (not shuffled — fresh/stale order may differ, and Not Interested IDs may be excluded)
+                // (not shuffled - fresh/stale order may differ, and Not Interested IDs may be excluded)
                 const lc = {}, cc = {}, vc = {};
                 finalReels.forEach(r => {
                     lc[r.id] = r.like_count || 0;
@@ -490,17 +490,17 @@ export default function ReelsPage() {
     }, [notInterestedIds]);
 
     // Helper to atomically increment/decrement counts for reels OR posts
-    // Uses SECURITY DEFINER RPCs — no race condition, no read-then-write
+    // Uses SECURITY DEFINER RPCs - no race condition, no read-then-write
     const incrementMetric = async (reel, field, amount) => {
         if (!reel?.id) return;
         try {
             if (reel.source === 'posts') {
-                // social_posts path — use post-specific RPC
+                // social_posts path - use post-specific RPC
                 const rpc = amount > 0 ? 'increment_post_count' : 'decrement_post_count';
                 const { error } = await supabase.rpc(rpc, { p_post_id: reel.id, p_field: field });
                 if (error) throw error;
             } else {
-                // social_reels path (native reels) — use reel-specific RPC
+                // social_reels path (native reels) - use reel-specific RPC
                 const rpc = amount > 0 ? 'increment_reel_count' : 'decrement_reel_count';
                 const { error } = await supabase.rpc(rpc, { p_reel_id: reel.id, p_field: field });
                 if (error) throw error;
@@ -517,10 +517,10 @@ export default function ReelsPage() {
         if (!router.query.id || reels.length === 0) return;
         const targetIdx = reels.findIndex(r => r.id === router.query.id);
         if (targetIdx !== -1 && targetIdx !== currentIndex) {
-            // Found in current batch — jump to it
+            // Found in current batch - jump to it
             setCurrentIndex(targetIdx);
         } else if (targetIdx === -1) {
-            // Not in loaded batch — direct-query for this specific reel and prepend
+            // Not in loaded batch - direct-query for this specific reel and prepend
             (async () => {
                 try {
                     const { supabase } = await import('../../src/lib/supabase');
@@ -597,7 +597,7 @@ export default function ReelsPage() {
         }
     };
 
-    // Infinite scroll — load more when near end
+    // Infinite scroll - load more when near end
     useEffect(() => {
         if (currentIndex >= reels.length - 3 && hasMore && !loadingMore && reels.length > 0) {
             loadMoreReels();
@@ -611,13 +611,13 @@ export default function ReelsPage() {
             const nextPage = page + 1;
             // BUG FIX (Bug 19): initial load fetches 60 per source, so offset must use 60-row pages
             // to avoid overlap. Old code used 50-row pages causing 10-row overlap on page 2.
-            // Also: missing source_type split — library reels could re-monopolize load-more batches.
+            // Also: missing source_type split - library reels could re-monopolize load-more batches.
             const offset = nextPage * 60;
             const allNewVideos = [];
 
             const REEL_SELECT = 'id, author_id, caption, video_url, thumbnail_url, view_count, like_count, comment_count, created_at, is_public, source_type';
 
-            // Fetch each source separately — same 3-source pattern as loadReels()
+            // Fetch each source separately - same 3-source pattern as loadReels()
             const [userResult, libraryResult, postsResult] = await Promise.all([
                 supabase.from('social_reels')
                     .select(REEL_SELECT)
@@ -639,7 +639,7 @@ export default function ReelsPage() {
                     .range(offset, offset + 19),
             ]);
 
-            // Interleave 2:2:1 — user reels : library reels : posts
+            // Interleave 2:2:1 - user reels : library reels : posts
             const userReels = (userResult.data || []).map(r => ({ ...r, source: 'reels' }));
             const libReels = (libraryResult.data || []).map(r => ({ ...r, source: 'reels' }));
             const posts = ((postsResult.data || []).filter(p => {
@@ -700,7 +700,7 @@ export default function ReelsPage() {
         if (currentReel?.id) {
             setVideoProgress(0);
             setCaptionExpanded(false);
-            // Deduplicated view count — only fire once per reel per session (auth only)
+            // Deduplicated view count - only fire once per reel per session (auth only)
             if (user?.id && !viewedReelsRef.current.has(currentReel.id)) {
                 viewedReelsRef.current.add(currentReel.id);
                 // Increment in DB AND update local state so UI reflects the view
@@ -721,7 +721,7 @@ export default function ReelsPage() {
         const wasLiked = liked[postId];
         setLiked(prev => ({ ...prev, [postId]: !wasLiked }));
         setLikeCounts(prev => ({ ...prev, [postId]: Math.max(0, (prev[postId] || currentReel.like_count || 0) + (wasLiked ? -1 : 1)) }));
-        // #7 Animated Like Counter — trigger bounce
+        // #7 Animated Like Counter - trigger bounce
         setLikeBounceId(postId);
         setTimeout(() => setLikeBounceId(null), 400);
         haptic(wasLiked ? 5 : 15);
@@ -733,11 +733,11 @@ export default function ReelsPage() {
 
         try {
             if (wasLiked) {
-                // DB trigger (trig_sync_like_count) handles like_count decrement atomically — no RPC needed
+                // DB trigger (trig_sync_like_count) handles like_count decrement atomically - no RPC needed
                 await supabase.from('social_likes').delete().eq('post_id', postId).eq('user_id', user.id).eq('reaction_type', 'like');
                 busEmit.socialPostLiked(postId, user.id, { added: false, reactionType: 'like' });
             } else {
-                // DB trigger (trig_sync_like_count) handles like_count increment atomically — no RPC needed
+                // DB trigger (trig_sync_like_count) handles like_count increment atomically - no RPC needed
                 await supabase.from('social_likes').insert({ post_id: postId, user_id: user.id, reaction_type: 'like' });
                 busEmit.socialPostLiked(postId, user.id, { added: true, reactionType: 'like' });
             }
@@ -763,18 +763,18 @@ export default function ReelsPage() {
             setLiked(prev => ({ ...prev, [postId]: false }));
             setLikeCounts(prev => ({ ...prev, [postId]: Math.max(0, (prev[postId] || 0) - 1) }));
             try {
-                // DB trigger handles like_count decrement when like is removed — no RPC needed
+                // DB trigger handles like_count decrement when like is removed - no RPC needed
                 await supabase.from('social_likes').delete().eq('post_id', postId).eq('user_id', user.id).eq('reaction_type', 'like');
             } catch (e) { console.warn('[App] Handled exception:', e); }
         }
         try {
             if (wasDisliked) {
                 await supabase.from('social_likes').delete().eq('post_id', postId).eq('user_id', user.id).eq('reaction_type', 'dislike');
-                // #4 Not Interested — remove from filter
+                // #4 Not Interested - remove from filter
                 setNotInterestedIds(prev => { const n = new Set(prev); n.delete(postId); if (typeof window !== 'undefined') localStorage.setItem('reels-not-interested', JSON.stringify([...n])); return n; });
             } else {
                 await supabase.from('social_likes').insert({ post_id: postId, user_id: user.id, reaction_type: 'dislike' });
-                // #4 Not Interested — add to filter
+                // #4 Not Interested - add to filter
                 setNotInterestedIds(prev => { const n = new Set(prev); n.add(postId); if (typeof window !== 'undefined') localStorage.setItem('reels-not-interested', JSON.stringify([...n])); return n; });
             }
         } catch {
@@ -912,7 +912,7 @@ export default function ReelsPage() {
         }
     };
 
-    // #6 Comment Pagination — Load More
+    // #6 Comment Pagination - Load More
     const loadMoreComments = async () => {
         if (!currentReel?.id || loadingMoreComments || !hasMoreComments) return;
         setLoadingMoreComments(true);
@@ -973,7 +973,7 @@ export default function ReelsPage() {
         setSubmittingComment(false);
     };
 
-    // Phase 6 — Comment like toggle
+    // Phase 6 - Comment like toggle
     const handleCommentLike = async (commentId) => {
         if (!user?.id) return;
         const wasLiked = commentLikes[commentId];
@@ -1002,7 +1002,7 @@ export default function ReelsPage() {
         }
     };
 
-    // Phase 6 — Delete own comment
+    // Phase 6 - Delete own comment
     const handleDeleteComment = async (commentId) => {
         if (!user?.id || !currentReel?.id) return;
         const prev = comments;
@@ -1017,7 +1017,7 @@ export default function ReelsPage() {
         } catch { setComments(prev); }
     };
 
-    // Phase 7 — Edit own comment
+    // Phase 7 - Edit own comment
     const handleEditComment = (comment) => {
         setEditingComment(comment.id);
         setEditCommentText(comment.content || '');
@@ -1037,7 +1037,7 @@ export default function ReelsPage() {
         setEditCommentText('');
     };
 
-    // Phase 7 — Playback speed toggle (YouTube)
+    // Phase 7 - Playback speed toggle (YouTube)
     const handleSpeedToggle = () => {
         const speeds = [1, 1.25, 1.5, 2, 0.5, 0.75];
         const nextIdx = (speeds.indexOf(playbackSpeed) + 1) % speeds.length;
@@ -1051,16 +1051,16 @@ export default function ReelsPage() {
                 event: 'command', func: 'setPlaybackRate', args: [newSpeed]
             }), 'https://www.youtube-nocookie.com');
         } else if (videoRef.current) {
-            // Native video element — set playbackRate directly
+            // Native video element - set playbackRate directly
             videoRef.current.playbackRate = newSpeed;
         }
     };
 
-    // Phase 9: 1-Click Repost Architecture — open modal AND directly share to feed
+    // Phase 9: 1-Click Repost Architecture - open modal AND directly share to feed
     const handleShare = () => {
         if (!currentReel?.id) return;
         haptic(10);
-        // BUG FIX (Bug 27): removed auto-shareToFeed — was silently creating a social post
+        // BUG FIX (Bug 27): removed auto-shareToFeed - was silently creating a social post
         // on EVERY share button click, even if the user just wanted to copy the link.
         // Share-to-feed is now an explicit user action from within the share modal.
         setShowShareModal(true);
@@ -1096,7 +1096,7 @@ export default function ReelsPage() {
         }
     };
 
-    // Share to My Feed — creates a social_posts entry linking this reel
+    // Share to My Feed - creates a social_posts entry linking this reel
     const [sharingToFeed, setSharingToFeed] = useState(false);
     const [sharedToFeed, setSharedToFeed] = useState(false);
     const handleShareToFeed = async () => {
@@ -1106,7 +1106,7 @@ export default function ReelsPage() {
             const videoUrl = currentReel.video_url;
             const caption = currentReel.caption || 'Check out this reel!';
             const reelLink = window.location.origin + '/hub/reels?id=' + currentReel.id;
-            // #5 Duplicate guard — check if already shared
+            // #5 Duplicate guard - check if already shared
             const { data: existing } = await supabase.from('social_posts')
                 .select('id').eq('author_id', user.id).eq('link_url', reelLink).limit(1);
             if (existing && existing.length > 0) {
@@ -1132,7 +1132,7 @@ export default function ReelsPage() {
             setTimeout(() => { setSharedToFeed(false); }, 3000);
         } catch (err) {
             console.warn('Share to feed failed:', err.message);
-            showErrorToast('Share failed — try again');
+            showErrorToast('Share failed - try again');
         }
         setSharingToFeed(false);
     };
@@ -1156,7 +1156,7 @@ export default function ReelsPage() {
     const handleSave = async () => {
         if (!currentReel || !user) return;
         const isSaved = savedReels.has(currentReel.id);
-        // #1 Optimistic update — instant UI response
+        // #1 Optimistic update - instant UI response
         if (isSaved) {
             setSavedReels(prev => { const s = new Set(prev); s.delete(currentReel.id); return s; });
         } else {
@@ -1175,7 +1175,7 @@ export default function ReelsPage() {
         } catch (err) {
             console.warn('[App] Handled exception:', err?.message || err);
             setSavedReels(prev => { const s = new Set(prev); s.delete(currentReel.id); return s; });
-            showErrorToast('Save failed — try again');
+            showErrorToast('Save failed - try again');
             console.warn('Save reel failed:', err);
         }
     };
@@ -1203,7 +1203,7 @@ export default function ReelsPage() {
         setShowCaptions: (val) => updatePreference('showCaptions', val)
     });
 
-    // Handler refs — prevent stale closures in keyboard shortcuts
+    // Handler refs - prevent stale closures in keyboard shortcuts
     const handleLikeRef = useRef(handleLike);
     const handleDislikeRef = useRef(handleDislike);
     const handleSaveRef = useRef(handleSave);
@@ -1339,7 +1339,7 @@ export default function ReelsPage() {
             }
         };
 
-        // YouTube API message listener — auto-advance on video end
+        // YouTube API message listener - auto-advance on video end
         // Origin-validated: only accept messages from YouTube embed domains
         const YOUTUBE_ORIGINS = ['https://www.youtube-nocookie.com', 'https://www.youtube.com', 'https://youtube.com'];
         const handleYTMessage = (e) => {
@@ -1380,14 +1380,14 @@ export default function ReelsPage() {
             window.removeEventListener('message', handleYTMessage);
         };
     }, []);
-  // Realtime subscription — only reload on new social_reels; social_posts inserts are too
+  // Realtime subscription - only reload on new social_reels; social_posts inserts are too
   // frequent (every post, not just video posts) to trigger a full feed reload
   useEffect(() => {
     if (!user?.id) return;
     const _ch = supabase
       .channel(`reels:${user.id}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_reels' }, () => {
-        // New native reel — prepend to feed without full reload
+        // New native reel - prepend to feed without full reload
         loadReels();
       })
       .subscribe();
@@ -1395,7 +1395,7 @@ export default function ReelsPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
-    // EventBus listeners — sync state from other video viewers
+    // EventBus listeners - sync state from other video viewers
     useEffect(() => {
         const handleLikeBus = (event) => {
             const d = event?.payload;
@@ -1454,7 +1454,7 @@ export default function ReelsPage() {
         return (
             <>
                 <SEOHead
-                    title="Poker Reels — Short Poker Content"
+                    title="Poker Reels - Short Poker Content"
                     description="Watch And Share Short Poker Videos, Highlights, And Tips On Smarter.Poker Reels."
                     canonical="/hub/reels"
                 />
@@ -1553,7 +1553,7 @@ export default function ReelsPage() {
                 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
                 {/* Dynamic OpenGraph for shared reel links */}
                 <meta property="og:title" content={currentReel?.caption ? currentReel.caption.slice(0, 70) : 'Poker Reel on Smarter.Poker'} />
-                <meta property="og:description" content={`${currentReel?.profiles?.username ? `by ${currentReel.profiles.username} — ` : ''}Watch poker reels on Smarter.Poker`} />
+                <meta property="og:description" content={`${currentReel?.profiles?.username ? `by ${currentReel.profiles.username} - ` : ''}Watch poker reels on Smarter.Poker`} />
                 {videoId && <meta property="og:image" content={`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`} />}
                 <meta property="og:type" content="video.other" />
                 <meta property="og:url" content={`https://smarter.poker/hub/reels${currentReel?.id ? `?id=${currentReel.id}` : ''}`} />
@@ -1622,7 +1622,7 @@ export default function ReelsPage() {
                     Reels
                 </div>
 
-                {/* Engagement Stats Pill — view count removed (private to poster only) */}
+                {/* Engagement Stats Pill - view count removed (private to poster only) */}
                 <div style={{
                     position: 'absolute', top: 20, right: 16, zIndex: 100,
                     display: 'flex', gap: 12, padding: '6px 14px', borderRadius: 20,
@@ -1699,7 +1699,7 @@ export default function ReelsPage() {
                             }}
                         />
                     ) : currentReel?.video_url ? (
-                        /* Native video (mp4/webm/mov) — user-uploaded content */
+                        /* Native video (mp4/webm/mov) - user-uploaded content */
                         <video
                             ref={videoRef}
                             key={currentReel.id}
@@ -1842,7 +1842,7 @@ export default function ReelsPage() {
                     </div>
                 )}
 
-                {/* Pause indicator — shown when video is paused */}
+                {/* Pause indicator - shown when video is paused */}
                 {isPaused && (
                     <div style={{
                         position: 'absolute', top: '50%', left: '50%',
@@ -1871,7 +1871,7 @@ export default function ReelsPage() {
                     opacity: showOverlay ? 1 : 0, transition: 'opacity 0.3s ease',
                 }} />
 
-                {/* Author info overlay — ALWAYS VISIBLE & TOUCHABLE */}
+                {/* Author info overlay - ALWAYS VISIBLE & TOUCHABLE */}
                 <div style={{
                     position: 'absolute', bottom: 120, left: 16, right: 80, zIndex: 100,
                 }}>
@@ -1936,12 +1936,12 @@ export default function ReelsPage() {
                     )}
                 </div>
 
-                {/* Right Action Sidebar — ALWAYS VISIBLE & TOUCHABLE on mobile */}
+                {/* Right Action Sidebar - ALWAYS VISIBLE & TOUCHABLE on mobile */}
                 <div style={{
                     position: 'absolute', right: 12, bottom: 110, zIndex: 100,
                     display: 'flex', flexDirection: 'column', gap: 24, alignItems: 'center',
                 }}>
-                    {/* Heart — tap to like, long-press for reactions */}
+                    {/* Heart - tap to like, long-press for reactions */}
                     <div style={{ position: 'relative' }}>
                         <button
                             onClick={() => {
@@ -1975,7 +1975,7 @@ export default function ReelsPage() {
                                 {likeCounts[currentReel?.id] ?? (currentReel?.like_count || 0)}
                             </span>
                         </button>
-                        {/* Reaction Picker — appears on long-press */}
+                        {/* Reaction Picker - appears on long-press */}
                         {showReactionPicker && (
                             <div style={{
                                 position: 'absolute', right: 48, top: '50%', transform: 'translateY(-50%)',
@@ -2046,7 +2046,7 @@ export default function ReelsPage() {
                         </span>
                     </button>
 
-                    {/* More (···) — opens panel with Sound, Report, Speed, Link */}
+                    {/* More (···) - opens panel with Sound, Report, Speed, Link */}
                     <div style={{ position: 'relative' }}>
                         <button onClick={() => setShowMoreMenu(prev => !prev)} aria-label="More options" style={{
                             background: 'none', border: 'none', cursor: 'pointer',
@@ -2120,7 +2120,7 @@ export default function ReelsPage() {
                     </div>
                 </div>
 
-                {/* Floating Mute/Unmute Button — Always visible */}
+                {/* Floating Mute/Unmute Button - Always visible */}
                 <button
                     onClick={() => {
                         if (muted) {
@@ -2384,7 +2384,7 @@ export default function ReelsPage() {
                         }}>
                             <span style={{ color: 'white', fontWeight: 700, fontSize: 16 }}>Comments</span>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                {/* Phase 8 — Sort toggle */}
+                                {/* Phase 8 - Sort toggle */}
                                 <button onClick={() => {
                                     const next = commentSort === 'newest' ? 'oldest' : 'newest';
                                     setCommentSort(next);
@@ -2417,7 +2417,7 @@ export default function ReelsPage() {
                                     <div style={{ flex: 1 }}>
                                         <span style={{ color: 'white', fontWeight: 600, fontSize: 13 }}>{c.profiles?.username || c.author?.username || 'User'}</span>
                                         <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginLeft: 8 }}>{c.created_at ? timeAgo(c.created_at) : ''}</span>
-                                        {/* Phase 7 — Inline edit mode */}
+                                        {/* Phase 7 - Inline edit mode */}
                                         {editingComment === c.id ? (
                                             <div style={{ marginTop: 4, display: 'flex', gap: 6, alignItems: 'center' }}>
                                                 <input value={editCommentText} onChange={e => setEditCommentText(e.target.value)}
@@ -2436,7 +2436,7 @@ export default function ReelsPage() {
                                                 objectFit: 'cover', border: '1px solid rgba(255,255,255,0.1)',
                                             }} loading="lazy" />
                                         )}
-                                        {/* Phase 6+7 — Comment engagement row */}
+                                        {/* Phase 6+7 - Comment engagement row */}
                                         <div style={{ display: 'flex', gap: 14, marginTop: 4, alignItems: 'center' }}>
                                             <button onClick={() => handleCommentLike(c.id)} style={{
                                                 background: 'none', border: 'none', cursor: 'pointer', padding: 0,
@@ -2461,7 +2461,7 @@ export default function ReelsPage() {
                                     </div>
                                 </div>
                             ))}
-                            {/* #6 Comment Pagination — Load More */}
+                            {/* #6 Comment Pagination - Load More */}
                             {hasMoreComments && (
                                 <button onClick={loadMoreComments} disabled={loadingMoreComments} style={{
                                     width: '100%', padding: '10px', background: 'rgba(255,255,255,0.08)',
@@ -2549,7 +2549,7 @@ export default function ReelsPage() {
                                     }}
                                 >{submittingComment ? '...' : 'Post'}</button>
                             </div>
-                            {/* Phase 8 — Character counter */}
+                            {/* Phase 8 - Character counter */}
                             {commentText.length > 0 && (
                                 <div style={{ textAlign: 'right', fontSize: 10, color: commentText.length >= COMMENT_MAX_LENGTH - 20 ? '#ef4444' : 'rgba(255,255,255,0.3)', paddingRight: 4 }}>
                                     {commentText.length}/{COMMENT_MAX_LENGTH}
@@ -2559,7 +2559,7 @@ export default function ReelsPage() {
                     </div>
                 )}
 
-                {/* Phase 8 — Copy Link Toast */}
+                {/* Phase 8 - Copy Link Toast */}
                 {copyToast && (
                     <div style={{
                         position: 'absolute', top: 80, left: '50%', transform: 'translateX(-50%)',
@@ -2628,7 +2628,7 @@ export default function ReelsPage() {
                     </div>
                 )}
 
-                {/* Preload next reel — hidden iframe for instant switching */}
+                {/* Preload next reel - hidden iframe for instant switching */}
                 {reels[currentIndex + 1] && (() => {
                     const nextVid = getYouTubeVideoId(reels[currentIndex + 1]?.video_url);
                     return nextVid ? (

@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   📤 SHARE CARD GENERATOR — Canvas-based shareable result cards
+   📤 SHARE CARD GENERATOR - Canvas-based shareable result cards
    Creates a PNG image from game results for social sharing
    ═══════════════════════════════════════════════════════════════════════════ */
 

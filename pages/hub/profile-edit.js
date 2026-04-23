@@ -1344,6 +1344,7 @@ export default function ProfilePage() {
             first_name: (profile.first_name || '').trim(),
             last_name: (profile.last_name || '').trim(),
             username: (profile.username || '').trim() || null,
+            alias: (profile.username || '').trim() || null,
             bio: profile.bio,
             city: profile.city,
             state: profile.state,
@@ -1402,6 +1403,31 @@ export default function ProfilePage() {
             }
         } catch (fetchErr) {
             error = { message: fetchErr.message };
+        }
+
+        // ── UPDATE AUTH METADATA ──
+        if (!error) {
+            try {
+                const mdRes = await fetch('/api/auth/update-metadata', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${userToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        metadata: {
+                            poker_alias: (profile.username || '').trim() || null,
+                            full_name: `${(profile.first_name || '').trim()} ${(profile.last_name || '').trim()}`.trim(),
+                            avatar_url: profile.avatar_url || null
+                        }
+                    })
+                });
+                if (!mdRes.ok) {
+                    console.warn('[Profile Edit] Non-fatal error syncing auth metadata:', await mdRes.text());
+                }
+            } catch (mdErr) {
+                console.warn('[Profile Edit] Failed to update auth metadata:', mdErr);
+            }
         }
 
         if (error) {

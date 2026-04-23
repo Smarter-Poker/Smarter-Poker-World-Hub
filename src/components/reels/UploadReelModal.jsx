@@ -81,8 +81,10 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
             });
             if (bgUnsub) bgUnsub();
 
-            setUploadProgress(94);
-            setUploadLabel('Saving reel…');
+            if (!wasBackground) {
+                setUploadProgress(94);
+                setUploadLabel('Saving reel…');
+            }
 
             // Create social_reels entry
             const { data: reelRow, error: insertError } = await supabase
@@ -102,8 +104,10 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
 
             if (insertError) throw insertError;
 
-            setUploadProgress(97);
-            setUploadLabel('Syncing feed…');
+            if (!wasBackground) {
+                setUploadProgress(97);
+                setUploadLabel('Syncing feed…');
+            }
 
             // Create social_posts entry for feed (non-fatal)
             try {
@@ -124,8 +128,10 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
                 console.warn('[UploadReel] Feed post creation failed (non-fatal):', feedErr.message);
             }
 
-            setUploadProgress(100);
-            setUploadLabel('Done!');
+            if (!wasBackground) {
+                setUploadProgress(100);
+                setUploadLabel('Done!');
+            }
 
             if (wasBackground) {
                 // Modal already closed — fire persistent clickable "Your reel is live!" toast
@@ -140,6 +146,9 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
             }
         } catch (err) {
             console.warn('Upload error:', err);
+            // Only update error state if modal is still mounted
+            // (bgUpload already shows an error toast if it was in background mode)
+            setUploading(false);
             setError(err.message || 'Failed to upload reel');
         } finally {
             setUploading(false);

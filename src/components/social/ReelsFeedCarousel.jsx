@@ -197,7 +197,7 @@ function ReelCard({ reel, onClick }) {
                 )}
             </div>
 
-            {/* View count intentionally hidden — visible to poster only, not shown publicly */}
+            {/* View count intentionally hidden - visible to poster only, not shown publicly */}
         </div>
     );
 }
@@ -207,7 +207,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
 
     // Source-aware atomic engagement counter.
     // Reels in the carousel may come from social_reels OR social_posts.
-    // Uses SECURITY DEFINER RPCs — single UPDATE, no read-then-write race condition.
+    // Uses SECURITY DEFINER RPCs - single UPDATE, no read-then-write race condition.
     const incrementMetric = async (reel, field, amount) => {
         if (!reel?.id) return;
         try {
@@ -254,7 +254,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
     // Phase 9: Long Press Context Menu
     const [showContextMenu, setShowContextMenu] = useState(false);
     const longPressTimerRef = useRef(null);
-    // Long-press handlers (haptic defined later — accessed via ref)
+    // Long-press handlers (haptic defined later - accessed via ref)
     const handleLongPressTouchStart = () => {
         longPressTimerRef.current = setTimeout(() => {
             try { navigator?.vibrate?.(20); } catch (e) { console.warn('[ReelsFeedCarousel] Handled exception:', e); }
@@ -281,7 +281,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
     const [showShareModal, setShowShareModal] = useState(false);
     // #7 Animated Like Counter
     const [likeBounceId, setLikeBounceId] = useState(null);
-    // #4 Not Interested — persist disliked reel IDs in localStorage
+    // #4 Not Interested - persist disliked reel IDs in localStorage
     const [notInterestedIds, setNotInterestedIds] = useState(() => {
         if (typeof window !== 'undefined') {
             try { return new Set(JSON.parse(localStorage.getItem('reels-not-interested') || '[]')); } catch { return new Set(); }
@@ -292,14 +292,14 @@ function ReelViewer({ reels, startIndex, onClose }) {
     const [commentPage, setCommentPage] = useState(0);
     const [hasMoreComments, setHasMoreComments] = useState(false);
     const [loadingMoreComments, setLoadingMoreComments] = useState(false);
-    // Phase 6 — Comment engagement
+    // Phase 6 - Comment engagement
     const [commentLikes, setCommentLikes] = useState({});
     const [replyTo, setReplyTo] = useState(null);
-    // Phase 7 — Power features
+    // Phase 7 - Power features
     const [editingComment, setEditingComment] = useState(null);
     const [editCommentText, setEditCommentText] = useState('');
     const [playbackSpeed, setPlaybackSpeed] = useState(1);
-    // Phase 8 — Comment sort, char counter, copy link
+    // Phase 8 - Comment sort, char counter, copy link
     const [commentSort, setCommentSort] = useState('newest');
     const [copyToast, setCopyToast] = useState(false);
     const COMMENT_MAX_LENGTH = 280;
@@ -308,7 +308,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
     const showErrorToast = (msg) => { setErrorToast(msg); setTimeout(() => setErrorToast(null), 3000); };
     // #6 Comment Like Counts
     const [commentLikeCounts, setCommentLikeCounts] = useState({});
-    // UX Overhaul — More menu + Reaction picker
+    // UX Overhaul - More menu + Reaction picker
     const [showMoreMenu, setShowMoreMenu] = useState(false);
     const [showReactionPicker, setShowReactionPicker] = useState(false);
     const reactionTimerRef = useRef(null);
@@ -403,7 +403,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
             });
     }, [authUser?.id]);
 
-    // EventBus listeners — sync like/bookmark from other viewers
+    // EventBus listeners - sync like/bookmark from other viewers
     useEffect(() => {
         const handleLikeBus = (event) => {
             const d = event?.payload;
@@ -514,17 +514,17 @@ function ReelViewer({ reels, startIndex, onClose }) {
         setTimeout(() => { likeDebounceRef.current = false; }, 300);
 
         const currentId = currentReel.id;
-        // Optimistic UI update — always fire so heart turns red immediately
+        // Optimistic UI update - always fire so heart turns red immediately
         const wasLiked = liked[currentId];
         setLiked(prev => ({ ...prev, [currentId]: !prev[currentId] }));
         setLikeCounts(prev => ({ ...prev, [currentId]: Math.max(0, (prev[currentId] || 0) + (wasLiked ? -1 : 1)) }));
-        // #7 Animated Like Counter — trigger bounce
+        // #7 Animated Like Counter - trigger bounce
         setLikeBounceId(currentId);
         setTimeout(() => setLikeBounceId(null), 400);
 
         // Resolve userId fresh to avoid stale closure if authUser not yet hydrated
         const userId = authUser?.id || getAuthUser()?.id;
-        if (!userId) return; // No auth — keep optimistic UI but skip DB write
+        if (!userId) return; // No auth - keep optimistic UI but skip DB write
 
         // Mutual exclusion: remove dislike when liking
         if (!wasLiked && disliked[currentId]) {
@@ -534,11 +534,11 @@ function ReelViewer({ reels, startIndex, onClose }) {
 
         try {
             if (wasLiked) {
-                // DB trigger (trig_sync_like_count) handles like_count atomically — no RPC needed
+                // DB trigger (trig_sync_like_count) handles like_count atomically - no RPC needed
                 await supabase.from('social_likes').delete().eq('post_id', currentId).eq('user_id', userId).eq('reaction_type', 'like');
                 busEmit.socialPostLiked(currentId, userId, { added: false, reactionType: 'like' });
             } else {
-                // DB trigger (trig_sync_like_count) handles like_count atomically — no RPC needed
+                // DB trigger (trig_sync_like_count) handles like_count atomically - no RPC needed
                 await supabase.from('social_likes').insert({ post_id: currentId, user_id: userId, reaction_type: 'like' });
                 busEmit.socialPostLiked(currentId, userId, { added: true, reactionType: 'like' });
             }
@@ -547,7 +547,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
             // Roll back optimistic update on failure
             setLiked(prev => ({ ...prev, [currentId]: wasLiked }));
             setLikeCounts(prev => ({ ...prev, [currentId]: Math.max(0, (prev[currentId] || 0) + (wasLiked ? 1 : -1)) }));
-            showErrorToast('Like failed — try again');
+            showErrorToast('Like failed - try again');
         }
     };
 
@@ -567,11 +567,11 @@ function ReelViewer({ reels, startIndex, onClose }) {
         }
 
         const userId = authUser?.id || getAuthUser()?.id;
-        if (!userId) return; // No auth — keep optimistic UI but skip DB write
+        if (!userId) return; // No auth - keep optimistic UI but skip DB write
 
         if (!wasDisliked && liked[currentId]) {
             try {
-                // DB trigger handles like_count decrement when like is removed — no RPC needed
+                // DB trigger handles like_count decrement when like is removed - no RPC needed
                 await supabase.from('social_likes').delete().eq('post_id', currentId).eq('user_id', userId).eq('reaction_type', 'like');
             } catch (e) { console.warn('[ReelsFeedCarousel] Handled exception:', e); }
         }
@@ -579,11 +579,11 @@ function ReelViewer({ reels, startIndex, onClose }) {
         try {
             if (wasDisliked) {
                 await supabase.from('social_likes').delete().eq('post_id', currentId).eq('user_id', userId).eq('reaction_type', 'dislike');
-                // #4 Not Interested — remove from filter
+                // #4 Not Interested - remove from filter
                 setNotInterestedIds(prev => { const n = new Set(prev); n.delete(currentId); if (typeof window !== 'undefined') localStorage.setItem('reels-not-interested', JSON.stringify([...n])); return n; });
             } else {
                 await supabase.from('social_likes').insert({ post_id: currentId, user_id: userId, reaction_type: 'dislike' });
-                // #4 Not Interested — add to filter
+                // #4 Not Interested - add to filter
                 setNotInterestedIds(prev => { const n = new Set(prev); n.add(currentId); if (typeof window !== 'undefined') localStorage.setItem('reels-not-interested', JSON.stringify([...n])); return n; });
             }
         } catch {
@@ -620,7 +620,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
         }
     };
 
-    // #6 Comment Pagination — Load More
+    // #6 Comment Pagination - Load More
     const loadMoreComments = async () => {
         if (!currentReel?.id || loadingMoreComments || !hasMoreComments) return;
         setLoadingMoreComments(true);
@@ -679,7 +679,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
         }
     };
 
-    // Phase 6 — Comment like toggle
+    // Phase 6 - Comment like toggle
     const handleCommentLike = async (commentId) => {
         if (!authUser?.id) return;
         const wasLiked = commentLikes[commentId];
@@ -702,7 +702,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
         }
     };
 
-    // Phase 6 — Delete own comment
+    // Phase 6 - Delete own comment
     const handleDeleteComment = async (commentId) => {
         if (!authUser?.id || !currentReel?.id) return;
         const prev = reelComments;
@@ -717,7 +717,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
         } catch { setReelComments(prev); }
     };
 
-    // Phase 7 — Edit own comment
+    // Phase 7 - Edit own comment
     const handleEditComment = (comment) => {
         setEditingComment(comment.id);
         setEditCommentText(comment.content || '');
@@ -737,7 +737,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
         setEditCommentText('');
     };
 
-    // Phase 7 — Playback speed toggle
+    // Phase 7 - Playback speed toggle
     const handleSpeedToggle = () => {
         const speeds = [1, 1.25, 1.5, 2, 0.5, 0.75];
         const nextIdx = (speeds.indexOf(playbackSpeed) + 1) % speeds.length;
@@ -783,7 +783,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
             formData.append('image', uploadFile);
             const token = getAccessToken();
             if (!token) {
-                showErrorToast('Auth required — please refresh.');
+                showErrorToast('Auth required - please refresh.');
                 setUploadingReelImage(false);
                 return;
             }
@@ -801,7 +801,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
         setUploadingReelImage(false);
     };
 
-    // Share handler — opens share modal only; repost to feed requires explicit user tap
+    // Share handler - opens share modal only; repost to feed requires explicit user tap
     const handleShare = () => {
         if (!currentReel?.id) return;
         haptic(10);
@@ -836,7 +836,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
         }
     };
 
-    // Share to My Feed — creates a social_posts entry linking this reel
+    // Share to My Feed - creates a social_posts entry linking this reel
     const [sharingToFeed, setSharingToFeed] = useState(false);
     const [sharedToFeed, setSharedToFeed] = useState(false);
     const handleShareToFeed = async () => {
@@ -934,7 +934,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
     };
 
     // Reset on reel change + track view
-    // dep: currentIndex ONLY — do NOT add `reels` (causes double-fire + play on unloaded src)
+    // dep: currentIndex ONLY - do NOT add `reels` (causes double-fire + play on unloaded src)
     useEffect(() => {
         setShowComments(false);
         setReelComments([]);
@@ -957,7 +957,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
             progressRAF.current = null;
         }
 
-        // Deduplicated view count — only fire once per reel per session (auth only)
+        // Deduplicated view count - only fire once per reel per session (auth only)
         const reelId = reels[currentIndex]?.id;
         if (reelId && authUser?.id && !viewedReelsRef.current.has(reelId)) {
             viewedReelsRef.current.add(reelId);
@@ -965,7 +965,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
             incrementMetric(reels[currentIndex], 'view_count', 1);
         }
 
-        // Play via canplay event — video element may be remounting due to key change,
+        // Play via canplay event - video element may be remounting due to key change,
         // calling play() immediately causes AbortError on mobile Safari.
         const video = videoRef.current;
         if (!video) return;
@@ -1021,7 +1021,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
     handleSaveRef.current = handleSave;
     handleCommentsRef.current = handleToggleComments;
 
-    // Cleanup RAF on unmount to prevent memory leak — must be before early return
+    // Cleanup RAF on unmount to prevent memory leak - must be before early return
     useEffect(() => {
         return () => { if (progressRAF.current) cancelAnimationFrame(progressRAF.current); };
     }, []);
@@ -1141,7 +1141,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
             onMouseMove={cancelLongPress}
             onContextMenu={(e) => { e.preventDefault(); setShowContextMenu(true); }}
         >
-            {/* Close button — always touchable; fades when overlay hidden but stays accessible */}
+            {/* Close button - always touchable; fades when overlay hidden but stays accessible */}
             <button
                 onClick={(e) => { e.stopPropagation(); onClose(); }}
                 aria-label="Close reels"
@@ -1212,7 +1212,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     />
                 )}
 
-                {/* Preload next video — hidden iframe for YouTube, link preload for native */}
+                {/* Preload next video - hidden iframe for YouTube, link preload for native */}
                 {reels[currentIndex + 1]?.video_url && (() => {
                     const nextUrl = reels[currentIndex + 1].video_url;
                     if (isYouTubeUrl(nextUrl)) {
@@ -1263,7 +1263,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                             </div>
                         </div>
                     </Link>
-                    {/* Follow button — only for other users' reels */}
+                    {/* Follow button - only for other users' reels */}
                     {currentReel.author_id && authUser?.id && currentReel.author_id !== authUser.id && (
                         <button onClick={(e) => { e.stopPropagation(); handleFollow(); }} style={{
                             pointerEvents: 'auto', padding: '4px 14px', borderRadius: 6,
@@ -1293,7 +1293,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     })()}
                 </div>
 
-                {/* Right Action Sidebar — ALWAYS VISIBLE & TOUCHABLE on mobile */}
+                {/* Right Action Sidebar - ALWAYS VISIBLE & TOUCHABLE on mobile */}
                 <div
                     onClick={(e) => e.stopPropagation()}
                     style={{
@@ -1301,7 +1301,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         display: 'flex', flexDirection: 'column', gap: 24, alignItems: 'center',
                     }}
                 >
-                    {/* Heart — tap to like, long-press for reactions */}
+                    {/* Heart - tap to like, long-press for reactions */}
                     <div style={{ position: 'relative' }}>
                         <button
                             onClick={() => {
@@ -1335,7 +1335,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                                 {likeCounts[currentReel.id] || 0}
                             </span>
                         </button>
-                        {/* Reaction Picker — appears on long-press */}
+                        {/* Reaction Picker - appears on long-press */}
                         {showReactionPicker && (
                             <div style={{
                                 position: 'absolute', right: 48, top: '50%', transform: 'translateY(-50%)',
@@ -1404,7 +1404,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         </span>
                     </button>
 
-                    {/* More (···) — opens panel with Sound, Report, Speed, Link */}
+                    {/* More (···) - opens panel with Sound, Report, Speed, Link */}
                     <div style={{ position: 'relative' }}>
                         <button onClick={() => setShowMoreMenu(prev => !prev)} aria-label="More options" style={{
                             background: 'none', border: 'none', cursor: 'pointer',
@@ -1480,7 +1480,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     }}>❤️</div>
                 )}
 
-                {/* Progress bar for native videos — rail always rendered, fill tracks playback */}
+                {/* Progress bar for native videos - rail always rendered, fill tracks playback */}
                 {!isYouTubeUrl(currentReel.video_url) && (
                     <div style={{
                         position: 'absolute', bottom: 0, left: 0, right: 0,
@@ -1662,7 +1662,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ fontWeight: 600, color: 'white', fontSize: 14 }}>Comments ({reelComments.length})</span>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                {/* Phase 8 — Sort toggle */}
+                                {/* Phase 8 - Sort toggle */}
                                 <button onClick={() => {
                                     const next = commentSort === 'newest' ? 'oldest' : 'newest';
                                     setCommentSort(next);
@@ -1689,7 +1689,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                                     <div style={{ flex: 1 }}>
                                         <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: 12, fontWeight: 600 }}>{c.profiles?.username || 'User'}</span>
                                         <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginLeft: 8 }}>{c.created_at ? timeAgo(c.created_at) : ''}</span>
-                                        {/* Phase 7 — Inline edit mode */}
+                                        {/* Phase 7 - Inline edit mode */}
                                         {editingComment === c.id ? (
                                             <div style={{ marginTop: 4, display: 'flex', gap: 6, alignItems: 'center' }}>
                                                 <input value={editCommentText} onChange={e => setEditCommentText(e.target.value)}
@@ -1712,7 +1712,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                                                 )}
                                             </div>
                                         )}
-                                        {/* Phase 6+7 — Comment engagement row */}
+                                        {/* Phase 6+7 - Comment engagement row */}
                                         <div style={{ display: 'flex', gap: 14, marginTop: 4, alignItems: 'center' }}>
                                             <button onClick={() => handleCommentLike(c.id)} style={{
                                                 background: 'none', border: 'none', cursor: 'pointer', padding: 0,
@@ -1737,7 +1737,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                                     </div>
                                 </div>
                             ))}
-                            {/* #6 Comment Pagination — Load More */}
+                            {/* #6 Comment Pagination - Load More */}
                             {hasMoreComments && (
                                 <button onClick={loadMoreComments} disabled={loadingMoreComments} style={{
                                     width: '100%', padding: '10px', background: 'rgba(255,255,255,0.08)',
@@ -1820,7 +1820,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                                 >Post</button>
                             )}
                         </div>
-                        {/* Phase 8 — Character counter */}
+                        {/* Phase 8 - Character counter */}
                         {commentText.length > 0 && (
                             <div style={{ textAlign: 'right', fontSize: 10, color: commentText.length >= COMMENT_MAX_LENGTH - 20 ? '#ef4444' : 'rgba(255,255,255,0.3)', paddingRight: 16, paddingBottom: 4 }}>
                                 {commentText.length}/{COMMENT_MAX_LENGTH}
@@ -1829,7 +1829,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     </div>
                 )}
 
-                {/* Phase 8 — Copy Link Toast */}
+                {/* Phase 8 - Copy Link Toast */}
                 {copyToast && (
                     <div style={{
                         position: 'absolute', top: 80, left: '50%', transform: 'translateX(-50%)',
@@ -2008,7 +2008,7 @@ export function ReelsFeedCarousel() {
     // Don't render if no reels
     if (!loading && reels.length === 0) return null;
 
-    // Loading state — skeleton shimmer
+    // Loading state - skeleton shimmer
     if (loading) {
         return (
             <div style={{

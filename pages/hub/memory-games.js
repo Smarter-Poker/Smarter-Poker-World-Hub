@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-    PREFLOP CHARTS — THE GTO WIZARD KILLER
+    PREFLOP CHARTS - THE GTO WIZARD KILLER
    Full Video Game Experience with Pressure, Combos, and Diamond Economy
    Master GTO Preflop Ranges Through High-Pressure Training
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -30,7 +30,7 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getMemoryGamesPreferences, updateMemoryGamesPreferences } from '../../src/services/memoryGamesPreferences';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Diamonds DIAMOND ENGINE — Local storage with VIP check
+// Diamonds DIAMOND ENGINE - Local storage with VIP check
 // ═══════════════════════════════════════════════════════════════════════════
 // ═══════════════════════════════════════════════════════════════════════════
 // Diamonds DIAMOND ENGINE - Import Supabase-powered version
@@ -44,7 +44,7 @@ import gameSessionService from '../../src/services/GameSessionService';
 import achievementService from '../../src/services/AchievementService';
 import { claimReward } from '../../src/lib/claimReward';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
-// busEmit not needed at page level — DiamondEngine auto-emits, useTrainingBus has own import
+// busEmit not needed at page level - DiamondEngine auto-emits, useTrainingBus has own import
 import { leakAnalyzer } from '../../src/engine/LeakSignalAnalyzer';
 
 // New Game Mode Components (dynamic imports for code splitting)
@@ -101,13 +101,13 @@ function gradeUserGrid(userGrid, solution) {
     return { score: Math.max(0, score), correctHands, missedHands, extraHands, wrongActionHands, mistakes };
 }
 
-// SpeedDrillGame — extracted to src/games/SpeedDrillGame.js (dynamic import above)
-// PressureCookerGame — extracted to src/games/PressureCookerGame.js (dynamic import above)
-// PatternRecognitionGame — extracted to src/games/PatternRecognitionGame.js (dynamic import above)
-// MixedStrategyGame — extracted to src/games/MixedStrategyGame.js (dynamic import above)
+// SpeedDrillGame - extracted to src/games/SpeedDrillGame.js (dynamic import above)
+// PressureCookerGame - extracted to src/games/PressureCookerGame.js (dynamic import above)
+// PatternRecognitionGame - extracted to src/games/PatternRecognitionGame.js (dynamic import above)
+// MixedStrategyGame - extracted to src/games/MixedStrategyGame.js (dynamic import above)
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 📊 ENHANCED REVIEW PANEL — GTO Wizard-Quality Post-Game Analysis
+// 📊 ENHANCED REVIEW PANEL - GTO Wizard-Quality Post-Game Analysis
 // ═══════════════════════════════════════════════════════════════════════════
 /* EnhancedReviewPanel dynamically imported */
 
@@ -133,7 +133,7 @@ export default function MemoryGamesPage() {
     const userId = user?.id;
     const containerRef = useRef(null);
 
-    // Start leak analyzer for Jarvis integration — feeds into LeakService + Jarvis PA alerts
+    // Start leak analyzer for Jarvis integration - feeds into LeakService + Jarvis PA alerts
     useEffect(() => {
         leakAnalyzer.start();
         if (userId) leakAnalyzer.setUserId(userId);
@@ -379,7 +379,7 @@ export default function MemoryGamesPage() {
     }, [mode, gradeResult, userGrid, currentScenario]);
 
     // Reusable: Fresh DB balance check + DiamondEngine deduction
-    // NOTE: isStartingRef guards here AND in startGame — both are needed because:
+    // NOTE: isStartingRef guards here AND in startGame - both are needed because:
     //   - 8 buttons call checkAndDeductDiamonds directly (need guard here)
     //   - VIP users skip checkAndDeductDiamonds in startGame (need guard there)
     const isStartingRef = useRef(false); // Double-click guard
@@ -414,17 +414,17 @@ export default function MemoryGamesPage() {
             return false;
         }
         if (result.balance !== undefined) setDiamondBalance(result.balance);
-        // DiamondEngine.deduct auto-emits busEmit.diamondsSpent — no manual emit needed
+        // DiamondEngine.deduct auto-emits busEmit.diamondsSpent - no manual emit needed
         return true;
         } finally {
             isStartingRef.current = false;
         }
     };
 
-    // Start game — separate guard for VIP path (isStartingRef guards deduction only)
+    // Start game - separate guard for VIP path (isStartingRef guards deduction only)
     const isGameStartingRef = useRef(false);
     const startGame = async (level) => {
-        // Double-click guard — protects ALL users (VIP + non-VIP)
+        // Double-click guard - protects ALL users (VIP + non-VIP)
         if (isGameStartingRef.current) return;
         isGameStartingRef.current = true;
         try {
@@ -604,7 +604,7 @@ export default function MemoryGamesPage() {
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
-        // 📊 PERSIST TO SUPABASE — Leaderboard, ELO, Daily Challenge
+        // 📊 PERSIST TO SUPABASE - Leaderboard, ELO, Daily Challenge
         // ═══════════════════════════════════════════════════════════════════════════
         if (user?.id) {
             const gameMode = selectedGameMode || 'range';
@@ -1241,7 +1241,7 @@ export default function MemoryGamesPage() {
                 </div>
             )}
             <SEOHead
-                title="Preflop Charts — Master GTO Ranges"
+                title="Preflop Charts - Master GTO Ranges"
                 description="Master GTO Preflop Ranges Through High-Pressure Training. Speed Drills, Pattern Recognition, Mixed Strategy Practice, and Tournament Prep."
                 canonical="/hub/preflop-charts"
             >
@@ -1825,7 +1825,7 @@ export default function MemoryGamesPage() {
                                         }}>
                                             <div>
                                                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>YOUR RANK</div>
-                                                <div style={{ fontSize: 32, fontWeight: 900, color: '#00D4FF' }}>#{userRank.rank || '—'}</div>
+                                                <div style={{ fontSize: 32, fontWeight: 900, color: '#00D4FF' }}>#{userRank.rank || '-'}</div>
                                             </div>
                                             <div style={{ textAlign: 'right' }}>
                                                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>BEST SCORE</div>
@@ -2382,7 +2382,7 @@ export default function MemoryGamesPage() {
                             {/* VIP Upsell */}
                             {!isVIP && (
                                 <div style={styles.vipUpsell}>
-                                    <div style={styles.vipTitle}> GO VIP — $19.99/month</div>
+                                    <div style={styles.vipTitle}> GO VIP - $19.99/month</div>
                                     <div style={styles.vipFeatures}>
                                         Unlimited games • All levels • No diamond cost • Exclusive modes
                                     </div>
@@ -2796,7 +2796,7 @@ export default function MemoryGamesPage() {
                             )}
 
 
-                            {/* ═══ ENHANCED REVIEW PANEL — GTO Wizard-Quality Analysis ═══ */}
+                            {/* ═══ ENHANCED REVIEW PANEL - GTO Wizard-Quality Analysis ═══ */}
                             {gradeResult && (
                                 <EnhancedReviewPanel
                                     gradeResult={gradeResult}

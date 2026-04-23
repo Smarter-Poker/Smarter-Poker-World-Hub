@@ -806,7 +806,7 @@ const PostCard = React.memo(function PostCard({ post, currentUserId, currentUser
                     {post.isClubPagePost && (
                         <div style={{ fontSize: 11, color: '#1877F2', marginBottom: 6, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
                             <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#1877F2', display: 'inline-block' }} />
-                            Editing as {post.author?.name || 'Club Page'} — club branding preserved
+                            Editing as {post.author?.name || 'Club Page'} - club branding preserved
                         </div>
                     )}
                     <textarea
@@ -2984,7 +2984,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                                 <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b', marginBottom: 4 }}>Waitlist</div>
                                                 {waitlist.map((w, i) => (
                                                     <div key={w.id} style={{ display: 'flex', alignItems: 'center', padding: '2px 0', fontSize: 11 }}>
-                                                        <span style={{ color: '#d4d4d8' }}>#{w.waitlist_position || i + 1} — {w.player_name}</span>
+                                                        <span style={{ color: '#d4d4d8' }}>#{w.waitlist_position || i + 1} - {w.player_name}</span>
                                                     </div>
                                                 ))}
                                             </div>
@@ -3340,7 +3340,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                     {!canInteract && (
                                         <div style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', marginBottom: 8, textAlign: 'center' }}>
                                             <span style={{ fontSize: 12, fontWeight: 600, color: '#fbbf24' }}>
-                                                {followStatus === 'pending' ? '⏳ Approval pending — you can view but not join yet' : '🔒 Follow this page to sign up for games'}
+                                                {followStatus === 'pending' ? '⏳ Approval pending - you can view but not join yet' : '🔒 Follow this page to sign up for games'}
                                             </span>
                                         </div>
                                     )}
@@ -5535,7 +5535,7 @@ function SocialMediaPage() {
                 </div>
             )}
             <SEOHead
-                title="Social Hub — Poker Community & Feed"
+                title="Social Hub - Poker Community & Feed"
                 description="Connect With Poker Players Worldwide. Share Updates, Follow Friends, Join Discussions, And Build Your Poker Network On The Smarter.Poker Social Hub."
                 canonical="/hub/social-media"
             />

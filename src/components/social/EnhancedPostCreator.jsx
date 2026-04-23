@@ -331,8 +331,11 @@ export const EnhancedPostCreator = ({
 
             if (bgUnsub) bgUnsub();
             uploadedMedia.push({ url: videoUrl, type: 'video', name: file.name, wasBackground });
-            setUploadProgress(prev => ({ ...prev, [videoIndex]: 100 }));
-            setUploadStatus(prev => ({ ...prev, [videoIndex]: 'Done' }));
+            
+            if (!wasBackground) {
+              setUploadProgress(prev => ({ ...prev, [videoIndex]: 100 }));
+              setUploadStatus(prev => ({ ...prev, [videoIndex]: 'Done' }));
+            }
 
 
           } else {
@@ -500,9 +503,14 @@ export const EnhancedPostCreator = ({
             ? 'Upload failed due to a network issue. Please check your connection and try again.'
             : errorMessage;
 
-      setError(userFriendlyMessage);
-    } finally {
-      setIsSubmitting(false);
+      const videoWentBackground = uploadedMedia.some(m => m.wasBackground);
+
+      if (videoWentBackground) {
+        toast.error(`❌ ${userFriendlyMessage}`);
+      } else {
+        setError(userFriendlyMessage);
+        setIsSubmitting(false);
+      }
     }
   }, [content, mediaFiles, visibility, user, supabase, onPostCreated, onClose, isSubmitting]);
 

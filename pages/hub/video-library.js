@@ -23,6 +23,7 @@ import { useVideoLibraryStore } from '../../src/stores/videoLibraryStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { getAccessToken } from '../../src/lib/authUtils';
+import { DiamondEngine } from '../../src/services/DiamondEngine';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
 import { ReelsViewer } from '../../src/components/social/Reels';
 
@@ -407,42 +408,6 @@ export default function VideoLibraryPage() {
         }
     }, []);
 
-    // Handle Jarvis button click - fetch analysis ON DEMAND only
-    const handleJarvisClick = useCallback(async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
-        if (!selectedVideo) return;
-
-        // Toggle panel
-        if (showAiPanel) {
-            setShowAiPanel(false);
-            return;
-        }
-
-        setShowAiPanel(true);
-
-        // Only fetch if we don't already have analysis for this video
-        if (aiAnalysis) return;
-
-        setAiAnalysisLoading(true);
-        try {
-            const token = getAccessToken();
-            const response = await fetch(`/api/video/analyze?videoId=${selectedVideo.videoId}&title=${encodeURIComponent(selectedVideo.title)}`, {
-                signal,
-                headers: token ? { Authorization: `Bearer ${token}` } : {},
-            });
-            if (!response.ok) throw new Error(`Request failed (${response.status})`);
-            const data = await response.json();
-            if (data.success && data.analysis) {
-                setAiAnalysis(data.analysis);
-                setAiAnalysisSource(data.source || 'generated');
-            }
-        } catch (err) {
-            console.warn('Failed to fetch AI analysis:', err);
-        } finally {
-            setAiAnalysisLoading(false);
-        }
-    }, [selectedVideo, showAiPanel, aiAnalysis]);
 
     // Handle closing a video - save watch duration
     const handleCloseVideo = useCallback(async () => {
@@ -489,9 +454,24 @@ export default function VideoLibraryPage() {
                     } : prev);
 
                     // If user watched 30+ seconds, add to watched set for immediate UI update
-                    const totalWatched = (watchProgress.get(video.id)?.watchedSeconds || 0) + watchedSeconds;
+                    const previousWatched = watchProgress.get(video.id)?.watchedSeconds || 0;
+                    const totalWatched = previousWatched + watchedSeconds;
+                    
                     if (totalWatched >= 30) {
                         setWatchedVideos(prev => new Set(prev).add(video.id));
+                        
+                        // Award diamonds if this is the first time crossing the 30s threshold
+                        if (previousWatched < 30) {
+                            try {
+                                await DiamondEngine.init(userId);
+                                await DiamondEngine.award(2, 'video_watch', { 
+                                    description: `Watched: ${video.title.substring(0, 50)}...`, 
+                                    reference_id: video.id 
+                                });
+                            } catch (diamondErr) {
+                                console.warn('Failed to award diamonds for video watch:', diamondErr);
+                            }
+                        }
                     }
                 } catch (err) {
                     console.warn('Error saving watch duration:', err);
@@ -604,110 +584,22 @@ export default function VideoLibraryPage() {
         return Math.min(100, (progress.watchedSeconds / totalSeconds) * 100);
     };
 
-    // Parse timestamp string (e.g., "5:15" or "1:23:45") to seconds for AI insights
-    const parseTimestampToSeconds = (timestamp) => {
-        if (!timestamp) return 0;
-        const parts = timestamp.split(':').map(Number);
-        if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
-        if (parts.length === 2) return parts[0] * 60 + parts[1];
-        return parts[0] || 0;
-    };
+    // "New This Week" — videos scraped in the past 7 days, sorted newest first
+    const newThisWeek = allVideos
+        .filter(v => {
+            const scraped = v.scrapedAt || v.publishedAt;
+            if (!scraped) return false;
+            const age = (Date.now() - new Date(scraped).getTime()) / 1000;
+            return age < 7 * 24 * 3600;
+        })
+        .sort((a, b) => new Date(b.scrapedAt || b.publishedAt) - new Date(a.scrapedAt || a.publishedAt))
+        .slice(0, 20);
 
-    // Get all timed insights from the analysis, sorted by timestamp
-    const getTimedInsights = useCallback(() => {
-        if (!aiAnalysis) return [];
-        const insights = [];
+    // Cleanup share toast timer on unmount
+    useEffect(() => () => { if (shareToastTimer.current) clearTimeout(shareToastTimer.current); }, []);
 
-        // Add chapters as insights
-        if (aiAnalysis.chapters) {
-            aiAnalysis.chapters.forEach((ch, idx) => {
-                insights.push({
-                    type: 'chapter',
-                    timestamp: ch.timestamp,
-                    seconds: parseTimestampToSeconds(ch.timestamp),
-                    title: ch.title,
-                    description: ch.description,
-                    id: `chapter-${idx}`
-                });
-            });
-        }
-
-        // Add key hands as insights
-        if (aiAnalysis.keyHands) {
-            aiAnalysis.keyHands.forEach((hand, idx) => {
-                insights.push({
-                    type: 'keyHand',
-                    timestamp: hand.timestamp,
-                    seconds: parseTimestampToSeconds(hand.timestamp),
-                    title: hand.title,
-                    situation: hand.situation,
-                    analysis: hand.analysis,
-                    result: hand.result,
-                    id: `hand-${idx}`
-                });
-            });
-        }
-
-        // Sort by timestamp
-        return insights.sort((a, b) => a.seconds - b.seconds);
-    }, [aiAnalysis]);
-
-    // Find the current insight based on video time
-    const findCurrentInsight = useCallback((currentTime) => {
-        const insights = getTimedInsights();
-        if (insights.length === 0) return null;
-
-        // Find the latest insight that has passed but is within 30 seconds of its timestamp
-        // This creates a "window" where the insight is shown
-        for (let i = insights.length - 1; i >= 0; i--) {
-            const insight = insights[i];
-            const timeSinceInsight = currentTime - insight.seconds;
-            // Show insight if we're within 0-60 seconds past its timestamp
-            if (timeSinceInsight >= 0 && timeSinceInsight <= 60) {
-                return insight;
-            }
-        }
-        return null;
-    }, [getTimedInsights]);
-
-    // Track video time and update active insight when AI panel is open
-    useEffect(() => {
-        if (!showAiPanel || !aiAnalysis) {
-            if (timeTrackingInterval.current) {
-                clearInterval(timeTrackingInterval.current);
-                timeTrackingInterval.current = null;
-            }
-            return;
-        }
-
-        // Poll for current time (YouTube postMessage API fallback)
-        timeTrackingInterval.current = setInterval(() => {
-            if (ytPlayerRef.current && typeof ytPlayerRef.current.getCurrentTime === 'function') {
-                const time = ytPlayerRef.current.getCurrentTime();
-                setCurrentVideoTime(time);
-
-                const newInsight = findCurrentInsight(time);
-                if (newInsight && (!activeInsight || newInsight.id !== activeInsight.id)) {
-                    // New insight found - update and add previous to history
-                    if (activeInsight) {
-                        setInsightHistory(prev => [...prev, activeInsight].slice(-5)); // Keep last 5
-                    }
-                    setActiveInsight(newInsight);
-                }
-            }
-        }, 1000);
-
-        return () => {
-            if (timeTrackingInterval.current) {
-                clearInterval(timeTrackingInterval.current);
-            }
-            // Clean up message listener added in iframe onLoad
-            if (ytPlayerRef.current?.messageHandler) {
-                window.removeEventListener('message', ytPlayerRef.current.messageHandler);
-                ytPlayerRef.current.messageHandler = null;
-            }
-        };
-    }, [showAiPanel, aiAnalysis, findCurrentInsight, activeInsight]);
+    // Cleanup interval on unmount
+    useEffect(() => () => { if (timeTrackingInterval.current) clearInterval(timeTrackingInterval.current); }, []);
 
     return (
         <PageTransition>
@@ -937,6 +829,37 @@ export default function VideoLibraryPage() {
                         </div>
                     </div>
 
+                    {/* Duration filter row */}
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, fontWeight: 600, marginRight: 4, letterSpacing: '0.5px' }}>DURATION</span>
+                        {[
+                            { id: 'ALL',    name: 'Any Length' },
+                            { id: 'SHORT',  name: '< 15 min' },
+                            { id: 'MEDIUM', name: '15-30 min' },
+                            { id: 'LONG',   name: '30+ min' },
+                        ].map(dur => {
+                            const isActive = selectedDuration === dur.id;
+                            return (
+                                <button
+                                    key={dur.id}
+                                    onClick={() => setSelectedDuration(dur.id)}
+                                    style={{
+                                        padding: '7px 16px',
+                                        background: isActive ? 'rgba(10,132,255,0.25)' : 'rgba(255,255,255,0.04)',
+                                        border: isActive ? '1.5px solid rgba(10,132,255,0.7)' : '1.5px solid rgba(255,255,255,0.1)',
+                                        borderRadius: 8,
+                                        color: isActive ? '#4DA8FF' : 'rgba(255,255,255,0.6)',
+                                        fontSize: 12,
+                                        fontWeight: isActive ? 700 : 500,
+                                        cursor: 'pointer',
+                                        transition: 'all 0.18s',
+                                        whiteSpace: 'nowrap',
+                                    }}
+                                >{dur.name}</button>
+                            );
+                        })}
+                    </div>
+
                     {/* Premium Creator Cards */}
                     <div className="vl-source-pills" style={{
                         display: 'flex',
@@ -1163,6 +1086,42 @@ export default function VideoLibraryPage() {
                     </div>
                 )}
 
+                {/* New This Week rail — videos scraped in last 7 days */}
+                {newThisWeek.length > 0 && !newThisWeekDismissed && (
+                    <div style={{ maxWidth: 1400, margin: '0 auto 28px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                            <h2 style={{ color: '#fff', fontSize: 18, fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <span style={{ color: '#FF4444', fontSize: 14, background: 'rgba(255,68,68,0.2)', border: '1px solid rgba(255,68,68,0.4)', borderRadius: 6, padding: '2px 8px', fontWeight: 700, letterSpacing: '0.5px' }}>NEW</span>
+                                New This Week
+                            </h2>
+                            <button onClick={() => setNewThisWeekDismissed(true)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', fontSize: 12, cursor: 'pointer', padding: 4 }}>Dismiss</button>
+                        </div>
+                        <div style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 8, scrollbarWidth: 'none' }}>
+                            {newThisWeek.map(video => (
+                                <div
+                                    key={video.videoId}
+                                    onClick={() => handleOpenVideo(video)}
+                                    style={{ minWidth: 220, flexShrink: 0, cursor: 'pointer', borderRadius: 10, overflow: 'hidden', background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.08)', transition: 'transform 0.18s, box-shadow 0.18s' }}
+                                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.5)'; }}
+                                    onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
+                                >
+                                    <div style={{ position: 'relative', aspectRatio: '16/9', background: '#111' }}>
+                                        <img src={getThumbnail(video.videoId)} alt={video.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+                                        <div style={{ position: 'absolute', top: 6, left: 6, background: '#FF4444', color: '#fff', fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 4, letterSpacing: '0.5px' }}>NEW</div>
+                                        {video.duration && (
+                                            <div style={{ position: 'absolute', bottom: 6, right: 6, background: 'rgba(0,0,0,0.8)', color: '#fff', fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 4 }}>{video.duration}</div>
+                                        )}
+                                    </div>
+                                    <div style={{ padding: 10 }}>
+                                        <div style={{ color: '#fff', fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 4 }}>{video.title}</div>
+                                        <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10 }}>{video.source.replace('_', ' ')}</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 {/* Video Grid */}
                 <div className="vl-video-grid" style={{
                     maxWidth: 1400,
@@ -1223,22 +1182,27 @@ export default function VideoLibraryPage() {
                                 }}>
                                     {video.duration}
                                 </div>
-                                {/* Watched badge */}
+                                {/* Watched badge — tappable to mark-unwatched */}
                                 {watchedVideos.has(video.id) && (
-                                    <div style={{
-                                        position: 'absolute',
-                                        top: 8,
-                                        left: 8,
-                                        background: 'rgba(0, 200, 83, 0.9)',
-                                        padding: '4px 10px',
-                                        borderRadius: 12,
-                                        fontSize: 11,
-                                        fontWeight: 700,
-                                        color: 'white',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: 4,
-                                    }}>
+                                    <div
+                                        title="Click to mark unwatched"
+                                        onClick={e => { e.stopPropagation(); handleMarkUnwatched(video.id); }}
+                                        style={{
+                                            position: 'absolute',
+                                            top: 8,
+                                            left: 8,
+                                            background: 'rgba(0,200,83,0.9)',
+                                            padding: '4px 10px',
+                                            borderRadius: 12,
+                                            fontSize: 11,
+                                            fontWeight: 700,
+                                            color: 'white',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 4,
+                                            cursor: 'pointer',
+                                        }}
+                                    >
                                         <span>✓</span> Watched
                                     </div>
                                 )}
@@ -1339,12 +1303,31 @@ export default function VideoLibraryPage() {
                                         )}
                                         {video.source.replace('_', ' ')}
                                     </span>
-                                    <span style={{
-                                        color: C.textSec,
-                                        fontSize: 13,
-                                    }}>
+                                    <span style={{ color: C.textSec, fontSize: 13 }}>
                                         {video.views} views
                                     </span>
+                                    {/* Share button */}
+                                    <button
+                                        id={`vl-share-${video.videoId}`}
+                                        title="Copy link"
+                                        onClick={e => { e.stopPropagation(); handleShareVideo(video); }}
+                                        style={{
+                                            background: shareToast?.videoId === video.videoId ? 'rgba(52,199,89,0.2)' : 'rgba(255,255,255,0.06)',
+                                            border: shareToast?.videoId === video.videoId ? '1px solid rgba(52,199,89,0.5)' : '1px solid rgba(255,255,255,0.1)',
+                                            borderRadius: 8,
+                                            color: shareToast?.videoId === video.videoId ? '#34C759' : 'rgba(255,255,255,0.5)',
+                                            padding: '5px 10px',
+                                            fontSize: 11,
+                                            fontWeight: 600,
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 4,
+                                        }}
+                                    >
+                                        {shareToast?.videoId === video.videoId ? '✓ Copied' : '⎘ Share'}
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -1535,676 +1518,9 @@ export default function VideoLibraryPage() {
                             }}
                         />
 
-                        {/* Jarvis panel removed per user request */}
-                        {false && activeInsight && (
-                            <div style={{
-                                position: 'absolute',
-                                bottom: 60,
-                                left: '50%',
-                                transform: 'translateX(-50%)',
-                                maxWidth: '90%',
-                                width: 'auto',
-                                minWidth: 300,
-                                background: 'rgba(0, 0, 0, 0.85)',
-                                backdropFilter: 'blur(10px)',
-                                borderRadius: 12,
-                                padding: '12px 16px',
-                                paddingRight: 40,
-                                color: 'white',
-                                zIndex: 1005,
-                                animation: 'fadeInUp 0.3s ease',
-                                boxShadow: '0 4px 20px rgba(0,0,0,0.5), 0 0 1px rgba(0,212,255,0.5)',
-                                border: '1px solid rgba(0,212,255,0.3)',
-                            }}>
-                                {/* Dismiss X button */}
-                                <button
-                                    onClick={() => setActiveInsight(null)}
-                                    style={{
-                                        position: 'absolute',
-                                        top: 8,
-                                        right: 8,
-                                        width: 24,
-                                        height: 24,
-                                        background: 'rgba(255,255,255,0.1)',
-                                        border: 'none',
-                                        borderRadius: '50%',
-                                        color: 'rgba(255,255,255,0.7)',
-                                        fontSize: 14,
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                    }}
-                                >×</button>
 
-                                {/* Jarvis icon + insight content */}
-                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                                    <Image src="/images/jarvis-avatar.png" alt="Jarvis" width={1024} height={682} style={{
-                                        width: 32,
-                                        height: 32,
-                                        borderRadius: '50%',
-                                        border: '2px solid rgba(0,212,255,0.5)',
-                                        flexShrink: 0,
-                                    }} />
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                        {/* Timestamp + Type */}
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                                            <span style={{
-                                                color: '#00D4FF',
-                                                fontSize: 11,
-                                                fontWeight: 700,
-                                                background: 'rgba(0,212,255,0.2)',
-                                                padding: '2px 6px',
-                                                borderRadius: 4,
-                                            }}>{activeInsight.timestamp}</span>
-                                            <span style={{
-                                                color: 'rgba(255,255,255,0.5)',
-                                                fontSize: 10,
-                                                textTransform: 'uppercase',
-                                            }}>
-                                                {activeInsight.type === 'keyHand' ? 'Key Hand' : 'Chapter'}
-                                            </span>
-                                        </div>
-                                        {/* Title */}
-                                        <p style={{
-                                            color: 'white',
-                                            fontSize: 14,
-                                            fontWeight: 600,
-                                            margin: 0,
-                                            marginBottom: activeInsight.analysis ? 6 : 0,
-                                        }}>
-                                            {activeInsight.title}
-                                        </p>
-                                        {/* Analysis/Description */}
-                                        {activeInsight.analysis && (
-                                            <p style={{
-                                                color: 'rgba(255,255,255,0.8)',
-                                                fontSize: 12,
-                                                margin: 0,
-                                                lineHeight: 1.4,
-                                            }}>
-                                                {activeInsight.analysis}
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
 
-                        {/* Loading indicator when fetching analysis */}
-                        {showAiPanel && aiAnalysisLoading && (
-                            <div style={{
-                                position: 'absolute',
-                                bottom: 60,
-                                left: '50%',
-                                transform: 'translateX(-50%)',
-                                background: 'rgba(0, 0, 0, 0.85)',
-                                backdropFilter: 'blur(10px)',
-                                borderRadius: 12,
-                                padding: '16px 24px',
-                                color: 'white',
-                                zIndex: 1005,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 12,
-                                boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
-                            }}>
-                                <Image src="/images/jarvis-avatar.png" alt="Jarvis" width={1024} height={682} style={{
-                                    width: 32,
-                                    height: 32,
-                                    borderRadius: '50%',
-                                    animation: 'pulse 1s infinite',
-                                }} />
-                                <span style={{ fontSize: 13 }}>Jarvis Analyzing Video...</span>
-                            </div>
-                        )}
 
-                        {/* Initial prompt when panel opens but no active insight yet */}
-                        {showAiPanel && aiAnalysis && !activeInsight && !aiAnalysisLoading && (
-                            <div style={{
-                                position: 'absolute',
-                                bottom: 60,
-                                left: '50%',
-                                transform: 'translateX(-50%)',
-                                background: 'rgba(0, 0, 0, 0.85)',
-                                backdropFilter: 'blur(10px)',
-                                borderRadius: 12,
-                                padding: '12px 20px',
-                                paddingRight: 40,
-                                color: 'white',
-                                zIndex: 1005,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 12,
-                                boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
-                                border: '1px solid rgba(0,212,255,0.2)',
-                            }}>
-                                <button
-                                    onClick={() => setShowAiPanel(false)}
-                                    style={{
-                                        position: 'absolute',
-                                        top: 8,
-                                        right: 8,
-                                        width: 24,
-                                        height: 24,
-                                        background: 'rgba(255,255,255,0.1)',
-                                        border: 'none',
-                                        borderRadius: '50%',
-                                        color: 'rgba(255,255,255,0.7)',
-                                        fontSize: 14,
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                    }}
-                                >×</button>
-                                <Image src="/images/jarvis-avatar.png" alt="Jarvis" width={1024} height={682} style={{ width: 28, height: 28, borderRadius: '50%' }} />
-                                <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)' }}>
-                                    Insights will appear at key moments...
-                                </span>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Jarvis Insights Bottom Sheet / Side Panel (Responsive) - Futuristic Metal UI */}                    {/* OLD PANEL - HIDDEN (replaced by caption overlay below) */}
-                    <div
-                        className="jarvis-panel"
-                        style={{
-                            display: 'none', /* HIDDEN - replaced by caption overlay */
-                            position: 'absolute',
-                            /* Desktop: Side panel from right */
-                            /* Mobile: Bottom sheet from bottom */
-                            /* METAL UI: Brushed steel gradient with depth */
-                            background: 'linear-gradient(180deg, #1a2332 0%, #0d1520 50%, #0a0a15 100%)',
-                            backdropFilter: 'blur(20px)',
-                            WebkitBackdropFilter: 'blur(20px)',
-                            transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
-                            zIndex: 1002,
-                            overflowY: 'auto',
-                            /* METAL UI: 5-layer neon glow stack */
-                            boxShadow: `
-                                -10px 0 50px rgba(0, 0, 0, 0.7),
-                                inset 0 0 80px rgba(0, 212, 255, 0.03),
-                                0 0 1px rgba(255, 255, 255, 0.8),
-                                0 0 10px rgba(0, 212, 255, 0.4),
-                                0 0 20px rgba(0, 212, 255, 0.2)
-                            `,
-                            /* METAL UI: Hard cyan border */
-                            borderLeft: '3px solid #00d4ff',
-                        }}
-                    >
-                        {/* Drag Handle (Mobile Only) */}
-                        <div
-                            className="jarvis-drag-handle"
-                            onClick={() => setBottomSheetExpanded(!bottomSheetExpanded)}
-                            style={{
-                                width: '100%',
-                                padding: '12px 0 8px',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                gap: 8,
-                            }}
-                        >
-                            <div style={{
-                                width: 40,
-                                height: 4,
-                                background: 'rgba(255,255,255,0.3)',
-                                borderRadius: 2,
-                            }} />
-                            {/* Collapsed Preview (Mobile) */}
-                            <div className="jarvis-collapsed-preview" style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 10,
-                                width: '100%',
-                                padding: '0 16px',
-                            }}>
-                                <Image src="/images/jarvis-avatar.png" alt="Jarvis" width={1024} height={682} style={{ width: 28, height: 28, borderRadius: '50%' }} />
-                                <div style={{ flex: 1 }}>
-                                    <span style={{ color: '#00D4FF', fontSize: 13, fontWeight: 600 }}>Jarvis Insights</span>
-                                    {activeInsight && (
-                                        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                            {activeInsight.title}
-                                        </p>
-                                    )}
-                                </div>
-                                <div style={{
-                                    width: 24,
-                                    height: 24,
-                                    borderRadius: '50%',
-                                    background: 'rgba(0,212,255,0.2)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontSize: 12,
-                                    color: '#00D4FF',
-                                    transform: bottomSheetExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-                                    transition: 'transform 0.3s ease',
-                                }}>▲</div>
-                            </div>
-                        </div>
-
-                        {/* Panel Content */}
-                        <div className="jarvis-panel-content" style={{ padding: '0 20px 24px' }}>
-                            {/* Panel Header (Desktop) - METAL UI Style */}
-                            <div className="jarvis-desktop-header" style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                marginBottom: 16,
-                                paddingBottom: 16,
-                                borderBottom: '1px solid #2a3a4a',
-                                position: 'relative',
-                            }}>
-                                {/* LED Strip under header */}
-                                <div style={{
-                                    position: 'absolute',
-                                    bottom: 0,
-                                    left: 0,
-                                    right: 0,
-                                    height: 2,
-                                    background: 'linear-gradient(90deg, transparent 0%, #00d4ff 20%, #00d4ff 80%, transparent 100%)',
-                                    boxShadow: '0 0 10px rgba(0, 212, 255, 0.5), 0 0 20px rgba(0, 212, 255, 0.3)',
-                                }} />
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                    {/* Porthole-style avatar */}
-                                    <div style={{
-                                        width: 36,
-                                        height: 36,
-                                        borderRadius: '50%',
-                                        background: 'linear-gradient(180deg, #2a3a4a 0%, #1a2332 100%)',
-                                        border: '2px solid #00d4ff',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        boxShadow: '0 0 10px rgba(0, 212, 255, 0.4), inset 0 2px 4px rgba(0,0,0,0.5)',
-                                    }}>
-                                        <Image src="/images/jarvis-avatar.png" alt="Jarvis" width={1024} height={682} style={{ width: 26, height: 26, borderRadius: '50%', objectFit: 'cover' }} />
-                                    </div>
-                                    <div>
-                                        <h3 style={{
-                                            color: '#00D4FF',
-                                            fontSize: 14,
-                                            fontWeight: 700,
-                                            margin: 0,
-                                            textTransform: 'uppercase',
-                                            letterSpacing: '2px',
-                                            textShadow: '0 0 10px rgba(0, 212, 255, 0.5)',
-                                        }}>
-                                            JARVIS INSIGHTS
-                                        </h3>
-                                        <p style={{
-                                            color: '#4a5a6a',
-                                            fontSize: 10,
-                                            margin: 0,
-                                            marginTop: 2,
-                                            textTransform: 'uppercase',
-                                            letterSpacing: '0.5px',
-                                        }}>
-                                            LIVE ANALYSIS
-                                        </p>
-                                    </div>
-                                </div>
-                                {/* Industrial close button */}
-                                <button
-                                    onClick={() => setShowAiPanel(false)}
-                                    style={{
-                                        background: 'linear-gradient(180deg, #2a3a4a 0%, #1a2332 100%)',
-                                        border: '2px solid #4a5a6a',
-                                        borderRadius: 6,
-                                        width: 32,
-                                        height: 32,
-                                        color: '#4a5a6a',
-                                        cursor: 'pointer',
-                                        fontSize: 18,
-                                        fontWeight: 700,
-                                        transition: 'all 0.2s ease',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        e.target.style.borderColor = '#00d4ff';
-                                        e.target.style.color = '#00d4ff';
-                                        e.target.style.boxShadow = '0 0 10px rgba(0, 212, 255, 0.4)';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.target.style.borderColor = '#4a5a6a';
-                                        e.target.style.color = '#4a5a6a';
-                                        e.target.style.boxShadow = 'none';
-                                    }}
-                                >×</button>
-                            </div>
-
-                            {aiAnalysisLoading ? (
-                                <div style={{ textAlign: 'center', padding: 40 }}>
-                                    {/* Animated Jarvis avatar */}
-                                    <div style={{
-                                        width: 64,
-                                        height: 64,
-                                        margin: '0 auto 20px',
-                                        borderRadius: '50%',
-                                        background: 'linear-gradient(135deg, rgba(0,212,255,0.2) 0%, rgba(0,212,255,0.05) 100%)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        animation: 'pulse 2s ease-in-out infinite',
-                                    }}>
-                                        <Image src="/images/jarvis-avatar.png" alt="Jarvis" width={1024} height={682} style={{
-                                            width: 48,
-                                            height: 48,
-                                            borderRadius: '50%',
-                                            objectFit: 'cover'
-                                        }} />
-                                    </div>
-                                    <p style={{
-                                        color: '#00D4FF',
-                                        fontSize: 14,
-                                        fontWeight: 600,
-                                        marginBottom: 8
-                                    }}>Analyzing Video...</p>
-                                    <p style={{
-                                        color: 'rgba(255,255,255,0.5)',
-                                        fontSize: 12
-                                    }}>Preparing Strategic Insights</p>
-                                    {/* Shimmer loading bars */}
-                                    <div style={{ marginTop: 24 }}>
-                                        {[1, 0.8, 0.6].map((w, i) => (
-                                            <div key={i} style={{
-                                                height: 12,
-                                                width: `${w * 100}%`,
-                                                background: 'linear-gradient(90deg, rgba(255,255,255,0.05) 0%, rgba(0,212,255,0.15) 50%, rgba(255,255,255,0.05) 100%)',
-                                                backgroundSize: '200% 100%',
-                                                animation: 'shimmer 1.5s infinite',
-                                                borderRadius: 6,
-                                                marginBottom: 8,
-                                                marginLeft: 'auto',
-                                                marginRight: 'auto',
-                                            }} />
-                                        ))}
-                                    </div>
-                                </div>
-                            ) : aiAnalysis ? (
-                                <>
-                                    {/* Current Active Insight */}
-                                    {activeInsight ? (
-                                        <div style={{
-                                            padding: '16px',
-                                            background: activeInsight.type === 'keyHand'
-                                                ? 'linear-gradient(135deg, rgba(255, 68, 68, 0.15) 0%, rgba(255, 68, 68, 0.05) 100%)'
-                                                : 'linear-gradient(135deg, rgba(0, 212, 255, 0.15) 0%, rgba(0, 212, 255, 0.05) 100%)',
-                                            borderRadius: 12,
-                                            borderLeft: `4px solid ${activeInsight.type === 'keyHand' ? '#FF4444' : '#00D4FF'}`,
-                                            marginBottom: 20,
-                                            animation: 'slideIn 0.4s ease',
-                                        }}>
-                                            {/* Insight Header */}
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                                                <span style={{
-                                                    color: activeInsight.type === 'keyHand' ? '#FF4444' : '#00D4FF',
-                                                    fontSize: 11,
-                                                    fontWeight: 700,
-                                                    background: activeInsight.type === 'keyHand'
-                                                        ? 'rgba(255, 68, 68, 0.3)'
-                                                        : 'rgba(0, 212, 255, 0.3)',
-                                                    padding: '4px 10px',
-                                                    borderRadius: 6,
-                                                }}>{activeInsight.timestamp}</span>
-                                                <span style={{
-                                                    fontSize: 10,
-                                                    color: 'rgba(255,255,255,0.5)',
-                                                    textTransform: 'uppercase',
-                                                    letterSpacing: '1px'
-                                                }}>
-                                                    {activeInsight.type === 'keyHand' ? '♠️ KEY HAND' : '📺 CHAPTER'}
-                                                </span>
-                                            </div>
-
-                                            {/* Insight Title */}
-                                            <h4 style={{
-                                                color: 'white',
-                                                fontSize: 16,
-                                                fontWeight: 700,
-                                                margin: 0,
-                                                marginBottom: 12,
-                                                lineHeight: 1.4
-                                            }}>
-                                                {activeInsight.title}
-                                            </h4>
-
-                                            {/* Key Hand Details */}
-                                            {activeInsight.type === 'keyHand' && (
-                                                <>
-                                                    {activeInsight.situation && (
-                                                        <div style={{ marginBottom: 10 }}>
-                                                            <span style={{ color: '#FFD700', fontSize: 11, fontWeight: 600 }}>SITUATION</span>
-                                                            <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, margin: '4px 0 0 0', lineHeight: 1.5 }}>
-                                                                {activeInsight.situation}
-                                                            </p>
-                                                        </div>
-                                                    )}
-                                                    {activeInsight.analysis && (
-                                                        <div style={{ marginBottom: 10 }}>
-                                                            <span style={{ color: '#00D4FF', fontSize: 11, fontWeight: 600 }}>ANALYSIS</span>
-                                                            <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, margin: '4px 0 0 0', lineHeight: 1.5 }}>
-                                                                {activeInsight.analysis}
-                                                            </p>
-                                                        </div>
-                                                    )}
-                                                    {activeInsight.result && (
-                                                        <div>
-                                                            <span style={{ color: '#10B981', fontSize: 11, fontWeight: 600 }}>RESULT</span>
-                                                            <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, margin: '4px 0 0 0', lineHeight: 1.5 }}>
-                                                                {activeInsight.result}
-                                                            </p>
-                                                        </div>
-                                                    )}
-                                                </>
-                                            )}
-
-                                            {/* Chapter Description */}
-                                            {activeInsight.type === 'chapter' && activeInsight.description && (
-                                                <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, margin: 0, lineHeight: 1.5 }}>
-                                                    {activeInsight.description}
-                                                </p>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        /* Waiting for next insight */
-                                        <div style={{
-                                            padding: '28px',
-                                            background: 'linear-gradient(135deg, rgba(0,212,255,0.08) 0%, rgba(0,212,255,0.02) 100%)',
-                                            borderRadius: 16,
-                                            border: '1px solid rgba(0,212,255,0.15)',
-                                            textAlign: 'center',
-                                            marginBottom: 20,
-                                        }}>
-                                            <div style={{
-                                                width: 56,
-                                                height: 56,
-                                                margin: '0 auto 16px',
-                                                borderRadius: '50%',
-                                                background: 'linear-gradient(135deg, rgba(0,212,255,0.15) 0%, rgba(0,212,255,0.05) 100%)',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                animation: 'float 3s ease-in-out infinite',
-                                            }}>
-                                                <span style={{ fontSize: 24 }}>🎯</span>
-                                            </div>
-                                            <p style={{
-                                                color: '#00D4FF',
-                                                fontSize: 14,
-                                                fontWeight: 600,
-                                                margin: 0,
-                                                marginBottom: 6
-                                            }}>
-                                                Watching for key moments
-                                            </p>
-                                            <p style={{
-                                                color: 'rgba(255,255,255,0.5)',
-                                                fontSize: 12,
-                                                margin: 0,
-                                                lineHeight: 1.5
-                                            }}>
-                                                Insights will appear at important timestamps
-                                            </p>
-                                        </div>
-                                    )}
-
-                                    {/* Upcoming Insights Timeline */}
-                                    {getTimedInsights().filter(i => i.seconds > currentVideoTime).length > 0 && (
-                                        <div style={{ marginTop: 16 }}>
-                                            <h4 style={{
-                                                color: 'rgba(255,255,255,0.5)',
-                                                fontSize: 11,
-                                                fontWeight: 600,
-                                                marginBottom: 12,
-                                                textTransform: 'uppercase',
-                                                letterSpacing: '1px'
-                                            }}>
-                                                Coming Up
-                                            </h4>
-                                            {getTimedInsights()
-                                                .filter(i => i.seconds > currentVideoTime)
-                                                .slice(0, 3)
-                                                .map((insight, idx) => (
-                                                    <div
-                                                        key={insight.id}
-                                                        className="jarvis-timeline-item"
-                                                        onClick={() => {
-                                                            // Seek to this timestamp using YouTube API
-                                                            try {
-                                                                const iframe = document.getElementById('youtube-player');
-                                                                if (iframe && iframe.contentWindow) {
-                                                                    iframe.contentWindow.postMessage(JSON.stringify({
-                                                                        event: 'command',
-                                                                        func: 'seekTo',
-                                                                        args: [insight.seconds, true]
-                                                                    }), '*');
-                                                                }
-                                                            } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
-                                                        }}
-                                                        style={{
-                                                            padding: '12px 14px',
-                                                            background: 'linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%)',
-                                                            borderRadius: 10,
-                                                            marginBottom: 8,
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            gap: 12,
-                                                            cursor: 'pointer',
-                                                            transition: 'all 0.2s ease',
-                                                            border: '1px solid transparent',
-                                                        }}>
-                                                        <div style={{
-                                                            minWidth: 48,
-                                                            height: 28,
-                                                            background: insight.type === 'keyHand'
-                                                                ? 'linear-gradient(135deg, rgba(255,68,68,0.25) 0%, rgba(255,68,68,0.1) 100%)'
-                                                                : 'linear-gradient(135deg, rgba(0,212,255,0.25) 0%, rgba(0,212,255,0.1) 100%)',
-                                                            borderRadius: 6,
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                        }}>
-                                                            <span style={{
-                                                                color: insight.type === 'keyHand' ? '#FF4444' : '#00D4FF',
-                                                                fontSize: 11,
-                                                                fontWeight: 700,
-                                                            }}>{insight.timestamp}</span>
-                                                        </div>
-                                                        <div style={{ flex: 1, minWidth: 0 }}>
-                                                            <span style={{
-                                                                color: 'rgba(255,255,255,0.85)',
-                                                                fontSize: 13,
-                                                                fontWeight: 500,
-                                                                display: 'block',
-                                                                overflow: 'hidden',
-                                                                textOverflow: 'ellipsis',
-                                                                whiteSpace: 'nowrap',
-                                                            }}>
-                                                                {insight.title}
-                                                            </span>
-                                                            <span style={{
-                                                                color: 'rgba(255,255,255,0.4)',
-                                                                fontSize: 10,
-                                                                textTransform: 'uppercase',
-                                                                letterSpacing: '0.5px',
-                                                            }}>
-                                                                {insight.type === 'keyHand' ? '♠️ Key Hand' : '📺 Chapter'}
-                                                            </span>
-                                                        </div>
-                                                        <div style={{
-                                                            width: 24,
-                                                            height: 24,
-                                                            borderRadius: '50%',
-                                                            background: 'rgba(255,255,255,0.08)',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                        }}>
-                                                            <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10 }}>▶</span>
-                                                        </div>
-                                                    </div>
-                                                ))
-                                            }
-                                        </div>
-                                    )}
-
-                                    {/* Summary at bottom - METAL UI Card */}
-                                    {aiAnalysis.summary && (
-                                        <div style={{
-                                            marginTop: 24,
-                                            padding: '16px',
-                                            background: 'linear-gradient(180deg, #1a2332 0%, #0d1520 100%)',
-                                            borderRadius: 8,
-                                            border: '1px solid #2a3a4a',
-                                            position: 'relative',
-                                            overflow: 'hidden',
-                                        }}>
-                                            {/* Gold LED strip at top */}
-                                            <div style={{
-                                                position: 'absolute',
-                                                top: 0,
-                                                left: 0,
-                                                right: 0,
-                                                height: 2,
-                                                background: 'linear-gradient(90deg, transparent 0%, #FFD700 30%, #FFD700 70%, transparent 100%)',
-                                                boxShadow: '0 0 10px rgba(255, 215, 0, 0.5)',
-                                            }} />
-                                            <h4 style={{
-                                                color: '#FFD700',
-                                                fontSize: 11,
-                                                fontWeight: 700,
-                                                marginBottom: 10,
-                                                textTransform: 'uppercase',
-                                                letterSpacing: '1.5px',
-                                                textShadow: '0 0 10px rgba(255, 215, 0, 0.4)',
-                                                margin: 0,
-                                                marginBottom: 10,
-                                            }}>VIDEO OVERVIEW</h4>
-                                            <p style={{
-                                                color: '#B0B3B8',
-                                                fontSize: 12,
-                                                lineHeight: 1.7,
-                                                margin: 0
-                                            }}>
-                                                {aiAnalysis.summary}
-                                            </p>
-                                        </div>
-                                    )}
-                                </>
-                            ) : (
-                                <div style={{ textAlign: 'center', padding: 40 }}>
-                                    <div style={{ fontSize: 32, marginBottom: 16 }}>🎬</div>
-                                    <p style={{ color: 'rgba(255,255,255,0.7)' }}>No Insights Available</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
 
                     {/* Video info bar at bottom */}
                     <div style={{
@@ -2451,6 +1767,32 @@ export default function VideoLibraryPage() {
                     flexDirection: 'column',
                 }}>
                     <ReelsViewer onClose={() => setShowReelsModal(false)} />
+                </div>
+            )}
+
+            {/* Share Toast \u2014 floating clipboard feedback */}
+            {shareToast && (
+                <div style={{
+                    position: 'fixed',
+                    bottom: 90,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: 'rgba(30,30,30,0.95)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1px solid rgba(52,199,89,0.5)',
+                    color: '#34C759',
+                    fontSize: 14,
+                    fontWeight: 700,
+                    padding: '12px 24px',
+                    borderRadius: 12,
+                    zIndex: 9999,
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+                    animation: 'fadeInUp 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                }}>
+                    <span>✓</span> Link Copied To Clipboard
                 </div>
             )}
     </PageTransition>

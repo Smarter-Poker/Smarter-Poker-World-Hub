@@ -56,7 +56,7 @@ function timeAgo(d) {
 export function ReelsViewer({ onClose }) {
 
     // Source-aware atomic engagement counter.
-    // Uses SECURITY DEFINER RPCs — single UPDATE, no read-then-write race condition.
+    // Uses SECURITY DEFINER RPCs - single UPDATE, no read-then-write race condition.
     const incrementMetric = async (reel, field, amount) => {
         if (!reel?.id) return;
         try {
@@ -157,7 +157,7 @@ export function ReelsViewer({ onClose }) {
     const [showShareModal, setShowShareModal] = useState(false);
     // #7 Animated Like Counter
     const [likeBounceId, setLikeBounceId] = useState(null);
-    // #4 Not Interested — persist disliked reel IDs in localStorage
+    // #4 Not Interested - persist disliked reel IDs in localStorage
     const [notInterestedIds, setNotInterestedIds] = useState(() => {
         if (typeof window !== 'undefined') {
             try { return new Set(JSON.parse(localStorage.getItem('reels-not-interested') || '[]')); } catch { return new Set(); }
@@ -168,14 +168,14 @@ export function ReelsViewer({ onClose }) {
     const [commentPage, setCommentPage] = useState(0);
     const [hasMoreComments, setHasMoreComments] = useState(false);
     const [loadingMoreComments, setLoadingMoreComments] = useState(false);
-    // Phase 6 — Comment engagement
+    // Phase 6 - Comment engagement
     const [commentLikes, setCommentLikes] = useState({});
     const [replyTo, setReplyTo] = useState(null);
-    // Phase 7 — Power features
+    // Phase 7 - Power features
     const [editingComment, setEditingComment] = useState(null);
     const [editCommentText, setEditCommentText] = useState('');
     const [playbackSpeed, setPlaybackSpeed] = useState(1);
-    // Phase 8 — Comment sort, char counter, copy link
+    // Phase 8 - Comment sort, char counter, copy link
     const [commentSort, setCommentSort] = useState('newest');
     const [copyToast, setCopyToast] = useState(false);
     const COMMENT_MAX_LENGTH = 280;
@@ -184,7 +184,7 @@ export function ReelsViewer({ onClose }) {
     const showErrorToast = (msg) => { setErrorToast(msg); setTimeout(() => setErrorToast(null), 3000); };
     // #6 Comment Like Counts
     const [commentLikeCounts, setCommentLikeCounts] = useState({});
-    // UX Overhaul — More menu + Reaction picker
+    // UX Overhaul - More menu + Reaction picker
     const [showMoreMenu, setShowMoreMenu] = useState(false);
     const [showReactionPicker, setShowReactionPicker] = useState(false);
     const reactionTimerRef = useRef(null);
@@ -224,7 +224,7 @@ export function ReelsViewer({ onClose }) {
         }
     }, []);
 
-    // EventBus listeners — sync like/bookmark from other viewers
+    // EventBus listeners - sync like/bookmark from other viewers
     useEffect(() => {
         const handleLikeBus = (event) => {
             const d = event?.payload;
@@ -269,7 +269,7 @@ export function ReelsViewer({ onClose }) {
         };
     }, [currentUserId]);
 
-    // Realtime subscription — live updates when new reels are posted
+    // Realtime subscription - live updates when new reels are posted
     // Debounced to 3s to batch rapid inserts and avoid feed-flash
     useEffect(() => {
         if (!currentUserId) return;
@@ -286,7 +286,7 @@ export function ReelsViewer({ onClose }) {
     }, [currentUserId]);
 
     // Reset paused state when changing reels + track view
-    // dep: currentIndex ONLY — we do NOT add `reels` because setReels() alone
+    // dep: currentIndex ONLY - we do NOT add `reels` because setReels() alone
     // should NOT trigger a play() call (the video key changes, element remounts)
     useEffect(() => {
         setPaused(false);
@@ -307,7 +307,7 @@ export function ReelsViewer({ onClose }) {
             incrementMetric(reels[currentIndex], 'view_count', 1);
         }
 
-        // Play via canplay event — video element may be remounting due to key change,
+        // Play via canplay event - video element may be remounting due to key change,
         // calling play() immediately on a src-less element causes AbortError on mobile.
         const video = videoRef.current;
         if (!video) return;
@@ -351,7 +351,7 @@ export function ReelsViewer({ onClose }) {
             busEmit.socialPostBookmarked(currentReel.id, currentUserId, { added: !wasSaved });
         } catch {
             setSaved(prev => ({ ...prev, [currentReel.id]: wasSaved }));
-            showErrorToast('Save failed — try again');
+            showErrorToast('Save failed - try again');
         }
     };
 
@@ -399,7 +399,7 @@ export function ReelsViewer({ onClose }) {
         setLoading(true);
         setLoadError(false);
         try {
-            // 3-source fetch — interleaved to prevent any single source monopolizing the feed
+            // 3-source fetch - interleaved to prevent any single source monopolizing the feed
             // BUG FIX: single query ordered by created_at filled the 100-slot limit with only
             // video_library reels (newest timestamps) or only user reels, depending on timing.
             // Solution: fetch each source separately then interleave 2:1 (user:library).
@@ -535,14 +535,14 @@ export function ReelsViewer({ onClose }) {
         }
     };
 
-    // Infinite scroll — load more reels when near end
+    // Infinite scroll - load more reels when near end
     const loadMoreReels = async () => {
         if (loadingMore || !hasMore) return;
         setLoadingMore(true);
         try {
             const REEL_SELECT = 'id, author_id, caption, video_url, thumbnail_url, view_count, like_count, comment_count, created_at, is_public, source_type, profiles:author_id (id, username, avatar_url, full_name)';
             // IMPROVEMENT: also fetch social_posts so they keep appearing in infinite scroll.
-            // Previously only social_reels were fetched here — post-sourced content (every 10th reel
+            // Previously only social_reels were fetched here - post-sourced content (every 10th reel
             // in the initial feed) disappeared entirely after the first 120 items.
             const postOffset = Math.floor(pageOffset / 3);
             const [userRes, libRes, postsRes] = await Promise.all([
@@ -588,7 +588,7 @@ export function ReelsViewer({ onClose }) {
             } else {
                 const existingIds = new Set(reels.map(r => r.id));
                 // BUG FIX (Bug 29): also filter out "not interested" reels from load-more batches
-                // loadReels() filtered them, but loadMoreReels() did not — disliked reels re-appeared
+                // loadReels() filtered them, but loadMoreReels() did not - disliked reels re-appeared
                 const fresh = combined.filter(r => !existingIds.has(r.id) && !notInterestedIds.has(r.id));
                 if (fresh.length === 0) {
                     setHasMore(false);
@@ -617,17 +617,17 @@ export function ReelsViewer({ onClose }) {
         likeDebounceRef.current = true;
         setTimeout(() => { likeDebounceRef.current = false; }, 300);
 
-        // Optimistic UI update — always fire so heart turns red immediately
+        // Optimistic UI update - always fire so heart turns red immediately
         const wasLiked = liked[currentReel.id];
         setLiked(prev => ({ ...prev, [currentReel.id]: !prev[currentReel.id] }));
         setLikeCounts(prev => ({ ...prev, [currentReel.id]: Math.max(0, (prev[currentReel.id] || 0) + (wasLiked ? -1 : 1)) }));
-        // #7 Animated Like Counter — trigger bounce
+        // #7 Animated Like Counter - trigger bounce
         setLikeBounceId(currentReel.id);
         setTimeout(() => setLikeBounceId(null), 400);
 
         // Resolve userId fresh to avoid stale closure
         const userId = currentUserId || getAuthUser()?.id;
-        if (!userId) return; // No auth — keep optimistic UI but skip DB write
+        if (!userId) return; // No auth - keep optimistic UI but skip DB write
 
         // Mutual exclusion: remove dislike when liking
         if (!wasLiked && disliked[currentReel.id]) {
@@ -637,11 +637,11 @@ export function ReelsViewer({ onClose }) {
 
         try {
             if (wasLiked) {
-                // DB trigger (trig_sync_like_count) handles like_count decrement atomically — no RPC needed
+                // DB trigger (trig_sync_like_count) handles like_count decrement atomically - no RPC needed
                 await supabase.from('social_likes').delete().eq('post_id', currentReel.id).eq('user_id', userId).eq('reaction_type', 'like');
                 busEmit.socialPostLiked(currentReel.id, userId, { added: false, reactionType: 'like' });
             } else {
-                // DB trigger (trig_sync_like_count) handles like_count increment atomically — no RPC needed
+                // DB trigger (trig_sync_like_count) handles like_count increment atomically - no RPC needed
                 await supabase.from('social_likes').insert({ post_id: currentReel.id, user_id: userId, reaction_type: 'like' });
                 busEmit.socialPostLiked(currentReel.id, userId, { added: true, reactionType: 'like' });
             }
@@ -669,7 +669,7 @@ export function ReelsViewer({ onClose }) {
         }
 
         const userId = currentUserId || getAuthUser()?.id;
-        if (!userId) return; // No auth — keep optimistic UI but skip DB write
+        if (!userId) return; // No auth - keep optimistic UI but skip DB write
 
         // Clean up like from DB if needed
         if (!wasDisliked && liked[currentReel.id]) {
@@ -682,11 +682,11 @@ export function ReelsViewer({ onClose }) {
         try {
             if (wasDisliked) {
                 await supabase.from('social_likes').delete().eq('post_id', currentReel.id).eq('user_id', userId).eq('reaction_type', 'dislike');
-                // #4 Not Interested — remove from filter
+                // #4 Not Interested - remove from filter
                 setNotInterestedIds(prev => { const n = new Set(prev); n.delete(currentReel.id); if (typeof window !== 'undefined') localStorage.setItem('reels-not-interested', JSON.stringify([...n])); return n; });
             } else {
                 await supabase.from('social_likes').insert({ post_id: currentReel.id, user_id: userId, reaction_type: 'dislike' });
-                // #4 Not Interested — add to filter
+                // #4 Not Interested - add to filter
                 setNotInterestedIds(prev => { const n = new Set(prev); n.add(currentReel.id); if (typeof window !== 'undefined') localStorage.setItem('reels-not-interested', JSON.stringify([...n])); return n; });
             }
         } catch {
@@ -753,7 +753,7 @@ export function ReelsViewer({ onClose }) {
         }
     };
 
-    // #6 Comment Pagination — Load More
+    // #6 Comment Pagination - Load More
     const loadMoreComments = async () => {
         if (!currentReel?.id || loadingMoreComments || !hasMoreComments) return;
         setLoadingMoreComments(true);
@@ -805,14 +805,14 @@ export function ReelsViewer({ onClose }) {
             if (error) throw error;
             busEmit.socialCommentAdded(currentReel.id, currentUserId);
             // DB trigger (trig_update_reel_comment_count / trig_update_post_comment_count)
-            // handles comment_count increment atomically — no RPC needed here
+            // handles comment_count increment atomically - no RPC needed here
             setCommentCounts(prev => ({ ...prev, [currentReel.id]: (prev[currentReel.id] || 0) + 1 }));
         } catch {
             setReelComments(prev => prev.filter(c => c.id !== tempId));
         }
     };
 
-    // Phase 6 — Comment like toggle
+    // Phase 6 - Comment like toggle
     const handleCommentLike = async (commentId) => {
         if (!currentUserId) return;
         const wasLiked = commentLikes[commentId];
@@ -841,7 +841,7 @@ export function ReelsViewer({ onClose }) {
         }
     };
 
-    // Phase 6 — Delete own comment
+    // Phase 6 - Delete own comment
     const handleDeleteComment = async (commentId) => {
         if (!currentUserId || !currentReel?.id) return;
         const prev = reelComments;
@@ -856,7 +856,7 @@ export function ReelsViewer({ onClose }) {
         } catch { setReelComments(prev); }
     };
 
-    // Phase 7 — Edit own comment
+    // Phase 7 - Edit own comment
     const handleEditComment = (comment) => {
         setEditingComment(comment.id);
         setEditCommentText(comment.content || '');
@@ -876,7 +876,7 @@ export function ReelsViewer({ onClose }) {
         setEditCommentText('');
     };
 
-    // Phase 7 — Playback speed toggle (native video)
+    // Phase 7 - Playback speed toggle (native video)
     const handleSpeedToggle = () => {
         const speeds = [1, 1.25, 1.5, 2, 0.5, 0.75];
         const nextIdx = (speeds.indexOf(playbackSpeed) + 1) % speeds.length;
@@ -923,7 +923,7 @@ export function ReelsViewer({ onClose }) {
         setUploadingReelImage(false);
     };
 
-    // Phase 9: 1-Click Repost Architecture — opens share modal; repost requires explicit user action
+    // Phase 9: 1-Click Repost Architecture - opens share modal; repost requires explicit user action
     const handleShare = () => {
         if (!currentReel?.id) return;
         haptic(10);
@@ -958,7 +958,7 @@ export function ReelsViewer({ onClose }) {
         }
     };
 
-    // Share to My Feed — creates a social_posts entry linking this reel
+    // Share to My Feed - creates a social_posts entry linking this reel
     const [sharingToFeed, setSharingToFeed] = useState(false);
     const [sharedToFeed, setSharedToFeed] = useState(false);
     const handleShareToFeed = async () => {
@@ -1176,7 +1176,7 @@ export function ReelsViewer({ onClose }) {
             overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
         } else {
             // Tap while overlay visible = toggle play/pause
-            // BUG FIX: YouTube iframes have no native videoRef — skip play/pause for them
+            // BUG FIX: YouTube iframes have no native videoRef - skip play/pause for them
             const isYT = isYouTubeUrl(currentReel?.video_url);
             if (!isYT && videoRef.current) {
                 if (videoRef.current.paused) {
@@ -1202,7 +1202,7 @@ export function ReelsViewer({ onClose }) {
         }
     };
 
-    // Progress bar update loop — stored in ref to prevent stale closure in RAF
+    // Progress bar update loop - stored in ref to prevent stale closure in RAF
     const updateProgressRef = useRef(null);
     updateProgressRef.current = () => {
         if (videoRef.current && videoRef.current.duration) {
@@ -1233,7 +1233,7 @@ export function ReelsViewer({ onClose }) {
             onMouseMove={cancelLongPress}
             onContextMenu={(e) => { e.preventDefault(); setShowContextMenu(true); }}
         >
-            {/* Close / Back button — always touchable; fades when overlay hidden */}
+            {/* Close / Back button - always touchable; fades when overlay hidden */}
             <button
                 onClick={(e) => { e.stopPropagation(); onClose(); }}
                 aria-label="Close reels"
@@ -1255,12 +1255,12 @@ export function ReelsViewer({ onClose }) {
                 width: '100%', maxWidth: 420, height: '100vh',
                 position: 'relative', background: '#000',
             }}>
-                {/* Video / YouTube iframe — smart renderer */}
+                {/* Video / YouTube iframe - smart renderer */}
                 {(() => {
                     const url = currentReel?.video_url;
                     const ytId = getYouTubeVideoId(url);
                     if (ytId) {
-                        // YouTube embed — autoplay, muted, loop
+                        // YouTube embed - autoplay, muted, loop
                         // BUG FIX: key includes muted state so src re-generates when user toggles mute
                         const embedSrc = `https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1&mute=${muted ? 1 : 0}&loop=1&playlist=${ytId}&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}`;
                         return (
@@ -1277,7 +1277,7 @@ export function ReelsViewer({ onClose }) {
                                     top: 0,
                                     left: 0,
                                     objectFit: 'cover',
-                                    // BUG FIX: pointer-events none — swipe handlers are on container
+                                    // BUG FIX: pointer-events none - swipe handlers are on container
                                     pointerEvents: 'none',
                                 }}
                                 title={currentReel?.caption || 'Poker Reel'}
@@ -1305,13 +1305,13 @@ export function ReelsViewer({ onClose }) {
                     );
                 })()}
 
-                {/* Preload next video — only for MP4/WebM (not YouTube iframes) */}
+                {/* Preload next video - only for MP4/WebM (not YouTube iframes) */}
                 {reels[currentIndex + 1]?.video_url &&
                  !isYouTubeUrl(reels[currentIndex + 1]?.video_url) && (
                     <link rel="preload" href={reels[currentIndex + 1].video_url} as="video" />
                 )}
 
-                {/* Play Button Overlay — only when paused AND using native video */}
+                {/* Play Button Overlay - only when paused AND using native video */}
                 {paused && !isYouTubeUrl(currentReel?.video_url) && (
                     <div style={{
                         position: 'absolute', top: '50%', left: '50%',
@@ -1324,7 +1324,7 @@ export function ReelsViewer({ onClose }) {
                     }}>▶</div>
                 )}
 
-                {/* Author info overlay — always visible */}
+                {/* Author info overlay - always visible */}
                 <div style={{
                     position: 'absolute', bottom: 80, left: 16, right: 16,
                     zIndex: 10, pointerEvents: 'none',
@@ -1352,7 +1352,7 @@ export function ReelsViewer({ onClose }) {
                             </div>
                         </div>
                     </Link>
-                    {/* Follow button — only for other users' reels */}
+                    {/* Follow button - only for other users' reels */}
                     {currentReel?.author_id && currentUserId && currentReel.author_id !== currentUserId && (
                         <button onClick={(e) => { e.stopPropagation(); handleFollow(); }} style={{
                             pointerEvents: 'auto', padding: '4px 14px', borderRadius: 6,
@@ -1386,7 +1386,7 @@ export function ReelsViewer({ onClose }) {
                     })()}
                 </div>
 
-                {/* Right Action Sidebar — ALWAYS VISIBLE & TOUCHABLE on mobile */}
+                {/* Right Action Sidebar - ALWAYS VISIBLE & TOUCHABLE on mobile */}
                 <div
                     onClick={(e) => e.stopPropagation()}
                     style={{
@@ -1394,7 +1394,7 @@ export function ReelsViewer({ onClose }) {
                         display: 'flex', flexDirection: 'column', gap: 24, alignItems: 'center',
                     }}
                 >
-                    {/* Heart — tap to like, long-press for reactions */}
+                    {/* Heart - tap to like, long-press for reactions */}
                     <div style={{ position: 'relative' }}>
                         <button
                             onClick={() => {
@@ -1428,7 +1428,7 @@ export function ReelsViewer({ onClose }) {
                                 {likeCounts[currentReel?.id] || 0}
                             </span>
                         </button>
-                        {/* Reaction Picker — appears on long-press */}
+                        {/* Reaction Picker - appears on long-press */}
                         {showReactionPicker && (
                             <div style={{
                                 position: 'absolute', right: 48, top: '50%', transform: 'translateY(-50%)',
@@ -1497,7 +1497,7 @@ export function ReelsViewer({ onClose }) {
                         </span>
                     </button>
 
-                    {/* More (···) — opens panel with Sound, Report, Speed, Link */}
+                    {/* More (···) - opens panel with Sound, Report, Speed, Link */}
                     <div style={{ position: 'relative' }}>
                         <button onClick={() => setShowMoreMenu(prev => !prev)} aria-label="More options" style={{
                             background: 'none', border: 'none', cursor: 'pointer',
@@ -1574,7 +1574,7 @@ export function ReelsViewer({ onClose }) {
                         <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ fontWeight: 600, color: 'white', fontSize: 15 }}>Comments</span>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                {/* Phase 8 — Sort toggle */}
+                                {/* Phase 8 - Sort toggle */}
                                 <button onClick={() => {
                                     const next = commentSort === 'newest' ? 'oldest' : 'newest';
                                     setCommentSort(next);
@@ -1601,7 +1601,7 @@ export function ReelsViewer({ onClose }) {
                                     <div style={{ flex: 1 }}>
                                         <span style={{ color: 'white', fontWeight: 600, fontSize: 13 }}>{c.profiles?.username || 'User'}</span>
                                         <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginLeft: 8 }}>{c.created_at ? timeAgo(c.created_at) : ''}</span>
-                                        {/* Phase 7 — Inline edit mode */}
+                                        {/* Phase 7 - Inline edit mode */}
                                         {editingComment === c.id ? (
                                             <div style={{ marginTop: 4, display: 'flex', gap: 6, alignItems: 'center' }}>
                                                 <input value={editCommentText} onChange={e => setEditCommentText(e.target.value)}
@@ -1624,7 +1624,7 @@ export function ReelsViewer({ onClose }) {
                                                 )}
                                             </div>
                                         )}
-                                        {/* Phase 6+7 — Comment engagement row */}
+                                        {/* Phase 6+7 - Comment engagement row */}
                                         <div style={{ display: 'flex', gap: 14, marginTop: 4, alignItems: 'center' }}>
                                             <button onClick={() => handleCommentLike(c.id)} style={{
                                                 background: 'none', border: 'none', cursor: 'pointer', padding: 0,
@@ -1649,7 +1649,7 @@ export function ReelsViewer({ onClose }) {
                                     </div>
                                 </div>
                             ))}
-                            {/* #6 Comment Pagination — Load More */}
+                            {/* #6 Comment Pagination - Load More */}
                             {hasMoreComments && (
                                 <button onClick={loadMoreComments} disabled={loadingMoreComments} style={{
                                     width: '100%', padding: '10px', background: 'rgba(255,255,255,0.08)',
@@ -1732,7 +1732,7 @@ export function ReelsViewer({ onClose }) {
                                 >Post</button>
                             )}
                         </div>
-                        {/* Phase 8 — Character counter */}
+                        {/* Phase 8 - Character counter */}
                         {commentText.length > 0 && (
                             <div style={{ textAlign: 'right', fontSize: 10, color: commentText.length >= COMMENT_MAX_LENGTH - 20 ? '#ef4444' : 'rgba(255,255,255,0.3)', paddingRight: 16, paddingBottom: 4 }}>
                                 {commentText.length}/{COMMENT_MAX_LENGTH}
@@ -1919,8 +1919,8 @@ export function ReelsViewer({ onClose }) {
 
 
 
-                {/* View count intentionally hidden from HUD — private to poster only */}
-                {/* Phase 8 — Copy Link Toast */}
+                {/* View count intentionally hidden from HUD - private to poster only */}
+                {/* Phase 8 - Copy Link Toast */}
                 {copyToast && (
                     <div style={{
                         position: 'absolute', top: 80, left: '50%', transform: 'translateX(-50%)',
