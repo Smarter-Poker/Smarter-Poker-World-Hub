@@ -5970,7 +5970,21 @@ function SocialMediaPage() {
                                                 const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
                                                 if (unreadIds.length === 0) return;
                                                 try {
-                                                    await supabase.from('notifications').update({ read: true }).in('id', unreadIds);
+                                                    // BUG-35 FIX: Was calling supabase client directly, bypassing server-side cache.
+                                                    // Now routes through mark-read API which invalidates the feed cache.
+                                                    let accessToken = null;
+                                                    try {
+                                                        const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+                                                        accessToken = authData?.access_token || null;
+                                                    } catch (_) {}
+                                                    await fetch('/api/notifications/mark-read', {
+                                                        method: 'POST',
+                                                        headers: {
+                                                            'Content-Type': 'application/json',
+                                                            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+                                                        },
+                                                        body: JSON.stringify({ ids: unreadIds }),
+                                                    });
                                                     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
                                                     broadcastSync('smarter_poker_notif_sync', 'refresh_notifications');
                                                     eventBus.emit(EventType.NOTIFICATIONS_READ, { count: unreadIds.length }, 'ManualMarkAllRead');

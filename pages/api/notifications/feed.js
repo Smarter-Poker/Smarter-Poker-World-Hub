@@ -240,11 +240,16 @@ export default async function handler(req, res) {
                 || n.title;
 
             // BUG-28 FIX: Rewrite home_group message with real group name
+            // BUG-36 FIX: For groups that were deleted (no entry in commander_home_groups),
+            //             show a graceful generic message instead of the raw slug.
             let message = n.message;
             if ((n.type === 'home_group_friend_joined' || n.type === 'home_group_announcement') && n.data?.group_id) {
                 const realGroupName = groupNameById[n.data.group_id];
                 if (realGroupName) {
                     message = `Your friend is now in ${realGroupName} — check it out`;
+                } else {
+                    // Group was deleted or not found — avoid showing raw slug
+                    message = 'Your friend joined a Home Game — check it out';
                 }
             }
 

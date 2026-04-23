@@ -34,11 +34,21 @@ export default async function handler(req, res) {
       res.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=30');
 
       try {
-          const limit = parseInt(req.query.limit || '50');
-          // Only filter types if caller explicitly passes ?blocked=type1,type2
-          // Default: show ALL notification types (matches header badge count)
+          const limit = parseInt(req.query.limit || '50', 10);
+          // BUG-31 FIX: Validate ?blocked= param against allowlist to prevent PostgREST injection.
+          // Previously: blockedTypes were passed unsanitized into .not('type', 'in', '(type1,type2)')
+          // A malicious value like "like),user_id.eq.(select..." could leak other users' notifications.
+          const VALID_NOTIFICATION_TYPES = new Set([
+              'like', 'comment', 'mention', 'reply', 'friend_request', 'friend_accept', 'friend_accepted',
+              'new_follow', 'home_group_friend_joined', 'home_group_announcement', 'home_game_new',
+              'home_game_update', 'home_game_invite', 'venue_claim_approved', 'venue_claim_rejected',
+              'system', 'achievement', 'bonus', 'tournament', 'training', 'trivia', 'live',
+              'poker_news', 'poker_hand', 'daily_challenge', 'diamond', 'vip',
+          ]);
           const blockedParam = req.query.blocked;
-          const blockedTypes = blockedParam ? blockedParam.split(',').filter(Boolean) : [];
+          const blockedTypes = blockedParam
+              ? blockedParam.split(',').map(t => t.trim()).filter(t => VALID_NOTIFICATION_TYPES.has(t))
+              : [];
 
           // Fetch notifications
           let query = getSupabase()

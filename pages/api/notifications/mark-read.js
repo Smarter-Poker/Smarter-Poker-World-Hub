@@ -26,20 +26,35 @@ export default async function handler(req, res) {
 
 
     try {
-      const { notificationId } = req.body || {};
+      const { notificationId, ids } = req.body || {};
 
-      if (notificationId) {
-        // Mark single notification
+      if (ids && Array.isArray(ids) && ids.length > 0) {
+        // BUG-32 FIX: Batch mark specific IDs as read (sent by social-media dropdown).
+        // Previous code had no 'ids' path — fell through to mark ALL, incorrectly
+        // clearing every notification when the user just opened the dropdown briefly.
+        // Validate: each id must be a valid UUID and belong to the requesting user.
+        const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const safeIds = ids.filter(id => typeof id === 'string' && uuidRe.test(id)).slice(0, 200);
+        if (safeIds.length > 0) {
+          // BUG-33 FIX: Also sync is_read=true so legacy queries stay consistent
+          await getSupabase()
+            .from('notifications')
+            .update({ read: true, is_read: true })
+            .in('id', safeIds)
+            .eq('user_id', user.id);  // user_id guard prevents marking other users' notifications
+        }
+      } else if (notificationId) {
+        // Mark single notification — also sync is_read (BUG-33 FIX)
         await getSupabase()
           .from('notifications')
-          .update({ read: true })
+          .update({ read: true, is_read: true })
           .eq('id', notificationId)
           .eq('user_id', user.id);
       } else {
-        // Mark all unread
+        // Mark ALL unread — also sync is_read (BUG-33 FIX)
         await getSupabase()
           .from('notifications')
-          .update({ read: true })
+          .update({ read: true, is_read: true })
           .eq('user_id', user.id)
           .eq('read', false);
       }

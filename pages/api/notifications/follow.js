@@ -8,7 +8,9 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+
 
 let _supabase = null;
 function getSupabase() {
@@ -26,14 +28,10 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Verify caller identity via JWT
-        const token = req.headers.authorization?.replace('Bearer ', '');
-        if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-
+        // BUG-30 FIX: Use local HMAC JWT validation instead of GoTrue network roundtrip
         const supabase = getSupabase();
-        const { data: authData, error: authErr } = await supabase.auth.getUser(token);
-        const user = authData?.user;
-        if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+        const { user } = await getServerUserWithFallback(req, supabase);
+        if (!user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
         const { followingUserId } = req.body;
         if (!followingUserId) return res.status(400).json({ success: false, error: 'followingUserId required' });

@@ -9,8 +9,10 @@
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { sendPushNotification } from '../../../src/lib/onesignal-server';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+
 
 const ONESIGNAL_APP_ID = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
 const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
@@ -42,12 +44,9 @@ export default async function handler(req, res) {
           return res.status(400).json({ success: false, error: 'Missing required fields: userId, venueId, venueName' });
       }
 
-      // BUG #241 FIX: Require JWT auth and verify caller is the target user
-      const token = req.headers.authorization?.replace('Bearer ', '');
-      if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
-      const user = authData?.user;
-      if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+      // BUG-30 FIX: Use local HMAC JWT validation instead of GoTrue network roundtrip
+      const { user } = await getServerUserWithFallback(req, getSupabase());
+      if (!user) return res.status(401).json({ success: false, error: 'Invalid token' });
       if (user.id !== userId) {
           return res.status(403).json({ success: false, error: 'Cannot send geofence alerts for other users' });
       }
