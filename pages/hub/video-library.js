@@ -1517,9 +1517,7 @@ export default function VideoLibraryPage() {
                                 border: 'none',
                             }}
                         />
-
-
-
+                    </div>
 
 
                     {/* Video info bar at bottom */}

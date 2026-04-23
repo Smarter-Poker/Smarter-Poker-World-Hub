@@ -39,9 +39,11 @@ export default async function handler(req, res) {
             return res.status(401).json({ error: 'Invalid or expired token' });
         }
 
+        const mergedMetadata = { ...authUser.user_metadata, ...metadata };
+
         // Update the user's metadata using admin API
         const { error: updateError } = await getSupabase().auth.admin.updateUserById(authUser.id, {
-            user_metadata: metadata
+            user_metadata: mergedMetadata
         });
 
         if (updateError) {
