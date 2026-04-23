@@ -20,8 +20,17 @@
 
 ## Hetzner API Token
 
+> **SECURITY NOTE (2026-04-21):** The previously-committed token was exposed
+> in public git history (commits 0916679b, c60011f05). It MUST be rotated
+> via https://console.hetzner.cloud/ → Security → API Tokens. Store the
+> replacement in macOS Keychain or a password manager — **never** in this
+> file, the repo, or any tracked location.
+>
+> Retrieve at runtime via: `security find-generic-password -a smarter-poker -s hetzner-api -w`
+> (or set `HETZNER_API_TOKEN` in `~/.zshrc` / local shell env — also gitignored).
+
 ```
-yKYOvufn7iTRIhFlB9TnSIdUYiqTCA3YtEqTmxPwvxpCIBjBFgAYIDNYv7aMi646
+REDACTED — see macOS Keychain entry "hetzner-api" under account "smarter-poker"
 ```
 
 ## Common Operations
@@ -39,11 +48,12 @@ ssh root@178.156.160.206 "cd /opt/club-arena && git pull origin main && docker r
 # View logs
 ssh root@178.156.160.206 "docker logs club-arena-engine --tail 100"
 
-# List Hetzner servers via API
-curl -H "Authorization: Bearer yKYOvufn7iTRIhFlB9TnSIdUYiqTCA3YtEqTmxPwvxpCIBjBFgAYIDNYv7aMi646" https://api.hetzner.cloud/v1/servers
+# List Hetzner servers via API (load token from keychain, do NOT inline)
+TOKEN=$(security find-generic-password -a smarter-poker -s hetzner-api -w)
+curl -H "Authorization: Bearer $TOKEN" https://api.hetzner.cloud/v1/servers
 
 # Reset root password via API (emergency only)
-curl -X POST -H "Authorization: Bearer yKYOvufn7iTRIhFlB9TnSIdUYiqTCA3YtEqTmxPwvxpCIBjBFgAYIDNYv7aMi646" https://api.hetzner.cloud/v1/servers/125093929/actions/reset_password
+curl -X POST -H "Authorization: Bearer $TOKEN" https://api.hetzner.cloud/v1/servers/125093929/actions/reset_password
 ```
 
 ## Related

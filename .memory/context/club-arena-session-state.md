@@ -75,7 +75,7 @@ cat /etc/nginx/sites-enabled/* 2>/dev/null
 ## Credentials
 
 - **Hetzner SSH:** `ssh root@178.156.160.206` (key-based auth)
-- **Hetzner API Token:** `yKYOvufn7iTRIhFlB9TnSIdUYiqTCA3YtEqTmxPwvxpCIBjBFgAYIDNYv7aMi646`
+- **Hetzner API Token:** `[REDACTED — rotate via Hetzner Console, store in macOS Keychain — see hetzner-server-credentials.md]`
 - **Hetzner Server ID:** 125093929
 - **Supabase Project:** `kuklfnapbkmacvwxktbh`
 - **Test Account:** daniel@bekavactrading.com / Bek454545!!
