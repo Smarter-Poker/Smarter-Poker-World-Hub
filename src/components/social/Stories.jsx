@@ -346,12 +346,14 @@ export function StoriesBar({ userId, userAvatar, onCreateStory }) {
 function StoryViewer({ storyGroup, onClose, userId }) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [progress, setProgress] = useState(0);
+    const [ytError, setYtError] = useState(null); // YouTube embed error code
     const stories = storyGroup.stories || [storyGroup];
     const currentStory = stories[currentIndex];
     const timerRef = useRef(null);
 
     useEffect(() => {
         setProgress(0);
+        setYtError(null); // Clear error on story change
         const duration = 5000;
         const interval = 50;
         let elapsed = 0;
@@ -371,6 +373,39 @@ function StoryViewer({ storyGroup, onClose, userId }) {
 
         return () => clearInterval(timerRef.current);
     }, [currentIndex]);
+
+    // YouTube error detection via postMessage
+    useEffect(() => {
+        const isYT = currentStory?.link_url?.includes('youtube');
+        if (!isYT) return;
+        const YOUTUBE_ORIGINS = ['https://www.youtube-nocookie.com', 'https://www.youtube.com', 'https://youtube.com'];
+        const handleYTMessage = (e) => {
+            if (!YOUTUBE_ORIGINS.includes(e.origin)) return;
+            try {
+                const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+                if (data?.event === 'onError' && data?.info) {
+                    setYtError(Number(data.info));
+                }
+            } catch { /* non-JSON message */ }
+        };
+        window.addEventListener('message', handleYTMessage);
+        return () => window.removeEventListener('message', handleYTMessage);
+    }, [currentStory?.link_url]);
+
+    // Auto-advance on YouTube error after 3 seconds
+    useEffect(() => {
+        if (!ytError) return;
+        // Stop the normal story timer so it doesn't interfere
+        if (timerRef.current) clearInterval(timerRef.current);
+        const timer = setTimeout(() => {
+            if (currentIndex < stories.length - 1) {
+                setCurrentIndex(prev => prev + 1);
+            } else {
+                onClose();
+            }
+        }, 3000);
+        return () => clearTimeout(timer);
+    }, [ytError]);
 
     const goNext = () => {
         if (currentIndex < stories.length - 1) {
@@ -457,17 +492,62 @@ function StoryViewer({ storyGroup, onClose, userId }) {
                 {/* Story content */}
                 {currentStory.link_url && currentStory.link_url.includes('youtube') ? (
                     // Embed YouTube video for video stories
-                    <iframe
-                        src={currentStory.link_url.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
-                        style={{
-                            width: '100%',
-                            height: '100%',
-                            border: 'none',
-                            objectFit: 'contain'
-                        }}
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                    />
+                    <>
+                        <iframe
+                            src={(() => {
+                                let embedUrl = currentStory.link_url.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/');
+                                const sep = embedUrl.includes('?') ? '&' : '?';
+                                return `${embedUrl}${sep}enablejsapi=1&autoplay=1&mute=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}`;
+                            })()}
+                            style={{
+                                width: '100%',
+                                height: '100%',
+                                border: 'none',
+                                objectFit: 'contain'
+                            }}
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                        />
+                        {/* YouTube Error Overlay */}
+                        {ytError && (
+                            <div style={{
+                                position: 'absolute', inset: 0, zIndex: 50,
+                                background: 'linear-gradient(135deg, rgba(20,20,30,0.97) 0%, rgba(10,10,20,0.99) 100%)',
+                                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                gap: 16, pointerEvents: 'auto',
+                            }}>
+                                <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="1.5">
+                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                    <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                                </svg>
+                                <div style={{ color: 'white', fontSize: 18, fontWeight: 700 }}>
+                                    {ytError === 150 ? 'Age-Restricted Video' : 'Video Unavailable'}
+                                </div>
+                                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, maxWidth: 280, textAlign: 'center' }}>
+                                    This video cannot be embedded. You can watch it directly on YouTube.
+                                </div>
+                                {currentStory.link_url && (
+                                    <a
+                                        href={currentStory.link_url}
+                                        target="_blank" rel="noopener noreferrer"
+                                        onClick={(e) => e.stopPropagation()}
+                                        style={{
+                                            display: 'inline-flex', alignItems: 'center', gap: 8,
+                                            padding: '12px 28px', borderRadius: 8,
+                                            background: '#FF0000', color: 'white',
+                                            fontWeight: 700, fontSize: 15, textDecoration: 'none',
+                                            boxShadow: '0 4px 20px rgba(255,0,0,0.4)',
+                                        }}
+                                    >
+                                        Watch On YouTube
+                                    </a>
+                                )}
+                                <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, marginTop: 4 }}>
+                                    Skipping in 3 seconds...
+                                </div>
+                            </div>
+                        )}
+                    </>
                 ) : currentStory.media_url ? (
                     currentStory.media_type === 'video' ? (
                         <video

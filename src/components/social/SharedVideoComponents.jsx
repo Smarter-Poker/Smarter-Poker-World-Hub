@@ -159,13 +159,14 @@ export function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLi
     // YouTube error detection via postMessage
     useEffect(() => {
         if (!isYouTubeUrl(videoUrl)) return;
+        const YOUTUBE_ORIGINS = ['https://www.youtube-nocookie.com', 'https://www.youtube.com', 'https://youtube.com'];
         const handleYTMessage = (e) => {
-            if (!e.origin?.includes('youtube')) return;
+            if (!YOUTUBE_ORIGINS.includes(e.origin)) return;
             try {
                 const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
                 if (data?.event === 'onError' && data?.info) {
                     // 150 = age-restricted, 100 = not found, 101 = embed disabled
-                    setYtError(data.info);
+                    setYtError(Number(data.info));
                 }
             } catch { /* non-JSON message, ignore */ }
         };
@@ -318,20 +319,22 @@ export function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLi
                             <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, maxWidth: 280, textAlign: 'center' }}>
                                 This video cannot be embedded. You can watch it directly on YouTube.
                             </div>
-                            <a
-                                href={`https://www.youtube.com/watch?v=${getYouTubeVideoId(videoUrl)}`}
-                                target="_blank" rel="noopener noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                style={{
-                                    display: 'inline-flex', alignItems: 'center', gap: 8,
-                                    padding: '12px 28px', borderRadius: 8,
-                                    background: '#FF0000', color: 'white',
-                                    fontWeight: 700, fontSize: 15, textDecoration: 'none',
-                                    boxShadow: '0 4px 20px rgba(255,0,0,0.4)',
-                                }}
-                            >
-                                Watch On YouTube
-                            </a>
+                            {getYouTubeVideoId(videoUrl) && (
+                                <a
+                                    href={`https://www.youtube.com/watch?v=${getYouTubeVideoId(videoUrl)}`}
+                                    target="_blank" rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    style={{
+                                        display: 'inline-flex', alignItems: 'center', gap: 8,
+                                        padding: '12px 28px', borderRadius: 8,
+                                        background: '#FF0000', color: 'white',
+                                        fontWeight: 700, fontSize: 15, textDecoration: 'none',
+                                        boxShadow: '0 4px 20px rgba(255,0,0,0.4)',
+                                    }}
+                                >
+                                    Watch On YouTube
+                                </a>
+                            )}
                             <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, marginTop: 4 }}>
                                 Closing in 3 seconds...
                             </div>

@@ -1379,7 +1379,7 @@ export default function ReelsPage() {
                     }
                 }
                 // YouTube onError event — code 150 = age-restricted, 100 = not found, 101 = embed disabled
-                if (data?.event === 'onError') {
+                if (data?.event === 'onError' && data?.info) {
                     const errorCode = Number(data.info);
                     console.warn('[Reels] YouTube error:', errorCode);
                     setYtError({ code: errorCode });
