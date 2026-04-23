@@ -10,6 +10,7 @@ import TrendingVenues from './TrendingVenues';
 import { SharedAvatar as Avatar } from './SharedAvatar';
 import { MAX_MEDIA, compressImage, getYouTubeVideoId, validateYouTubeVideo, sniffMimeType, SOCIAL_COLORS as C } from '../../../src/lib/socialHelpers';
 import bgUpload from '../../../src/lib/backgroundVideoUpload';
+import { validateVideoFile, generateThumbnail, compressVideo } from '../../../src/lib/videoCompressor';
 
 
 export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages, authorOverride, context = 'social-media' }) {
@@ -38,6 +39,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
     const draftTimeout = useRef(null);
     const _submittingRef = useRef(false); // local double-submit guard
     const mountedRef = useRef(true); // guards setState after unmount
+    const compressionRef = useRef({}); // { [blobUrl]: { controller, promise, result } }
 
     // Identity switching
     const { isClubMode, clubPage, hasClubPage, switchToPersonal, switchToClub } = useActiveIdentity();
@@ -81,6 +83,11 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                     try { URL.revokeObjectURL(m.url); } catch (_) {}
                 }
             });
+            // Abort any running background compressions
+            Object.values(compressionRef.current).forEach(c => {
+                try { c.controller?.abort(); } catch (_) {}
+            });
+            compressionRef.current = {};
             mountedRef.current = false;
         };
     }, []);
@@ -141,6 +148,13 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
      * handleFiles — STAGE ONLY (instant, no freeze)
      * Creates local blob preview URLs so user can see thumbnails and type a caption.
      * Actual upload happens in handlePost when user taps Post.
+     *
+     * Pipeline during staging (all background, zero freeze):
+     *   1. Client-side file size validation (instant reject > 5GB)
+     *   2. Blob URL for preview thumbnail
+     *   3. Auto-thumbnail generation via canvas (2s frame)
+     *   4. Background video compression for files > 50MB
+     *   5. Signed URL prefetch for first video
      */
     const handleFiles = async (e) => {
         const files = Array.from(e.target.files);
@@ -165,23 +179,70 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         for (const file of filesToStage) {
             const mimeType = sniffMimeType(file);
             const isVideo = mimeType.startsWith('video/');
+
+            // ── CLIENT-SIDE SIZE VALIDATION (instant, before any processing) ──
+            if (isVideo) {
+                const validation = validateVideoFile(file);
+                if (!validation.valid) {
+                    setError(validation.error);
+                    continue; // skip this file, try the rest
+                }
+                if (validation.warning) {
+                    toast.info(validation.warning, 5000);
+                }
+            }
+
             const localUrl = URL.createObjectURL(file);
             staged.push({
                 type: isVideo ? 'video' : 'photo',
                 url: localUrl,
-                file,       // raw File object — uploaded in handlePost
+                file,           // raw File object — uploaded in handlePost
+                thumbnail: null, // set async below for videos
             });
         }
 
+        if (!staged.length) return;
         setMedia(prev => [...prev, ...staged]);
 
-        // 🚀 PREFETCH: Start fetching signed URL in background while user types caption.
-        // By the time they hit Post, the URL is already cached → near-zero upload latency.
+        // ── BACKGROUND PROCESSING (runs while user types caption) ────────────
         for (const item of staged) {
-            if (item.type === 'video') {
-                bgUpload.prefetch({ file: item.file, userId: user.id, folder: 'videos' });
-                break; // only prefetch the first video
-            }
+            if (item.type !== 'video') continue;
+
+            // 1. Auto-thumbnail: extract frame at ~2s via canvas
+            generateThumbnail(item.file).then(thumb => {
+                if (!mountedRef.current || !thumb) return;
+                setMedia(prev => prev.map(m =>
+                    m.url === item.url ? { ...m, thumbnail: thumb } : m
+                ));
+            });
+
+            // 2. Background compression for large videos (> 50MB, < 2min)
+            const controller = new AbortController();
+            const compPromise = compressVideo(item.file, {
+                signal: controller.signal,
+                onProgress: ({ pct }) => {
+                    if (!mountedRef.current) return;
+                    // Update compression progress in media state
+                    setMedia(prev => prev.map(m =>
+                        m.url === item.url ? { ...m, compressPct: pct } : m
+                    ));
+                },
+            }).then(result => {
+                compressionRef.current[item.url] = { ...compressionRef.current[item.url], result };
+                if (result.compressed && mountedRef.current) {
+                    const savedMB = Math.round((result.originalSize - result.compressedSize) / (1024 * 1024));
+                    toast.success(`Video compressed — saved ${savedMB}MB (${result.savings}% smaller)`, 3000);
+                    setMedia(prev => prev.map(m =>
+                        m.url === item.url ? { ...m, compressPct: null } : m
+                    ));
+                }
+                return result;
+            });
+            compressionRef.current[item.url] = { controller, promise: compPromise, result: null };
+
+            // 3. Signed URL prefetch
+            bgUpload.prefetch({ file: item.file, userId: user.id, folder: 'videos' });
+            break; // only process first video for prefetch
         }
 
         // Reset file input so the same file can be re-selected
@@ -338,6 +399,19 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                 const folder = isVideo ? 'videos' : 'photos';
                 try {
                     if (isVideo) {
+                        // ── Use compressed file if background compression finished ──
+                        let fileToUpload = staged.file;
+                        const comp = compressionRef.current[staged.url];
+                        if (comp?.promise) {
+                            try {
+                                const result = comp.result || await Promise.race([
+                                    comp.promise,
+                                    new Promise(r => setTimeout(() => r({ file: staged.file, compressed: false }), 500)),
+                                ]);
+                                if (result.compressed) fileToUpload = result.file;
+                            } catch (_) { /* use original */ }
+                        }
+
                         // ── Background-capable video upload ─────────────────────
                         let bgUnsub = null;
                         const videoUrl = await new Promise((resolve, reject) => {
@@ -348,15 +422,16 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                                 },
                                 onComplete: ({ publicUrl }) => resolve(publicUrl),
                                 onError: ({ error }) => reject(error),
-                                // SharedPostCreator is inline — no modal to dismiss
                             });
-                            bgUpload.start({ file: staged.file, userId: user.id, folder }).catch(reject);
+                            bgUpload.start({ file: fileToUpload, userId: user.id, folder }).catch(reject);
                         });
                         if (bgUnsub) bgUnsub();
                         // Revoke blob URL now that we have the real URL
                         if (staged.url?.startsWith('blob:')) {
                             try { URL.revokeObjectURL(staged.url); } catch (_) {}
                         }
+                        // Clean up compression cache
+                        delete compressionRef.current[staged.url];
                         uploadedMedia.push({ type: 'video', url: videoUrl });
                     } else {
                         // Compress image before upload
@@ -663,30 +738,76 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         {media.map((m, i) => (
                             <div key={i} style={{ position: 'relative', aspectRatio: media.length === 1 ? '16/9' : '1', borderRadius: 8, overflow: 'hidden' }}>
                                 {m.type === 'video' ? (
-                                    // BUG-14 FIX: video previews need muted+playsInline for autoplay on iOS/Chrome
-                                    <video src={m.url} muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    // Use lightweight thumbnail image instead of heavy <video> element
+                                    m.thumbnail ? (
+                                        <img src={m.thumbnail} alt="Video thumbnail" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    ) : (
+                                        <video src={m.url} muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    )
                                 ) : (
                                     <img src={m.url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 )}
+                                {/* 🎬 Upload progress bar overlay */}
+                                {uploading && uploadProgress && m.file && (
+                                    <div style={{
+                                        position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)',
+                                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6,
+                                    }}>
+                                        <div style={{ color: 'white', fontSize: 13, fontWeight: 600 }}>{uploadProgress.label || 'Uploading…'}</div>
+                                        <div style={{ width: '70%', height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.25)', overflow: 'hidden' }}>
+                                            <div style={{
+                                                height: '100%', borderRadius: 3,
+                                                background: 'linear-gradient(90deg, #1877F2, #42B72A)',
+                                                width: `${Math.min(uploadProgress.pct || 0, 100)}%`,
+                                                transition: 'width 0.3s ease',
+                                            }} />
+                                        </div>
+                                        <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 11 }}>{uploadProgress.pct || 0}%</div>
+                                    </div>
+                                )}
+                                {/* Compression progress indicator */}
+                                {m.compressPct != null && !uploading && (
+                                    <div style={{
+                                        position: 'absolute', bottom: 28, left: 4, right: 4,
+                                        background: 'rgba(0,0,0,0.7)', borderRadius: 4, padding: '3px 6px',
+                                    }}>
+                                        <div style={{ color: '#42B72A', fontSize: 9, marginBottom: 2 }}>Compressing… {m.compressPct}%</div>
+                                        <div style={{ height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.2)', overflow: 'hidden' }}>
+                                            <div style={{ height: '100%', background: '#42B72A', width: `${m.compressPct}%`, transition: 'width 0.3s' }} />
+                                        </div>
+                                    </div>
+                                )}
                                 <button
                                     onClick={() => {
-                                        // Revoke blob URL to free memory when removing staged media
-                                        if (media[i]?.file && media[i]?.url?.startsWith('blob:')) {
-                                            try { URL.revokeObjectURL(media[i].url); } catch (_) {}
+                                        const item = media[i];
+                                        // Cancel background compression if running
+                                        if (item?.url && compressionRef.current[item.url]) {
+                                            compressionRef.current[item.url].controller?.abort();
+                                            delete compressionRef.current[item.url];
+                                        }
+                                        // Revoke blob URL to free memory
+                                        if (item?.file && item?.url?.startsWith('blob:')) {
+                                            try { URL.revokeObjectURL(item.url); } catch (_) {}
                                         }
                                         setMedia(prev => prev.filter((_, idx) => idx !== i));
                                     }}
+                                    disabled={uploading}
                                     style={{
                                         position: 'absolute', top: 4, right: 4, width: 24, height: 24, borderRadius: '50%',
-                                        background: 'rgba(0,0,0,0.7)', border: 'none', color: 'white', cursor: 'pointer',
-                                        fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                        background: 'rgba(0,0,0,0.7)', border: 'none', color: 'white', cursor: uploading ? 'not-allowed' : 'pointer',
+                                        fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        opacity: uploading ? 0.4 : 1,
                                     }}
                                 >×</button>
                                 {m.type === 'video' && (
                                     <div style={{
                                         position: 'absolute', bottom: 4, left: 4, background: 'rgba(0,0,0,0.7)',
-                                        padding: '2px 6px', borderRadius: 4, color: 'white', fontSize: 10
-                                    }}>VIDEO</div>
+                                        padding: '2px 6px', borderRadius: 4, color: 'white', fontSize: 10,
+                                        display: 'flex', alignItems: 'center', gap: 4,
+                                    }}>
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+                                        VIDEO
+                                    </div>
                                 )}
                             </div>
                         ))}

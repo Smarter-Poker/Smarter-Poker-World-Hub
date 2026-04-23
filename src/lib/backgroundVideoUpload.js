@@ -35,6 +35,19 @@ let _progress = 0;
 let _label = '';
 let _bgTimer = null;
 let _bgToastId = null;        // ID of the persistent "uploading in background" toast
+let _beforeUnloadHandler = null; // Prevents accidental tab close during upload
+
+// ─── beforeunload protection ──────────────────────────────────────────────────
+function _installBeforeUnload() {
+    if (_beforeUnloadHandler) return; // already installed
+    _beforeUnloadHandler = (e) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', _beforeUnloadHandler);
+}
+function _removeBeforeUnload() {
+    if (!_beforeUnloadHandler) return;
+    window.removeEventListener('beforeunload', _beforeUnloadHandler);
+    _beforeUnloadHandler = null;
+}
 
 // Prefetch cache — stores the signed URL so start() can skip the network call
 let _prefetchCache = null;    // { file, userId, folder, meta, timestamp }
@@ -258,6 +271,9 @@ const bgUpload = {
         _label = 'Preparing…';
         _emit('onProgress', { state: _state, pct: _progress, label: _label });
 
+        // Prevent accidental tab close during upload
+        _installBeforeUnload();
+
         // 10-second background trigger
         _bgTimer = setTimeout(() => {
             if (_state !== 'uploading') return;
@@ -300,6 +316,7 @@ const bgUpload = {
             // ── Upload complete ───────────────────────────────────────────────
             clearTimeout(_bgTimer);
             _bgTimer = null;
+            _removeBeforeUnload();
             // Dismiss the persistent background toast before showing completion
             if (_bgToastId) {
                 useToastStore.getState().removeToast(_bgToastId);
@@ -317,6 +334,7 @@ const bgUpload = {
         } catch (err) {
             clearTimeout(_bgTimer);
             _bgTimer = null;
+            _removeBeforeUnload();
             _activeXhr = null;
             // Dismiss the persistent background toast
             if (_bgToastId) {
@@ -340,6 +358,7 @@ const bgUpload = {
     abort() {
         clearTimeout(_bgTimer);
         _bgTimer = null;
+        _removeBeforeUnload();
         if (_bgToastId) {
             useToastStore.getState().removeToast(_bgToastId);
             _bgToastId = null;
