@@ -302,7 +302,9 @@ def run_bridge(args):
             'caption': caption,
             'is_public': True,
             'source_type': 'video_library',
-            'created_at': row.get('published_at') or datetime.now(timezone.utc).isoformat(),
+            # BUG FIX: always use NOW() — using published_at backdates rows,
+            # burying them behind recent user content in the limit-100 feed
+            # 'created_at': row.get('published_at') or ...  ← REMOVED
         }
 
         batch.append(reel_row)

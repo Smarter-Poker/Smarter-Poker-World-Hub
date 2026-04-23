@@ -417,17 +417,18 @@ export function ReelsViewer({ onClose }) {
         setLoading(true);
         setLoadError(false);
         try {
-            // Dual-source: social_reels + social_posts with YouTube links
+            // Dual-source: social_reels (incl. video_library) + social_posts with YouTube links
+            // BUG FIX: limit raised from 50→100 so video_library reels aren't truncated
             const [reelsResult, postsResult] = await Promise.all([
                 supabase
                     .from('social_reels')
                     .select(`
-                        id, author_id, caption, video_url, thumbnail_url, view_count, like_count, comment_count, created_at, is_public,
+                        id, author_id, caption, video_url, thumbnail_url, view_count, like_count, comment_count, created_at, is_public, source_type,
                         profiles:author_id (id, username, avatar_url, full_name)
                     `)
                     .eq('is_public', true)
                     .order('created_at', { ascending: false })
-                    .limit(50),
+                    .limit(100),
                 supabase
                     .from('social_posts')
                     .select(`
@@ -946,7 +947,8 @@ export function ReelsViewer({ onClose }) {
             container.removeEventListener('touchstart', handleTouchStart);
             container.removeEventListener('touchend', handleTouchEnd);
         };
-    }, [currentIndex]);
+    // BUG FIX: include reels.length so goNext/goPrev don't close over stale state
+    }, [currentIndex, reels.length]);
 
     if (loading) {
         return (
@@ -1122,12 +1124,13 @@ export function ReelsViewer({ onClose }) {
                     const ytId = getYouTubeVideoId(url);
                     if (ytId) {
                         // YouTube embed — autoplay, muted, loop
+                        // BUG FIX: key includes muted state so src re-generates when user toggles mute
                         const embedSrc = `https://www.youtube.com/embed/${ytId}?autoplay=1&mute=${muted ? 1 : 0}&loop=1&playlist=${ytId}&rel=0&modestbranding=1&playsinline=1&enablejsapi=0`;
                         return (
                             <iframe
-                                key={`yt-${currentReel?.id}`}
+                                key={`yt-${currentReel?.id}-muted-${muted}`}
                                 src={embedSrc}
-                                allow="autoplay; fullscreen"
+                                allow="autoplay; encrypted-media; fullscreen"
                                 allowFullScreen
                                 style={{
                                     width: '100%',
@@ -1137,7 +1140,8 @@ export function ReelsViewer({ onClose }) {
                                     top: 0,
                                     left: 0,
                                     objectFit: 'cover',
-                                    pointerEvents: 'none', // let our swipe/tap handlers work
+                                    // BUG FIX: pointer-events none — swipe handlers are on container
+                                    pointerEvents: 'none',
                                 }}
                                 title={currentReel?.caption || 'Poker Reel'}
                             />
