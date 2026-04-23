@@ -151,7 +151,7 @@ export function isHorseActiveHourTZ(profileId, utcHour, timezone) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 // Style dimensions with many options for combination
-const CAPITALIZATION_STYLES = ['all_lower', 'normal', 'first_cap', 'random_caps', 'all_caps', 'lazy_caps'];
+const CAPITALIZATION_STYLES = ['all_lower', 'all_lower', 'normal', 'first_cap', 'first_cap', 'lazy_caps'];
 const EMOJI_STYLES = ['none', 'none', 'none', 'none', 'none', 'none']; // DISABLED — no emojis allowed
 const PUNCTUATION_STYLES = ['none', 'minimal', 'normal', 'enthusiastic', 'ellipsis', 'dash_lover'];
 const FILLER_SETS = [
@@ -267,9 +267,11 @@ export function applyWritingStyle(comment, profileId) {
     // ═══════════════════════════════════════════════════════════════════════
     result = result
         .replace(/—/g, ' ')           // Em-dashes to space
-        .replace(/–/g, ' ')           // En-dashes to space  
-        .replace(/(\w)-(\w)/g, '$1 $2')  // Hyphenated-words to spaces
-        .replace(/["'"']/g, '')       // All quote variants
+        .replace(/–/g, ' ')           // En-dashes to space
+        // Only replace hyphenated non-poker patterns: letter-letter where neither looks like poker shorthand
+        // Preserved: 3-bet, one-outer, check-raise, semi-bluff, pre-flop etc (start with digit or 2+ chars)
+        .replace(/(?<![0-9a-z]{2,})-(?![0-9])(\b(?!bet|outer|raise|bluff|flop|call|fold|hand|street|barrel|pair|card|pot|roll|way|side))/gi, ' ')
+        .replace(/["\u201c\u201d\u2018\u2019]/g, '')  // All quote variants
         .replace(/:/g, '')            // Colons
         .replace(/\s+/g, ' ')         // Multiple spaces to single
         .trim();
@@ -319,9 +321,10 @@ export function applyWritingStyle(comment, profileId) {
             }
             break;
         case 'ellipsis':
-            if (!result.match(/[.!?]$/)) {
-                result = result + '...';
-            }
+            result = result.replace(/[.!?,]+$/, '').trim();
+            if (Math.random() > 0.50) result += '...';
+            else if (Math.random() > 0.40) result += '.';
+            // else: no punct (20%)
             break;
         case 'dash_lover':
             // DISABLED - creates malformed captions like 'wild. -'

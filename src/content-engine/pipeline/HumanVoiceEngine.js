@@ -65,19 +65,20 @@ function getHorseHash(profileId) {
 }
 
 // ─── Personality archetypes ───────────────────────────────────────────────────
-// Each horse gets one locked-in archetype via hash.
-// Archetypes change capitalization, cadence, and word-choice tendencies.
+// Each horse gets one locked-in archetype via hash — defines their TENDENCIES,
+// not their fixed behavior. applyStyle injects randomness so the same horse
+// never looks identical post after post.
 const ARCHETYPES = [
-  { id: 'blunt',      capStyle: 'all_lower',  punct: 'none',        flair: ['real talk', 'honestly', 'ngl'] },
-  { id: 'analytical', capStyle: 'normal',     punct: 'minimal',     flair: ['solver take', 'range-wise', 'GTO note'] },
-  { id: 'hype',       capStyle: 'normal',         punct: 'none',         flair: ['LFG', 'massive', 'huge'] },
-  { id: 'dry',        capStyle: 'all_lower',  punct: 'none',        flair: ['sure', 'of course', 'classic'] },
-  { id: 'veteran',    capStyle: 'normal',     punct: 'minimal',     flair: ['textbook', 'seen it', 'classic spot'] },
-  { id: 'casual',     capStyle: 'all_lower',  punct: 'ellipsis',    flair: ['ngl', 'lowkey', 'kinda'] },
-  { id: 'skeptical',  capStyle: 'all_lower',  punct: 'none',        flair: ['idk', 'not convinced', 'questionable'] },
-  { id: 'excitable',  capStyle: 'first_cap',  punct: 'enthusiastic', flair: ['wait', 'hold on', 'ok but'] },
-  { id: 'terse',      capStyle: 'all_lower',  punct: 'none',        flair: [] },   // no flair — extremely short
-  { id: 'conversational', capStyle: 'first_cap', punct: 'normal',  flair: ['honestly', 'look', 'thing is'] },
+  { id: 'blunt',         capStyle: 'all_lower',  punct: 'none',        flair: ['real talk', 'honestly', 'ngl'] },
+  { id: 'analytical',   capStyle: 'normal',     punct: 'minimal',     flair: ['solver take', 'GTO note', 'range perspective'] },
+  { id: 'hype',         capStyle: 'normal',     punct: 'none',        flair: ['massive', 'huge', 'unreal'] },
+  { id: 'dry',          capStyle: 'all_lower',  punct: 'none',        flair: ['sure', 'of course', 'classic'] },
+  { id: 'veteran',      capStyle: 'normal',     punct: 'minimal',     flair: ['textbook', 'seen it', 'classic spot'] },
+  { id: 'casual',       capStyle: 'all_lower',  punct: 'none',        flair: ['ngl', 'lowkey', 'kinda'] },
+  { id: 'skeptical',    capStyle: 'all_lower',  punct: 'none',        flair: ['idk', 'not convinced', 'questionable'] },
+  { id: 'excitable',    capStyle: 'first_cap',  punct: 'enthusiastic', flair: ['wait', 'hold on', 'ok but'] },
+  { id: 'terse',        capStyle: 'all_lower',  punct: 'none',        flair: [] },
+  { id: 'conversational', capStyle: 'first_cap', punct: 'normal',    flair: ['honestly', 'look', 'thing is'] },
 ];
 
 function getArchetype(profileId) {
@@ -118,29 +119,66 @@ function scrub(text) {
 }
 
 // ─── Style application ────────────────────────────────────────────────────────
+// Each archetype defines a TENDENCY, not a fixed rule.
+// Randomness is injected so the same horse varies post to post.
+// Goal: no two consecutive posts look structurally identical.
 function applyStyle(text, archetype) {
   let out = scrub(text);
 
-  switch (archetype.capStyle) {
-    case 'all_lower': out = out.toLowerCase(); break;
-    case 'first_cap': out = out[0].toUpperCase() + out.slice(1); break;
-    case 'all_caps_words': out = out.toUpperCase(); break;
-    case 'normal': default: break;
+  // Strip trailing punctuation before any style is applied
+  out = out.replace(/[.!?,;]+$/, '').trim();
+
+  // ── Capitalization: archetype tendency + random drift ──────────────────────
+  // 'all_lower' horses: 70% stay lower, 20% capitalize first word, 10% normal
+  // 'first_cap' horses: 75% capitalize first word, 15% all lower, 10% normal
+  // 'normal' horses: 60% unchanged, 25% first_cap, 15% all lower
+  const capRoll = Math.random();
+  const cs = archetype.capStyle;
+  if (cs === 'all_lower') {
+    if (capRoll < 0.70) out = out.toLowerCase();
+    else if (capRoll < 0.90) out = out[0].toUpperCase() + out.slice(1).toLowerCase();
+    else { /* leave as-is (normal) */ }
+  } else if (cs === 'first_cap') {
+    if (capRoll < 0.75) out = out[0].toUpperCase() + out.slice(1);
+    else if (capRoll < 0.90) out = out.toLowerCase();
+    else { /* leave as-is */ }
+  } else { // 'normal'
+    if (capRoll < 0.60) { /* leave as-is */ }
+    else if (capRoll < 0.85) out = out[0].toUpperCase() + out.slice(1);
+    else out = out.toLowerCase();
   }
 
-  // Strip trailing punctuation first, then apply style
-  out = out.replace(/[.!?,]+$/, '').trim();
-
-  switch (archetype.punct) {
-    case 'none': break;
-    case 'minimal': if (Math.random() > 0.6) out += '.'; break;
-    case 'enthusiastic': out += Math.random() > 0.4 ? '!' : '!!'; break;
-    case 'ellipsis': out += '...'; break;
-    case 'normal': if (Math.random() > 0.5) out += '.'; break;
+  // ── Punctuation: archetype tendency + random drift ─────────────────────────
+  // 'none' horses: 65% no punct, 25% period, 10% nothing (already done)
+  // 'minimal' horses: 50% period, 30% nothing, 20% comma then next thought
+  // 'enthusiastic' horses: 50% '!', 30% '!!', 20% nothing
+  // 'ellipsis' horses: 50% '...', 30% nothing, 20% period (NOT always '...')
+  // 'normal' horses: 45% period, 30% nothing, 15% '?', 10% comma-tail
+  const punctRoll = Math.random();
+  const p = archetype.punct;
+  if (p === 'none') {
+    if (punctRoll > 0.75) out += '.';
+    // else: no punct
+  } else if (p === 'minimal') {
+    if (punctRoll > 0.50) out += '.';
+    // else: no punct
+  } else if (p === 'enthusiastic') {
+    if (punctRoll > 0.70) out += '!!';
+    else if (punctRoll > 0.30) out += '!';
+    // else: no punct (20%)
+  } else if (p === 'ellipsis') {
+    if (punctRoll > 0.50) out += '...';
+    else if (punctRoll > 0.20) out += '.';
+    // else: no punct (20%)
+  } else { // 'normal'
+    if (punctRoll > 0.55) out += '.';
+    else if (punctRoll > 0.85) out += '?';
+    // else: no punct
   }
 
   return out.trim();
 }
+
 
 // ─── Structural length variance ───────────────────────────────────────────────
 // Ensures mix of short (1-4 words), medium (5-9), and longer phrases.
@@ -613,7 +651,8 @@ export function generatePostCaption(category, profileId, clipTitle = '') {
   if (safeTitle && Math.random() < 0.60) {
     const ctx = extractTitleContext(safeTitle);
     const contextCaption = buildContextCaption(ctx, profileId);
-    if (contextCaption && contextCaption.trim().length >= 10) return contextCaption;
+    // BUG-FIX: contextCaption early-return previously bypassed sanitizeHorseOutput
+    if (contextCaption && contextCaption.trim().length >= 10) return sanitizeHorseOutput(contextCaption);
   }
 
   // Fallback: pick from category-appropriate phrase pool
@@ -623,7 +662,7 @@ export function generatePostCaption(category, profileId, clipTitle = '') {
 
   const archetype = getArchetype(profileId);
 
-  // Min-length guard: retry up to 3x to avoid sub-10-char captions (e.g. "oof", "pain.")
+  // Min-length guard: retry up to 3x to avoid sub-10-char captions
   let phrase = '';
   for (let attempt = 0; attempt < 3; attempt++) {
     const candidate = pick(pool, profileId);
@@ -631,10 +670,9 @@ export function generatePostCaption(category, profileId, clipTitle = '') {
     if (!phrase || candidate.length > phrase.length) phrase = candidate || phrase;
   }
 
-  // 12% chance: prefix with a short archetype flair word
-  if (archetype.flair.length > 0 && Math.random() < 0.12) {
-    const h = getHorseHash(profileId);
-    const flair = archetype.flair[h % archetype.flair.length];
+  // 20% chance: prefix with archetype flair (randomized pick, not always same word)
+  if (archetype.flair.length > 0 && Math.random() < 0.20) {
+    const flair = archetype.flair[Math.floor(Math.random() * archetype.flair.length)];
     phrase = `${flair}, ${phrase.toLowerCase()}`;
   }
 
@@ -665,7 +703,8 @@ export function generateNewsCaption(headline, profileId, newsType = 'poker') {
   if (safeHeadline && Math.random() < 0.65) {
     const ctx = extractTitleContext(safeHeadline);
     const contextCaption = buildContextCaption(ctx, profileId);
-    if (contextCaption && contextCaption.trim().length >= 10) return contextCaption;
+    // BUG-FIX: contextCaption early-return previously bypassed sanitizeHorseOutput
+    if (contextCaption && contextCaption.trim().length >= 10) return sanitizeHorseOutput(contextCaption);
   }
 
   // Fallback: detect pool from headline
@@ -674,19 +713,19 @@ export function generateNewsCaption(headline, profileId, newsType = 'poker') {
     ? POST_CAPTIONS[detected]
     : newsType === 'sports'
       ? [
-          'game of the week type stuff', 'the numbers don\'t lie',
+          'game of the week type stuff', 'the numbers really do not lie',
           'hard to argue with that performance', 'watching this one closely',
-          'not many people talking about this', 'the sport has a moment here',
-          'every season has a story, this might be it', 'the pressure is real',
-          'respect the grind', 'that stat line is real',
+          'not many people are talking about this yet', 'the sport has a moment here',
+          'every season has a story, this might be it', 'the pressure is real here',
+          'respect the grind no matter the sport', 'that stat line tells the whole story',
         ]
       : [
-          'worth reading', 'good context for the scene right now',
-          'hadn\'t heard this yet', 'makes sense',
-          'this changes a few things', 'filed this away',
-          'relevant if you\'re paying attention', 'the poker world keeps moving',
-          'noted', 'update worth knowing about', 'the story keeps going',
-          'not surprised honestly', 'this matters',
+          'worth reading if you follow the scene', 'good context for where things stand right now',
+          'hadn\'t heard this one yet', 'makes sense when you think about it',
+          'this changes a few things going forward', 'filed this one away',
+          'relevant if you\'re paying attention to the scene', 'the poker world keeps moving',
+          'worth knowing about', 'the story keeps going on this one',
+          'not surprised honestly but still worth noting', 'this one actually matters',
         ];
 
   // Min-length guard: retry up to 3x to avoid sub-10-char captions
@@ -697,10 +736,9 @@ export function generateNewsCaption(headline, profileId, newsType = 'poker') {
     if (!phrase || candidate.length > phrase.length) phrase = candidate || phrase;
   }
 
-  // 18% chance: add flair
-  if (archetype.flair.length > 0 && Math.random() < 0.18) {
-    const h = getHorseHash(profileId);
-    const flair = archetype.flair[h % archetype.flair.length];
+  // 20% chance: prefix with archetype flair (randomized pick)
+  if (archetype.flair.length > 0 && Math.random() < 0.20) {
+    const flair = archetype.flair[Math.floor(Math.random() * archetype.flair.length)];
     phrase = `${flair}, ${phrase.toLowerCase()}`;
   }
 
