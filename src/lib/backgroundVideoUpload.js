@@ -242,10 +242,12 @@ const bgUpload = {
             _state = 'background';
             _emit('onBackground', {});
             onDismiss?.();
-            // Show persistent "uploading in background" info toast
-            toast.info(
+            // Show persistent "uploading in background" toast (stays until upload completes)
+            toast.action(
                 '📹 Long video uploading in the background — feel free to keep browsing!',
-                undefined  // no duration = persistent
+                null,   // no click action
+                'info'  // toast type
+                // no duration → persistent until completion toast replaces it
             );
         }, bgAfterMs);
 

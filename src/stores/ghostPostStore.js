@@ -22,6 +22,19 @@
 
 let _ghost = null;       // { id, content, user, videoPreviewUrl, progress, label, status }
 let _listeners = new Set();
+let _lastUpdated = 0;    // Timestamp of last create/updateProgress call
+const GHOST_STALE_MS = 5 * 60 * 1000; // 5 minutes — auto-clear stale ghosts
+
+/** Auto-clear stale ghosts that lost their upload handler */
+function _autoClean() {
+    if (_ghost && _lastUpdated && (Date.now() - _lastUpdated > GHOST_STALE_MS)) {
+        if (_ghost.videoPreviewUrl) {
+            try { URL.revokeObjectURL(_ghost.videoPreviewUrl); } catch (_) {}
+        }
+        _ghost = null;
+        // Don't notify here — let the caller's subscribe handle it
+    }
+}
 
 function _notify() {
     _listeners.forEach((fn) => fn(_ghost));
@@ -29,7 +42,10 @@ function _notify() {
 
 const ghostPost = {
     /** Current ghost post (or null) */
-    get current() { return _ghost; },
+    get current() {
+        _autoClean();
+        return _ghost;
+    },
 
     /**
      * Subscribe to ghost post changes.
@@ -37,6 +53,7 @@ const ghostPost = {
      * @returns {Function} unsubscribe
      */
     subscribe(callback) {
+        _autoClean();
         _listeners.add(callback);
         // Immediately emit current state
         callback(_ghost);
@@ -68,6 +85,7 @@ const ghostPost = {
             status: 'uploading', // 'uploading' | 'processing' | 'done' | 'error'
             createdAt: new Date().toISOString(),
         };
+        _lastUpdated = Date.now();
         _notify();
     },
 
@@ -79,6 +97,7 @@ const ghostPost = {
     updateProgress(progress, label) {
         if (!_ghost) return;
         _ghost = { ..._ghost, progress, label };
+        _lastUpdated = Date.now();
         _notify();
     },
 
