@@ -417,34 +417,42 @@ export function ReelsViewer({ onClose }) {
         setLoading(true);
         setLoadError(false);
         try {
-            // Dual-source: social_reels (incl. video_library) + social_posts with YouTube links
-            // BUG FIX: limit raised from 50→100 so video_library reels aren't truncated
-            const [reelsResult, postsResult] = await Promise.all([
+            // 3-source fetch — interleaved to prevent any single source monopolizing the feed
+            // BUG FIX: single query ordered by created_at filled the 100-slot limit with only
+            // video_library reels (newest timestamps) or only user reels, depending on timing.
+            // Solution: fetch each source separately then interleave 2:1 (user:library).
+            const REEL_SELECT = `id, author_id, caption, video_url, thumbnail_url, view_count, like_count, comment_count, created_at, is_public, source_type, profiles:author_id (id, username, avatar_url, full_name)`;
+
+            const [userResult, libraryResult, postsResult] = await Promise.all([
+                // Slot A: User-uploaded reels (genuine social content)
                 supabase
                     .from('social_reels')
-                    .select(`
-                        id, author_id, caption, video_url, thumbnail_url, view_count, like_count, comment_count, created_at, is_public, source_type,
-                        profiles:author_id (id, username, avatar_url, full_name)
-                    `)
+                    .select(REEL_SELECT)
                     .eq('is_public', true)
+                    .eq('source_type', 'user')
                     .order('created_at', { ascending: false })
-                    .limit(100),
+                    .limit(60),
+                // Slot B: Video-library-bridged reels (curated poker content)
+                supabase
+                    .from('social_reels')
+                    .select(REEL_SELECT)
+                    .eq('is_public', true)
+                    .eq('source_type', 'video_library')
+                    .order('created_at', { ascending: false })
+                    .limit(60),
+                // Slot C: Social posts with video/YouTube links
                 supabase
                     .from('social_posts')
-                    .select(`
-                        id, author_id, content, content_type, media_urls, like_count, comment_count, created_at,
-                        profiles:author_id (id, username, avatar_url, full_name)
-                    `)
+                    .select(`id, author_id, content, content_type, media_urls, like_count, comment_count, created_at, profiles:author_id (id, username, avatar_url, full_name)`)
                     .eq('visibility', 'public')
                     .not('media_urls', 'is', null)
                     .order('created_at', { ascending: false })
                     .limit(20)
             ]);
 
-            const reelsData = reelsResult.data || [];
-            // Map social_posts to reel-compatible shape
-            // Filter to posts that have actual video/YouTube content
-            // CRITICAL: source flag tells incrementMetric which table to update
+            const userReels = userResult.data || [];
+            const libReels = libraryResult.data || [];
+
             const postsAsReels = (postsResult.data || [])
                 .filter(p => {
                     const url = p.media_urls?.[0];
@@ -462,13 +470,38 @@ export function ReelsViewer({ onClose }) {
                     is_public: true,
                 }));
 
-            // Merge, deduplicate by id, sort by date
+            // Interleave 2 user reels + 1 library reel + sprinkle posts
+            // This ensures a natural scroll experience regardless of timestamp differences
+            const interleaved = [];
+            const maxLen = Math.max(userReels.length, libReels.length);
+            let uIdx = 0, lIdx = 0, pIdx = 0;
+            for (let i = 0; i < maxLen * 3 && interleaved.length < 120; i++) {
+                // Pattern: user, user, library (repeating)
+                const slot = i % 3;
+                if (slot === 0 || slot === 1) {
+                    if (uIdx < userReels.length) interleaved.push(userReels[uIdx++]);
+                    else if (lIdx < libReels.length) interleaved.push(libReels[lIdx++]);
+                } else {
+                    if (lIdx < libReels.length) interleaved.push(libReels[lIdx++]);
+                    else if (uIdx < userReels.length) interleaved.push(userReels[uIdx++]);
+                }
+                // Splice in a post every 10 reels
+                if (interleaved.length > 0 && interleaved.length % 10 === 0 && pIdx < postsAsReels.length) {
+                    interleaved.push(postsAsReels[pIdx++]);
+                }
+            }
+            // Append any remaining
+            while (uIdx < userReels.length) interleaved.push(userReels[uIdx++]);
+            while (lIdx < libReels.length) interleaved.push(libReels[lIdx++]);
+            while (pIdx < postsAsReels.length) interleaved.push(postsAsReels[pIdx++]);
+
+            // Deduplicate by id
             const idSet = new Set();
-            const merged = [...reelsData, ...postsAsReels].filter(r => {
+            const merged = interleaved.filter(r => {
                 if (idSet.has(r.id)) return false;
                 idSet.add(r.id);
                 return true;
-            }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            });
 
             setReels(merged);
             const lc = {}, cc = {}, vc = {};
