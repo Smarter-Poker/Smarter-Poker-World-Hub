@@ -62,7 +62,19 @@ export default function ReelsPage() {
         }
         return true; // default muted until user interaction (browser autoplay policy)
     });
-    const [userWantsSound, setUserWantsSound] = useState(true); // Sound ON by default
+    // BUG FIX (Bug 29): userWantsSound must be consistent with muted state from localStorage
+    // Old: always true — the unmute retry loop would fight user's saved mute preference
+    const [userWantsSound, setUserWantsSound] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const savedSound = localStorage.getItem('reels-sound-enabled');
+            // If they've explicitly enabled sound before, respect that
+            if (savedSound === 'true') return true;
+            // If reel-muted is 'false' (i.e. they unmuted), they want sound
+            if (localStorage.getItem('reel-muted') === 'false') return true;
+            return false; // default: no preference yet, start without pushing sound
+        }
+        return false;
+    });
     // Auto-play immediately - no tap required since videos are muted (browser policy compliant)
     const [liked, setLiked] = useState({});
     const [disliked, setDisliked] = useState({});
@@ -1154,7 +1166,10 @@ export default function ReelsPage() {
             if (isSaved) {
                 await savedReelsService.unsaveReel(user.id, currentReel.id);
             } else {
-                await savedReelsService.saveReel(user.id, currentReel.id);
+                // BUG FIX (Bug 28): pass source_type so post-sourced reels can be saved
+                // without hitting the FK constraint on social_reels
+                const srcType = currentReel.source === 'posts' ? 'post' : 'reel';
+                await savedReelsService.saveReel(user.id, currentReel.id, srcType);
             }
             busEmit.socialPostBookmarked(currentReel.id, user.id, { added: !isSaved });
         } catch (err) {

@@ -286,7 +286,8 @@ export const savedReelsService = {
         try {
             const { data, error } = await supabase
                 .from('saved_reels')
-                .select('id, user_id, reel_id, saved_at')
+                // BUG FIX (Bug 28): include source_type so callers know which table to join
+                .select('id, user_id, reel_id, saved_at, source_type')
                 .eq('user_id', userId)
                 .order('saved_at', { ascending: false });
 
@@ -298,13 +299,16 @@ export const savedReelsService = {
         }
     },
 
-    async saveReel(userId, reelId) {
+    // BUG FIX (Bug 28): accept source_type so post-sourced reels ('post') can be saved
+    // Old: always inserted source_type='reel' implicitly (default) which FK would reject for posts
+    async saveReel(userId, reelId, sourceType = 'reel') {
         try {
             const { data, error } = await supabase
                 .from('saved_reels')
                 .insert({
                     user_id: userId,
-                    reel_id: reelId
+                    reel_id: reelId,
+                    source_type: sourceType,
                 })
                 .select()
                 .maybeSingle();

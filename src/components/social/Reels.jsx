@@ -362,10 +362,8 @@ export function ReelsViewer({ onClose }) {
                     .eq('user_id', currentUserId)
                     .eq('interaction_type', 'bookmark');
             } else {
-                await supabase.from('social_interactions').delete()
-                    .eq('post_id', currentReel.id)
-                    .eq('user_id', currentUserId)
-                    .eq('interaction_type', 'bookmark');
+                // BUG FIX (Bug 31): removed redundant DELETE before INSERT on save path
+                // Old: always deleted first even when not saved (wasteful extra roundtrip)
                 await supabase.from('social_interactions').insert({
                     post_id: currentReel.id, user_id: currentUserId, interaction_type: 'bookmark'
                 });
@@ -373,7 +371,7 @@ export function ReelsViewer({ onClose }) {
             busEmit.socialPostBookmarked(currentReel.id, currentUserId, { added: !wasSaved });
         } catch {
             setSaved(prev => ({ ...prev, [currentReel.id]: wasSaved }));
-            showErrorToast('Save failed \u2014 try again');
+            showErrorToast('Save failed — try again');
         }
     };
 
@@ -581,7 +579,9 @@ export function ReelsViewer({ onClose }) {
                 setHasMore(false);
             } else {
                 const existingIds = new Set(reels.map(r => r.id));
-                const fresh = newReels.filter(r => !existingIds.has(r.id));
+                // BUG FIX (Bug 29): also filter out "not interested" reels from load-more batches
+                // loadReels() filtered them, but loadMoreReels() did not — disliked reels re-appeared
+                const fresh = newReels.filter(r => !existingIds.has(r.id) && !notInterestedIds.has(r.id));
                 if (fresh.length === 0) {
                     setHasMore(false);
                 } else {
