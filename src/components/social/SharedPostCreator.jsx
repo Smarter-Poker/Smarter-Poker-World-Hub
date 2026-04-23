@@ -37,6 +37,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
     const linkTimeout = useRef(null);
     const draftTimeout = useRef(null);
     const _submittingRef = useRef(false); // local double-submit guard
+    const mountedRef = useRef(true); // guards setState after unmount
 
     // Identity switching
     const { isClubMode, clubPage, hasClubPage, switchToPersonal, switchToClub } = useActiveIdentity();
@@ -80,6 +81,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                     try { URL.revokeObjectURL(m.url); } catch (_) {}
                 }
             });
+            mountedRef.current = false;
         };
     }, []);
 
@@ -341,6 +343,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         const videoUrl = await new Promise((resolve, reject) => {
                             bgUnsub = bgUpload.subscribe({
                                 onProgress: ({ pct, label }) => {
+                                    if (!mountedRef.current) return;
                                     setUploadProgress({ pct, label });
                                 },
                                 onComplete: ({ publicUrl }) => resolve(publicUrl),
@@ -394,13 +397,19 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                             uploadedMedia.push({ type: json.type || 'photo', url: json.url });
                         } else {
                             setError('Upload failed: ' + (json.error || 'Unknown error'));
+                            // Revoke blob URL for failed upload
+                            if (staged.url?.startsWith('blob:')) {
+                                try { URL.revokeObjectURL(staged.url); } catch (_) {}
+                            }
                         }
                     }
                 } catch (err) {
                     console.warn('[SharedPostCreator] Upload error:', err);
-                    setError('Upload failed: ' + err.message);
-                    setUploadProgress(null);
-                    setUploading(false);
+                    if (mountedRef.current) {
+                        setError('Upload failed: ' + err.message);
+                        setUploadProgress(null);
+                        setUploading(false);
+                    }
                     _submittingRef.current = false;
                     return; // abort post on upload failure
                 }
@@ -481,9 +490,12 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                     setCheckInVenue(null);
                 }
             }
-            setContent(''); setMedia([]); setLinkPreview(null); try { localStorage.removeItem('sp-post-draft'); } catch (e) { console.warn('[App] Handled exception:', e); }
+            if (mountedRef.current) {
+                setContent(''); setMedia([]); setLinkPreview(null);
+            }
+            try { localStorage.removeItem('sp-post-draft'); } catch (e) { console.warn('[App] Handled exception:', e); }
         }
-        else setError('Unable to post at this time. Please try again later.');
+        else if (mountedRef.current) setError('Unable to post at this time. Please try again later.');
         _submittingRef.current = false;
     };
 
