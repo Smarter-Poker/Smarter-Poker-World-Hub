@@ -152,11 +152,18 @@ export const EnhancedPostCreator = ({
   const xhrRef = useRef(null);          // holds active video XHR so we can abort on unmount
   const draftTimeout = useRef(null);    // debounce handle for draft auto-save
   const mountedRef = useRef(true);      // unmount guard for background upload callbacks
+  const bgUnsubRef = useRef(null);      // bgUpload listener cleanup on unmount
 
   // Track mount lifecycle
   useEffect(() => {
     mountedRef.current = true;
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+      if (bgUnsubRef.current) {
+        bgUnsubRef.current();
+        bgUnsubRef.current = null;
+      }
+    };
   }, []);
 
   // Character count
@@ -367,9 +374,11 @@ export const EnhancedPostCreator = ({
               });
 
               bgUpload.start({ file, userId: user.id, folder }).catch(reject);
+              bgUnsubRef.current = bgUnsub; // Store for unmount cleanup
             });
 
             if (bgUnsub) bgUnsub();
+            bgUnsubRef.current = null;
             uploadedMedia.push({ url: videoUrl, type: 'video', name: file.name, wasBackground });
             
             if (!wasBackground) {

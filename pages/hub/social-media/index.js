@@ -75,7 +75,6 @@ import GiphyPicker from '../../../src/components/shared/GiphyPicker';
 import CheckInModal from '../../../src/components/social/CheckInModal';
 import TrendingVenues from '../../../src/components/social/TrendingVenues';
 import { SharedPostCreator } from '../../../src/components/social/SharedPostCreator';
-import GhostPostCard from '../../../src/components/social/GhostPostCard';
 // Shared utilities — single source of truth (extracted from this file)
 import { SOCIAL_COLORS, SOCIAL_COLORS as C, timeAgo, decodeHtmlEntities, isYouTubeUrl, getYouTubeVideoId, getYouTubeEmbedUrl, getYouTubeThumbnail, validateYouTubeVideo, sniffMimeType } from '../../../src/lib/socialHelpers';
 import { SharedAvatar as Avatar } from '../../../src/components/social/SharedAvatar';
@@ -6257,8 +6256,6 @@ function SocialMediaPage() {
                                 {/* Post Creator */}
                                 {user && <SharedPostCreator context="social-media" user={user} onPost={handlePost} isPosting={isPosting} onGoLive={() => setShowGoLiveModal(true)} onOpenClubPages={() => { setShowClubPages(true); router.replace('/hub/social-media?view=club-pages', undefined, { shallow: true }); }} />}
 
-                                {/* 👻 Ghost Post — optimistic uploading placeholder */}
-                                <GhostPostCard />
 
                                 {/* Login prompt — only show after auth check completes */}
                                 {!user && !loading && (

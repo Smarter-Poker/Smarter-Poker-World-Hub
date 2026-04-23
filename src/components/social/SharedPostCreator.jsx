@@ -36,6 +36,8 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
     const mentionTimeout = useRef(null);
     const linkTimeout = useRef(null);
     const draftTimeout = useRef(null);
+    const bgUnsubRef = useRef(null);    // bgUpload listener cleanup on unmount
+    const _submittingRef = useRef(false); // local double-submit guard
 
     // Identity switching
     const { isClubMode, clubPage, hasClubPage, switchToPersonal, switchToClub } = useActiveIdentity();
@@ -60,12 +62,18 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         } catch (e) { console.warn('[App] Handled exception:', e); }
     }, []);
 
-    // Cleanup pending timeouts on unmount to prevent zombie timers
+    // Cleanup pending timeouts + bgUpload listener on unmount
     useEffect(() => {
         return () => {
             if (mentionTimeout.current) clearTimeout(mentionTimeout.current);
             if (linkTimeout.current) clearTimeout(linkTimeout.current);
             if (draftTimeout.current) clearTimeout(draftTimeout.current);
+            // Unsubscribe any lingering bgUpload listener (prevents memory leak
+            // if user navigates away mid-upload before the Promise resolves)
+            if (bgUnsubRef.current) {
+                bgUnsubRef.current();
+                bgUnsubRef.current = null;
+            }
         };
     }, []);
 
@@ -124,6 +132,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
     const handleFiles = async (e) => {
         const files = Array.from(e.target.files);
         if (!files.length) return;
+        if (uploading) return; // Prevent concurrent upload loops
         if (!user?.id) { setError('Please log in to upload media.'); return; }
 
         // Check total media limit
@@ -175,9 +184,11 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                             // SharedPostCreator is inline (no modal) — nothing to dismiss;
                             // the persistent toast from bgUpload is sufficient UX.
                         });
+                        bgUnsubRef.current = bgUnsub; // Store for unmount cleanup
                         bgUpload.start({ file, userId: user.id, folder }).catch(reject);
                     });
                     if (bgUnsub) bgUnsub();
+                    bgUnsubRef.current = null;
                     setUploadProgress({ pct: 100, label: 'Upload complete!' });
                     uploaded.push({ type: 'video', url: videoUrl });
                     setUploadProgress(null);
@@ -357,7 +368,8 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
     };
 
     const handlePost = async () => {
-        if (isPosting) return;
+        if (isPosting || _submittingRef.current) return; // Double-submit guard
+        _submittingRef.current = true;
         if (!content.trim() && !media.length && !linkPreview && !checkInVenue) return;
         setError('');
         let urls = media.map(m => m.url);
@@ -433,6 +445,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
             setContent(''); setMedia([]); setLinkPreview(null); try { localStorage.removeItem('sp-post-draft'); } catch (e) { console.warn('[App] Handled exception:', e); }
         }
         else setError('Unable to post at this time. Please try again later.');
+        _submittingRef.current = false;
     };
 
     // Determine display identity:
