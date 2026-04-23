@@ -105,6 +105,26 @@ export function ReelsViewer({ onClose }) {
     const [loadingMore, setLoadingMore] = useState(false);
     const [pageOffset, setPageOffset] = useState(60); // tracks next fetch offset per source
 
+    // Anti-Drift: Preserve viewed reel when new reels are inserted above it
+    const prevReelIdRef = useRef(null);
+    useEffect(() => {
+        if (!reels || reels.length === 0) return;
+        const currentReelId = reels[currentIndex]?.id;
+        
+        if (prevReelIdRef.current && currentReelId !== prevReelIdRef.current) {
+            // reels array changed under us! Find where our reel moved to.
+            const newIndex = reels.findIndex(r => r.id === prevReelIdRef.current);
+            if (newIndex !== -1 && newIndex !== currentIndex) {
+                setCurrentIndex(newIndex);
+            }
+        }
+        
+        // Update the ref to the currently viewing reel
+        if (reels[currentIndex]?.id) {
+            prevReelIdRef.current = reels[currentIndex].id;
+        }
+    }, [reels, currentIndex]);
+
     // Phase 9: Long Press Context Menu
     // Named distinctly from the swipe useEffect's local handleTouchStart to prevent shadowing
     const [showContextMenu, setShowContextMenu] = useState(false);
@@ -293,7 +313,6 @@ export function ReelsViewer({ onClose }) {
                 if (data?.event === 'onStateChange') {
                     if (data.info === 0) {
                         // Ended -> auto advance
-                        setSlideDir('up');
                         setCurrentIndex(prev => {
                             if (prev < reels.length - 1) return prev + 1;
                             return prev;

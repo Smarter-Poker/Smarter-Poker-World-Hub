@@ -173,6 +173,9 @@ export default function VideoLibraryPage() {
 
     // Content tracking state
     const [favorites, setFavorites] = useState(new Set());
+    const [playlists, setPlaylists] = useState([]);
+    const [showPlaylistModal, setShowPlaylistModal] = useState(null); // video object
+    const [newPlaylistName, setNewPlaylistName] = useState('');
     const [watchLater, setWatchLater] = useState(new Set());
     const [watchedVideos, setWatchedVideos] = useState(new Set()); // Videos watched 60+ seconds
     const [watchProgress, setWatchProgress] = useState(new Map()); // video_id → { watchedSeconds, watchedAt }
@@ -268,7 +271,8 @@ export default function VideoLibraryPage() {
                 table: 'video_favorites',
                 filter: `user_id=eq.${userId}`
             }, () => {
-                getVideoFavorites(userId).then(data => {
+                getVideoPlaylists(userId).then(setPlaylists).catch(err => console.warn('Playlists error:', err));
+            getVideoFavorites(userId).then(data => {
                     setFavorites(new Set((data || []).map(v => v.video_id)));
                 });
             })
@@ -1347,6 +1351,11 @@ export default function VideoLibraryPage() {
                     ))}
                 </div>
 
+                {/* Infinite Scroll Sentinel */}
+                {displayedCount < videos.length && (
+                    <div ref={loadMoreRef} style={{ height: 20, width: '100%' }} />
+                )}
+
                 {/* No results */}
                 {videos.length === 0 && (
                     <div style={{
@@ -1659,6 +1668,67 @@ export default function VideoLibraryPage() {
                     <span>✓</span> Link Copied To Clipboard
                 </div>
             )}
-    </PageTransition>
+    
+            {/* Playlist Modal */}
+            {showPlaylistModal && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0,0,0,0.8)', zIndex: 10000,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }} onClick={() => setShowPlaylistModal(null)}>
+                    <div style={{
+                        background: '#1C1C1E', padding: 24, borderRadius: 16, width: '90%', maxWidth: 400,
+                        border: '1px solid #333'
+                    }} onClick={e => e.stopPropagation()}>
+                        <h3 style={{ marginTop: 0, color: 'white' }}>Save to Playlist</h3>
+                        <div style={{ maxHeight: 300, overflowY: 'auto', marginBottom: 16 }}>
+                            {playlists.map(p => {
+                                const inPlaylist = p.items?.some(i => i.video_id === showPlaylistModal.videoId);
+                                return (
+                                    <div key={p.id} style={{
+                                        padding: '12px 0', borderBottom: '1px solid #333',
+                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                                    }}>
+                                        <span style={{ color: 'white' }}>{p.name}</span>
+                                        <button onClick={async () => {
+                                            if (inPlaylist) {
+                                                await removeVideoFromPlaylist(p.id, showPlaylistModal.videoId);
+                                            } else {
+                                                await addVideoToPlaylist(p.id, showPlaylistModal.videoId, showPlaylistModal.title, showPlaylistModal.source);
+                                            }
+                                            getVideoPlaylists(userId).then(setPlaylists);
+                                        }} style={{
+                                            background: inPlaylist ? '#FF453A' : '#0A84FF',
+                                            color: 'white', border: 'none', borderRadius: 6, padding: '4px 10px', cursor: 'pointer'
+                                        }}>
+                                            {inPlaylist ? 'Remove' : 'Add'}
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                            {playlists.length === 0 && <div style={{ color: '#888', padding: '12px 0' }}>No playlists yet.</div>}
+                        </div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <input 
+                                value={newPlaylistName}
+                                onChange={e => setNewPlaylistName(e.target.value)}
+                                placeholder="New playlist name"
+                                style={{ flex: 1, padding: '8px 12px', borderRadius: 8, background: '#000', border: '1px solid #333', color: 'white' }}
+                            />
+                            <button onClick={async () => {
+                                if (!newPlaylistName.trim()) return;
+                                const p = await createPlaylist(userId, newPlaylistName);
+                                await addVideoToPlaylist(p.id, showPlaylistModal.videoId, showPlaylistModal.title, showPlaylistModal.source);
+                                setNewPlaylistName('');
+                                getVideoPlaylists(userId).then(setPlaylists);
+                            }} style={{
+                                background: 'white', color: 'black', border: 'none', borderRadius: 8, padding: '0 16px', fontWeight: 'bold', cursor: 'pointer'
+                            }}>Create</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+        </PageTransition>
     );
 }

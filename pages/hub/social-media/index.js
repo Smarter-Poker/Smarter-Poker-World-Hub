@@ -1649,9 +1649,13 @@ function ClubPageCreateModal({ C, commanderData, userId, onCreated, onClose }) {
         setCreating(true);
         setError('');
         try {
+            const token = getAccessToken();
             const res = await fetch('/api/social/pages', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
                 body: JSON.stringify({
                     name: pageName.trim(),
                     page_type: 'club',
@@ -1873,8 +1877,12 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                 const merged = { ...page.metadata, cover_photo_url: url };
                 setMetaSaving(true); setMetaSaved('');
                 try {
+                    const token = getAccessToken();
                     const res = await fetch('/api/social/pages', {
-                        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                        method: 'PUT', headers: { 
+                            'Content-Type': 'application/json',
+                            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                        },
                         body: JSON.stringify({ id: page.id, owner_id: userId, cover_url: url, metadata: merged }),
                     });
                     if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -1917,8 +1925,12 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                 const merged = { ...page.metadata, logo_url: url };
                 setMetaSaving(true); setMetaSaved('');
                 try {
+                    const token = getAccessToken();
                     const res = await fetch('/api/social/pages', {
-                        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                        method: 'PUT', headers: { 
+                            'Content-Type': 'application/json',
+                            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                        },
                         body: JSON.stringify({ id: page.id, owner_id: userId, avatar_url: url, metadata: merged }),
                     });
                     if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -3166,8 +3178,12 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
     const handleTakeSeat = async (gameId, seatNumber) => {
         if (!playerName.trim()) { showMsg('Please enter your name first'); return; }
         try {
+            const token = getAccessToken();
             const res = await fetch('/api/social/pages/games', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
                 body: JSON.stringify({ action: 'take_seat', game_id: gameId, seat_number: seatNumber, player_id: userId || null, player_name: playerName.trim() }),
             });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -3185,8 +3201,12 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
             return;
         }
         try {
+            const token = getAccessToken();
             const res = await fetch('/api/social/pages/games', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
                 body: JSON.stringify({ action: 'join_waitlist', game_id: gameId, player_id: userId || null, player_name: playerName.trim() }),
             });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -3199,8 +3219,12 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
     const handleLeave = async (gameId) => {
         if (!playerName.trim()) return;
         try {
+            const token = getAccessToken();
             await fetch('/api/social/pages/games', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
                 body: JSON.stringify({ action: 'leave', game_id: gameId, player_name: playerName.trim() }),
             });
             showMsg('You have been removed from the game'); fetchGames();
