@@ -52,6 +52,7 @@ export default async function handler(req, res) {
         const postsParams = new URLSearchParams({
             select: 'id,content,content_type,media_urls,like_count,comment_count,share_count,created_at,author_id,link_url,link_title,link_description,link_image,link_site_name,metadata',
             or: '(visibility.eq.public,visibility.is.null)',
+            'is_deleted': 'eq.false',
             order: 'created_at.desc',
             offset: String(offset),
             limit: String(limit),

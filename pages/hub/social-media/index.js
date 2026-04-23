@@ -5130,7 +5130,8 @@ function SocialMediaPage() {
         if (!user?.id) return;
         try {
             if (!type) {
-                // Unlike: remove from social_likes (matches Horse engine + Phase 24 read path)
+                // Unlike: remove from social_likes
+                // DB trigger (trig_sync_like_count) handles like_count decrement atomically — no RPC needed
                 const { error } = await supabase.from('social_likes').delete()
                     .eq('post_id', postId)
                     .eq('user_id', user.id);
@@ -5138,22 +5139,9 @@ function SocialMediaPage() {
 
                 // Notify other views/tabs of unlike
                 busEmit.socialPostLiked(postId, user.id, { added: false, reactionType: null });
-
-                // Sync denormalized like_count column (fire-and-forget)
-                // Fire-and-forget: sync denormalized like_count
-                (async () => {
-                    try {
-                        const { error: rpcErr } = await supabase.rpc('decrement_post_count', { p_post_id: postId, p_field: 'like_count' });
-                        if (rpcErr) throw rpcErr;
-                    } catch {
-                        try {
-                            const { data: p } = await supabase.from('social_posts').select('like_count').eq('id', postId).maybeSingle();
-                            if (p) await supabase.from('social_posts').update({ like_count: Math.max(0, (p.like_count || 1) - 1) }).eq('id', postId);
-                        } catch (e) { console.warn('[Social] like_count decrement fallback failed:', e.message); }
-                    }
-                })();
             } else {
-                // Like: write to social_likes with reaction_type (matches Horse engine + Phase 24 read path)
+                // Like: write to social_likes with reaction_type
+                // DB trigger (trig_sync_like_count) handles like_count increment atomically — no RPC needed
                 const { data: existing } = await supabase.from('social_likes')
                     .select('id')
                     .eq('post_id', postId)
@@ -5170,22 +5158,8 @@ function SocialMediaPage() {
 
                     // Notify other views/tabs of new like
                     busEmit.socialPostLiked(postId, user.id, { added: true, reactionType: type || 'like' });
-
-                    // Sync denormalized like_count column (fire-and-forget)
-                    // Fire-and-forget: sync denormalized like_count
-                    (async () => {
-                        try {
-                            const { error: rpcErr } = await supabase.rpc('increment_post_count', { p_post_id: postId, p_field: 'like_count' });
-                            if (rpcErr) throw rpcErr;
-                        } catch {
-                            try {
-                                const { data: p } = await supabase.from('social_posts').select('like_count').eq('id', postId).maybeSingle();
-                                if (p) await supabase.from('social_posts').update({ like_count: (p.like_count || 0) + 1 }).eq('id', postId);
-                            } catch (e) { console.warn('[Social] like_count increment fallback failed:', e.message); }
-                        }
-                    })();
                 } else {
-                    // Change reaction type on existing like (no count change)
+                    // Change reaction type on existing like (no count change — no INSERT/DELETE, no trigger)
                     await supabase.from('social_likes')
                         .update({ reaction_type: type || 'like' })
                         .eq('id', existing.id);
