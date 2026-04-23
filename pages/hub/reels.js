@@ -99,7 +99,7 @@ export default function ReelsPage() {
     const containerRef = useRef(null);
     const iframeRef = useRef(null);
     const videoRef = useRef(null);
-    const [isPaused, setIsPaused] = useState(false);
+    const [isPaused, setIsPaused] = useState(true); // Start true — autoplay may fail, first tap should always send playVideo
     const isPausedRef = useRef(false); // Sync ref for stale-closure-safe keyboard handler
     isPausedRef.current = isPaused; // Keep in sync on every render
     const touchStartY = useRef(0);
@@ -1700,7 +1700,8 @@ export default function ReelsPage() {
                                 try {
                                     iframeWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
                                     iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
-                                    setIsPaused(false);
+                                    // Don't set isPaused=false here — autoplay may fail
+                                    // Let the YouTube state change event or user tap handle it
                                     // Aggressive retry loop: YouTube API inside iframe needs time to initialize
                                     [300, 800, 1500, 3000].forEach(delay => setTimeout(() => {
                                         try {
