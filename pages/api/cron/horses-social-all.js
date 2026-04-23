@@ -8,7 +8,7 @@
 // timeout failures. Typing indicators and sleep timers accumulated to 70-100s,
 // exceeding the 60s Vercel serverless limit.
 
-import { likePosts, commentOnPosts, replyToComments } from '../../../src/content-engine/pipeline/HorseSocialEngine.js';
+import { likePosts, commentOnPosts, replyToComments, reactToComments } from '../../../src/content-engine/pipeline/HorseSocialEngine.js';
 import { processDirectMessages } from '../../../src/content-engine/pipeline/HorseMessengerEngine.js';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
@@ -48,7 +48,7 @@ export default async function handler(req, res) {
 
     // Hard deadline: finish all work within 55s to leave headroom for the 60s max
     const deadline = Date.now() + 55_000;
-    const results = { liked: 0, commented: 0, replied: 0, dm: 0, skipped: [] };
+    const results = { liked: 0, commented: 0, replied: 0, reacted: 0, dm: 0, skipped: [] };
 
     // Step 1: Likes (reduced batch: 8 instead of 15)
     const likeResult = await withDeadline(
@@ -71,7 +71,14 @@ export default async function handler(req, res) {
     results.replied = replyResult?.replied || 0;
     if (!replyResult) results.skipped.push('replies');
 
-    // Step 4: Grok Direct Messages (only if >8s left)
+    // Step 4: Comment reactions (reduced batch: 8, only if >5s left)
+    const reactResult = await withDeadline(
+        () => reactToComments(8), deadline, 'reactions'
+    );
+    results.reacted = reactResult?.reacted || 0;
+    if (!reactResult) results.skipped.push('reactions');
+
+    // Step 5: Grok Direct Messages (only if >8s left)
     const dmResult = await withDeadline(
         () => processDirectMessages(), deadline, 'DMs'
     );

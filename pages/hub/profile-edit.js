@@ -1053,23 +1053,44 @@ export default function ProfilePage() {
         setAvatarUploadPhase('Compressing');
         const compressed = await compressImage(file, 800, 0.85);
 
-        // Phase 2: Upload to storage
+        // Phase 2: Upload via signed-URL proxy (avoids SDK auth lock + uses service role)
         setAvatarUploadPhase('Uploading');
-        const fileExt = compressed.name.split('.').pop();
-        const filePath = `${user.id}/avatar_${Date.now()}.${fileExt}`;
-
-        const { error: uploadError } = await supabase.storage
-            .from('avatars')
-            .upload(filePath, compressed, { upsert: true });
-
-        if (uploadError) {
+        const avatarToken = getAccessToken();
+        const avatarMetaRes = await fetch('/api/social/upload-url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${avatarToken}` },
+            body: JSON.stringify({
+                fileName: `avatar_${Date.now()}.${compressed.name.split('.').pop() || 'jpg'}`,
+                fileSize: compressed.size,
+                mimeType: compressed.type || 'image/jpeg',
+                folder: 'avatars',
+                prefix: user.id,
+            }),
+        });
+        if (!avatarMetaRes.ok) {
             setAvatarUploadPhase(null);
-            setMessage('Error uploading avatar: ' + uploadError.message);
-            console.warn('Upload error:', uploadError);
+            setMessage('Error getting upload URL: ' + avatarMetaRes.status);
+            return;
+        }
+        const avatarMeta = await avatarMetaRes.json();
+        if (!avatarMeta.success || !avatarMeta.signedUrl) {
+            setAvatarUploadPhase(null);
+            setMessage('Error uploading avatar: ' + (avatarMeta.error || 'No signed URL'));
             return;
         }
 
-        const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
+        const avatarPutRes = await fetch(avatarMeta.signedUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': compressed.type || 'image/jpeg' },
+            body: compressed,
+        });
+        if (!avatarPutRes.ok) {
+            setAvatarUploadPhase(null);
+            setMessage('Error uploading avatar: HTTP ' + avatarPutRes.status);
+            return;
+        }
+
+        const publicUrl = avatarMeta.publicUrl;
 
         // Phase 3: Save to database
         setAvatarUploadPhase('Saving');

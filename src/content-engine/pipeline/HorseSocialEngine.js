@@ -98,7 +98,7 @@ const COMMENT_TEMPLATES = {
         "jeez thats a lot of chips", "rack em up!", "casino hates this guy",
 
         // Grind culture
-        "grind never stops", "LFG", "lets gooo", "back at it",
+        "grind never stops", "LFG lets go", "lets gooo", "back at it",
         "the commitment is real", "outwork everyone", "session god",
 
         // Curiosity
@@ -127,7 +127,7 @@ const COMMENT_TEMPLATES = {
         "facts", "hundred percent", "this is the way", "couldn't agree more", "real talk",
         "same tbh", "underrated take", "big if true", "W post", "based",
         "fr fr", "no cap", "lowkey valid", "kinda true", "honest",
-        "vibes", "true", "deadass", "literally me", "i felt this",
+        "vibes", "very true", "deadass", "literally me", "i felt this",
         "let's GOOO", "banger post", "needed this today", "saving this",
         "legendary content", "chef's kiss", "immaculate", "perfect"
     ],
@@ -546,9 +546,18 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
         else if (lc.includes('bankroll') || lc.includes('roll') || lc.includes('moving up')) commentType = 'bankroll';
         else if (lc.includes('strategy') || lc.includes('gto') || lc.includes('solver') || lc.includes('range') || lc.includes('ev') || lc.includes('sizing')) commentType = 'strategy';
 
-        // Get base comment and apply horse's unique writing style
+        // BUG-WR06 FIX: enforce minimum length after applyWritingStyle
+        // A short template can shrink further after style transforms; retry with 'general' fallbacks
         let comment = getRandomComment(commentType);
         comment = applyWritingStyle(comment, horse.profile_id);
+        if (comment.trim().length < 5) {
+            // Try up to 3 general fallbacks
+            for (let _retry = 0; _retry < 3; _retry++) {
+                const fallback = getRandomComment('general');
+                comment = applyWritingStyle(fallback, horse.profile_id);
+                if (comment.trim().length >= 5) break;
+            }
+        }
 
         // 🟢 DYNAMIC TYPING INDICATOR (Phase 11)
         // Broadcast a typing payload to all connected clients viewing this post
@@ -598,12 +607,17 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
                     .from('profiles').select('username').eq('id', friend.profile_id).maybeSingle();
                 if (friendProfile?.username) {
                     const mentionComment = `@${friendProfile.username} ${comment}`;
-                    await getSupabase().from('social_comments').update({ content: mentionComment })
-                        .eq('post_id', post.id).eq('author_id', horse.profile_id)
-                        .eq('content', comment);
+                    // BUG-WR03 FIX: match by author+post+timestamp window instead of content string
+                    // (content-match was fragile: two horses posting same text to same post → wrong row updated)
+                    const nowIso = new Date(Date.now() - 5000).toISOString(); // last 5s
+                    await getSupabase().from('social_comments')
+                        .update({ content: mentionComment })
+                        .eq('post_id', post.id)
+                        .eq('author_id', horse.profile_id)
+                        .gte('created_at', nowIso);
                     comment = mentionComment;
                     console.debug(`   ${horse.name} tagged @${friendProfile.username}`);
-                    
+
                     // Phase 28 Fix: Insert notification for the mentioned friend
                     await getSupabase().from('notifications').insert({
                         user_id: friend.profile_id,
@@ -612,7 +626,7 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
                         reference_id: post.id,
                         message: `mentioned you in a comment`
                     });
-                    
+
                     // Trigger push notification to mentioned user
                     await sendSocialPush(friend.profile_id, horseIds, 'New Mention', `${horse.name} mentioned you in a comment.`, `/hub/social-feed?post_id=${post.id}`);
                 }
@@ -809,10 +823,13 @@ async function replyToComments(maxReplies = 15) {
 
     const horseIds = allHorses.map(h => h.profile_id);
 
-    // Get recent comments
+    // Get recent TOP-LEVEL comments only (no replies)
+    // BUG-WR04 FIX: without .is('parent_id', null), horses were replying to replies,
+    // creating infinite nested reply chains (reply → reply → reply...)
     const { data: comments } = await getSupabase()
         .from('social_comments')
         .select('id, post_id, author_id, content, created_at')
+        .is('parent_id', null)
         .order('created_at', { ascending: false })
         .limit(50);
 
@@ -1004,10 +1021,10 @@ async function reactToComments(maxReactions = 15) {
 
     const horseIds = allHorses.map(h => h.profile_id);
 
-    // Get recent comments from other horses
+    // Get recent comments from other horses (need post_id for social_interactions write)
     const { data: recentComments } = await getSupabase()
         .from('social_comments')
-        .select('id, author_id')
+        .select('id, post_id, author_id')
         .in('author_id', horseIds)
         .order('created_at', { ascending: false })
         .limit(50);
@@ -1032,13 +1049,19 @@ async function reactToComments(maxReactions = 15) {
         else if (roll > 0.50) reaction = 'haha';
         else if (roll > 0.30) reaction = 'love';
 
+        // BUG-WR05 FIX: write to social_interactions (not social_comment_likes)
+        // The Reels frontend reads comment likes from social_interactions with
+        // interaction_type='comment_like'. Writing to social_comment_likes instead
+        // created a split brain where horse reactions were invisible to users.
         const { error } = await getSupabase()
-            .from('social_comment_likes')
+            .from('social_interactions')
             .upsert({
-                comment_id: comment.id,
                 user_id: horse.profile_id,
-                reaction_type: reaction
-            }, { onConflict: 'comment_id,user_id' });
+                post_id: comment.post_id || comment.id, // social_interactions requires post_id
+                interaction_type: 'comment_like',
+                metadata: { comment_id: comment.id, reaction_type: reaction }
+            }, { onConflict: 'user_id,post_id,interaction_type,metadata->>comment_id' });
+
 
         if (!error) {
             reacted++;

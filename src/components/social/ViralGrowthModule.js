@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
+import { getAccessToken } from '../../lib/authUtils';
 import toast from '../../stores/toastStore';
 
 export default function ViralGrowthModule({ currentUser }) {
@@ -12,8 +13,8 @@ export default function ViralGrowthModule({ currentUser }) {
 
         const loadData = async () => {
             try {
-                // Get or auto-generate referral code via API
-                const token = (await supabase.auth.getSession()).data.session?.access_token;
+                // Get or auto-generate referral code via API — read token from localStorage (no lock contention)
+                const token = getAccessToken();
                 if (token) {
                     const res = await fetch('/api/social/referral', {
                         headers: { 'Authorization': `Bearer ${token}` }

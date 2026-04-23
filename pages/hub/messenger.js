@@ -3694,10 +3694,15 @@ function MessengerPage() {
     const handleReaction = async (messageId, emoji) => {
         if (!user) return;
         try {
-            await supabase.rpc('fn_toggle_message_reaction', {
-                p_message_id: messageId,
-                p_user_id: user.id,
-                p_reaction: emoji,
+            // Route through API — fn_toggle_message_reaction is 403 for authenticated role (missing GRANT EXECUTE)
+            const token = getAccessToken();
+            await fetch('/api/messenger/react-message', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                body: JSON.stringify({ messageId, reaction: emoji }),
             });
             // DEEP SWEEP FIX: Push native global Message Reacted event
             busEmit.messageReacted(activeConversation?.id, messageId, emoji);
@@ -3966,34 +3971,42 @@ function MessengerPage() {
         setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
 
         try {
-            // Upload to Supabase Storage - use user-media bucket which exists
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${user.id}/messages/${Date.now()}.${fileExt}`;
-
-
-            const { data: uploadData, error: uploadError } = await supabase.storage
-                .from('user-media')
-                .upload(fileName, file, {
-                    cacheControl: '3600',
-                    upsert: false
-                });
-
-            if (uploadError) {
-                console.warn('Upload error:', uploadError);
-                throw uploadError;
+            // ── SIGNED-URL UPLOAD (bypasses SDK auth lock, works with social-media bucket) ──
+            // The 'user-media' bucket doesn't exist — use upload-url proxy to social-media bucket.
+            const uploadToken = getAccessToken();
+            const metaRes = await fetch('/api/social/upload-url', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${uploadToken}` },
+                body: JSON.stringify({
+                    fileName: file.name || `media_${Date.now()}.${isVideo ? 'mp4' : 'jpg'}`,
+                    fileSize: file.size,
+                    mimeType: file.type || (isVideo ? 'video/mp4' : 'image/jpeg'),
+                    folder: 'messages',
+                    prefix: user.id,
+                }),
+            });
+            if (!metaRes.ok) {
+                const errText = await metaRes.text().catch(() => 'unknown');
+                throw new Error(`Upload URL error: ${metaRes.status} ${errText.slice(0, 100)}`);
             }
+            const meta = await metaRes.json();
+            if (!meta.success || !meta.signedUrl) throw new Error(meta.error || 'No signed URL returned');
 
+            // PUT the file directly to Supabase Storage via the signed URL
+            const uploadRes = await fetch(meta.signedUrl, {
+                method: 'PUT',
+                headers: { 'Content-Type': file.type || (isVideo ? 'video/mp4' : 'image/jpeg') },
+                body: file,
+            });
+            if (!uploadRes.ok) throw new Error(`Storage PUT failed: HTTP ${uploadRes.status}`);
 
-            // Get public URL
-            const { data: urlData } = supabase.storage
-                .from('user-media')
-                .getPublicUrl(fileName);
+            const publicUrl = meta.publicUrl;
 
 
             // Send message with media URL — route through API for XSS sanitization + rate limiting
             const content = isImage
-                ? `[Image](${urlData.publicUrl})`
-                : `[Video](${urlData.publicUrl})`;
+                ? `[Image](${publicUrl})`
+                : `[Video](${publicUrl})`;
 
             const mediaToken = getAccessToken();
             const mediaResp = await fetch('/api/messenger/send-message', {
@@ -4013,7 +4026,7 @@ function MessengerPage() {
             // Update message with real data
             setMessages(prev => prev.map(m =>
                 m.id === tempId
-                    ? { ...m, id: mediaResult.msgId, content, media_url: urlData.publicUrl, status: 'sent' }
+                    ? { ...m, id: mediaResult.msgId, content, media_url: publicUrl, status: 'sent' }
                     : m
             ));
 
@@ -4057,23 +4070,33 @@ function MessengerPage() {
         setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
 
         try {
-            // Upload to Supabase Storage
-            const fileName = `${user.id}/voice/${Date.now()}.webm`;
-            const { error: uploadError } = await supabase.storage
-                .from('user-media')
-                .upload(fileName, audioBlob, {
-                    contentType: 'audio/webm',
-                    cacheControl: '3600',
-                    upsert: false,
-                });
+            // ── SIGNED-URL UPLOAD for voice (bypasses SDK auth lock, social-media bucket) ──
+            const voiceUploadToken = getAccessToken();
+            const voiceMetaRes = await fetch('/api/social/upload-url', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${voiceUploadToken}` },
+                body: JSON.stringify({
+                    fileName: `voice_${Date.now()}.webm`,
+                    fileSize: audioBlob.size,
+                    mimeType: 'audio/webm',
+                    folder: 'messages',
+                    prefix: user.id,
+                }),
+            });
+            if (!voiceMetaRes.ok) throw new Error(`Voice upload URL: HTTP ${voiceMetaRes.status}`);
+            const voiceMeta = await voiceMetaRes.json();
+            if (!voiceMeta.success || !voiceMeta.signedUrl) throw new Error(voiceMeta.error || 'No signed URL');
 
-            if (uploadError) throw uploadError;
+            const voicePutRes = await fetch(voiceMeta.signedUrl, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'audio/webm' },
+                body: audioBlob,
+            });
+            if (!voicePutRes.ok) throw new Error(`Voice PUT failed: HTTP ${voicePutRes.status}`);
 
-            const { data: urlData } = supabase.storage
-                .from('user-media')
-                .getPublicUrl(fileName);
+            const publicUrl = voiceMeta.publicUrl;
 
-            const content = `[Audio](${urlData.publicUrl})|dur:${durationSeconds || 0}`;
+            const content = `[Audio](${publicUrl})|dur:${durationSeconds || 0}`;
 
             // Send via API
             const voiceToken = getAccessToken();
@@ -4140,11 +4163,21 @@ function MessengerPage() {
         setSearchResults([]);
 
         try {
-            // Get or create conversation
-            const { data: convId } = await supabase.rpc('fn_get_or_create_conversation', {
-                user1_id: user.id,
-                user2_id: otherUser.id,
+            // Route through API — fn_get_or_create_conversation requires service role (no GRANT to authenticated)
+            const startToken = getAccessToken();
+            const resp = await fetch('/api/messenger/start-conversation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(startToken ? { Authorization: `Bearer ${startToken}` } : {}),
+                },
+                body: JSON.stringify({ otherUserId: otherUser.id }),
             });
+            if (!resp.ok) {
+                const errData = await resp.json().catch(() => ({}));
+                throw new Error(errData.error || `HTTP ${resp.status}`);
+            }
+            const { conversationId: convId } = await resp.json();
 
             const newConv = {
                 id: convId,
