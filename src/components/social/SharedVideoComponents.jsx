@@ -3,7 +3,7 @@
  * VideoThumbnail, VideoPostWrapper, FullScreenVideoViewer
  */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { SOCIAL_COLORS as C, isYouTubeUrl, getYouTubeEmbedUrl, getYouTubeThumbnail } from '../../lib/socialHelpers';
+import { SOCIAL_COLORS as C, isYouTubeUrl, getYouTubeVideoId, getYouTubeEmbedUrl, getYouTubeThumbnail } from '../../lib/socialHelpers';
 import toast from '../../stores/toastStore';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -150,10 +150,35 @@ export function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLi
     const [showHeart, setShowHeart] = useState(false);
     const [progress, setProgress] = useState(0);
     const [shareToast, setShareToast] = useState(false);
+    const [ytError, setYtError] = useState(null);
     const overlayTimerRef = useRef(null);
     const touchStartRef = useRef({ x: 0, y: 0 });
     const lastTapRef = useRef(0);
     const progressRAF = useRef(null);
+
+    // YouTube error detection via postMessage
+    useEffect(() => {
+        if (!isYouTubeUrl(videoUrl)) return;
+        const handleYTMessage = (e) => {
+            if (!e.origin?.includes('youtube')) return;
+            try {
+                const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+                if (data?.event === 'onError' && data?.info) {
+                    // 150 = age-restricted, 100 = not found, 101 = embed disabled
+                    setYtError(data.info);
+                }
+            } catch { /* non-JSON message, ignore */ }
+        };
+        window.addEventListener('message', handleYTMessage);
+        return () => window.removeEventListener('message', handleYTMessage);
+    }, [videoUrl]);
+
+    // Auto-close on YouTube error after 3 seconds
+    useEffect(() => {
+        if (!ytError) return;
+        const timer = setTimeout(() => onClose?.(), 3000);
+        return () => clearTimeout(timer);
+    }, [ytError, onClose]);
 
     useEffect(() => {
         if (showOverlay && isPlaying) {
@@ -275,6 +300,43 @@ export function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLi
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                         allowFullScreen
                     />
+                    {/* Age-restricted / unavailable video overlay */}
+                    {ytError && (
+                        <div style={{
+                            position: 'absolute', inset: 0, zIndex: 50,
+                            background: 'linear-gradient(135deg, rgba(20,20,30,0.97) 0%, rgba(10,10,20,0.99) 100%)',
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                            gap: 16, pointerEvents: 'auto',
+                        }}>
+                            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="1.5">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                            </svg>
+                            <div style={{ color: 'white', fontSize: 18, fontWeight: 700 }}>
+                                {ytError === 150 ? 'Age-Restricted Video' : 'Video Unavailable'}
+                            </div>
+                            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, maxWidth: 280, textAlign: 'center' }}>
+                                This video cannot be embedded. You can watch it directly on YouTube.
+                            </div>
+                            <a
+                                href={`https://www.youtube.com/watch?v=${getYouTubeVideoId(videoUrl)}`}
+                                target="_blank" rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                                    padding: '12px 28px', borderRadius: 8,
+                                    background: '#FF0000', color: 'white',
+                                    fontWeight: 700, fontSize: 15, textDecoration: 'none',
+                                    boxShadow: '0 4px 20px rgba(255,0,0,0.4)',
+                                }}
+                            >
+                                Watch On YouTube
+                            </a>
+                            <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, marginTop: 4 }}>
+                                Closing in 3 seconds...
+                            </div>
+                        </div>
+                    )}
                 </div>
             ) : (
                 <video

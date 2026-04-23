@@ -61,6 +61,10 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         } catch (e) { console.warn('[App] Handled exception:', e); }
     }, []);
 
+    // Track media via ref for cleanup (avoids stale closure in useEffect)
+    const mediaRef = useRef(media);
+    mediaRef.current = media;
+
     // Cleanup pending timeouts + blob URLs on unmount
     useEffect(() => {
         return () => {
@@ -71,7 +75,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
             // so onComplete fires and triggers the DB insert.
             // Cleanup happens via bgUpload.abort() when a new upload starts.
             // Revoke any staged blob URLs to free memory
-            media.forEach(m => {
+            mediaRef.current.forEach(m => {
                 if (m.file && m.url?.startsWith('blob:')) {
                     try { URL.revokeObjectURL(m.url); } catch (_) {}
                 }
@@ -356,6 +360,10 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         const compressedFile = await compressImage(staged.file);
                         if (compressedFile.size > 4.5 * 1024 * 1024) {
                             setError(`Image too large (max 4.5MB). Please choose a smaller image.`);
+                            // Revoke blob URL for skipped file
+                            if (staged.url?.startsWith('blob:')) {
+                                try { URL.revokeObjectURL(staged.url); } catch (_) {}
+                            }
                             continue;
                         }
                         const formData = new FormData();
@@ -365,6 +373,10 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         const _imgToken = getAccessToken();
                         if (!_imgToken) {
                             setError('Authentication required — please refresh the page and try again.');
+                            // Revoke blob URL for skipped file
+                            if (staged.url?.startsWith('blob:')) {
+                                try { URL.revokeObjectURL(staged.url); } catch (_) {}
+                            }
                             continue;
                         }
                         const res = await fetch('/api/social/upload', {
@@ -643,7 +655,13 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                                     <img src={m.url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 )}
                                 <button
-                                    onClick={() => setMedia(prev => prev.filter((_, idx) => idx !== i))}
+                                    onClick={() => {
+                                        // Revoke blob URL to free memory when removing staged media
+                                        if (media[i]?.file && media[i]?.url?.startsWith('blob:')) {
+                                            try { URL.revokeObjectURL(media[i].url); } catch (_) {}
+                                        }
+                                        setMedia(prev => prev.filter((_, idx) => idx !== i));
+                                    }}
                                     style={{
                                         position: 'absolute', top: 4, right: 4, width: 24, height: 24, borderRadius: '50%',
                                         background: 'rgba(0,0,0,0.7)', border: 'none', color: 'white', cursor: 'pointer',
@@ -739,7 +757,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 8px 4px', gap: 4 }}>
                     <button
                         onClick={() => fileRef.current?.click()}
-                        disabled={media.length >= MAX_MEDIA}
+                        disabled={media.length >= MAX_MEDIA || uploading}
                         style={{
                             padding: '6px 8px', borderRadius: 6, border: 'none', background: 'transparent', cursor: media.length >= MAX_MEDIA ? 'not-allowed' : 'pointer',
                             color: media.length >= MAX_MEDIA ? '#ccc' : '#65676B', fontSize: 14, fontWeight: 600, transition: 'background 0.2s', whiteSpace: 'nowrap'
@@ -778,7 +796,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                             {postVisibility === 'public' ? '🌐 Public' : '🔒 Friends'}
                         </button>
                     )}
-                    <button onClick={handlePost} disabled={isPosting || (!content.trim() && !media.length && !linkPreview && !checkInVenue)} style={{ padding: '8px 20px', borderRadius: 6, border: 'none', background: C.blue, color: 'white', fontWeight: 600, cursor: 'pointer', opacity: isPosting || (!content.trim() && !media.length && !linkPreview && !checkInVenue) ? 0.5 : 1, flex: 1 }}>Post</button>
+                    <button onClick={handlePost} disabled={isPosting || uploading || (!content.trim() && !media.length && !linkPreview && !checkInVenue)} style={{ padding: '8px 20px', borderRadius: 6, border: 'none', background: C.blue, color: 'white', fontWeight: 600, cursor: isPosting || uploading ? 'wait' : 'pointer', opacity: isPosting || uploading || (!content.trim() && !media.length && !linkPreview && !checkInVenue) ? 0.5 : 1, flex: 1 }}>{uploading ? 'Uploading…' : isPosting ? 'Posting…' : 'Post'}</button>
                 </div>
             </div>
             {checkInVenue && (

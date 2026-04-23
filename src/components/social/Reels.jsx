@@ -85,6 +85,7 @@ export function ReelsViewer({ onClose }) {
         return true;
     });
     const [paused, setPaused] = useState(true); // Start true — autoplay may fail, first tap should send playVideo
+    const [ytError, setYtError] = useState(null); // YouTube embed error code (150=age-restricted, 100=not found)
     const [liked, setLiked] = useState({});
     const [disliked, setDisliked] = useState({});
     const [following, setFollowing] = useState({});
@@ -330,6 +331,10 @@ export function ReelsViewer({ onClose }) {
                         if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
                     }
                 }
+                // YouTube error detection: 150=age-restricted, 100=not found, 101=embed disabled
+                if (data?.event === 'onError' && data?.info) {
+                    setYtError(data.info);
+                }
             } catch { /* not a YouTube message */ }
         };
         window.addEventListener('message', handleYTMessage);
@@ -343,6 +348,7 @@ export function ReelsViewer({ onClose }) {
         setPaused(true); // New reel starts as paused — autoplay may fail, first tap should send playVideo
         setShowOverlay(false);
         setProgress(0);
+        setYtError(null); // Clear YouTube error state on reel change
 
         // Cancel any running RAF from the previous reel immediately
         if (progressRAF.current) {
@@ -379,6 +385,18 @@ export function ReelsViewer({ onClose }) {
 
     // Haptic helper
     const haptic = (ms = 10) => { try { navigator?.vibrate?.(ms); } catch (e) { console.warn('Handled exception:', e); } };
+
+    // Auto-advance on YouTube error after 3 seconds
+    useEffect(() => {
+        if (!ytError) return;
+        const timer = setTimeout(() => {
+            setCurrentIndex(prev => {
+                if (prev < reels.length - 1) return prev + 1;
+                return prev;
+            });
+        }, 3000);
+        return () => clearTimeout(timer);
+    }, [ytError, reels.length]);
 
     // Reveal overlay with 2.5s auto-hide timer
     const revealOverlay = () => {
@@ -1423,8 +1441,8 @@ export function ReelsViewer({ onClose }) {
                     <link rel="preload" href={reels[currentIndex + 1].video_url} as="video" />
                 )}
 
-                {/* Play Button Overlay - visible when paused */}
-                {paused && (
+                {/* Play Button Overlay - visible when paused (not during error) */}
+                {paused && !ytError && (
                     <div style={{
                         position: 'absolute', top: '50%', left: '50%',
                         transform: 'translate(-50%, -50%)',
@@ -1435,6 +1453,50 @@ export function ReelsViewer({ onClose }) {
                         color: 'white', fontSize: 40, zIndex: 20, pointerEvents: 'none',
                     }}>▶</div>
                 )}
+
+                {/* YouTube Error Overlay — Age-restricted / unavailable video */}
+                {ytError && (() => {
+                    const videoUrl = currentReel?.video_url;
+                    const videoId = getYouTubeVideoId(videoUrl);
+                    return (
+                        <div style={{
+                            position: 'absolute', inset: 0, zIndex: 50,
+                            background: 'linear-gradient(135deg, rgba(20,20,30,0.97) 0%, rgba(10,10,20,0.99) 100%)',
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                            gap: 16, pointerEvents: 'auto',
+                        }}>
+                            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="1.5">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                            </svg>
+                            <div style={{ color: 'white', fontSize: 18, fontWeight: 700 }}>
+                                {ytError === 150 ? 'Age-Restricted Video' : 'Video Unavailable'}
+                            </div>
+                            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, maxWidth: 280, textAlign: 'center' }}>
+                                This video cannot be embedded. You can watch it directly on YouTube.
+                            </div>
+                            {videoId && (
+                                <a
+                                    href={`https://www.youtube.com/watch?v=${videoId}`}
+                                    target="_blank" rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    style={{
+                                        display: 'inline-flex', alignItems: 'center', gap: 8,
+                                        padding: '12px 28px', borderRadius: 8,
+                                        background: '#FF0000', color: 'white',
+                                        fontWeight: 700, fontSize: 15, textDecoration: 'none',
+                                        boxShadow: '0 4px 20px rgba(255,0,0,0.4)',
+                                    }}
+                                >
+                                    Watch On YouTube
+                                </a>
+                            )}
+                            <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, marginTop: 4 }}>
+                                Skipping in 3 seconds...
+                            </div>
+                        </div>
+                    );
+                })()}
 
                 {/* Author info overlay - always visible */}
                 <div style={{
