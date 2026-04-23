@@ -47,21 +47,26 @@ async function processDirectMessages() {
     // For simplicity, we just look at the most recent message in all active conversations involving a horse.
     
     // Instead of a complex subquery, let's fetch recent messages sent BY humans
+    // BUG-R8-04 FIX: LIMIT was missing — full table scan on active platforms
+    // BUG-R8-05 FIX: was fetching ALL messages, not just ones in horse conversations
+    // Now caps at 100 rows. The humanMsgs filter below narrows further.
     const fifteenMinsAgo = new Date(Date.now() - 15 * 60000).toISOString();
     
     const { data: recentMsgs } = await getSupabase()
         .from('social_messages')
         .select('id, conversation_id, sender_id, content, created_at')
         .gte('created_at', fifteenMinsAgo)
-        .order('created_at', { ascending: false });
+        .not('sender_id', 'in', `(${horseIds.join(',')})`) // Only messages FROM humans
+        .order('created_at', { ascending: false })
+        .limit(100); // BUG-R8-04: cap was missing
 
     if (!recentMsgs?.length) {
         console.debug('   No recent messages found.');
         return;
     }
 
-    // Filter to messages NOT sent by a horse
-    const humanMsgs = recentMsgs.filter(m => !horseIds.includes(m.sender_id));
+    // All fetched messages are already from non-horses (filtered in query above)
+    const humanMsgs = recentMsgs;
 
     if (humanMsgs.length === 0) {
         console.debug('   No recent human messages found.');
@@ -77,8 +82,13 @@ async function processDirectMessages() {
     }
 
     let repliesSent = 0;
+    // BUG-R8-03 FIX: unbounded conversation loop blows Vercel 60s limit
+    // Cap at 3 conversations per cron run (each takes 4-12s with delays)
+    const MAX_CONVS_PER_RUN = 3;
+    let convsProcessed = 0;
 
     for (const convId of Object.keys(convMap || {})) {
+        if (convsProcessed >= MAX_CONVS_PER_RUN) break; // BUG-R8-03: deadline guard
         // Fetch the conversation details to see who is in it
         const { data: convInfo } = await getSupabase()
             .from('social_conversations')
@@ -131,8 +141,9 @@ async function processDirectMessages() {
             console.debug(`   ${horse.name} read the message (Seen)`);
         }
 
-        // Synthetic "thinking" delay before reply (2-8 seconds)
-        const thinkDelay = 2000 + Math.random() * 6000;
+        // BUG-R8-03 FIX: 2-8s delay was too long when processing multiple convs
+        // Reduced to 1-4s — still feels human, fits within deadline
+        const thinkDelay = 1000 + Math.random() * 3000;
         await new Promise(r => setTimeout(r, thinkDelay));
 
         // 4. Generate AI Reply
@@ -173,6 +184,7 @@ async function processDirectMessages() {
 
             console.debug(`   ${horse.name} 💬: "${replyContent}" ✓`);
             repliesSent++;
+            convsProcessed++;
         }
 
         // Delay between replies

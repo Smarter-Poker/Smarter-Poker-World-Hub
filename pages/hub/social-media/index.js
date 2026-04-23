@@ -4030,7 +4030,7 @@ function SocialMediaPage() {
     const [globalSearchLoading, setGlobalSearchLoading] = useState(false);
     const searchTimeout = useRef(null);
     const globalSearchTimeout = useRef(null);
-    const lastScrollY = useRef(null);
+    const lastScrollY = useRef(0); // BUG-01 FIX: was null, caused wrong comparison on first scroll (0 > null)
     // Stable ref to always-fresh loadFeed — prevents stale closure in BroadcastChannel/Realtime listeners
     const loadFeedRef = useRef(null);
 
@@ -4117,7 +4117,8 @@ function SocialMediaPage() {
         const onTouchEnd = async () => {
             if (pullRefreshStateRef.current === 'pulling') {
                 setPullRefreshState('refreshing');
-                try { await loadFeed(0, false); } catch (e) { console.warn('[App] Handled exception:', e); }
+                // BUG-02 FIX: use loadFeedRef so we always call the latest closure (not mount-time stale capture)
+                try { await (loadFeedRef.current || loadFeed)(0, false); } catch (e) { console.warn('[App] Handled exception:', e); }
                 setPullRefreshState('idle');
             }
             startY = 0;
@@ -4764,6 +4765,12 @@ function SocialMediaPage() {
         // Always keep ref up-to-date so BroadcastChannel listeners get the fresh closure
         loadFeedRef.current = loadFeed;
         try {
+            // BUG-03 FIX: on a full refresh (not append), reset offset state + clear seen-post cache
+            // Without this: loadMorePosts() uses stale feedOffsetRef, and old posts get -30 penalty score on re-render
+            if (!append) {
+                setFeedOffset(0);
+                seenPostIdsRef.current = new Set();
+            }
             if (append) setLoadingMore(true);
 
             // Read user ID from localStorage (avoids getSession AbortError)
@@ -5569,11 +5576,18 @@ function SocialMediaPage() {
                             <div style={{ fontWeight: 600, fontSize: 17 }}>{user.name}</div>
                             <div style={{ fontSize: 13, color: C.textSec }}>View Your Profile</div>
                         </div>
-                        <div style={{
-                            background: C.blue, color: 'white', borderRadius: '50%',
-                            width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 12, fontWeight: 600
-                        }}>9+</div>
+                        {(() => {
+                            const unread = notifications.filter(n => !n.read).length;
+                            if (!unread) return null;
+                            // BUG-06 FIX: was hardcoded '9+' regardless of real count
+                            return (
+                                <div style={{
+                                    background: C.blue, color: 'white', borderRadius: '50%',
+                                    width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontSize: 11, fontWeight: 600
+                                }}>{unread > 9 ? '9+' : unread}</div>
+                            );
+                        })()}
                     </Link>
                 )}
 
@@ -5853,7 +5867,10 @@ function SocialMediaPage() {
                                 display: 'flex', alignItems: 'center', gap: 12,
                                 background: C.bg, borderRadius: 24, padding: '0 16px'
                             }}>
-                                <span style={{ fontSize: 18 }}></span>
+                                {/* BUG-07 FIX: was empty <span> with no icon */}
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                                    <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                                </svg>
                                 <input
                                     type="text"
                                     value={globalSearchQuery}
@@ -5938,7 +5955,10 @@ function SocialMediaPage() {
                                 {/* No results */}
                                 {globalSearchResults.users.length === 0 && globalSearchResults.posts.length === 0 && (
                                     <div style={{ padding: '40px 20px', textAlign: 'center', color: C.textSec }}>
-                                        <div style={{ fontSize: 32, marginBottom: 8 }}></div>
+                                        {/* BUG-08 FIX: was empty div with no icon */}
+                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 8, opacity: 0.5 }}>
+                                        <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                                    </svg>
                                         No results found for "{globalSearchQuery}"
                                     </div>
                                 )}
@@ -6019,8 +6039,13 @@ function SocialMediaPage() {
                                                 key={n.id}
                                                 onClick={() => {
                                                     setShowNotifications(false);
-                                                    // Smart routing: likes/comments go to post author profile, friend_request goes to actor profile
-                                                    if (n.actor_username) {
+                                                    // BUG-09 FIX: was always navigating to actor profile.
+                                                    // Like/comment/mention → deep-link to the specific post.
+                                                    // Friend request / other → actor profile.
+                                                    const postId = n.data?.post_id;
+                                                    if ((n.type === 'like' || n.type === 'comment' || n.type === 'mention') && postId) {
+                                                        router.push(`/hub/social-media?post=${postId}`);
+                                                    } else if (n.actor_username) {
                                                         router.push(`/hub/user/${n.actor_username}`);
                                                     }
                                                 }}
@@ -6104,7 +6129,7 @@ function SocialMediaPage() {
                             pageId={viewingLiveGamesPage.id}
                             pageName={viewingLiveGamesPage.name}
                             userId={user?.id}
-                            userName={user?.username || user?.full_name || ''}
+                            userName={user?.username || user?.name || ''}
                             onClose={() => setViewingLiveGamesPage(null)}
                         />
                     )}
@@ -6542,7 +6567,7 @@ function SocialMediaPage() {
                     }} onClick={e => e.stopPropagation()}>
                         <div style={{ fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 12 }}>Delete This Post?</div>
                         <div style={{ fontSize: 14, color: C.textSec, marginBottom: 20 }}>
-                            This post will be permanently removed. This action cannot be undone.
+                            This post will be removed from the feed. You have a few seconds to close this dialog and undo the deletion before it is permanent.
                         </div>
                         <div style={{ display: 'flex', gap: 8 }}>
                             <button

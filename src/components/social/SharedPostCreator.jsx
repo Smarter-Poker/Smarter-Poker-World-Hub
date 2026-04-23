@@ -8,7 +8,9 @@ import { useActiveIdentity } from '../../../src/contexts/ActiveIdentityContext';
 import CheckInModal from './CheckInModal';
 import TrendingVenues from './TrendingVenues';
 import { SharedAvatar as Avatar } from './SharedAvatar';
-import { MAX_MEDIA, compressImage, compressVideoIfNeeded, getYouTubeVideoId, validateYouTubeVideo, sniffMimeType, uploadVideoWithProgress, SOCIAL_COLORS as C } from '../../../src/lib/socialHelpers';
+import { MAX_MEDIA, compressImage, getYouTubeVideoId, validateYouTubeVideo, sniffMimeType, SOCIAL_COLORS as C } from '../../../src/lib/socialHelpers';
+import bgUpload from '../../../src/lib/backgroundVideoUpload';
+
 
 export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages, authorOverride, context = 'social-media' }) {
     const [postVisibility, setPostVisibility] = useState('public');
@@ -149,66 +151,26 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
             const folder = isVideo ? 'videos' : 'photos';
             try {
                 if (isVideo) {
-                    // ── Step 1: Compress video if large (>30 MB) ───────────────────
-                    // Runs at 1× playback speed — a 71s clip compresses in ~71s
-                    // but arrives 3-5× faster on mobile due to smaller size.
-                    setUploadProgress({ pct: 0, label: 'Compressing video…' });
-                    let uploadFile = file;
-                    try {
-                        uploadFile = await compressVideoIfNeeded(file, ({ pct, label }) => {
-                            setUploadProgress({ pct: Math.round(pct * 0.5), label });
+                    // ── Background-capable video upload ───────────────────────────────
+                    // Upload starts immediately. If >10s, the bgUpload manager
+                    // dismisses any modal and shows a background toast — the user
+                    // can keep browsing and gets a clickable "Video is live!" notification.
+                    let bgUnsub = null;
+                    const videoUrl = await new Promise((resolve, reject) => {
+                        bgUnsub = bgUpload.subscribe({
+                            onProgress: ({ pct, label }) => setUploadProgress({ pct, label }),
+                            onComplete: ({ publicUrl }) => resolve(publicUrl),
+                            onError: ({ error }) => reject(error),
+                            // SharedPostCreator is inline (no modal) — nothing to dismiss;
+                            // the persistent toast from bgUpload is sufficient UX.
                         });
-                    } catch (compressErr) {
-                        console.warn('[SharedPostCreator] Compression failed, uploading original:', compressErr);
-                        uploadFile = file;
-                    }
-
-                    // ── Step 2: Get signed upload URL ──────────────────────────────
-                    setUploadProgress({ pct: 50, label: 'Preparing upload…' });
-                    const _uploadToken = getAccessToken();
-                    if (!_uploadToken) {
-                        setError('Authentication required — please refresh the page and try again.');
-                        setUploadProgress(null);
-                        continue;
-                    }
-                    const uploadMime = sniffMimeType(uploadFile);
-                    const metaRes = await fetch('/api/social/upload-url', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            Authorization: `Bearer ${_uploadToken}`,
-                        },
-                        body: JSON.stringify({
-                            fileName: uploadFile.name || `video_${Date.now()}.mp4`,
-                            fileSize: uploadFile.size,
-                            mimeType: uploadMime,
-                            folder,
-                            prefix: user.id,
-                        }),
+                        bgUpload.start({ file, userId: user.id, folder }).catch(reject);
                     });
-                    if (!metaRes.ok) {
-                        const errBody = await metaRes.json().catch(() => ({}));
-                        throw new Error(errBody.error || `Request failed (${metaRes.status})`);
-                    }
-                    const meta = await metaRes.json();
-                    if (!meta.success) {
-                        setError('Upload failed: ' + (meta.error || 'Unknown error'));
-                        setUploadProgress(null);
-                        continue;
-                    }
-                    if (!meta.signedUrl || !meta.signedUrl.startsWith('http')) {
-                        setError('Video upload failed: invalid upload URL received');
-                        setUploadProgress(null);
-                        continue;
-                    }
-
-                    // ── Step 3: Upload with real progress (maps 50→100%) ──────────
-                    await uploadVideoWithProgress(meta.signedUrl, uploadFile, uploadMime, ({ pct, label }) => {
-                        setUploadProgress({ pct: 50 + Math.round(pct * 0.5), label: `Uploading… ${pct}%` });
-                    });
+                    if (bgUnsub) bgUnsub();
                     setUploadProgress({ pct: 100, label: 'Upload complete!' });
-                    uploaded.push({ type: 'video', url: meta.publicUrl });
+                    uploaded.push({ type: 'video', url: videoUrl });
                     setUploadProgress(null);
+
                 } else {
                     // Compress image before upload (skip GIFs, small files)
                     const compressedFile = await compressImage(file);

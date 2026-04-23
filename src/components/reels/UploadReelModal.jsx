@@ -8,13 +8,14 @@
 
 import { useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { sniffMimeType, compressVideoIfNeeded, uploadVideoWithProgress } from '../../lib/socialHelpers';
-import { getAccessToken } from '../../lib/authUtils';
+import { sniffMimeType } from '../../lib/socialHelpers';
+import bgUpload from '../../lib/backgroundVideoUpload';
+
 
 export default function UploadReelModal({ user, onClose, onSuccess }) {
     const [uploading, setUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
-    // Phase label shown inside the progress bar ("Compressing… 42%", "Uploading… 67%", etc.)
+    // Phase label shown inside the progress bar ("Preparing upload…", "Uploading… 67%", etc.)
     const [uploadLabel, setUploadLabel] = useState('');
     const [caption, setCaption] = useState('');
     const [videoFile, setVideoFile] = useState(null);
@@ -43,70 +44,44 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
         setError('');
 
         // ⚡ IMMEDIATE FEEDBACK — visible within 100ms, before any async work
-        setUploadProgress(0);
+        setUploadProgress(2);
         setUploadLabel('Preparing…');
 
         try {
-            // ── Step 1: Compress video if large (>30 MB) ──────────────────────
-            // Runs in real-time (1× playback speed) but produces 70-85% smaller
-            // output, making the actual upload 3-5× faster on mobile cellular.
-            setUploadLabel('Compressing video…');
-            let uploadFile = videoFile;
-            try {
-                uploadFile = await compressVideoIfNeeded(videoFile, ({ pct, label }) => {
-                    setUploadProgress(Math.round(pct * 0.45)); // 0-45% = compress phase
-                    setUploadLabel(label);
+            // bgUpload handles: signed URL, XHR progress, 10-second background rule, completion toast
+            let bgUnsub = null;
+            const publicUrl = await new Promise((resolve, reject) => {
+                bgUnsub = bgUpload.subscribe({
+                    onProgress: ({ pct, label }) => {
+                        setUploadProgress(pct);
+                        setUploadLabel(label);
+                    },
+                    onComplete: ({ publicUrl }) => resolve(publicUrl),
+                    onError: ({ error }) => reject(error),
+                    onBackground: () => {
+                        // Upload taking >10s — close modal so user can browse.
+                        // bgUpload already shows a persistent info toast.
+                        onClose?.();
+                    },
                 });
-            } catch (compressErr) {
-                console.warn('[UploadReel] Compression failed, uploading original:', compressErr);
-                uploadFile = videoFile;
-            }
 
-            // ── Step 2: Get signed upload URL ─────────────────────────────────
-            setUploadProgress(47);
-            setUploadLabel('Preparing upload…');
-
-            const cleanMime = sniffMimeType(uploadFile);
-            const token = getAccessToken();
-            if (!token) throw new Error('Authentication required — please refresh and try again.');
-
-            const metaRes = await fetch('/api/social/upload-url', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                    fileName: uploadFile.name,
-                    fileSize: uploadFile.size,
-                    mimeType: cleanMime,
+                bgUpload.start({
+                    file: videoFile,
+                    userId: user.id,
                     folder: 'reels',
-                    prefix: user.id,
-                }),
+                }).catch(reject);
             });
-            const meta = await metaRes.json();
-            if (!meta.success) {
-                throw new Error(meta.error || 'Failed to create upload URL');
-            }
-
-            setUploadProgress(50);
-            setUploadLabel('Uploading…');
-
-            // ── Step 3: Upload directly to Supabase (maps 50→93%) ─────────────
-            await uploadVideoWithProgress(meta.signedUrl, uploadFile, cleanMime, ({ pct }) => {
-                setUploadProgress(50 + Math.round(pct * 0.43));
-                setUploadLabel(`Uploading… ${pct}%`);
-            });
+            if (bgUnsub) bgUnsub();
 
             setUploadProgress(94);
             setUploadLabel('Saving reel…');
 
-            // ── Step 4: Create social_reels entry ─────────────────────────────
+            // Create social_reels entry
             const { data: reelRow, error: insertError } = await supabase
                 .from('social_reels')
                 .insert({
                     author_id: user.id,
-                    video_url: meta.publicUrl,
+                    video_url: publicUrl,
                     caption: caption.trim() || null,
                     like_count: 0,
                     comment_count: 0,
@@ -122,7 +97,7 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
             setUploadProgress(97);
             setUploadLabel('Syncing feed…');
 
-            // ── Step 5: Create social_posts entry for feed (non-fatal) ─────────
+            // Create social_posts entry for feed (non-fatal)
             try {
                 await supabase
                     .from('social_posts')
@@ -130,7 +105,7 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
                         author_id: user.id,
                         content: caption.trim() || '',
                         content_type: 'video',
-                        media_urls: [meta.publicUrl],
+                        media_urls: [publicUrl],
                         visibility: 'public',
                         like_count: 0,
                         comment_count: 0,
@@ -143,7 +118,7 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
 
             setUploadProgress(100);
             setUploadLabel('Done!');
-            onSuccess();
+            onSuccess?.();
         } catch (err) {
             console.warn('Upload error:', err);
             setError(err.message || 'Failed to upload reel');
@@ -151,6 +126,7 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
             setUploading(false);
         }
     };
+
 
 
     const fileSizeMB = videoFile ? (videoFile.size / (1024 * 1024)).toFixed(1) : 0;

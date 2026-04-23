@@ -15,7 +15,9 @@ import { claimReward } from '../../lib/claimReward';
 import { busEmit } from '../../engine/EventBus';
 import { broadcastSync, BROADCAST_TAB_ID } from '../../lib/broadcastSync';
 import { getAccessToken } from '../../lib/authUtils';
-import { compressImage, sniffMimeType, uploadVideoWithProgress, compressVideoIfNeeded } from '../../lib/socialHelpers';
+import { compressImage, sniffMimeType } from '../../lib/socialHelpers';
+import bgUpload from '../../lib/backgroundVideoUpload';
+
 import { useSupabase } from '../../providers/SupabaseProvider';
 
 // File validation — uses sniffMimeType to correctly handle iOS Photo Library uploads.
@@ -300,77 +302,41 @@ export const EnhancedPostCreator = ({
 
         try {
           if (isVideo) {
-            // ── Step 1: Auth token (fast, synchronous cache hit) ──────────────
-            const _uploadToken = getAccessToken();
-            if (!_uploadToken) {
-              throw new Error('Authentication required — please refresh the page and try again.');
-            }
+            // ── Background-capable video upload ───────────────────────────────
+            // bgUpload manages the XHR at module level so it survives modal
+            // unmount. If the upload takes >10 seconds the modal auto-closes
+            // and the user can browse while we continue in the background.
+            const videoIndex = i; // capture for closure
+            let bgUnsub = null;
 
-            // ── Step 2: Client-side video compression (>30MB only) ───────────
-            // Runs at real-time speed (1× playback), so a 71s video takes ~71s
-            // to compress — BUT the output is typically 70-85% smaller, making
-            // the subsequent upload 3-5× faster on mobile.
-            setUploadStatus(prev => ({ ...prev, [i]: 'Compressing video…' }));
-            let uploadFile = file;
-            try {
-              uploadFile = await compressVideoIfNeeded(file, ({ pct, label }) => {
-                setUploadProgress(prev => ({ ...prev, [i]: Math.round(pct * 0.5) })); // 0-50% = compress phase
-                setUploadStatus(prev => ({ ...prev, [i]: label }));
-              });
-            } catch (compressErr) {
-              console.warn('[VideoCompress] Compression failed, uploading original:', compressErr);
-              uploadFile = file; // never block the upload
-            }
-
-            // ── Step 3: Get signed upload URL ────────────────────────────────
-            setUploadStatus(prev => ({ ...prev, [i]: 'Preparing upload…' }));
-            setUploadProgress(prev => ({ ...prev, [i]: 50 }));
-
-            const uploadMime = sniffMimeType(uploadFile);
-            const metaRes = await fetch('/api/social/upload-url', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${_uploadToken}`,
+            const videoUrl = await new Promise((resolve, reject) => {
+              bgUnsub = bgUpload.subscribe({
+                onProgress: ({ pct, label }) => {
+                  setUploadProgress(prev => ({ ...prev, [videoIndex]: pct }));
+                  setUploadStatus(prev => ({ ...prev, [videoIndex]: label }));
                 },
-                body: JSON.stringify({
-                    fileName: uploadFile.name || `video_${Date.now()}.mp4`,
-                    fileSize: uploadFile.size,
-                    mimeType: uploadMime,
-                    folder,
-                    prefix: user.id,
-                }),
-            });
-            
-            if (!metaRes.ok) {
-                const errBody = await metaRes.json().catch(() => ({}));
-                throw new Error(errBody.error || `Request failed (${metaRes.status})`);
-            }
-            
-            const meta = await metaRes.json();
-            if (!meta.success) {
-                throw new Error(meta.error || 'Unknown error');
-            }
-            if (!meta.signedUrl || !meta.signedUrl.startsWith('http')) {
-                throw new Error('Video upload failed: invalid upload URL received');
-            }
+                onComplete: ({ publicUrl }) => resolve(publicUrl),
+                onError: ({ error }) => reject(error),
+                onBackground: () => {
+                  // User has been waiting >10s — dismiss the modal so they can browse
+                  // The upload continues running in the background.
+                  if (onClose) onClose();
+                },
+              });
 
-            // ── Step 4: Upload via XHR with real progress ─────────────────────
-            setUploadStatus(prev => ({ ...prev, [i]: 'Uploading…' }));
-            await uploadVideoWithProgress(meta.signedUrl, uploadFile, uploadMime, (progressObj) => {
-                // Map upload phase to 50-100% of the overall progress bar
-                const mapped = 50 + Math.round(progressObj.pct * 0.5);
-                setUploadProgress(prev => ({ ...prev, [i]: mapped }));
-                setUploadStatus(prev => ({ ...prev, [i]: `Uploading… ${progressObj.pct}%` }));
-            }, (xhr) => { xhrRef.current = xhr; });
-            
-            uploadedMedia.push({
-                url: meta.publicUrl,
-                type: 'video',
-                name: uploadFile.name
+              bgUpload.start({
+                file,
+                userId: user.id,
+                folder,
+              }).catch(reject);
             });
-            setUploadProgress(prev => ({ ...prev, [i]: 100 }));
-            setUploadStatus(prev => ({ ...prev, [i]: 'Done' }));
+
+            if (bgUnsub) bgUnsub();
+
+            uploadedMedia.push({ url: videoUrl, type: 'video', name: file.name });
+            setUploadProgress(prev => ({ ...prev, [videoIndex]: 100 }));
+            setUploadStatus(prev => ({ ...prev, [videoIndex]: 'Done' }));
+
             
           } else {
             // Compress image before upload
