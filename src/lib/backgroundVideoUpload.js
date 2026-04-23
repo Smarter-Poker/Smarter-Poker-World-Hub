@@ -128,7 +128,13 @@ function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0) {
                         .catch(reject);
                 }, delay);
             } else {
-                reject(new Error(`Upload failed (HTTP ${xhr.status})`));
+                // 4xx or other non-retryable errors
+                const errMsg = xhr.status === 403
+                    ? 'Upload session expired — please try again.'
+                    : xhr.status === 413
+                    ? 'File is too large for the server.'
+                    : `Upload failed (HTTP ${xhr.status})`;
+                reject(new Error(errMsg));
             }
         };
 
@@ -149,10 +155,25 @@ function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0) {
         };
 
         xhr.onabort = () => { _activeXhr = null; reject(new Error('Upload cancelled')); };
+        xhr.ontimeout = () => {
+            _activeXhr = null;
+            if (attempt < MAX_RETRIES) {
+                const delay = RETRY_DELAYS[attempt] || 10000;
+                _setState(_state, _progress, `Upload timed out — retrying in ${Math.round(delay / 1000)}s…`);
+                setTimeout(() => {
+                    _uploadWithRetry(file, signedUrl, mimeType, attempt + 1)
+                        .then(resolve)
+                        .catch(reject);
+                }, delay);
+            } else {
+                reject(new Error('Upload timed out — please check your connection and try again.'));
+            }
+        };
 
         const cleanMime = (mimeType || '').split(';')[0].trim() || 'video/mp4';
         xhr.open('PUT', signedUrl);
         xhr.setRequestHeader('Content-Type', cleanMime);
+        xhr.timeout = 5 * 60 * 1000; // 5 minute timeout — prevents hanging on flaky mobile connections
         xhr.send(file);
     });
 }
