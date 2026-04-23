@@ -4238,9 +4238,15 @@ function MessengerPage() {
             try {
                 // If active status is disabled, always report offline
                 const effectiveOnline = preferencesRef.current.activeStatus !== false ? isOnlineNow : false;
-                await supabase.rpc('fn_update_presence', {
-                    p_user_id: user.id,
-                    p_is_online: effectiveOnline,
+                // Route through API — fn_update_presence returns 403 for authenticated role (missing GRANT EXECUTE)
+                const presenceToken = getAccessToken();
+                await fetch('/api/messenger/update-presence', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(presenceToken ? { Authorization: `Bearer ${presenceToken}` } : {}),
+                    },
+                    body: JSON.stringify({ isOnline: effectiveOnline }),
                 });
             } catch (e) {
                 console.warn('[Presence] DB update error:', e);
