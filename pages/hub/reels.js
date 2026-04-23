@@ -86,6 +86,8 @@ export default function ReelsPage() {
     const commentFileInputRef = useRef(null);
     const containerRef = useRef(null);
     const iframeRef = useRef(null);
+    const videoRef = useRef(null);
+    const [isPaused, setIsPaused] = useState(false);
     const touchStartY = useRef(0);
     const lastTapRef = useRef(0);
     const likeDebounceRef = useRef(false);
@@ -1136,6 +1138,7 @@ export default function ReelsPage() {
         setReportSubmitted(false);
         setShareToast(false);
         setShowShareModal(false);
+        setIsPaused(false); // New reel always starts playing
     }, [currentIndex]);
 
     const handleSave = async () => {
@@ -1333,11 +1336,13 @@ export default function ReelsPage() {
                 if (data?.event === 'onStateChange') {
                     if (data.info === 0) slideToNextRef.current();
                     if (data.info === 1) { // Playing
+                        setIsPaused(false);
                         setShowOverlay(true);
                         clearTimeout(hudTimerRef.current);
                         hudTimerRef.current = setTimeout(() => setShowOverlay(false), 5000);
                     }
                     if (data.info === 2) { // Paused
+                        setIsPaused(true);
                         setShowOverlay(true);
                         if (hudTimerRef.current) clearTimeout(hudTimerRef.current);
                     }
@@ -1652,6 +1657,7 @@ export default function ReelsPage() {
                                 sendYouTubeCommand('unMute');
                                 sendYouTubeCommand('setVolume', [100]);
                                 setMuted(false);
+                                setIsPaused(false);
                                 // Retry for Safari/slow API init
                                 setTimeout(() => {
                                     sendYouTubeCommand('playVideo');
@@ -1675,6 +1681,34 @@ export default function ReelsPage() {
                                 border: 'none',
                                 pointerEvents: 'none',
                                 objectFit: 'cover',
+                            }}
+                        />
+                    ) : currentReel?.video_url ? (
+                        /* Native video (mp4/webm/mov) — user-uploaded content */
+                        <video
+                            ref={videoRef}
+                            key={currentReel.id}
+                            src={currentReel.video_url}
+                            autoPlay
+                            loop
+                            playsInline
+                            muted={muted}
+                            onPlay={() => setIsPaused(false)}
+                            onPause={() => setIsPaused(true)}
+                            onEnded={() => { setIsPaused(false); goNext(); }}
+                            onTimeUpdate={(e) => {
+                                const v = e.currentTarget;
+                                if (v.duration) setVideoProgress((v.currentTime / v.duration) * 100);
+                            }}
+                            style={{
+                                position: 'absolute',
+                                top: '50%',
+                                left: '50%',
+                                transform: 'translate(-50%, -50%)',
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                                pointerEvents: 'none',
                             }}
                         />
                     ) : null}
@@ -1735,8 +1769,25 @@ export default function ReelsPage() {
                                 handleLike();
                             }
                         } else {
-                            // Single tap = reveal overlay
+                            // Single tap = reveal overlay + toggle play/pause
                             revealOverlay();
+                            if (videoId) {
+                                // YouTube: toggle via postMessage
+                                if (isPaused) {
+                                    sendYouTubeCommand('playVideo');
+                                    setIsPaused(false);
+                                } else {
+                                    sendYouTubeCommand('pauseVideo');
+                                    setIsPaused(true);
+                                }
+                            } else if (videoRef.current) {
+                                // Native video: toggle via DOM API
+                                if (videoRef.current.paused) {
+                                    videoRef.current.play().catch(e => console.warn('[Reels] play() failed:', e?.message));
+                                } else {
+                                    videoRef.current.pause();
+                                }
+                            }
                         }
                         lastTapRef.current = now;
                     }}
@@ -1764,14 +1815,35 @@ export default function ReelsPage() {
                     }}
                 />
 
-                {!videoId && (
+                {!videoId && !currentReel?.video_url && (
                     <div style={{
-                        width: '100%', height: '100%',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666',
+                        position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666', zIndex: 2,
                     }}>
                         <div style={{ textAlign: 'center' }}>
                             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="1.5"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="M10 9l5 3-5 3V9z" fill="#666" /></svg>
-                            <div>Video Loading...</div>
+                            <div>Video Unavailable</div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Pause indicator — shown when video is paused */}
+                {isPaused && (
+                    <div style={{
+                        position: 'absolute', top: '50%', left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        pointerEvents: 'none', zIndex: 55,
+                        animation: 'fadeInScale 0.2s ease',
+                    }}>
+                        <div style={{
+                            width: 72, height: 72, borderRadius: '50%',
+                            background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)',
+                            WebkitBackdropFilter: 'blur(8px)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="white">
+                                <polygon points="5 3 19 12 5 21 5 3" />
+                            </svg>
                         </div>
                     </div>
                 )}
