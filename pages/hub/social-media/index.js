@@ -4350,6 +4350,9 @@ function SocialMediaPage() {
             // Self-tab suppression + support both string and object payloads
             if (msg?.tabId === BROADCAST_TAB_ID) return;
             if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Friends changed in other tab — refreshing feed');
+            // BUG-10 FIX: reset graph cache so the next loadFeed re-fetches with the new friend included
+            // Without this, a new friend's posts would never get the +100 priority score until page reload
+            socialGraphLoadedRef.current = false;
             (loadFeedRef.current || loadFeed)(0, false);
         });
 
