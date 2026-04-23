@@ -272,8 +272,11 @@ export default function ReelsPage() {
     }, []);
 
     // YouTube API: Send command to iframe via postMessage
+    // The 'listening' handshake initializes the command bridge
     const sendYouTubeCommand = (command, args = []) => {
         if (iframeRef.current?.contentWindow) {
+            // Ensure the API bridge is active
+            iframeRef.current.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
             iframeRef.current.contentWindow.postMessage(JSON.stringify({
                 event: 'command',
                 func: command,
@@ -1689,23 +1692,26 @@ export default function ReelsPage() {
                             title="Poker Reel"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                             allowFullScreen
-                            onLoad={() => {
-                                // Play + unmute immediately on iframe load
-                                sendYouTubeCommand('playVideo');
-                                sendYouTubeCommand('unMute');
-                                sendYouTubeCommand('setVolume', [100]);
-                                setMuted(false);
-                                setIsPaused(false);
-                                // Retry for Safari/slow API init
-                                setTimeout(() => {
-                                    sendYouTubeCommand('playVideo');
-                                    sendYouTubeCommand('unMute');
-                                    sendYouTubeCommand('setVolume', [100]);
-                                }, 200);
-                                setTimeout(() => {
-                                    sendYouTubeCommand('unMute');
-                                    sendYouTubeCommand('setVolume', [100]);
-                                }, 600);
+                            onLoad={(e) => {
+                                // Initialize YouTube postMessage API bridge
+                                // CRITICAL: The 'listening' event MUST be sent first to establish
+                                // the command channel. Without it, all commands are silently ignored.
+                                const iframeWindow = e.target.contentWindow;
+                                try {
+                                    iframeWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
+                                    iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
+                                    setIsPaused(false);
+                                    // Aggressive retry loop: YouTube API inside iframe needs time to initialize
+                                    [300, 800, 1500, 3000].forEach(delay => setTimeout(() => {
+                                        try {
+                                            iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
+                                            if (!muted) {
+                                                iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
+                                                iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
+                                            }
+                                        } catch (err) { console.warn('[Reels] YT command retry failed:', err); }
+                                    }, delay));
+                                } catch (err) { console.warn('[Reels] YT onLoad init failed:', err); }
                             }}
                             style={{
                                 position: 'absolute',
