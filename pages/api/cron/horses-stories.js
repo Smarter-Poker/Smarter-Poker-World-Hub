@@ -58,11 +58,11 @@ const STORY_GRADIENTS = [
 // Text story topics — clean, emoji-free, human-sounding
 const TEXT_STORY_TOPICS = [
     'just watched the sickest cooler on stream',
-    'solver vs exploitative — the debate never ends',
+    'solver vs exploitative, the debate never ends',
     'hot take: 3bet sizing in live poker is way too small',
     'worst beat I have ever seen at a live table',
     'late night grinding is a different kind of focus',
-    'position is everything — been saying this for years',
+    'position is everything, been saying this for years',
     'flopping the nuts and nobody gives you action',
     'live reads hit different than online tells',
     'bankroll management is the most underrated skill in poker',

@@ -180,16 +180,16 @@ const POST_CAPTIONS = {
     'all in', 'monster pot', 'it went in', 'massive',
     // Medium
     'that pot got huge fast', 'not sure who I\'m rooting for', 'someone\'s night just changed',
-    'chips were moving fast in that one', 'both players had a read — or thought they did',
+    'chips were moving fast in that one', 'both players had a read, or thought they did',
     'pot size changes the math on everything', 'the swings in this game are real',
     'the money went in fast on that one', 'when both players feel good about it',
     'all the chips are in the middle', 'this is why people watch poker',
     // Longer
-    'that\'s a lot of money in the middle for one hand', 'looked calm at the table — was not calm',
+    'that\'s a lot of money in the middle for one hand', 'looked calm at the table, was not calm',
     'both ran it like they knew something the other didn\'t', 'nobody blinked. respect.',
     'the stacks got deep enough that everything after the flop was interesting',
     'this hand changed the whole trajectory of the session',
-    'getting it all in pre is one thing — this was different',
+    'getting it all in pre is one thing, this was different',
     'sometimes you just know going into it that it\'s going to be big',
   ],
 
@@ -201,7 +201,7 @@ const POST_CAPTIONS = {
     'cold as ice at that table', 'the nerve to pull that off in that spot',
     'the river bet was the whole story', 'they bought the story completely',
     // Longer
-    'that sizing was a statement — not a question', 'didn\'t flinch once during the whole hand',
+    'that sizing was a statement, not a question', 'didn\'t flinch once during the whole hand',
     'bluff worked. should it have? probably not.', 'put a story together and they believed it',
     'pure aggression, zero cards, full commitment',
   ],
@@ -212,7 +212,7 @@ const POST_CAPTIONS = {
     // Medium
     'ran good until he didn\'t', 'had it won then didn\'t',
     'the river card was brutal', 'nobody deserves that runout',
-    'played it right, lost anyway — that\'s poker',
+    'played it right, lost anyway. that\'s poker',
     // Longer
     'the math was right, the cards had other plans', 'been there. it sucks every single time.',
     'that one-outer hits different when there\'s money on it',
@@ -240,7 +240,7 @@ const POST_CAPTIONS = {
     'two people, one pot, bad energy', 'someone\'s composure cracked',
     'the dealer had the hardest job at that table',
     // Longer
-    'takes a lot to rattle some people — this did it',
+    'takes a lot to rattle some people, this did it',
     'whatever was said, it got in his head and stayed there',
     'nobody wins when the table tilts like that',
   ],
@@ -250,10 +250,10 @@ const POST_CAPTIONS = {
     'legend stuff', 'still elite', 'different level',
     // Medium
     'hard not to watch when he\'s at the table', 'some things don\'t change',
-    'built the reputation hand by hand', 'watched this guy play for years — still impressive',
+    'built the reputation hand by hand', 'watched this guy play for years, still impressive',
     // Longer
     'the name carries weight for a reason', 'you can learn something from every hand he plays',
-    'that\'s just a different feel for the game — hard to teach',
+    'that\'s just a different feel for the game, hard to teach',
   ],
 
   funny: [
@@ -277,7 +277,7 @@ const POST_CAPTIONS = {
     'pay attention to how they play the turn',
     // Longer
     'this is the spot that separates levels of play',
-    'stack depth is doing a lot of work in this hand — good study material',
+    'stack depth is doing a lot of work in this hand, good study material',
     'range advantage playing out in real time, worth pausing and rewinding',
     'the river decision is the one worth studying before your next session',
   ],
@@ -290,7 +290,7 @@ const POST_CAPTIONS = {
     'every session teaches you something', 'running good is temporary, grinding is permanent',
     // Longer
     'good read on the room throughout the whole session',
-    'not every day is a winning day — he knows that better than most',
+    'not every day is a winning day. he knows that better than most',
   ],
 
   tournament: [
@@ -302,7 +302,7 @@ const POST_CAPTIONS = {
     'the shove/fold math gets real near the money',
     // Longer
     'stack management under pressure is a skill people underestimate',
-    'field was tough — still made a run and played it well',
+    'field was tough, still made a run and played it well',
     'late registration vs early grind, that debate never ends',
   ],
 
@@ -315,7 +315,7 @@ const POST_CAPTIONS = {
     'nobody at this table is guessing',
     // Longer
     'you can feel the pressure through the screen on this one',
-    'the mental game matters more as stakes go up — and this shows it',
+    'the mental game matters more as stakes go up, and this shows it',
   ],
 };
 
@@ -327,13 +327,13 @@ const COMMENT_PHRASES = {
   video: [
     'this hand is something', 'watched it twice', 'the timing on that was different',
     'hard to argue with that result', 'not sure I make that call there',
-    'the river changes everything', 'seen a lot of hands — that one stands out',
+    'the river changes everything', 'seen a lot of hands, that one stands out',
     'the bet sizing tells the whole story', 'cold as ice',
     'that read was there before the cards came', 'position doing all the work',
     'would\'ve played it the same way', 'probably not the solver line but it worked',
     'two hours at a table with that guy and you learn something',
     'the blocker logic is real here', 'gutsy. genuinely gutsy.',
-    'that fold saved his whole session', 'aggressive line — made sense though',
+    'that fold saved his whole session', 'aggressive line, made sense though',
     'range advantage was obvious in hindsight', 'that call took nerve',
     'classic live poker read', 'the stacks made this play make sense',
   ],
@@ -350,21 +350,21 @@ const COMMENT_PHRASES = {
   bluff: [
     'no cards needed', 'that took nerve', 'the sizing was a statement',
     'he had to fold there honestly', 'stone cold', 'respect for the execution',
-    'fearless at the table', 'risky — worth it',
+    'fearless at the table', 'risky, worth it',
     'the read was there before the shove', 'everyone at the table knew but nobody moved',
   ],
 
   tournament: [
     'ICM nightmare spot', 'the bubble is brutal', 'chip leader playing it right',
     'final table spots don\'t come free', 'shove range widens near the money',
-    'field was tough — still made it work', 'deep run incoming',
+    'field was tough, still made it work', 'deep run incoming',
     'tournament poker needs a different gear',
   ],
 
   strategy: [
     'the sizing tells the story', 'think about it from a range perspective',
     'EV is all that matters long term', 'textbook spot',
-    'solver would have a different answer — this works too',
+    'solver would have a different answer, this works too',
     'position is doing everything here', 'the math checks out',
     'good example of when to deviate from the chart',
   ],
@@ -494,7 +494,7 @@ const CONTEXT_TEMPLATES = {
   venue: [
     '{{subject}} always delivers',
     'another one from {{subject}}',
-    '{{subject}} — never a dull hand',
+    '{{subject}}, never a dull hand',
     'the action at {{subject}} never stops',
     '{{subject}} has been running wild lately',
     'if you\'re not watching {{subject}} you\'re missing out',
@@ -584,6 +584,20 @@ function buildContextCaption(ctx, profileId) {
   return null;
 }
 
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// GLOBAL OUTPUT SANITIZER — strip chars that are BANNED from horse-generated text
+// Em dash (—) is forbidden: it reads as formal/editorial, not human.
+// Applied at every public export as a final safety net.
+// ═══════════════════════════════════════════════════════════════════════════════
+function sanitizeHorseOutput(text) {
+  if (!text || typeof text !== 'string') return text;
+  return text
+    .replace(/\u2014/g, ',')   // em dash → comma (natural spoken rhythm)
+    .replace(/  +/g, ' ')       // collapse double spaces left by removal
+    .trim();
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // PUBLIC API
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -621,10 +635,10 @@ export function generatePostCaption(category, profileId, clipTitle = '') {
   if (archetype.flair.length > 0 && Math.random() < 0.12) {
     const h = getHorseHash(profileId);
     const flair = archetype.flair[h % archetype.flair.length];
-    phrase = `${flair} — ${phrase.toLowerCase()}`;
+    phrase = `${flair}, ${phrase.toLowerCase()}`;
   }
 
-  return applyStyle(phrase, archetype);
+  return sanitizeHorseOutput(applyStyle(phrase, archetype));
 }
 
 /**
@@ -635,7 +649,7 @@ export function generateComment(commentType, profileId) {
   const pool = COMMENT_PHRASES[commentType] || COMMENT_PHRASES.general;
   const archetype = getArchetype(profileId);
   const phrase = pick(pool, profileId, 1);
-  return applyStyle(phrase, archetype);
+  return sanitizeHorseOutput(applyStyle(phrase, archetype));
 }
 
 /**
@@ -663,7 +677,7 @@ export function generateNewsCaption(headline, profileId, newsType = 'poker') {
           'game of the week type stuff', 'the numbers don\'t lie',
           'hard to argue with that performance', 'watching this one closely',
           'not many people talking about this', 'the sport has a moment here',
-          'every season has a story — this might be it', 'the pressure is real',
+          'every season has a story, this might be it', 'the pressure is real',
           'respect the grind', 'that stat line is real',
         ]
       : [
@@ -687,10 +701,10 @@ export function generateNewsCaption(headline, profileId, newsType = 'poker') {
   if (archetype.flair.length > 0 && Math.random() < 0.18) {
     const h = getHorseHash(profileId);
     const flair = archetype.flair[h % archetype.flair.length];
-    phrase = `${flair} — ${phrase.toLowerCase()}`;
+    phrase = `${flair}, ${phrase.toLowerCase()}`;
   }
 
-  return applyStyle(phrase, archetype);
+  return sanitizeHorseOutput(applyStyle(phrase, archetype));
 }
 
 /**
@@ -702,7 +716,7 @@ export function generateDMReply(historyLength, profileId) {
   const pool = isConcluding ? DM_PHRASES.conclude : DM_PHRASES.reply;
   const archetype = getArchetype(profileId);
   const phrase = pick(pool, profileId, 3);
-  return applyStyle(phrase, archetype);
+  return sanitizeHorseOutput(applyStyle(phrase, archetype));
 }
 
 /**

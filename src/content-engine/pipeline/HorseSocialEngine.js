@@ -1049,19 +1049,26 @@ async function reactToComments(maxReactions = 15) {
         else if (roll > 0.50) reaction = 'haha';
         else if (roll > 0.30) reaction = 'love';
 
-        // BUG-WR05 FIX: write to social_interactions (not social_comment_likes)
-        // The Reels frontend reads comment likes from social_interactions with
-        // interaction_type='comment_like'. Writing to social_comment_likes instead
-        // created a split brain where horse reactions were invisible to users.
+        // BUG-SI01 FIX: onConflict='metadata->>comment_id' is NOT valid PostgREST syntax
+        // (JSON path expressions are not column names). This caused silent INSERT duplicates
+        // or a 42703 error. Use atomic delete+insert instead for guaranteed idempotency.
+        const postId = comment.post_id || comment.id;
+        await getSupabase()
+            .from('social_interactions')
+            .delete()
+            .eq('user_id', horse.profile_id)
+            .eq('post_id', postId)
+            .eq('interaction_type', 'comment_like')
+            .filter('metadata->>comment_id', 'eq', comment.id);
+
         const { error } = await getSupabase()
             .from('social_interactions')
-            .upsert({
+            .insert({
                 user_id: horse.profile_id,
-                post_id: comment.post_id || comment.id, // social_interactions requires post_id
+                post_id: postId,
                 interaction_type: 'comment_like',
                 metadata: { comment_id: comment.id, reaction_type: reaction }
-            }, { onConflict: 'user_id,post_id,interaction_type,metadata->>comment_id' });
-
+            });
 
         if (!error) {
             reacted++;
