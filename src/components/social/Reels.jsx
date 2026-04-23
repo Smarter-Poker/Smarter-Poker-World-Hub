@@ -308,7 +308,9 @@ export function ReelsViewer({ onClose }) {
 
     // YouTube auto-advance & state tracking: listen for onStateChange postMessage
     useEffect(() => {
+        const YOUTUBE_ORIGINS = ['https://www.youtube-nocookie.com', 'https://www.youtube.com', 'https://youtube.com'];
         const handleYTMessage = (event) => {
+            if (!YOUTUBE_ORIGINS.includes(event.origin)) return;
             try {
                 const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
                 if (data?.event === 'onStateChange') {
