@@ -33,27 +33,30 @@ export default async function handler(req, res) {
       const userId = localUser.id;
 
       try {
+          // Use a single client reference so all queries share the same connection pool slot
+          const sb = getSupabase();
+
           // BUG-12 FIX: Run ALL 4 queries in parallel instead of sequential waterfall.
-          // Previous: profile → [social count + follows] → pageNotifs → reads (4 round-trips)
-          // Now: all 4 main queries fire simultaneously, poker sub-queries parallelized too.
+          // BUG-29 FIX: Capture single 'sb' reference — prevents re-resolving module singleton
+          //             on each getSupabase() call inside Promise.all.
           const [profileResult, socialCountResult, followResult, convResult] = await Promise.all([
               // 1. Profile
-              getSupabase().from('profiles')
+              sb.from('profiles')
                   .select('username, full_name, avatar_url, diamonds, is_vip')
                   .eq('id', userId)
                   .maybeSingle(),
               // 2. Unread social notifications count
-              getSupabase().from('notifications')
+              sb.from('notifications')
                   .select('*', { count: 'exact', head: true })
                   .eq('user_id', userId)
                   .eq('read', false),
               // 3. Page followers for poker notifications
-              getSupabase().from('page_followers')
+              sb.from('page_followers')
                   .select('page_type, page_id')
                   .eq('user_id', userId)
                   .limit(100),
               // 4. Conversations for unread messages count
-              getSupabase().from('social_conversation_participants')
+              sb.from('social_conversation_participants')
                   .select('conversation_id, last_read_at')
                   .eq('user_id', userId),
           ]);
@@ -68,57 +71,60 @@ export default async function handler(req, res) {
           }
 
           let notificationCount = socialCountResult.count || 0;
-
-          // Poker notifications: only if user follows pages
-          if (followResult.data && followResult.data.length > 0) {
-              const orConditions = followResult.data.map(
-                 (f) => `and(page_type.eq.${f.page_type},page_id.eq.${f.page_id})`
-              ).join(',');
-
-              const { data: pageNotifs } = await getSupabase()
-                 .from('page_notifications')
-                 .select('id')
-                 .or(orConditions)
-                 .limit(100);
-
-              if (pageNotifs && pageNotifs.length > 0) {
-                   const allIds = pageNotifs.map(n => n.id);
-                   const { data: existingReads } = await getSupabase()
-                       .from('notification_reads')
-                       .select('notification_id')
-                       .eq('user_id', userId)
-                       .in('notification_id', allIds);
-
-                   const readSet = new Set((existingReads || []).map(r => r.notification_id));
-                   const unreadPoker = allIds.filter(id => !readSet.has(id)).length;
-                   notificationCount += unreadPoker;
-              }
-          }
-
-          // Unread messages: count per-conversation
           const conversations = convResult.data || [];
-          let unreadMessages = 0;
-          if (conversations.length > 0) {
-              const conversationIds = conversations.map(c => c.conversation_id);
-              const earliestRead = conversations.reduce((earliest, c) => {
-                  const ts = c.last_read_at || '1970-01-01';
-                  return ts < earliest ? ts : earliest;
-              }, conversations[0].last_read_at || '1970-01-01');
 
-              const { data: allMessages } = await getSupabase()
-                  .from('social_messages')
-                  .select('conversation_id, created_at')
-                  .in('conversation_id', conversationIds)
-                  .neq('sender_id', userId)
-                  .eq('is_deleted', false)
-                  .gt('created_at', earliestRead);
+          // BUG-29 FIX: Run poker notif sub-query AND messages sub-query in parallel.
+          // Previous: pageNotifs (sequential) → existingReads (sequential) → social_messages (sequential)
+          // Now: both secondary fetch groups fire at the same time.
+          const [pokerResult, messagesResult] = await Promise.all([
+              // Poker notifications sub-flow (only if user follows pages)
+              (async () => {
+                  if (!followResult.data || followResult.data.length === 0) return 0;
+                  const orConditions = followResult.data.map(
+                      (f) => `and(page_type.eq.${f.page_type},page_id.eq.${f.page_id})`
+                  ).join(',');
+                  const { data: pageNotifs } = await sb
+                      .from('page_notifications')
+                      .select('id')
+                      .or(orConditions)
+                      .limit(100);
+                  if (!pageNotifs || pageNotifs.length === 0) return 0;
+                  const allIds = pageNotifs.map(n => n.id);
+                  const { data: existingReads } = await sb
+                      .from('notification_reads')
+                      .select('notification_id')
+                      .eq('user_id', userId)
+                      .in('notification_id', allIds);
+                  const readSet = new Set((existingReads || []).map(r => r.notification_id));
+                  return allIds.filter(id => !readSet.has(id)).length;
+              })(),
+              // Unread messages sub-flow
+              (async () => {
+                  if (conversations.length === 0) return 0;
+                  const conversationIds = conversations.map(c => c.conversation_id);
+                  const earliestRead = conversations.reduce((earliest, c) => {
+                      const ts = c.last_read_at || '1970-01-01';
+                      return ts < earliest ? ts : earliest;
+                  }, conversations[0].last_read_at || '1970-01-01');
+                  const { data: allMessages } = await sb
+                      .from('social_messages')
+                      .select('conversation_id, created_at')
+                      .in('conversation_id', conversationIds)
+                      .neq('sender_id', userId)
+                      .eq('is_deleted', false)
+                      .gt('created_at', earliestRead);
+                  const readMap = new Map(conversations.map(c => [c.conversation_id, c.last_read_at || '1970-01-01']));
+                  let count = 0;
+                  (allMessages || []).forEach(msg => {
+                      const lastRead = readMap.get(msg.conversation_id);
+                      if (lastRead && msg.created_at > lastRead) count++;
+                  });
+                  return count;
+              })(),
+          ]);
 
-              const readMap = new Map(conversations.map(c => [c.conversation_id, c.last_read_at || '1970-01-01']));
-              (allMessages || []).forEach(msg => {
-                  const lastRead = readMap.get(msg.conversation_id);
-                  if (lastRead && msg.created_at > lastRead) unreadMessages++;
-              });
-          }
+          notificationCount += pokerResult;
+          const unreadMessages = messagesResult;
 
           return res.json({
               success: true,
