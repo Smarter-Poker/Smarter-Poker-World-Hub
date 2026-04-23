@@ -43,7 +43,8 @@ async function loadClipLibrary() {
     }
 }
 
-// Validate YouTube video actually exists before posting
+// Validate YouTube video actually exists AND is embeddable before posting
+// Returns false for: removed, age-restricted, embedding-disabled, private videos
 async function validateYouTubeVideo(url) {
     if (!url) return false;
     const patterns = [
@@ -61,7 +62,16 @@ async function validateYouTubeVideo(url) {
 
     try {
         const response = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
-        return response.ok;
+        if (!response.ok) {
+            // 401 = age-restricted, 403 = embedding disabled, 404 = not found
+            return false;
+        }
+        // Parse the response body - embeddable videos MUST have an 'html' field with an iframe
+        const body = await response.json();
+        if (!body.html || !body.html.includes('iframe')) {
+            return false;
+        }
+        return true;
     } catch {
         return false;
     }

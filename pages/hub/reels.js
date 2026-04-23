@@ -100,7 +100,7 @@ export default function ReelsPage() {
     const iframeRef = useRef(null);
     const videoRef = useRef(null);
     const [isPaused, setIsPaused] = useState(true); // Start true — autoplay may fail, first tap should always send playVideo
-    const isPausedRef = useRef(false); // Sync ref for stale-closure-safe keyboard handler
+    const isPausedRef = useRef(true); // Sync ref for stale-closure-safe keyboard handler (matches initial isPaused=true)
     isPausedRef.current = isPaused; // Keep in sync on every render
     const touchStartY = useRef(0);
     const lastTapRef = useRef(0);
@@ -112,6 +112,8 @@ export default function ReelsPage() {
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [savedReels, setSavedReels] = useState(new Set());
     const [showHeart, setShowHeart] = useState(false);
+    // Age-restricted / errored YouTube video detection
+    const [ytError, setYtError] = useState(null); // { code, videoId } when current reel has a YT error
     const [slideDirection, setSlideDirection] = useState(null);
     const [page, setPage] = useState(0);
     const [hasMore, setHasMore] = useState(true);
@@ -704,6 +706,7 @@ export default function ReelsPage() {
         if (currentReel?.id) {
             setVideoProgress(0);
             setCaptionExpanded(false);
+            setYtError(null); // Clear YouTube error state on reel change
             // Deduplicated view count - only fire once per reel per session (auth only)
             if (user?.id && !viewedReelsRef.current.has(currentReel.id)) {
                 viewedReelsRef.current.add(currentReel.id);
@@ -1047,11 +1050,9 @@ export default function ReelsPage() {
         const nextIdx = (speeds.indexOf(playbackSpeed) + 1) % speeds.length;
         const newSpeed = speeds[nextIdx];
         setPlaybackSpeed(newSpeed);
-        // Send setPlaybackRate command via postMessage
+        // Send setPlaybackRate command via sendYouTubeCommand (includes listening handshake)
         if (iframeRef.current?.contentWindow) {
-            iframeRef.current.contentWindow.postMessage(JSON.stringify({
-                event: 'command', func: 'setPlaybackRate', args: [newSpeed]
-            }), '*');
+            sendYouTubeCommand('setPlaybackRate', [newSpeed]);
         } else if (videoRef.current) {
             // Native video element - set playbackRate directly
             videoRef.current.playbackRate = newSpeed;
@@ -1152,7 +1153,7 @@ export default function ReelsPage() {
         setReportSubmitted(false);
         setShareToast(false);
         setShowShareModal(false);
-        setIsPaused(false); // New reel always starts playing
+        setIsPaused(true); // New reel starts as paused — autoplay may fail, first tap should send playVideo
     }, [currentIndex]);
 
     const handleSave = async () => {
@@ -1378,6 +1379,7 @@ export default function ReelsPage() {
                     if (data.info === 0) slideToNextRef.current();
                     if (data.info === 1) { // Playing
                         setIsPaused(false);
+                        setYtError(null); // Clear any previous error on successful play
                         setShowOverlay(true);
                         clearTimeout(hudTimerRef.current);
                         hudTimerRef.current = setTimeout(() => setShowOverlay(false), 5000);
@@ -1387,6 +1389,14 @@ export default function ReelsPage() {
                         setShowOverlay(true);
                         if (hudTimerRef.current) clearTimeout(hudTimerRef.current);
                     }
+                }
+                // YouTube onError event — code 150 = age-restricted, 100 = not found, 101 = embed disabled
+                if (data?.event === 'onError') {
+                    const errorCode = data.info;
+                    console.warn('[Reels] YouTube error:', errorCode);
+                    setYtError({ code: errorCode });
+                    // Auto-advance past errored videos after 3 seconds
+                    setTimeout(() => slideToNextRef.current(), 3000);
                 }
                 if (data?.info?.currentTime !== undefined && data?.info?.duration) {
                     const pct = (data.info.currentTime / data.info.duration) * 100;
@@ -1863,6 +1873,59 @@ export default function ReelsPage() {
                         cursor: 'pointer',
                     }}
                 />
+
+                {/* Age-restricted / errored YouTube video overlay */}
+                {videoId && ytError && (
+                    <div style={{
+                        position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: 'rgba(0,0,0,0.85)', zIndex: 60,
+                        flexDirection: 'column', gap: 16, padding: 24,
+                    }}>
+                        <div style={{
+                            width: 64, height: 64, borderRadius: '50%',
+                            background: 'rgba(255,255,255,0.1)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5">
+                                <circle cx="12" cy="12" r="10" />
+                                <line x1="12" y1="8" x2="12" y2="12" />
+                                <line x1="12" y1="16" x2="12.01" y2="16" />
+                            </svg>
+                        </div>
+                        <div style={{ color: 'rgba(255,255,255,0.9)', fontSize: 16, fontWeight: 600, textAlign: 'center' }}>
+                            {ytError.code === 150 ? 'Age-Restricted Video' : 'Video Unavailable'}
+                        </div>
+                        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, textAlign: 'center', maxWidth: 280 }}>
+                            {ytError.code === 150
+                                ? 'This video is age-restricted and cannot be played here.'
+                                : 'This video cannot be embedded. It may have been removed or restricted.'}
+                        </div>
+                        <a
+                            href={`https://www.youtube.com/watch?v=${videoId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 8,
+                                padding: '10px 24px', borderRadius: 24,
+                                background: '#FF0000', color: 'white',
+                                fontWeight: 600, fontSize: 14,
+                                textDecoration: 'none', marginTop: 8,
+                                zIndex: 70,
+                            }}
+                        >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+                                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814z"/>
+                                <polygon points="9.545 15.568 15.818 12 9.545 8.432" fill="#000" />
+                            </svg>
+                            Watch On YouTube
+                        </a>
+                        <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, marginTop: 8 }}>
+                            Skipping in 3 seconds...
+                        </div>
+                    </div>
+                )}
 
                 {!videoId && !currentReel?.video_url && (
                     <div style={{

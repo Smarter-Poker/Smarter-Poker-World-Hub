@@ -48,7 +48,8 @@ async function loadClipLibrary() {
 // within a single Vercel request (up to 300 HTTP calls → at most ~20 unique IDs).
 const yt_validation_cache = new Map(); // videoId → boolean
 
-// Validate YouTube video actually exists before posting
+// Validate YouTube video actually exists AND is embeddable before posting
+// Returns false for: removed, age-restricted, embedding-disabled, private videos
 async function validateYouTubeVideo(url) {
     if (!url) return false;
     const patterns = [
@@ -67,9 +68,19 @@ async function validateYouTubeVideo(url) {
     if (yt_validation_cache.has(videoId)) return yt_validation_cache.get(videoId);
     try {
         const response = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
-        const result = response.ok;
-        yt_validation_cache.set(videoId, result);
-        return result;
+        if (!response.ok) {
+            // 401 = age-restricted, 403 = embedding disabled, 404 = not found
+            yt_validation_cache.set(videoId, false);
+            return false;
+        }
+        // Parse the response body - embeddable videos MUST have an 'html' field with an iframe
+        const body = await response.json();
+        if (!body.html || !body.html.includes('iframe')) {
+            yt_validation_cache.set(videoId, false);
+            return false;
+        }
+        yt_validation_cache.set(videoId, true);
+        return true;
     } catch {
         yt_validation_cache.set(videoId, false);
         return false;
