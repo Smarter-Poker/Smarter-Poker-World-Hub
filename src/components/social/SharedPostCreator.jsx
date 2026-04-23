@@ -414,8 +414,10 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                     return; // abort post on upload failure
                 }
             }
-            setUploadProgress(null);
-            setUploading(false);
+            if (mountedRef.current) {
+                setUploadProgress(null);
+                setUploading(false);
+            }
         }
 
         // ── STEP 2: Create the post with uploaded URLs ───────────────────────
