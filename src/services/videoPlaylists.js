@@ -19,7 +19,7 @@ export async function createPlaylist(userId, name) {
         .from('video_playlists')
         .insert([{ user_id: userId, name }])
         .select()
-        .single();
+        .maybeSingle();
     
     if (error) throw error;
     return data;

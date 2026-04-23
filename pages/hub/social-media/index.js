@@ -372,7 +372,7 @@ const PostCard = React.memo(function PostCard({ post, currentUserId, currentUser
                                         text: payload.content || '',
                                         authorId: payload.authorId,
                                         parentId: payload.parentId || null,
-                                        authorName: author?.full_name || author?.username || 'Player',
+                                        authorName: author?.username || author?.full_name || 'Player',
                                         authorAvatar: author?.avatar_url || null,
                                         authorUsername: author?.username || null,
                                         time: 'Just now',
@@ -556,7 +556,7 @@ const PostCard = React.memo(function PostCard({ post, currentUserId, currentUser
                     text: c.content,
                     authorId: c.author_id,
                     parentId: c.parent_id || null,
-                    authorName: author.full_name || author.username || 'Player',
+                    authorName: author.username || author.full_name || 'Player',
                     authorAvatar: author.avatar_url || null,
                     authorUsername: author.username || null,
                     time: timeAgo(c.created_at),
@@ -2729,7 +2729,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#92400e" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
                                     </div>
                                     <div>
-                                        <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{f.profile?.full_name || f.profile?.username || 'Unknown'}</div>
+                                        <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{f.profile?.username || f.profile?.full_name || 'Unknown'}</div>
                                         <div style={{ fontSize: 11, color: C.textSec }}>{f.profile?.username ? `@${f.profile.username}` : `Requested ${new Date(f.created_at).toLocaleDateString()}`}</div>
                                     </div>
                                 </div>
@@ -3152,8 +3152,12 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
         setFollowStatus('pending');
 
         try {
+            const token = getAccessToken();
             const res = await fetch('/api/social/pages/follow', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
                 body: JSON.stringify({ page_id: pageId, user_id: userId, action: 'follow' }),
             });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -3988,7 +3992,7 @@ function SocialMediaPage() {
                 // Return minimal user object to prevent login prompt flash
                 return {
                     id: authUser.id,
-                    name: authUser.user_metadata?.full_name || authUser.user_metadata?.poker_alias || authUser.email?.split('@')[0] || 'Player',
+                    name: authUser.user_metadata?.poker_alias || authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Player',
                     username: authUser.user_metadata?.poker_alias || null,
                     avatar: authUser.user_metadata?.avatar_url || null,
                     tier: null,
@@ -4346,7 +4350,7 @@ function SocialMediaPage() {
                     return [{
                         ...n,
                         actor_avatar_url: actorProfile?.avatar_url || n.metadata?.actor_avatar || null,
-                        actor_name: actorProfile?.full_name || displayName,
+                        actor_name: actorProfile?.username || actorProfile?.full_name || displayName,
                         actor_username: actorProfile?.username || null
                     }, ...prev];
                 });
@@ -4429,7 +4433,7 @@ function SocialMediaPage() {
                         if (p) {
                             setUser(prev => ({
                                 ...prev,
-                                name: p.display_name || p.full_name || p.username || prev?.name,
+                                name: p.display_name || p.username || p.full_name || prev?.name,
                                 username: p.username || prev?.username,
                                 avatar: p.avatar_url || null,
                             }));
@@ -4509,7 +4513,7 @@ function SocialMediaPage() {
                     if (p?.role === 'god') {
                         setIsGodMode(true);
                     }
-                    const displayName = p?.display_name || p?.full_name || p?.username || authUser.email?.split('@')[0] || 'Player';
+                    const displayName = p?.display_name || p?.username || p?.full_name || authUser.email?.split('@')[0] || 'Player';
                     setUser({
                         id: p?.id || authUser.id,
                         name: displayName,
@@ -4577,7 +4581,7 @@ function SocialMediaPage() {
                                         return {
                                             ...n,
                                             actor_avatar_url: profile?.avatar_url || n.metadata?.actor_avatar || null,
-                                            actor_name: profile?.full_name || dispName,
+                                            actor_name: profile?.username || profile?.full_name || dispName,
                                             actor_username: profile?.username || null
                                         };
                                     });
@@ -4691,9 +4695,13 @@ function SocialMediaPage() {
                     const json = await res.json();
                     if (json.success && json.data) {
                         const refPage = json.data;
+                        const token = getAccessToken();
                         // Auto-follow the page
                         await fetch('/api/social/pages/follow', {
-                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            method: 'POST', headers: { 
+                                'Content-Type': 'application/json',
+                                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                            },
                             body: JSON.stringify({ page_id: refPage.id, user_id: user.id, action: 'follow' }),
                         });
                         // Show the club pages view and navigate to the referred page's live games
@@ -4738,7 +4746,7 @@ function SocialMediaPage() {
                     return {
                         ...n,
                         actor_avatar_url: profile?.avatar_url || n.metadata?.actor_avatar || null,
-                        actor_name: profile?.full_name || displayName,
+                        actor_name: profile?.username || profile?.full_name || displayName,
                         actor_username: profile?.username || null
                     };
                 });
