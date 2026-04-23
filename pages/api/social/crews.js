@@ -21,6 +21,29 @@ function getSupabase() {
 export default async function handler(req, res) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
 
+    // ── GET: List user's crews ──
+    if (req.method === 'GET') {
+        try {
+            const token = req.headers.authorization?.replace('Bearer ', '');
+            if (!token) return res.status(401).json({ error: 'Authentication required' });
+            const supabase = getSupabase();
+            const { data: authData, error: authErr } = await supabase.auth.getUser(token);
+            if (authErr || !authData?.user) return res.status(401).json({ error: 'Invalid token' });
+            const userId = authData.user.id;
+            // Fetch crews this user belongs to
+            const { data: memberships, error: memErr } = await supabase
+                .from('crew_members')
+                .select('role, crew:crews(id, name, description, avatar_url, crew_code, owner_id, created_at)')
+                .eq('user_id', userId);
+            if (memErr) return res.status(500).json({ error: 'Failed to load crews', details: memErr.message });
+            const crews = (memberships || []).map(m => ({ ...m.crew, role: m.role }));
+            return res.status(200).json({ success: true, crews });
+        } catch (err) {
+            console.warn('[Crews API GET error]', err.message);
+            return res.status(500).json({ error: 'Internal server error' });
+        }
+    }
+
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }

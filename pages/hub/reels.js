@@ -588,44 +588,55 @@ export default function ReelsPage() {
         setLoadingMore(true);
         try {
             const nextPage = page + 1;
-            const offset = nextPage * 50;
+            // BUG FIX (Bug 19): initial load fetches 60 per source, so offset must use 60-row pages
+            // to avoid overlap. Old code used 50-row pages causing 10-row overlap on page 2.
+            // Also: missing source_type split — library reels could re-monopolize load-more batches.
+            const offset = nextPage * 60;
             const allNewVideos = [];
 
-            // Fetch more social_reels
-            const { data: reelsData } = await supabase
-                .from('social_reels')
-                .select('id, author_id, caption, video_url, view_count, like_count, comment_count, created_at, is_public')
-                .eq('is_public', true)
-                .order('created_at', { ascending: false })
-                .range(offset, offset + 49);
-            if (reelsData && reelsData.length > 0) {
-                allNewVideos.push(...reelsData.map(reel => ({
-                    id: reel.id, author_id: reel.author_id, video_url: reel.video_url,
-                    caption: reel.caption, like_count: reel.like_count || 0,
-                    comment_count: reel.comment_count || 0, view_count: reel.view_count || 0,
-                    created_at: reel.created_at, source: 'reels',
-                })));
-            }
+            const REEL_SELECT = 'id, author_id, caption, video_url, thumbnail_url, view_count, like_count, comment_count, created_at, is_public, source_type';
 
-            // Fetch more social_posts with YouTube links
-            const { data: postsData } = await supabase
-                .from('social_posts')
-                .select('id, author_id, content, content_type, media_urls, like_count, comment_count, created_at, visibility')
-                .eq('visibility', 'public')
-                .not('media_urls', 'is', null)
-                .order('created_at', { ascending: false })
-                .range(offset, offset + 49);
-            const videos = (postsData || []).filter(p => {
+            // Fetch each source separately — same 3-source pattern as loadReels()
+            const [userResult, libraryResult, postsResult] = await Promise.all([
+                supabase.from('social_reels')
+                    .select(REEL_SELECT)
+                    .eq('is_public', true)
+                    .eq('source_type', 'user')
+                    .order('created_at', { ascending: false })
+                    .range(offset, offset + 29),
+                supabase.from('social_reels')
+                    .select(REEL_SELECT)
+                    .eq('is_public', true)
+                    .eq('source_type', 'video_library')
+                    .order('created_at', { ascending: false })
+                    .range(offset, offset + 29),
+                supabase.from('social_posts')
+                    .select('id, author_id, content, content_type, media_urls, like_count, comment_count, created_at, visibility')
+                    .eq('visibility', 'public')
+                    .not('media_urls', 'is', null)
+                    .order('created_at', { ascending: false })
+                    .range(offset, offset + 19),
+            ]);
+
+            // Interleave 2:2:1 — user reels : library reels : posts
+            const userReels = (userResult.data || []).map(r => ({ ...r, source: 'reels' }));
+            const libReels = (libraryResult.data || []).map(r => ({ ...r, source: 'reels' }));
+            const posts = ((postsResult.data || []).filter(p => {
                 const url = p.media_urls?.[0];
                 return p.content_type === 'video' || (url && (url.includes('youtube.com') || url.includes('youtu.be') || url.match(/\.(mp4|webm|mov)(\?|$)/i)));
-            });
-            if (videos.length > 0) {
-                allNewVideos.push(...videos.map(v => ({
-                    id: v.id, author_id: v.author_id, video_url: v.media_urls[0],
-                    caption: v.content, like_count: v.like_count || 0,
-                    comment_count: v.comment_count || 0, view_count: 0,
-                    created_at: v.created_at, source: 'posts',
-                })));
+            })).map(v => ({
+                id: v.id, author_id: v.author_id, video_url: v.media_urls?.[0],
+                caption: v.content, like_count: v.like_count || 0,
+                comment_count: v.comment_count || 0, view_count: 0,
+                created_at: v.created_at, is_public: true, source_type: 'user', source: 'posts',
+            }));
+
+            // Interleave in 2:2:1 ratio
+            const maxLen = Math.max(userReels.length, libReels.length, posts.length);
+            for (let i = 0; i < maxLen; i++) {
+                if (userReels[i]) allNewVideos.push(userReels[i]);
+                if (libReels[i]) allNewVideos.push(libReels[i]);
+                if (i % 2 === 0 && posts[Math.floor(i / 2)]) allNewVideos.push(posts[Math.floor(i / 2)]);
             }
 
             if (allNewVideos.length === 0) {

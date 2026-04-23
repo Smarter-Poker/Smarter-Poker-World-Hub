@@ -699,13 +699,39 @@ export function ReelsViewer({ onClose }) {
                     .limit(50);
                 setReelComments(data || []);
                 setHasMoreComments((data || []).length >= 50);
-                // #6 Load comment like counts
+                // #6 Load comment like counts (totals) AND current user's own hearts
                 try {
-                    const { data: clData } = await supabase.from('social_interactions')
-                        .select('metadata').eq('post_id', currentReel.id).eq('interaction_type', 'comment_like');
+                    const userId = currentUserId || getAuthUser()?.id;
+                    const [clAllResult, clMyResult] = await Promise.all([
+                        // Total likes per comment (all users)
+                        supabase.from('social_interactions')
+                            .select('metadata')
+                            .eq('post_id', currentReel.id)
+                            .eq('interaction_type', 'comment_like'),
+                        // BUG FIX (Bug 20): hydrate own comment hearts so they show filled on open
+                        userId
+                            ? supabase.from('social_interactions')
+                                .select('metadata')
+                                .eq('post_id', currentReel.id)
+                                .eq('user_id', userId)
+                                .eq('interaction_type', 'comment_like')
+                            : Promise.resolve({ data: [] }),
+                    ]);
                     const clCounts = {};
-                    (clData || []).forEach(row => { const cid = row.metadata?.comment_id; if (cid) clCounts[cid] = (clCounts[cid] || 0) + 1; });
+                    (clAllResult.data || []).forEach(row => {
+                        const cid = row.metadata?.comment_id;
+                        if (cid) clCounts[cid] = (clCounts[cid] || 0) + 1;
+                    });
                     setCommentLikeCounts(clCounts);
+                    // Hydrate own likes so hearts appear filled
+                    const myLikes = {};
+                    (clMyResult.data || []).forEach(row => {
+                        const cid = row.metadata?.comment_id;
+                        if (cid) myLikes[cid] = true;
+                    });
+                    if (Object.keys(myLikes).length > 0) {
+                        setCommentLikes(prev => ({ ...prev, ...myLikes }));
+                    }
                 } catch (e) { console.warn('Handled exception:', e); }
             } catch { setReelComments([]); }
             setTimeout(() => commentInputRef.current?.focus(), 100);
