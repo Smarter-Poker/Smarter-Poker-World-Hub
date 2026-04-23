@@ -518,27 +518,27 @@ export function getHorseDailyPostLimit(profileId) {
 // ═══════════════════════════════════════════════════════════════════════════
 const CONTENT_REACTIONS = {
     tournament_win: {
-        templates: ['LFG', 'SHIPPED', 'massive', 'gg wp', 'congrats!', 'king', 'huge W'],
+        templates: ['lets go', 'massive ship', 'gg well played', 'congrats on the run', 'king behavior', 'huge win', 'shipped it'],
         energy: 'hype',
         emojiBoost: 0
     },
     bad_beat: {
-        templates: ['pain', 'brutal', 'rip', 'oof', 'rough', 'tough one', 'variance'],
+        templates: ['that is brutal', 'runner runner pain', 'variance is cruel', 'rough spot', 'tough one to stomach', 'felt that', 'the deck lied'],
         energy: 'sympathy',
         emojiBoost: 0
     },
     strategy: {
-        templates: ['noted', 'valid', 'interesting', 'true', 'facts', 'solid', 'this'],
+        templates: ['noted that', 'valid point', 'interesting line', 'makes sense', 'facts tbh', 'solid play', 'worth studying'],
         energy: 'analytical',
         emojiBoost: 0
     },
     lifestyle: {
-        templates: ['mood', 'real', 'lol', 'same', 'fr', 'haha', 'relatable'],
+        templates: ['that is the mood', 'relatable honestly', 'lowkey same', 'haha real', 'this is me', 'no cap', 'every time'],
         energy: 'casual',
         emojiBoost: 0
     },
     news: {
-        templates: ['whoa', 'wild', 'hm', 'interesting', 'wow', 'breaking'],
+        templates: ['whoa hold on', 'wild to see', 'that is interesting', 'watching this', 'did not see that', 'breaking stuff', 'noted this'],
         energy: 'neutral',
         emojiBoost: 0
     }

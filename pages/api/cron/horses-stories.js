@@ -32,12 +32,18 @@ async function loadClipLibrary() {
     }
 }
 
+
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+// WARN-S02 FIX: declare getSupabase BEFORE the functions that reference it
+const getSupabase = getSupabaseAdmin;
+
 const CONFIG = {
-    HORSES_PER_TRIGGER: 2,  // 2 stories per trigger (runs 4x/hour = 8 stories/hour)
+    HORSES_PER_TRIGGER: 2,  // 2 stories per trigger
     VIDEO_STORY_PROBABILITY: 0.70,  // 70% video stories
 };
+
 
 // Story gradients (same as frontend)
 const STORY_GRADIENTS = [
@@ -102,26 +108,24 @@ async function postVideoStory(horse) {
 
         for (let attempt = 1; attempt <= maxAttempts; attempt++) {
             const clip = getRandomClip?.();
-            if (!clip) {
-                continue;
-            }
+            if (!clip) continue;
 
             // Validate the YouTube thumbnail before creating the story
             const isValid = await validateYouTubeThumbnail(clip.video_id);
-            if (isValid) {
-                validClip = clip;
-                break;
-            } else {
-            }
+            if (isValid) { validClip = clip; break; }
         }
 
         if (!validClip) {
             return null;
         }
 
-        const caption = getRandomCaption?.(validClip.category) || "🔥";
+        // BUG-S01 FIX: removed '🔥' emoji fallback — use a poker-themed text fallback instead
+        const rawCaption = getRandomCaption?.(validClip.category);
+        const caption = (rawCaption && rawCaption.trim().length >= 5)
+            ? rawCaption.trim()
+            : TEXT_STORY_TOPICS[Math.floor(Math.random() * TEXT_STORY_TOPICS.length)];
 
-        // Use YouTube thumbnail as story image
+        // Use YouTube thumbnail as story image (media_type stays 'image' — it IS a static JPEG)
         const thumbnailUrl = `https://img.youtube.com/vi/${validClip.video_id}/hqdefault.jpg`;
 
         const { data: storyId, error } = await getSupabase().rpc('fn_create_story', {
@@ -130,7 +134,7 @@ async function postVideoStory(horse) {
             p_media_url: thumbnailUrl,
             p_media_type: 'image',
             p_background_color: null,
-            p_link_url: validClip.source_url,  // Link to the actual video
+            p_link_url: validClip.source_url,  // Links to the actual YouTube video
         });
 
         if (error) {
@@ -176,8 +180,7 @@ async function postTextStory(horse) {
     }
 }
 
-
-const getSupabase = getSupabaseAdmin;
+// Moved above — getSupabase is declared at line ~40 before function definitions
 
 export default async function handler(req, res) {
   try {

@@ -162,7 +162,7 @@ export default async function handler(req, res) {
               token: data.token,
               path: storagePath,
               publicUrl,
-              type: isVideo ? 'video' : 'photo',
+              type: isVideo ? 'video' : isAudio ? 'audio' : 'photo',
           });
 
       } catch (err) {

@@ -843,13 +843,38 @@ export default function ReelsPage() {
                 if ((data || []).length < 50) {
                     setCommentCounts(prev => ({ ...prev, [currentReel.id]: (data || []).length }));
                 }
-                // #6 Load comment like counts
+                // #6 Load comment like counts (totals) AND current user's own likes
                 try {
-                    const { data: clData } = await supabase.from('social_interactions')
-                        .select('metadata').eq('post_id', currentReel.id).eq('interaction_type', 'comment_like');
+                    const [clAllResult, clMyResult] = await Promise.all([
+                        // Total likes per comment (all users)
+                        supabase.from('social_interactions')
+                            .select('metadata')
+                            .eq('post_id', currentReel.id)
+                            .eq('interaction_type', 'comment_like'),
+                        // BUG-R07 FIX: current user's own comment likes (for heart fill state)
+                        user?.id
+                            ? supabase.from('social_interactions')
+                                .select('metadata')
+                                .eq('post_id', currentReel.id)
+                                .eq('user_id', user.id)
+                                .eq('interaction_type', 'comment_like')
+                            : Promise.resolve({ data: [] })
+                    ]);
                     const clCounts = {};
-                    (clData || []).forEach(row => { const cid = row.metadata?.comment_id; if (cid) clCounts[cid] = (clCounts[cid] || 0) + 1; });
+                    (clAllResult.data || []).forEach(row => {
+                        const cid = row.metadata?.comment_id;
+                        if (cid) clCounts[cid] = (clCounts[cid] || 0) + 1;
+                    });
                     setCommentLikeCounts(clCounts);
+                    // Hydrate user's own likes so hearts show as filled
+                    const myLikes = {};
+                    (clMyResult.data || []).forEach(row => {
+                        const cid = row.metadata?.comment_id;
+                        if (cid) myLikes[cid] = true;
+                    });
+                    if (Object.keys(myLikes).length > 0) {
+                        setCommentLikes(prev => ({ ...prev, ...myLikes }));
+                    }
                 } catch (e) { console.warn('[App] Handled exception:', e); }
             } catch (e) { console.warn('Load comments:', e); }
         }
