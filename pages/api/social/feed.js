@@ -52,11 +52,13 @@ export default async function handler(req, res) {
         const postsParams = new URLSearchParams({
             select: 'id,content,content_type,media_urls,like_count,comment_count,share_count,created_at,author_id,link_url,link_title,link_description,link_image,link_site_name,metadata',
             or: '(visibility.eq.public,visibility.is.null)',
-            'is_deleted': 'eq.false',
             order: 'created_at.desc',
             offset: String(offset),
             limit: String(limit),
         });
+        // BUG-11 FIX: is_deleted filter must be a separate param with Supabase REST dot-filter syntax
+        // Was: { 'is_deleted': 'eq.false' } — this sent key name literally as 'is_deleted' with no operator binding
+        postsParams.append('is_deleted', 'eq.false');
 
         const posts = await supaFetch(`/social_posts?${postsParams}`);
 
@@ -138,11 +140,14 @@ export default async function handler(req, res) {
         // Per-user data (isLiked, isBookmarked) → private cache only
         // Anon users → public CDN cacheable
         if (userId) {
+            // BUG-12 FIX: add Vary: Authorization so CDN correctly separates per-user responses
+            // Without this, a cached anon response could be returned to a logged-in user
             res.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=30');
+            res.setHeader('Vary', 'Accept-Encoding, Authorization');
         } else {
             res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=60');
+            res.setHeader('Vary', 'Accept-Encoding');
         }
-        res.setHeader('Vary', 'Accept-Encoding');
 
         return res.status(200).json({
             posts: enrichedPosts,
