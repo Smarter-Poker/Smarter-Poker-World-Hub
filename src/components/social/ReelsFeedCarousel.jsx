@@ -490,14 +490,17 @@ function ReelViewer({ reels, startIndex, onClose }) {
         if (currentIndex > 0) setCurrentIndex(prev => prev - 1);
     };
 
-    // Auto-hide overlay after 2 seconds
+    // Auto-hide overlay after 2.5 seconds — but NOT when video is paused
+    // BUG FIX: Previously this useEffect unconditionally restarted the auto-hide timer
+    // whenever showOverlay became true, overriding the timer cancellation in handleTap
+    // when pausing. Now it respects paused state to keep the HUD anchored.
     useEffect(() => {
-        if (showOverlay) {
+        if (showOverlay && !paused) {
             if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
             overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
         }
         return () => { if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current); };
-    }, [showOverlay]);
+    }, [showOverlay, paused]);
 
     // Swipe gesture support
     useEffect(() => {
@@ -1059,6 +1062,28 @@ function ReelViewer({ reels, startIndex, onClose }) {
             if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { setSlideDir('up'); goNext(); }
             if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { setSlideDir('down'); goPrev(); }
             if (e.key === 'Escape') { if (showComments) setShowComments(false); else onClose(); }
+            // BUG FIX: Space bar is the universal play/pause shortcut — was missing
+            // Uses DOM refs only to avoid stale closures
+            if (e.key === ' ') {
+                e.preventDefault();
+                if (videoRef.current) {
+                    if (videoRef.current.paused) {
+                        videoRef.current.play().catch(() => {});
+                    } else {
+                        videoRef.current.pause();
+                    }
+                } else {
+                    // YouTube — use setPaused callback to read fresh state
+                    const iframe = containerRef.current?.querySelector('iframe');
+                    if (iframe?.contentWindow) {
+                        setPaused(prev => {
+                            const cmd = prev ? 'playVideo' : 'pauseVideo';
+                            iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: cmd, args: [] }), '*');
+                            return !prev;
+                        });
+                    }
+                }
+            }
             if (e.key === 'm' || e.key === 'M') {
                 setMuted(prev => {
                     const next = !prev;
@@ -1233,8 +1258,14 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         muted={muted}
                         playsInline
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        onPlay={() => { progressRAF.current = requestAnimationFrame(updateProgress); }}
-                        onPause={() => { if (progressRAF.current) cancelAnimationFrame(progressRAF.current); }}
+                        onPlay={() => {
+                            setPaused(false);
+                            progressRAF.current = requestAnimationFrame(updateProgress);
+                        }}
+                        onPause={() => {
+                            setPaused(true);
+                            if (progressRAF.current) cancelAnimationFrame(progressRAF.current);
+                        }}
                         onEnded={() => {
                             if (progressRAF.current) cancelAnimationFrame(progressRAF.current);
                             setProgress(0);

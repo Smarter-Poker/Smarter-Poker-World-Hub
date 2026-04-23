@@ -100,6 +100,8 @@ export default function ReelsPage() {
     const iframeRef = useRef(null);
     const videoRef = useRef(null);
     const [isPaused, setIsPaused] = useState(false);
+    const isPausedRef = useRef(false); // Sync ref for stale-closure-safe keyboard handler
+    isPausedRef.current = isPaused; // Keep in sync on every render
     const touchStartY = useRef(0);
     const lastTapRef = useRef(0);
     const likeDebounceRef = useRef(false);
@@ -1222,6 +1224,30 @@ export default function ReelsPage() {
             if (e.key === 'ArrowDown' || e.key === 'ArrowRight') slideToNextRef.current();
             if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') slideToPrevRef.current();
             if (e.key === 'Escape') router.push('/hub/social-media');
+            // BUG FIX: Space bar is the universal play/pause shortcut — was missing
+            // NOTE: Uses DOM state (videoRef.current.paused) and iframeRef for YouTube
+            // to avoid stale closures since this effect only re-runs on [router]
+            if (e.key === ' ') {
+                e.preventDefault();
+                if (videoRef.current) {
+                    // Native video — read paused from DOM (always fresh)
+                    if (videoRef.current.paused) {
+                        videoRef.current.play().catch(() => {});
+                    } else {
+                        videoRef.current.pause();
+                    }
+                } else if (iframeRef.current?.contentWindow) {
+                    // YouTube — read isPaused via ref to avoid stale closure
+                    const currentlyPaused = isPausedRef.current;
+                    if (currentlyPaused) {
+                        sendYouTubeCommand('playVideo');
+                        setIsPaused(false);
+                    } else {
+                        sendYouTubeCommand('pauseVideo');
+                        setIsPaused(true);
+                    }
+                }
+            }
             if (e.key === 'm' || e.key === 'M') {
                 setMuted(prev => {
                     const next = !prev;

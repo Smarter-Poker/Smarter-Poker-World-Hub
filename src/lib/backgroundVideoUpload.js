@@ -220,8 +220,14 @@ const bgUpload = {
      * @returns {Promise<{ publicUrl: string, wasBackground: boolean }>}
      */
     async start({ file, userId, folder = 'videos', bgAfterMs = 10_000, onDismiss, onRouter }) {
-        // Abort any previous upload
+        // Save the prefetch cache BEFORE abort() wipes it
+        const savedPrefetch = _prefetchCache;
+
+        // Abort any previous upload (this resets _prefetchCache to null)
         bgUpload.abort();
+
+        // Restore the saved prefetch cache so the cache check below can use it
+        _prefetchCache = savedPrefetch;
 
         _state = 'uploading';
         _progress = 0;

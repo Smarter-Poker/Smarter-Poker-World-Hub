@@ -156,12 +156,12 @@ export function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLi
     const progressRAF = useRef(null);
 
     useEffect(() => {
-        if (showOverlay) {
+        if (showOverlay && isPlaying) {
             if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
             overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2000);
         }
         return () => { if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current); };
-    }, [showOverlay]);
+    }, [showOverlay, isPlaying]);
 
     useEffect(() => {
         document.body.style.overflow = 'hidden';
@@ -203,31 +203,38 @@ export function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLi
             return;
         }
         lastTapRef.current = now;
-        setTimeout(() => {
-            if (lastTapRef.current !== now) return;
-            if (!showOverlay) {
-                setShowOverlay(true);
+
+        // Single tap = reveal overlay + toggle play/pause simultaneously
+        // BUG FIX: Previously first tap only showed overlay (no play/pause toggle),
+        // requiring a second tap to actually play/pause the video.
+        setShowOverlay(true);
+        if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+        overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2000);
+
+        const isYT = isYouTubeUrl(videoUrl);
+        if (!isYT && videoRef.current) {
+            if (videoRef.current.paused) {
+                videoRef.current.play();
+                setIsPlaying(true);
             } else {
-                const isYT = isYouTubeUrl(videoUrl);
-                if (!isYT && videoRef.current) {
-                    if (videoRef.current.paused) { videoRef.current.play(); setIsPlaying(true); }
-                    else { videoRef.current.pause(); setIsPlaying(false); }
-                } else if (isYT) {
-                    const iframe = containerRef.current?.querySelector('iframe');
-                    if (iframe?.contentWindow) {
-                        if (!isPlaying) {
-                            iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
-                            setIsPlaying(true);
-                        } else {
-                            iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }), '*');
-                            setIsPlaying(false);
-                        }
-                    }
-                }
+                videoRef.current.pause();
+                setIsPlaying(false);
+                // Paused = anchor overlay (don't auto-hide)
                 if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
-                overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2000);
             }
-        }, DOUBLE_TAP_WINDOW);
+        } else if (isYT) {
+            const iframe = containerRef.current?.querySelector('iframe');
+            if (iframe?.contentWindow) {
+                if (!isPlaying) {
+                    iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
+                    setIsPlaying(true);
+                } else {
+                    iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }), '*');
+                    setIsPlaying(false);
+                    if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+                }
+            }
+        }
     };
 
     const updateProgress = () => {

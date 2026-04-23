@@ -10,6 +10,7 @@ import TrendingVenues from './TrendingVenues';
 import { SharedAvatar as Avatar } from './SharedAvatar';
 import { MAX_MEDIA, compressImage, getYouTubeVideoId, validateYouTubeVideo, sniffMimeType, SOCIAL_COLORS as C } from '../../../src/lib/socialHelpers';
 import bgUpload from '../../../src/lib/backgroundVideoUpload';
+import ghostPost from '../../../src/stores/ghostPostStore';
 
 
 export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages, authorOverride, context = 'social-media' }) {
@@ -160,6 +161,16 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
             const folder = isVideo ? 'videos' : 'photos';
             try {
                 if (isVideo) {
+                    // 👻 Create ghost post for optimistic feed UI
+                    let videoPreviewUrl = null;
+                    try { videoPreviewUrl = URL.createObjectURL(file); } catch (_) {}
+                    ghostPost.create({
+                        content: content.trim(),
+                        user: user ? { id: user.id, name: user.name, avatar: user.avatar } : {},
+                        videoPreviewUrl,
+                        contentType: 'video',
+                    });
+
                     // ── Background-capable video upload ───────────────────────────────
                     // Upload starts immediately. If >10s, the bgUpload manager
                     // dismisses any modal and shows a background toast — the user
@@ -167,7 +178,10 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                     let bgUnsub = null;
                     const videoUrl = await new Promise((resolve, reject) => {
                         bgUnsub = bgUpload.subscribe({
-                            onProgress: ({ pct, label }) => setUploadProgress({ pct, label }),
+                            onProgress: ({ pct, label }) => {
+                                setUploadProgress({ pct, label });
+                                ghostPost.updateProgress(pct, label);
+                            },
                             onComplete: ({ publicUrl }) => resolve(publicUrl),
                             onError: ({ error }) => reject(error),
                             // SharedPostCreator is inline (no modal) — nothing to dismiss;
@@ -177,6 +191,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                     });
                     if (bgUnsub) bgUnsub();
                     setUploadProgress({ pct: 100, label: 'Upload complete!' });
+                    ghostPost.remove(); // Ghost will be replaced by real post via onPost callback
                     uploaded.push({ type: 'video', url: videoUrl });
                     setUploadProgress(null);
 
@@ -212,6 +227,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                 }
             } catch (err) {
                 console.warn('[SharedPostCreator] Upload error:', err);
+                ghostPost.remove(); // Clean up ghost post on upload failure
                 setError('Upload failed: ' + err.message);
                 setUploadProgress(null);
             }

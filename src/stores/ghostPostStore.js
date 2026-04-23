@@ -52,6 +52,10 @@ const ghostPost = {
      * @param {string} [opts.contentType]  - 'video' or 'image'
      */
     create({ content, user, videoPreviewUrl, contentType = 'video' }) {
+        // Clean up any existing ghost post's blob URL to prevent memory leak
+        if (_ghost?.videoPreviewUrl) {
+            try { URL.revokeObjectURL(_ghost.videoPreviewUrl); } catch (_) {}
+        }
         _ghost = {
             id: `ghost_${Date.now()}`,
             isGhost: true,

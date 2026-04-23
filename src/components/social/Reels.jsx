@@ -444,14 +444,17 @@ export function ReelsViewer({ onClose }) {
         }
     };
 
-    // Auto-hide overlay after 2 seconds
+    // Auto-hide overlay after 2.5 seconds — but NOT when video is paused
+    // BUG FIX: Previously this useEffect unconditionally restarted the auto-hide timer
+    // whenever showOverlay became true, overriding the timer cancellation in handleTap
+    // when pausing. Now it respects paused state to keep the HUD anchored.
     useEffect(() => {
-        if (showOverlay) {
+        if (showOverlay && !paused) {
             if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
             overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
         }
         return () => { if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current); };
-    }, [showOverlay]);
+    }, [showOverlay, paused]);
 
     const loadReels = useCallback(async () => {
         setLoading(true);
@@ -1088,6 +1091,29 @@ export function ReelsViewer({ onClose }) {
             if (e.key === 'ArrowDown' || e.key === 'ArrowRight') goNext();
             if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') goPrev();
             if (e.key === 'Escape') onClose();
+            // BUG FIX: Space bar is the universal play/pause shortcut — was missing
+            // Uses DOM refs only to avoid stale closures (effect deps = [onClose])
+            if (e.key === ' ') {
+                e.preventDefault(); // Prevent page scroll
+                if (videoRef.current) {
+                    // Native video — read paused from DOM (always fresh)
+                    if (videoRef.current.paused) {
+                        videoRef.current.play().catch(() => {});
+                    } else {
+                        videoRef.current.pause();
+                    }
+                } else {
+                    // YouTube — use setPaused callback to read fresh state
+                    const iframe = containerRef.current?.querySelector('iframe');
+                    if (iframe?.contentWindow) {
+                        setPaused(prev => {
+                            const cmd = prev ? 'playVideo' : 'pauseVideo';
+                            iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: cmd, args: [] }), '*');
+                            return !prev;
+                        });
+                    }
+                }
+            }
             if (e.key === 'm' || e.key === 'M') {
                 setMuted(prev => {
                     const next = !prev;
@@ -1371,8 +1397,14 @@ export function ReelsViewer({ onClose }) {
                             muted={muted}
                             playsInline
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                            onPlay={() => { progressRAF.current = requestAnimationFrame(updateProgressRef.current); }}
-                            onPause={() => { if (progressRAF.current) cancelAnimationFrame(progressRAF.current); }}
+                            onPlay={() => {
+                                setPaused(false);
+                                progressRAF.current = requestAnimationFrame(updateProgressRef.current);
+                            }}
+                            onPause={() => {
+                                setPaused(true);
+                                if (progressRAF.current) cancelAnimationFrame(progressRAF.current);
+                            }}
                             onEnded={() => {
                                 if (progressRAF.current) cancelAnimationFrame(progressRAF.current);
                                 setProgress(0);
