@@ -317,7 +317,7 @@ const nextConfig = {
       // Workers: self + blob (service worker, workbox)
       "worker-src 'self' blob:",
       // Frames: self (needed for our own iframe modals)
-      "frame-src 'self'",
+      "frame-src 'self' https://www.youtube-nocookie.com https://www.youtube.com",
       // [Phase 6.1.14] frame-ancestors 'self' — CSP equivalent of X-Frame-Options: SAMEORIGIN.
       // Blocks external origins from embedding smarter.poker in an
       // iframe, while allowing our own site to use iframes for internal modals.

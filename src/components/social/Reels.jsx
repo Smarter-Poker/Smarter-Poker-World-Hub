@@ -1162,7 +1162,7 @@ export function ReelsViewer({ onClose }) {
                     if (ytId) {
                         // YouTube embed — autoplay, muted, loop
                         // BUG FIX: key includes muted state so src re-generates when user toggles mute
-                        const embedSrc = `https://www.youtube.com/embed/${ytId}?autoplay=1&mute=${muted ? 1 : 0}&loop=1&playlist=${ytId}&rel=0&modestbranding=1&playsinline=1&enablejsapi=0`;
+                        const embedSrc = `https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1&mute=${muted ? 1 : 0}&loop=1&playlist=${ytId}&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}`;
                         return (
                             <iframe
                                 key={`yt-${currentReel?.id}-muted-${muted}`}
