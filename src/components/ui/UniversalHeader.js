@@ -285,7 +285,7 @@ export default function UniversalHeader({
                                 setUser(prev => ({
                                     ...prev,
                                     avatar: avatar_url,
-                                    name: full_name || username
+                                    name: username || full_name
                                 }));
                                 setIsVip(!!is_vip);
                                 if (typeof result.notificationCount === 'number') {
@@ -295,7 +295,7 @@ export default function UniversalHeader({
                                 try {
                                     localStorage.setItem('sp-cached-header-user', JSON.stringify({
                                         avatar: avatar_url,
-                                        name: full_name || username,
+                                        name: username || full_name,
                                         username: username || null,
                                         diamonds: diamonds ?? 0,
                                         is_vip: !!is_vip,
@@ -360,13 +360,13 @@ export default function UniversalHeader({
                                 setUser(prev => ({
                                     ...prev,
                                     avatar: profile.avatar_url,
-                                    name: profile.full_name || profile.username
+                                    name: profile.username || profile.full_name
                                 }));
                                 // Cache the REST fallback data too
                                 try {
                                     localStorage.setItem('sp-cached-header-user', JSON.stringify({
                                         avatar: profile.avatar_url,
-                                        name: profile.full_name || profile.username,
+                                        name: profile.username || profile.full_name,
                                         username: profile.username || null,
                                         diamonds: profile.diamonds ?? 0,
                                         is_vip: !!profile.is_vip,
@@ -529,13 +529,13 @@ export default function UniversalHeader({
                     setUser(prev => ({
                         ...prev,
                         avatar: result.profile.avatar_url || prev?.avatar,
-                        name: result.profile.full_name || result.profile.username || prev?.name
+                        name: result.profile.username || result.profile.full_name || prev?.name
                     }));
                     // Update localStorage cache with fresh profile data
                     try {
                         localStorage.setItem('sp-cached-header-user', JSON.stringify({
                             avatar: result.profile.avatar_url,
-                            name: result.profile.full_name || result.profile.username,
+                            name: result.profile.username || result.profile.full_name,
                             username: result.profile.username || null,
                             diamonds: result.profile.diamonds ?? 0,
                             is_vip: !!result.profile.is_vip,
@@ -1010,7 +1010,7 @@ export default function UniversalHeader({
                     {/* Avatar/Profile */}
                     <div
                         className={`profile-orb${!displayAvatar && !isMounted ? ' profile-orb-shimmer' : ''}`}
-                        onClick={() => openOverlay('profile')}
+                        onClick={() => router.push(profileHref)}
                         role="button"
                         tabIndex={0}
                         aria-label="My Profile"

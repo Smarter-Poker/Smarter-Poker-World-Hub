@@ -243,6 +243,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
     const [shareToast, setShareToast] = useState(false);
     const [showHeart, setShowHeart] = useState(false);
     const [progress, setProgress] = useState(0);
+    const [paused, setPaused] = useState(false);
     const [likeCounts, setLikeCounts] = useState({});
     const [commentCounts, setCommentCounts] = useState({});
     const [saved, setSaved] = useState({});
@@ -250,7 +251,27 @@ function ReelViewer({ reels, startIndex, onClose }) {
     const [slideDir, setSlideDir] = useState(null);
     const [captionExpanded, setCaptionExpanded] = useState(false);
     const [showShortcutsOverlay, setShowShortcutsOverlay] = useState(false);
-    
+
+    // Anti-Drift: Preserve viewed reel when new reels are inserted above it
+    const prevReelIdRef = useRef(null);
+    useEffect(() => {
+        if (!reels || reels.length === 0) return;
+        const currentReelId = reels[currentIndex]?.id;
+        
+        if (prevReelIdRef.current && currentReelId !== prevReelIdRef.current) {
+            // reels array changed under us! Find where our reel moved to.
+            const newIndex = reels.findIndex(r => r.id === prevReelIdRef.current);
+            if (newIndex !== -1 && newIndex !== currentIndex) {
+                setCurrentIndex(newIndex);
+            }
+        }
+        
+        // Update the ref to the currently viewing reel
+        if (reels[currentIndex]?.id) {
+            prevReelIdRef.current = reels[currentIndex].id;
+        }
+    }, [reels, currentIndex]);
+
     // Phase 9: Long Press Context Menu
     const [showContextMenu, setShowContextMenu] = useState(false);
     const longPressTimerRef = useRef(null);
@@ -899,11 +920,13 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 if (data?.event === 'onStateChange') {
                     if (data.info === 0 && currentIndex < reels.length - 1) goNext(); // Ended
                     if (data.info === 1) { // Playing
+                        setPaused(false);
                         setShowOverlay(true);
                         clearTimeout(overlayTimerRef.current);
                         overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
                     }
                     if (data.info === 2) { // Paused
+                        setPaused(true);
                         setShowOverlay(true);
                         if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
                     }
@@ -940,6 +963,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
         setReelComments([]);
         setCommentText('');
         setShowOverlay(false);
+        setPaused(false);
         setProgress(0);
         setCaptionExpanded(false);
         setShowReelGifPicker(false);
@@ -1094,24 +1118,38 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
             }
         } else {
-            if (videoRef.current) {
+            const isYT = isYouTubeUrl(currentReel?.video_url);
+            if (!isYT && videoRef.current) {
                 if (videoRef.current.paused) {
                     const playPromise = videoRef.current.play();
                     if (playPromise !== undefined) {
                         playPromise.catch(e => console.warn('Play intercepted:', e));
                     }
+                    setPaused(false);
                     // Playing = Auto hide
                     if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
                     overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
                 } else {
                     videoRef.current.pause();
+                    setPaused(true);
                     // Paused = Anchor HUD
                     if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
                 }
-            } else {
-                 // Non-native (YouTube) -> just extend timer
-                 if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
-                 overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2000);
+            } else if (isYT) {
+                // YouTube: play/pause via postMessage
+                const iframe = containerRef.current?.querySelector('iframe');
+                if (iframe?.contentWindow) {
+                    if (paused) {
+                        iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
+                        setPaused(false);
+                        if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+                        overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
+                    } else {
+                        iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }), '*');
+                        setPaused(true);
+                        if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+                    }
+                }
             }
         }
     };
@@ -1233,6 +1271,19 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         return <link rel="preload" href={nextUrl} as="video" />;
                     }
                 })()}
+
+                {/* Play Button Overlay - visible when paused */}
+                {paused && (
+                    <div style={{
+                        position: 'absolute', top: '50%', left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        width: 80, height: 80, borderRadius: '50%',
+                        background: 'rgba(0,0,0,0.4)',
+                        border: '2px solid rgba(255,255,255,0.8)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: 'white', fontSize: 40, zIndex: 20, pointerEvents: 'none',
+                    }}>▶</div>
+                )}
 
                 {/* Author overlay */}
                 <div style={{

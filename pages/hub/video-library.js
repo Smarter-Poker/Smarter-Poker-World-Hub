@@ -22,7 +22,6 @@ import { updateWatchDuration, getWatchedVideos, getWatchProgress, getRecentlyWat
 import { useVideoLibraryStore } from '../../src/stores/videoLibraryStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
-import { getAccessToken } from '../../src/lib/authUtils';
 import { DiamondEngine } from '../../src/services/DiamondEngine';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
 import { ReelsViewer } from '../../src/components/social/Reels';
@@ -83,12 +82,8 @@ export default function VideoLibraryPage() {
     useTrainingBus('video-library');
 
     // Zustand storebal State (replaces UI-related useState)
-    const selectedCategory = useVideoLibraryStore((s) => s.selectedCategory);
-    const setSelectedCategory = useVideoLibraryStore((s) => s.setSelectedCategory);
     const selectedVideo = useVideoLibraryStore((s) => s.selectedVideo);
     const setSelectedVideo = useVideoLibraryStore((s) => s.setSelectedVideo);
-    const showPlayer = useVideoLibraryStore((s) => s.showPlayer);
-    const setShowPlayer = useVideoLibraryStore((s) => s.setShowPlayer);
 
     // Persisted filters for source and type
     const { filters, setFilter } = usePersistedFilters('video-library', {
@@ -103,6 +98,7 @@ export default function VideoLibraryPage() {
 
     // Local state — initialise with static data instantly, then hydrate from DB
     const [videos, setVideos] = useState(STATIC_VIDEOS);
+    const [displayedCount, setDisplayedCount] = useState(30);
     const [allVideos, setAllVideos] = useState(STATIC_VIDEOS); // unfiltered master list
     const [dbLoaded, setDbLoaded] = useState(false);
 
@@ -193,6 +189,25 @@ export default function VideoLibraryPage() {
     // "New This Week" rail dismiss state
     const [newThisWeekDismissed, setNewThisWeekDismissed] = useState(false);
 
+    
+    // Infinite scroll observer
+    const loadMoreRef = useRef(null);
+    useEffect(() => {
+        if (!loadMoreRef.current) return;
+        const observer = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting) {
+                setDisplayedCount(prev => Math.min(prev + 30, videos.length));
+            }
+        }, { rootMargin: '400px' });
+        observer.observe(loadMoreRef.current);
+        return () => observer.disconnect();
+    }, [videos.length]);
+
+    // Reset displayed count when filters change
+    useEffect(() => {
+        setDisplayedCount(30);
+    }, [selectedSource, selectedType, selectedDuration, searchQuery]);
+
     const timeTrackingInterval = useRef(null); // keep for watch-time ticking
 
     // Watch time tracking
@@ -250,7 +265,7 @@ export default function VideoLibraryPage() {
             .on('postgres_changes', {
                 event: '*',
                 schema: 'public',
-                table: 'user_video_favorites',
+                table: 'video_favorites',
                 filter: `user_id=eq.${userId}`
             }, () => {
                 getVideoFavorites(userId).then(data => {
@@ -411,8 +426,6 @@ export default function VideoLibraryPage() {
 
     // Handle closing a video - save watch duration
     const handleCloseVideo = useCallback(async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
         if (watchStartTimeRef.current && currentWatchingVideoRef.current && userId) {
             const watchedSeconds = Math.floor((Date.now() - watchStartTimeRef.current) / 1000);
             const video = currentWatchingVideoRef.current;
@@ -1130,7 +1143,7 @@ export default function VideoLibraryPage() {
                     gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
                     gap: 20,
                 }}>
-                    {videos.map(video => (
+                    {videos.slice(0, displayedCount).map(video => (
                         <div
                             key={video.id}
                             onClick={() => handleOpenVideo(video)}
@@ -1593,10 +1606,6 @@ export default function VideoLibraryPage() {
                 div:hover .play-btn {
                     opacity: 1 !important;
                 }
-                /* Jarvis Panel - HIDDEN (replaced by caption overlay) */
-                .jarvis-panel {
-                    display: none !important;
-                }
                 
                 /* Caption-style animation */
                 @keyframes fadeInUp {
@@ -1607,149 +1616,6 @@ export default function VideoLibraryPage() {
                     to {
                         opacity: 1;
                         transform: translateX(-50%) translateY(0);
-                    }
-                }
-                
-                .jarvis-drag-handle {
-                    display: none !important;
-                }
-                
-                .jarvis-desktop-header {
-                    display: flex !important;
-                }
-                
-                .jarvis-collapsed-preview {
-                    display: none !important;
-                }
-                
-                .jarvis-panel-content {
-                    flex: 1 !important;
-                    overflow-y: auto !important;
-                    max-height: none !important;
-                    display: block !important;
-                }
-
-                /* Animation for active insight cards */
-                @keyframes slideIn {
-                    from {
-                        opacity: 0;
-                        transform: translateY(20px) scale(0.98);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateY(0) scale(1);
-                    }
-                }
-
-                /* Pulse animation for when new insight appears */
-                @keyframes pulse {
-                    0%, 100% { opacity: 1; }
-                    50% { opacity: 0.7; }
-                }
-
-                /* Glow pulse for Jarvis branding */
-                @keyframes glowPulse {
-                    0%, 100% { 
-                        box-shadow: 0 0 20px rgba(0, 212, 255, 0.3),
-                                    0 0 40px rgba(0, 212, 255, 0.1);
-                    }
-                    50% { 
-                        box-shadow: 0 0 30px rgba(0, 212, 255, 0.5),
-                                    0 0 60px rgba(0, 212, 255, 0.2);
-                    }
-                }
-
-                /* Shimmer loading effect */
-                @keyframes shimmer {
-                    0% { background-position: -200% 0; }
-                    100% { background-position: 200% 0; }
-                }
-
-                /* Float animation for waiting state */
-                @keyframes float {
-                    0%, 100% { transform: translateY(0px); }
-                    50% { transform: translateY(-8px); }
-                }
-
-                /* Subtle border glow for active insight */
-                .jarvis-panel {
-                    animation: metalGlow 3s ease-in-out infinite;
-                }
-
-                /* METAL UI: 3-second breathing LED glow */
-                @keyframes metalGlow {
-                    0%, 100% { 
-                        border-left-color: rgba(0, 212, 255, 0.8);
-                        box-shadow: -10px 0 50px rgba(0, 0, 0, 0.7),
-                                    0 0 10px rgba(0, 212, 255, 0.3),
-                                    0 0 20px rgba(0, 212, 255, 0.15);
-                    }
-                    50% { 
-                        border-left-color: rgba(0, 212, 255, 1);
-                        box-shadow: -10px 0 50px rgba(0, 0, 0, 0.7),
-                                    0 0 15px rgba(0, 212, 255, 0.5),
-                                    0 0 30px rgba(0, 212, 255, 0.25);
-                    }
-                }
-
-                .jarvis-insight-active {
-                    animation: slideIn 0.4s ease forwards;
-                }
-
-                /* METAL UI Scrollbar */
-                .jarvis-panel-content {
-                    scroll-behavior: smooth;
-                }
-                .jarvis-panel-content::-webkit-scrollbar {
-                    width: 6px;
-                }
-                .jarvis-panel-content::-webkit-scrollbar-track {
-                    background: #0d1520;
-                    border-radius: 3px;
-                }
-                .jarvis-panel-content::-webkit-scrollbar-thumb {
-                    background: linear-gradient(180deg, #2a3a4a 0%, #1a2332 100%);
-                    border-radius: 3px;
-                    border: 1px solid #00d4ff;
-                }
-                .jarvis-panel-content::-webkit-scrollbar-thumb:hover {
-                    background: linear-gradient(180deg, #3a4a5a 0%, #2a3a4a 100%);
-                    box-shadow: 0 0 5px rgba(0, 212, 255, 0.5);
-                }
-
-                /* Jarvis button hover effect */
-                .jarvis-button:hover {
-                    transform: translateY(-2px);
-                    box-shadow: 0 0 25px rgba(0,212,255,0.5), 0 6px 20px rgba(0,0,0,0.4) !important;
-                }
-                .jarvis-button:active {
-                    transform: translateY(0);
-                }
-
-                /* Timeline item hover - METAL UI glow effect */
-                .jarvis-timeline-item:hover {
-                    background: linear-gradient(135deg, rgba(0,212,255,0.1) 0%, rgba(0,212,255,0.02) 100%) !important;
-                    border-color: rgba(0,212,255,0.4) !important;
-                    transform: translateX(4px);
-                }
-                .jarvis-timeline-item:hover > div:last-child {
-                    background: rgba(0,212,255,0.2) !important;
-                }
-                .jarvis-timeline-item:hover > div:last-child span {
-                    color: #00d4ff !important;
-                }
-
-                /* Mobile - Bottom right corner overlay */
-                @media (max-width: 768px) {
-                    .jarvis-panel {
-                        top: auto !important;
-                        bottom: 16px !important;
-                        right: 8px !important;
-                        left: 8px !important;
-                        width: auto !important;
-                        max-height: 45vh !important;
-                        border-left: none !important;
-                        border-top: 3px solid #00d4ff !important;
                     }
                 }
             `}</style>

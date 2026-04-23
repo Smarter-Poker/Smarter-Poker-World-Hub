@@ -285,6 +285,38 @@ export function ReelsViewer({ onClose }) {
         return () => { clearTimeout(reloadTimer); supabase.removeChannel(_ch); };
     }, [currentUserId]);
 
+    // YouTube auto-advance & state tracking: listen for onStateChange postMessage
+    useEffect(() => {
+        const handleYTMessage = (event) => {
+            try {
+                const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                if (data?.event === 'onStateChange') {
+                    if (data.info === 0) {
+                        // Ended -> auto advance
+                        setSlideDir('up');
+                        setCurrentIndex(prev => {
+                            if (prev < reels.length - 1) return prev + 1;
+                            return prev;
+                        });
+                    }
+                    if (data.info === 1) { // Playing
+                        setPaused(false);
+                        setShowOverlay(true);
+                        clearTimeout(overlayTimerRef.current);
+                        overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
+                    }
+                    if (data.info === 2) { // Paused
+                        setPaused(true);
+                        setShowOverlay(true);
+                        if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+                    }
+                }
+            } catch { /* not a YouTube message */ }
+        };
+        window.addEventListener('message', handleYTMessage);
+        return () => window.removeEventListener('message', handleYTMessage);
+    }, [reels.length]);
+
     // Reset paused state when changing reels + track view
     // dep: currentIndex ONLY - we do NOT add `reels` because setReels() alone
     // should NOT trigger a play() call (the video key changes, element remounts)
@@ -1176,7 +1208,6 @@ export function ReelsViewer({ onClose }) {
             overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
         } else {
             // Tap while overlay visible = toggle play/pause
-            // BUG FIX: YouTube iframes have no native videoRef - skip play/pause for them
             const isYT = isYouTubeUrl(currentReel?.video_url);
             if (!isYT && videoRef.current) {
                 if (videoRef.current.paused) {
@@ -1195,9 +1226,20 @@ export function ReelsViewer({ onClose }) {
                     if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
                 }
             } else if (isYT) {
-                // YouTube: just auto-hide the overlay after 2.5s
-                if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
-                overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
+                // YouTube: play/pause via postMessage
+                const iframe = containerRef.current?.querySelector('iframe');
+                if (iframe?.contentWindow) {
+                    if (paused) {
+                        iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
+                        setPaused(false);
+                        if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+                        overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
+                    } else {
+                        iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }), '*');
+                        setPaused(true);
+                        if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+                    }
+                }
             }
         }
     };
@@ -1261,13 +1303,13 @@ export function ReelsViewer({ onClose }) {
                     const ytId = getYouTubeVideoId(url);
                     if (ytId) {
                         // YouTube embed - autoplay, muted, loop
-                        // BUG FIX: key includes muted state so src re-generates when user toggles mute
-                        const embedSrc = `https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1&mute=${muted ? 1 : 0}&loop=1&playlist=${ytId}&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}`;
+                        // Fix: Remove muted from key and use postMessage to prevent re-rendering flash
+                        const embedSrc = `https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1&mute=1&loop=1&playlist=${ytId}&rel=0&modestbranding=1&playsinline=1&controls=0&showinfo=0&iv_load_policy=3&fs=0&disablekb=1&cc_load_policy=0&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}`;
                         return (
                             <iframe
-                                key={`yt-${currentReel?.id}-muted-${muted}`}
+                                key={`yt-${currentReel?.id}`}
                                 src={embedSrc}
-                                allow="autoplay; encrypted-media; fullscreen"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                 allowFullScreen
                                 style={{
                                     width: '100%',
@@ -1281,6 +1323,24 @@ export function ReelsViewer({ onClose }) {
                                     pointerEvents: 'none',
                                 }}
                                 title={currentReel?.caption || 'Poker Reel'}
+                                onLoad={(e) => {
+                                    // Force play + unmute via YouTube postMessage API
+                                    const iframeWindow = e.target.contentWindow;
+                                    try {
+                                        iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
+                                        iframeWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
+                                        // Aggressive unmute retry loop: 300ms, 800ms, 1500ms, 3000ms
+                                        [300, 800, 1500, 3000].forEach(delay => setTimeout(() => {
+                                            try {
+                                                iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
+                                                if (!muted) {
+                                                    iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
+                                                    iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
+                                                }
+                                            } catch (e) { console.warn('[Reels] Handled exception:', e); }
+                                        }, delay));
+                                    } catch (e) { console.warn('[Reels] Handled exception:', e); }
+                                }}
                             />
                         );
                     }
@@ -1311,8 +1371,8 @@ export function ReelsViewer({ onClose }) {
                     <link rel="preload" href={reels[currentIndex + 1].video_url} as="video" />
                 )}
 
-                {/* Play Button Overlay - only when paused AND using native video */}
-                {paused && !isYouTubeUrl(currentReel?.video_url) && (
+                {/* Play Button Overlay - visible when paused */}
+                {paused && (
                     <div style={{
                         position: 'absolute', top: '50%', left: '50%',
                         transform: 'translate(-50%, -50%)',
@@ -1519,7 +1579,7 @@ export function ReelsViewer({ onClose }) {
                                 boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
                                 animation: 'fadeInScale 0.2s ease',
                             }}>
-                                <button onClick={() => { setMuted(prev => { const next = !prev; localStorage.setItem('reel-muted', String(next)); return next; }); setShowMoreMenu(false); }} style={{
+                                <button onClick={() => { setMuted(prev => { const next = !prev; const iframe = containerRef.current?.querySelector('iframe'); if (iframe?.contentWindow) { iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: next ? 'mute' : 'unMute', args: [] }), '*'); if (!next) iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*'); } localStorage.setItem('reel-muted', String(next)); return next; }); setShowMoreMenu(false); }} style={{
                                     display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '10px 16px',
                                     background: 'none', border: 'none', color: 'white', fontSize: 14, cursor: 'pointer', textAlign: 'left',
                                 }}>

@@ -202,6 +202,9 @@ export function ProfilePictureHistory({
                 if (error) throw error;
 
                 fetchHistory(); // Refresh
+                if (typeof onPictureRestored === 'function') {
+                    onPictureRestored(item);
+                }
             } catch (err) {
                 console.warn('Error restoring profile picture:', err);
             }

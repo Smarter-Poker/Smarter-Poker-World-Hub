@@ -125,12 +125,12 @@ export const FULL_VIDEOS = [
     { id: 'wsop7', videoId: 'ZRSfWVI950c', source: 'WSOP', type: 'tournament', title: '$1 Million Buy-in Big One For One Drop Final Table', views: '2.1M', duration: '95:33' },
     { id: 'wsop8', videoId: 'wFHgCRnx_JU', source: 'WSOP', type: 'tournament', title: 'Daniel Negreanu Wins $10K 2-7 Bracelet', views: '980K', duration: '42:18' },
     { id: 'wsop9', videoId: 'gqH0Og9Z--k', source: 'WSOP', type: 'tournament', title: 'BIGGEST Cash Game in Vegas with Esfandiari & Robl!', views: '2.3M', duration: '55:22' },
-    { id: 'wsop10', videoId: 'ZRSfWVI950c', source: 'WSOP', type: 'tournament', title: '$250K Super High Roller Championship Final Table', views: '1.5M', duration: '88:44' },
-    { id: 'wsop11', videoId: 'yRJMtgIK9C8', source: 'WSOP', type: 'tournament', title: 'Phil Ivey Returns to WSOP - $100K High Roller', views: '1.8M', duration: '65:22' },
+    { id: 'wsop10', videoId: 'FAKEn51odop', source: 'WSOP', type: 'tournament', title: '$250K Super High Roller Championship Final Table', views: '1.5M', duration: '88:44' },
+    { id: 'wsop11', videoId: 'FAKE55t5pd5', source: 'WSOP', type: 'tournament', title: 'Phil Ivey Returns to WSOP - $100K High Roller', views: '1.8M', duration: '65:22' },
     { id: 'wsop12', videoId: '49FxwnBtCFQ', source: 'WSOP', type: 'tournament', title: '$50K Poker Players Championship Final Table', views: '920K', duration: '72:18' },
     { id: 'wsop13', videoId: 'o1SIuqZDz2E', source: 'WSOP', type: 'tournament', title: 'Phil Hellmuth vs Daniel Negreanu - Heads Up Championship', views: '2.4M', duration: '45:33' },
-    { id: 'wsop14', videoId: 'bSwP4w2apPA', source: 'WSOP', type: 'tournament', title: '$10K PLO Championship Final Table', views: '780K', duration: '58:44' },
-    { id: 'wsop15', videoId: 'NqPmIAvR82A', source: 'WSOP', type: 'tournament', title: 'Massive Bad Beat - WSOP Main Event 2024', views: '1.6M', duration: '22:18' },
+    { id: 'wsop14', videoId: 'FAKEgswfzsu', source: 'WSOP', type: 'tournament', title: '$10K PLO Championship Final Table', views: '780K', duration: '58:44' },
+    { id: 'wsop15', videoId: 'FAKEigvh110', source: 'WSOP', type: 'tournament', title: 'Massive Bad Beat - WSOP Main Event 2024', views: '1.6M', duration: '22:18' },
 
     // ═══════════════════════════════════════════════════════════════════
     // WPT (World Poker Tour) - 15 Tournament Episodes
@@ -160,12 +160,12 @@ export const FULL_VIDEOS = [
     { id: 'ept4', videoId: '0Wxi_hzgFGo', source: 'EPT', type: 'tournament', title: 'EPT Barcelona 2024 Final Table', views: '1.2M', duration: '88:44' },
     { id: 'ept5', videoId: 'FpEJkBJVd00', source: 'EPT', type: 'tournament', title: 'EPT Barcelona 2024 Highlights', views: '980K', duration: '72:33' },
     { id: 'ept6', videoId: '33p282rfivw', source: 'EPT', type: 'tournament', title: 'EPT Prague 2025 Final Day', views: '850K', duration: '82:18' },
-    { id: 'ept7', videoId: 'hJkpOdcC9b4', source: 'EPT', type: 'tournament', title: 'Adrian Mateos Wins EPT Super High Roller', views: '1.1M', duration: '78:44' },
-    { id: 'ept8', videoId: 'bjSK8Ajhm2g', source: 'EPT', type: 'tournament', title: 'EPT Barcelona €25K High Roller Final Table', views: '920K', duration: '85:22' },
-    { id: 'ept9', videoId: 'fif_M-C7uxM', source: 'EPT', type: 'tournament', title: 'EPT Monte Carlo €100K Final Table', views: '1.5M', duration: '102:33' },
-    { id: 'ept10', videoId: 'q-LPKh4BcDU', source: 'EPT', type: 'tournament', title: 'EPT London High Roller Final Table', views: '780K', duration: '68:18' },
-    { id: 'ept11', videoId: 'ZXBCQHCcQDQ', source: 'EPT', type: 'tournament', title: 'Incredible Royal Flush at EPT Barcelona', views: '2.4M', duration: '18:44' },
-    { id: 'ept12', videoId: 'kujjBSyB4Dk', source: 'EPT', type: 'tournament', title: 'EPT Prague €25K Single-Day High Roller', views: '680K', duration: '65:22' },
+    { id: 'ept7', videoId: 'FAKEc1v448x', source: 'EPT', type: 'tournament', title: 'Adrian Mateos Wins EPT Super High Roller', views: '1.1M', duration: '78:44' },
+    { id: 'ept8', videoId: 'FAKEvp9q9qm', source: 'EPT', type: 'tournament', title: 'EPT Barcelona €25K High Roller Final Table', views: '920K', duration: '85:22' },
+    { id: 'ept9', videoId: 'FAKEfn79mbg', source: 'EPT', type: 'tournament', title: 'EPT Monte Carlo €100K Final Table', views: '1.5M', duration: '102:33' },
+    { id: 'ept10', videoId: 'FAKExszt7pv', source: 'EPT', type: 'tournament', title: 'EPT London High Roller Final Table', views: '780K', duration: '68:18' },
+    { id: 'ept11', videoId: 'FAKE710frrv', source: 'EPT', type: 'tournament', title: 'Incredible Royal Flush at EPT Barcelona', views: '2.4M', duration: '18:44' },
+    { id: 'ept12', videoId: 'FAKEa8a5u37', source: 'EPT', type: 'tournament', title: 'EPT Prague €25K Single-Day High Roller', views: '680K', duration: '65:22' },
 
     // ═══════════════════════════════════════════════════════════════════
     // POKER VLOGGERS - 12 Premium Episodes  
@@ -186,12 +186,12 @@ export const FULL_VIDEOS = [
     // ═══════════════════════════════════════════════════════════════════
     // POKERGO - 6 Premium Episodes (Real YouTube IDs)
     // ═══════════════════════════════════════════════════════════════════
-    { id: 'pgo1', videoId: 'wFHgCRnx_JU', source: 'POKERGO', type: 'cash', title: 'High Stakes Poker Season 10 - Best Moments', views: '2.8M', duration: '45:22' },
-    { id: 'pgo2', videoId: 'gqH0Og9Z--k', source: 'POKERGO', type: 'cash', title: 'No Gamble, No Future - Phil Hellmuth vs Tom Dwan', views: '1.9M', duration: '38:44' },
-    { id: 'pgo3', videoId: 'VJ7WnbHXRCw', source: 'POKERGO', type: 'cash', title: 'Super High Roller Bowl Final Table', views: '1.5M', duration: '82:18' },
-    { id: 'pgo4', videoId: 'mNhXY4U1kfo', source: 'POKERGO', type: 'tournament', title: 'US Poker Open $25K Main Event', views: '980K', duration: '55:33' },
-    { id: 'pgo5', videoId: '49FxwnBtCFQ', source: 'POKERGO', type: 'cash', title: 'Poker After Dark - Million Dollar Cash Game', views: '1.2M', duration: '42:18' },
-    { id: 'pgo6', videoId: 'o1SIuqZDz2E', source: 'POKERGO', type: 'cash', title: 'Best Bluffs from High Stakes Poker', views: '890K', duration: '28:44' },
+    { id: 'pgo1', videoId: 'FAKE89dbizc', source: 'POKERGO', type: 'cash', title: 'High Stakes Poker Season 10 - Best Moments', views: '2.8M', duration: '45:22' },
+    { id: 'pgo2', videoId: 'FAKEfxvj1wx', source: 'POKERGO', type: 'cash', title: 'No Gamble, No Future - Phil Hellmuth vs Tom Dwan', views: '1.9M', duration: '38:44' },
+    { id: 'pgo3', videoId: 'FAKEdxruw08', source: 'POKERGO', type: 'cash', title: 'Super High Roller Bowl Final Table', views: '1.5M', duration: '82:18' },
+    { id: 'pgo4', videoId: 'FAKEi57mbzp', source: 'POKERGO', type: 'tournament', title: 'US Poker Open $25K Main Event', views: '980K', duration: '55:33' },
+    { id: 'pgo5', videoId: 'FAKEip93sk4', source: 'POKERGO', type: 'cash', title: 'Poker After Dark - Million Dollar Cash Game', views: '1.2M', duration: '42:18' },
+    { id: 'pgo6', videoId: 'FAKErr1evhg', source: 'POKERGO', type: 'cash', title: 'Best Bluffs from High Stakes Poker', views: '890K', duration: '28:44' },
 
     // ═══════════════════════════════════════════════════════════════════
     // ANDREW NEEME - 5 Premium Episodes (Real YouTube IDs)

@@ -208,9 +208,21 @@ export function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLi
             if (!showOverlay) {
                 setShowOverlay(true);
             } else {
-                if (videoRef.current) {
+                const isYT = isYouTubeUrl(videoUrl);
+                if (!isYT && videoRef.current) {
                     if (videoRef.current.paused) { videoRef.current.play(); setIsPlaying(true); }
                     else { videoRef.current.pause(); setIsPlaying(false); }
+                } else if (isYT) {
+                    const iframe = containerRef.current?.querySelector('iframe');
+                    if (iframe?.contentWindow) {
+                        if (!isPlaying) {
+                            iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
+                            setIsPlaying(true);
+                        } else {
+                            iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }), '*');
+                            setIsPlaying(false);
+                        }
+                    }
                 }
                 if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
                 overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2000);
@@ -249,14 +261,13 @@ export function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLi
 
             {/* Video */}
             {isYouTubeUrl(videoUrl) ? (
-                <div style={{ position: 'relative', width: '100vw', height: '100vh' }}>
+                <div style={{ position: 'relative', width: '100vw', height: '100vh', pointerEvents: 'none' }}>
                     <iframe
-                        src={getYouTubeEmbedUrl(videoUrl)}
-                        style={{ width: '100%', height: '100%', border: 'none' }}
+                        src={`${getYouTubeEmbedUrl(videoUrl)}&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}`}
+                        style={{ width: '100%', height: '100%', border: 'none', pointerEvents: 'none' }}
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                         allowFullScreen
                     />
-                    {!showOverlay && <div style={{ position: 'absolute', inset: 0, zIndex: 1 }} />}
                 </div>
             ) : (
                 <video
@@ -374,7 +385,7 @@ export function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLi
             `}</style>
 
             {/* Paused indicator */}
-            {!isPlaying && !isYouTubeUrl(videoUrl) && (
+            {!isPlaying && (
                 <div style={{
                     position: 'absolute', top: '50%', left: '50%',
                     transform: 'translate(-50%, -50%)',

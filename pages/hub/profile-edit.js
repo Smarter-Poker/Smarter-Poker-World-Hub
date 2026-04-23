@@ -582,7 +582,7 @@ function PokerResumeBadge({ hendonData, onRefresh, isRefreshing, syncStatus }) {
                         </>
                     ) : (
                         <>
-                            <div style={{ fontSize: 48, marginBottom: 12 }}></div>
+                            <div style={{ fontSize: 48, marginBottom: 12 }}>📊</div>
                             <div style={{ fontSize: 14, opacity: 0.7, marginBottom: 16 }}>
                                 Click below to fetch your tournament stats from Hendon Mob
                             </div>
@@ -1117,6 +1117,18 @@ export default function ProfilePage() {
             return;
         }
 
+        // ── UPDATE AUTH METADATA ──
+        try {
+            const mdRes = await fetch('/api/auth/update-metadata', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${_avatarToken}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ metadata: { avatar_url: publicUrl } })
+            });
+            if (!mdRes.ok) console.warn('[Avatar Upload] Non-fatal error syncing auth metadata:', await mdRes.text());
+        } catch (mdErr) {
+            console.warn('[Avatar Upload] Failed to update auth metadata:', mdErr);
+        }
+
         setAvatarUploadPhase(null);
         setProfile(prev => ({ ...prev, avatar_url: publicUrl }));
 
@@ -1474,6 +1486,14 @@ export default function ProfilePage() {
             try {
                 const cacheKey = `sp-profile-cache-${profile.username}`;
                 localStorage.removeItem(cacheKey);
+                
+                // ALSO update the username cache used by UniversalHeader & ProfileRedirect
+                localStorage.setItem('sp-profile-username', JSON.stringify({
+                    userId: user.id,
+                    username: profile.username,
+                    ts: Date.now()
+                }));
+                
                 broadcastSync('smarter_poker_cache_sync', { type: 'cache_sync', cacheKey, action: 'invalidate', ts: Date.now() });
                 broadcastSync('smarter_poker_avatar_sync', 'refresh');
             } catch { /* noop */ }
@@ -1976,6 +1996,31 @@ export default function ProfilePage() {
                             supabase={supabase}
                             onViewAll={() => setLibraryOpen(true)}
                             limit={6}
+                            onPictureRestored={async (item) => {
+                                const newUrl = item.thumbnail_url || item.public_url;
+                                try {
+                                    // 1. Sync Auth Metadata
+                                    const _avatarToken = getProfileJwt();
+                                    await fetch('/api/auth/update-metadata', {
+                                        method: 'POST',
+                                        headers: { 'Authorization': `Bearer ${_avatarToken}`, 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ metadata: { avatar_url: newUrl } })
+                                    });
+
+                                    // 2. Update local state
+                                    setProfile(prev => ({ ...prev, avatar_url: newUrl }));
+                                    setOriginalProfile(prev => ({ ...prev, avatar_url: newUrl }));
+                                    
+                                    // 3. Dispatch event for header/identity update
+                                    window.dispatchEvent(new CustomEvent('profile-updated', {
+                                        detail: { avatar_url: newUrl }
+                                    }));
+                                    
+                                    setMessage('Profile picture restored!');
+                                } catch (err) {
+                                    setMessage('Error syncing restored picture: ' + err.message);
+                                }
+                            }}
                         />
                     </CollapsibleSection>
 
@@ -2539,7 +2584,7 @@ export default function ProfilePage() {
                                 textAlign: 'center', color: '#888',
                                 padding: 60
                             }}>
-                                <div style={{ fontSize: 48, marginBottom: 16 }}></div>
+                                <div style={{ fontSize: 48, marginBottom: 16 }}>🎞️</div>
                                 <div style={{ fontSize: 18 }}>No Reels Yet</div>
                                 <div style={{ fontSize: 14, color: '#666', marginTop: 8 }}>
                                     Videos from your posts will appear here
@@ -2760,7 +2805,7 @@ export default function ProfilePage() {
                                                             background: 'transparent', color: '#FA383E',
                                                             border: '1px solid #FA383E', fontSize: 14, fontWeight: 600, cursor: 'pointer'
                                                         }}
-                                                    ></button>
+                                                    >Delete</button>
                                                 </div>
                                             )}
                                         </div>
