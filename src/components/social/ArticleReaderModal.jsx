@@ -217,6 +217,7 @@ export default function ArticleReaderModal({ url, title, onClose }) {
                         padding: '16px',
                     }}>
                         <iframe
+                            title={`YouTube Video Player - ${title || domain}`}
                             src={`https://www.youtube.com/embed/${youtubeVideoId}?autoplay=1&rel=0&modestbranding=1`}
                             style={{
                                 width: '100%',
@@ -239,6 +240,7 @@ export default function ArticleReaderModal({ url, title, onClose }) {
                 ) : (
                     /* Article iframe - Served through our proxy to bypass X-Frame-Options */
                     <iframe
+                        title={`Article content from ${domain}`}
                         src={`/api/proxy?url=${encodeURIComponent(url)}`}
                         style={{
                             flex: 1,

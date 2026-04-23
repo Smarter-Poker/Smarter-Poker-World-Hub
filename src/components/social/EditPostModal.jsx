@@ -36,19 +36,32 @@ export default function EditPostModal({ post, onClose, onSaved, supabase }) {
         }
     }, []);
 
+    // Close with unsaved changes check
+    const handleClose = useCallback(() => {
+        if (saving) return;
+        const hasChanges = content.trim() !== (post?.content || '').trim();
+        if (hasChanges) {
+            if (window.confirm("You have unsaved changes. Are you sure you want to discard them?")) {
+                onClose();
+            }
+        } else {
+            onClose();
+        }
+    }, [saving, content, post?.content, onClose]);
+
     // Close on Escape
     useEffect(() => {
         const handleEsc = (e) => {
-            if (e.key === 'Escape' && !saving) onClose();
+            if (e.key === 'Escape' && !saving) handleClose();
         };
         document.addEventListener('keydown', handleEsc);
         return () => document.removeEventListener('keydown', handleEsc);
-    }, [saving, onClose]);
+    }, [saving, handleClose]);
 
     // Close on backdrop click
     const handleBackdrop = useCallback((e) => {
-        if (e.target === modalRef.current && !saving) onClose();
-    }, [saving, onClose]);
+        if (e.target === modalRef.current && !saving) handleClose();
+    }, [saving, handleClose]);
 
     const handleSave = async () => {
         const trimmed = content.trim();
@@ -125,7 +138,7 @@ export default function EditPostModal({ post, onClose, onSaved, supabase }) {
                 }}>
                     <h3 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: C.text }}>Edit Post</h3>
                     <button
-                        onClick={onClose}
+                        onClick={handleClose}
                         disabled={saving}
                         style={{
                             width: 36, height: 36, borderRadius: '50%', border: 'none',
@@ -189,7 +202,7 @@ export default function EditPostModal({ post, onClose, onSaved, supabase }) {
                     padding: '12px 20px', borderTop: `1px solid ${C.border}`
                 }}>
                     <button
-                        onClick={onClose}
+                        onClick={handleClose}
                         disabled={saving}
                         style={{
                             padding: '10px 20px', background: C.bg, border: 'none', borderRadius: 8,

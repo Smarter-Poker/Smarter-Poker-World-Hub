@@ -315,7 +315,8 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                 mentionTimeout.current = setTimeout(async () => {
                     try {
                         const { data } = await supabase.from('profiles')
-                            .select('id, username, full_name')
+                            // BUG-13 FIX: also select display_name as fallback when full_name is null
+                            .select('id, username, full_name, display_name')
                             .ilike('username', `%${query}%`)
                             .limit(5);
                         if (data) setMentionResults(data);
@@ -566,7 +567,12 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                                     <Avatar name={u.username} size={32} />
                                     <div>
                                         <div style={{ fontWeight: 600, fontSize: 14 }}>@{u.username}</div>
-                                        {u.full_name && <div style={{ fontSize: 12, color: C.textSec }}>{u.full_name}</div>}
+                                        {u.full_name || u.display_name ? (
+                                        <div style={{ fontSize: 12, color: C.textSec }}>
+                                            {/* BUG-13 FIX: fall back to display_name if full_name is null */}
+                                            {u.full_name || u.display_name}
+                                        </div>
+                                    ) : null}
                                     </div>
                                 </div>
                             ))}
@@ -580,7 +586,8 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         {media.map((m, i) => (
                             <div key={i} style={{ position: 'relative', aspectRatio: media.length === 1 ? '16/9' : '1', borderRadius: 8, overflow: 'hidden' }}>
                                 {m.type === 'video' ? (
-                                    <video src={m.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    // BUG-14 FIX: video previews need muted+playsInline for autoplay on iOS/Chrome
+                                    <video src={m.url} muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 ) : (
                                     <img src={m.url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 )}
