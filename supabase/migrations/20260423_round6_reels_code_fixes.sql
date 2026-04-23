@@ -1,0 +1,27 @@
+-- Migration: Round 6 deep audit fixes
+-- NOTE: No DB schema changes required for round 6 — all fixes are code-level.
+--
+-- Bug 23: muted state in reels.js (standalone page) didn't persist via localStorage.
+--   The modal (Reels.jsx) used 'reel-muted' key. The standalone page always started
+--   muted=false regardless of user preference. Fixed in pages/hub/reels.js.
+--
+-- Bug 24: handleOpenComments in Reels.jsx had a React stale state bug.
+--   setShowCommentInput(prev => !prev) queued the toggle but the immediately
+--   following if (!showCommentInput) check read the pre-toggle closure value,
+--   causing the comment data fetch to fire on BOTH open AND close clicks.
+--   Fixed in src/components/social/Reels.jsx.
+--
+-- Bug 25: handleSpeedToggle used document.querySelector('iframe[src*="youtube"]')
+--   — a raw DOM query bypassing the component's iframeRef. This is unreliable
+--   (multiple iframes, SSR, race conditions) and also used origin='*' (security risk).
+--   Fixed to use iframeRef.current + 'https://www.youtube-nocookie.com' target.
+--   Also added native video element fallback via videoRef.current.playbackRate.
+--   Fixed in pages/hub/reels.js.
+--
+-- Bug 27: handleShare() in reels.js auto-called handleShareToFeed() silently
+--   on EVERY share button press — before the user could choose any option.
+--   If the user just wanted to copy the URL, a social post was already created.
+--   Fixed: share-to-feed now requires explicit user action from the share modal.
+--   Fixed in pages/hub/reels.js.
+
+SELECT 'Round 6: code-only fixes, no DB schema changes' as note;

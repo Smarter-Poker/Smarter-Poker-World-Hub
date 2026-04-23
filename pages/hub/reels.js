@@ -54,7 +54,14 @@ export default function ReelsPage() {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState(false);
-    const [muted, setMuted] = useState(false); // Sound always ON — we unmute aggressively after autoplay
+    // BUG FIX (Bug 23): muted state now syncs with localStorage key 'reel-muted'
+    // (same key as Reels.jsx modal) so user mute preference persists across both views
+    const [muted, setMuted] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('reel-muted') !== 'false';
+        }
+        return true; // default muted until user interaction (browser autoplay policy)
+    });
     const [userWantsSound, setUserWantsSound] = useState(true); // Sound ON by default
     // Auto-play immediately - no tap required since videos are muted (browser policy compliant)
     const [liked, setLiked] = useState({});
@@ -1022,12 +1029,16 @@ export default function ReelsPage() {
         const nextIdx = (speeds.indexOf(playbackSpeed) + 1) % speeds.length;
         const newSpeed = speeds[nextIdx];
         setPlaybackSpeed(newSpeed);
-        // Apply to YouTube iframe via postMessage
-        const iframe = document.querySelector('iframe[src*="youtube"]');
-        if (iframe) {
-            iframe.contentWindow?.postMessage(JSON.stringify({
+        // BUG FIX (Bug 26): use iframeRef + correct origin (not DOM query + '*')
+        // Old: document.querySelector('iframe[src*="youtube"]') with origin='*'
+        // New: iframeRef.current (the active video iframe) + 'https://www.youtube-nocookie.com'
+        if (iframeRef.current?.contentWindow) {
+            iframeRef.current.contentWindow.postMessage(JSON.stringify({
                 event: 'command', func: 'setPlaybackRate', args: [newSpeed]
-            }), '*');
+            }), 'https://www.youtube-nocookie.com');
+        } else if (videoRef.current) {
+            // Native video element — set playbackRate directly
+            videoRef.current.playbackRate = newSpeed;
         }
     };
 
@@ -1035,10 +1046,10 @@ export default function ReelsPage() {
     const handleShare = () => {
         if (!currentReel?.id) return;
         haptic(10);
+        // BUG FIX (Bug 27): removed auto-shareToFeed — was silently creating a social post
+        // on EVERY share button click, even if the user just wanted to copy the link.
+        // Share-to-feed is now an explicit user action from within the share modal.
         setShowShareModal(true);
-        if (!sharedToFeed && !sharingToFeed) {
-            handleShareToFeed();
-        }
     };
 
     const shareUrl = currentReel ? ((typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker') + '/hub/reels?id=' + currentReel.id) : '';

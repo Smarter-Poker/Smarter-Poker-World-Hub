@@ -628,13 +628,13 @@ export function ReelsViewer({ onClose }) {
 
         try {
             if (wasLiked) {
+                // DB trigger (trig_sync_like_count) handles like_count decrement atomically — no RPC needed
                 await supabase.from('social_likes').delete().eq('post_id', currentReel.id).eq('user_id', userId).eq('reaction_type', 'like');
                 busEmit.socialPostLiked(currentReel.id, userId, { added: false, reactionType: 'like' });
-                incrementMetric(currentReel, 'like_count', -1);
             } else {
+                // DB trigger (trig_sync_like_count) handles like_count increment atomically — no RPC needed
                 await supabase.from('social_likes').insert({ post_id: currentReel.id, user_id: userId, reaction_type: 'like' });
                 busEmit.socialPostLiked(currentReel.id, userId, { added: true, reactionType: 'like' });
-                incrementMetric(currentReel, 'like_count', 1);
             }
         } catch (err) {
             console.warn('Reel like persistence failed:', err.message);
@@ -687,8 +687,14 @@ export function ReelsViewer({ onClose }) {
 
     // Comment handler
     const handleOpenComments = async () => {
-        setShowCommentInput(prev => !prev);
-        if (!showCommentInput && currentReel?.id) {
+        // BUG FIX (Bug 24): stale state anti-pattern
+        // Old: setShowCommentInput(prev => !prev) then immediately check !showCommentInput
+        // This fires the data-fetch branch on BOTH open AND close clicks because
+        // showCommentInput holds the PRE-toggle value in the closure.
+        // Fix: determine intent from current value BEFORE toggling.
+        const isOpening = !showCommentInput;
+        setShowCommentInput(isOpening);
+        if (isOpening && currentReel?.id) {
             setCommentPage(0);
             try {
                 const { data } = await supabase
