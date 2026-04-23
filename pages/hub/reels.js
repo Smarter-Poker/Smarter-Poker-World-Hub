@@ -1794,6 +1794,8 @@ export default function ReelsPage() {
                                 } else {
                                     sendYouTubeCommand('pauseVideo');
                                     setIsPaused(true);
+                                    // Paused = anchor HUD (don't auto-hide)
+                                    clearTimeout(hudTimerRef.current);
                                 }
                             } else if (videoRef.current) {
                                 // Native video: toggle via DOM API
@@ -1801,6 +1803,8 @@ export default function ReelsPage() {
                                     videoRef.current.play().catch(e => console.warn('[Reels] play() failed:', e?.message));
                                 } else {
                                     videoRef.current.pause();
+                                    // Paused = anchor HUD (don't auto-hide)
+                                    clearTimeout(hudTimerRef.current);
                                 }
                             }
                         }

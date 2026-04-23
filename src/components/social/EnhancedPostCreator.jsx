@@ -17,6 +17,7 @@ import { broadcastSync, BROADCAST_TAB_ID } from '../../lib/broadcastSync';
 import { getAccessToken } from '../../lib/authUtils';
 import { compressImage, sniffMimeType } from '../../lib/socialHelpers';
 import bgUpload from '../../lib/backgroundVideoUpload';
+import ghostPost from '../../stores/ghostPostStore';
 
 import { useSupabase } from '../../providers/SupabaseProvider';
 
@@ -233,11 +234,23 @@ export const EnhancedPostCreator = ({
     setMediaFiles(prev => [...prev, ...filesToAdd]);
     setError(null);
 
+    // 🚀 PREFETCH: If user selected a video, start fetching the upload URL now.
+    // By the time they type a caption and hit "Post", the URL is already cached.
+    if (user?.id) {
+      for (const file of filesToAdd) {
+        const mime = sniffMimeType(file);
+        if (mime.startsWith('video/')) {
+          bgUpload.prefetch({ file, userId: user.id, folder: 'videos' });
+          break; // only prefetch the first video
+        }
+      }
+    }
+
     // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  }, [mediaFiles.length]);
+  }, [mediaFiles.length, user?.id]);
 
   // Remove media file
   const removeMedia = useCallback((index) => {
@@ -294,6 +307,23 @@ export const EnhancedPostCreator = ({
       // Upload media files first using direct Supabase storage
       const uploadedMedia = [];
 
+      // 👻 GHOST POST: Create optimistic placeholder in the feed for video uploads
+      const hasVideo = mediaFiles.some(f => sniffMimeType(f).startsWith('video/'));
+      let videoPreviewUrl = null;
+      if (hasVideo) {
+        // Create a blurred preview from the first video file
+        const firstVideo = mediaFiles.find(f => sniffMimeType(f).startsWith('video/'));
+        if (firstVideo) {
+          try { videoPreviewUrl = URL.createObjectURL(firstVideo); } catch (_) {}
+        }
+        ghostPost.create({
+          content: content.trim(),
+          user: user ? { id: user.id, name: user.name, avatar: user.avatar } : {},
+          videoPreviewUrl,
+          contentType: 'video',
+        });
+      }
+
       for (let i = 0; i < mediaFiles.length; i++) {
         const file = mediaFiles[i];
         const mimeType = sniffMimeType(file);
@@ -314,6 +344,8 @@ export const EnhancedPostCreator = ({
                 onProgress: ({ pct, label }) => {
                   setUploadProgress(prev => ({ ...prev, [videoIndex]: pct }));
                   setUploadStatus(prev => ({ ...prev, [videoIndex]: label }));
+                  // Update ghost post progress
+                  ghostPost.updateProgress(pct, label);
                 },
                 onComplete: ({ publicUrl, wasBackground: bg }) => {
                   wasBackground = bg;
@@ -379,6 +411,7 @@ export const EnhancedPostCreator = ({
           }
         } catch (uploadErr) {
           console.warn('Media upload failed:', uploadErr);
+          ghostPost.remove(); // Clean up ghost post on upload failure
           setError(`Upload failed: ${uploadErr.message}`);
           setIsSubmitting(false);
           return;
@@ -415,6 +448,11 @@ export const EnhancedPostCreator = ({
       busEmit.socialPostCreated(newPost?.id, user.id);
       // Cross-tab sync — refresh feed in other open tabs
       broadcastSync('smarter_poker_social_sync', { action: 'refresh_feed', tabId: BROADCAST_TAB_ID });
+
+      // 👻 Promote ghost post to real post — replaces the placeholder in the feed
+      if (hasVideo) {
+        ghostPost.promote(newPost);
+      }
 
       // ── Success UX: differs based on whether we went background ──────────
       const videoWentBackground = uploadedMedia.some(m => m.wasBackground);
@@ -464,6 +502,9 @@ export const EnhancedPostCreator = ({
       } catch (_sentryErr) { /* never let Sentry itself crash the UI */ }
 
       console.warn('[EnhancedPostCreator] Post creation error:', err);
+
+      // 👻 Remove ghost post on error
+      ghostPost.remove();
 
       // SAFETY: Robust error message extraction
       let errorMessage = 'Failed to create post';

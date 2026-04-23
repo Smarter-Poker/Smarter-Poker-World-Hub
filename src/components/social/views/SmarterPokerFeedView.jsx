@@ -16,6 +16,7 @@ import { SocialService } from '../../services/SocialService';
 import { eventBus, EventType, busEmit } from '../../engine/EventBus';
 import TrendingPosts from '../TrendingPosts';
 import FeedFilterTabs from '../FeedFilterTabs';
+import GhostPostCard from '../GhostPostCard';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 📱 LEFT SIDEBAR (Shortcuts)
@@ -479,6 +480,9 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
                         });
                     }}
                 />
+
+                {/* Ghost Post — optimistic uploading placeholder */}
+                <GhostPostCard />
 
                 {/* Reels Section (Inserted into feed) */}
                 <ReelsCarousel reels={reels} onViewAll={() => { }} currentUser={currentUser} />

@@ -37,6 +37,12 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
         // No file size limit — direct-to-Supabase handles any size
         setVideoFile(file);
         setError('');
+
+        // 🚀 PREFETCH: Start fetching the upload URL now while user types caption.
+        // By the time they hit "Upload", the URL is already cached → 0ms latency.
+        if (user?.id) {
+            bgUpload.prefetch({ file, userId: user.id, folder: 'reels' });
+        }
     };
 
     const handleUpload = async () => {

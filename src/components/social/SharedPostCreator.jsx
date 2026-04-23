@@ -140,6 +140,15 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         setUploading(true);
         setError('');
 
+        // 🚀 PREFETCH: If any selected file is a video, start fetching the upload URL now.
+        for (const file of filesToUpload) {
+            const mime = sniffMimeType(file);
+            if (mime.startsWith('video/')) {
+                bgUpload.prefetch({ file, userId: user.id, folder: 'videos' });
+                break;
+            }
+        }
+
         // ⚡ IMMEDIATE FEEDBACK — show progress bar before any async work
         setUploadProgress({ pct: 0, label: 'Preparing…' });
 

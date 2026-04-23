@@ -380,6 +380,13 @@ export function ReelsViewer({ onClose }) {
     // Haptic helper
     const haptic = (ms = 10) => { try { navigator?.vibrate?.(ms); } catch (e) { console.warn('Handled exception:', e); } };
 
+    // Reveal overlay with 2.5s auto-hide timer
+    const revealOverlay = () => {
+        setShowOverlay(true);
+        if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+        overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
+    };
+
     // Save/Bookmark handler
     const handleSave = async () => {
         if (!currentReel?.id || !currentUserId) return;
@@ -1220,44 +1227,35 @@ export function ReelsViewer({ onClose }) {
         }
         lastTapRef.current = now;
         
-        // Execute playback changes synchronously to avoid mobile Safari blocking deferred play()
-        if (!showOverlay) {
-            setShowOverlay(true);
-            if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
-            overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
-        } else {
-            // Tap while overlay visible = toggle play/pause
-            const isYT = isYouTubeUrl(currentReel?.video_url);
-            if (!isYT && videoRef.current) {
-                if (videoRef.current.paused) {
-                    const playPromise = videoRef.current.play();
-                    if (playPromise !== undefined) {
-                        playPromise.catch(e => console.warn('Play intercepted:', e));
-                    }
-                    setPaused(false);
-                    // Playing = Auto hide
-                    if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
-                    overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
-                } else {
-                    videoRef.current.pause();
-                    setPaused(true);
-                    // Paused = Anchor HUD
-                    if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+        // Single tap = reveal overlay + toggle play/pause simultaneously
+        // BUG FIX: Previously first tap only showed overlay (no play/pause toggle),
+        // requiring a second tap to actually play/pause the video.
+        revealOverlay();
+        const isYT = isYouTubeUrl(currentReel?.video_url);
+        if (!isYT && videoRef.current) {
+            if (videoRef.current.paused) {
+                const playPromise = videoRef.current.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(e => console.warn('Play intercepted:', e));
                 }
-            } else if (isYT) {
-                // YouTube: play/pause via postMessage
-                const iframe = containerRef.current?.querySelector('iframe');
-                if (iframe?.contentWindow) {
-                    if (paused) {
-                        iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
-                        setPaused(false);
-                        if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
-                        overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
-                    } else {
-                        iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }), '*');
-                        setPaused(true);
-                        if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
-                    }
+                setPaused(false);
+            } else {
+                videoRef.current.pause();
+                setPaused(true);
+                // Paused = Anchor HUD (don't auto-hide)
+                if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+            }
+        } else if (isYT) {
+            // YouTube: play/pause via postMessage
+            const iframe = containerRef.current?.querySelector('iframe');
+            if (iframe?.contentWindow) {
+                if (paused) {
+                    iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
+                    setPaused(false);
+                } else {
+                    iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }), '*');
+                    setPaused(true);
+                    if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
                 }
             }
         }
