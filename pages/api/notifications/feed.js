@@ -157,17 +157,24 @@ export default async function handler(req, res) {
             combined
                 .filter(n => n.type === 'home_group_friend_joined' || n.type === 'home_group_announcement')
                 .map(n => n.data?.group_id)
-                .filter(Boolean)
+                .filter(id => id && typeof id === 'string' && id.match(/^[0-9a-f-]{36}$/i))
         )];
 
+        // groupNameById maps id -> string name, or id -> null if group exists but has no name
+        // Use a Set to track which IDs were found vs not found at all
         let groupNameById = {};
+        let groupFoundIds = new Set();
         if (groupIds.length > 0) {
+            // BUG-36 FIX: Cast group IDs explicitly as uuid type to avoid type mismatch
             const { data: groups } = await supabase
                 .from('commander_home_groups')
                 .select('id, name')
                 .in('id', groupIds)
-                .limit(50);
-            (groups || []).forEach(g => { groupNameById[g.id] = g.name; });
+                .limit(100);
+            (groups || []).forEach(g => {
+                groupFoundIds.add(g.id);
+                groupNameById[g.id] = g.name || null;
+            });
         }
 
         // ── Phase 4: Enrich social notifications with actor profiles (server-side) ──
@@ -240,15 +247,19 @@ export default async function handler(req, res) {
                 || n.title;
 
             // BUG-28 FIX: Rewrite home_group message with real group name
-            // BUG-36 FIX: For groups that were deleted (no entry in commander_home_groups),
-            //             show a graceful generic message instead of the raw slug.
+            // BUG-36 FIX: Handle groups with null name (dev/test groups) and deleted groups.
+            //   - Group found with real name → use real name
+            //   - Group found but name is null → generic fallback (dev group)
+            //   - Group not in DB at all → generic fallback (deleted group)
             let message = n.message;
             if ((n.type === 'home_group_friend_joined' || n.type === 'home_group_announcement') && n.data?.group_id) {
-                const realGroupName = groupNameById[n.data.group_id];
+                const gid = n.data.group_id;
+                const realGroupName = groupNameById[gid];  // string or null
                 if (realGroupName) {
+                    // Group exists and has a real name
                     message = `Your friend is now in ${realGroupName} — check it out`;
                 } else {
-                    // Group was deleted or not found — avoid showing raw slug
+                    // Group not found OR found with null/empty name → avoid showing slug
                     message = 'Your friend joined a Home Game — check it out';
                 }
             }
