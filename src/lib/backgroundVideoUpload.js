@@ -245,7 +245,7 @@ const bgUpload = {
             onDismiss?.();
             // Show persistent "uploading in background" toast (stays until upload completes)
             _bgToastId = toast.action(
-                '📹 Long video uploading in the background — feel free to keep browsing!',
+                'Your Video Is Uploading Now In The Background, We Will Notify You When It\'s Complete',
                 null,   // no click action
                 'info'  // toast type
                 // no duration → persistent until completion toast replaces it

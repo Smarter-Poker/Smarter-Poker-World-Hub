@@ -61,7 +61,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         } catch (e) { console.warn('[App] Handled exception:', e); }
     }, []);
 
-    // Cleanup pending timeouts on unmount
+    // Cleanup pending timeouts + blob URLs on unmount
     useEffect(() => {
         return () => {
             if (mentionTimeout.current) clearTimeout(mentionTimeout.current);
@@ -70,6 +70,12 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
             // NOTE: Do NOT unsubscribe bgUpload here. The listener must stay alive
             // so onComplete fires and triggers the DB insert.
             // Cleanup happens via bgUpload.abort() when a new upload starts.
+            // Revoke any staged blob URLs to free memory
+            media.forEach(m => {
+                if (m.file && m.url?.startsWith('blob:')) {
+                    try { URL.revokeObjectURL(m.url); } catch (_) {}
+                }
+            });
         };
     }, []);
 
@@ -125,10 +131,14 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         setUploading(false);
     };
 
+    /**
+     * handleFiles — STAGE ONLY (instant, no freeze)
+     * Creates local blob preview URLs so user can see thumbnails and type a caption.
+     * Actual upload happens in handlePost when user taps Post.
+     */
     const handleFiles = async (e) => {
         const files = Array.from(e.target.files);
         if (!files.length) return;
-        if (uploading) return; // Prevent concurrent upload loops
         if (!user?.id) { setError('Please log in to upload media.'); return; }
 
         // Check total media limit
@@ -137,95 +147,37 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
             setError(`Maximum ${MAX_MEDIA} images/videos allowed per post`);
             return;
         }
-        const filesToUpload = files.slice(0, remaining);
+        const filesToStage = files.slice(0, remaining);
         if (files.length > remaining) {
             setError(`Only ${remaining} more file(s) can be added (max ${MAX_MEDIA})`);
         }
 
-        setUploading(true);
         setError('');
 
-        // 🚀 PREFETCH: If any selected file is a video, start fetching the upload URL now.
-        for (const file of filesToUpload) {
-            const mime = sniffMimeType(file);
-            if (mime.startsWith('video/')) {
-                bgUpload.prefetch({ file, userId: user.id, folder: 'videos' });
-                break;
-            }
-        }
-
-        // ⚡ IMMEDIATE FEEDBACK — show progress bar before any async work
-        setUploadProgress({ pct: 0, label: 'Preparing…' });
-
-        const uploaded = [];
-        for (const file of filesToUpload) {
-            // iOS Photo Library can return empty file.type — sniff from extension
+        // Stage files instantly with local blob URLs — ZERO network calls, ZERO freeze
+        const staged = [];
+        for (const file of filesToStage) {
             const mimeType = sniffMimeType(file);
             const isVideo = mimeType.startsWith('video/');
-            const folder = isVideo ? 'videos' : 'photos';
-            try {
-                if (isVideo) {
-                    // ── Background-capable video upload ───────────────────────────────
-                    // Upload starts immediately. If >10s, the bgUpload manager
-                    // dismisses any modal and shows a background toast — the user
-                    // can keep browsing and gets a clickable "Video is live!" notification.
-                    let bgUnsub = null;
-                    const videoUrl = await new Promise((resolve, reject) => {
-                        bgUnsub = bgUpload.subscribe({
-                            onProgress: ({ pct, label }) => {
-                                setUploadProgress({ pct, label });
-                            },
-                            onComplete: ({ publicUrl }) => resolve(publicUrl),
-                            onError: ({ error }) => reject(error),
-                            // SharedPostCreator is inline (no modal) — nothing to dismiss;
-                            // the persistent toast from bgUpload is sufficient UX.
-                        });
-                        bgUpload.start({ file, userId: user.id, folder }).catch(reject);
-                    });
-                    if (bgUnsub) bgUnsub();
-                    setUploadProgress({ pct: 100, label: 'Upload complete!' });
-                    uploaded.push({ type: 'video', url: videoUrl });
-                    setUploadProgress(null);
+            const localUrl = URL.createObjectURL(file);
+            staged.push({
+                type: isVideo ? 'video' : 'photo',
+                url: localUrl,
+                file,       // raw File object — uploaded in handlePost
+            });
+        }
 
-                } else {
-                    // Compress image before upload (skip GIFs, small files)
-                    const compressedFile = await compressImage(file);
-                    if (compressedFile.size > 4.5 * 1024 * 1024) {
-                        setError(`Image ${file.name.substring(0,20)}... is too large (max 4.5MB). Please choose a smaller image.`);
-                        continue;
-                    }
-                    const formData = new FormData();
-                    formData.append('file', compressedFile);
-                    formData.append('folder', folder);
-                    formData.append('prefix', user.id);
-                    const _imgToken = getAccessToken();
-                    if (!_imgToken) {
-                        setError('Authentication required — please refresh the page and try again.');
-                        continue;
-                    }
-                    const res = await fetch('/api/social/upload', {
-                        method: 'POST',
-                        headers: { Authorization: `Bearer ${_imgToken}` },
-                        body: formData,
-                    });
-                    if (!res.ok) throw new Error(`Request failed (${res.status})`);
-                    const json = await res.json();
-                    if (json.success && json.url) {
-                        uploaded.push({ type: json.type || 'photo', url: json.url });
-                    } else {
-                        console.warn('[SharedPostCreator] Upload failed:', json.error);
-                        setError('Upload failed: ' + (json.error || 'Unknown error'));
-                    }
-                }
-            } catch (err) {
-                console.warn('[SharedPostCreator] Upload error:', err);
-                setError('Upload failed: ' + err.message);
-                setUploadProgress(null);
+        setMedia(prev => [...prev, ...staged]);
+
+        // 🚀 PREFETCH: Start fetching signed URL in background while user types caption.
+        // By the time they hit Post, the URL is already cached → near-zero upload latency.
+        for (const item of staged) {
+            if (item.type === 'video') {
+                bgUpload.prefetch({ file: item.file, userId: user.id, folder: 'videos' });
+                break; // only prefetch the first video
             }
         }
-        setMedia(prev => [...prev, ...uploaded]);
-        setUploading(false);
-        setUploadProgress(null);
+
         // Reset file input so the same file can be re-selected
         if (fileRef.current) fileRef.current.value = '';
     };
@@ -366,8 +318,88 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         _submittingRef.current = true;
         if (!content.trim() && !media.length && !linkPreview && !checkInVenue) { _submittingRef.current = false; return; }
         setError('');
-        let urls = media.map(m => m.url);
-        let type = media.some(m => m.type === 'video') ? 'video' : media.length ? 'image' : 'text';
+
+        // ── STEP 1: Upload any staged files (files with .file property) ──────
+        const stagedFiles = media.filter(m => m.file);
+        let uploadedMedia = media.filter(m => !m.file); // already-uploaded items stay as-is
+
+        if (stagedFiles.length > 0) {
+            setUploading(true);
+            setUploadProgress({ pct: 0, label: 'Uploading…' });
+
+            for (const staged of stagedFiles) {
+                const isVideo = staged.type === 'video';
+                const folder = isVideo ? 'videos' : 'photos';
+                try {
+                    if (isVideo) {
+                        // ── Background-capable video upload ─────────────────────
+                        let bgUnsub = null;
+                        const videoUrl = await new Promise((resolve, reject) => {
+                            bgUnsub = bgUpload.subscribe({
+                                onProgress: ({ pct, label }) => {
+                                    setUploadProgress({ pct, label });
+                                },
+                                onComplete: ({ publicUrl }) => resolve(publicUrl),
+                                onError: ({ error }) => reject(error),
+                                // SharedPostCreator is inline — no modal to dismiss
+                            });
+                            bgUpload.start({ file: staged.file, userId: user.id, folder }).catch(reject);
+                        });
+                        if (bgUnsub) bgUnsub();
+                        // Revoke blob URL now that we have the real URL
+                        if (staged.url?.startsWith('blob:')) {
+                            try { URL.revokeObjectURL(staged.url); } catch (_) {}
+                        }
+                        uploadedMedia.push({ type: 'video', url: videoUrl });
+                    } else {
+                        // Compress image before upload
+                        const compressedFile = await compressImage(staged.file);
+                        if (compressedFile.size > 4.5 * 1024 * 1024) {
+                            setError(`Image too large (max 4.5MB). Please choose a smaller image.`);
+                            continue;
+                        }
+                        const formData = new FormData();
+                        formData.append('file', compressedFile);
+                        formData.append('folder', folder);
+                        formData.append('prefix', user.id);
+                        const _imgToken = getAccessToken();
+                        if (!_imgToken) {
+                            setError('Authentication required — please refresh the page and try again.');
+                            continue;
+                        }
+                        const res = await fetch('/api/social/upload', {
+                            method: 'POST',
+                            headers: { Authorization: `Bearer ${_imgToken}` },
+                            body: formData,
+                        });
+                        if (!res.ok) throw new Error(`Request failed (${res.status})`);
+                        const json = await res.json();
+                        if (json.success && json.url) {
+                            // Revoke blob URL
+                            if (staged.url?.startsWith('blob:')) {
+                                try { URL.revokeObjectURL(staged.url); } catch (_) {}
+                            }
+                            uploadedMedia.push({ type: json.type || 'photo', url: json.url });
+                        } else {
+                            setError('Upload failed: ' + (json.error || 'Unknown error'));
+                        }
+                    }
+                } catch (err) {
+                    console.warn('[SharedPostCreator] Upload error:', err);
+                    setError('Upload failed: ' + err.message);
+                    setUploadProgress(null);
+                    setUploading(false);
+                    _submittingRef.current = false;
+                    return; // abort post on upload failure
+                }
+            }
+            setUploadProgress(null);
+            setUploading(false);
+        }
+
+        // ── STEP 2: Create the post with uploaded URLs ───────────────────────
+        let urls = uploadedMedia.map(m => m.url);
+        let type = uploadedMedia.some(m => m.type === 'video') ? 'video' : uploadedMedia.length ? 'image' : 'text';
         let cleanContent = content;
 
         if (linkPreview && type === 'text') {
@@ -383,7 +415,8 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                 const fullUrl = youtubeMatch[0].startsWith('http') ? youtubeMatch[0] : `https://${youtubeMatch[0]}`;
                 const validation = await validateYouTubeVideo(fullUrl);
                 if (!validation.valid) {
-                    setError(`❌ ${validation.error}`);
+                    setError(`${validation.error}`);
+                    _submittingRef.current = false;
                     return;
                 }
                 urls = [fullUrl];
