@@ -599,7 +599,7 @@ export function generatePostCaption(category, profileId, clipTitle = '') {
   if (safeTitle && Math.random() < 0.60) {
     const ctx = extractTitleContext(safeTitle);
     const contextCaption = buildContextCaption(ctx, profileId);
-    if (contextCaption) return contextCaption;
+    if (contextCaption && contextCaption.trim().length >= 10) return contextCaption;
   }
 
   // Fallback: pick from category-appropriate phrase pool
@@ -608,7 +608,14 @@ export function generatePostCaption(category, profileId, clipTitle = '') {
                POST_CAPTIONS.massive_pot;
 
   const archetype = getArchetype(profileId);
-  let phrase = pick(pool, profileId);
+
+  // Min-length guard: retry up to 3x to avoid sub-10-char captions (e.g. "oof", "pain.")
+  let phrase = '';
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const candidate = pick(pool, profileId);
+    if (candidate && candidate.trim().length >= 10) { phrase = candidate; break; }
+    if (!phrase || candidate.length > phrase.length) phrase = candidate || phrase;
+  }
 
   // 12% chance: prefix with a short archetype flair word
   if (archetype.flair.length > 0 && Math.random() < 0.12) {
@@ -644,7 +651,7 @@ export function generateNewsCaption(headline, profileId, newsType = 'poker') {
   if (safeHeadline && Math.random() < 0.65) {
     const ctx = extractTitleContext(safeHeadline);
     const contextCaption = buildContextCaption(ctx, profileId);
-    if (contextCaption) return contextCaption;
+    if (contextCaption && contextCaption.trim().length >= 10) return contextCaption;
   }
 
   // Fallback: detect pool from headline
@@ -668,7 +675,13 @@ export function generateNewsCaption(headline, profileId, newsType = 'poker') {
           'not surprised honestly', 'this matters',
         ];
 
-  let phrase = pick(pool, profileId, 2);
+  // Min-length guard: retry up to 3x to avoid sub-10-char captions
+  let phrase = '';
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const candidate = pick(pool, profileId, 2);
+    if (candidate && candidate.trim().length >= 10) { phrase = candidate; break; }
+    if (!phrase || candidate.length > phrase.length) phrase = candidate || phrase;
+  }
 
   // 18% chance: add flair
   if (archetype.flair.length > 0 && Math.random() < 0.18) {

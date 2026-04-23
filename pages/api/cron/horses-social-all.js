@@ -1,12 +1,12 @@
 // HORSES SOCIAL ALL-IN-ONE CRON
 // Consolidated endpoint: runs likes, comments, and replies in sequence.
 // Replaces 3 separate crons (likes every 10min, comments every 7min, replies every 8min)
-// New schedule: every 15 minutes, drops 530 invocations per day to 96
+// Current schedule: every 2 hours — 12 runs/day
+// (was every 15 min but caused consistent 60s Vercel timeout failures)
 //
 // FIX (2026-03-29): Reduced batch sizes + added 55s hard deadline to prevent
-// 100% timeout failures (~96 500-errors/day). The HorseSocialEngine's typing
-// indicators and sleep timers were accumulating to 70-100s, exceeding the
-// 60s Vercel serverless limit.
+// timeout failures. Typing indicators and sleep timers accumulated to 70-100s,
+// exceeding the 60s Vercel serverless limit.
 
 import { likePosts, commentOnPosts, replyToComments } from '../../../src/content-engine/pipeline/HorseSocialEngine.js';
 import { processDirectMessages } from '../../../src/content-engine/pipeline/HorseMessengerEngine.js';

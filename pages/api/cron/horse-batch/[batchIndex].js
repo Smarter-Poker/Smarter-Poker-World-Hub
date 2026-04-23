@@ -44,6 +44,10 @@ async function loadClipLibrary() {
     }
 }
 
+// Module-level validation cache: avoid re-hitting YouTube oembed for the same video
+// within a single Vercel request (up to 300 HTTP calls → at most ~20 unique IDs).
+const yt_validation_cache = new Map(); // videoId → boolean
+
 // Validate YouTube video actually exists before posting
 async function validateYouTubeVideo(url) {
     if (!url) return false;
@@ -59,11 +63,15 @@ async function validateYouTubeVideo(url) {
         if (match) { videoId = match[1]; break; }
     }
     if (!videoId) return false;
-
+    // Return cached result if already validated this request
+    if (yt_validation_cache.has(videoId)) return yt_validation_cache.get(videoId);
     try {
         const response = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
-        return response.ok;
+        const result = response.ok;
+        yt_validation_cache.set(videoId, result);
+        return result;
     } catch {
+        yt_validation_cache.set(videoId, false);
         return false;
     }
 }
@@ -129,33 +137,31 @@ async function postVideoClip(horse, assignedSources, horseIndex, clipType = 'spo
             return { success: false, error: 'ClipLibrary not available' };
         }
 
+        // PERF-DB01: Build usedUrls ONCE before the loop (was re-queried up to 20x per horse)
+        const since48h = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+        const { data: recentVideos } = await getSupabase()
+            .from('social_posts')
+            .select('media_urls')
+            .eq('content_type', 'video')
+            .gte('created_at', since48h)
+            .limit(100);
+        const usedUrls = new Set();
+        (recentVideos || []).forEach(p => {
+            if (p.media_urls) p.media_urls.forEach(url => usedUrls.add(url));
+        });
+
         const maxAttempts = 20;
         for (let i = 0; i < maxAttempts; i++) {
             const candidate = getRandomClip();
             if (!candidate) continue;
 
-            const videoId = candidate.video_id || candidate.id;
             const embedUrl = convertToEmbedUrl(candidate.source_url);
-
-            const since48h = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-            const { data: recentVideos } = await getSupabase()
-                .from('social_posts')
-                .select('media_urls')
-                .eq('content_type', 'video')
-                .gte('created_at', since48h)
-                .limit(100);
-
-            const usedUrls = new Set();
-            (recentVideos || []).forEach(p => {
-                if (p.media_urls) p.media_urls.forEach(url => usedUrls.add(url));
-            });
 
             if (!usedUrls.has(embedUrl) && !usedUrls.has(candidate.source_url)) {
                 const isValid = await validateYouTubeVideo(candidate.source_url);
                 if (isValid) {
                     clip = candidate;
                     break;
-                } else {
                 }
             }
         }
