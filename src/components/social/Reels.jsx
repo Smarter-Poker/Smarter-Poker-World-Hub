@@ -1108,6 +1108,7 @@ export function ReelsViewer({ onClose }) {
                     if (iframe?.contentWindow) {
                         setPaused(prev => {
                             const cmd = prev ? 'playVideo' : 'pauseVideo';
+                            iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
                             iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: cmd, args: [] }), '*');
                             return !prev;
                         });
@@ -1276,9 +1277,11 @@ export function ReelsViewer({ onClose }) {
             const iframe = containerRef.current?.querySelector('iframe');
             if (iframe?.contentWindow) {
                 if (paused) {
+                    iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
                     iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
                     setPaused(false);
                 } else {
+                    iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
                     iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }), '*');
                     setPaused(true);
                     if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
@@ -1628,7 +1631,7 @@ export function ReelsViewer({ onClose }) {
                                 boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
                                 animation: 'fadeInScale 0.2s ease',
                             }}>
-                                <button onClick={() => { setMuted(prev => { const next = !prev; const iframe = containerRef.current?.querySelector('iframe'); if (iframe?.contentWindow) { iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: next ? 'mute' : 'unMute', args: [] }), '*'); if (!next) iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*'); } localStorage.setItem('reel-muted', String(next)); return next; }); setShowMoreMenu(false); }} style={{
+                                <button onClick={() => { setMuted(prev => { const next = !prev; const iframe = containerRef.current?.querySelector('iframe'); if (iframe?.contentWindow) { iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*'); iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: next ? 'mute' : 'unMute', args: [] }), '*'); if (!next) iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*'); } localStorage.setItem('reel-muted', String(next)); return next; }); setShowMoreMenu(false); }} style={{
                                     display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '10px 16px',
                                     background: 'none', border: 'none', color: 'white', fontSize: 14, cursor: 'pointer', textAlign: 'left',
                                 }}>
