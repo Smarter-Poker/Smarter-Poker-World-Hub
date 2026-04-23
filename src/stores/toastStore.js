@@ -9,17 +9,19 @@ export const useToastStore = create((set) => ({
     toasts: [],
 
     addToast: (toast) => {
-        const id = Date.now();
+        const id = Date.now() + Math.random();
         set((state) => ({
             toasts: [...state.toasts, { ...toast, id }],
         }));
 
-        // Auto-remove after duration
-        setTimeout(() => {
-            set((state) => ({
-                toasts: state.toasts.filter((t) => t.id !== id),
-            }));
-        }, toast.duration || 3000);
+        // Persistent toasts stay until manually dismissed
+        if (!toast.persistent) {
+            setTimeout(() => {
+                set((state) => ({
+                    toasts: state.toasts.filter((t) => t.id !== id),
+                }));
+            }, toast.duration || 3000);
+        }
 
         return id;
     },
@@ -58,6 +60,23 @@ export const toast = {
         message,
         duration,
     }),
+
+    /**
+     * Persistent clickable action toast — stays until user clicks or dismisses.
+     * @param {string} message
+     * @param {Function} onClick - Called when toast body is clicked (use for navigation)
+     * @param {'success'|'info'|'warning'|'error'} [type='success']
+     * @param {number} [duration] - Auto-dismiss after ms (omit for persistent)
+     * @returns {number} toast id
+     */
+    action: (message, onClick, type = 'success', duration) =>
+        useToastStore.getState().addToast({
+            type,
+            message,
+            onClick,
+            persistent: !duration,
+            duration,
+        }),
 };
 
 export default toast;

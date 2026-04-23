@@ -71,9 +71,10 @@ def _load_env():
 
 _load_env()
 
-SUPABASE_URL = os.environ.get('NEXT_PUBLIC_SUPABASE_URL', '')
-SUPABASE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
-CRON_SECRET  = os.environ.get('CRON_SECRET', '')
+SUPABASE_URL   = os.environ.get('NEXT_PUBLIC_SUPABASE_URL', '')
+SUPABASE_KEY   = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
+CRON_SECRET    = os.environ.get('CRON_SECRET', '')
+SLACK_WEBHOOK  = os.environ.get('SLACK_WEBHOOK_URL', '')  # optional — alert on scraper failures
 
 if not SUPABASE_URL or not SUPABASE_KEY:
     log.error('Missing SUPABASE credentials — check .env.local')
@@ -177,6 +178,39 @@ def report_to_api(summary: dict) -> None:
             pass
     except Exception as e:
         log.warning(f'Report-back to API failed (non-fatal): {e}')
+
+
+def send_failure_alert(summary: dict) -> None:
+    """
+    POST a Slack webhook alert when >= 3 creators fail in one run.
+    Requires SLACK_WEBHOOK_URL in .env.local (optional — silently skipped if absent).
+    """
+    if not SLACK_WEBHOOK:
+        return
+    try:
+        failed_sources = [
+            cr['source_id'] for cr in summary.get('creator_results', [])
+            if cr.get('error')
+        ]
+        msg = {
+            'text': (
+                f':warning: *Video Library Scraper — {summary["failed"]} creator(s) failed*\n'
+                f'Failed: `{",".join(failed_sources)}`\n'
+                f'New: {summary["total_new"]}  Found: {summary["total_found"]}  '
+                f'Elapsed: {summary.get("elapsed_s", 0):.0f}s\n'
+                f'Time: {summary["ran_at"]}'
+            )
+        }
+        data = json.dumps(msg).encode('utf-8')
+        req  = urllib.request.Request(
+            SLACK_WEBHOOK, data=data, method='POST',
+            headers={'Content-Type': 'application/json'}
+        )
+        with urllib.request.urlopen(req, timeout=10):
+            pass
+        log.info('Slack failure alert sent.')
+    except Exception as e:
+        log.warning(f'Slack alert failed (non-fatal): {e}')
 
 
 # ── Dead-video purge ─────────────────────────────────────────────────────────────
@@ -437,6 +471,11 @@ def run_scraper(dry_run: bool = False, filter_source: str | None = None,
     elapsed = (datetime.now(timezone.utc) - start).total_seconds()
     summary['elapsed_s'] = elapsed
 
+    # Send Slack alert if >= 3 creators failed
+    if summary['failed'] >= 3 and not dry_run:
+        log.warning(f'{summary["failed"]} creator failures — sending alert')
+        send_failure_alert(summary)
+
     # Backfill dates/views for any static rows that still have fake today-dates
     if not dry_run and not filter_source:
         log.info('Running post-scrape metadata backfill...')
@@ -484,12 +523,68 @@ def run_scraper(dry_run: bool = False, filter_source: str | None = None,
 
 # ── Entry point ─────────────────────────────────────────────────────────────────
 
+def refresh_views(limit: int = 50, dry_run: bool = False) -> dict:
+    """
+    Re-fetch view counts for the top N most-viewed videos.
+    Keeps popular video stats accurate without re-scraping everything.
+    Run weekly via: python3 scripts/video_library_scraper.py --refresh-views
+    """
+    log.info(f'View-count refresh: fetching top {limit} videos by views...')
+    rows = (supabase.table('video_library_videos')
+        .select('id,youtube_video_id,source_id,views_count')
+        .order('views_count', desc=True)
+        .limit(limit)
+        .execute().data or [])
+
+    log.info(f'  Refreshing {len(rows)} videos')
+    updated = failed = 0
+    BATCH = 5
+
+    for i in range(0, len(rows), BATCH):
+        batch = rows[i:i+BATCH]
+        urls  = [f'https://www.youtube.com/watch?v={v["youtube_video_id"]}' for v in batch]
+        cmd   = ['yt-dlp', '--dump-json', '--no-warnings', '--quiet', '--no-playlist'] + urls
+        try:
+            r    = subprocess.run(cmd, capture_output=True, text=True, timeout=45)
+            meta = {}
+            for line in r.stdout.strip().splitlines():
+                try:
+                    d = json.loads(line)
+                    if d.get('id'): meta[d['id']] = d
+                except Exception:
+                    pass
+
+            for row in batch:
+                vid = row['youtube_video_id']
+                d   = meta.get(vid)
+                if not d:
+                    failed += 1
+                    continue
+                vc = d.get('view_count') or 0
+                if vc and vc != row.get('views_count', 0):
+                    if not dry_run:
+                        supabase.table('video_library_videos').update({
+                            'views_count': vc,
+                            'views_text':  fmt_views(vc),
+                            'updated_at':  datetime.now(timezone.utc).isoformat(),
+                        }).eq('id', row['id']).execute()
+                    log.info(f'  [{row["source_id"]}] {vid}: {row["views_count"]:,} → {vc:,} views')
+                    updated += 1
+        except subprocess.TimeoutExpired:
+            failed += len(batch)
+        time.sleep(0.3)
+
+    log.info(f'View refresh done — updated={updated} failed={failed}')
+    return {'updated': updated, 'failed': failed}
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Video Library Daily Scraper v3')
-    parser.add_argument('--dry-run',   action='store_true', help='Fetch without DB writes')
-    parser.add_argument('--source',    type=str,            help='Only scrape one source (e.g. HCL)')
-    parser.add_argument('--purge',     action='store_true', help='Check all videos for playability and delete dead ones')
-    parser.add_argument('--backfill',  action='store_true', help='Backfill missing published_at dates and views only')
+    parser.add_argument('--dry-run',       action='store_true', help='Fetch without DB writes')
+    parser.add_argument('--source',        type=str,            help='Only scrape one source (e.g. HCL)')
+    parser.add_argument('--purge',         action='store_true', help='Check all videos for playability and delete dead ones')
+    parser.add_argument('--backfill',      action='store_true', help='Backfill missing published_at dates and views only')
+    parser.add_argument('--refresh-views', action='store_true', help='Re-fetch view counts for top 50 most-viewed videos', dest='refresh_views')
     args = parser.parse_args()
 
     if args.purge:
@@ -498,5 +593,8 @@ if __name__ == '__main__':
     elif args.backfill:
         result = backfill_metadata(limit=500)
         log.info(f'Backfill complete: {result}')
+    elif args.refresh_views:
+        result = refresh_views(limit=50, dry_run=args.dry_run)
+        log.info(f'View refresh complete: {result}')
     else:
         run_scraper(dry_run=args.dry_run, filter_source=args.source)

@@ -1,6 +1,6 @@
 /**
  * 🎨 TOAST NOTIFICATION COMPONENT
- * Animated toast notifications
+ * Animated toast notifications with optional click-to-navigate action
  */
 
 import { motion, AnimatePresence } from 'framer-motion';
@@ -45,39 +45,55 @@ export default function ToastContainer() {
             gap: 12,
         }}>
             <AnimatePresence>
-                {toasts.map((toast) => {
-                    const style = toastStyles[toast.type] || toastStyles.info;
+                {toasts.map((t) => {
+                    const style = toastStyles[t.type] || toastStyles.info;
+                    const isActionable = typeof t.onClick === 'function';
+
+                    const handleClick = () => {
+                        if (isActionable) t.onClick();
+                        removeToast(t.id);
+                    };
 
                     return (
                         <motion.div
-                            key={toast.id}
+                            key={t.id}
                             variants={toastSlideIn}
                             initial="initial"
                             animate="animate"
                             exit="exit"
+                            onClick={handleClick}
                             style={{
                                 ...style,
                                 padding: '16px 20px',
                                 borderRadius: '12px',
-                                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+                                boxShadow: isActionable
+                                    ? '0 4px 24px rgba(0,0,0,0.4), 0 0 0 2px rgba(255,255,255,0.3)'
+                                    : '0 4px 20px rgba(0,0,0,0.3)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: 12,
                                 minWidth: 300,
-                                maxWidth: 400,
-                                cursor: 'pointer',
+                                maxWidth: 420,
+                                cursor: isActionable ? 'pointer' : 'default',
+                                userSelect: 'none',
                             }}
-                            onClick={() => removeToast(toast.id)}
                         >
-                            <span style={{ fontSize: 20, fontWeight: 700 }}>{style.icon}</span>
-                            <span style={{ flex: 1, fontSize: 14, fontWeight: 600 }}>{toast.message}</span>
+                            <span style={{ fontSize: 20, fontWeight: 700, flexShrink: 0 }}>{style.icon}</span>
+                            <span style={{ flex: 1, fontSize: 14, fontWeight: 600, lineHeight: 1.4 }}>
+                                {t.message}
+                                {isActionable && (
+                                    <span style={{ display: 'block', fontSize: 11, opacity: 0.75, marginTop: 2 }}>
+                                        Tap to view →
+                                    </span>
+                                )}
+                            </span>
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    removeToast(toast.id);
+                                    removeToast(t.id);
                                 }}
                                 style={{
-                                    background: 'rgba(0, 0, 0, 0.2)',
+                                    background: 'rgba(0,0,0,0.2)',
                                     border: 'none',
                                     borderRadius: '50%',
                                     width: 24,
@@ -88,6 +104,7 @@ export default function ToastContainer() {
                                     cursor: 'pointer',
                                     fontSize: 14,
                                     color: 'inherit',
+                                    flexShrink: 0,
                                 }}
                             >
                                 ✕

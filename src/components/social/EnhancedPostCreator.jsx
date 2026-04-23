@@ -928,7 +928,7 @@ export const EnhancedPostCreator = ({
                 file={file}
                 onRemove={() => removeMedia(index)}
                 uploadProgress={uploadProgress[index]}
-                uploadStatus={uploadStatus[index]}
+                uploadStatusLabel={uploadStatus[index]}
               />
             ))}
           </div>
