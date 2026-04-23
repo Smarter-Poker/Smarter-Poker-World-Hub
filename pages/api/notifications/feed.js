@@ -282,8 +282,6 @@ export default async function handler(req, res) {
             success: true,
             notifications: enriched,
             totalUnread,
-            _v: 'wave3-bug36-v4',  // TEMP: remove after verification
-            _groupsFound: Object.keys(groupNameById).length,  // TEMP
         };
 
         // Store in server-side TTL cache (15s) — future calls on same warm instance return instantly
