@@ -85,7 +85,10 @@ export default async function handler(req, res) {
       if (!user) return;
 
       try {
-          const { fileName, fileSize, folder, prefix } = req.body || {};
+          const { fileName, fileSize, folder } = req.body || {};
+          // SECURITY: Always use the authenticated user's ID as the storage prefix.
+          // Never trust the client-supplied prefix — it could spoof another user's namespace.
+          const prefix = user.id;
           // Bucket: strict allowlist — default to social-media
           const requestedBucket = req.body?.bucket || DEFAULT_BUCKET;
           const BUCKET = ALLOWED_BUCKETS.includes(requestedBucket) ? requestedBucket : DEFAULT_BUCKET;

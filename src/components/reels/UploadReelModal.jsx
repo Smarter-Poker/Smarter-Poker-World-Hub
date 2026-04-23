@@ -25,15 +25,13 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
 
     // Mounted guard — prevents state updates after modal is unmounted by background mode
     const mountedRef = useRef(true);
-    const bgUnsubRef = useRef(null); // bgUpload listener cleanup on unmount
     useEffect(() => {
         mountedRef.current = true;
         return () => {
             mountedRef.current = false;
-            if (bgUnsubRef.current) {
-                bgUnsubRef.current();
-                bgUnsubRef.current = null;
-            }
+            // NOTE: Do NOT unsubscribe bgUpload here. The listener must stay alive
+            // so onComplete fires and triggers the DB insert (social_reels + social_posts).
+            // Cleanup happens via bgUpload.abort() when a new upload starts.
         };
     }, []);
 
@@ -99,10 +97,8 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
                     userId: user.id,
                     folder: 'reels',
                 }).catch(reject);
-                bgUnsubRef.current = bgUnsub; // Store for unmount cleanup
             });
             if (bgUnsub) bgUnsub();
-            bgUnsubRef.current = null;
 
             if (!wasBackground) {
                 setUploadProgress(94);

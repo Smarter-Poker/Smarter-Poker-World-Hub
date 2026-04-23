@@ -101,7 +101,8 @@ export default async function handler(req, res) {
           // formidable v3+ wraps fields/files in arrays
           const file = Array.isArray(files.file) ? files.file[0] : files.file;
           const folder = Array.isArray(fields.folder) ? fields.folder[0] : (fields.folder || '');
-          const prefix = Array.isArray(fields.prefix) ? fields.prefix[0] : (fields.prefix || '');
+          // SECURITY: Always use the authenticated user's ID as the storage prefix.
+          const prefix = user.id;
 
           if (!file) {
               return res.status(400).json({ success: false, error: 'No file provided' });

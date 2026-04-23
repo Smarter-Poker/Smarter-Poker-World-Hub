@@ -36,7 +36,6 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
     const mentionTimeout = useRef(null);
     const linkTimeout = useRef(null);
     const draftTimeout = useRef(null);
-    const bgUnsubRef = useRef(null);    // bgUpload listener cleanup on unmount
     const _submittingRef = useRef(false); // local double-submit guard
 
     // Identity switching
@@ -62,18 +61,15 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         } catch (e) { console.warn('[App] Handled exception:', e); }
     }, []);
 
-    // Cleanup pending timeouts + bgUpload listener on unmount
+    // Cleanup pending timeouts on unmount
     useEffect(() => {
         return () => {
             if (mentionTimeout.current) clearTimeout(mentionTimeout.current);
             if (linkTimeout.current) clearTimeout(linkTimeout.current);
             if (draftTimeout.current) clearTimeout(draftTimeout.current);
-            // Unsubscribe any lingering bgUpload listener (prevents memory leak
-            // if user navigates away mid-upload before the Promise resolves)
-            if (bgUnsubRef.current) {
-                bgUnsubRef.current();
-                bgUnsubRef.current = null;
-            }
+            // NOTE: Do NOT unsubscribe bgUpload here. The listener must stay alive
+            // so onComplete fires and triggers the DB insert.
+            // Cleanup happens via bgUpload.abort() when a new upload starts.
         };
     }, []);
 
@@ -184,11 +180,9 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                             // SharedPostCreator is inline (no modal) — nothing to dismiss;
                             // the persistent toast from bgUpload is sufficient UX.
                         });
-                        bgUnsubRef.current = bgUnsub; // Store for unmount cleanup
                         bgUpload.start({ file, userId: user.id, folder }).catch(reject);
                     });
                     if (bgUnsub) bgUnsub();
-                    bgUnsubRef.current = null;
                     setUploadProgress({ pct: 100, label: 'Upload complete!' });
                     uploaded.push({ type: 'video', url: videoUrl });
                     setUploadProgress(null);

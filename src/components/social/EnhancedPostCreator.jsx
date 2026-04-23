@@ -152,17 +152,15 @@ export const EnhancedPostCreator = ({
   const xhrRef = useRef(null);          // holds active video XHR so we can abort on unmount
   const draftTimeout = useRef(null);    // debounce handle for draft auto-save
   const mountedRef = useRef(true);      // unmount guard for background upload callbacks
-  const bgUnsubRef = useRef(null);      // bgUpload listener cleanup on unmount
 
   // Track mount lifecycle
   useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
-      if (bgUnsubRef.current) {
-        bgUnsubRef.current();
-        bgUnsubRef.current = null;
-      }
+      // NOTE: Do NOT unsubscribe bgUpload here. The listener must stay alive
+      // so onComplete fires and triggers the DB insert (social_posts).
+      // Cleanup happens via bgUpload.abort() when a new upload starts.
     };
   }, []);
 
@@ -374,14 +372,12 @@ export const EnhancedPostCreator = ({
               });
 
               bgUpload.start({ file, userId: user.id, folder }).catch(reject);
-              bgUnsubRef.current = bgUnsub; // Store for unmount cleanup
             });
 
             if (bgUnsub) bgUnsub();
-            bgUnsubRef.current = null;
             uploadedMedia.push({ url: videoUrl, type: 'video', name: file.name, wasBackground });
             
-            if (!wasBackground) {
+            if (!wasBackground && mountedRef.current) {
               setUploadProgress(prev => ({ ...prev, [videoIndex]: 100 }));
               setUploadStatus(prev => ({ ...prev, [videoIndex]: 'Done' }));
             }
@@ -457,9 +453,6 @@ export const EnhancedPostCreator = ({
         claimReward('/api/rewards/social-post', { userId: user.id, postId: newPost?.id }, 'New Post Published');
       }
 
-      // Show success animation
-      setShowSuccess(true);
-      triggerSuccessParticles();
 
       // Emit EventBus event for cross-page reactivity
       busEmit.socialPostCreated(newPost?.id, user.id);
@@ -565,7 +558,7 @@ export const EnhancedPostCreator = ({
 
       if (videoWentBackground) {
         toast.error(`❌ ${userFriendlyMessage}`);
-      } else {
+      } else if (mountedRef.current) {
         setError(userFriendlyMessage);
         setIsSubmitting(false);
       }
