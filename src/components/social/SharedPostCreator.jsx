@@ -8,7 +8,7 @@ import { useActiveIdentity } from '../../../src/contexts/ActiveIdentityContext';
 import CheckInModal from './CheckInModal';
 import TrendingVenues from './TrendingVenues';
 import { SharedAvatar as Avatar } from './SharedAvatar';
-import { MAX_MEDIA, compressImage, getYouTubeVideoId, validateYouTubeVideo, sniffMimeType, uploadVideoWithProgress, SOCIAL_COLORS as C } from '../../../src/lib/socialHelpers';
+import { MAX_MEDIA, compressImage, compressVideoIfNeeded, getYouTubeVideoId, validateYouTubeVideo, sniffMimeType, uploadVideoWithProgress, SOCIAL_COLORS as C } from '../../../src/lib/socialHelpers';
 
 export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages, authorOverride, context = 'social-media' }) {
     const [postVisibility, setPostVisibility] = useState('public');
@@ -137,6 +137,10 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
 
         setUploading(true);
         setError('');
+
+        // ⚡ IMMEDIATE FEEDBACK — show progress bar before any async work
+        setUploadProgress({ pct: 0, label: 'Preparing…' });
+
         const uploaded = [];
         for (const file of filesToUpload) {
             // iOS Photo Library can return empty file.type — sniff from extension
@@ -145,14 +149,29 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
             const folder = isVideo ? 'videos' : 'photos';
             try {
                 if (isVideo) {
-                    // Direct-to-Supabase upload for videos (bypasses Vercel body limit)
-                    setUploadProgress({ pct: 0, label: 'Preparing video upload…' });
+                    // ── Step 1: Compress video if large (>30 MB) ───────────────────
+                    // Runs at 1× playback speed — a 71s clip compresses in ~71s
+                    // but arrives 3-5× faster on mobile due to smaller size.
+                    setUploadProgress({ pct: 0, label: 'Compressing video…' });
+                    let uploadFile = file;
+                    try {
+                        uploadFile = await compressVideoIfNeeded(file, ({ pct, label }) => {
+                            setUploadProgress({ pct: Math.round(pct * 0.5), label });
+                        });
+                    } catch (compressErr) {
+                        console.warn('[SharedPostCreator] Compression failed, uploading original:', compressErr);
+                        uploadFile = file;
+                    }
+
+                    // ── Step 2: Get signed upload URL ──────────────────────────────
+                    setUploadProgress({ pct: 50, label: 'Preparing upload…' });
                     const _uploadToken = getAccessToken();
                     if (!_uploadToken) {
                         setError('Authentication required — please refresh the page and try again.');
                         setUploadProgress(null);
                         continue;
                     }
+                    const uploadMime = sniffMimeType(uploadFile);
                     const metaRes = await fetch('/api/social/upload-url', {
                         method: 'POST',
                         headers: {
@@ -160,9 +179,9 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                             Authorization: `Bearer ${_uploadToken}`,
                         },
                         body: JSON.stringify({
-                            fileName: file.name || `video_${Date.now()}.mp4`,
-                            fileSize: file.size,
-                            mimeType,
+                            fileName: uploadFile.name || `video_${Date.now()}.mp4`,
+                            fileSize: uploadFile.size,
+                            mimeType: uploadMime,
                             folder,
                             prefix: user.id,
                         }),
@@ -182,9 +201,12 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         setUploadProgress(null);
                         continue;
                     }
-                    // Use XHR for real upload progress (fetch has no upload progress API)
-                    await uploadVideoWithProgress(meta.signedUrl, file, mimeType, setUploadProgress);
-                    setUploadProgress({ pct: 100, label: 'Processing video…' });
+
+                    // ── Step 3: Upload with real progress (maps 50→100%) ──────────
+                    await uploadVideoWithProgress(meta.signedUrl, uploadFile, uploadMime, ({ pct, label }) => {
+                        setUploadProgress({ pct: 50 + Math.round(pct * 0.5), label: `Uploading… ${pct}%` });
+                    });
+                    setUploadProgress({ pct: 100, label: 'Upload complete!' });
                     uploaded.push({ type: 'video', url: meta.publicUrl });
                     setUploadProgress(null);
                 } else {

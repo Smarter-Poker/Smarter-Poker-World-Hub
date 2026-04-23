@@ -15,7 +15,7 @@ import { claimReward } from '../../lib/claimReward';
 import { busEmit } from '../../engine/EventBus';
 import { broadcastSync, BROADCAST_TAB_ID } from '../../lib/broadcastSync';
 import { getAccessToken } from '../../lib/authUtils';
-import { compressImage, sniffMimeType, uploadVideoWithProgress } from '../../lib/socialHelpers';
+import { compressImage, sniffMimeType, uploadVideoWithProgress, compressVideoIfNeeded } from '../../lib/socialHelpers';
 import { useSupabase } from '../../providers/SupabaseProvider';
 
 // File validation — uses sniffMimeType to correctly handle iOS Photo Library uploads.
@@ -64,7 +64,7 @@ const MAX_CHARS = 2000;
 // 🖼️ MEDIA PREVIEW COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
-const MediaPreview = ({ file, onRemove, uploadProgress }) => {
+const MediaPreview = ({ file, onRemove, uploadProgress, uploadStatusLabel }) => {
   const [preview, setPreview] = useState(null);
   // Use sniffMimeType so iOS MOV files (which have empty file.type) are detected as video
   const isVideo = sniffMimeType(file).startsWith('video/');
@@ -90,8 +90,11 @@ const MediaPreview = ({ file, onRemove, uploadProgress }) => {
             className="progress-ring"
             style={{ '--progress': uploadProgress }}
           >
-            <span>{uploadProgress}%</span>
+            <span className="progress-pct">{uploadProgress}%</span>
           </div>
+          {uploadStatusLabel && (
+            <span className="progress-label">{uploadStatusLabel}</span>
+          )}
         </div>
       )}
 
@@ -113,6 +116,7 @@ const MediaPreview = ({ file, onRemove, uploadProgress }) => {
   );
 };
 
+
 // ═══════════════════════════════════════════════════════════════════════════
 // ✍️ ENHANCED POST CREATOR COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
@@ -133,6 +137,8 @@ export const EnhancedPostCreator = ({
   const [visibility, setVisibility] = useState('public');
   const [mediaFiles, setMediaFiles] = useState([]);
   const [uploadProgress, setUploadProgress] = useState({});
+  // Per-file status label shown in the progress overlay (e.g. "Compressing… 45%", "Preparing…", "Uploading…")
+  const [uploadStatus, setUploadStatus] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -167,6 +173,7 @@ export const EnhancedPostCreator = ({
       if (xhrRef.current) { try { xhrRef.current.abort(); } catch (_) {} xhrRef.current = null; }
       setMediaFiles([]);
       setUploadProgress({});
+      setUploadStatus({});
       setError(null);
       setShowSuccess(false);
     }
@@ -267,6 +274,18 @@ export const EnhancedPostCreator = ({
     setIsSubmitting(true);
     setError(null);
 
+    // ⚡ IMMEDIATE FEEDBACK: show "Preparing…" for every media file right away.
+    // This eliminates the ~15-second silent gap before the signed URL comes back.
+    const immediateProgress = {};
+    const immediateStatus = {};
+    mediaFiles.forEach((f, idx) => {
+      const isVid = sniffMimeType(f).startsWith('video/');
+      immediateProgress[idx] = 0;
+      immediateStatus[idx] = isVid ? 'Preparing upload…' : 'Compressing…';
+    });
+    setUploadProgress(immediateProgress);
+    setUploadStatus(immediateStatus);
+
     try {
       const socialService = new SocialService(supabase);
 
@@ -281,14 +300,33 @@ export const EnhancedPostCreator = ({
 
         try {
           if (isVideo) {
-            // Direct-to-Supabase upload for videos (bypasses Vercel body limit)
-            setUploadProgress(prev => ({ ...prev, [i]: 0 }));
-            
+            // ── Step 1: Auth token (fast, synchronous cache hit) ──────────────
             const _uploadToken = getAccessToken();
             if (!_uploadToken) {
               throw new Error('Authentication required — please refresh the page and try again.');
             }
-            
+
+            // ── Step 2: Client-side video compression (>30MB only) ───────────
+            // Runs at real-time speed (1× playback), so a 71s video takes ~71s
+            // to compress — BUT the output is typically 70-85% smaller, making
+            // the subsequent upload 3-5× faster on mobile.
+            setUploadStatus(prev => ({ ...prev, [i]: 'Compressing video…' }));
+            let uploadFile = file;
+            try {
+              uploadFile = await compressVideoIfNeeded(file, ({ pct, label }) => {
+                setUploadProgress(prev => ({ ...prev, [i]: Math.round(pct * 0.5) })); // 0-50% = compress phase
+                setUploadStatus(prev => ({ ...prev, [i]: label }));
+              });
+            } catch (compressErr) {
+              console.warn('[VideoCompress] Compression failed, uploading original:', compressErr);
+              uploadFile = file; // never block the upload
+            }
+
+            // ── Step 3: Get signed upload URL ────────────────────────────────
+            setUploadStatus(prev => ({ ...prev, [i]: 'Preparing upload…' }));
+            setUploadProgress(prev => ({ ...prev, [i]: 50 }));
+
+            const uploadMime = sniffMimeType(uploadFile);
             const metaRes = await fetch('/api/social/upload-url', {
                 method: 'POST',
                 headers: {
@@ -296,9 +334,9 @@ export const EnhancedPostCreator = ({
                     Authorization: `Bearer ${_uploadToken}`,
                 },
                 body: JSON.stringify({
-                    fileName: file.name || `video_${Date.now()}.mp4`,
-                    fileSize: file.size,
-                    mimeType,
+                    fileName: uploadFile.name || `video_${Date.now()}.mp4`,
+                    fileSize: uploadFile.size,
+                    mimeType: uploadMime,
                     folder,
                     prefix: user.id,
                 }),
@@ -316,18 +354,23 @@ export const EnhancedPostCreator = ({
             if (!meta.signedUrl || !meta.signedUrl.startsWith('http')) {
                 throw new Error('Video upload failed: invalid upload URL received');
             }
-            
-            // Use XHR for real upload progress — expose handle for abort-on-unmount
-            await uploadVideoWithProgress(meta.signedUrl, file, mimeType, (progressObj) => {
-                setUploadProgress(prev => ({ ...prev, [i]: progressObj.pct }));
+
+            // ── Step 4: Upload via XHR with real progress ─────────────────────
+            setUploadStatus(prev => ({ ...prev, [i]: 'Uploading…' }));
+            await uploadVideoWithProgress(meta.signedUrl, uploadFile, uploadMime, (progressObj) => {
+                // Map upload phase to 50-100% of the overall progress bar
+                const mapped = 50 + Math.round(progressObj.pct * 0.5);
+                setUploadProgress(prev => ({ ...prev, [i]: mapped }));
+                setUploadStatus(prev => ({ ...prev, [i]: `Uploading… ${progressObj.pct}%` }));
             }, (xhr) => { xhrRef.current = xhr; });
             
             uploadedMedia.push({
                 url: meta.publicUrl,
                 type: 'video',
-                name: file.name
+                name: uploadFile.name
             });
             setUploadProgress(prev => ({ ...prev, [i]: 100 }));
+            setUploadStatus(prev => ({ ...prev, [i]: 'Done' }));
             
           } else {
             // Compress image before upload
@@ -414,6 +457,7 @@ export const EnhancedPostCreator = ({
         setContent('');
         setMediaFiles([]);
         setUploadProgress({});
+        setUploadStatus({});
         setShowSuccess(false);
         xhrRef.current = null;
         // Clear the saved draft on successful post
@@ -570,6 +614,7 @@ export const EnhancedPostCreator = ({
                 file={file}
                 onRemove={() => removeMedia(index)}
                 uploadProgress={uploadProgress[index]}
+                uploadStatusLabel={uploadStatus[index]}
               />
             ))}
           </div>
@@ -883,6 +928,7 @@ export const EnhancedPostCreator = ({
                 file={file}
                 onRemove={() => removeMedia(index)}
                 uploadProgress={uploadProgress[index]}
+                uploadStatus={uploadStatus[index]}
               />
             ))}
           </div>
@@ -1230,8 +1276,11 @@ export const EnhancedPostCreator = ({
           inset: 0;
           background: rgba(0, 0, 0, 0.7);
           display: flex;
+          flex-direction: column;
           align-items: center;
           justify-content: center;
+          gap: 8px;
+          padding: 8px;
         }
         
         .progress-ring {
@@ -1262,6 +1311,19 @@ export const EnhancedPostCreator = ({
           font-size: 0.75rem;
           font-weight: 600;
           color: #00FFFF;
+        }
+
+        .progress-label {
+          font-size: 0.65rem;
+          font-weight: 600;
+          color: rgba(255, 255, 255, 0.9);
+          text-align: center;
+          max-width: 90px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          letter-spacing: 0.02em;
+          text-shadow: 0 1px 3px rgba(0,0,0,0.8);
         }
         
         .remove-media-btn {
