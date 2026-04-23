@@ -921,12 +921,18 @@ export default function ReelsPage() {
         if (!user?.id) return;
         const wasLiked = commentLikes[commentId];
         setCommentLikes(prev => ({ ...prev, [commentId]: !wasLiked }));
-        // #4 Optimistic comment like count sync
+        // Optimistic comment like count sync
         setCommentLikeCounts(prev => ({ ...prev, [commentId]: Math.max(0, (prev[commentId] || 0) + (wasLiked ? -1 : 1)) }));
         try {
             if (wasLiked) {
+                // BUG FIX: .match({ metadata: { comment_id } }) does full-object JSONB equality.
+                // Use PostgREST JSON path filter .eq('metadata->>comment_id', id) instead.
                 await supabase.from('social_interactions')
-                    .delete().match({ user_id: user.id, post_id: currentReel.id, interaction_type: 'comment_like', metadata: { comment_id: commentId } });
+                    .delete()
+                    .eq('user_id', user.id)
+                    .eq('post_id', currentReel.id)
+                    .eq('interaction_type', 'comment_like')
+                    .eq('metadata->>comment_id', commentId);
             } else {
                 await supabase.from('social_interactions').insert({
                     user_id: user.id, post_id: currentReel.id,

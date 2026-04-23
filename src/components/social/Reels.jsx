@@ -100,6 +100,10 @@ export function ReelsViewer({ onClose }) {
     const [commentCounts, setCommentCounts] = useState({});
     const [saved, setSaved] = useState({});
     const [viewCounts, setViewCounts] = useState({});
+    // Infinite scroll state
+    const [hasMore, setHasMore] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [pageOffset, setPageOffset] = useState(60); // tracks next fetch offset per source
 
     // Phase 9: Long Press Context Menu
     // Named distinctly from the swipe useEffect's local handleTouchStart to prevent shadowing
@@ -540,6 +544,10 @@ export function ReelsViewer({ onClose }) {
     const goNext = () => {
         if (currentIndex < reels.length - 1) {
             setCurrentIndex(prev => prev + 1);
+            // Trigger background load when 3 reels from end
+            if (currentIndex >= reels.length - 4 && hasMore && !loadingMore) {
+                loadMoreReels();
+            }
         }
     };
 
@@ -547,6 +555,51 @@ export function ReelsViewer({ onClose }) {
         if (currentIndex > 0) {
             setCurrentIndex(prev => prev - 1);
         }
+    };
+
+    // Infinite scroll — load more reels when near end
+    const loadMoreReels = async () => {
+        if (loadingMore || !hasMore) return;
+        setLoadingMore(true);
+        try {
+            const REEL_SELECT = 'id, author_id, caption, video_url, thumbnail_url, view_count, like_count, comment_count, created_at, is_public, source_type, profiles:author_id (id, username, avatar_url, full_name)';
+            const [userRes, libRes] = await Promise.all([
+                supabase.from('social_reels').select(REEL_SELECT)
+                    .eq('is_public', true).eq('source_type', 'user')
+                    .order('created_at', { ascending: false })
+                    .range(pageOffset, pageOffset + 29),
+                supabase.from('social_reels').select(REEL_SELECT)
+                    .eq('is_public', true).eq('source_type', 'video_library')
+                    .order('created_at', { ascending: false })
+                    .range(pageOffset, pageOffset + 29),
+            ]);
+            const newReels = [
+                ...(userRes.data || []).map(r => ({ ...r, source: 'reels' })),
+                ...(libRes.data || []).map(r => ({ ...r, source: 'reels' })),
+            ];
+            if (newReels.length === 0) {
+                setHasMore(false);
+            } else {
+                const existingIds = new Set(reels.map(r => r.id));
+                const fresh = newReels.filter(r => !existingIds.has(r.id));
+                if (fresh.length === 0) {
+                    setHasMore(false);
+                } else {
+                    const lc = {}, cc = {}, vc = {};
+                    fresh.forEach(r => {
+                        lc[r.id] = r.like_count || 0;
+                        cc[r.id] = r.comment_count || 0;
+                        vc[r.id] = r.view_count || 0;
+                    });
+                    setReels(prev => [...prev, ...fresh]);
+                    setLikeCounts(prev => ({ ...prev, ...lc }));
+                    setCommentCounts(prev => ({ ...prev, ...cc }));
+                    setViewCounts(prev => ({ ...prev, ...vc }));
+                    setPageOffset(prev => prev + 30);
+                }
+            }
+        } catch (e) { console.warn('[ReelsViewer] loadMoreReels failed:', e?.message); }
+        setLoadingMore(false);
     };
 
     const handleLike = async () => {
@@ -723,12 +776,18 @@ export function ReelsViewer({ onClose }) {
         if (!currentUserId) return;
         const wasLiked = commentLikes[commentId];
         setCommentLikes(prev => ({ ...prev, [commentId]: !wasLiked }));
-        // #4 Optimistic comment like count sync
+        // Optimistic comment like count sync
         setCommentLikeCounts(prev => ({ ...prev, [commentId]: Math.max(0, (prev[commentId] || 0) + (wasLiked ? -1 : 1)) }));
         try {
             if (wasLiked) {
+                // BUG FIX: .match({ metadata: { comment_id } }) does FULL-OBJECT equality match.
+                // If metadata has extra keys it won't match. Use PostgREST JSON path filter instead.
                 await supabase.from('social_interactions')
-                    .delete().match({ user_id: currentUserId, post_id: currentReel.id, interaction_type: 'comment_like', metadata: { comment_id: commentId } });
+                    .delete()
+                    .eq('user_id', currentUserId)
+                    .eq('post_id', currentReel.id)
+                    .eq('interaction_type', 'comment_like')
+                    .eq('metadata->>comment_id', commentId);
             } else {
                 await supabase.from('social_interactions').insert({
                     user_id: currentUserId, post_id: currentReel.id,
