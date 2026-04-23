@@ -272,14 +272,13 @@ export default function ReelsPage() {
     }, []);
 
     // YouTube API: Send command to iframe via postMessage
-    // Scoped to youtube-nocookie.com to prevent cross-origin data leakage
     const sendYouTubeCommand = (command, args = []) => {
         if (iframeRef.current?.contentWindow) {
             iframeRef.current.contentWindow.postMessage(JSON.stringify({
                 event: 'command',
                 func: command,
                 args: args
-            }), 'https://www.youtube-nocookie.com');
+            }), '*');
         }
     };
 
@@ -1045,13 +1044,11 @@ export default function ReelsPage() {
         const nextIdx = (speeds.indexOf(playbackSpeed) + 1) % speeds.length;
         const newSpeed = speeds[nextIdx];
         setPlaybackSpeed(newSpeed);
-        // BUG FIX (Bug 26): use iframeRef + correct origin (not DOM query + '*')
-        // Old: document.querySelector('iframe[src*="youtube"]') with origin='*'
-        // New: iframeRef.current (the active video iframe) + 'https://www.youtube-nocookie.com'
+        // Send setPlaybackRate command via postMessage
         if (iframeRef.current?.contentWindow) {
             iframeRef.current.contentWindow.postMessage(JSON.stringify({
                 event: 'command', func: 'setPlaybackRate', args: [newSpeed]
-            }), 'https://www.youtube-nocookie.com');
+            }), '*');
         } else if (videoRef.current) {
             // Native video element - set playbackRate directly
             videoRef.current.playbackRate = newSpeed;
