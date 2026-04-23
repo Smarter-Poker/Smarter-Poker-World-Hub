@@ -145,18 +145,27 @@ function applyStyle(text, archetype) {
 // ─── Structural length variance ───────────────────────────────────────────────
 // Ensures mix of short (1-4 words), medium (5-9), and longer phrases.
 // Pool selection is seeded by horse + time so patterns shift naturally.
+// Per-horse call counter — increments monotonically, breaks timeBucket ties
+const horsePick = new Map();
+function nextPickOffset(profileId) {
+  const n = (horsePick.get(profileId) || 0) + 1;
+  horsePick.set(profileId, n);
+  return n;
+}
+
 function pickFromPool(pool, profileId, salt = 0) {
   const h = getHorseHash(profileId);
-  // Rotate seed every 4 hours so the same horse doesn't always hit the same index
+  // Rotate seed every 4 hours + monotonic per-call counter to guarantee variance
   const timeBucket = Math.floor(Date.now() / (1000 * 60 * 60 * 4));
-  const base = (h + timeBucket + salt) % pool.length;
-  // Try up to pool.length candidates, skip recently used
+  const callN = nextPickOffset(profileId);
+  const base = (h + timeBucket + salt + callN) % pool.length;
+  // Try every candidate in order, skip recently used
   for (let i = 0; i < pool.length; i++) {
-    const candidate = pool[(base + i + Math.floor(Math.random() * 3)) % pool.length];
+    const candidate = pool[(base + i) % pool.length];
     if (!isRecentlyUsed(profileId, candidate)) return candidate;
   }
-  // All used — pick by random to avoid deadlock
-  return pool[Math.floor(Math.random() * pool.length)];
+  // All used — rotate by callN to avoid always returning pool[0]
+  return pool[callN % pool.length];
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -168,14 +177,20 @@ const POST_CAPTIONS = {
   massive_pot: [
     // Short
     'stack going in', 'big money', 'pot got out of hand', 'two big hands collide',
+    'all in', 'monster pot', 'it went in', 'massive',
     // Medium
     'that pot got huge fast', 'not sure who I\'m rooting for', 'someone\'s night just changed',
     'chips were moving fast in that one', 'both players had a read — or thought they did',
     'pot size changes the math on everything', 'the swings in this game are real',
+    'the money went in fast on that one', 'when both players feel good about it',
+    'all the chips are in the middle', 'this is why people watch poker',
     // Longer
     'that\'s a lot of money in the middle for one hand', 'looked calm at the table — was not calm',
     'both ran it like they knew something the other didn\'t', 'nobody blinked. respect.',
     'the stacks got deep enough that everything after the flop was interesting',
+    'this hand changed the whole trajectory of the session',
+    'getting it all in pre is one thing — this was different',
+    'sometimes you just know going into it that it\'s going to be big',
   ],
 
   bluff: [
@@ -413,7 +428,7 @@ function pick(pool, profileId, salt = 0) {
 
 // ─── Detect content type from text ───────────────────────────────────────────
 function detectCategory(text = '') {
-  const t = text.toLowerCase();
+  const t = (text || '').toLowerCase();  // guard against explicit null
   if (t.match(/win|champion|ship|bracelet|first.place/)) return 'tournament';
   if (t.match(/bad.beat|bust|eliminat|cooler|suck.out/)) return 'bad_beat';
   if (t.match(/bluff|hero.call|fold/)) return 'bluff';
@@ -503,7 +518,7 @@ const CONTEXT_TEMPLATES = {
  * Returns { type: 'player'|'venue'|'concept'|null, value: string|null }
  */
 function extractTitleContext(title) {
-  if (!title || title.length < 3) return { type: null, value: null };
+  if (!title || typeof title !== 'string' || title.length < 3) return { type: null, value: null };
   const t = title;
 
   // 1. Check for known players
@@ -578,16 +593,18 @@ function buildContextCaption(ctx, profileId) {
  * No API calls, no cost. Deduplication built in.
  */
 export function generatePostCaption(category, profileId, clipTitle = '') {
+  // Null-guard: callers may pass explicit null
+  const safeTitle = (clipTitle && typeof clipTitle === 'string') ? clipTitle : '';
   // 60% of the time: try to generate a title-aware, contextual caption
-  if (clipTitle && Math.random() < 0.60) {
-    const ctx = extractTitleContext(clipTitle);
+  if (safeTitle && Math.random() < 0.60) {
+    const ctx = extractTitleContext(safeTitle);
     const contextCaption = buildContextCaption(ctx, profileId);
     if (contextCaption) return contextCaption;
   }
 
   // Fallback: pick from category-appropriate phrase pool
   const pool = POST_CAPTIONS[category] ||
-               POST_CAPTIONS[detectCategory(clipTitle)] ||
+               POST_CAPTIONS[detectCategory(safeTitle)] ||
                POST_CAPTIONS.massive_pot;
 
   const archetype = getArchetype(profileId);
@@ -620,16 +637,18 @@ export function generateComment(commentType, profileId) {
  */
 export function generateNewsCaption(headline, profileId, newsType = 'poker') {
   const archetype = getArchetype(profileId);
+  // Null-guard: callers may pass explicit null
+  const safeHeadline = (headline && typeof headline === 'string') ? headline : '';
 
   // 65% of the time: try to build a title-aware caption from the headline
-  if (headline && Math.random() < 0.65) {
-    const ctx = extractTitleContext(headline);
+  if (safeHeadline && Math.random() < 0.65) {
+    const ctx = extractTitleContext(safeHeadline);
     const contextCaption = buildContextCaption(ctx, profileId);
     if (contextCaption) return contextCaption;
   }
 
   // Fallback: detect pool from headline
-  const detected = detectCategory(headline);
+  const detected = detectCategory(safeHeadline);
   const pool = detected
     ? POST_CAPTIONS[detected]
     : newsType === 'sports'

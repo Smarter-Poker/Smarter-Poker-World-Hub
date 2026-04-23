@@ -57,18 +57,18 @@ from pathlib import Path
 from dotenv import load_dotenv
 from typing import Dict, List, Optional
 
-# Resolve the absolute path to the project root and load the correct .env file
+# Resolve the absolute path to the project root and load ALL env files.
+# CRITICAL: Load in REVERSE priority order (lowest first) so that higher-priority
+# files override lower-priority ones via override=True. This mirrors Next.js env
+# resolution: .env < .env.prod < .env.production.local < .env.local
+# DO NOT use break — all files must be loaded so missing keys are filled by others.
 project_root = Path(__file__).resolve().parent.parent
-env_candidates = ['.env.local', '.env.production.local', '.env.prod', '.env']
-for env_file in env_candidates:
+_env_priority = ['.env', '.env.prod', '.env.production', '.env.production.local', '.env.local']
+for env_file in _env_priority:
     env_path = project_root / env_file
     if env_path.exists():
-        load_dotenv(dotenv_path=env_path)
+        load_dotenv(dotenv_path=env_path, override=True)
         print(f"Loaded environment from {env_file}")
-        break
-
-# Optional: Fallback to regular load_dotenv if none of the above are found
-load_dotenv()
 
 # ============================================================
 # CONFIG — LOCKED IN

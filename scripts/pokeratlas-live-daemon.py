@@ -46,18 +46,18 @@ if sys.version_info >= (3, 14):
     sys.exit(1)
 from dotenv import load_dotenv
 
-# Resolve the absolute path to the project root and load the correct .env file
+# Resolve the absolute path to the project root and load ALL env files.
+# CRITICAL: Load in REVERSE priority order (lowest first) so that higher-priority
+# files override lower-priority ones via override=True. This mirrors Next.js env
+# resolution: .env < .env.prod < .env.production.local < .env.local
+# DO NOT use break — all files must be loaded so missing keys are filled by others.
 project_root = Path(__file__).resolve().parent.parent
-env_candidates = ['.env.local', '.env.production.local', '.env.prod', '.env']
-for env_file in env_candidates:
+_env_priority = ['.env', '.env.prod', '.env.production', '.env.production.local', '.env.local']
+for env_file in _env_priority:
     env_path = project_root / env_file
     if env_path.exists():
-        load_dotenv(dotenv_path=env_path)
+        load_dotenv(dotenv_path=env_path, override=True)
         print(f"Loaded environment from {env_file}")
-        break
-
-# Optional: Fallback to regular load_dotenv if none of the above are found
-load_dotenv()
 
 # ============================================================
 # CONFIG
@@ -68,8 +68,13 @@ SUPABASE_KEY = os.environ.get('SUPABASE_KEY') or os.environ.get('SUPABASE_SERVIC
 
 # ── STARTUP CREDENTIAL VALIDATION ──
 if not SUPABASE_KEY:
-    print('FATAL: SUPABASE_SERVICE_ROLE_KEY not set. Cannot write data.')
+    print(
+        'FATAL: SUPABASE_SERVICE_ROLE_KEY not set. Cannot write data.\n'
+        'Searched env files (in priority order): ' + ', '.join(_env_priority) + '\n'
+        'Found files: ' + ', '.join(str(project_root / f) for f in _env_priority if (project_root / f).exists())
+    )
     sys.exit(1)
+print(f'Supabase key resolved: {SUPABASE_KEY[:20]}...{SUPABASE_KEY[-6:]}')
 
 # Timing
 SCRAPE_INTERVAL = 900  # 15 minutes (offset 7min from Bravo via launchd start)

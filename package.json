@@ -92,7 +92,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
-    "@supabase/supabase-js": "^2.103.3",
+    "@supabase/supabase-js": "^2.104.0",
     "@tailwindcss/typography": "^0.5.19",
     "@types/react": "19.2.8",
     "autoprefixer": "^10.4.23",

@@ -29,6 +29,8 @@ const ALLOWED_TYPES = [
     'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo',
     'video/x-m4v', 'video/3gpp', 'video/3gpp2', 'video/hevc',
     'video/x-matroska',
+    'audio/webm', 'audio/ogg', 'audio/mpeg', 'audio/mp4', 'audio/wav',
+    'audio/x-m4a', 'audio/aac',
 ];
 
 // Fallback MIME sniffer — iOS Photo Library sometimes returns empty file type
@@ -39,6 +41,9 @@ const EXT_MIME_MAP = {
     hevc: 'video/hevc', mkv: 'video/x-matroska',
     jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
     gif: 'image/gif', webp: 'image/webp',
+    // Audio
+    webm_audio: 'audio/webm', ogg: 'audio/ogg', mp3: 'audio/mpeg',
+    m4a: 'audio/x-m4a', aac: 'audio/aac', wav: 'audio/wav',
 };
 
 function sniffMimeFromExt(fileName) {
@@ -104,14 +109,17 @@ export default async function handler(req, res) {
 
           // Validate file size based on type and bucket
           const isVideo = mimeType.startsWith('video/');
+          const isAudio = mimeType.startsWith('audio/');
           // Stories bucket has a 50MB hard cap (Supabase bucket config)
           const maxSize = isVideo
               ? (BUCKET === 'stories' ? MAX_STORY_VIDEO_SIZE : MAX_VIDEO_SIZE)
+              : isAudio
+              ? 25 * 1024 * 1024  // 25MB for audio files
               : MAX_IMAGE_SIZE;
           if (fileSize > maxSize) {
               const maxMB = Math.round(maxSize / 1024 / 1024);
               return res.status(400).json({
-                  success: false, error: `File too large (max ${maxMB}MB for ${isVideo ? 'video' : 'image'} in ${BUCKET})`
+                  success: false, error: `File too large (max ${maxMB}MB for ${isVideo ? 'video' : isAudio ? 'audio' : 'image'} in ${BUCKET})`
               });
           }
 
@@ -123,7 +131,7 @@ export default async function handler(req, res) {
           // Social-media: grouped by type — {type}/{prefix}/{timestamp}_{name}
           const storagePath = BUCKET === 'stories'
               ? [folder || 'stories', prefix, `${timestamp}_${safeName}`].filter(Boolean).join('/')
-              : [isVideo ? (folder || 'videos') : (folder || 'photos'), prefix, `${timestamp}_${safeName}`].filter(Boolean).join('/');
+              : [(isVideo ? (folder || 'videos') : isAudio ? (folder || 'audio') : (folder || 'photos')), prefix, `${timestamp}_${safeName}`].filter(Boolean).join('/');
 
           // Create signed upload URL (one-time use, expires in 5 minutes)
           const { data, error: signError } = await getSupabase().storage
