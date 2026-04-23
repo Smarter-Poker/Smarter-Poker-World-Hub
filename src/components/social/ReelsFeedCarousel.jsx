@@ -534,13 +534,13 @@ function ReelViewer({ reels, startIndex, onClose }) {
 
         try {
             if (wasLiked) {
+                // DB trigger (trig_sync_like_count) handles like_count atomically — no RPC needed
                 await supabase.from('social_likes').delete().eq('post_id', currentId).eq('user_id', userId).eq('reaction_type', 'like');
                 busEmit.socialPostLiked(currentId, userId, { added: false, reactionType: 'like' });
-                incrementMetric(currentReel, 'like_count', -1);
             } else {
+                // DB trigger (trig_sync_like_count) handles like_count atomically — no RPC needed
                 await supabase.from('social_likes').insert({ post_id: currentId, user_id: userId, reaction_type: 'like' });
                 busEmit.socialPostLiked(currentId, userId, { added: true, reactionType: 'like' });
-                incrementMetric(currentReel, 'like_count', 1);
             }
         } catch (err) {
             console.warn('Reel like persistence failed:', err.message);
@@ -571,8 +571,8 @@ function ReelViewer({ reels, startIndex, onClose }) {
 
         if (!wasDisliked && liked[currentId]) {
             try {
+                // DB trigger handles like_count decrement when like is removed — no RPC needed
                 await supabase.from('social_likes').delete().eq('post_id', currentId).eq('user_id', userId).eq('reaction_type', 'like');
-                incrementMetric(currentReel, 'like_count', -1);
             } catch (e) { console.warn('[ReelsFeedCarousel] Handled exception:', e); }
         }
 

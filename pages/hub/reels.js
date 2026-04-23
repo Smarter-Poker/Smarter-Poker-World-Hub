@@ -719,13 +719,13 @@ export default function ReelsPage() {
 
         try {
             if (wasLiked) {
+                // DB trigger (trig_sync_like_count) handles like_count decrement atomically — no RPC needed
                 await supabase.from('social_likes').delete().eq('post_id', postId).eq('user_id', user.id).eq('reaction_type', 'like');
                 busEmit.socialPostLiked(postId, user.id, { added: false, reactionType: 'like' });
-                incrementMetric(currentReel, 'like_count', -1);
             } else {
+                // DB trigger (trig_sync_like_count) handles like_count increment atomically — no RPC needed
                 await supabase.from('social_likes').insert({ post_id: postId, user_id: user.id, reaction_type: 'like' });
                 busEmit.socialPostLiked(postId, user.id, { added: true, reactionType: 'like' });
-                incrementMetric(currentReel, 'like_count', 1);
             }
         } catch (err) {
             setLiked(prev => ({ ...prev, [postId]: wasLiked }));
@@ -749,8 +749,8 @@ export default function ReelsPage() {
             setLiked(prev => ({ ...prev, [postId]: false }));
             setLikeCounts(prev => ({ ...prev, [postId]: Math.max(0, (prev[postId] || 0) - 1) }));
             try {
+                // DB trigger handles like_count decrement when like is removed — no RPC needed
                 await supabase.from('social_likes').delete().eq('post_id', postId).eq('user_id', user.id).eq('reaction_type', 'like');
-                incrementMetric(currentReel, 'like_count', -1);
             } catch (e) { console.warn('[App] Handled exception:', e); }
         }
         try {
