@@ -25,7 +25,7 @@
 
 import { getAccessToken } from './authUtils';
 import { sniffMimeType } from './socialHelpers';
-import toast from '../stores/toastStore';
+import toast, { useToastStore } from '../stores/toastStore';
 
 // ─── Module-level singletons ──────────────────────────────────────────────────
 let _activeXhr = null;        // XMLHttpRequest — survives modal unmount
@@ -34,6 +34,7 @@ let _state = 'idle';          // 'idle' | 'uploading' | 'background' | 'done' | 
 let _progress = 0;
 let _label = '';
 let _bgTimer = null;
+let _bgToastId = null;        // ID of the persistent "uploading in background" toast
 
 // Prefetch cache — stores the signed URL so start() can skip the network call
 let _prefetchCache = null;    // { file, userId, folder, meta, timestamp }
@@ -243,7 +244,7 @@ const bgUpload = {
             _emit('onBackground', {});
             onDismiss?.();
             // Show persistent "uploading in background" toast (stays until upload completes)
-            toast.action(
+            _bgToastId = toast.action(
                 '📹 Long video uploading in the background — feel free to keep browsing!',
                 null,   // no click action
                 'info'  // toast type
@@ -278,6 +279,11 @@ const bgUpload = {
             // ── Upload complete ───────────────────────────────────────────────
             clearTimeout(_bgTimer);
             _bgTimer = null;
+            // Dismiss the persistent background toast before showing completion
+            if (_bgToastId) {
+                useToastStore.getState().removeToast(_bgToastId);
+                _bgToastId = null;
+            }
             const wasBackground = (_state === 'background');
             _setState('done', 100, 'Upload complete!');
             _emit('onComplete', { publicUrl: meta.publicUrl, wasBackground });
@@ -291,6 +297,11 @@ const bgUpload = {
             clearTimeout(_bgTimer);
             _bgTimer = null;
             _activeXhr = null;
+            // Dismiss the persistent background toast
+            if (_bgToastId) {
+                useToastStore.getState().removeToast(_bgToastId);
+                _bgToastId = null;
+            }
             const wasBackground = (_state === 'background');
             _setState('error', 0, err.message || 'Upload failed');
             _emit('onError', { error: err });
@@ -308,6 +319,10 @@ const bgUpload = {
     abort() {
         clearTimeout(_bgTimer);
         _bgTimer = null;
+        if (_bgToastId) {
+            useToastStore.getState().removeToast(_bgToastId);
+            _bgToastId = null;
+        }
         if (_activeXhr) {
             try { _activeXhr.abort(); } catch (_) {}
             _activeXhr = null;
