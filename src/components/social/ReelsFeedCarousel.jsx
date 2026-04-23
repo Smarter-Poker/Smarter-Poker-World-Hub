@@ -227,12 +227,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
 
 
     const [currentIndex, setCurrentIndex] = useState(startIndex);
-    const [muted, setMuted] = useState(() => {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem('reel-muted') !== 'false';
-        }
-        return false;
-    });
+    const [muted, setMuted] = useState(false); // Always start with sound ON
     const [liked, setLiked] = useState({});
     const [disliked, setDisliked] = useState({});
     const [following, setFollowing] = useState({});
@@ -940,7 +935,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 }
                 // YouTube error detection: 150=age-restricted, 100=not found, 101=embed disabled
                 if (data?.event === 'onError' && data?.info) {
-                    setYtError(data.info);
+                    setYtError(Number(data.info));
                 }
             } catch { /* not a YouTube message */ }
         };
@@ -1381,7 +1376,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 {/* Author overlay */}
                 <div style={{
                     position: 'absolute', bottom: 80, left: 16, right: 16,
-                    pointerEvents: 'none',
+                    pointerEvents: showOverlay ? 'auto' : 'none',
                     opacity: showOverlay ? 1 : 0, transition: 'opacity 0.3s ease',
                 }}>
                     <Link href={`/hub/user/${currentReel.profiles?.username}`} style={{
@@ -1437,12 +1432,14 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     })()}
                 </div>
 
-                {/* Right Action Sidebar - ALWAYS VISIBLE & TOUCHABLE on mobile */}
+                {/* Right Action Sidebar - hidden by default, shown on tap */}
                 <div
                     onClick={(e) => e.stopPropagation()}
                     style={{
                         position: 'absolute', right: 12, bottom: 110, zIndex: 20,
                         display: 'flex', flexDirection: 'column', gap: 24, alignItems: 'center',
+                        opacity: showOverlay ? 1 : 0, transition: 'opacity 0.3s ease',
+                        pointerEvents: showOverlay ? 'auto' : 'none',
                     }}
                 >
                     {/* Heart - tap to like, long-press for reactions */}

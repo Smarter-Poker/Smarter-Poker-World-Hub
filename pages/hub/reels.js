@@ -54,27 +54,8 @@ export default function ReelsPage() {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState(false);
-    // BUG FIX (Bug 23): muted state now syncs with localStorage key 'reel-muted'
-    // (same key as Reels.jsx modal) so user mute preference persists across both views
-    const [muted, setMuted] = useState(() => {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem('reel-muted') !== 'false';
-        }
-        return true; // default muted until user interaction (browser autoplay policy)
-    });
-    // BUG FIX (Bug 29): userWantsSound must be consistent with muted state from localStorage
-    // Old: always true - the unmute retry loop would fight user's saved mute preference
-    const [userWantsSound, setUserWantsSound] = useState(() => {
-        if (typeof window !== 'undefined') {
-            const savedSound = localStorage.getItem('reels-sound-enabled');
-            // If they've explicitly enabled sound before, respect that
-            if (savedSound === 'true') return true;
-            // If reel-muted is 'false' (i.e. they unmuted), they want sound
-            if (localStorage.getItem('reel-muted') === 'false') return true;
-            return false; // default: no preference yet, start without pushing sound
-        }
-        return false;
-    });
+    const [muted, setMuted] = useState(false); // Always start with sound ON
+    const [userWantsSound, setUserWantsSound] = useState(true); // Sound always on by default
     // Auto-play immediately - no tap required since videos are muted (browser policy compliant)
     const [liked, setLiked] = useState({});
     const [disliked, setDisliked] = useState({});
@@ -717,6 +698,13 @@ export default function ReelsPage() {
             }
         }
     }, [currentReel?.id]);
+
+    // Auto-advance past errored YouTube videos after 3 seconds (with cleanup)
+    useEffect(() => {
+        if (!ytError) return;
+        const timer = setTimeout(() => slideToNextRef.current(), 3000);
+        return () => clearTimeout(timer);
+    }, [ytError]);
 
     const handleLike = async () => {
         if (!currentReel?.id || !user?.id) return;
@@ -1373,8 +1361,8 @@ export default function ReelsPage() {
             // Security: reject messages not from YouTube
             if (!YOUTUBE_ORIGINS.includes(e.origin)) return;
             try {
-                if (typeof e.data !== 'string') return;
-                const data = JSON.parse(e.data);
+                const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+                if (!data?.event) return;
                 if (data?.event === 'onStateChange') {
                     if (data.info === 0) slideToNextRef.current();
                     if (data.info === 1) { // Playing
@@ -1392,11 +1380,9 @@ export default function ReelsPage() {
                 }
                 // YouTube onError event — code 150 = age-restricted, 100 = not found, 101 = embed disabled
                 if (data?.event === 'onError') {
-                    const errorCode = data.info;
+                    const errorCode = Number(data.info);
                     console.warn('[Reels] YouTube error:', errorCode);
                     setYtError({ code: errorCode });
-                    // Auto-advance past errored videos after 3 seconds
-                    setTimeout(() => slideToNextRef.current(), 3000);
                 }
                 if (data?.info?.currentTime !== undefined && data?.info?.duration) {
                     const pct = (data.info.currentTime / data.info.duration) * 100;
@@ -1968,9 +1954,11 @@ export default function ReelsPage() {
                     opacity: showOverlay ? 1 : 0, transition: 'opacity 0.3s ease',
                 }} />
 
-                {/* Author info overlay - ALWAYS VISIBLE & TOUCHABLE */}
+                {/* Author info overlay - hidden by default, shown on tap */}
                 <div style={{
                     position: 'absolute', bottom: 120, left: 16, right: 80, zIndex: 100,
+                    opacity: showOverlay ? 1 : 0, transition: 'opacity 0.3s ease',
+                    pointerEvents: showOverlay ? 'auto' : 'none',
                 }}>
                     <Link href={`/hub/user/${currentReel?.profiles?.username}`} style={{
                         display: 'flex', alignItems: 'center', gap: 12,
@@ -2033,10 +2021,12 @@ export default function ReelsPage() {
                     )}
                 </div>
 
-                {/* Right Action Sidebar - ALWAYS VISIBLE & TOUCHABLE on mobile */}
+                {/* Right Action Sidebar - hidden by default, shown on tap */}
                 <div style={{
                     position: 'absolute', right: 12, bottom: 110, zIndex: 100,
                     display: 'flex', flexDirection: 'column', gap: 24, alignItems: 'center',
+                    opacity: showOverlay ? 1 : 0, transition: 'opacity 0.3s ease',
+                    pointerEvents: showOverlay ? 'auto' : 'none',
                 }}>
                     {/* Heart - tap to like, long-press for reactions */}
                     <div style={{ position: 'relative' }}>
@@ -2217,7 +2207,7 @@ export default function ReelsPage() {
                     </div>
                 </div>
 
-                {/* Floating Mute/Unmute Button - Always visible */}
+                {/* Floating Mute/Unmute Button - hidden by default, shown on tap */}
                 <button
                     onClick={() => {
                         if (muted) {
@@ -2244,6 +2234,8 @@ export default function ReelsPage() {
                         alignItems: 'center',
                         justifyContent: 'center',
                         transition: 'all 0.2s ease',
+                        opacity: showOverlay ? 1 : 0,
+                        pointerEvents: showOverlay ? 'auto' : 'none',
                     }}
                 >
                     {muted ? (

@@ -78,12 +78,7 @@ export function ReelsViewer({ onClose }) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState(false);
-    const [muted, setMuted] = useState(() => {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem('reel-muted') !== 'false';
-        }
-        return true;
-    });
+    const [muted, setMuted] = useState(false); // Always start with sound ON
     const [paused, setPaused] = useState(true); // Start true — autoplay may fail, first tap should send playVideo
     const [ytError, setYtError] = useState(null); // YouTube embed error code (150=age-restricted, 100=not found)
     const [liked, setLiked] = useState({});
@@ -335,7 +330,7 @@ export function ReelsViewer({ onClose }) {
                 }
                 // YouTube error detection: 150=age-restricted, 100=not found, 101=embed disabled
                 if (data?.event === 'onError' && data?.info) {
-                    setYtError(data.info);
+                    setYtError(Number(data.info));
                 }
             } catch { /* not a YouTube message */ }
         };
@@ -1500,10 +1495,11 @@ export function ReelsViewer({ onClose }) {
                     );
                 })()}
 
-                {/* Author info overlay - always visible */}
+                {/* Author info overlay - hidden by default, shown on tap */}
                 <div style={{
                     position: 'absolute', bottom: 80, left: 16, right: 16,
-                    zIndex: 10, pointerEvents: 'none',
+                    zIndex: 10, pointerEvents: showOverlay ? 'auto' : 'none',
+                    opacity: showOverlay ? 1 : 0, transition: 'opacity 0.3s ease',
                 }}>
                     <Link href={`/hub/user/${currentReel?.profiles?.username}`} onClick={(e) => e.stopPropagation()} style={{
                         display: 'flex', alignItems: 'center', gap: 12,
@@ -1562,12 +1558,14 @@ export function ReelsViewer({ onClose }) {
                     })()}
                 </div>
 
-                {/* Right Action Sidebar - ALWAYS VISIBLE & TOUCHABLE on mobile */}
+                {/* Right Action Sidebar - hidden by default, shown on tap */}
                 <div
                     onClick={(e) => e.stopPropagation()}
                     style={{
                         position: 'absolute', right: 12, bottom: 110, zIndex: 20,
                         display: 'flex', flexDirection: 'column', gap: 24, alignItems: 'center',
+                        opacity: showOverlay ? 1 : 0, transition: 'opacity 0.3s ease',
+                        pointerEvents: showOverlay ? 'auto' : 'none',
                     }}
                 >
                     {/* Heart - tap to like, long-press for reactions */}
