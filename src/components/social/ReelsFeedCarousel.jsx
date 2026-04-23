@@ -243,7 +243,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
     const [shareToast, setShareToast] = useState(false);
     const [showHeart, setShowHeart] = useState(false);
     const [progress, setProgress] = useState(0);
-    const [paused, setPaused] = useState(false);
+    const [paused, setPaused] = useState(true); // Start true — autoplay may fail, first tap should send playVideo
     const [likeCounts, setLikeCounts] = useState({});
     const [commentCounts, setCommentCounts] = useState({});
     const [saved, setSaved] = useState({});
@@ -967,7 +967,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
         setReelComments([]);
         setCommentText('');
         setShowOverlay(false);
-        setPaused(false);
+        setPaused(true); // New reel starts as paused — autoplay may fail, first tap should send playVideo
         setProgress(0);
         setCaptionExpanded(false);
         setShowReelGifPicker(false);

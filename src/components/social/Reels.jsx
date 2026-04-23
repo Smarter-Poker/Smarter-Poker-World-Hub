@@ -84,7 +84,7 @@ export function ReelsViewer({ onClose }) {
         }
         return true;
     });
-    const [paused, setPaused] = useState(false);
+    const [paused, setPaused] = useState(true); // Start true — autoplay may fail, first tap should send playVideo
     const [liked, setLiked] = useState({});
     const [disliked, setDisliked] = useState({});
     const [following, setFollowing] = useState({});
@@ -340,7 +340,7 @@ export function ReelsViewer({ onClose }) {
     // dep: currentIndex ONLY - we do NOT add `reels` because setReels() alone
     // should NOT trigger a play() call (the video key changes, element remounts)
     useEffect(() => {
-        setPaused(false);
+        setPaused(true); // New reel starts as paused — autoplay may fail, first tap should send playVideo
         setShowOverlay(false);
         setProgress(0);
 
