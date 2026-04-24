@@ -222,17 +222,55 @@ def make_job(path):
     return _job
 
 
+# ─── Phase 2A.2 burn-in — non-idempotent jobs that get a stagger offset ───
+# When DISPATCHER_ROLE=secondary (Hetzner during burn-in), these 3 jobs fire
+# 5 minutes later than their scheduled minute so the Mac dispatcher (primary)
+# gets first crack at acquiring settlement_locks / claiming the idempotency
+# slot. Per the Phase 2A.2 idempotence audit (.memory/context/phase-2a2-
+# idempotence-audit.md), all 3 are already idempotent — this stagger is
+# defense-in-depth per plan line 235, not a correctness requirement.
+# Removing the env var OR setting DISPATCHER_ROLE=primary restores the
+# original schedule.
+STAGGERED_JOBS = {
+    '/api/cron/auto-settlement',
+    '/api/cron/auto-settlement-distribute',
+    '/api/cron/union-rakeback',
+}
+STAGGER_MINUTES = 5
+
+
+def apply_stagger_if_secondary(path: str, kwargs: dict, role: str) -> dict:
+    """If role is 'secondary' and path is in STAGGERED_JOBS, shift minute by +5."""
+    if role != 'secondary' or path not in STAGGERED_JOBS:
+        return kwargs
+    shifted = dict(kwargs)
+    original_minute = shifted.get('minute', 0)
+    # Only shift integer minute values — wildcards/cron-expressions left alone
+    if isinstance(original_minute, int):
+        shifted['minute'] = (original_minute + STAGGER_MINUTES) % 60
+    return shifted
+
+
 def main():
+    role = os.environ.get('DISPATCHER_ROLE', 'primary').strip().lower()
+    if role not in ('primary', 'secondary'):
+        log.warning(f"DISPATCHER_ROLE='{role}' not recognized, defaulting to 'primary'")
+        role = 'primary'
+
     log.info('=' * 60)
-    log.info('OpenClaw Cron Dispatcher v1.0 starting up')
-    log.info(f'Base URL: {BASE_URL}')
+    log.info('OpenClaw Cron Dispatcher v1.1 starting up')
+    log.info(f'Base URL:        {BASE_URL}')
+    log.info(f'Dispatcher role: {role}')
+    if role == 'secondary':
+        log.info(f'Stagger active:  +{STAGGER_MINUTES} min on {len(STAGGERED_JOBS)} non-idempotent jobs')
     log.info(f'Managing {len(OVERFLOW_CRONS)} overflow Vercel cron jobs')
     log.info('=' * 60)
 
     scheduler = BlockingScheduler(timezone='UTC')
 
     for path, trigger_kwargs in OVERFLOW_CRONS:
-        trigger = CronTrigger(**trigger_kwargs)
+        effective_kwargs = apply_stagger_if_secondary(path, trigger_kwargs, role)
+        trigger = CronTrigger(**effective_kwargs)
         scheduler.add_job(
             make_job(path),
             trigger=trigger,
@@ -241,7 +279,8 @@ def main():
             misfire_grace_time=300,   # 5 min grace — if Mac was asleep, still fire
             coalesce=True,            # Don't stack if behind
         )
-        log.info(f'  Registered: {path}  [{trigger_kwargs}]')
+        staggered = ' [STAGGERED]' if effective_kwargs != trigger_kwargs else ''
+        log.info(f'  Registered: {path}  [{effective_kwargs}]{staggered}')
 
     log.info('Scheduler ready. Waiting for triggers...')
     try:
