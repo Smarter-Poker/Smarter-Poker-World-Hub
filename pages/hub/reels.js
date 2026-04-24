@@ -102,7 +102,6 @@ export default function ReelsPage() {
     const [loadingMore, setLoadingMore] = useState(false);
     const [viewCounts, setViewCounts] = useState({});
     const [videoProgress, setVideoProgress] = useState(0);
-    const overlayTimerRef = useRef(null);
     const viewedReelsRef = useRef(new Set());
     const [refreshing, setRefreshing] = useState(false);
     // #4 Not Interested - persist disliked reel IDs in localStorage
@@ -1463,7 +1462,6 @@ export default function ReelsPage() {
             eventBus.off(EventType.SOCIAL_POST_BOOKMARKED, handleBookmarkBus);
             eventBus.off(EventType.SOCIAL_COMMENT_ADDED, handleCommentBus);
             eventBus.off(EventType.SOCIAL_FOLLOW_CHANGED, handleFollowBus);
-            clearTimeout(overlayTimerRef.current);
             clearTimeout(hudTimerRef.current);
         };
     }, [user?.id]);

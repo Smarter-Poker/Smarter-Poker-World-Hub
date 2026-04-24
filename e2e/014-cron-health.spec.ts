@@ -36,22 +36,24 @@ test.describe('Critical Infrastructure Health', () => {
   });
 });
 
-// ── Middleware Security (must be 403 without x-admin-secret) ───────────
+// ── Middleware Security (401/403 without x-admin-secret) ───────────────
+// middleware.ts returns 401 when header is absent, 403 when present-but-invalid.
+// Either proves the route is gated. See middleware.ts lines 125/141.
 test.describe('Middleware Protection', () => {
-  test('GET /api/admin/health returns 403 without secret', async ({ request }) => {
+  test('GET /api/admin/health gated without secret', async ({ request }) => {
     const res = await request.get(`${BASE}/api/admin/health`);
-    expect(res.status()).toBe(403);
+    expect([401, 403]).toContain(res.status());
   });
 
-  test('GET /api/debug returns 403 without secret', async ({ request }) => {
+  test('GET /api/debug gated without secret', async ({ request }) => {
     const res = await request.get(`${BASE}/api/debug`);
-    // 403 or 404 both acceptable (403 = middleware blocked, 404 = no route)
-    expect([403, 404]).toContain(res.status());
+    // 401/403 = middleware blocked; 404 = no catch-all route under /api/debug
+    expect([401, 403, 404]).toContain(res.status());
   });
 
-  test('GET /api/emergency returns 403 without secret', async ({ request }) => {
+  test('GET /api/emergency gated without secret', async ({ request }) => {
     const res = await request.get(`${BASE}/api/emergency`);
-    expect([403, 404]).toContain(res.status());
+    expect([401, 403, 404]).toContain(res.status());
   });
 });
 

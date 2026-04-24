@@ -75,10 +75,17 @@ test.describe('Smoke Tests — Demo Pages', () => {
 
 test.describe('Smoke Tests — Error Pages', () => {
   test('500 page exists', async ({ page }) => {
-    // /500 is a Next.js convention — verify the custom 500 page renders
+    // /500 is a Next.js convention — verify the custom 500 page renders.
+    // The page itself returns HTTP 500 because that's the semantic status for
+    // a server-error page. We care that it RENDERS (not crashes), so we check
+    // the status is a valid response (200 or 500 both acceptable) and that
+    // DOM content exists. The pre-2026-04-24 assertion of < 500 was wrong —
+    // it expected a content page to serve at HTTP 200, but Next.js intentionally
+    // serves /500.js with status 500 to preserve HTTP semantics for monitors.
     const response = await page.goto('/500');
-    // 500.js exists as a page file, should render (status may vary)
-    expect(response?.status()).toBeLessThan(500);
+    expect([200, 500]).toContain(response?.status() ?? 0);
+    const html = await page.content();
+    expect(html).toContain('__next'); // Next.js rendered (didn't just die)
   });
 
   test('clear-cache page loads', async ({ page }) => {
