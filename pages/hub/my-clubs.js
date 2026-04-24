@@ -435,6 +435,7 @@ export default function MyClubsPage() {
     // Followed clubs data
     const [followedVenues, setFollowedVenues] = useState([]);
     const [arenaClubs, setArenaClubs] = useState([]);
+    const [homeGroups, setHomeGroups] = useState([]);
     const [followedIds, setFollowedIds] = useState(new Set());
     const [followedPageKeys, setFollowedPageKeys] = useState(new Set());
 
@@ -579,22 +580,36 @@ export default function MyClubsPage() {
 
 
 
-            // Fetch Club Arena memberships (uses Supabase directly)
+            // Fetch Club Arena memberships + Home Groups (parallel)
             if (authUser?.id) {
-                try {
-                    const { data: memberships } = await supabase
+                const [arenaResult, hgResult] = await Promise.allSettled([
+                    supabase
                         .from('club_members')
                         .select('club_id, role, clubs(*)')
                         .eq('user_id', authUser.id)
                         .eq('status', 'active')
-                        .limit(50) // my clubs list;
-                    if (memberships && memberships.length > 0) {
-                        const clubs = memberships
-                            .map(m => ({ ...m.clubs, userRole: m.role }))
-                            .filter(c => c && c.name);
-                        setArenaClubs(clubs);
-                    }
-                } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+                        .limit(50),
+                    supabase
+                        .from('home_game_members')
+                        .select('role, home_game_groups!inner(id, name, slug, city, state, profile_photo_url, default_game_type, default_stakes)')
+                        .eq('user_id', authUser.id)
+                        .eq('status', 'active')
+                        .limit(50),
+                ]);
+
+                if (arenaResult.status === 'fulfilled' && arenaResult.value?.data?.length > 0) {
+                    const clubs = arenaResult.value.data
+                        .map(m => ({ ...m.clubs, userRole: m.role }))
+                        .filter(c => c && c.name);
+                    setArenaClubs(clubs);
+                }
+
+                if (hgResult.status === 'fulfilled' && hgResult.value?.data?.length > 0) {
+                    const groups = hgResult.value.data
+                        .map(m => ({ ...m.home_game_groups, userRole: m.role }))
+                        .filter(g => g && g.name);
+                    setHomeGroups(groups);
+                }
             }
 
             setLoading(false);
@@ -817,7 +832,7 @@ export default function MyClubsPage() {
                                 transition: 'all 0.2s ease',
                             }}
                         >
-                            My Clubs {(followedVenues.length + arenaClubs.length) > 0 && `(${followedVenues.length + arenaClubs.length})`}
+                            My Clubs {(followedVenues.length + arenaClubs.length + homeGroups.length) > 0 && `(${followedVenues.length + arenaClubs.length + homeGroups.length})`}
                         </button>
                         <button
                             onClick={() => setActiveTab('discover')}
@@ -901,6 +916,76 @@ export default function MyClubsPage() {
                                                     onNavigate={(clubId) => { router.push(`/hub/club-arena?club=${clubId}`); }}
                                                 />
                                             ))}
+                                        </>
+                                    )}
+
+                                    {/* ── Home Groups Section ── */}
+                                    {homeGroups.length > 0 && (
+                                        <>
+                                            <div style={{
+                                                display: 'flex', alignItems: 'center', gap: 12,
+                                                marginTop: (followedVenues.length > 0 || arenaClubs.length > 0) ? 24 : 0,
+                                                paddingTop: (followedVenues.length > 0 || arenaClubs.length > 0) ? 20 : 0,
+                                                borderTop: (followedVenues.length > 0 || arenaClubs.length > 0) ? `1px solid ${C.elevated}` : 'none',
+                                            }}>
+                                                <div style={{
+                                                    width: 28, height: 28, borderRadius: 8,
+                                                    background: 'linear-gradient(135deg, #0d9488, #06b6d4)',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    fontSize: 13, color: '#fff', fontWeight: 700,
+                                                }}>🏠</div>
+                                                <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>
+                                                    Home Games
+                                                </span>
+                                                <span style={{
+                                                    fontSize: 11, fontWeight: 600, color: '#0d9488',
+                                                    padding: '2px 8px', borderRadius: 12,
+                                                    background: 'rgba(13,148,136,0.12)',
+                                                }}>{homeGroups.length}</span>
+                                            </div>
+                                            {homeGroups.map(group => {
+                                                const isHost = ['host', 'co_host', 'admin'].includes(group.userRole);
+                                                return (
+                                                    <div
+                                                        key={`hg-${group.id}`}
+                                                        onClick={() => router.push(
+                                                            isHost
+                                                                ? `/hub/home-games/${group.slug || group.id}/dashboard`
+                                                                : `/hub/home-games/${group.slug || group.id}`
+                                                        )}
+                                                        style={{
+                                                            background: C.surface,
+                                                            border: `2px solid ${isHost ? 'rgba(13,148,136,0.35)' : C.border}`,
+                                                            borderRadius: 12, padding: 16, cursor: 'pointer',
+                                                            display: 'flex', alignItems: 'center', gap: 14,
+                                                            transition: 'all 0.2s ease',
+                                                        }}
+                                                        onMouseEnter={e => e.currentTarget.style.background = C.elevated}
+                                                        onMouseLeave={e => e.currentTarget.style.background = C.surface}
+                                                    >
+                                                        {group.profile_photo_url ? (
+                                                            <img src={group.profile_photo_url} alt="" style={{ width: 44, height: 44, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
+                                                        ) : (
+                                                            <div style={{ width: 44, height: 44, borderRadius: 10, flexShrink: 0, background: 'linear-gradient(135deg,#0d9488,#06b6d4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 18 }}>🏠</div>
+                                                        )}
+                                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                                            <div style={{ fontWeight: 700, fontSize: 15, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{group.name}</div>
+                                                            <div style={{ fontSize: 12, color: C.textSec, marginTop: 2 }}>
+                                                                {[group.city, group.state].filter(Boolean).join(', ')}
+                                                                {group.default_game_type && ` · ${group.default_game_type.toUpperCase()}`}
+                                                                {group.default_stakes && ` · ${group.default_stakes}`}
+                                                            </div>
+                                                        </div>
+                                                        <span style={{
+                                                            fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase',
+                                                            padding: '3px 8px', borderRadius: 10, flexShrink: 0,
+                                                            background: isHost ? 'rgba(13,148,136,0.15)' : 'rgba(6,182,212,0.1)',
+                                                            border: `1px solid ${isHost ? 'rgba(13,148,136,0.5)' : 'rgba(6,182,212,0.3)'}`,
+                                                            color: isHost ? '#0d9488' : '#06b6d4',
+                                                        }}>{isHost ? 'Host' : 'Member'}</span>
+                                                    </div>
+                                                );
+                                            })}
                                         </>
                                     )}
                                 </div>

@@ -1012,8 +1012,8 @@ function NotificationsPage() {
                     )}
                 </div>
 
-                {/* Bottom padding for mobile nav */}
-                <div style={{ height: isInIframe ? 20 : 80 }} />
+                {/* Bottom padding for mobile nav — CSS .notifications-page handles 70px clearance for non-iframe */}
+                <div style={{ height: isInIframe ? 20 : 0 }} />
             </div>
               {!isInIframe && <BottomNavBar />}
     </PageTransition>

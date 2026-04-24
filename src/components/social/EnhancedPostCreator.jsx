@@ -763,6 +763,21 @@ export const EnhancedPostCreator = ({
         {error && <div className="error-inline">⚠️ {error}</div>}
 
         {/* Divider */}
+        {preparingMedia && (
+          <div style={{
+              padding: '10px 12px', background: 'linear-gradient(135deg, #E8F4FD, #D4E9F7)',
+              borderRadius: 6, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8
+          }}>
+              <div style={{
+                  width: 16, height: 16, border: '2.5px solid #1877F2', borderTopColor: 'transparent',
+                  borderRadius: '50%', animation: 'spin 0.8s linear infinite'
+              }} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#1877F2' }}>
+                  Preparing Your Video — This May Take A Moment...
+              </span>
+              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          </div>
+        )}
         <div className="inline-divider" />
 
         {/* Actions Row */}
@@ -1078,6 +1093,23 @@ export const EnhancedPostCreator = ({
         {error && (
           <div className="error-message">
             ⚠️ {error}
+          </div>
+        )}
+
+        {/* Preparing Media Indicator */}
+        {preparingMedia && (
+          <div style={{
+              padding: '10px 12px', background: 'rgba(24,119,242,0.1)',
+              borderRadius: 6, margin: '0 16px 12px', display: 'flex', alignItems: 'center', gap: 8
+          }}>
+              <div style={{
+                  width: 16, height: 16, border: '2.5px solid #1877F2', borderTopColor: 'transparent',
+                  borderRadius: '50%', animation: 'spin 0.8s linear infinite'
+              }} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#1877F2' }}>
+                  Preparing Your Video — This May Take A Moment...
+              </span>
+              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
           </div>
         )}
 
