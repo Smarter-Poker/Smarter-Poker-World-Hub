@@ -65,3 +65,17 @@ Phase 2B.2 — (a) set up Hetzner private network OR Caddy reverse proxy,
 then (b) port remaining cron handlers from monolith `pages/api/cron/`
 into `src/routes/` in the workers repo (16/53 already ported per
 phase-2b2-wrap-14-of-16.md).
+
+## 2B.2(a) Update — Private network wired (2026-04-24T16:51:44Z)
+- Hetzner network `smarter-poker-internal` (id=12159885, 10.0.0.0/16) linking openclaw + workers
+- openclaw private IP: 10.0.0.2
+- workers  private IP: 10.0.0.3
+- Container rebound: 0.0.0.0:8081 (was 127.0.0.1:8081)
+- UFW: allow from 10.0.0.0/16 to port 8081/tcp; public 8081 still blocked
+- ALLOWED_CRON_IPS now: 10.0.0.2,178.104.160.250,127.0.0.1
+
+### Gate verification (RED)
+- 8b openclaw→workers /health: PASS
+- 8c openclaw→workers /cron/_scaffold-ping authed: FAIL
+- 8d openclaw→workers unauthed → 401: FAIL
+- 8e Mac→workers public → blocked: PASS
