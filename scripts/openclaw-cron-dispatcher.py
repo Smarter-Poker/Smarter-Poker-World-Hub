@@ -232,9 +232,15 @@ def make_job(path):
 # Removing the env var OR setting DISPATCHER_ROLE=primary restores the
 # original schedule.
 STAGGERED_JOBS = {
+    # Monday-morning money movement (see .memory/context/phase-2a2-idempotence-audit.md)
     '/api/cron/auto-settlement',
     '/api/cron/auto-settlement-distribute',
     '/api/cron/union-rakeback',
+    # Notification jobs where a read/compute/write race could duplicate
+    # user-facing sends (SMS + push). Covered in
+    # .memory/context/phase-2a2-full-cron-audit.md.
+    '/api/cron/venue-game-alerts',     # hourly, 4h cooldown via alert.last_triggered
+    '/api/cron/scraper-watchdog',      # every 2h, SMS via Twilio + push via OneSignal
 }
 STAGGER_MINUTES = 5
 
