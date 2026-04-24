@@ -10,6 +10,7 @@ import { useState, useRef, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { sniffMimeType } from '../../lib/socialHelpers';
 import bgUpload from '../../lib/backgroundVideoUpload';
+import { validateVideoFile, generateThumbnail, compressVideo } from '../../lib/videoCompressor';
 import toast from '../../stores/toastStore';
 
 
@@ -22,16 +23,21 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
     const [caption, setCaption] = useState('');
     const [videoFile, setVideoFile] = useState(null);
     const [error, setError] = useState('');
+    const [thumbnail, setThumbnail] = useState(null);
+    const [compressPct, setCompressPct] = useState(null);
 
     // Mounted guard — prevents state updates after modal is unmounted by background mode
     const mountedRef = useRef(true);
+    const compressionRef = useRef(null); // { controller, promise, result }
     useEffect(() => {
         mountedRef.current = true;
         return () => {
             mountedRef.current = false;
-            // NOTE: Do NOT unsubscribe bgUpload here. The listener must stay alive
-            // so onComplete fires and triggers the DB insert (social_reels + social_posts).
-            // Cleanup happens via bgUpload.abort() when a new upload starts.
+            // Abort any running background compression
+            if (compressionRef.current?.controller) {
+                try { compressionRef.current.controller.abort(); } catch (_) {}
+                compressionRef.current = null;
+            }
         };
     }, []);
 
@@ -46,12 +52,52 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
             return;
         }
 
-        // No file size limit — direct-to-Supabase handles any size
+        // ── Client-side file size validation ──
+        const validation = validateVideoFile(file);
+        if (!validation.valid) {
+            setError(validation.error);
+            return;
+        }
+        if (validation.warning) {
+            toast.info(validation.warning, 5000);
+        }
+
         setVideoFile(file);
         setError('');
+        setThumbnail(null);
+        setCompressPct(null);
 
-        // 🚀 PREFETCH: Start fetching the upload URL now while user types caption.
-        // By the time they hit "Upload", the URL is already cached → 0ms latency.
+        // ── Background processing while user types caption ──
+
+        // 1. Auto-thumbnail generation
+        generateThumbnail(file).then(thumb => {
+            if (!mountedRef.current || !thumb) return;
+            setThumbnail(thumb);
+        });
+
+        // 2. Background compression for large videos
+        if (compressionRef.current?.controller) {
+            compressionRef.current.controller.abort();
+        }
+        const controller = new AbortController();
+        const compPromise = compressVideo(file, {
+            signal: controller.signal,
+            onProgress: ({ pct }) => {
+                if (!mountedRef.current) return;
+                setCompressPct(pct);
+            },
+        }).then(result => {
+            if (compressionRef.current) compressionRef.current.result = result;
+            if (result.compressed && mountedRef.current) {
+                const savedMB = Math.round((result.originalSize - result.compressedSize) / (1024 * 1024));
+                toast.success(`Video compressed \u2014 saved ${savedMB}MB (${result.savings}% smaller)`, 3000);
+            }
+            if (mountedRef.current) setCompressPct(null);
+            return result;
+        });
+        compressionRef.current = { controller, promise: compPromise, result: null };
+
+        // 3. Signed URL prefetch
         if (user?.id) {
             bgUpload.prefetch({ file, userId: user.id, folder: 'reels' });
         }
@@ -68,15 +114,25 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
         setUploadLabel('Preparing…');
 
         try {
-            // bgUpload: signed URL + XHR with 10-second background rule.
-            // wasBackground = true if modal was auto-dismissed before upload finished.
+            // ── Use compressed file if background compression finished ──
+            let fileToUpload = videoFile;
+            if (compressionRef.current?.promise) {
+                try {
+                    const result = compressionRef.current.result || await Promise.race([
+                        compressionRef.current.promise,
+                        new Promise(r => setTimeout(() => r({ file: videoFile, compressed: false }), 500)),
+                    ]);
+                    if (result.compressed) fileToUpload = result.file;
+                } catch (_) { /* use original */ }
+            }
+
             let bgUnsub = null;
             let wasBackground = false;
 
             const publicUrl = await new Promise((resolve, reject) => {
                 bgUnsub = bgUpload.subscribe({
                     onProgress: ({ pct, label }) => {
-                        if (!mountedRef.current) return; // Guard: modal may be unmounted
+                        if (!mountedRef.current) return;
                         setUploadProgress(pct);
                         setUploadLabel(label);
                     },
@@ -86,19 +142,18 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
                     },
                     onError: ({ error }) => reject(error),
                     onBackground: () => {
-                        // Upload taking >10s — close modal so user can browse freely.
-                        // bgUpload shows the persistent "uploading in background" info toast.
                         onClose?.();
                     },
                 });
 
                 bgUpload.start({
-                    file: videoFile,
+                    file: fileToUpload,
                     userId: user.id,
                     folder: 'reels',
                 }).catch(reject);
             });
             if (bgUnsub) bgUnsub();
+            compressionRef.current = null;
 
             if (!wasBackground) {
                 setUploadProgress(94);
@@ -203,6 +258,24 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
                             {videoFile ? `📹 ${videoFile.name} (${fileSizeMB}MB)` : '📹 Choose Video'}
                         </label>
                     </div>
+
+                    {/* Video Thumbnail Preview */}
+                    {thumbnail && (
+                        <div style={{ marginBottom: 16, borderRadius: 12, overflow: 'hidden', position: 'relative' }}>
+                            <img src={thumbnail} alt="Video preview" style={{ width: '100%', height: 'auto', display: 'block' }} />
+                            {compressPct != null && (
+                                <div style={{
+                                    position: 'absolute', bottom: 8, left: 8, right: 8,
+                                    background: 'rgba(0,0,0,0.7)', borderRadius: 6, padding: '4px 8px',
+                                }}>
+                                    <div style={{ color: '#42B72A', fontSize: 10, marginBottom: 2 }}>Compressing… {compressPct}%</div>
+                                    <div style={{ height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.2)', overflow: 'hidden' }}>
+                                        <div style={{ height: '100%', background: '#42B72A', width: `${compressPct}%`, transition: 'width 0.3s' }} />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* Caption Input */}
                     <textarea

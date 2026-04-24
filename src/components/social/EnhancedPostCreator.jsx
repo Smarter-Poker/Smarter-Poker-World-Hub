@@ -17,6 +17,7 @@ import { broadcastSync, BROADCAST_TAB_ID } from '../../lib/broadcastSync';
 import { getAccessToken } from '../../lib/authUtils';
 import { compressImage, sniffMimeType } from '../../lib/socialHelpers';
 import bgUpload from '../../lib/backgroundVideoUpload';
+import { validateVideoFile, generateThumbnail, compressVideo } from '../../lib/videoCompressor';
 import ghostPost from '../../stores/ghostPostStore';
 
 import { useSupabase } from '../../providers/SupabaseProvider';
@@ -67,16 +68,18 @@ const MAX_CHARS = 2000;
 // 🖼️ MEDIA PREVIEW COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
-const MediaPreview = ({ file, onRemove, uploadProgress, uploadStatusLabel }) => {
+const MediaPreview = ({ file, onRemove, uploadProgress, uploadStatusLabel, thumbnail }) => {
   const [preview, setPreview] = useState(null);
   // Use sniffMimeType so iOS MOV files (which have empty file.type) are detected as video
   const isVideo = sniffMimeType(file).startsWith('video/');
 
   useEffect(() => {
+    // Use thumbnail if available (lighter than <video>), otherwise create blob URL
+    if (thumbnail) { setPreview(thumbnail); return; }
     const url = URL.createObjectURL(file);
     setPreview(url);
     return () => URL.revokeObjectURL(url);
-  }, [file]);
+  }, [file, thumbnail]);
 
   return (
     <div className="media-preview-item">
@@ -152,6 +155,9 @@ export const EnhancedPostCreator = ({
   const xhrRef = useRef(null);          // holds active video XHR so we can abort on unmount
   const draftTimeout = useRef(null);    // debounce handle for draft auto-save
   const mountedRef = useRef(true);      // unmount guard for background upload callbacks
+  const compressionRef = useRef({});    // { [fileIndex]: { controller, promise, result } }
+  const thumbnailRef = useRef({});      // { [fileIndex]: dataUrl }
+  const [thumbnails, setThumbnails] = useState({});
 
   // Track mount lifecycle
   useEffect(() => {
@@ -161,6 +167,11 @@ export const EnhancedPostCreator = ({
       // NOTE: Do NOT unsubscribe bgUpload here. The listener must stay alive
       // so onComplete fires and triggers the DB insert (social_posts).
       // Cleanup happens via bgUpload.abort() when a new upload starts.
+      // Abort any running background compressions
+      Object.values(compressionRef.current).forEach(c => {
+          try { c.controller?.abort(); } catch (_) {}
+      });
+      compressionRef.current = {};
     };
   }, []);
 
@@ -246,15 +257,52 @@ export const EnhancedPostCreator = ({
     setMediaFiles(prev => [...prev, ...filesToAdd]);
     setError(null);
 
-    // 🚀 PREFETCH: If user selected a video, start fetching the upload URL now.
-    // By the time they type a caption and hit "Post", the URL is already cached.
+    // 🚀 PREFETCH + BACKGROUND PROCESSING
     if (user?.id) {
-      for (const file of filesToAdd) {
+      const startIdx = mediaFiles.length; // index offset for new files
+      for (let j = 0; j < filesToAdd.length; j++) {
+        const file = filesToAdd[j];
         const mime = sniffMimeType(file);
-        if (mime.startsWith('video/')) {
-          bgUpload.prefetch({ file, userId: user.id, folder: 'videos' });
-          break; // only prefetch the first video
-        }
+        if (!mime.startsWith('video/')) continue;
+        const fileIdx = startIdx + j;
+
+        // Large file warning
+        const validation = validateVideoFile(file);
+        if (validation.warning) toast.info(validation.warning, 5000);
+
+        // Auto-thumbnail generation
+        generateThumbnail(file).then(thumb => {
+            if (!mountedRef.current || !thumb) return;
+            setThumbnails(prev => ({ ...prev, [fileIdx]: thumb }));
+        });
+
+        // Background compression for large videos
+        const controller = new AbortController();
+        const compPromise = compressVideo(file, {
+            signal: controller.signal,
+            onProgress: ({ pct }) => {
+                if (!mountedRef.current) return;
+                setUploadStatus(prev => ({ ...prev, [fileIdx]: `Compressing\u2026 ${pct}%` }));
+                setUploadProgress(prev => ({ ...prev, [fileIdx]: Math.round(pct * 0.3) })); // 0-30% = compression
+            },
+        }).then(result => {
+            compressionRef.current[fileIdx] = { ...compressionRef.current[fileIdx], result };
+            if (result.compressed && mountedRef.current) {
+                const savedMB = Math.round((result.originalSize - result.compressedSize) / (1024 * 1024));
+                toast.success(`Video compressed \u2014 saved ${savedMB}MB (${result.savings}% smaller)`, 3000);
+                setUploadStatus(prev => ({ ...prev, [fileIdx]: 'Compressed \u2714' }));
+                setUploadProgress(prev => ({ ...prev, [fileIdx]: undefined }));
+            } else if (mountedRef.current) {
+                setUploadStatus(prev => ({ ...prev, [fileIdx]: undefined }));
+                setUploadProgress(prev => ({ ...prev, [fileIdx]: undefined }));
+            }
+            return result;
+        });
+        compressionRef.current[fileIdx] = { controller, promise: compPromise, result: null };
+
+        // Signed URL prefetch (first video only)
+        bgUpload.prefetch({ file, userId: user.id, folder: 'videos' });
+        break;
       }
     }
 
@@ -266,6 +314,12 @@ export const EnhancedPostCreator = ({
 
   // Remove media file
   const removeMedia = useCallback((index) => {
+    // Cancel background compression if running
+    if (compressionRef.current[index]) {
+        compressionRef.current[index].controller?.abort();
+        delete compressionRef.current[index];
+    }
+    setThumbnails(prev => { const n = { ...prev }; delete n[index]; return n; });
     setMediaFiles(prev => prev.filter((_, i) => i !== index));
   }, []);
 
@@ -344,9 +398,20 @@ export const EnhancedPostCreator = ({
 
         try {
           if (isVideo) {
+            // ── Use compressed file if background compression finished ──
+            let fileToUpload = file;
+            const comp = compressionRef.current[i];
+            if (comp?.promise) {
+                try {
+                    const result = comp.result || await Promise.race([
+                        comp.promise,
+                        new Promise(r => setTimeout(() => r({ file, compressed: false }), 500)),
+                    ]);
+                    if (result.compressed) fileToUpload = result.file;
+                } catch (_) { /* use original */ }
+            }
+
             // ── Background-capable video upload ───────────────────────────────
-            // XHR lives at module level — survives modal unmount.
-            // >10s: modal auto-closes, user can browse, completion fires clickable toast.
             const videoIndex = i;
             let bgUnsub = null;
             let wasBackground = false;
@@ -354,10 +419,9 @@ export const EnhancedPostCreator = ({
             const videoUrl = await new Promise((resolve, reject) => {
               bgUnsub = bgUpload.subscribe({
                 onProgress: ({ pct, label }) => {
-                  if (!mountedRef.current) return; // Guard: modal may be unmounted
+                  if (!mountedRef.current) return;
                   setUploadProgress(prev => ({ ...prev, [videoIndex]: pct }));
                   setUploadStatus(prev => ({ ...prev, [videoIndex]: label }));
-                  // Update ghost post progress
                   ghostPost.updateProgress(pct, label);
                 },
                 onComplete: ({ publicUrl, wasBackground: bg }) => {
@@ -366,15 +430,16 @@ export const EnhancedPostCreator = ({
                 },
                 onError: ({ error }) => reject(error),
                 onBackground: () => {
-                  // Upload taking >10s — close modal, let user browse
                   if (onClose) onClose();
                 },
               });
 
-              bgUpload.start({ file, userId: user.id, folder }).catch(reject);
+              bgUpload.start({ file: fileToUpload, userId: user.id, folder }).catch(reject);
             });
 
             if (bgUnsub) bgUnsub();
+            // Clean up compression cache
+            delete compressionRef.current[i];
             uploadedMedia.push({ url: videoUrl, type: 'video', name: file.name, wasBackground });
             
             if (!wasBackground && mountedRef.current) {
@@ -652,6 +717,7 @@ export const EnhancedPostCreator = ({
                 onRemove={() => removeMedia(index)}
                 uploadProgress={uploadProgress[index]}
                 uploadStatusLabel={uploadStatus[index]}
+                thumbnail={thumbnails[index]}
               />
             ))}
           </div>
@@ -966,6 +1032,7 @@ export const EnhancedPostCreator = ({
                 onRemove={() => removeMedia(index)}
                 uploadProgress={uploadProgress[index]}
                 uploadStatusLabel={uploadStatus[index]}
+                thumbnail={thumbnails[index]}
               />
             ))}
           </div>
