@@ -2,7 +2,7 @@
 description: Locked-in PokerAtlas scraping protocol — bypasses Cloudflare with StealthySession, extracts game catalog data from 147+ venues across 27 regions
 ---
 
-# PokerAtlas Live Games Scraping Protocol (LOCKED IN) — v3.1
+# PokerAtlas Live Games Scraping Protocol (LOCKED IN) — v3.2
 
 > **MANDATORY**: This is the ONLY way to scrape PokerAtlas. Mirrors the Bravo daemon architecture.
 
@@ -44,7 +44,7 @@ _network_available() → HEAD https://1.1.1.1
 9. **Pre-flight reconnect** — `fetch_with_fallback()` auto-reconnects if session is dead before attempting Tier 1
 10. **Discovery abort-on-fail** — `discover_regions()` aborts after 3 consecutive failures (prevents 30+ doomed iterations)
 
-## Resilience Features (v3.1)
+## Resilience Features (v3.2)
 
 | Feature | Description |
 |---|---|
@@ -58,7 +58,10 @@ _network_available() → HEAD https://1.1.1.1
 | **Bravo dedup** | Fetches Bravo venue names before insert — prevents duplicate records |
 | **Proactive session refresh** | Forces new session after 60 minutes |
 | **Watchdog** | Hard-exit after 30min with no data — launchd `KeepAlive` restarts |
+| **Watchdog warmup** | 5-minute grace period after boot — prevents boot-loop death spirals |
 | **Connect timeout** | 60s hard-kill if `connect()` hangs |
+| **Self-healing reset** | After 10 consecutive connect failures, full cleanup + 5min backoff + counter reset |
+| **Asyncio compatibility** | Uses `get_running_loop()` pattern — no deprecation warnings on Python 3.12+ |
 
 ## Validated Region Slugs (27 TOTAL)
 
@@ -179,3 +182,6 @@ PYTHONUNBUFFERED=1 .venv/bin/python3 scripts/pokeratlas-live-daemon.py
 7. **Duplicate venue names?** → `bravo_slug` is prefixed with `pa-{region}` to avoid key collision with Bravo
 8. **Discovery spamming errors?** → Fixed in v3.1: aborts after 3 fails + auto-reconnects dead session
 9. **10+ hour data gap after sleep?** → Fixed in v3.1: sleep/wake drift detection forces session reconnect
+10. **Boot-loop death spiral?** → Fixed in v3.2: 5-minute watchdog warmup prevents instant-kill on restart
+11. **asyncio DeprecationWarning?** → Fixed in v3.2: uses `get_running_loop()` pattern instead of deprecated `get_event_loop()`
+12. **Infinite failure counter?** → Fixed in v3.2: self-healing reset after 10 consecutive failures breaks death spiral

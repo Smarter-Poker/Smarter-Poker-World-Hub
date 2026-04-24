@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PokerAtlas Live Games — Autonomous Scraper Daemon v3.1
+PokerAtlas Live Games — Autonomous Scraper Daemon v3.2
 =====================================================
 Uses Scrapling + Camoufox StealthySession for Cloudflare bypass.
 
@@ -83,8 +83,10 @@ MAX_RETRIES = 3
 CIRCUIT_BREAKER_THRESHOLD = 5  # Abort cycle + reconnect if this many consecutive regions fail
 SESSION_REFRESH_MINUTES = 60   # Proactive session refresh (was 90 — too long)
 WATCHDOG_MAX_STALE_MINUTES = 30  # Exit process if no successful save in this many minutes (launchd restarts)
+WATCHDOG_WARMUP_MINUTES = 5    # Grace period after boot before watchdog can kill (prevents boot-loop deaths)
 SLOW_CYCLE_THRESHOLD_MINUTES = 20  # Force reconnect if cycle is running >20min and <50% regions done
 CONNECT_TIMEOUT_SECONDS = 60   # Hard kill if connect() hangs longer than this (was 90)
+MAX_CONSECUTIVE_CONNECT_FAILURES = 10  # After this many, force full venv reimport + session reset
 
 # Directories
 LOG_DIR = BASE_DIR / 'data' / 'pokeratlas-logs'
@@ -659,17 +661,21 @@ class PokerAtlasSessionManager:
         # threading.Timer callbacks and prior Scrapling calls can leave a dangling
         # loop that triggers "Playwright Sync API inside asyncio loop" errors.
         #
-        # FIX: set_event_loop(None) clears the reference entirely — Playwright's
-        # sync internals then create their own clean loop. Never call loop.stop()
-        # on a running loop (that causes undefined abort behavior mid-execution).
+        # Uses new-style asyncio API compatible with Python 3.12+ (no deprecation).
         try:
             import asyncio
             try:
-                loop = asyncio.get_event_loop_policy().get_event_loop()
-                if not loop.is_closed():
-                    loop.close()
-            except Exception:
-                pass
+                # Python 3.10+: use get_running_loop to check without deprecation
+                loop = asyncio.get_running_loop()
+                # If we're inside a running loop, we can't close it — just reset policy
+            except RuntimeError:
+                # No running loop — safe to close any existing one
+                try:
+                    loop = asyncio.get_event_loop()
+                    if not loop.is_closed():
+                        loop.close()
+                except RuntimeError:
+                    pass  # No event loop at all — perfect
             # Wipe the loop reference — Playwright creates its own
             asyncio.set_event_loop(None)
             asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
@@ -697,7 +703,9 @@ class PokerAtlasSessionManager:
         except Exception as e:
             watchdog_timer.cancel()
             log.error(f'  {ERROR_SESSION_DEAD}: {e}')
-            traceback.print_exc()
+            # Only print full traceback for unexpected errors (not browser launch failures)
+            if 'browser' not in str(e).lower() and 'timeout' not in str(e).lower():
+                traceback.print_exc()
             self.disconnect()
             return False
 
@@ -1447,34 +1455,66 @@ def _hard_kill_on_hang(reason):
 def main():
     write_heartbeat('starting')
     log.info('=' * 60)
-    log.info('POKER ATLAS LIVE GAMES — AUTONOMOUS DAEMON v3.1')
+    log.info('POKER ATLAS LIVE GAMES — AUTONOMOUS DAEMON v3.2')
     log.info(f'Interval: {SCRAPE_INTERVAL}s ({SCRAPE_INTERVAL // 60}min)')
     log.info(f'Strategy: session.fetch() per region (no login needed)')
     log.info(f'Data: game catalog + buy-in + run schedule')
-    log.info(f'Watchdog: exit after {WATCHDOG_MAX_STALE_MINUTES}min with no data')
+    log.info(f'Watchdog: exit after {WATCHDOG_MAX_STALE_MINUTES}min (warmup: {WATCHDOG_WARMUP_MINUTES}min)')
     log.info(f'Connect timeout: {CONNECT_TIMEOUT_SECONDS}s hard-kill')
+    log.info(f'Max connect failures before full reset: {MAX_CONSECUTIVE_CONNECT_FAILURES}')
     log.info(f'Log dir: {LOG_DIR}')
     log.info('=' * 60)
 
     mgr = PokerAtlasSessionManager()
+    daemon_boot_time = time.time()  # Track when daemon started
     last_successful_save = time.time()  # Assume fresh at boot
 
     while running:
         # ── GLOBAL WATCHDOG: Check wall-clock time BEFORE entering scrape ──
+        # WARMUP GUARD: Don't kill the daemon during its initial boot period.
+        # This prevents boot-loop deaths where: launchd restart → connect fails
+        # once → watchdog sees stale_minutes from PREVIOUS run → immediate kill.
+        uptime_minutes = (time.time() - daemon_boot_time) / 60
         stale_minutes = (time.time() - last_successful_save) / 60
-        if stale_minutes >= WATCHDOG_MAX_STALE_MINUTES:
+        if stale_minutes >= WATCHDOG_MAX_STALE_MINUTES and uptime_minutes >= WATCHDOG_WARMUP_MINUTES:
             log.error(
                 f'🚨 WATCHDOG: No successful data save in {stale_minutes:.0f} minutes '
-                f'(threshold: {WATCHDOG_MAX_STALE_MINUTES}min). '
+                f'(threshold: {WATCHDOG_MAX_STALE_MINUTES}min, uptime: {uptime_minutes:.0f}min). '
                 f'Exiting so launchd can restart with a clean process.'
             )
             write_heartbeat('watchdog_exit', {
                 'stale_minutes': round(stale_minutes),
+                'uptime_minutes': round(uptime_minutes),
                 'consecutive_failures': mgr.consecutive_failures,
             })
             mgr.disconnect()
             _kill_zombie_browsers()
             sys.exit(1)
+        elif stale_minutes >= WATCHDOG_MAX_STALE_MINUTES:
+            log.info(
+                f'⏳ Watchdog: {stale_minutes:.0f}min stale but still in warmup '
+                f'({uptime_minutes:.0f}/{WATCHDOG_WARMUP_MINUTES}min) — continuing'
+            )
+
+        # ── SELF-HEALING: After too many consecutive connect failures,
+        # force a full cleanup — kill zombies, sleep longer, then retry fresh
+        if mgr.consecutive_failures >= MAX_CONSECUTIVE_CONNECT_FAILURES:
+            log.warning(
+                f'🔧 SELF-HEAL: {mgr.consecutive_failures} consecutive failures '
+                f'(threshold: {MAX_CONSECUTIVE_CONNECT_FAILURES}). '
+                f'Full cleanup + extended backoff...'
+            )
+            mgr.disconnect()
+            _kill_zombie_browsers()
+            mgr.consecutive_failures = 0  # Reset counter to break death spiral
+            mgr.tier2_failures = 0  # Reset tier2 counter too
+            write_heartbeat('self_heal', {'action': 'full_reset'})
+            # Extended backoff — wait 5 minutes before retrying
+            for _ in range(300):
+                if not running:
+                    break
+                time.sleep(1)
+            continue
 
         try:
             count = run_scrape_cycle(mgr)
