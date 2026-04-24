@@ -190,8 +190,7 @@ export default function VideoLibraryPage() {
     // Share toast (copy-to-clipboard feedback)
     const [shareToast, setShareToast] = useState(null); // { message, videoId }
     const shareToastTimer = useRef(null);
-    // YouTube error state for video library player
-    const [vlYtError, setVlYtError] = useState(null); // YouTube embed error code (150=age-restricted)
+
     // "New This Week" rail dismiss state
     const [newThisWeekDismissed, setNewThisWeekDismissed] = useState(false);
 
@@ -202,15 +201,11 @@ export default function VideoLibraryPage() {
         surface: 'VideoLibrary',
         autoActionDelay: 3000,
         onError: () => {
-            setVlYtError(null);
             setSelectedVideo(null);
         },
     });
 
-    // Sync managed error to local state
-    useEffect(() => {
-        if (vlYtManaged) setVlYtError(vlYtManaged);
-    }, [vlYtManaged]);
+
 
     
     // Infinite scroll observer
@@ -1560,9 +1555,9 @@ export default function VideoLibraryPage() {
                             }}
                         />
                         {/* YouTube Error Overlay */}
-                        {vlYtError && (
+                        {vlYtManaged && (
                             <YouTubeErrorOverlay
-                                errorCode={vlYtError}
+                                errorCode={vlYtManaged}
                                 videoId={selectedVideo.videoId}
                                 thumbnailUrl={vlThumbnailUrl}
                                 actionLabel="Closing in 3 seconds..."

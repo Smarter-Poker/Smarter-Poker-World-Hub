@@ -277,8 +277,7 @@ export default function NewsHub() {
     // Fullscreen reels viewer state
     const [reelViewerOpen, setReelViewerOpen] = useState(false);
     const [reelViewerIndex, setReelViewerIndex] = useState(0);
-    const [newsReelYtError, setNewsReelYtError] = useState(null); // YouTube embed error code
-    const openReelViewer = (index) => { setReelViewerIndex(index); setReelViewerOpen(true); setNewsReelYtError(null); };
+    const openReelViewer = (index) => { setReelViewerIndex(index); setReelViewerOpen(true); };
 
     // Centralized YouTube error management for news reels viewer
     const { ytError: newsYtManaged } = useYouTubeErrorManager({
@@ -287,15 +286,11 @@ export default function NewsHub() {
         surface: 'NewsReelsViewer',
         autoActionDelay: 3000,
         onError: () => {
-            setNewsReelYtError(null);
             setReelViewerIndex(prev => prev + 1);
         },
     });
 
-    // Sync managed error to local state
-    useEffect(() => {
-        if (newsYtManaged) setNewsReelYtError(newsYtManaged);
-    }, [newsYtManaged]);
+
     // Handle query parameters for deep linking (Phase 4: fixed source filter binding)
     useEffect(() => {
         if (router.query.source) {
@@ -3470,9 +3465,9 @@ export default function NewsHub() {
                                     allowFullScreen
                                 />
                                 {/* YouTube Error Overlay */}
-                                {newsReelYtError && (
+                                {newsYtManaged && (
                                     <YouTubeErrorOverlay
-                                        errorCode={newsReelYtError}
+                                        errorCode={newsYtManaged}
                                         videoId={videoId}
                                         actionLabel="Skipping in 3 seconds..."
                                     />

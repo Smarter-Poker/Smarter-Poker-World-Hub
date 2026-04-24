@@ -1580,7 +1580,7 @@ export default function UserProfilePage() {
     }
 
     const isOwnProfile = currentUser?.id === profile.id;
-    const displayName = profile.full_name || profile.username || 'Player';
+    const displayName = profile.username || profile.full_name || 'Player';
     const isDan = displayName?.toLowerCase().includes('dan bekavac') || profile.username?.toLowerCase() === 'danbekavac';
     const locationParts = [profile.city, profile.state, profile.country === 'US' ? null : profile.country].filter(Boolean);
 

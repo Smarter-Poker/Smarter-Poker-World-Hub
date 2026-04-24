@@ -151,7 +151,7 @@ export function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLi
     const [showHeart, setShowHeart] = useState(false);
     const [progress, setProgress] = useState(0);
     const [shareToast, setShareToast] = useState(false);
-    const [ytError, setYtError] = useState(null);
+
     const overlayTimerRef = useRef(null);
     const touchStartRef = useRef({ x: 0, y: 0 });
     const lastTapRef = useRef(0);
@@ -167,10 +167,7 @@ export function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLi
         onError: () => onClose?.(),
     });
 
-    // Sync managed error state to local (for overlay rendering)
-    useEffect(() => {
-        if (managedYtError) setYtError(managedYtError);
-    }, [managedYtError]);
+
 
     useEffect(() => {
         if (showOverlay && isPlaying) {
@@ -293,9 +290,9 @@ export function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLi
                         allowFullScreen
                     />
                     {/* Age-restricted / unavailable video overlay */}
-                    {ytError && (
+                    {managedYtError && (
                         <YouTubeErrorOverlay
-                            errorCode={ytError}
+                            errorCode={managedYtError}
                             videoId={getYouTubeVideoId(videoUrl)}
                             thumbnailUrl={thumbnailUrl}
                             actionLabel="Closing in 3 seconds..."

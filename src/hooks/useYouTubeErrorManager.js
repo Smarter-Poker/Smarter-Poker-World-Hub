@@ -281,5 +281,5 @@ export function YouTubeErrorOverlay({
 }
 
 // ── Exports ───────────────────────────────────────────────────────────────────
-export { YOUTUBE_ORIGINS, ERROR_CODES, getErrorInfo, getYouTubeThumbnailUrl };
+export { YOUTUBE_ORIGINS, ERROR_CODES, getErrorInfo, getYouTubeThumbnailUrl, reportFailureToServer, reportToSentry };
 export default useYouTubeErrorManager;

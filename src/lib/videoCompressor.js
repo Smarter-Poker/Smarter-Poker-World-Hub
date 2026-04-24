@@ -131,10 +131,15 @@ export function compressVideo(file, { onProgress, signal } = {}) {
         const blobUrl = URL.createObjectURL(file);
         video.src = blobUrl;
         let done = false;
+        let _recorder = null;   // outer-scope ref for abort cleanup
+        let _stream = null;     // outer-scope ref for abort cleanup
 
         const cleanup = () => {
             try { video.pause(); video.src = ''; video.load(); } catch (_) {}
             try { URL.revokeObjectURL(blobUrl); } catch (_) {}
+            // Stop recorder + stream tracks if still running
+            try { if (_recorder && _recorder.state !== 'inactive') _recorder.stop(); } catch (_) {}
+            try { _stream?.getTracks().forEach(t => t.stop()); } catch (_) {}
         };
 
         const finish = (result) => { if (done) return; done = true; cleanup(); resolve(result); };
@@ -154,6 +159,7 @@ export function compressVideo(file, { onProgress, signal } = {}) {
                 let stream;
                 try {
                     stream = video.captureStream();
+                    _stream = stream; // track for abort cleanup
                 } catch {
                     return finish({ file, compressed: false, reason: 'capture-failed' });
                 }
@@ -164,6 +170,7 @@ export function compressVideo(file, { onProgress, signal } = {}) {
                         mimeType,
                         videoBitsPerSecond: TARGET_BITRATE,
                     });
+                    _recorder = recorder; // track for abort cleanup
                 } catch {
                     stream.getTracks().forEach(t => t.stop());
                     return finish({ file, compressed: false, reason: 'recorder-failed' });

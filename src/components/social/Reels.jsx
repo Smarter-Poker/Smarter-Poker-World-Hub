@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { YouTubeErrorOverlay } from '../../hooks/useYouTubeErrorManager';
+import { YouTubeErrorOverlay, reportFailureToServer, reportToSentry } from '../../hooks/useYouTubeErrorManager';
 import { supabase } from '../../lib/supabase';
 import { getAuthUser, getAccessToken } from '../../lib/authUtils';
 import { busEmit, eventBus, EventType } from '../../engine/EventBus';
@@ -329,9 +329,15 @@ export function ReelsViewer({ onClose }) {
                         if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
                     }
                 }
-                // YouTube error detection: 150=age-restricted, 100=not found, 101=embed disabled
                 if (data?.event === 'onError' && data?.info) {
-                    setYtError(Number(data.info));
+                    const errCode = Number(data.info);
+                    setYtError(errCode);
+                    // Report to server + Sentry (best-effort) — extract videoId from iframe src
+                    try {
+                        const iframe = containerRef.current?.querySelector('iframe');
+                        const vid = iframe?.src ? getYouTubeVideoId(iframe.src) : null;
+                        if (vid) { reportFailureToServer(vid, errCode, 'Reels'); reportToSentry(vid, errCode, 'Reels'); }
+                    } catch { /* best-effort */ }
                 }
             } catch { /* not a YouTube message */ }
         };

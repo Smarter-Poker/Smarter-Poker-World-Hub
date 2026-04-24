@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { YouTubeErrorOverlay } from '../../hooks/useYouTubeErrorManager';
+import { YouTubeErrorOverlay, reportFailureToServer, reportToSentry } from '../../hooks/useYouTubeErrorManager';
 import { supabase } from '../../lib/supabase';
 import { useSupabase } from '../../providers/SupabaseProvider';
 import { busEmit, eventBus, EventType } from '../../engine/EventBus';
@@ -936,7 +936,14 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 }
                 // YouTube error detection: 150=age-restricted, 100=not found, 101=embed disabled
                 if (data?.event === 'onError' && data?.info) {
-                    setYtError(Number(data.info));
+                    const errCode = Number(data.info);
+                    setYtError(errCode);
+                    // Report to server + Sentry (best-effort)
+                    try {
+                        const iframe = containerRef.current?.querySelector('iframe');
+                        const vid = iframe?.src ? getYouTubeVideoId(iframe.src) : null;
+                        if (vid) { reportFailureToServer(vid, errCode, 'ReelsFeedCarousel'); reportToSentry(vid, errCode, 'ReelsFeedCarousel'); }
+                    } catch { /* best-effort */ }
                 }
             } catch { /* not a YouTube message */ }
         };

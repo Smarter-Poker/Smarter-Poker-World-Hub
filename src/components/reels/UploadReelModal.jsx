@@ -29,6 +29,7 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
     // Mounted guard — prevents state updates after modal is unmounted by background mode
     const mountedRef = useRef(true);
     const compressionRef = useRef(null); // { controller, promise, result }
+    const _uploadingRef = useRef(false); // double-click guard (synchronous, unlike React state)
     useEffect(() => {
         mountedRef.current = true;
         return () => {
@@ -105,6 +106,8 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
 
     const handleUpload = async () => {
         if (!videoFile || !user) return;
+        if (_uploadingRef.current) return; // Synchronous double-click guard
+        _uploadingRef.current = true;
 
         setUploading(true);
         setError('');
@@ -227,6 +230,7 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
                 setError(err.message || 'Failed to upload reel');
             }
         } finally {
+            _uploadingRef.current = false;
             if (mountedRef.current) setUploading(false);
         }
     };

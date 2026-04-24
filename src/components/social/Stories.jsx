@@ -369,11 +369,13 @@ function StoryViewer({ storyGroup, onClose, userId }) {
         },
     });
 
-    // Sync managed error to local state
+    // Sync managed error to local state (local copy needed for timer-pause side-effect)
     useEffect(() => {
         if (managedYtError) {
             setYtError(managedYtError);
             if (timerRef.current) clearInterval(timerRef.current);
+        } else {
+            setYtError(null);
         }
     }, [managedYtError]);
 
