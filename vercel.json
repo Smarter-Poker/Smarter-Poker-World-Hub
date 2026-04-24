@@ -29,7 +29,7 @@
         },
         {
           "key": "Permissions-Policy",
-          "value": "geolocation=(self), microphone=(self), camera=(self), display-capture=(self), payment=(), usb=(), serial=(), bluetooth=(), midi=(), magnetometer=(), gyroscope=(), accelerometer=(), ambient-light-sensor=(), autoplay=(self), fullscreen=(self), picture-in-picture=(self), browsing-topics=(), interest-cohort=()"
+          "value": "geolocation=(self), microphone=(self), camera=(self), display-capture=(self), payment=(), usb=(), serial=(), bluetooth=(), midi=(), magnetometer=(), gyroscope=(), accelerometer=(), ambient-light-sensor=(), autoplay=(self \"https://www.youtube-nocookie.com\" \"https://www.youtube.com\"), fullscreen=(self \"https://www.youtube-nocookie.com\" \"https://www.youtube.com\"), picture-in-picture=(self \"https://www.youtube-nocookie.com\" \"https://www.youtube.com\"), browsing-topics=(), interest-cohort=()"
         }
       ]
     },
