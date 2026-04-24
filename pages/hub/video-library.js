@@ -1465,6 +1465,7 @@ export default function VideoLibraryPage() {
                     <button
                         onClick={handlePrevVideo}
                         title="Previous video (←)"
+                        className="vl-nav-arrow"
                         style={{
                             position: 'absolute',
                             left: 16,
@@ -1491,6 +1492,7 @@ export default function VideoLibraryPage() {
                     <button
                         onClick={handleNextVideo}
                         title="Next video (→)"
+                        className="vl-nav-arrow"
                         style={{
                             position: 'absolute',
                             right: 16,
@@ -1525,10 +1527,24 @@ export default function VideoLibraryPage() {
                         <iframe
                             key={iframeKey}
                             id="youtube-player"
-                            src={`https://www.youtube.com/embed/${selectedVideo.videoId}?autoplay=1&mute=0&rel=0&modestbranding=1&fs=1&iv_load_policy=3&showinfo=0&enablejsapi=1&playsinline=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}`}
+                            src={`https://www.youtube.com/embed/${selectedVideo.videoId}?autoplay=1&mute=1&rel=0&modestbranding=1&fs=1&iv_load_policy=3&showinfo=0&enablejsapi=1&playsinline=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}`}
                             title={selectedVideo.title}
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
                             allowFullScreen
+                            onLoad={(e) => {
+                                // mute=1 in URL ensures mobile autoplay compliance.
+                                // Now unmute immediately — the user tapped a card (valid gesture), so audio is allowed.
+                                try {
+                                    const win = e.target.contentWindow;
+                                    win.postMessage(JSON.stringify({ event: 'listening' }), '*');
+                                    [200, 600, 1200].forEach(d => setTimeout(() => {
+                                        try {
+                                            win.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
+                                            win.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
+                                        } catch { /* best-effort */ }
+                                    }, d));
+                                } catch { /* best-effort */ }
+                            }}
                             style={{
                                 width: '100%',
                                 height: '100%',
@@ -1607,7 +1623,14 @@ export default function VideoLibraryPage() {
                 div:hover .play-btn {
                     opacity: 1 !important;
                 }
-                
+
+                /* Hide nav arrows on mobile — swipe up/down handles navigation */
+                @media (max-width: 767px) {
+                    .vl-nav-arrow {
+                        display: none !important;
+                    }
+                }
+
                 /* Caption-style animation */
                 @keyframes fadeInUp {
                     from {

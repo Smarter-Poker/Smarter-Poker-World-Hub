@@ -1775,7 +1775,7 @@ const CATEGORY_LABELS = { poker_room: 'Poker Room', casino: 'Casino', card_club:
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const DAY_LABELS = { monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 'Thu', friday: 'Fri', saturday: 'Sat', sunday: 'Sun' };
 
-function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive }) {
+function ClubPageDashboard({ C, page, userId, userName, onBack, onPageUpdated, onGoLive }) {
     const router = useRouter();
     const [activeTab, setActiveTab] = usePersistedState('sp-filters-social-media', 'posts');
     const [posts, setPosts] = useState([]);
@@ -2162,7 +2162,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success && json.data) {
-                setPosts(prev => [{ ...json.data, author: { username: 'You' }, user_liked: false }, ...prev]);
+                setPosts(prev => [{ ...json.data, author: { username: userName || userId?.slice(0, 6) || 'You' }, user_liked: false }, ...prev]);
                 setPostContent('');
                 setPostMedia([]);
                 // Notify global social feed so other tabs pick up the mirrored post
@@ -4433,7 +4433,7 @@ function SocialMediaPage() {
                 try {
                     const authUser = getAuthUser();
                     if (!authUser) return;
-                    const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/profiles?id=eq.${authUser.id}&select=id,username,full_name,display_name,avatar_url,role`, {
+                    const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/profiles?id=eq.${authUser.id}&select=id,username,full_name,avatar_url,role`, {
                         headers: {
                             'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
                             'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
@@ -4443,12 +4443,24 @@ function SocialMediaPage() {
                         const profiles = await res.json();
                         const p = profiles?.[0];
                         if (p) {
+                            const freshName = p.username || p.full_name || null;
                             setUser(prev => ({
                                 ...prev,
-                                name: p.username || p.full_name || prev?.name,
+                                name: freshName || prev?.name,
                                 username: p.username || prev?.username,
                                 avatar: p.avatar_url || null,
                             }));
+                            // Keep sp-social-user cache in sync after any profile save
+                            try {
+                                const cached = JSON.parse(localStorage.getItem('sp-social-user') || '{}');
+                                localStorage.setItem('sp-social-user', JSON.stringify({
+                                    ...cached,
+                                    name: freshName || cached.name,
+                                    username: p.username || cached.username,
+                                    avatar: p.avatar_url || cached.avatar,
+                                    ts: Date.now()
+                                }));
+                            } catch (_) { /* non-critical */ }
                         }
                     }
                 } catch { /* non-critical */ }
@@ -6171,6 +6183,7 @@ function SocialMediaPage() {
                             C={C}
                             page={myClubPage}
                             userId={user?.id}
+                            userName={user?.username || user?.name}
                             onBack={() => setShowPageDashboard(false)}
                             onPageUpdated={(updated) => setMyClubPage(updated)}
                             onGoLive={() => setShowGoLiveModal(true)}

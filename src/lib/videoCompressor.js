@@ -58,7 +58,6 @@ export function generateThumbnail(file, timeSeconds = 2) {
         video.muted = true;
         video.playsInline = true;
         video.preload = 'auto';
-        video.crossOrigin = 'anonymous';
         // iOS Safari: these attributes are critical for blob URL playback
         video.setAttribute('playsinline', '');
         video.setAttribute('webkit-playsinline', '');
@@ -100,6 +99,9 @@ export function generateThumbnail(file, timeSeconds = 2) {
                         video.currentTime = 3;
                         return; // will re-enter via onseeked
                     }
+                    // Already retried or short video — return null to trigger placeholder
+                    finish(null);
+                    return;
                 }
                 finish(dataUrl);
             } catch (err) {

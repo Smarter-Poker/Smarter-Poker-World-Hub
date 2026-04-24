@@ -994,6 +994,10 @@ function ReelViewer({ reels, startIndex, onClose }) {
         setShareToast(false);
         setShowShareModal(false);
 
+        // Mobile fallback: iOS Safari may never fire onStateChange via postMessage.
+        // If ytReady is still false after 3s, force it true so the play button appears.
+        const ytReadyFallback = setTimeout(() => setYtReady(true), 3000);
+
         // Cancel any running RAF from the previous reel immediately
         if (progressRAF.current) {
             cancelAnimationFrame(progressRAF.current);
@@ -1011,7 +1015,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
         // Play via canplay event - video element may be remounting due to key change,
         // calling play() immediately causes AbortError on mobile Safari.
         const video = videoRef.current;
-        if (!video) return;
+        if (!video) return () => clearTimeout(ytReadyFallback);
         const onCanPlay = () => {
             const p = video.play();
             if (p !== undefined) p.catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); // suppress AbortError
@@ -1022,7 +1026,10 @@ function ReelViewer({ reels, startIndex, onClose }) {
         } else {
             video.addEventListener('canplay', onCanPlay, { once: true });
         }
-        return () => video.removeEventListener('canplay', onCanPlay);
+        return () => {
+            clearTimeout(ytReadyFallback);
+            video.removeEventListener('canplay', onCanPlay);
+        };
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentIndex]);
 

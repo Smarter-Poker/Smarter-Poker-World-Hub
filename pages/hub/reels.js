@@ -1135,6 +1135,12 @@ export default function ReelsPage() {
         setShowShareModal(false);
         setIsPaused(true); // New reel starts as paused — autoplay may fail, first tap should send playVideo
         setYtReady(false); // Reset — suppress play button until YT fires onStateChange for new video
+
+        // Mobile fallback: iOS Safari may never fire onStateChange via postMessage.
+        // If ytReady is still false after 3s, force it true so the play button appears
+        // and the user can manually tap to start playback.
+        const ytReadyFallback = setTimeout(() => setYtReady(true), 3000);
+        return () => clearTimeout(ytReadyFallback);
     }, [currentIndex]);
 
     const handleSave = async () => {

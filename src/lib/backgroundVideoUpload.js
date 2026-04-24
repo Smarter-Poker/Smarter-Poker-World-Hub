@@ -109,10 +109,6 @@ async function _fetchUploadMeta(file, userId, folder) {
 
 /**
  * Execute an XHR PUT upload with retry support.
- * On network failure, waits and retries up to MAX_RETRIES times.
- */
-/**
- * Execute an XHR PUT upload with retry support.
  * On HTTP 400/403 (expired/consumed signed URL), fetches a FRESH signed URL before retrying.
  * On network failure, waits and retries up to MAX_RETRIES times.
  */
