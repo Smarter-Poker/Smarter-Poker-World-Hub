@@ -191,6 +191,15 @@ export default function VideoLibraryPage() {
     const [shareToast, setShareToast] = useState(null); // { message, videoId }
     const shareToastTimer = useRef(null);
 
+    // Video modal HUD (heart/comment/share/save) — tap to show, auto-hides
+    const [vlHudVisible, setVlHudVisible] = useState(false);
+    const vlHudTimer = useRef(null);
+    const vlRevealHud = () => {
+        setVlHudVisible(true);
+        clearTimeout(vlHudTimer.current);
+        vlHudTimer.current = setTimeout(() => setVlHudVisible(false), 5000);
+    };
+
     // "New This Week" rail dismiss state
     const [newThisWeekDismissed, setNewThisWeekDismissed] = useState(false);
 
@@ -515,6 +524,9 @@ export default function VideoLibraryPage() {
         watchStartTimeRef.current = null;
         currentWatchingVideoRef.current = null;
         setSelectedVideo(null);
+        // Reset HUD state
+        setVlHudVisible(false);
+        clearTimeout(vlHudTimer.current);
         // Restore scroll position after modal closes
         if (typeof window !== 'undefined' && savedScrollY.current > 0) {
             requestAnimationFrame(() => window.scrollTo({ top: savedScrollY.current, behavior: 'instant' }));
@@ -1517,13 +1529,185 @@ export default function VideoLibraryPage() {
                         onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
                     >›</button>
 
-                    {/* YouTube embed — flex:1 fills available space, no overlays blocking native controls */}
+                    {/* YouTube embed — flex:1 fills available space */}
                     <div style={{
                         flex: 1,
                         width: '100%',
                         minHeight: 0,
                         position: 'relative',
                     }}>
+                        {/* Transparent tap zone — left 80% of iframe to reveal HUD without blocking YT controls */}
+                        <div
+                            onClick={vlRevealHud}
+                            style={{
+                                position: 'absolute',
+                                top: 0, left: 0,
+                                width: '80%',
+                                height: '75%', // stop above YT's bottom control bar
+                                zIndex: 5,
+                                cursor: 'pointer',
+                            }}
+                        />
+
+                        {/* Right-side HUD — Heart / Share / Save */}
+                        <div
+                            className={`vl-hud ${vlHudVisible ? 'vl-hud--visible' : ''}`}
+                            style={{
+                                position: 'absolute',
+                                right: 12,
+                                bottom: 80,
+                                zIndex: 1002,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 20,
+                                alignItems: 'center',
+                                opacity: vlHudVisible ? 1 : 0,
+                                transform: vlHudVisible ? 'translateX(0)' : 'translateX(60px)',
+                                transition: 'opacity 0.3s ease, transform 0.3s ease',
+                                pointerEvents: vlHudVisible ? 'auto' : 'none',
+                            }}
+                        >
+                            {/* Heart / Like */}
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (!userId || !selectedVideo) return;
+                                    const videoId = selectedVideo.id || selectedVideo.videoId;
+                                    if (favorites.has(videoId)) {
+                                        setFavorites(prev => { const s = new Set(prev); s.delete(videoId); return s; });
+                                        removeVideoFavorite(userId, videoId).catch(() => {});
+                                    } else {
+                                        setFavorites(prev => new Set([...prev, videoId]));
+                                        addVideoFavorite(userId, videoId).catch(() => {});
+                                    }
+                                    vlRevealHud(); // reset auto-hide timer
+                                }}
+                                title="Like"
+                                style={{
+                                    background: 'none', border: 'none', cursor: 'pointer',
+                                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                                    padding: 0,
+                                }}
+                            >
+                                <div style={{
+                                    width: 52, height: 52, borderRadius: '50%',
+                                    background: 'rgba(0,0,0,0.6)',
+                                    backdropFilter: 'blur(10px)',
+                                    border: favorites.has(selectedVideo?.id || selectedVideo?.videoId)
+                                        ? '1.5px solid #FF4444' : '1.5px solid rgba(255,255,255,0.25)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    transition: 'all 0.2s',
+                                }}>
+                                    <svg width="26" height="26" viewBox="0 0 24 24" fill={favorites.has(selectedVideo?.id || selectedVideo?.videoId) ? '#FF4444' : 'none'} stroke={favorites.has(selectedVideo?.id || selectedVideo?.videoId) ? '#FF4444' : 'white'} strokeWidth="2">
+                                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                                    </svg>
+                                </div>
+                                <span style={{ color: 'white', fontSize: 11, fontWeight: 600, textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
+                                    {favorites.has(selectedVideo?.id || selectedVideo?.videoId) ? 'Liked' : 'Like'}
+                                </span>
+                            </button>
+
+                            {/* Comment — opens YouTube for native comments */}
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (selectedVideo?.videoId) {
+                                        window.open(`https://www.youtube.com/watch?v=${selectedVideo.videoId}`, '_blank', 'noopener');
+                                    }
+                                    vlRevealHud();
+                                }}
+                                title="Comment on YouTube"
+                                style={{
+                                    background: 'none', border: 'none', cursor: 'pointer',
+                                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                                    padding: 0,
+                                }}
+                            >
+                                <div style={{
+                                    width: 52, height: 52, borderRadius: '50%',
+                                    background: 'rgba(0,0,0,0.6)',
+                                    backdropFilter: 'blur(10px)',
+                                    border: '1.5px solid rgba(255,255,255,0.25)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                }}>
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                                    </svg>
+                                </div>
+                                <span style={{ color: 'white', fontSize: 11, fontWeight: 600, textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>Comment</span>
+                            </button>
+
+                            {/* Share */}
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (selectedVideo) handleShareVideo(selectedVideo);
+                                    vlRevealHud();
+                                }}
+                                title="Share"
+                                style={{
+                                    background: 'none', border: 'none', cursor: 'pointer',
+                                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                                    padding: 0,
+                                }}
+                            >
+                                <div style={{
+                                    width: 52, height: 52, borderRadius: '50%',
+                                    background: 'rgba(0,0,0,0.6)',
+                                    backdropFilter: 'blur(10px)',
+                                    border: '1.5px solid rgba(255,255,255,0.25)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                }}>
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                                        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+                                        <polyline points="16 6 12 2 8 6"/>
+                                        <line x1="12" y1="2" x2="12" y2="15"/>
+                                    </svg>
+                                </div>
+                                <span style={{ color: 'white', fontSize: 11, fontWeight: 600, textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>Share</span>
+                            </button>
+
+                            {/* Save / Watch Later */}
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (!userId || !selectedVideo) return;
+                                    const videoId = selectedVideo.id || selectedVideo.videoId;
+                                    if (watchLater.has(videoId)) {
+                                        setWatchLater(prev => { const s = new Set(prev); s.delete(videoId); return s; });
+                                        removeFromWatchLater(userId, videoId).catch(() => {});
+                                    } else {
+                                        setWatchLater(prev => new Set([...prev, videoId]));
+                                        addToWatchLater(userId, videoId).catch(() => {});
+                                    }
+                                    vlRevealHud();
+                                }}
+                                title="Save"
+                                style={{
+                                    background: 'none', border: 'none', cursor: 'pointer',
+                                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                                    padding: 0,
+                                }}
+                            >
+                                <div style={{
+                                    width: 52, height: 52, borderRadius: '50%',
+                                    background: 'rgba(0,0,0,0.6)',
+                                    backdropFilter: 'blur(10px)',
+                                    border: watchLater.has(selectedVideo?.id || selectedVideo?.videoId)
+                                        ? '1.5px solid #FFD700' : '1.5px solid rgba(255,255,255,0.25)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    transition: 'all 0.2s',
+                                }}>
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill={watchLater.has(selectedVideo?.id || selectedVideo?.videoId) ? '#FFD700' : 'none'} stroke={watchLater.has(selectedVideo?.id || selectedVideo?.videoId) ? '#FFD700' : 'white'} strokeWidth="2">
+                                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+                                    </svg>
+                                </div>
+                                <span style={{ color: 'white', fontSize: 11, fontWeight: 600, textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
+                                    {watchLater.has(selectedVideo?.id || selectedVideo?.videoId) ? 'Saved' : 'Save'}
+                                </span>
+                            </button>
+                        </div>
+
                         <iframe
                             key={iframeKey}
                             id="youtube-player"
