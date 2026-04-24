@@ -1256,6 +1256,21 @@ export default function UserProfilePage() {
                 }
             };
             refreshContent();
+            // Also re-query friendship status (button state can go stale on accept/remove)
+            if (currentUser?.id && profile?.id) {
+                const [f1, f2] = await Promise.all([
+                    supabase.from('friendships').select('status').eq('user_id', currentUser.id).eq('friend_id', profile.id).maybeSingle(),
+                    supabase.from('friendships').select('status').eq('user_id', profile.id).eq('friend_id', currentUser.id).maybeSingle(),
+                ]);
+                const allF = [f1.data, f2.data].filter(Boolean);
+                if (allF.some(f => f.status === 'accepted')) {
+                    setIsFriend(true); setFriendRequestSent(false);
+                } else if (allF.some(f => f.status === 'pending')) {
+                    setIsFriend(false); setFriendRequestSent(true);
+                } else {
+                    setIsFriend(false); setFriendRequestSent(false);
+                }
+            }
         };
 
         // Get current user ID for filtering own events (prevents optimistic + realtime double-count)
@@ -1347,7 +1362,11 @@ export default function UserProfilePage() {
             invalidateProfileCache();
             busEmit.friendRequestSent(profile.id);
             notifyFriendsSync();
-        } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+        } catch (e) {
+            // Rollback optimistic update on failure
+            setFriendRequestSent(false);
+            console.warn('[App] Handled exception:', e?.message || e);
+        }
     };
 
     const handleCancelFriendRequest = async () => {
@@ -1438,7 +1457,7 @@ export default function UserProfilePage() {
                     .eq('user_id', profile.id)
                     .eq('friend_id', currentUser.id),
             ]);
-            if (res1.error && res2.error) throw res1.error; // Both failed — rollback
+            if (res1.error || res2.error) throw res1.error || res2.error; // Either failed — rollback
             invalidateProfileCache();
             notifyFriendsSync();
         } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }

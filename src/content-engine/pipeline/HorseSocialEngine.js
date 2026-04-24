@@ -440,9 +440,30 @@ async function acceptFriendRequests(maxAccepts = 15) {
                     .catch(e => console.warn('[HorseSocial] Reverse row insert (may exist):', e?.message));
 
                 const horse = horses.find(h => h.profile_id === request.friend_id);
-                const sender = horses.find(h => h.profile_id === request.user_id);
-                console.debug(`   ${horse?.name || 'Horse'} accepted ${sender?.name || 'User'} ✓`);
+                const senderIsHorse = horses.find(h => h.profile_id === request.user_id);
+                console.debug(`   ${horse?.name || 'Horse'} accepted ${senderIsHorse?.name || 'User'} ✓`);
                 accepted++;
+
+                // Send "friend_accepted" notification to the requester (real user or horse)
+                // so they get the same notification experience as human-accepted requests
+                if (!senderIsHorse) {
+                    // Real user — look up their profile for a rich notification
+                    const { data: horseProfile } = await getSupabase()
+                        .from('profiles')
+                        .select('username, full_name')
+                        .eq('id', request.friend_id)
+                        .maybeSingle();
+                    const horseName = horseProfile?.username || horseProfile?.full_name || horse?.name || 'Your Friend';
+                    await getSupabase().from('notifications').insert({
+                        user_id: request.user_id,
+                        type: 'friend_accepted',
+                        title: horseName,
+                        message: 'accepted your friend request',
+                        actor_id: request.friend_id,
+                        link: `/hub/user/${horseProfile?.username || request.friend_id}`,
+                        data: { friend_id: request.friend_id }
+                    }).then(() => {}).catch(e => console.warn('[HorseSocial] Notification insert failed:', e?.message));
+                }
 
                 if (accepted >= maxAccepts) break;
             }

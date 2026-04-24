@@ -177,7 +177,7 @@ export default async function handler(req, res) {
               if (ownerPage && ownerPage.owner_id !== user_id) {
                   const { data: followerProfile } = await getSupabase()
                       .from('profiles').select('username, full_name').eq('id', user_id).maybeSingle();
-                  const followerName = followerProfile?.full_name || followerProfile?.username || 'Someone';
+                  const followerName = followerProfile?.username || followerProfile?.full_name || 'Someone';
                   const notifTitle = requiresApproval ? '🔔 New Follow Request' : '🎉 New Follower';
                   const notifMsg = requiresApproval
                       ? `${followerName} wants to follow your page "${ownerPage.name}". Approve or reject in your Live Games tab.`

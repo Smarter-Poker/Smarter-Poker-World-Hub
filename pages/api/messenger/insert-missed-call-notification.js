@@ -55,7 +55,7 @@ export default async function handler(req, res) {
         .eq('id', user.id)
         .maybeSingle();
 
-    const callerName = profile?.full_name || profile?.username || 'Someone';
+    const callerName = profile?.username || profile?.full_name || 'Someone';
     const typeLabel = callType === 'video' ? 'Video' : 'Voice';
     const reasonLabel = reason === 'declined' ? 'Declined' : 'Missed';
 

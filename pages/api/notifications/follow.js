@@ -45,7 +45,7 @@ export default async function handler(req, res) {
             .eq('id', user.id)
             .maybeSingle();
 
-        const displayName = profile?.full_name || profile?.username || user.email?.split('@')[0] || 'Someone';
+        const displayName = profile?.username || profile?.full_name || user.email?.split('@')[0] || 'Someone';
 
         // Insert notification using service role (bypasses RLS)
         const { error } = await supabase.from('notifications').insert({
