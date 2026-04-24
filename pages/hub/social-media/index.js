@@ -6098,17 +6098,46 @@ function SocialMediaPage() {
 
                 {/* Notification Full-Screen Modal */}
                 {showNotifications && (
-                    <div style={{
-                        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                        background: 'rgba(0,0,0,0.5)', zIndex: 9999,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center'
-                    }} onClick={(e) => { if (e.target === e.currentTarget) setShowNotifications(false); }}>
-                        <div style={{
-                            position: 'relative', width: '100%', maxWidth: 520, height: '90vh',
-                            background: C.card, borderRadius: 16, boxShadow: '0 8px 40px rgba(0,0,0,0.3)',
-                            display: 'flex', flexDirection: 'column', overflow: 'hidden',
-                            margin: '0 12px'
-                        }}>
+                    <>
+                    <style>{`
+                        .notif-modal-backdrop {
+                            position: fixed;
+                            top: 0; left: 0; right: 0; bottom: 0;
+                            background: rgba(0,0,0,0.5);
+                            z-index: 9999;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                        }
+                        .notif-modal-panel {
+                            position: relative;
+                            width: 100%;
+                            max-width: 520px;
+                            height: 90vh;
+                            background: #ffffff;
+                            border-radius: 16px;
+                            box-shadow: 0 8px 40px rgba(0,0,0,0.3);
+                            display: flex;
+                            flex-direction: column;
+                            overflow: hidden;
+                            margin: 0 12px;
+                        }
+                        @media (max-width: 600px) {
+                            .notif-modal-backdrop {
+                                align-items: flex-end;
+                            }
+                            .notif-modal-panel {
+                                max-width: 100%;
+                                width: 100%;
+                                height: 92vh;
+                                border-radius: 16px 16px 0 0;
+                                margin: 0;
+                            }
+                        }
+                    `}</style>
+                    <div className="notif-modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setShowNotifications(false); }}>
+                        <div className="notif-modal-panel">
+
                             {/* Header */}
                             <div style={{ padding: '16px 20px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
                                 <h3 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: C.text }}>Notifications</h3>
@@ -6219,7 +6248,9 @@ function SocialMediaPage() {
                             </div>
                         </div>
                     </div>
+                    </>
                 )}
+
 
                 {/* Main Feed - 800px Design Canvas */}
                 <main className="social-page-container" style={{ padding: 0, width: '100%', maxWidth: '100%', overflowX: 'hidden', boxSizing: 'border-box' }}>

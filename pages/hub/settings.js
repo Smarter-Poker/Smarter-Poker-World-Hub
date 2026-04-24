@@ -583,6 +583,12 @@ export default function SettingsPage() {
             localStorage.setItem('sp-user-settings', JSON.stringify(newSettings));
         } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
+        // If posting name preference changed, immediately notify social media page
+        // (social page listens for smarter_poker_settings_sync to recompute user.name)
+        if (key === 'display_name_preference') {
+            broadcastSyncDebounced('smarter_poker_settings_sync', { action: 'refresh_settings', tabId: BROADCAST_TAB_ID });
+        }
+
         // Persist ALL settings to Supabase profiles.app_settings (cross-device)
         if (user?.id) {
             // Build the update payload — always save app_settings JSONB

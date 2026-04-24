@@ -565,6 +565,24 @@ function NotificationsPage() {
                 canonical="/hub/notifications"
                 noindex={true}
             />
+            <style>{`
+                .notifications-page {
+                    padding-bottom: 70px;
+                    width: 100%;
+                    max-width: 100vw;
+                    overflow-x: hidden;
+                    box-sizing: border-box;
+                }
+                @media (max-width: 768px) {
+                    .notifications-list {
+                        max-width: 100% !important;
+                        width: 100% !important;
+                    }
+                    .notif-header-bar {
+                        padding: 10px 12px !important;
+                    }
+                }
+            `}</style>
             <div className="notifications-page" style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
                 {/* Header - Universal Header (hidden when inside overlay iframe) */}
                 {!isInIframe && <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />}
@@ -577,7 +595,7 @@ function NotificationsPage() {
                     menuItems={menuConfig.menuItems}
                     bottomLinks={menuConfig.bottomLinks}
                 />}
-                <header style={{ background: C.card, padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.border}` }}>
+                <header className="notif-header-bar" style={{ background: C.card, padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.border}` }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: C.text }}>Notifications</h1>
                         {unreadCount > 0 && (
@@ -600,6 +618,7 @@ function NotificationsPage() {
 
                 {/* Notifications List — [Audit#17] tap anywhere to dismiss open swipes */}
                 <div
+                    className="notifications-list"
                     style={{ maxWidth: 680, margin: '0 auto' }}
                     onClick={() => { if (swipedId) setSwipedId(null); }}
                 >
