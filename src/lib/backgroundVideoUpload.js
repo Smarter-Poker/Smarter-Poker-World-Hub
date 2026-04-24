@@ -116,12 +116,17 @@ function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0) {
         const xhr = new XMLHttpRequest();
         _activeXhr = xhr;
 
+        // Track max progress so retries never show progress going backwards
+        let maxPctReached = _progress || 0;
+
         xhr.upload.onprogress = (evt) => {
             if (!evt.lengthComputable) return;
             const pct = Math.round((evt.loaded / evt.total) * 93) + 5;
+            const clampedPct = Math.max(pct, maxPctReached);
+            maxPctReached = clampedPct;
             _setState(
                 _state,
-                Math.min(pct, 97),
+                Math.min(clampedPct, 97),
                 `Uploading… ${Math.round((evt.loaded / evt.total) * 100)}%`
             );
         };
@@ -134,7 +139,7 @@ function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0) {
                 // Server error — retry with backoff
                 _activeXhr = null;
                 const delay = RETRY_DELAYS[attempt] || 10000;
-                _setState(_state, _progress, `Server error — retrying in ${Math.round(delay / 1000)}s…`);
+                _setState(_state, maxPctReached, `Server error — retrying (attempt ${attempt + 2}/${MAX_RETRIES + 1})…`);
                 setTimeout(() => {
                     _uploadWithRetry(file, signedUrl, mimeType, attempt + 1)
                         .then(resolve)
@@ -156,7 +161,7 @@ function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0) {
             if (attempt < MAX_RETRIES) {
                 // Network error — retry with backoff
                 const delay = RETRY_DELAYS[attempt] || 10000;
-                _setState(_state, _progress, `Connection lost — retrying in ${Math.round(delay / 1000)}s…`);
+                _setState(_state, maxPctReached, `Connection lost — retrying (attempt ${attempt + 2}/${MAX_RETRIES + 1})…`);
                 setTimeout(() => {
                     _uploadWithRetry(file, signedUrl, mimeType, attempt + 1)
                         .then(resolve)
@@ -172,7 +177,7 @@ function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0) {
             _activeXhr = null;
             if (attempt < MAX_RETRIES) {
                 const delay = RETRY_DELAYS[attempt] || 10000;
-                _setState(_state, _progress, `Upload timed out — retrying in ${Math.round(delay / 1000)}s…`);
+                _setState(_state, maxPctReached, `Upload timed out — retrying (attempt ${attempt + 2}/${MAX_RETRIES + 1})…`);
                 setTimeout(() => {
                     _uploadWithRetry(file, signedUrl, mimeType, attempt + 1)
                         .then(resolve)
@@ -186,7 +191,7 @@ function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0) {
         const cleanMime = (mimeType || '').split(';')[0].trim() || 'video/mp4';
         xhr.open('PUT', signedUrl);
         xhr.setRequestHeader('Content-Type', cleanMime);
-        xhr.timeout = 5 * 60 * 1000; // 5 minute timeout — prevents hanging on flaky mobile connections
+        xhr.timeout = 10 * 60 * 1000; // 10 minute timeout — mobile networks can be very slow
         xhr.send(file);
     });
 }

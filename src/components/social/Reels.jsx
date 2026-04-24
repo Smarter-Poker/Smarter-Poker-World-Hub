@@ -1138,11 +1138,7 @@ export function ReelsViewer({ onClose }) {
                 }
             }
             if (e.key === 'm' || e.key === 'M') {
-                setMuted(prev => {
-                    const next = !prev;
-                    localStorage.setItem('reel-muted', String(next));
-                    return next;
-                });
+                setMuted(prev => !prev);
             }
             if (e.key === 'l' || e.key === 'L') { handleLikeRef.current?.(); haptic(15); }
             if (e.key === 's' || e.key === 'S') handleSaveRef.current?.();

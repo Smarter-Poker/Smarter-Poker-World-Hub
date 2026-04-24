@@ -359,14 +359,14 @@ async function sendFriendRequests(maxRequests = 10) {
 
         if (!target) continue;
 
-        // Check if already friends or pending
-        const { data: existing } = await getSupabase()
+        // Check if already friends or pending (use limit(1) — bidirectional rows produce 2 results, breaking maybeSingle)
+        const { data: existingRows } = await getSupabase()
             .from('friendships')
             .select('id')
             .or(`and(user_id.eq.${horse.profile_id},friend_id.eq.${target.profile_id}),and(user_id.eq.${target.profile_id},friend_id.eq.${horse.profile_id})`)
-            .maybeSingle();
+            .limit(1);
 
-        if (existing) continue; // Already have relationship
+        if (existingRows && existingRows.length > 0) continue; // Already have relationship
 
         // Send friend request
         const { error } = await getSupabase()

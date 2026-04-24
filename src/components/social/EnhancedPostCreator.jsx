@@ -74,17 +74,27 @@ const MediaPreview = ({ file, onRemove, uploadProgress, uploadStatusLabel, thumb
   const isVideo = sniffMimeType(file).startsWith('video/');
 
   useEffect(() => {
-    // Use thumbnail if available (lighter than <video>), otherwise create blob URL
+    // Use thumbnail if available (lighter than <video>), otherwise create blob URL for images only
     if (thumbnail) { setPreview(thumbnail); return; }
-    const url = URL.createObjectURL(file);
-    setPreview(url);
-    return () => URL.revokeObjectURL(url);
-  }, [file, thumbnail]);
+    if (!isVideo) {
+      const url = URL.createObjectURL(file);
+      setPreview(url);
+      return () => URL.revokeObjectURL(url);
+    }
+    // For videos without thumbnail, use null — show placeholder instead of loading heavy <video>
+    setPreview(null);
+  }, [file, thumbnail, isVideo]);
 
   return (
     <div className="media-preview-item">
       {isVideo ? (
-        <video src={preview} className="preview-media" muted />
+        preview ? (
+          <img src={preview} alt="Video preview" className="preview-media" />
+        ) : (
+          <div className="preview-media" style={{ background: 'linear-gradient(135deg, #1a1a2e, #16213e)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="rgba(255,255,255,0.3)"><path d="M8 5v14l11-7z"/></svg>
+          </div>
+        )
       ) : (
         <img src={preview} alt="Preview" className="preview-media" />
       )}

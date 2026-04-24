@@ -172,7 +172,7 @@ export function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLi
     useEffect(() => {
         if (showOverlay && isPlaying) {
             if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
-            overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2000);
+            overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 5000);
         }
         return () => { if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current); };
     }, [showOverlay, isPlaying]);
@@ -223,7 +223,7 @@ export function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLi
         // requiring a second tap to actually play/pause the video.
         setShowOverlay(true);
         if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
-        overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2000);
+        overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 5000);
 
         const isYT = isYouTubeUrl(videoUrl);
         if (!isYT && videoRef.current) {
@@ -284,10 +284,22 @@ export function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLi
             {isYouTubeUrl(videoUrl) ? (
                 <div style={{ position: 'relative', width: '100vw', height: '100vh', pointerEvents: 'none' }}>
                     <iframe
-                        src={`${getYouTubeEmbedUrl(videoUrl)}&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}`}
+                        src={`${getYouTubeEmbedUrl(videoUrl)}&enablejsapi=1&mute=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}`}
                         style={{ width: '100%', height: '100%', border: 'none', pointerEvents: 'none' }}
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                         allowFullScreen
+                        onLoad={(e) => {
+                            try {
+                                const iframeWindow = e.target.contentWindow;
+                                if (iframeWindow) {
+                                    // Mandatory: mute=1 in URL enables autoplay; unMute via postMessage restores audio
+                                    [300, 800, 1500].forEach(delay => setTimeout(() => {
+                                        iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
+                                        iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
+                                    }, delay));
+                                }
+                            } catch (err) { console.warn('[FullScreenVideoViewer] YT onLoad init failed:', err); }
+                        }}
                     />
                     {/* Age-restricted / unavailable video overlay */}
                     {managedYtError && (
@@ -355,20 +367,11 @@ export function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLi
                 <button onClick={onLike} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white' }}>
                     <span style={{ fontSize: 24 }}>👍</span><span style={{ fontSize: 10, fontWeight: 500 }}>Like</span>
                 </button>
-                <button onClick={() => {}} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white' }}>
-                    <span style={{ fontSize: 24 }}>👎</span><span style={{ fontSize: 10, fontWeight: 500 }}>Dislike</span>
-                </button>
                 <button onClick={onComment} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white' }}>
                     <span style={{ fontSize: 24 }}>💬</span><span style={{ fontSize: 10, fontWeight: 500 }}>Comment</span>
                 </button>
-                <button onClick={() => {}} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white' }}>
-                    <span style={{ fontSize: 24 }}>🔖</span><span style={{ fontSize: 10, fontWeight: 500 }}>Save</span>
-                </button>
                 <button onClick={() => { onShare?.(); setShareToast(true); setTimeout(() => setShareToast(false), 2000); }} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white' }}>
                     <span style={{ fontSize: 24 }}>📤</span><span style={{ fontSize: 10, fontWeight: 500 }}>Share</span>
-                </button>
-                <button onClick={() => {}} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white' }}>
-                    <span style={{ fontSize: 24 }}>🤖</span><span style={{ fontSize: 10, fontWeight: 500 }}>Jarvis</span>
                 </button>
             </div>
 

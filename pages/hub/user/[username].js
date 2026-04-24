@@ -1265,6 +1265,9 @@ export default function UserProfilePage() {
             .channel(`user-profile:${profile.id}`)
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_posts', filter: `author_id=eq.${profile.id}` }, handleRealtimeUpdate)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'follows' }, handleRealtimeUpdate)
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'friendships', filter: `friend_id=eq.${profile.id}` }, handleRealtimeUpdate)
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'friendships', filter: `user_id=eq.${profile.id}` }, handleRealtimeUpdate)
+            .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'friendships' }, handleRealtimeUpdate)
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_likes' }, (payload) => {
                 // Skip own likes — already handled by optimistic UI in handleLike
                 if (payload.new && payload.new.post_id && payload.new.user_id !== myUserId) {

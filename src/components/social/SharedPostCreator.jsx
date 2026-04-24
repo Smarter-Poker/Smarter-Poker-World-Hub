@@ -738,44 +738,16 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         {media.map((m, i) => (
                             <div key={i} style={{ position: 'relative', aspectRatio: media.length === 1 ? '16/9' : '1', borderRadius: 8, overflow: 'hidden' }}>
                                 {m.type === 'video' ? (
-                                    // Use lightweight thumbnail image instead of heavy <video> element
+                                    // Thumbnail image or dark placeholder — never load <video> for preview (freezes mobile)
                                     m.thumbnail ? (
                                         <img src={m.thumbnail} alt="Video thumbnail" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                     ) : (
-                                        <video src={m.url} muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, #1a1a2e, #16213e)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <svg width="48" height="48" viewBox="0 0 24 24" fill="rgba(255,255,255,0.3)"><path d="M8 5v14l11-7z"/></svg>
+                                        </div>
                                     )
                                 ) : (
                                     <img src={m.url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                )}
-                                {/* 🎬 Upload progress bar overlay */}
-                                {uploading && uploadProgress && m.file && (
-                                    <div style={{
-                                        position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)',
-                                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6,
-                                    }}>
-                                        <div style={{ color: 'white', fontSize: 13, fontWeight: 600 }}>{uploadProgress.label || 'Uploading…'}</div>
-                                        <div style={{ width: '70%', height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.25)', overflow: 'hidden' }}>
-                                            <div style={{
-                                                height: '100%', borderRadius: 3,
-                                                background: 'linear-gradient(90deg, #1877F2, #42B72A)',
-                                                width: `${Math.min(uploadProgress.pct || 0, 100)}%`,
-                                                transition: 'width 0.3s ease',
-                                            }} />
-                                        </div>
-                                        <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 11 }}>{uploadProgress.pct || 0}%</div>
-                                    </div>
-                                )}
-                                {/* Compression progress indicator */}
-                                {m.compressPct != null && !uploading && (
-                                    <div style={{
-                                        position: 'absolute', bottom: 28, left: 4, right: 4,
-                                        background: 'rgba(0,0,0,0.7)', borderRadius: 4, padding: '3px 6px',
-                                    }}>
-                                        <div style={{ color: '#42B72A', fontSize: 9, marginBottom: 2 }}>Compressing… {m.compressPct}%</div>
-                                        <div style={{ height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.2)', overflow: 'hidden' }}>
-                                            <div style={{ height: '100%', background: '#42B72A', width: `${m.compressPct}%`, transition: 'width 0.3s' }} />
-                                        </div>
-                                    </div>
                                 )}
                                 <button
                                     onClick={() => {
@@ -872,18 +844,19 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                 </div>
             )}
             {error && <div style={{ padding: '0 12px 8px', color: C.red, fontSize: 13 }}>{error}</div>}
-            {uploadProgress && (
+            {/* SINGLE progress bar — the ONLY upload progress indicator */}
+            {uploading && uploadProgress && (
                 <div style={{ padding: '0 12px 8px' }}>
-                    <div style={{ background: '#E4E6EB', borderRadius: 4, height: 6, overflow: 'hidden' }}>
+                    <div style={{ background: '#E4E6EB', borderRadius: 4, height: 8, overflow: 'hidden' }}>
                         <div style={{
                             height: '100%', borderRadius: 4,
                             background: 'linear-gradient(90deg, #1877F2, #42B72A)',
-                            width: `${uploadProgress.pct}%`,
+                            width: `${Math.min(uploadProgress.pct || 0, 100)}%`,
                             transition: 'width 0.3s ease'
                         }} />
                     </div>
-                    <div style={{ fontSize: 12, color: C.textSec, marginTop: 4, textAlign: 'center' }}>
-                        {uploadProgress.label}
+                    <div style={{ fontSize: 13, color: C.textSec, marginTop: 4, textAlign: 'center', fontWeight: 600 }}>
+                        {uploadProgress.label || `Uploading… ${uploadProgress.pct || 0}%`}
                     </div>
                 </div>
             )}
@@ -899,7 +872,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                    >{uploading ? (uploadProgress ? `${uploadProgress.pct}%` : 'Uploading…') : 'Photo/Video'}</button>
+                    >{uploading ? 'Uploading…' : 'Photo/Video'}</button>
                     <span style={{ color: '#BCC0C4' }}>·</span>
                     <button
                         onClick={onGoLive}
