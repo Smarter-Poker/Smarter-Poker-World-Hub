@@ -81,6 +81,7 @@ export function ReelsViewer({ onClose }) {
     const [loadError, setLoadError] = useState(false);
     const [muted, setMuted] = useState(false); // Always start with sound ON
     const [paused, setPaused] = useState(true); // Start true — autoplay may fail, first tap should send playVideo
+    const [ytReady, setYtReady] = useState(false); // True once YouTube fires first onStateChange — suppresses phantom play button during autoplay startup
     const [ytError, setYtError] = useState(null); // YouTube embed error code (150=age-restricted, 100=not found)
     const [liked, setLiked] = useState({});
     const [disliked, setDisliked] = useState({});
@@ -318,12 +319,14 @@ export function ReelsViewer({ onClose }) {
                         });
                     }
                     if (data.info === 1) { // Playing
+                        setYtReady(true); // YouTube confirmed playback — safe to show play button now
                         setPaused(false);
                         setShowOverlay(true);
                         clearTimeout(overlayTimerRef.current);
                         overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
                     }
                     if (data.info === 2) { // Paused
+                        setYtReady(true); // YouTube confirmed it knows about the video
                         setPaused(true);
                         setShowOverlay(true);
                         if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
@@ -350,6 +353,7 @@ export function ReelsViewer({ onClose }) {
     // should NOT trigger a play() call (the video key changes, element remounts)
     useEffect(() => {
         setPaused(true); // New reel starts as paused — autoplay may fail, first tap should send playVideo
+        setYtReady(false); // Reset — suppress play button until YT fires onStateChange for new video
         setShowOverlay(false);
         setProgress(0);
         setYtError(null); // Clear YouTube error state on reel change
@@ -1441,8 +1445,8 @@ export function ReelsViewer({ onClose }) {
                     <link rel="preload" href={reels[currentIndex + 1].video_url} as="video" />
                 )}
 
-                {/* Play Button Overlay - visible when paused (not during error) */}
-                {paused && !ytError && (
+                {/* Play Button Overlay - visible when explicitly paused (ytReady suppresses it during autoplay startup) */}
+                {paused && ytReady && !ytError && (
                     <div style={{
                         position: 'absolute', top: '50%', left: '50%',
                         transform: 'translate(-50%, -50%)',

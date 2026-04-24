@@ -84,6 +84,7 @@ export default function ReelsPage() {
     const [isPaused, setIsPaused] = useState(true); // Start true — autoplay may fail, first tap should always send playVideo
     const isPausedRef = useRef(true); // Sync ref for stale-closure-safe keyboard handler (matches initial isPaused=true)
     isPausedRef.current = isPaused; // Keep in sync on every render
+    const [ytReady, setYtReady] = useState(false); // True once YouTube fires first onStateChange — suppresses phantom play button during autoplay startup
     const touchStartY = useRef(0);
     const lastTapRef = useRef(0);
     const likeDebounceRef = useRef(false);
@@ -1133,6 +1134,7 @@ export default function ReelsPage() {
         setShareToast(false);
         setShowShareModal(false);
         setIsPaused(true); // New reel starts as paused — autoplay may fail, first tap should send playVideo
+        setYtReady(false); // Reset — suppress play button until YT fires onStateChange for new video
     }, [currentIndex]);
 
     const handleSave = async () => {
@@ -1357,6 +1359,7 @@ export default function ReelsPage() {
                 if (data?.event === 'onStateChange') {
                     if (data.info === 0) slideToNextRef.current();
                     if (data.info === 1) { // Playing
+                        setYtReady(true); // YouTube confirmed playback — safe to show play button now
                         setIsPaused(false);
                         setYtError(null); // Clear any previous error on successful play
                         setShowOverlay(true);
@@ -1364,6 +1367,7 @@ export default function ReelsPage() {
                         hudTimerRef.current = setTimeout(() => setShowOverlay(false), 5000);
                     }
                     if (data.info === 2) { // Paused
+                        setYtReady(true); // YouTube confirmed it knows about the video
                         setIsPaused(true);
                         setShowOverlay(true);
                         if (hudTimerRef.current) clearTimeout(hudTimerRef.current);
@@ -1878,8 +1882,8 @@ export default function ReelsPage() {
                     </div>
                 )}
 
-                {/* Pause indicator - shown when video is paused */}
-                {isPaused && (
+                {/* Pause indicator - shown only after YT confirms video state (ytReady) to avoid phantom play button during autoplay */}
+                {isPaused && ytReady && (
                     <div style={{
                         position: 'absolute', top: '50%', left: '50%',
                         transform: 'translate(-50%, -50%)',

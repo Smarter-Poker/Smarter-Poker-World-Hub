@@ -240,6 +240,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
     const [showHeart, setShowHeart] = useState(false);
     const [progress, setProgress] = useState(0);
     const [paused, setPaused] = useState(true); // Start true — autoplay may fail, first tap should send playVideo
+    const [ytReady, setYtReady] = useState(false); // True once YouTube fires first onStateChange — suppresses phantom play button during autoplay startup
     const [ytError, setYtError] = useState(null); // YouTube embed error code (150=age-restricted, 100=not found)
     const [likeCounts, setLikeCounts] = useState({});
     const [commentCounts, setCommentCounts] = useState({});
@@ -923,12 +924,14 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 if (data?.event === 'onStateChange') {
                     if (data.info === 0 && currentIndex < reels.length - 1) goNext(); // Ended
                     if (data.info === 1) { // Playing
+                        setYtReady(true); // YouTube confirmed playback — safe to show play button now
                         setPaused(false);
                         setShowOverlay(true);
                         clearTimeout(overlayTimerRef.current);
                         overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
                     }
                     if (data.info === 2) { // Paused
+                        setYtReady(true); // YouTube confirmed it knows about the video
                         setPaused(true);
                         setShowOverlay(true);
                         if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
@@ -978,6 +981,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
         setCommentText('');
         setShowOverlay(false);
         setPaused(true); // New reel starts as paused — autoplay may fail, first tap should send playVideo
+        setYtReady(false); // Reset — suppress play button until YT fires onStateChange for new video
         setProgress(0);
         setYtError(null); // Clear YouTube error state on reel change
         setCaptionExpanded(false);
@@ -1323,8 +1327,8 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     }
                 })()}
 
-                {/* Play Button Overlay - visible when paused (not during error) */}
-                {paused && !ytError && (
+                {/* Play Button Overlay - visible when explicitly paused (ytReady suppresses it during autoplay startup) */}
+                {paused && ytReady && !ytError && (
                     <div style={{
                         position: 'absolute', top: '50%', left: '50%',
                         transform: 'translate(-50%, -50%)',
