@@ -143,12 +143,14 @@ function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0, _userId, _fold
                 // Signed URL was consumed or expired — get a FRESH one and retry
                 const delay = RETRY_DELAYS[attempt] || 10000;
                 const reason = xhr.status === 400 ? 'URL expired' : 'session expired';
-                _setState(_state, maxPctReached, `${reason} — getting new URL (attempt ${attempt + 2}/${MAX_RETRIES + 1})…`);
+                // Reset progress so retry shows upload restarting (not stuck at 100%)
+                _progress = 5;
+                _setState(_state, 5, `${reason} — getting new URL (attempt ${attempt + 2}/${MAX_RETRIES + 1})…`);
                 setTimeout(async () => {
                     try {
                         const freshMeta = await _fetchUploadMeta(file, _userId, _folder || 'videos');
                         _uploadWithRetry(file, freshMeta.signedUrl, mimeType, attempt + 1, _userId, _folder)
-                            .then((nestedUrl) => resolve(nestedUrl || freshMeta.publicUrl)) // propagate the freshest publicUrl
+                            .then((nestedUrl) => resolve(nestedUrl || freshMeta.publicUrl))
                             .catch(reject);
                     } catch (fetchErr) {
                         reject(new Error(`Upload failed (HTTP ${xhr.status}) and could not get new URL: ${fetchErr.message}`));

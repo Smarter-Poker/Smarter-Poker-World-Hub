@@ -11,7 +11,7 @@ import { supabase } from '../../lib/supabase';
 import { sniffMimeType } from '../../lib/socialHelpers';
 import bgUpload from '../../lib/backgroundVideoUpload';
 import { validateVideoFile, generateThumbnail, compressVideo } from '../../lib/videoCompressor';
-import toast, { useToastStore } from '../../stores/toastStore';
+import toast from '../../stores/toastStore';
 
 
 
@@ -25,6 +25,7 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
     const [error, setError] = useState('');
     const [thumbnail, setThumbnail] = useState(null);
     const [compressPct, setCompressPct] = useState(null);
+    const [preparingMedia, setPreparingMedia] = useState(false);
 
     // Mounted guard — prevents state updates after modal is unmounted by background mode
     const mountedRef = useRef(true);
@@ -43,30 +44,17 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
     }, []);
 
     const _pickerOpenRef = useRef(false);
-    const _preparingToastRef = useRef(null);
 
     // ── iOS FILE PICKER PREPARATION DETECTION ──────────────────────────────
     useEffect(() => {
-        const handleFocusReturn = () => {
-            if (!_pickerOpenRef.current) return;
-            setTimeout(() => {
-                if (!_pickerOpenRef.current) return;
-                _preparingToastRef.current = toast.action(
-                    'Preparing Your Video — This May Take A Moment For Longer Videos...',
-                    null, 'info'
-                );
-            }, 500);
-        };
-        window.addEventListener('focus', handleFocusReturn);
-        return () => window.removeEventListener('focus', handleFocusReturn);
-    }, []);
+        if (!preparingMedia) return;
+        const timer = setTimeout(() => setPreparingMedia(false), 120_000);
+        return () => clearTimeout(timer);
+    }, [preparingMedia]);
 
     const handleFileSelect = (e) => {
-        // Dismiss iOS "Preparing video" toast
-        if (_preparingToastRef.current) {
-            try { useToastStore.getState().removeToast(_preparingToastRef.current); } catch (_) {}
-            _preparingToastRef.current = null;
-        }
+        // Clear iOS preparing indicator
+        setPreparingMedia(false);
         _pickerOpenRef.current = false;
 
         const file = e.target.files?.[0];
@@ -288,10 +276,27 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
                             style={styles.fileInput}
                             id="video-upload"
                         />
-                        <label htmlFor="video-upload" style={styles.fileLabel} onClick={() => { _pickerOpenRef.current = true; }}>
+                        <label htmlFor="video-upload" style={styles.fileLabel} onClick={() => { setPreparingMedia(true); _pickerOpenRef.current = true; }}>
                             {videoFile ? `📹 ${videoFile.name} (${fileSizeMB}MB)` : '📹 Choose Video'}
                         </label>
                     </div>
+
+                    {/* iOS Preparing Indicator */}
+                    {preparingMedia && (
+                        <div style={{
+                            padding: '12px 16px', background: 'rgba(24,119,242,0.15)',
+                            borderRadius: 8, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10
+                        }}>
+                            <div style={{
+                                width: 18, height: 18, border: '3px solid #1877F2', borderTopColor: 'transparent',
+                                borderRadius: '50%', animation: 'spin 0.8s linear infinite'
+                            }} />
+                            <span style={{ fontSize: 13, fontWeight: 600, color: '#1877F2' }}>
+                                Preparing Your Video — This May Take A Moment...
+                            </span>
+                            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                        </div>
+                    )}
 
                     {/* Video Thumbnail Preview */}
                     {thumbnail && (
@@ -316,8 +321,9 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
                         placeholder="Add A Caption..."
                         value={caption}
                         onChange={(e) => setCaption(e.target.value)}
-                        style={styles.textarea}
+                        style={{ ...styles.textarea, opacity: uploading ? 0.5 : 1 }}
                         maxLength={500}
+                        disabled={uploading}
                     />
                     <div style={{ textAlign: 'right', fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: -12, marginBottom: 12 }}>
                         {caption.length}/500

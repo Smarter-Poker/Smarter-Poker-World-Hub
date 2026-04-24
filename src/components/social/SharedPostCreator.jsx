@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { supabase } from '../../../src/lib/supabase';
 import { getAccessToken } from '../../../src/lib/authUtils';
 import { busEmit } from '../../../src/engine/EventBus';
-import toast, { useToastStore } from '../../../src/stores/toastStore';
+import toast from '../../../src/stores/toastStore';
 import { useActiveIdentity } from '../../../src/contexts/ActiveIdentityContext';
 import CheckInModal from './CheckInModal';
 import TrendingVenues from './TrendingVenues';
@@ -20,6 +20,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
     const [uploading, setUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(null); // null | { pct: number, label: string }
     const [error, setError] = useState('');
+    const [preparingMedia, setPreparingMedia] = useState(false); // true while iOS file picker is open / transcoding
     const [mentionQuery, setMentionQuery] = useState('');
     const [mentionResults, setMentionResults] = useState([]);
     const [showMentions, setShowMentions] = useState(false);
@@ -41,7 +42,6 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
     const mountedRef = useRef(true); // guards setState after unmount
     const compressionRef = useRef({}); // { [blobUrl]: { controller, promise, result } }
     const _pickerOpenRef = useRef(false); // tracks if iOS file picker is open
-    const _preparingToastRef = useRef(null); // toast ID for "Preparing video..." message
 
     // Identity switching
     const { isClubMode, clubPage, hasClubPage, switchToPersonal, switchToClub } = useActiveIdentity();
@@ -150,26 +150,15 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
     // On iOS, after the user selects a video and taps the blue checkmark,
     // the OS transcodes HEVC→H.264 which can take 30-90+ seconds.
     // During this time, our onChange never fires → dead screen.
-    // Detect when the picker dismisses (focus returns to page) and show
-    // immediate feedback so the user knows something is happening.
+    // Instead of relying on focus events (which don't fire on iOS), we show
+    // a visible "Preparing..." indicator immediately when the button is clicked.
+    // The indicator stays until handleFiles fires (file ready or cancel).
+    // Safety timeout: auto-clear after 120s in case onChange never fires.
     useEffect(() => {
-        const handleFocusReturn = () => {
-            if (!_pickerOpenRef.current) return; // not returning from our picker
-            // Slight delay — onChange fires ~50ms after focus on fast operations
-            setTimeout(() => {
-                if (!_pickerOpenRef.current) return; // handleFiles already ran and cleared the flag
-                // Still waiting for the file — iOS is transcoding
-                _preparingToastRef.current = toast.action(
-                    'Preparing Your Video — This May Take A Moment For Longer Videos...',
-                    null,   // no click action
-                    'info'  // type — no duration = persistent until dismissed
-                );
-            }, 500);
-        };
-
-        window.addEventListener('focus', handleFocusReturn);
-        return () => window.removeEventListener('focus', handleFocusReturn);
-    }, []);
+        if (!preparingMedia) return;
+        const timer = setTimeout(() => setPreparingMedia(false), 120_000);
+        return () => clearTimeout(timer);
+    }, [preparingMedia]);
 
     /**
      * handleFiles — STAGE ONLY (instant, no freeze)
@@ -184,11 +173,8 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
      *   5. Signed URL prefetch for first video
      */
     const handleFiles = async (e) => {
-        // Dismiss the iOS "Preparing video" toast since the file is now ready
-        if (_preparingToastRef.current) {
-            try { useToastStore.getState().removeToast(_preparingToastRef.current); } catch (_) {}
-            _preparingToastRef.current = null;
-        }
+        // Clear the iOS preparing indicator — file is now ready (or user cancelled)
+        setPreparingMedia(false);
         _pickerOpenRef.current = false;
 
         const files = Array.from(e.target.files);
@@ -731,8 +717,9 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         value={content}
                         onChange={handleContentChange}
                         onPaste={handlePaste}
+                        disabled={uploading}
                         placeholder={context === 'social-pages' ? `Post as ${postingAs.name}...` : (isClubMode ? `Post as ${clubPage?.name || 'Club'}...` : `What's on your mind, ${user?.name || 'Player'}?`)}
-                        style={{ width: '100%', background: C.bg, border: 'none', borderRadius: 20, padding: '10px 16px', fontSize: 16, outline: 'none', boxSizing: 'border-box', color: C.text }}
+                        style={{ width: '100%', background: C.bg, border: 'none', borderRadius: 20, padding: '10px 16px', fontSize: 16, outline: 'none', boxSizing: 'border-box', color: uploading ? '#999' : C.text, opacity: uploading ? 0.6 : 1 }}
                         maxLength={5000}
                     />
                     {content.length > 4500 && (
@@ -901,11 +888,28 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                     </div>
                 </div>
             )}
+            {/* ── Preparing Media Indicator (iOS transcoding) ── */}
+            {preparingMedia && (
+                <div style={{
+                    padding: '12px 16px', background: 'linear-gradient(135deg, #E8F4FD, #D4E9F7)',
+                    borderTop: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 10
+                }}>
+                    <div style={{
+                        width: 20, height: 20, border: '3px solid #1877F2', borderTopColor: 'transparent',
+                        borderRadius: '50%', animation: 'spin 0.8s linear infinite'
+                    }} />
+                    <span style={{ fontSize: 14, fontWeight: 600, color: '#1877F2' }}>
+                        Preparing Your Video — This May Take A Moment For Longer Videos...
+                    </span>
+                    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                </div>
+            )}
             <div style={{ borderTop: `1px solid ${C.border}` }}>
                 <input ref={fileRef} type="file" accept="image/*,video/*" multiple hidden onChange={handleFiles} />
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 8px 4px', gap: 4 }}>
                     <button
                     onClick={() => {
+                        setPreparingMedia(true);
                         _pickerOpenRef.current = true;
                         fileRef.current?.click();
                     }}
