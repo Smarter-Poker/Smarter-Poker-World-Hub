@@ -286,7 +286,11 @@ export default function NewsHub() {
         surface: 'NewsReelsViewer',
         autoActionDelay: 3000,
         onError: () => {
-            setReelViewerIndex(prev => prev + 1);
+            if (reelViewerIndex < reels.length - 1) {
+                setReelViewerIndex(prev => prev + 1);
+            } else {
+                setReelViewerOpen(false);
+            }
         },
     });
 

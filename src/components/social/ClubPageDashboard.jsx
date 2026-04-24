@@ -321,7 +321,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
         setPostUploading(true);
         const uploaded = [];
         for (const file of toUpload) {
-            const isVideo = file.type.startsWith('video/');
+            const isVideo = _sniffCleanMime(file).startsWith('video/');
             try {
                 if (isVideo) {
                     // Direct-to-Supabase upload for videos (bypasses Vercel body limit)
