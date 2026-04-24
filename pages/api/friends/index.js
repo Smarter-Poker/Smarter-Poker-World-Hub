@@ -61,13 +61,13 @@ export default async function handler(req, res) {
             .select('friend_id, created_at')
             .eq('user_id', userId)
             .eq('status', 'accepted')
-            .limit(200),
+            .limit(1000),
           getSupabase()
             .from('friendships')
             .select('user_id, created_at')
             .eq('friend_id', userId)
             .eq('status', 'accepted')
-            .limit(200),
+            .limit(1000),
         ]);
 
         const sentRows = sentResult.data;

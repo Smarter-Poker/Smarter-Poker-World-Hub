@@ -16,7 +16,18 @@ export function SharedAvatar({ src, name, size = 40, online, onClick, linkTo }) 
 
     return (
         <div
-            style={{ position: 'relative', display: 'inline-block', cursor: handleClick ? 'pointer' : 'default', width: size, height: size }}
+            className="sp-avatar"
+            style={{
+                '--sp-avatar-size': `${size}px`,
+                position: 'relative',
+                display: 'inline-block',
+                cursor: handleClick ? 'pointer' : 'default',
+                width: size,
+                height: size,
+                borderRadius: '50%',
+                overflow: 'hidden',
+                flexShrink: 0,
+            }}
             onClick={handleClick}
         >
             <Image
@@ -25,7 +36,7 @@ export function SharedAvatar({ src, name, size = 40, online, onClick, linkTo }) 
                 width={size}
                 height={size}
                 unoptimized={!isAllowedDomain}
-                style={{ borderRadius: '50%', objectFit: 'cover' }}
+                style={{ borderRadius: '50%', objectFit: 'cover', width: '100%', height: '100%' }}
             />
             {online !== undefined && <div style={{ position: 'absolute', bottom: 0, right: 0, width: size * 0.28, height: size * 0.28, borderRadius: '50%', background: online ? C.green : '#ccc', border: '2px solid white', zIndex: 2 }} />}
         </div>

@@ -376,7 +376,9 @@ body {
 
 @media (max-width: 768px) {
 
-  button,
+  /* Touch target minimum — excludes icon-only buttons (X close, avatar, etc.)
+     Use class .sp-icon-btn on any button that must stay square/circular */
+  button:not(.sp-icon-btn),
   a,
   input,
   select,
@@ -397,9 +399,14 @@ body {
     font-size: 1.25rem !important;
   }
 
-  img,
+  /* Responsive images — NEVER auto-height avatars (that breaks border-radius: 50% circles into ovals) */
   video,
   iframe {
+    max-width: 100%;
+    height: auto;
+  }
+
+  img:not(.sp-avatar):not([style*="border-radius: 50%"]):not([style*="borderRadius"]) {
     max-width: 100%;
     height: auto;
   }
@@ -499,6 +506,47 @@ body {
 .villain-avatar-poker {
   mix-blend-mode: multiply;
   background: transparent;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CIRCLE ENFORCEMENT — PLATFORM-WIDE HARDCODE
+   Profile pictures and X close buttons MUST ALWAYS be circles.
+   These rules cannot be overridden by mobile responsive CSS.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* sp-avatar: hardcoded circle — use on any profile picture img or wrapper */
+.sp-avatar,
+.sp-avatar img {
+  border-radius: 50% !important;
+  aspect-ratio: 1 / 1 !important;
+  width: var(--sp-avatar-size, 40px) !important;
+  height: var(--sp-avatar-size, 40px) !important;
+  object-fit: cover !important;
+  flex-shrink: 0 !important;
+}
+
+/* sp-icon-btn: square button — stays square, no min-height oval distortion */
+/* Use this class on X close buttons, icon-only buttons */
+.sp-icon-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: unset !important;
+  width: var(--sp-btn-size, 32px) !important;
+  height: var(--sp-btn-size, 32px) !important;
+  border-radius: 50% !important;
+  flex-shrink: 0 !important;
+  padding: 0 !important;
+  cursor: pointer !important;
+  line-height: 1 !important;
+}
+
+/* Prevent ANY img inside a circle avatar container from going auto-height */
+[style*="border-radius: 50%"] > img,
+[style*="borderRadius: '50%'"] > img {
+  height: 100% !important;
+  width: 100% !important;
+  object-fit: cover !important;
 }
 /* ── CSS Animation Utilities ────────────────────────────────────────────── */
 @keyframes fadeIn {
