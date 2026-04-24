@@ -138,7 +138,7 @@ function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0, _userId, _fold
         xhr.onload = () => {
             _activeXhr = null;
             if (xhr.status >= 200 && xhr.status < 300) {
-                resolve();
+                resolve(null); // success with original URL — no publicUrl override
             } else if ((xhr.status === 400 || xhr.status === 403) && attempt < MAX_RETRIES && _userId) {
                 // Signed URL was consumed or expired — get a FRESH one and retry
                 const delay = RETRY_DELAYS[attempt] || 10000;
@@ -148,7 +148,7 @@ function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0, _userId, _fold
                     try {
                         const freshMeta = await _fetchUploadMeta(file, _userId, _folder || 'videos');
                         _uploadWithRetry(file, freshMeta.signedUrl, mimeType, attempt + 1, _userId, _folder)
-                            .then(resolve)
+                            .then((nestedUrl) => resolve(nestedUrl || freshMeta.publicUrl)) // propagate the freshest publicUrl
                             .catch(reject);
                     } catch (fetchErr) {
                         reject(new Error(`Upload failed (HTTP ${xhr.status}) and could not get new URL: ${fetchErr.message}`));
@@ -337,7 +337,9 @@ const bgUpload = {
 
             // ── Step 2: XHR upload with automatic retry on failure ────────────
             const mimeType = sniffMimeType(file);
-            await _uploadWithRetry(file, meta.signedUrl, mimeType, 0, userId, folder);
+            const freshPublicUrl = await _uploadWithRetry(file, meta.signedUrl, mimeType, 0, userId, folder);
+            // If a retry produced a fresh URL, use that; otherwise use the original
+            const finalPublicUrl = freshPublicUrl || meta.publicUrl;
 
             // ── Upload complete ───────────────────────────────────────────────
             clearTimeout(_bgTimer);
@@ -350,12 +352,12 @@ const bgUpload = {
             }
             const wasBackground = (_state === 'background');
             _setState('done', 100, 'Upload complete!');
-            _emit('onComplete', { publicUrl: meta.publicUrl, wasBackground });
+            _emit('onComplete', { publicUrl: finalPublicUrl, wasBackground });
 
             // NOTE: callers fire the "Video is live" toast AFTER their DB insert
             // so we don't announce too early. bgUpload only handles the upload.
 
-            return { publicUrl: meta.publicUrl, wasBackground };
+            return { publicUrl: finalPublicUrl, wasBackground };
 
         } catch (err) {
             clearTimeout(_bgTimer);
