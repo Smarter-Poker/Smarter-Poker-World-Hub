@@ -70,3 +70,69 @@ Same Supabase delta check the AG 2A.2 prompt already does, plus:
 entries in the same commit. The stagger is env-gated (`DISPATCHER_ROLE=secondary`)
 and logs `[STAGGERED]` next to each affected schedule at startup so
 journalctl confirms which variant is active.
+
+## Follow-up finding — SCRIPT_JOBS deployment gap on Hetzner
+
+The idempotence verdicts above are about **correctness if both dispatchers
+fire**. Separate question: does the Hetzner dispatcher actually *have* the
+code to fire each job?
+
+For the 12 HTTP crons: yes — `fire_cron()` just hits
+`https://smarter.poker{path}` with the CRON_SECRET. No local file
+dependency.
+
+For the 4 SCRIPT_JOBS: **no**. The dispatcher references
+`SCRAPER_PY = Path.home() / 'Documents' / 'Smarter-Poker-World-Hub' /
+'scripts' / 'video_library_scraper.py'`. That path exists on Dan's Mac.
+On Hetzner (home dir is `/home/openclaw`, systemd unit runs as user
+`openclaw`), the path does not exist. `deploy-openclaw.sh` only syncs
+`dispatcher.py` — it does not push `video_library_scraper.py` or any of
+its Python dependencies. Every SCRIPT_JOB firing on Hetzner would hit
+`FileNotFoundError` under `subprocess.run()` and log an error into
+journalctl, polluting the burn-in signal for the 12 HTTP crons that do
+work.
+
+### Resolution shipped with this addendum
+
+`scripts/openclaw-cron-dispatcher.py` now has a
+`should_skip_on_secondary(path, role)` helper and a registration-time
+guard. When `DISPATCHER_ROLE=secondary`, the 4 SCRIPT_JOBS are skipped at
+registration with a single log line each:
+
+```
+Skipping 4 SCRIPT_JOBS on secondary (SCRAPER_PY is Mac-only)
+  Skipped (secondary, SCRIPT_JOB): /api/cron/video-library-scraper
+  Skipped (secondary, SCRIPT_JOB): /api/cron/video-library-backfill
+  Skipped (secondary, SCRIPT_JOB): /api/cron/video-library-purge
+  Skipped (secondary, SCRIPT_JOB): /api/cron/video-library-views
+Registration complete: 12 registered, 4 skipped
+```
+
+Mac (primary) continues to register all 16.
+
+### Burn-in implication
+
+Phase 2A.2 parallel-run covers **12 of 16 jobs**. The 4 video-library
+SCRIPT_JOBS stay Mac-only until Phase 2B.2 HTTP-ports them to the
+`smarter-poker-workers` repo, at which point they become normal HTTP
+crons and this guard becomes a no-op (SCRIPT_JOBS set becomes empty).
+
+This means the AG 2A.2 prompt's "all 12 jobs executing from both
+dispatchers" criterion is accurate — the original plan line 235 said
+"12 overflow crons", the 4 SCRIPT_JOBS were added after the plan was
+written and should not be counted toward the parallel-run success
+criterion.
+
+### Test evidence
+
+Inline smoke test covered:
+
+1. `should_skip_on_secondary` returns True for all 4 SCRIPT_JOBS on
+   secondary, False on primary, False for all HTTP paths.
+2. `SCRIPT_JOBS` keys equal exactly the 4 video-library paths.
+3. `apply_stagger_if_secondary` regression: 3/3 (staggered on secondary,
+   untouched on primary, wildcard-minute preserved).
+4. `main()` loop simulation: primary registers 16/skips 0, secondary
+   registers 12/skips 4.
+
+All 4 test groups pass.

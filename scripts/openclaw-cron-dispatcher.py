@@ -257,6 +257,25 @@ def apply_stagger_if_secondary(path: str, kwargs: dict, role: str) -> dict:
     return shifted
 
 
+def should_skip_on_secondary(path: str, role: str) -> bool:
+    """
+    SCRIPT_JOBS invoke a local Python scraper at SCRAPER_PY. That path only
+    exists on Dan's Mac (Path.home()/Documents/Smarter-Poker-World-Hub/...)
+    because deploy-openclaw.sh syncs dispatcher.py only — it doesn't push
+    video_library_scraper.py to Hetzner.
+
+    On Hetzner (role='secondary'), SCRIPT_JOBS would fire subprocess.run()
+    against a non-existent file every cycle, logging FileNotFoundError into
+    journalctl and providing zero useful burn-in signal. Skip them at
+    registration time so the secondary dispatcher's logs stay clean.
+
+    The Mac (role='primary') keeps running them. Phase 2B.2 will HTTP-port
+    video-library-* handlers into the workers repo, at which point
+    SCRIPT_JOBS becomes empty and this guard is a no-op.
+    """
+    return role == 'secondary' and path in SCRIPT_JOBS
+
+
 def main():
     role = os.environ.get('DISPATCHER_ROLE', 'primary').strip().lower()
     if role not in ('primary', 'secondary'):
@@ -264,17 +283,25 @@ def main():
         role = 'primary'
 
     log.info('=' * 60)
-    log.info('OpenClaw Cron Dispatcher v1.1 starting up')
+    log.info('OpenClaw Cron Dispatcher v1.2 starting up')
     log.info(f'Base URL:        {BASE_URL}')
     log.info(f'Dispatcher role: {role}')
     if role == 'secondary':
         log.info(f'Stagger active:  +{STAGGER_MINUTES} min on {len(STAGGERED_JOBS)} non-idempotent jobs')
+        if SCRIPT_JOBS:
+            log.info(f'Skipping {len(SCRIPT_JOBS)} SCRIPT_JOBS on secondary (SCRAPER_PY is Mac-only)')
     log.info(f'Managing {len(OVERFLOW_CRONS)} overflow Vercel cron jobs')
     log.info('=' * 60)
 
     scheduler = BlockingScheduler(timezone='UTC')
 
+    registered = 0
+    skipped = 0
     for path, trigger_kwargs in OVERFLOW_CRONS:
+        if should_skip_on_secondary(path, role):
+            log.info(f'  Skipped (secondary, SCRIPT_JOB): {path}')
+            skipped += 1
+            continue
         effective_kwargs = apply_stagger_if_secondary(path, trigger_kwargs, role)
         trigger = CronTrigger(**effective_kwargs)
         scheduler.add_job(
@@ -287,7 +314,9 @@ def main():
         )
         staggered = ' [STAGGERED]' if effective_kwargs != trigger_kwargs else ''
         log.info(f'  Registered: {path}  [{effective_kwargs}]{staggered}')
+        registered += 1
 
+    log.info(f'Registration complete: {registered} registered, {skipped} skipped')
     log.info('Scheduler ready. Waiting for triggers...')
     try:
         scheduler.start()
