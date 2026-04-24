@@ -204,6 +204,13 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         if (!staged.length) return;
         setMedia(prev => [...prev, ...staged]);
 
+        // ⚡ INSTANT FEEDBACK: toast the moment a video is selected (before any processing)
+        const videoCount = staged.filter(s => s.type === 'video').length;
+        if (videoCount > 0) {
+            const sizeMB = Math.round(staged.filter(s => s.type === 'video').reduce((sum, s) => sum + (s.file?.size || 0), 0) / (1024 * 1024));
+            toast.info(`Video selected (${sizeMB}MB) — preparing upload…`, 3000);
+        }
+
         // ── BACKGROUND PROCESSING (runs while user types caption) ────────────
         for (const item of staged) {
             if (item.type !== 'video') continue;

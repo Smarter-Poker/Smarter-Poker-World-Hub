@@ -3984,8 +3984,20 @@ function SocialMediaPage() {
 
     // 🛡️ INSTANT AUTH: Initialize user synchronously from localStorage
     // Prevents "Log In" flash while async profile fetch completes
+    // Priority: sp-social-user cache (has DB username) → JWT user_metadata (may be stale)
     const [user, setUser] = useState(() => {
         if (typeof window === 'undefined') return null;
+        try {
+            // First: try our own profile cache written after DB fetch (always fresh username)
+            const cached = localStorage.getItem('sp-social-user');
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                // Cache TTL: 1 hour — after that, JWT fallback until DB fetch refreshes it
+                if (parsed?.id && parsed?.ts && (Date.now() - parsed.ts) < 3600000) {
+                    return { id: parsed.id, name: parsed.name, username: parsed.username, avatar: parsed.avatar, tier: null, role: parsed.role || 'user', hendon: null };
+                }
+            }
+        } catch (_) { /* cache miss */ }
         try {
             const authUser = getAuthUser();
             if (authUser) {
@@ -4410,7 +4422,7 @@ function SocialMediaPage() {
             if (d && (d.full_name || d.avatar_url || d.username)) {
                 setUser(prev => ({
                     ...prev,
-                    ...(d.full_name ? { name: d.full_name } : {}),
+                    ...(d.username || d.full_name ? { name: d.username || d.full_name } : {}),
                     ...(d.username ? { username: d.username } : {}),
                     ...(d.avatar_url ? { avatar: d.avatar_url } : {}),
                 }));
@@ -4433,7 +4445,7 @@ function SocialMediaPage() {
                         if (p) {
                             setUser(prev => ({
                                 ...prev,
-                                name: p.display_name || p.username || p.full_name || prev?.name,
+                                name: p.username || p.full_name || prev?.name,
                                 username: p.username || prev?.username,
                                 avatar: p.avatar_url || null,
                             }));
@@ -4513,7 +4525,7 @@ function SocialMediaPage() {
                     if (p?.role === 'god') {
                         setIsGodMode(true);
                     }
-                    const displayName = p?.display_name || p?.username || p?.full_name || authUser.email?.split('@')[0] || 'Player';
+                    const displayName = p?.username || p?.full_name || authUser.email?.split('@')[0] || 'Player';
                     setUser({
                         id: p?.id || authUser.id,
                         name: displayName,
@@ -4523,6 +4535,14 @@ function SocialMediaPage() {
                         role: p?.role || 'user',
                         hendon: null
                     });
+                    // Cache DB profile to localStorage — eliminates stale JWT alias flash on next load
+                    try {
+                        localStorage.setItem('sp-social-user', JSON.stringify({
+                            id: p?.id || authUser.id, name: displayName,
+                            username: p?.username || null, avatar: p?.avatar_url || null,
+                            role: p?.role || 'user', ts: Date.now()
+                        }));
+                    } catch (_) { /* non-critical */ }
 
                     // 🕐 Update last_seen (fire-and-forget, non-blocking)
                     supabase.from('profiles')

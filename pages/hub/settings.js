@@ -608,6 +608,8 @@ export default function SettingsPage() {
 
     const handleLogout = async () => {
         try {
+            // Clear profile cache so next user doesn't see stale alias
+            try { localStorage.removeItem('sp-social-user'); } catch (_) {}
             await supabase.auth.signOut();
             // Force hard redirect to clear all cached state
             window.location.href = '/';

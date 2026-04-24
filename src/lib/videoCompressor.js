@@ -49,27 +49,32 @@ export function validateVideoFile(file) {
  */
 export function generateThumbnail(file, timeSeconds = 2) {
     return new Promise((resolve) => {
+        // Guard: skip if not in browser or file is invalid
+        if (typeof document === 'undefined' || !file || !file.size) {
+            return resolve(null);
+        }
+
         const video = document.createElement('video');
         video.muted = true;
         video.playsInline = true;
         video.preload = 'auto';
+        video.crossOrigin = 'anonymous';
+        // iOS Safari: these attributes are critical for blob URL playback
+        video.setAttribute('playsinline', '');
+        video.setAttribute('webkit-playsinline', '');
 
         const blobUrl = URL.createObjectURL(file);
         video.src = blobUrl;
 
         const cleanup = () => {
-            try { video.pause(); video.src = ''; video.load(); } catch (_) {}
+            try { video.pause(); video.removeAttribute('src'); video.load(); } catch (_) {}
             try { URL.revokeObjectURL(blobUrl); } catch (_) {}
         };
 
         let resolved = false;
         const finish = (val) => { if (resolved) return; resolved = true; cleanup(); resolve(val); };
 
-        video.onloadeddata = () => {
-            video.currentTime = Math.min(timeSeconds, (video.duration || 10) * 0.1 || 0.5);
-        };
-
-        video.onseeked = () => {
+        const captureFrame = () => {
             try {
                 const canvas = document.createElement('canvas');
                 const maxDim = 480;
@@ -81,15 +86,61 @@ export function generateThumbnail(file, timeSeconds = 2) {
 
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                finish(canvas.toDataURL('image/jpeg', 0.7));
+
+                // Verify we didn't draw a blank frame (all black)
+                const testData = ctx.getImageData(0, 0, 1, 1).data;
+                const isBlank = testData[0] === 0 && testData[1] === 0 && testData[2] === 0;
+
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                // A valid JPEG data URL should be > 1KB (blank frames are tiny)
+                if (dataUrl.length < 1000 || isBlank) {
+                    console.warn('[VideoCompressor] Blank frame detected, trying later time...');
+                    // Try a slightly later time (iOS sometimes has blank first frames)
+                    if (video.currentTime < 3 && video.duration > 3) {
+                        video.currentTime = 3;
+                        return; // will re-enter via onseeked
+                    }
+                }
+                finish(dataUrl);
             } catch (err) {
-                console.warn('[VideoCompressor] Thumbnail failed:', err.message);
+                console.warn('[VideoCompressor] Thumbnail canvas failed:', err.message);
                 finish(null);
             }
         };
 
-        video.onerror = () => finish(null);
-        setTimeout(() => finish(null), 5000); // 5s timeout
+        video.onseeked = captureFrame;
+
+        // Use loadedmetadata (fires before loadeddata, more reliable on iOS)
+        video.onloadedmetadata = () => {
+            const seekTo = Math.min(timeSeconds, (video.duration || 10) * 0.1 || 0.5);
+            video.currentTime = seekTo;
+        };
+
+        // Fallback: also listen for loadeddata in case metadata fires but seek doesn't work
+        video.onloadeddata = () => {
+            if (!resolved && video.readyState >= 2) {
+                const seekTo = Math.min(timeSeconds, (video.duration || 10) * 0.1 || 0.5);
+                video.currentTime = seekTo;
+            }
+        };
+
+        video.onerror = () => {
+            console.warn('[VideoCompressor] Video element error during thumbnail gen');
+            finish(null);
+        };
+
+        // iOS Safari: programmatic play() is needed to trigger data loading from blob URLs.
+        // Without this, loadedmetadata/loadeddata may never fire on mobile Safari.
+        try {
+            const playPromise = video.play();
+            if (playPromise && playPromise.then) {
+                playPromise
+                    .then(() => { video.pause(); }) // pause immediately — we just needed to kick-start loading
+                    .catch(() => {}); // play() rejection is expected (autoplay policy) — that's fine, metadata may still load
+            }
+        } catch (_) { /* play() not supported in this context — rely on preload */ }
+
+        setTimeout(() => finish(null), 8000); // 8s timeout (iOS can be slow)
     });
 }
 

@@ -270,6 +270,13 @@ export const EnhancedPostCreator = ({
     setMediaFiles(prev => [...prev, ...filesToAdd]);
     setError(null);
 
+    // ⚡ INSTANT FEEDBACK: toast the moment a video is selected
+    const videoFiles = filesToAdd.filter(f => sniffMimeType(f).startsWith('video/'));
+    if (videoFiles.length > 0) {
+      const sizeMB = Math.round(videoFiles.reduce((sum, f) => sum + (f.size || 0), 0) / (1024 * 1024));
+      toast.info(`Video selected (${sizeMB}MB) — preparing upload…`, 3000);
+    }
+
     // 🚀 PREFETCH + BACKGROUND PROCESSING
     if (user?.id) {
       const startIdx = mediaFiles.length; // index offset for new files

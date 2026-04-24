@@ -68,6 +68,10 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
         setThumbnail(null);
         setCompressPct(null);
 
+        // ⚡ INSTANT FEEDBACK
+        const sizeMB = Math.round(file.size / (1024 * 1024));
+        toast.info(`Video selected (${sizeMB}MB) — preparing upload…`, 3000);
+
         // ── Background processing while user types caption ──
 
         // 1. Auto-thumbnail generation

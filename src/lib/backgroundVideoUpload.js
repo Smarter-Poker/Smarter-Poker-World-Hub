@@ -111,7 +111,12 @@ async function _fetchUploadMeta(file, userId, folder) {
  * Execute an XHR PUT upload with retry support.
  * On network failure, waits and retries up to MAX_RETRIES times.
  */
-function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0) {
+/**
+ * Execute an XHR PUT upload with retry support.
+ * On HTTP 400/403 (expired/consumed signed URL), fetches a FRESH signed URL before retrying.
+ * On network failure, waits and retries up to MAX_RETRIES times.
+ */
+function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0, _userId, _folder) {
     return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         _activeXhr = xhr;
@@ -138,22 +143,39 @@ function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0) {
             _activeXhr = null;
             if (xhr.status >= 200 && xhr.status < 300) {
                 resolve();
+            } else if ((xhr.status === 400 || xhr.status === 403) && attempt < MAX_RETRIES && _userId) {
+                // Signed URL was consumed or expired — get a FRESH one and retry
+                const delay = RETRY_DELAYS[attempt] || 10000;
+                const reason = xhr.status === 400 ? 'URL expired' : 'session expired';
+                _setState(_state, maxPctReached, `${reason} — getting new URL (attempt ${attempt + 2}/${MAX_RETRIES + 1})…`);
+                setTimeout(async () => {
+                    try {
+                        const freshMeta = await _fetchUploadMeta(file, _userId, _folder || 'videos');
+                        _uploadWithRetry(file, freshMeta.signedUrl, mimeType, attempt + 1, _userId, _folder)
+                            .then(resolve)
+                            .catch(reject);
+                    } catch (fetchErr) {
+                        reject(new Error(`Upload failed (HTTP ${xhr.status}) and could not get new URL: ${fetchErr.message}`));
+                    }
+                }, delay);
             } else if (xhr.status >= 500 && attempt < MAX_RETRIES) {
                 // Server error — retry with backoff
                 _activeXhr = null;
                 const delay = RETRY_DELAYS[attempt] || 10000;
                 _setState(_state, maxPctReached, `Server error — retrying (attempt ${attempt + 2}/${MAX_RETRIES + 1})…`);
                 setTimeout(() => {
-                    _uploadWithRetry(file, signedUrl, mimeType, attempt + 1)
+                    _uploadWithRetry(file, signedUrl, mimeType, attempt + 1, _userId, _folder)
                         .then(resolve)
                         .catch(reject);
                 }, delay);
             } else {
-                // 4xx or other non-retryable errors
-                const errMsg = xhr.status === 403
-                    ? 'Upload session expired — please try again.'
-                    : xhr.status === 413
+                // Non-retryable errors
+                const errMsg = xhr.status === 413
                     ? 'File is too large for the server.'
+                    : xhr.status === 400
+                    ? 'Upload rejected — the signed URL was already used. Please try again.'
+                    : xhr.status === 403
+                    ? 'Upload session expired — please try again.'
                     : `Upload failed (HTTP ${xhr.status})`;
                 reject(new Error(errMsg));
             }
@@ -166,7 +188,7 @@ function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0) {
                 const delay = RETRY_DELAYS[attempt] || 10000;
                 _setState(_state, maxPctReached, `Connection lost — retrying (attempt ${attempt + 2}/${MAX_RETRIES + 1})…`);
                 setTimeout(() => {
-                    _uploadWithRetry(file, signedUrl, mimeType, attempt + 1)
+                    _uploadWithRetry(file, signedUrl, mimeType, attempt + 1, _userId, _folder)
                         .then(resolve)
                         .catch(reject);
                 }, delay);
@@ -182,7 +204,7 @@ function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0) {
                 const delay = RETRY_DELAYS[attempt] || 10000;
                 _setState(_state, maxPctReached, `Upload timed out — retrying (attempt ${attempt + 2}/${MAX_RETRIES + 1})…`);
                 setTimeout(() => {
-                    _uploadWithRetry(file, signedUrl, mimeType, attempt + 1)
+                    _uploadWithRetry(file, signedUrl, mimeType, attempt + 1, _userId, _folder)
                         .then(resolve)
                         .catch(reject);
                 }, delay);
@@ -290,10 +312,10 @@ const bgUpload = {
             onDismiss?.();
             // Show persistent "uploading in background" toast (stays until upload completes)
             _bgToastId = toast.action(
-                'Your Video Is Uploading Now In The Background, We Will Notify You When It\'s Complete',
+                'Your Video Is Uploading In The Background — We Will Notify You When Complete',
                 null,   // no click action
-                'info'  // toast type
-                // no duration → persistent until completion toast replaces it
+                'info', // toast type
+                2000    // auto-dismiss after 2 seconds
             );
         }, bgAfterMs);
 
@@ -319,7 +341,7 @@ const bgUpload = {
 
             // ── Step 2: XHR upload with automatic retry on failure ────────────
             const mimeType = sniffMimeType(file);
-            await _uploadWithRetry(file, meta.signedUrl, mimeType);
+            await _uploadWithRetry(file, meta.signedUrl, mimeType, 0, userId, folder);
 
             // ── Upload complete ───────────────────────────────────────────────
             clearTimeout(_bgTimer);
