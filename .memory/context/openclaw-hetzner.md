@@ -46,10 +46,8 @@ ALL stored in macOS Keychain — NOT in this file:
 - All had UUID names, no labels, created 2026-04-14T03:15:19Z — accidental batch provisioning
 - **Savings: €147.96/mo (~$160/mo)**
 
-## Token rotation — DEFERRED
-- The leaked token (`yKYOvu…`) is still live — Hetzner API tokens can ONLY be revoked/created via the Web Console UI (no API endpoint exists)
-- Hetzner account login credentials (email/password) are not stored on this machine — Dan must log into https://console.hetzner.cloud/ manually
-- Once logged in: Security → API Tokens → revoke old → generate new named `openclaw-dispatcher-2026-04` → update Keychain:
-  ```bash
-  security add-generic-password -U -a smarter-poker -s hetzner-api -w '<NEW_TOKEN>'
-  ```
+## Token rotation — COMPLETED ✅
+- **Old token** (`yKYOvu…`): REVOKED — returns HTTP 401
+- **New token**: `openclaw-dispatcher-2026-04` (Read & Write) — stored in Keychain, verified HTTP 200
+- **Rotated at:** 2026-04-24T00:43Z via Hetzner Console UI
+- **Keychain updated:** `smarter-poker / hetzner-api` now holds the new token

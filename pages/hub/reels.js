@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { YouTubeErrorOverlay } from '../../src/hooks/useYouTubeErrorManager';
 import Head from 'next/head';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
@@ -1862,55 +1863,13 @@ export default function ReelsPage() {
 
                 {/* Age-restricted / errored YouTube video overlay */}
                 {videoId && ytError && (
-                    <div style={{
-                        position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        background: 'rgba(0,0,0,0.85)', zIndex: 60,
-                        flexDirection: 'column', gap: 16, padding: 24,
-                    }}>
-                        <div style={{
-                            width: 64, height: 64, borderRadius: '50%',
-                            background: 'rgba(255,255,255,0.1)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}>
-                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5">
-                                <circle cx="12" cy="12" r="10" />
-                                <line x1="12" y1="8" x2="12" y2="12" />
-                                <line x1="12" y1="16" x2="12.01" y2="16" />
-                            </svg>
-                        </div>
-                        <div style={{ color: 'rgba(255,255,255,0.9)', fontSize: 16, fontWeight: 600, textAlign: 'center' }}>
-                            {ytError.code === 150 ? 'Age-Restricted Video' : 'Video Unavailable'}
-                        </div>
-                        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, textAlign: 'center', maxWidth: 280 }}>
-                            {ytError.code === 150
-                                ? 'This video is age-restricted and cannot be played here.'
-                                : 'This video cannot be embedded. It may have been removed or restricted.'}
-                        </div>
-                        <a
-                            href={`https://www.youtube.com/watch?v=${videoId}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            style={{
-                                display: 'inline-flex', alignItems: 'center', gap: 8,
-                                padding: '10px 24px', borderRadius: 24,
-                                background: '#FF0000', color: 'white',
-                                fontWeight: 600, fontSize: 14,
-                                textDecoration: 'none', marginTop: 8,
-                                zIndex: 70,
-                            }}
-                        >
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
-                                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814z"/>
-                                <polygon points="9.545 15.568 15.818 12 9.545 8.432" fill="#000" />
-                            </svg>
-                            Watch On YouTube
-                        </a>
-                        <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, marginTop: 8 }}>
-                            Skipping in 3 seconds...
-                        </div>
-                    </div>
+                    <YouTubeErrorOverlay
+                        errorCode={ytError.code}
+                        videoId={videoId}
+                        thumbnailUrl={`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`}
+                        actionLabel="Skipping in 3 seconds..."
+                        style={{ zIndex: 60 }}
+                    />
                 )}
 
                 {!videoId && !currentReel?.video_url && (

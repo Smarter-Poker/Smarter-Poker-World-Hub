@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { YouTubeErrorOverlay } from '../../hooks/useYouTubeErrorManager';
 import { supabase } from '../../lib/supabase';
 import { getAuthUser, getAccessToken } from '../../lib/authUtils';
 import { busEmit, eventBus, EventType } from '../../engine/EventBus';
@@ -1456,42 +1457,14 @@ export function ReelsViewer({ onClose }) {
                     const videoUrl = currentReel?.video_url;
                     const videoId = getYouTubeVideoId(videoUrl);
                     return (
-                        <div style={{
-                            position: 'absolute', inset: 0, zIndex: 50,
-                            background: 'linear-gradient(135deg, rgba(20,20,30,0.97) 0%, rgba(10,10,20,0.99) 100%)',
-                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                            gap: 16, pointerEvents: 'auto',
-                        }}>
-                            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="1.5">
-                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-                            </svg>
-                            <div style={{ color: 'white', fontSize: 18, fontWeight: 700 }}>
-                                {ytError === 150 ? 'Age-Restricted Video' : 'Video Unavailable'}
-                            </div>
-                            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, maxWidth: 280, textAlign: 'center' }}>
-                                This video cannot be embedded. You can watch it directly on YouTube.
-                            </div>
-                            {videoId && (
-                                <a
-                                    href={`https://www.youtube.com/watch?v=${videoId}`}
-                                    target="_blank" rel="noopener noreferrer"
-                                    onClick={(e) => e.stopPropagation()}
-                                    style={{
-                                        display: 'inline-flex', alignItems: 'center', gap: 8,
-                                        padding: '12px 28px', borderRadius: 8,
-                                        background: '#FF0000', color: 'white',
-                                        fontWeight: 700, fontSize: 15, textDecoration: 'none',
-                                        boxShadow: '0 4px 20px rgba(255,0,0,0.4)',
-                                    }}
-                                >
-                                    Watch On YouTube
-                                </a>
-                            )}
-                            <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, marginTop: 4 }}>
-                                Skipping in 3 seconds...
-                            </div>
-                        </div>
+                        <YouTubeErrorOverlay
+                            errorCode={ytError}
+                            videoId={videoId}
+                            videoUrl={videoUrl}
+                            thumbnailUrl={videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null}
+                            actionLabel="Skipping in 3 seconds..."
+                            style={{ pointerEvents: 'auto' }}
+                        />
                     );
                 })()}
 
