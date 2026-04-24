@@ -219,7 +219,7 @@ function UserCard({
             border: `1px solid ${C.border}`,
         }}>
             <Link href={`/hub/user/${user.username || user.id}`} style={{ flexShrink: 0 }}>
-                <Avatar src={user.avatar_url} name={user.full_name || user.username} size={70} />
+                <Avatar src={user.avatar_url} name={user.username || user.full_name} size={70} />
             </Link>
             <div style={{ flex: 1, minWidth: 0 }}>
                 <Link href={`/hub/user/${user.username || user.id}`} style={{ textDecoration: 'none' }}>

@@ -426,7 +426,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
                     )}
                 </div>
                 <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{author?.full_name || author?.username}</div>
+                    <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{author?.username || author?.full_name}</div>
                     <div style={{ fontSize: 12, color: C.textSec }}>{timeAgo(editablePost.created_at)}{editablePost.isEdited || (editablePost.updated_at && editablePost.updated_at !== editablePost.created_at) ? ' · Edited' : ''} · 🌍</div>
                 </div>
                 {isOwnProfile && (
@@ -573,7 +573,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
                                     <img src={c.author?.avatar_url || '/default-avatar.png'} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} alt="User avatar" loading="lazy" />
                                     <div style={{ flex: 1, background: C.bg, borderRadius: 12, padding: '8px 12px' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{c.author?.full_name || c.author?.username || 'User'}</div>
+                                            <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{c.author?.username || c.author?.full_name || 'User'}</div>
                                             {c.author_id === currentUserId && editingCommentId !== c.id && (
                                                 <div style={{ display: 'flex', gap: 6 }}>
                                                     <button onClick={() => { setEditingCommentId(c.id); setEditCommentText(c.content || ''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec, fontSize: 11, padding: 0 }}>Edit</button>
@@ -1769,7 +1769,7 @@ export default function UserProfilePage() {
                             <div style={{ display: 'flex' }}>
                                 {friends.slice(0, 3).map((f, i) => (
                                     <img key={f.id} src={f.avatar_url || '/default-avatar.png'}
-                                        alt={f.full_name || f.username || 'Friend'}
+                                        alt={f.username || f.full_name || 'Friend'}
                                         style={{
                                             width: 28, height: 28, borderRadius: '50%', objectFit: 'cover',
                                             border: '2px solid white', marginLeft: i > 0 ? -10 : 0
@@ -2732,7 +2732,7 @@ export default function UserProfilePage() {
                         background: C.card, borderRadius: 12, padding: 24, maxWidth: 320, width: '100%',
                         boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
                     }} onClick={e => e.stopPropagation()}>
-                        <div style={{ fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 12 }}>Unfriend {profile?.full_name || profile?.username}?</div>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 12 }}>Unfriend {profile?.username || profile?.full_name}?</div>
                         <div style={{ fontSize: 14, color: C.textSec, marginBottom: 20 }}>
                             Are you sure you want to remove this person from your friends list?
                         </div>
@@ -2766,7 +2766,7 @@ export default function UserProfilePage() {
                         background: C.card, borderRadius: 12, padding: 24, maxWidth: 320, width: '100%',
                         boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
                     }} onClick={e => e.stopPropagation()}>
-                        <div style={{ fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 12 }}>Block {profile?.full_name || profile?.username}?</div>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 12 }}>Block {profile?.username || profile?.full_name}?</div>
                         <div style={{ fontSize: 14, color: C.textSec, marginBottom: 20 }}>
                             They won't be able to see your posts or message you.
                         </div>
@@ -2821,7 +2821,7 @@ export default function UserProfilePage() {
                         background: C.card, borderRadius: 12, padding: 24, maxWidth: 360, width: '100%',
                         boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
                     }} onClick={e => e.stopPropagation()}>
-                        <div style={{ fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 12 }}>Report {profile?.full_name || profile?.username}</div>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 12 }}>Report {profile?.username || profile?.full_name}</div>
                         <div style={{ fontSize: 14, color: C.textSec, marginBottom: 12 }}>
                             Why are you reporting this user?
                         </div>
