@@ -12,10 +12,14 @@ import BottomNavBar from '../../../../src/components/ui/BottomNavBar';
 import { getAccessToken } from '../../../../src/lib/authUtils';
 import { createClient } from '@supabase/supabase-js';
 
-const sb = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-);
+let _sb = null;
+function getSb() {
+  if (!_sb) _sb = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co',
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+  );
+  return _sb;
+}
 
 const TABS = ['Overview', 'Members', 'Moderation', 'Settings'];
 const HOST_ROLES = ['host', 'co_host', 'admin'];
@@ -274,7 +278,7 @@ export default function HomeGameDashboard() {
     (async () => {
       try {
         // Auth check
-        const { data: { user } } = await sb.auth.getUser(token);
+        const { data: { user } } = await getSb().auth.getUser(token);
         if (!user) { router.replace(`/auth/login?redirect=/hub/home-games/${slug}/dashboard`); return; }
 
         // Load group
@@ -283,7 +287,7 @@ export default function HomeGameDashboard() {
         if (!g?.id) throw new Error('Group not found');
 
         // Role check — fetch membership
-        const { data: mem } = await sb
+        const { data: mem } = await getSb()
           .from('home_game_members')
           .select('role')
           .eq('group_id', g.id)

@@ -11,7 +11,11 @@ import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
 const SUPABASE_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
+let _sb = null;
+function getSb() {
+  if (!_sb) _sb = createClient(SUPABASE_URL, SUPABASE_ANON);
+  return _sb;
+}
 
 const TABS = ['Reports', 'Appeals', 'Onboarding', 'GDPR Scrub'];
 
@@ -325,9 +329,9 @@ export default function HgModerationPage() {
     if (!token) return;
     (async () => {
       try {
-        const { data: { user } } = await sb.auth.getUser(token);
+        const { data: { user } } = await getSb().auth.getUser(token);
         if (!user) { router.replace('/auth/login?redirect=/horses/hg-moderation'); return; }
-        const { data: profile } = await sb.from('profiles').select('role').eq('id', user.id).maybeSingle();
+        const { data: profile } = await getSb().from('profiles').select('role').eq('id', user.id).maybeSingle();
         if (!profile || !['admin', 'superadmin', 'god'].includes(profile.role)) {
           setAuthChecked(true); setAuthed(false); return;
         }

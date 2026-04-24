@@ -11,10 +11,14 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
 import { createClient } from '@supabase/supabase-js';
 
-const sb = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-);
+let _sb = null;
+function getSb() {
+  if (!_sb) _sb = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co',
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+  );
+  return _sb;
+}
 
 const C = {
   bg: '#050810', card: 'rgba(15,23,42,.65)', border: 'rgba(148,163,184,.12)',
@@ -48,7 +52,7 @@ export default function PublicProfilePage() {
     (async () => {
       try {
         // 1. Fetch profile by username
-        const { data: prof, error: profErr } = await sb
+        const { data: prof, error: profErr } = await getSb()
           .from('profiles')
           .select('id, username, full_name, display_name, bio, avatar_url, level, diamonds, created_at')
           .eq('username', username)
@@ -58,7 +62,7 @@ export default function PublicProfilePage() {
         setProfile(prof);
 
         // 2. Fetch public home groups they host (privacy filter: is_private = false)
-        const { data: memberships } = await sb
+        const { data: memberships } = await getSb()
           .from('home_game_members')
           .select('role, home_game_groups!inner(id, name, slug, city, state, profile_photo_url, default_game_type, default_stakes, is_private)')
           .eq('user_id', prof.id)
