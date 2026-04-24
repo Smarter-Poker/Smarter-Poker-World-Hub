@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-OpenClaw Cron Dispatcher v1.3
+OpenClaw Cron Dispatcher v1.4
 ==============================
 
 ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
@@ -222,7 +222,9 @@ SCRAPER_PY = str(
 )
 
 # ─── Jobs that invoke a local Python script instead of a Vercel HTTP endpoint ─
-# Maps cron path → list of args passed to `python3 SCRAPER_PY`
+# Maps cron path → list of args passed to `python3 SCRAPER_PY`.
+# Only used as a primary-role fallback for the Mac dispatcher. On secondary
+# (Hetzner), any path in WORKERS_PREFERRED below fires via HTTP instead.
 SCRIPT_JOBS = {
     '/api/cron/video-library-scraper':  [],                   # full daily run
     '/api/cron/video-library-backfill': ['--backfill'],
@@ -231,27 +233,65 @@ SCRIPT_JOBS = {
 }
 
 
+# ─── Workers-dispatch routing (Phase 2B.2(b), 2026-04-24) ─────────────────────
+# Paths that have been HTTP-ported to the smarter-poker-workers service.
+# When a path is in this map, the dispatcher fires against the workers VM
+# instead of smarter.poker (Vercel). The value is the path on the workers
+# service — which is typically the same name minus the /api/cron/ prefix,
+# but kept explicit so we can route around renames without surprises.
+#
+# WORKERS_BASE_URL and DISPATCHER_PRIVATE_IP come from env so the same code
+# runs on primary (Mac, no private network → empty URL → falls through to
+# Vercel) and secondary (Hetzner, with private network → workers URL set).
+WORKERS_BASE_URL       = os.environ.get('WORKERS_BASE_URL', '').strip()
+DISPATCHER_PRIVATE_IP  = os.environ.get('DISPATCHER_PRIVATE_IP', '').strip()
+
+WORKERS_PREFERRED = {
+    # SCRIPT_JOBS now have HTTP equivalents on the workers service.
+    '/api/cron/video-library-scraper':  '/cron/video-library-scraper',
+    '/api/cron/video-library-backfill': '/cron/video-library-backfill',
+    '/api/cron/video-library-purge':    '/cron/video-library-purge',
+    '/api/cron/video-library-views':    '/cron/video-library-views',
+}
+
+
+def _workers_dispatch(path: str) -> bool:
+    """True if this firing should go to the workers VM instead of Vercel."""
+    return bool(WORKERS_BASE_URL) and path in WORKERS_PREFERRED
+
+
 def fire_cron(path: str):
-    """Make an authenticated GET request to a Vercel cron endpoint."""
-    url = f'{BASE_URL}{path}'
+    """Make an authenticated GET request to a Vercel cron endpoint (or workers when routed)."""
+    if _workers_dispatch(path):
+        url = f'{WORKERS_BASE_URL}{WORKERS_PREFERRED[path]}'
+        target_label = 'workers'
+    else:
+        url = f'{BASE_URL}{path}'
+        target_label = 'vercel'
     headers = {
         'Authorization': f'Bearer {CRON_SECRET}',
-        'User-Agent':    'OpenClaw-CronDispatcher/1.0',
+        'User-Agent':    'OpenClaw-CronDispatcher/1.4',
         'Accept':        'application/json',
     }
+    # Workers' ipAllowlist middleware reads X-Forwarded-For only (see
+    # .memory/context/workers-hetzner.md §2B.2(a) re-verified). Always set
+    # it when we have a known private IP — harmless for Vercel, required
+    # for workers.
+    if DISPATCHER_PRIVATE_IP:
+        headers['X-Forwarded-For'] = DISPATCHER_PRIVATE_IP
     try:
-        log.info(f'▶ Firing {path}')
+        log.info(f'▶ Firing {path} → {target_label}')
         t0 = time.time()
         resp = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT)
         elapsed = round(time.time() - t0, 1)
         if resp.status_code == 200:
-            log.info(f'✅ {path} → {resp.status_code} [{elapsed}s]')
+            log.info(f'✅ {path} → {target_label} {resp.status_code} [{elapsed}s]')
         else:
-            log.warning(f'⚠️ {path} → {resp.status_code} [{elapsed}s]: {resp.text[:200]}')
+            log.warning(f'⚠️ {path} → {target_label} {resp.status_code} [{elapsed}s]: {resp.text[:200]}')
     except requests.exceptions.Timeout:
-        log.error(f'❌ {path} → TIMEOUT after {REQUEST_TIMEOUT}s')
+        log.error(f'❌ {path} → {target_label} TIMEOUT after {REQUEST_TIMEOUT}s')
     except Exception as e:
-        log.error(f'❌ {path} → {type(e).__name__}: {e}')
+        log.error(f'❌ {path} → {target_label} {type(e).__name__}: {e}')
 
 
 def fire_script(path: str, extra_args: list):
@@ -281,8 +321,17 @@ def fire_script(path: str, extra_args: list):
 
 
 def make_job(path):
-    """Return a closure that fires the given cron path (HTTP or local script)."""
-    if path in SCRIPT_JOBS:
+    """Return a closure that fires the given cron path.
+
+    Precedence:
+      1. workers HTTP (if path in WORKERS_PREFERRED AND WORKERS_BASE_URL set)
+      2. local script (if path in SCRIPT_JOBS, typically primary/Mac only)
+      3. Vercel HTTP (the default — smarter.poker/api/cron/...)
+    """
+    if _workers_dispatch(path):
+        def _job():
+            fire_cron(path)   # fire_cron auto-routes to workers via _workers_dispatch
+    elif path in SCRIPT_JOBS:
         extra_args = SCRIPT_JOBS[path]
         def _job():
             fire_script(path, extra_args)
@@ -330,21 +379,24 @@ def apply_stagger_if_secondary(path: str, kwargs: dict, role: str) -> dict:
 
 def should_skip_on_secondary(path: str, role: str) -> bool:
     """
-    SCRIPT_JOBS invoke a local Python scraper at SCRAPER_PY. That path only
-    exists on Dan's Mac (Path.home()/Documents/Smarter-Poker-World-Hub/...)
-    because deploy-openclaw.sh syncs dispatcher.py only — it doesn't push
-    video_library_scraper.py to Hetzner.
+    SCRIPT_JOBS invoke a local Python scraper at SCRAPER_PY. That file only
+    exists on Dan's Mac. On Hetzner (role='secondary'), subprocess.run()
+    against it would FileNotFoundError every cycle.
 
-    On Hetzner (role='secondary'), SCRIPT_JOBS would fire subprocess.run()
-    against a non-existent file every cycle, logging FileNotFoundError into
-    journalctl and providing zero useful burn-in signal. Skip them at
-    registration time so the secondary dispatcher's logs stay clean.
+    Phase 2B.2(b) (2026-04-24): paths in WORKERS_PREFERRED now fire via HTTP
+    against the workers VM instead — they are NOT skipped on secondary. Only
+    SCRIPT_JOBS that haven't been workers-ported are skipped.
 
-    The Mac (role='primary') keeps running them. Phase 2B.2 will HTTP-port
-    video-library-* handlers into the workers repo, at which point
-    SCRIPT_JOBS becomes empty and this guard is a no-op.
+    Currently this means: if all SCRIPT_JOBS are in WORKERS_PREFERRED (they
+    are, as of 2B.2(b)), this function returns False for everything and the
+    function becomes a no-op. Retained to catch any future SCRIPT_JOBS
+    additions that land before their workers HTTP port.
     """
-    return role == 'secondary' and path in SCRIPT_JOBS
+    return (
+        role == 'secondary'
+        and path in SCRIPT_JOBS
+        and path not in WORKERS_PREFERRED
+    )
 
 
 def main():
@@ -354,7 +406,11 @@ def main():
         role = 'primary'
 
     log.info('=' * 60)
-    log.info('OpenClaw Cron Dispatcher v1.3 starting up')
+    log.info('OpenClaw Cron Dispatcher v1.4 starting up')
+    if WORKERS_BASE_URL:
+        log.info(f'Workers routing:   {len(WORKERS_PREFERRED)} paths → {WORKERS_BASE_URL}')
+    if DISPATCHER_PRIVATE_IP:
+        log.info(f'X-Forwarded-For:   {DISPATCHER_PRIVATE_IP}')
     log.info(f'Base URL:        {BASE_URL}')
     log.info(f'Dispatcher role: {role}')
     if role == 'secondary':
