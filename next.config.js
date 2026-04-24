@@ -395,6 +395,8 @@ const nextConfig = {
               'gyroscope=()',
               'accelerometer=()',
               'ambient-light-sensor=()',
+              // YouTube embeds require autoplay, fullscreen, and PiP to function.
+              // Without these origin allowances, Reels/Video Library won't play.
               'autoplay=(self "https://www.youtube-nocookie.com" "https://www.youtube.com")',
               'fullscreen=(self "https://www.youtube-nocookie.com" "https://www.youtube.com")',
               'picture-in-picture=(self "https://www.youtube-nocookie.com" "https://www.youtube.com")',
