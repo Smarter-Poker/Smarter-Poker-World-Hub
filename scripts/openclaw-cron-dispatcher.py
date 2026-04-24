@@ -200,6 +200,15 @@ ALL_CRONS = [
     ('/api/cron/training-daily-report',           dict(hour=8, minute=0)),
     ('/api/cron/commander-daily-aggregate',       dict(hour=10, minute=0)),
     ('/api/cron/freeroll-qualification-sync',     dict(hour='*/6', minute=0)),
+
+    # ══ WAVE 3 (2026-04-24 — highest-risk; closes Phase 2A) ══════════════════
+    # ledger / diamond economy / identity. Each has its own idempotence
+    # guarantees inside the handler (unique keys, cursor-based writes, flag
+    # columns). Running on a schedule with no variance to reconcile == no-op.
+    ('/api/cron/ledger-reconcile',                dict(hour=8, minute=0)),
+    ('/api/cron/vip-status-check',                dict(minute=0)),          # every hour
+    ('/api/cron/vip-diamond-stipend',             dict(day=1, hour=0, minute=5)),  # monthly, 1st @ 00:05 UTC
+    ('/api/cron/collusion-scan',                  dict(hour=3, minute=30)),
 ]
 
 # Legacy alias — kept through Wave 1 as a guardrail for any external tooling

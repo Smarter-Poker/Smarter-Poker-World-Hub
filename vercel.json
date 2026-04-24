@@ -436,23 +436,6 @@
       ]
     }
   ],
-  "crons": [
-    {
-      "path": "/api/cron/collusion-scan",
-      "schedule": "30 3 * * *"
-    },
-    {
-      "path": "/api/cron/ledger-reconcile",
-      "schedule": "0 8 * * *"
-    },
-    {
-      "path": "/api/cron/vip-diamond-stipend",
-      "schedule": "5 0 1 * *"
-    },
-    {
-      "path": "/api/cron/vip-status-check",
-      "schedule": "0 */6 * * *"
-    }
-  ],
+  "crons": [],
   "buildCommand": "NODE_OPTIONS='--max-old-space-size=7168' next build"
 }
