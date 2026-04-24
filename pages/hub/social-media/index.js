@@ -3984,28 +3984,38 @@ function SocialMediaPage() {
 
     // 🛡️ INSTANT AUTH: Initialize user synchronously from localStorage
     // Prevents "Log In" flash while async profile fetch completes
-    // Priority: sp-social-user cache (has DB username) → JWT user_metadata (may be stale)
+    // Priority: sp-social-user cache (has DB username + display pref) → JWT user_metadata (may be stale)
     const [user, setUser] = useState(() => {
         if (typeof window === 'undefined') return null;
         try {
-            // First: try our own profile cache written after DB fetch (always fresh username)
+            // First: try our own profile cache written after DB fetch (always fresh, respects display pref)
             const cached = localStorage.getItem('sp-social-user');
             if (cached) {
                 const parsed = JSON.parse(cached);
-                // Cache TTL: 1 hour — after that, JWT fallback until DB fetch refreshes it
+                // Cache TTL: 1 hour
                 if (parsed?.id && parsed?.ts && (Date.now() - parsed.ts) < 3600000) {
-                    return { id: parsed.id, name: parsed.name, username: parsed.username, avatar: parsed.avatar, tier: null, role: parsed.role || 'user', hendon: null };
+                    return { id: parsed.id, name: parsed.name, full_name: parsed.full_name, username: parsed.username, avatar: parsed.avatar, tier: null, role: parsed.role || 'user', hendon: null };
                 }
             }
         } catch (_) { /* cache miss */ }
         try {
             const authUser = getAuthUser();
             if (authUser) {
-                // Return minimal user object to prevent login prompt flash
+                // JWT fallback — use full_name by default if available, otherwise alias
+                const fullName = authUser.user_metadata?.full_name;
+                const alias = authUser.user_metadata?.poker_alias;
+                // Read display preference from settings cache
+                let pref = 'full_name';
+                try {
+                    const s = JSON.parse(localStorage.getItem('sp-user-settings') || '{}');
+                    pref = s.display_name_preference || 'full_name';
+                } catch (_) {}
+                const name = pref === 'username' ? (alias || fullName) : (fullName || alias);
                 return {
                     id: authUser.id,
-                    name: authUser.user_metadata?.poker_alias || authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Player',
-                    username: authUser.user_metadata?.poker_alias || null,
+                    name: name || authUser.email?.split('@')[0] || 'Player',
+                    full_name: fullName || null,
+                    username: alias || null,
                     avatar: authUser.user_metadata?.avatar_url || null,
                     tier: null,
                     role: 'user',
@@ -4420,10 +4430,18 @@ function SocialMediaPage() {
             // OPTIMISTIC: Instant UI update from event.detail (no network needed)
             const d = e?.detail;
             if (d && (d.full_name || d.avatar_url || d.username)) {
+                // Re-read pref from cache (may have changed in Settings)
+                let pref = 'full_name';
+                try { const s = JSON.parse(localStorage.getItem('sp-user-settings') || '{}'); pref = s.display_name_preference || 'full_name'; } catch (_) {}
+                const newFullName = d.full_name || null;
+                const newUsername = d.username || null;
                 setUser(prev => ({
                     ...prev,
-                    ...(d.username || d.full_name ? { name: d.username || d.full_name } : {}),
-                    ...(d.username ? { username: d.username } : {}),
+                    ...(newFullName !== null ? { full_name: newFullName } : {}),
+                    ...(newUsername !== null ? { username: newUsername } : {}),
+                    name: pref === 'username'
+                        ? (newUsername || d.username || prev?.username || prev?.full_name)
+                        : (newFullName || d.full_name || prev?.full_name || prev?.username),
                     ...(d.avatar_url ? { avatar: d.avatar_url } : {}),
                 }));
             }
@@ -4443,10 +4461,15 @@ function SocialMediaPage() {
                         const profiles = await res.json();
                         const p = profiles?.[0];
                         if (p) {
-                            const freshName = p.username || p.full_name || null;
+                            let pref = 'full_name';
+                            try { const s = JSON.parse(localStorage.getItem('sp-user-settings') || '{}'); pref = s.display_name_preference || 'full_name'; } catch (_) {}
+                            const freshName = pref === 'username'
+                                ? (p.username || p.full_name || null)
+                                : (p.full_name || p.username || null);
                             setUser(prev => ({
                                 ...prev,
                                 name: freshName || prev?.name,
+                                full_name: p.full_name || prev?.full_name,
                                 username: p.username || prev?.username,
                                 avatar: p.avatar_url || null,
                             }));
@@ -4456,6 +4479,7 @@ function SocialMediaPage() {
                                 localStorage.setItem('sp-social-user', JSON.stringify({
                                     ...cached,
                                     name: freshName || cached.name,
+                                    full_name: p.full_name || cached.full_name,
                                     username: p.username || cached.username,
                                     avatar: p.avatar_url || cached.avatar,
                                     ts: Date.now()
@@ -4475,10 +4499,31 @@ function SocialMediaPage() {
             handleProfileUpdated();
         });
 
+        // Cross-tab: Settings changed (e.g. display_name_preference toggled in Settings page)
+        // Immediately recompute user.name to show correct "Posting As" name without reload
+        const cleanupSettingsBc = listenBroadcast('smarter_poker_settings_sync', () => {
+            setUser(prev => {
+                if (!prev) return prev;
+                let pref = 'full_name';
+                try { const s = JSON.parse(localStorage.getItem('sp-user-settings') || '{}'); pref = s.display_name_preference || 'full_name'; } catch (_) {}
+                const newName = pref === 'username'
+                    ? (prev.username || prev.full_name || prev.name)
+                    : (prev.full_name || prev.username || prev.name);
+                if (newName === prev.name) return prev; // no-op if unchanged
+                // Also update localStorage cache
+                try {
+                    const cached = JSON.parse(localStorage.getItem('sp-social-user') || '{}');
+                    localStorage.setItem('sp-social-user', JSON.stringify({ ...cached, name: newName, ts: Date.now() }));
+                } catch (_) {}
+                return { ...prev, name: newName };
+            });
+        });
+
         return () => {
             clearTimeout(debounceTimer);
             window.removeEventListener('profile-updated', handleProfileUpdated);
             cleanupAvatarBc();
+            cleanupSettingsBc();
         };
     }, []);
 
@@ -4537,20 +4582,37 @@ function SocialMediaPage() {
                     if (p?.role === 'god') {
                         setIsGodMode(true);
                     }
-                    const displayName = p?.username || p?.full_name || authUser.email?.split('@')[0] || 'Player';
+                    // Read display_name_preference: full_name (default) or username (alias)
+                    let displayNamePref = 'full_name';
+                    try {
+                        const cachedSettings = JSON.parse(localStorage.getItem('sp-user-settings') || '{}');
+                        displayNamePref = cachedSettings.display_name_preference || 'full_name';
+                    } catch (_) {}
+                    // Also fetch from DB if not in settings cache (first-time visitors)
+                    if (!localStorage.getItem('sp-user-settings')) {
+                        try {
+                            const prefRes = await supabase.from('profiles').select('display_name_preference').eq('id', p?.id || authUser.id).maybeSingle();
+                            displayNamePref = prefRes.data?.display_name_preference || 'full_name';
+                        } catch (_) {}
+                    }
+                    const displayName = displayNamePref === 'username'
+                        ? (p?.username || p?.full_name || authUser.email?.split('@')[0] || 'Player')
+                        : (p?.full_name || p?.username || authUser.email?.split('@')[0] || 'Player');
                     setUser({
                         id: p?.id || authUser.id,
                         name: displayName,
+                        full_name: p?.full_name || null,
                         username: p?.username || null,
                         avatar: p?.avatar_url || null,
                         tier: p?.skill_tier || null,
                         role: p?.role || 'user',
                         hendon: null
                     });
-                    // Cache DB profile to localStorage — eliminates stale JWT alias flash on next load
+                    // Cache DB profile to localStorage — eliminates stale alias flash on next load
                     try {
                         localStorage.setItem('sp-social-user', JSON.stringify({
                             id: p?.id || authUser.id, name: displayName,
+                            full_name: p?.full_name || null,
                             username: p?.username || null, avatar: p?.avatar_url || null,
                             role: p?.role || 'user', ts: Date.now()
                         }));

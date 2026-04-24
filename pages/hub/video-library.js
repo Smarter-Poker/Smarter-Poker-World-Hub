@@ -194,11 +194,11 @@ export default function VideoLibraryPage() {
     // Video modal HUD (heart/comment/share/save) — tap to show, auto-hides
     const [vlHudVisible, setVlHudVisible] = useState(false);
     const vlHudTimer = useRef(null);
-    const vlRevealHud = () => {
+    const vlRevealHud = useCallback(() => {
         setVlHudVisible(true);
         clearTimeout(vlHudTimer.current);
         vlHudTimer.current = setTimeout(() => setVlHudVisible(false), 5000);
-    };
+    }, []);
 
     // "New This Week" rail dismiss state
     const [newThisWeekDismissed, setNewThisWeekDismissed] = useState(false);
@@ -641,6 +641,9 @@ export default function VideoLibraryPage() {
 
     // Cleanup share toast timer on unmount
     useEffect(() => () => { if (shareToastTimer.current) clearTimeout(shareToastTimer.current); }, []);
+
+    // Cleanup HUD timer on unmount
+    useEffect(() => () => { if (vlHudTimer.current) clearTimeout(vlHudTimer.current); }, []);
 
     // Cleanup interval on unmount
     useEffect(() => () => { if (timeTrackingInterval.current) clearInterval(timeTrackingInterval.current); }, []);
@@ -1536,9 +1539,11 @@ export default function VideoLibraryPage() {
                         minHeight: 0,
                         position: 'relative',
                     }}>
-                        {/* Transparent tap zone — left 80% of iframe to reveal HUD without blocking YT controls */}
+                        {/* Transparent tap zone — left 80% of iframe to reveal HUD without blocking YT controls.
+                            Uses both onClick (desktop) and onTouchEnd (iOS Safari — iframe captures touch layers). */}
                         <div
                             onClick={vlRevealHud}
+                            onTouchEnd={(e) => { e.preventDefault(); vlRevealHud(); }}
                             style={{
                                 position: 'absolute',
                                 top: 0, left: 0,
@@ -1546,6 +1551,7 @@ export default function VideoLibraryPage() {
                                 height: '75%', // stop above YT's bottom control bar
                                 zIndex: 5,
                                 cursor: 'pointer',
+                                WebkitTapHighlightColor: 'transparent',
                             }}
                         />
 

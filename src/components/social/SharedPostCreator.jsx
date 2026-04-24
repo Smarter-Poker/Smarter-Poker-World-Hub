@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { supabase } from '../../../src/lib/supabase';
 import { getAccessToken } from '../../../src/lib/authUtils';
 import { busEmit } from '../../../src/engine/EventBus';
-import toast from '../../../src/stores/toastStore';
+import toast, { useToastStore } from '../../../src/stores/toastStore';
 import { useActiveIdentity } from '../../../src/contexts/ActiveIdentityContext';
 import CheckInModal from './CheckInModal';
 import TrendingVenues from './TrendingVenues';
@@ -40,6 +40,8 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
     const _submittingRef = useRef(false); // local double-submit guard
     const mountedRef = useRef(true); // guards setState after unmount
     const compressionRef = useRef({}); // { [blobUrl]: { controller, promise, result } }
+    const _pickerOpenRef = useRef(false); // tracks if iOS file picker is open
+    const _preparingToastRef = useRef(null); // toast ID for "Preparing video..." message
 
     // Identity switching
     const { isClubMode, clubPage, hasClubPage, switchToPersonal, switchToClub } = useActiveIdentity();
@@ -144,6 +146,31 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         setUploading(false);
     };
 
+    // ── iOS FILE PICKER PREPARATION DETECTION ────────────────────────────────
+    // On iOS, after the user selects a video and taps the blue checkmark,
+    // the OS transcodes HEVC→H.264 which can take 30-90+ seconds.
+    // During this time, our onChange never fires → dead screen.
+    // Detect when the picker dismisses (focus returns to page) and show
+    // immediate feedback so the user knows something is happening.
+    useEffect(() => {
+        const handleFocusReturn = () => {
+            if (!_pickerOpenRef.current) return; // not returning from our picker
+            // Slight delay — onChange fires ~50ms after focus on fast operations
+            setTimeout(() => {
+                if (!_pickerOpenRef.current) return; // handleFiles already ran and cleared the flag
+                // Still waiting for the file — iOS is transcoding
+                _preparingToastRef.current = toast.action(
+                    'Preparing Your Video — This May Take A Moment For Longer Videos...',
+                    null,   // no click action
+                    'info'  // type — no duration = persistent until dismissed
+                );
+            }, 500);
+        };
+
+        window.addEventListener('focus', handleFocusReturn);
+        return () => window.removeEventListener('focus', handleFocusReturn);
+    }, []);
+
     /**
      * handleFiles — STAGE ONLY (instant, no freeze)
      * Creates local blob preview URLs so user can see thumbnails and type a caption.
@@ -157,6 +184,13 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
      *   5. Signed URL prefetch for first video
      */
     const handleFiles = async (e) => {
+        // Dismiss the iOS "Preparing video" toast since the file is now ready
+        if (_preparingToastRef.current) {
+            try { useToastStore.getState().removeToast(_preparingToastRef.current); } catch (_) {}
+            _preparingToastRef.current = null;
+        }
+        _pickerOpenRef.current = false;
+
         const files = Array.from(e.target.files);
         if (!files.length) return;
         if (!user?.id) { setError('Please log in to upload media.'); return; }
@@ -871,15 +905,18 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                 <input ref={fileRef} type="file" accept="image/*,video/*" multiple hidden onChange={handleFiles} />
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 8px 4px', gap: 4 }}>
                     <button
-                        onClick={() => fileRef.current?.click()}
-                        disabled={media.length >= MAX_MEDIA || uploading}
-                        style={{
-                            padding: '6px 8px', borderRadius: 6, border: 'none', background: 'transparent', cursor: media.length >= MAX_MEDIA ? 'not-allowed' : 'pointer',
-                            color: media.length >= MAX_MEDIA ? '#ccc' : '#65676B', fontSize: 14, fontWeight: 600, transition: 'background 0.2s', whiteSpace: 'nowrap'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                    >{uploading ? 'Uploading…' : 'Photo/Video'}</button>
+                    onClick={() => {
+                        _pickerOpenRef.current = true;
+                        fileRef.current?.click();
+                    }}
+                    disabled={media.length >= MAX_MEDIA || uploading}
+                    style={{
+                        padding: '6px 8px', borderRadius: 6, border: 'none', background: 'transparent', cursor: media.length >= MAX_MEDIA ? 'not-allowed' : 'pointer',
+                        color: media.length >= MAX_MEDIA ? '#ccc' : '#65676B', fontSize: 14, fontWeight: 600, transition: 'background 0.2s', whiteSpace: 'nowrap'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                >{uploading ? 'Uploading…' : 'Photo/Video'}</button>
                     <span style={{ color: '#BCC0C4' }}>·</span>
                     <button
                         onClick={onGoLive}

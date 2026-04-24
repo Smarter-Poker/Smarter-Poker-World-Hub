@@ -10,7 +10,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import * as Sentry from '@sentry/nextjs';
 import { SocialService } from '../../services/SocialService';
 import { validatePostContent } from '../../services/social-types';
-import toast from '../../stores/toastStore';
+import toast, { useToastStore } from '../../stores/toastStore';
 import { claimReward } from '../../lib/claimReward';
 import { busEmit } from '../../engine/EventBus';
 import { broadcastSync, BROADCAST_TAB_ID } from '../../lib/broadcastSync';
@@ -167,6 +167,8 @@ export const EnhancedPostCreator = ({
   const mountedRef = useRef(true);      // unmount guard for background upload callbacks
   const compressionRef = useRef({});    // { [fileKey]: { controller, promise, result } }
   const thumbnailRef = useRef({});      // { [fileKey]: dataUrl }
+  const _pickerOpenRef = useRef(false);  // tracks if iOS file picker is open
+  const _preparingToastRef = useRef(null); // toast ID for "Preparing video..." message
   const [thumbnails, setThumbnails] = useState({});
 
   // Stable file key — survives array index shifts when files are removed
@@ -186,6 +188,22 @@ export const EnhancedPostCreator = ({
       });
       compressionRef.current = {};
     };
+  }, []);
+
+  // ── iOS FILE PICKER PREPARATION DETECTION ──────────────────────────────
+  useEffect(() => {
+      const handleFocusReturn = () => {
+          if (!_pickerOpenRef.current) return;
+          setTimeout(() => {
+              if (!_pickerOpenRef.current) return;
+              _preparingToastRef.current = toast.action(
+                  'Preparing Your Video — This May Take A Moment For Longer Videos...',
+                  null, 'info'
+              );
+          }, 500);
+      };
+      window.addEventListener('focus', handleFocusReturn);
+      return () => window.removeEventListener('focus', handleFocusReturn);
   }, []);
 
   // Character count
@@ -246,6 +264,13 @@ export const EnhancedPostCreator = ({
 
   // Handle file selection
   const handleFileSelect = useCallback((e) => {
+    // Dismiss iOS "Preparing video" toast
+    if (_preparingToastRef.current) {
+        try { useToastStore.getState().removeToast(_preparingToastRef.current); } catch (_) {}
+        _preparingToastRef.current = null;
+    }
+    _pickerOpenRef.current = false;
+
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
@@ -765,7 +790,7 @@ export const EnhancedPostCreator = ({
 
           <button
             className="inline-action-btn"
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => { _pickerOpenRef.current = true; fileInputRef.current?.click(); }}
             disabled={isSubmitting || mediaFiles.length >= MAX_MEDIA_FILES}
           >
             <span className="icon">📷</span> Photo/Video
@@ -1084,7 +1109,7 @@ export const EnhancedPostCreator = ({
             <button
               className="tool-btn interactive"
               title="Add Photo/Video"
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => { _pickerOpenRef.current = true; fileInputRef.current?.click(); }}
               disabled={isSubmitting || mediaFiles.length >= MAX_MEDIA_FILES}
             >
               📷

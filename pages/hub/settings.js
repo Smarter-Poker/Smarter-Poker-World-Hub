@@ -1464,16 +1464,16 @@ export default function SettingsPage() {
 
                                 <div style={styles.card}>
                                     <Select
-                                        label="Display Name In Social Media"
+                                        label="Social Media Posting Name"
                                         value={settings.display_name_preference || 'full_name'}
                                         onChange={(v) => updateSetting('display_name_preference', v)}
                                         options={[
-                                            { value: 'full_name', label: 'Full Name (e.g., John Smith)' },
-                                            { value: 'username', label: 'Username (e.g., @pokerpro123)' },
+                                            { value: 'full_name', label: 'Full Name (e.g., Dan Bekavac) — Default' },
+                                            { value: 'username', label: 'Poker Alias (e.g., KingFish)' },
                                         ]}
                                     />
                                     <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: -8, marginBottom: 16, paddingLeft: 4 }}>
-                                        Choose How Your Name Appears In Posts And Comments
+                                        Choose The Name That Appears As "Posting As" When You Create Posts And Comments
                                     </div>
                                     <Select
                                         label="Profile Visibility"
