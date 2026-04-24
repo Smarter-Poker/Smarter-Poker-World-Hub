@@ -335,3 +335,85 @@ User logs into smarter.poker, all sub-apps share the session.
 10. Write it down. Read `.memory/` at session start, update at session end.
 11. No exceptions. Every rule, every task, every session.
 12. Never ask "should I?" -- just do it. Only stop for genuine forks.
+
+---
+
+## 11. SCHEDULED JOBS / CRONS (binding — CI-enforced)
+
+**All new scheduled jobs go to Open Claw on Hetzner. Never to `vercel.json`.**
+
+The platform is mid-migration (Phase 2 of `smarter-poker-optimization-plan.md`).
+Until Phase 2A.4 closes, the 40 jobs currently in `vercel.json` stay there,
+but NO new entries are permitted. The 16 overflow jobs are already on Hetzner.
+
+### 11.1 Where scheduled jobs live
+
+| Layer              | Path / URL                                               | Purpose                                  |
+|--------------------|----------------------------------------------------------|------------------------------------------|
+| **Scheduler**      | `scripts/openclaw-cron-dispatcher.py` (deployed to Hetzner `openclaw-dispatcher` VM — systemd `openclaw.service`) | Decides when a job fires |
+| **Handler (now)**  | `pages/api/cron/<name>.js` in this repo                  | Does the work (will move to `workers` repo in Phase 2B) |
+| **Handler (later)**| `smarter-poker-workers` repo (Phase 2B, not yet created) | Will replace monolith cron routes        |
+| **Auth**           | `Authorization: Bearer $CRON_SECRET` on every call       | Same secret, all tiers                   |
+
+### 11.2 How to add a new scheduled job
+
+1. Add the handler under `pages/api/cron/<name>.js` following the existing
+   pattern (check `Authorization` header against `process.env.CRON_SECRET`,
+   use `src/lib/supabaseServerClient.js`).
+2. Add the schedule entry to `scripts/openclaw-cron-dispatcher.py` — cron
+   expression + URL path + human-readable name. Commit to main.
+3. Deploy the dispatcher to Hetzner: `bash scripts/deploy-openclaw.sh`
+   (script scp's the updated Python file, restarts systemd, and tails
+   `journalctl -u openclaw` to verify the new job registered).
+4. Watch one fire-cycle in production before considering the job shipped.
+
+### 11.3 What is BANNED
+
+- **Adding entries to `vercel.json`'s `crons` array.** CI will fail.
+- **Creating files in `pages/api/cron/`** that don't correspond to an
+  existing job being moved from Mac-LaunchAgent or Vercel. CI will fail on
+  net-new file count growth.
+- **Scheduling jobs from any other source** — no raw cron on other servers,
+  no GitHub Actions on a `schedule:` trigger for application logic, no
+  Supabase `pg_cron`, no Vercel deploy hooks acting as scheduled triggers.
+  Every scheduled application trigger goes through Open Claw.
+- **Deploying `openclaw-cron-dispatcher.py` changes without running
+  `bash scripts/deploy-openclaw.sh`.** The repo file and the production
+  file on Hetzner must never drift.
+
+### 11.4 Exceptions (must be explicitly approved by Dan)
+
+The following `.github/workflows/*.yml` files DO have legitimate `schedule:`
+triggers because they run CI-side work (not application logic) and need
+GitHub's environment to execute:
+
+- `charity-scraper-v5.yml`
+- `daily-scraper.yml`
+- `hendonmob-auto-sync.yml`
+- `jsonld-scraper.yml`
+- `poker-series-auto-pilot.yml`
+- `venue-scraper.yml`
+- `weekly-schedule-scraper.yml`
+- `stale.yml`
+- `club-arena-scheduled-deploy.yml`
+
+These are the ONLY permitted GitHub Actions `schedule:` cron triggers. Any
+net-new workflow with a `schedule:` trigger is blocked by CI. To add one:
+put the logic in a `pages/api/cron/` handler and schedule it via Open Claw
+instead. If there's a genuine reason it must run GitHub-side (e.g., needs
+the `github.token`), update section 11.4 above in the same PR and document
+why Open Claw won't work.
+
+### 11.5 CI enforcement
+
+`.github/workflows/build-safety-gate.yml` has a dedicated check
+(CHECK 6: Cron governance) that fails the build if:
+
+- `vercel.json` crons array grows beyond its current size (40)
+- `pages/api/cron/` file count grows beyond its current size (45)
+- Any workflow file gets a new `schedule:` trigger that's not on the
+  allowlist in section 11.4
+
+Bypass = not allowed. If you legitimately need to move a job OUT of one of
+these (e.g., retire a Vercel cron), shrink the baseline in the same PR.
+The CI check compares to current-state, not a hard-coded number.

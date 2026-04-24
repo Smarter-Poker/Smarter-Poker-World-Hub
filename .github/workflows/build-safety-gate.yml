@@ -150,6 +150,71 @@ jobs:
             echo "✓ TypeScript compilation passed — zero errors"
           fi
 
+      # ═══════════════════════════════════════════════════════════════
+      # CHECK 6: Cron governance — enforce CLAUDE.md section 11
+      # All new scheduled jobs must go to Open Claw on Hetzner, not Vercel.
+      # Allowed baselines (caps at the numbers captured 2026-04-24):
+      #   - vercel.json crons array  ≤ 40
+      #   - pages/api/cron/ file count ≤ 45
+      #   - GitHub Actions schedule: triggers only on the allowlist below
+      # Shrinking these is fine (job retirement). Growing them is blocked.
+      # ═══════════════════════════════════════════════════════════════
+      - name: "CHECK 6: Cron governance (Open Claw migration)"
+        run: |
+          echo "Enforcing cron governance rules from CLAUDE.md section 11..."
+          FAIL=0
+
+          # 6a — vercel.json crons array size
+          VERCEL_CRONS=$(node -e "const d=require('./vercel.json');console.log((d.crons||[]).length)")
+          MAX_VERCEL_CRONS=40
+          echo "vercel.json crons count: $VERCEL_CRONS (max: $MAX_VERCEL_CRONS)"
+          if [ "$VERCEL_CRONS" -gt "$MAX_VERCEL_CRONS" ]; then
+            echo "::error::FATAL: vercel.json crons grew from $MAX_VERCEL_CRONS to $VERCEL_CRONS."
+            echo "All new scheduled jobs must go to Open Claw (Hetzner), not Vercel."
+            echo "Add the schedule to scripts/openclaw-cron-dispatcher.py and run bash scripts/deploy-openclaw.sh."
+            echo "See CLAUDE.md section 11.2 for the full procedure."
+            FAIL=1
+          else
+            echo "✓ vercel.json crons within cap"
+          fi
+
+          # 6b — pages/api/cron/ file count
+          CRON_FILES=$(find pages/api/cron -maxdepth 1 -type f \( -name '*.js' -o -name '*.ts' \) 2>/dev/null | wc -l | tr -d ' ')
+          MAX_CRON_FILES=45
+          echo "pages/api/cron/ file count: $CRON_FILES (max: $MAX_CRON_FILES)"
+          if [ "$CRON_FILES" -gt "$MAX_CRON_FILES" ]; then
+            echo "::error::FATAL: pages/api/cron/ grew from $MAX_CRON_FILES to $CRON_FILES new files."
+            echo "Until Phase 2B stands up the workers repo, no net-new cron handlers in the monolith."
+            echo "If you must add one, shrink the baseline in the same PR (retire an existing cron)."
+            FAIL=1
+          else
+            echo "✓ pages/api/cron/ within cap"
+          fi
+
+          # 6c — GitHub Actions schedule: triggers allowlist
+          ALLOWLIST="charity-scraper-v5 daily-scraper hendonmob-auto-sync jsonld-scraper poker-series-auto-pilot venue-scraper weekly-schedule-scraper stale club-arena-scheduled-deploy"
+          SCHEDULED_WORKFLOWS=$(grep -rlE '^on:|schedule:' .github/workflows/*.yml 2>/dev/null | while read wf; do
+            if grep -qE '^\s*-?\s*cron:' "$wf"; then
+              basename "$wf" .yml
+            fi
+          done)
+
+          for wf in $SCHEDULED_WORKFLOWS; do
+            if ! echo " $ALLOWLIST " | grep -q " $wf "; then
+              echo "::error::FATAL: Workflow '.github/workflows/${wf}.yml' has a schedule: trigger"
+              echo "but is not on the CLAUDE.md section 11.4 allowlist."
+              echo "Move the logic to pages/api/cron/ + Open Claw, OR add the workflow to the allowlist"
+              echo "in BOTH CLAUDE.md §11.4 AND build-safety-gate.yml CHECK 6c in the same PR."
+              FAIL=1
+            fi
+          done
+          if [ "$FAIL" -eq 0 ]; then
+            echo "✓ All scheduled workflows are on the allowlist"
+          fi
+
+          [ "$FAIL" -eq 0 ] || exit 1
+          echo "✓ Cron governance check passed"
+
       - name: Report Check Duration
         if: always()
         run: |

@@ -2,6 +2,27 @@
 """
 OpenClaw Cron Dispatcher v1.0
 ==============================
+
+▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+▓ CANONICAL SCHEDULER for all smarter.poker cron jobs.                      ▓
+▓                                                                           ▓
+▓ TO ADD A NEW CRON JOB:                                                    ▓
+▓   1. Edit this file — add an entry to the JOBS list below.                ▓
+▓   2. Commit to main.                                                      ▓
+▓   3. Run: bash scripts/deploy-openclaw.sh                                  ▓
+▓      (scp + systemctl restart + journalctl verify, automated)             ▓
+▓                                                                           ▓
+▓ DO NOT:                                                                   ▓
+▓   • Add entries to vercel.json's "crons" array (CI blocks this)           ▓
+▓   • Create new files in pages/api/cron/ without retiring an existing one  ▓
+▓     in the same PR (CI blocks this)                                       ▓
+▓   • Edit this file and forget to run deploy-openclaw.sh — repo and the    ▓
+▓     live Hetzner dispatcher MUST stay in sync                             ▓
+▓                                                                           ▓
+▓ Full policy: CLAUDE.md section 11                                         ▓
+▓ Deploy target: Hetzner VM `openclaw-dispatcher` (systemd openclaw.service)▓
+▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+
 Fires the 11 Vercel cron jobs that overflow the Pro plan's 40-job limit.
 Runs as a persistent LaunchAgent daemon on the same Mac as the Bravo/PA scrapers.
 
