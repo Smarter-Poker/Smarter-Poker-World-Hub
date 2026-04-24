@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-OpenClaw Cron Dispatcher v1.0
+OpenClaw Cron Dispatcher v1.3
 ==============================
 
 ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
 ▓ CANONICAL SCHEDULER for all smarter.poker cron jobs.                      ▓
 ▓                                                                           ▓
 ▓ TO ADD A NEW CRON JOB:                                                    ▓
-▓   1. Edit this file — add an entry to the JOBS list below.                ▓
+▓   1. Edit this file — add an entry to the ALL_CRONS list below.           ▓
 ▓   2. Commit to main.                                                      ▓
 ▓   3. Run: bash scripts/deploy-openclaw.sh                                  ▓
 ▓      (scp + systemctl restart + journalctl verify, automated)             ▓
@@ -23,26 +23,17 @@ OpenClaw Cron Dispatcher v1.0
 ▓ Deploy target: Hetzner VM `openclaw-dispatcher` (systemd openclaw.service)▓
 ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
 
-Fires the 11 Vercel cron jobs that overflow the Pro plan's 40-job limit.
-Runs as a persistent LaunchAgent daemon on the same Mac as the Bravo/PA scrapers.
+Source of truth for scheduled jobs: the ALL_CRONS list below. As of Phase
+2A.4 Wave 1 this includes the original overflow crons + 18 migrated
+Vercel crons (scrapers, content gen, cleanup). Wave 2 (horses, social,
+tournaments, aggregates) and Wave 3 (ledger, diamond economy, identity)
+still live in vercel.json and migrate in follow-up PRs.
 
-Jobs handled (positions 41-55 in vercel.json):
-  /api/cron/auto-settlement         0 10 * * 1   (Mon 10am)
-  /api/cron/auto-settlement-distribute  10 10 * * 1 (Mon 10:10am)
-  /api/cron/license-reminders       0 9 * * *    (Daily 9am)
-  /api/cron/union-rakeback          20 10 * * 1  (Mon 10:20am)
-  /api/cron/scraper-watchdog        0 */2 * * *  (Every 2h)
-  /api/cron/venue-game-alerts       0 * * * *    (Every hour)
-  /api/cron/scraper-data-cleanup    0 3 * * *    (Daily 3am)
-  /api/clawbot/orchestrator         0 7 * * *    (Daily 7am)
-  /api/cron/venue-review-prompts    0 */6 * * *  (Every 6h)
-  /api/cron/tour-schedule-scraper   0 4 */3 * *  (Every 3 days 4am)
-  /api/cron/scrape-charity-schedules 0 3 */3 * * (Every 3 days 3am)
-  /api/cron/deploy-error-poll       */2 * * * *  (Every 2 min — autopilot autofix)
-  /api/cron/video-library-scraper   0 6 * * *    (Daily 6am UTC — fresh video ingest)
-  /api/cron/video-library-backfill  0 23 * * sat (Sat 23:00 UTC — fix zero-views/fake dates)
-  /api/cron/video-library-purge     0 0 * * sun  (Sun 00:00 UTC — delete dead videos)
-  /api/cron/video-library-views     0 22 * * fri (Fri 22:00 UTC — refresh view counts)
+Two job classes:
+  * HTTP jobs — fire_cron(path) → authenticated GET to BASE_URL + path.
+  * SCRIPT_JOBS — subprocess.run(python3, SCRAPER_PY, ...extra_args). These
+    resolve SCRAPER_PY against the Mac filesystem and are skipped on
+    secondary role (see should_skip_on_secondary).
 
 Auth: Authorization: Bearer <CRON_SECRET>
 """
@@ -122,9 +113,21 @@ logging.basicConfig(
 log = logging.getLogger('openclaw-cron')
 
 
-# ─── Overflow jobs: (path, trigger_kwargs) ────────────────────────────────────
-# Schedule exactly mirrors vercel.json entries 41-51
-OVERFLOW_CRONS = [
+# ─── All jobs: (path, trigger_kwargs) ─────────────────────────────────────────
+# Phase 2A.4 Wave 1 (2026-04-24): renamed OVERFLOW_CRONS → ALL_CRONS and
+# absorbed 18 previously-on-Vercel scrapers / content-gen / cleanup crons.
+# See .memory/context/phase-2a4-wave-plan.md for the classification.
+#
+# Composition (35 jobs total):
+#   Original overflow set (13): auto-settlement stack, license-reminders,
+#     scraper-watchdog, venue-game-alerts, scraper-data-cleanup,
+#     clawbot/orchestrator, venue-review-prompts, tour-schedule-scraper,
+#     scrape-charity-schedules, deploy-error-poll + 4 video-library-* SCRIPT_JOBS.
+#   Restored orphan (1): hard-stop.
+#   Wave 1 additions (18): scrapers, content generation, cleanup jobs that
+#     were in vercel.json before this PR.
+ALL_CRONS = [
+    # ══ ORIGINAL OVERFLOW SET (was OVERFLOW_CRONS — in dispatcher since Phase 2A.1) ══
     # path                                  cron trigger kwargs
     ('/api/cron/auto-settlement',           dict(day_of_week='mon', hour=10, minute=0)),
     ('/api/cron/auto-settlement-distribute',dict(day_of_week='mon', hour=10, minute=10)),
@@ -146,12 +149,40 @@ OVERFLOW_CRONS = [
     # current_time vs hard_stop_time per-venue, closes matching tables.
     # See .memory/context/cron-handler-orphans.md for full forensics.
     ('/api/cron/hard-stop',                 dict(minute='*/1')),       # every minute — enforces venue hard_stop_time
-    # ── Video Library — daily fresh content from all 25 creators ──────────
+    # ── Video Library — daily fresh content from all 25 creators (SCRIPT_JOBS) ──
     ('/api/cron/video-library-scraper',     dict(hour=6, minute=0)),   # Daily 6am UTC — RSS ingest
     ('/api/cron/video-library-backfill',    dict(day_of_week='sat', hour=23, minute=0)),  # Weekly Sat 23:00 UTC — fix zero-views/fake dates
     ('/api/cron/video-library-purge',       dict(day_of_week='sun', hour=0,  minute=0)),  # Weekly Sun 00:00 UTC — delete dead videos
     ('/api/cron/video-library-views',       dict(day_of_week='fri', hour=22, minute=0)),  # Weekly Fri 22:00 UTC — refresh view counts for top 50
+
+    # ══ WAVE 1 (2026-04-24 — migrated from vercel.json; see phase-2a4-wave-plan.md) ══
+    # Scrapers (read-only ingest into Supabase, upsert on unique keys)
+    ('/api/cron/scrape-sports-clips',             dict(hour=4, minute=0)),
+    ('/api/cron/scrape-venue-info?batch=1',       dict(hour=6, minute=0)),
+    ('/api/cron/scrape-venue-info?batch=2',       dict(hour=12, minute=0)),
+    ('/api/cron/scrape-venue-info?batch=3',       dict(day_of_week='mon,wed,fri', hour=6, minute=0)),
+    ('/api/cron/scrape-venue-info?batch=4',       dict(day_of_week='mon,wed,fri', hour=12, minute=0)),
+    ('/api/cron/scrape-venue-info?batch=5',       dict(day_of_week='mon,wed,fri', hour=18, minute=0)),
+    ('/api/cron/venue-tournaments',               dict(hour=4, minute=0)),
+    ('/api/cron/refresh-venue-json',              dict(hour=5, minute=0)),   # cache refresh
+    ('/api/cron/news-scraper',                    dict(hour='*/2', minute=0)),
+    ('/api/cron/pokernews-videos',                dict(hour='*/3', minute=30)),
+    ('/api/cron/poker-news',                      dict(hour='*/4', minute=15)),
+    # Content generation (upserts daily challenge/question rows; safely re-generatable)
+    ('/api/cron/trivia-daily-generator',          dict(hour=5, minute=59)),
+    ('/api/cron/memory-matrix-daily-challenge',   dict(hour=6, minute=0)),
+    ('/api/cron/training-daily-challenge',        dict(hour=6, minute=5)),
+    ('/api/cron/daily-challenges',                dict(hour=0, minute=5)),
+    ('/api/cron/content-health-check',            dict(hour=6, minute=0)),   # self-healing monitor
+    # Log / state cleanup
+    ('/api/cron/purge-idempotency-keys',          dict(hour=8, minute=30)),
+    ('/api/cron/trivia-pvp-cleanup',              dict(hour='*/4', minute=0)),
 ]
+
+# Legacy alias — kept through Wave 1 as a guardrail for any external tooling
+# that still imports the old name. Safe to remove in a follow-up once
+# confirmed nothing else reads it. Both names refer to the same list object.
+OVERFLOW_CRONS = ALL_CRONS
 
 
 SCRAPER_PY = str(
@@ -291,21 +322,21 @@ def main():
         role = 'primary'
 
     log.info('=' * 60)
-    log.info('OpenClaw Cron Dispatcher v1.2 starting up')
+    log.info('OpenClaw Cron Dispatcher v1.3 starting up')
     log.info(f'Base URL:        {BASE_URL}')
     log.info(f'Dispatcher role: {role}')
     if role == 'secondary':
         log.info(f'Stagger active:  +{STAGGER_MINUTES} min on {len(STAGGERED_JOBS)} non-idempotent jobs')
         if SCRIPT_JOBS:
             log.info(f'Skipping {len(SCRIPT_JOBS)} SCRIPT_JOBS on secondary (SCRAPER_PY is Mac-only)')
-    log.info(f'Managing {len(OVERFLOW_CRONS)} overflow Vercel cron jobs')
+    log.info(f'Managing {len(ALL_CRONS)} cron jobs')
     log.info('=' * 60)
 
     scheduler = BlockingScheduler(timezone='UTC')
 
     registered = 0
     skipped = 0
-    for path, trigger_kwargs in OVERFLOW_CRONS:
+    for path, trigger_kwargs in ALL_CRONS:
         if should_skip_on_secondary(path, role):
             log.info(f'  Skipped (secondary, SCRIPT_JOB): {path}')
             skipped += 1

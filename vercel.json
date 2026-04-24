@@ -490,10 +490,6 @@
       "schedule": "30 22 * * *"
     },
     {
-      "path": "/api/cron/daily-challenges",
-      "schedule": "5 0 * * *"
-    },
-    {
       "path": "/api/cron/collusion-scan",
       "schedule": "30 3 * * *"
     },
@@ -502,72 +498,8 @@
       "schedule": "0 8 * * *"
     },
     {
-      "path": "/api/cron/purge-idempotency-keys",
-      "schedule": "30 8 * * *"
-    },
-    {
-      "path": "/api/cron/memory-matrix-daily-challenge",
-      "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/cron/trivia-daily-generator",
-      "schedule": "59 5 * * *"
-    },
-    {
-      "path": "/api/cron/training-daily-challenge",
-      "schedule": "5 6 * * *"
-    },
-    {
       "path": "/api/cron/training-daily-report",
       "schedule": "0 8 * * *"
-    },
-    {
-      "path": "/api/cron/content-health-check",
-      "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/cron/scrape-sports-clips",
-      "schedule": "0 4 * * *"
-    },
-    {
-      "path": "/api/cron/scrape-venue-info?batch=1",
-      "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/cron/scrape-venue-info?batch=2",
-      "schedule": "0 12 * * *"
-    },
-    {
-      "path": "/api/cron/scrape-venue-info?batch=3",
-      "schedule": "0 6 * * 1,3,5"
-    },
-    {
-      "path": "/api/cron/scrape-venue-info?batch=4",
-      "schedule": "0 12 * * 1,3,5"
-    },
-    {
-      "path": "/api/cron/scrape-venue-info?batch=5",
-      "schedule": "0 18 * * 1,3,5"
-    },
-    {
-      "path": "/api/cron/venue-tournaments",
-      "schedule": "0 4 * * *"
-    },
-    {
-      "path": "/api/cron/refresh-venue-json",
-      "schedule": "0 5 * * *"
-    },
-    {
-      "path": "/api/cron/news-scraper",
-      "schedule": "0 */2 * * *"
-    },
-    {
-      "path": "/api/cron/pokernews-videos",
-      "schedule": "30 */3 * * *"
-    },
-    {
-      "path": "/api/cron/poker-news",
-      "schedule": "15 */4 * * *"
     },
     {
       "path": "/api/cron/commander-daily-aggregate",
@@ -584,10 +516,6 @@
     {
       "path": "/api/cron/trivia-tournament-rounds",
       "schedule": "0 * * * *"
-    },
-    {
-      "path": "/api/cron/trivia-pvp-cleanup",
-      "schedule": "0 */4 * * *"
     },
     {
       "path": "/api/cron/vip-diamond-stipend",
