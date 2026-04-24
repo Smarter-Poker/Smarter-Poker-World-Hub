@@ -40,6 +40,35 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder' }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'placeholder' }}
 
+      # Start the production server in the background so Playwright has a
+      # real localhost:3000 to hit. Without this, every test that calls
+      # page.goto() or fetches /api/* had been failing since this workflow
+      # was written (see .memory/context/phase-1-gate-closure.md for history).
+      - name: Start Next.js server
+        run: |
+          nohup node_modules/.bin/next start -p 3000 > /tmp/next-server.log 2>&1 &
+          echo "SERVER_PID=$!" >> $GITHUB_ENV
+          echo "Next.js server PID: $!"
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'placeholder' }}
+          ADMIN_SECRET: ${{ secrets.ADMIN_SECRET || 'placeholder-admin-secret-for-ci' }}
+
+      - name: Wait for server to be ready
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:3000/ -o /dev/null 2>&1; then
+              echo "Server up after ${i} attempts (${i}×2s)"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::Server failed to boot in 60s"
+          echo "--- server log tail ---"
+          tail -80 /tmp/next-server.log || true
+          exit 1
+
       - name: Run Playwright tests
         run: npx playwright test --project=chromium
         env:
@@ -48,6 +77,16 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder' }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'placeholder' }}
           NEXT_PUBLIC_BASE_URL: 'http://localhost:3000'
+
+      - name: Stop Next.js server + surface log
+        if: always()
+        run: |
+          if [ -n "${SERVER_PID:-}" ]; then
+            kill "$SERVER_PID" 2>/dev/null || true
+          fi
+          echo "::group::Next.js server log (last 200 lines)"
+          tail -200 /tmp/next-server.log 2>/dev/null || echo "(no log file)"
+          echo "::endgroup::"
 
       - name: Upload test report
         uses: actions/upload-artifact@v4
