@@ -11,7 +11,7 @@ import { supabase } from '../../lib/supabase';
 import { sniffMimeType } from '../../lib/socialHelpers';
 import bgUpload from '../../lib/backgroundVideoUpload';
 import { validateVideoFile, generateThumbnail, compressVideo } from '../../lib/videoCompressor';
-import toast from '../../stores/toastStore';
+import toast, { useToastStore } from '../../stores/toastStore';
 
 
 
@@ -42,7 +42,33 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
         };
     }, []);
 
+    const _pickerOpenRef = useRef(false);
+    const _preparingToastRef = useRef(null);
+
+    // ── iOS FILE PICKER PREPARATION DETECTION ──────────────────────────────
+    useEffect(() => {
+        const handleFocusReturn = () => {
+            if (!_pickerOpenRef.current) return;
+            setTimeout(() => {
+                if (!_pickerOpenRef.current) return;
+                _preparingToastRef.current = toast.action(
+                    'Preparing Your Video — This May Take A Moment For Longer Videos...',
+                    null, 'info'
+                );
+            }, 500);
+        };
+        window.addEventListener('focus', handleFocusReturn);
+        return () => window.removeEventListener('focus', handleFocusReturn);
+    }, []);
+
     const handleFileSelect = (e) => {
+        // Dismiss iOS "Preparing video" toast
+        if (_preparingToastRef.current) {
+            try { useToastStore.getState().removeToast(_preparingToastRef.current); } catch (_) {}
+            _preparingToastRef.current = null;
+        }
+        _pickerOpenRef.current = false;
+
         const file = e.target.files?.[0];
         if (!file) return;
 
@@ -262,7 +288,7 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
                             style={styles.fileInput}
                             id="video-upload"
                         />
-                        <label htmlFor="video-upload" style={styles.fileLabel}>
+                        <label htmlFor="video-upload" style={styles.fileLabel} onClick={() => { _pickerOpenRef.current = true; }}>
                             {videoFile ? `📹 ${videoFile.name} (${fileSizeMB}MB)` : '📹 Choose Video'}
                         </label>
                     </div>
