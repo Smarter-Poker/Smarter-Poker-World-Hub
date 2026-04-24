@@ -880,16 +880,32 @@ export default function UserProfilePage() {
         const cleanupFriends = listenBroadcast('smarter_poker_friends_sync', (msg) => {
             if (msg?.tabId === BROADCAST_TAB_ID) return;
             if (!profile?.id) return;
-            // Two-direction queries (matches Friends API pattern)
+            const uid = currentUser?.id;
+            // Two-direction queries (matches Friends API pattern) — refresh count AND button state
             Promise.all([
                 supabase.from('friendships').select('friend_id').eq('user_id', profile.id).eq('status', 'accepted'),
                 supabase.from('friendships').select('user_id').eq('friend_id', profile.id).eq('status', 'accepted'),
-            ]).then(([sentRes, receivedRes]) => {
+                ...(uid ? [
+                    supabase.from('friendships').select('status').eq('user_id', uid).eq('friend_id', profile.id).maybeSingle(),
+                    supabase.from('friendships').select('status').eq('user_id', profile.id).eq('friend_id', uid).maybeSingle(),
+                ] : []),
+            ]).then(([sentRes, receivedRes, f1, f2]) => {
                 const friendSet = new Set();
                 (sentRes.data || []).forEach(r => friendSet.add(r.friend_id));
                 (receivedRes.data || []).forEach(r => friendSet.add(r.user_id));
                 setStats(prev => ({ ...prev, friends: friendSet.size }));
-            });
+                // Also sync button state if logged in
+                if (uid) {
+                    const allF = [f1?.data, f2?.data].filter(Boolean);
+                    if (allF.some(f => f.status === 'accepted')) {
+                        setIsFriend(true); setFriendRequestSent(false);
+                    } else if (allF.some(f => f.status === 'pending')) {
+                        setIsFriend(false); setFriendRequestSent(true);
+                    } else {
+                        setIsFriend(false); setFriendRequestSent(false);
+                    }
+                }
+            }).catch(e => console.warn('[ProfilePage] Cross-tab friend sync error:', e));
         });
 
         // Same-tab profile-updated — invalidate SWR cache so fresh data is fetched

@@ -782,6 +782,21 @@ function FriendsPage() {
                 } else {
                     // Create reverse friendship after confirm
                     supabase.from('friendships').insert({ user_id: user.id, friend_id: request.user_id, status: 'accepted' }).then().catch(e => console.warn('[friends] Handled exception:', e));
+                    // Send "friend_accepted" in-app notification to the requester (parity with Horse engine)
+                    try {
+                        const token = getAccessToken();
+                        fetch('/api/notifications/send', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'x-admin-secret': '' },
+                            body: JSON.stringify({
+                                title: user?.user_metadata?.poker_alias || user?.user_metadata?.full_name || 'Your Friend',
+                                message: 'accepted your friend request',
+                                externalUserIds: [request.user_id],
+                                url: `https://smarter.poker/hub/user/${user?.user_metadata?.poker_alias || user?.id}`,
+                                data: { type: 'friend_accepted', friend_id: user?.id }
+                            })
+                        }).catch(e => console.warn('[friends] Notification send failed (non-fatal):', e));
+                    } catch (e) { console.warn('[friends] Notification setup error (non-fatal):', e); }
                 }
             }).catch(e => console.warn('[friends] Handled exception:', e));
 
@@ -844,7 +859,7 @@ function FriendsPage() {
                     .eq('user_id', friendId)
                     .eq('friend_id', user.id),
             ]);
-            if (res1.error && res2.error) throw res1.error; // Both failed — rollback
+            if (res1.error || res2.error) throw res1.error || res2.error; // Either failed — rollback
 
             busEmit.dataMutated('friends');
             broadcastSyncDebounced('smarter_poker_friends_sync', { action: 'refresh', tabId: BROADCAST_TAB_ID });

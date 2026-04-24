@@ -124,10 +124,13 @@ function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0) {
             const pct = Math.round((evt.loaded / evt.total) * 93) + 5;
             const clampedPct = Math.max(pct, maxPctReached);
             maxPctReached = clampedPct;
+            const displayPct = Math.min(clampedPct, 97);
+            // Label shows clean 0-100% derived from bar position (5-97 range → 0-100)
+            const labelPct = Math.round(((displayPct - 5) / 92) * 100);
             _setState(
                 _state,
-                Math.min(clampedPct, 97),
-                `Uploading… ${Math.round((evt.loaded / evt.total) * 100)}%`
+                displayPct,
+                `Uploading… ${labelPct}%`
             );
         };
 
