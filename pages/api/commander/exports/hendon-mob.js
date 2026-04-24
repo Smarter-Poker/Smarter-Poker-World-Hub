@@ -11,6 +11,7 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { withRateLimit } from '../../../../src/lib/commander/rateLimit';
 import { logAction, AuditActions } from '../../../../src/lib/commander/audit';
+import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 let _supabase = null;
 function getSupabase() {
@@ -113,6 +114,7 @@ async function handler(req, res) {
     return res.status(200).send(csv);
 
   } catch (error) {
+    try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.warn('Hendon Mob export error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }

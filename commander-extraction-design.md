@@ -324,30 +324,44 @@ is at 21/31 handlers ported; Phase 2B.3 hasn't started.
 
 ---
 
-## Open questions for Dan
+## Decisions locked 2026-04-24 (Dan's review pass)
 
-Only 3 decisions not already locked by the plan:
+### 1. Sentry — ✅ ALREADY WIRED IN COMMANDER
 
-1. **Sentry strategy** — separate commander Sentry project, or tag-filter
-   on the existing one? Separate project = cleaner alert routing,
-   slightly more admin overhead. Tag-filter = zero setup, noisier dashboards.
-   **Recommendation: separate project.**
+Dan's direct quote: *"sentry should have already been added to club
+commander, add it if it hasn't yet been done"*
 
-2. **Preview-deploy auth bypass** — should commander's preview deploys
-   skip the MFA gate so Dan can load staging-commander.smarter.poker
-   with just Supabase cookies? This is how hub-vanguard preview works today.
-   **Recommendation: yes, same as hub-vanguard. Add a preview-only env
-   check in middleware.**
+Audited 2026-04-24:
+- **246/246 API handlers** under `pages/api/commander/*` import
+  `reportApiError` from `src/lib/sentryWrap.js`
+- `src/lib/commander/errorMonitoring.js` exists with `initErrorMonitoring()`
+  that lazy-loads `@sentry/nextjs` if `SENTRY_DSN` is set
+- 3 files were missing Sentry imports at audit time:
+  `download.js`, `exports/hendon-mob.js`, `exports/index.js` — **patched
+  in same commit as this doc update**
 
-3. **Shared package registry** — publish `@smarter-poker/commander-shared`
-   to npm (private) or GitHub Packages? Plan line 392 mentions "GitHub
-   Packages or a private npm registry."
-   **Recommendation: GitHub Packages. Already authenticated via the
-   same PAT used for GHCR; no new vendor; free for private packages
-   under the Smarter-Poker account.**
+Post-extraction: the new commander repo copies the Sentry wrapper + env
+var, uses its OWN DSN (new Sentry project under Smarter-Poker org) so
+alerts route to a separate dashboard and don't pollute hub-vanguard's
+error stream.
 
-The 3 answers above are all defaults. If you're good with the defaults
-this doc is locked and Phase 3.2 (repo scaffold) can kick off whenever.
+### 2. Preview-deploy auth — locked: SAME AS HUB-VANGUARD
+
+commander's preview deploys skip the MFA gate and trust Supabase session
+cookies only, same as hub-vanguard works today. Implementation = a
+`NODE_ENV !== 'production' || VERCEL_ENV === 'preview'` env check in
+the new repo's middleware.
+
+### 3. Shared package registry — locked: GITHUB PACKAGES
+
+`@smarter-poker/commander-shared` publishes to GitHub Packages under the
+`Smarter-Poker` account, authenticated via the same PAT already used
+for GHCR (which the workers repo uses). No new vendor, private packages
+free for the account tier.
+
+All 3 decisions above are now locked. Phase 3.2 (new repo scaffold) is
+unblocked — first unblocked work in Phase 3 after the plan sequencing
+clears Phase 2B.3.
 
 ---
 

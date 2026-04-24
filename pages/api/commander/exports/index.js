@@ -8,6 +8,7 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { withRateLimit } from '../../../../src/lib/commander/rateLimit';
 import { logAction, AuditActions } from '../../../../src/lib/commander/audit';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
+import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 let _supabase = null;
 function getSupabase() {
@@ -87,6 +88,7 @@ async function listExports(req, res) {
 
     return res.status(200).json({ exports: data });
   } catch (error) {
+    try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.warn('List exports error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
@@ -180,6 +182,7 @@ async function createExport(req, res) {
       message: 'Export job created'
     });
   } catch (error) {
+    try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.warn('Create export error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
@@ -298,6 +301,7 @@ async function processExport(exportId) {
       .eq('id', exportId);
 
   } catch (error) {
+    try { reportApiError(error); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.warn('Process export error:', error);
     await getSupabase()
       .from('commander_export_jobs')
