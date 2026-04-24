@@ -137,3 +137,55 @@ headers = {
 
 Workers endpoints consume the header; Vercel endpoints ignore it. Safe
 to set unconditionally.
+
+## 2B.2(b) GREEN — video-library routes flipped to workers HTTP (2026-04-24T22:49Z)
+
+`scripts/openclaw-cron-dispatcher.py` upgraded to v1.4 with:
+
+* `WORKERS_PREFERRED` map: 4 `/api/cron/video-library-*` paths → `/cron/video-library-*`
+* `_workers_dispatch(path)` helper
+* `WORKERS_BASE_URL` and `DISPATCHER_PRIVATE_IP` read from env
+* `fire_cron()` now sends `X-Forwarded-For: <DISPATCHER_PRIVATE_IP>` on every call (safe no-op for Vercel, required for workers)
+* `should_skip_on_secondary` narrowed — only skips SCRIPT_JOBS that are NOT workers-ported
+* Registration on secondary: 57 registered / 0 skipped (was 53/4)
+
+Hetzner `/opt/openclaw/.env` now has:
+```
+DISPATCHER_ROLE=secondary
+WORKERS_BASE_URL=http://10.0.0.3:8081
+DISPATCHER_PRIVATE_IP=10.0.0.2
+```
+
+### Verified green — all 4 fire successfully
+
+Direct module call from openclaw (with full env loaded):
+
+```
+▶ Firing /api/cron/video-library-views → workers
+✅ /api/cron/video-library-views → workers 200 [2.1s]
+▶ Firing /api/cron/video-library-backfill → workers
+✅ /api/cron/video-library-backfill → workers 200 [1.5s]
+▶ Firing /api/cron/video-library-purge → workers
+✅ /api/cron/video-library-purge → workers 200 [1.9s]
+▶ Firing /api/cron/video-library-scraper → workers
+✅ /api/cron/video-library-scraper → workers 200 [1.6s]
+```
+
+Direct `curl` probe (bypassing module):
+
+```
+video-library-views    → 200
+video-library-backfill → 200
+video-library-purge    → 200
+video-library-scraper  → 200
+```
+
+### Next scheduled firings
+
+* video-library-views    — Fri 22:00 UTC (weekly)
+* video-library-backfill — Sat 23:00 UTC (weekly)
+* video-library-purge    — Sun 00:00 UTC (weekly)
+* video-library-scraper  — 06:00 UTC daily
+
+The first scheduled auto-fire in production happens tonight at 06:00 UTC
+(video-library-scraper). Journalctl should show `✅ .../video-library-scraper → workers 200` at that time.
