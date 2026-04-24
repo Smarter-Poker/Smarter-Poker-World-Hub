@@ -57,9 +57,16 @@ REMOTE_SHA=$(ssh -i "$SSH_KEY" -o StrictHostKeyChecking=accept-new \
 log "Local  SHA256: $LOCAL_SHA"
 log "Remote SHA256: $REMOTE_SHA"
 
-if [ "$LOCAL_SHA" = "$REMOTE_SHA" ]; then
-  log "No changes to dispatcher.py — skipping scp. Restart anyway? (Ctrl-C to abort, Enter to continue)"
-  read -r _ || true
+# Support --force to re-deploy even when SHAs match (e.g., to verify systemd health).
+FORCE=0
+for arg in "$@"; do
+  [ "$arg" = "--force" ] && FORCE=1
+done
+
+if [ "$LOCAL_SHA" = "$REMOTE_SHA" ] && [ "$FORCE" -eq 0 ]; then
+  log "Already in sync — dispatcher.py hash matches remote. Nothing to deploy."
+  log "Pass --force to re-upload and restart anyway (e.g., to recover a flapping service)."
+  exit 0
 fi
 
 # ─── 2. scp ───────────────────────────────────────────────────────────────────
@@ -80,8 +87,10 @@ log "dispatcher.py deployed"
 
 # ─── 3. Restart + verify ──────────────────────────────────────────────────────
 
-RESTART_TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-log "Restarting $SERVICE at $RESTART_TS..."
+# journalctl --since= wants 'YYYY-MM-DD HH:MM:SS' (systemd.time(7)), NOT ISO-8601 with T/Z.
+# Passing 'T...Z' returns zero rows silently on some systemd versions.
+RESTART_TS=$(date -u +"%Y-%m-%d %H:%M:%S")
+log "Restarting $SERVICE at $RESTART_TS UTC..."
 
 ssh -i "$SSH_KEY" "root@$SERVER_IP" "
   set -euo pipefail
