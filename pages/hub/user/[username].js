@@ -1616,8 +1616,10 @@ export default function UserProfilePage() {
     }
 
     const isOwnProfile = currentUser?.id === profile.id;
-    const displayName = profile.username || profile.full_name || 'Player';
-    const isDan = displayName?.toLowerCase().includes('dan bekavac') || profile.username?.toLowerCase() === 'danbekavac';
+    // Display name = real name (full_name) first, username as fallback
+    // Poker alias (@username) is shown separately as a handle badge
+    const displayName = profile.full_name || profile.username || 'Player';
+    const pokerAlias = profile.username && profile.full_name ? profile.username : null; // Only show alias badge if they have both
     const locationParts = [profile.city, profile.state, profile.country === 'US' ? null : profile.country].filter(Boolean);
 
     return (
@@ -1726,11 +1728,14 @@ export default function UserProfilePage() {
                         {/* Name & Stats */}
                         <div style={{ flex: 1, paddingTop: 51, paddingBottom: 8 }}>
                             <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0, color: C.text, lineHeight: 1 }}>{displayName}</h1>
+                            {pokerAlias && (
+                                <div style={{ fontSize: 13, color: C.blue, fontWeight: 600, marginTop: 3, letterSpacing: 0.2 }}>@{pokerAlias}</div>
+                            )}
                             {(profile.created_at || locationParts.length > 0) && (
                                 <div style={{ fontSize: 11, color: C.textSec, marginTop: 4, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
                                     {profile.created_at && (<>
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                                        Member Since {isDan ? 2025 : new Date(profile.created_at).getFullYear()}
+                                        Member Since {new Date(profile.created_at).getFullYear()}
                                     </>)}
                                     {locationParts.length > 0 && (
                                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
