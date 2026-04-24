@@ -11,39 +11,42 @@ contains the *runner* (what executes inside the GH Actions job after
 dispatch); this directory contains the *dispatcher* that decides which
 issues run.
 
-## Current gap
+## Imported 2026-04-23 (task #154)
 
-The canonical `poll.mjs` currently lives only on cron-01. To pull it
-into the repo:
+Files pulled from cron-01:
 
-```
-scp root@cron-01:/opt/sentry-autofix-poller/poll.mjs       poll.mjs
-scp root@cron-01:/opt/sentry-autofix-poller/package.json   package.json
-scp root@cron-01:/opt/sentry-autofix-poller/package-lock.json package-lock.json
+- `poll.mjs` — v2 (2026-04-20), pure-Node, no npm deps. Sees the last
+  14 days of unresolved issues and auto-retries rejected/errored
+  attempts with exponential backoff.
+- `systemd/sentry-autofix-poller.service` — oneshot invoked by the timer
+- `systemd/sentry-autofix-poller.timer` — runs 2min after boot, then
+  every 15min, with 30s randomized jitter
 
-# Matching systemd units:
-scp root@cron-01:/etc/systemd/system/sentry-autofix-poll.service systemd/
-scp root@cron-01:/etc/systemd/system/sentry-autofix-poll.timer   systemd/
-```
+No `package.json` on cron-01; runtime uses only Node built-ins
+(`fs`, `path`). Leaving it that way avoids `npm ci` on the cron box.
 
-After the initial import, use the `Makefile` pattern from
+## Deploying changes back to cron-01
+
+After edits here, use the `Makefile` pattern from
 `scripts/vercel-autofix/Makefile` — `make deploy HOST=cron-01` — to
 keep cron-01 in sync with the repo going forward. Never edit files
-directly on cron-01 again.
+directly on cron-01 again. (Makefile to be added in a follow-up if we
+actually need a second-round deploy; the initial import is this PR.)
 
 ## Architecture
 
 ```
 cron-01 (Hetzner)
-  └─ sentry-autofix-poll.timer  (every 5 min)
-       └─ poll.mjs
-            ├─ Sentry API → list unresolved issues per project
-            ├─ Kill-switch check  (autofix_is_paused RPC)
-            ├─ Budget check       (autofix_budget_exhausted('sentry') RPC)
-            ├─ Dedupe against     autofix_attempts table
-            └─ GitHub repository_dispatch 'sentry-autofix'
-                 └─ .github/workflows/sentry-autofix.yml
-                      └─ scripts/sentry-autofix/run.mjs  (in target repo)
+  └─ sentry-autofix-poller.timer  (every 15 min after a 2-min boot delay)
+       └─ sentry-autofix-poller.service  (oneshot)
+            └─ poll.mjs
+                 ├─ Sentry API → list unresolved issues per project
+                 ├─ Kill-switch check  (autofix_is_paused RPC)
+                 ├─ Budget check       (autofix_budget_exhausted('sentry') RPC)
+                 ├─ Dedupe against     autofix_attempts table
+                 └─ GitHub repository_dispatch 'sentry-autofix'
+                      └─ .github/workflows/sentry-autofix.yml
+                           └─ scripts/sentry-autofix/run.mjs  (in target repo)
 ```
 
 The Vercel poller (`scripts/vercel-autofix/poll.mjs`) has the same
