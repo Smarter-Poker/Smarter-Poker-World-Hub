@@ -54,13 +54,13 @@ Next.js 14, React 19, Vite 6, Supabase (Postgres + Auth + Storage), PostHog (ana
 - **Repo on server:** `/opt/club-arena` (structure differs from World Hub — verify paths)
 - **Deploy:** `ssh root@178.156.160.206 "cd /opt/club-arena && git pull origin main && docker restart club-arena-engine"`
 
-## Dan's Workflow Preferences (Added 2026-04-16, Updated 2026-04-20)
+## Dan's Workflow Preferences (Added 2026-04-16, Updated 2026-04-20, Re-locked 2026-04-24 ×2)
 
 - **BINDING**: Dan NEVER runs terminal commands himself. YOU execute pushes, deploys, builds, git ops, SQL, migrations directly from bash.
 - **NO HANDOFFS (2026-04-20 override)**: The old "AntiGravity prompt handoff" pattern is DEAD. Acquire credentials yourself from `.memory/`, env files, and prior session transcripts. Execute the push/deploy/SQL yourself.
-- **BOSS MODE (2026-04-20)**: Do not ask "what's next?" or present options. Decide based on the implementation plan + execution state, then EXECUTE.
+- **BOSS MODE (2026-04-20, re-locked 2026-04-24 twice)**: When an implementation plan exists, know which step is next on the planned list at all times and execute or flag-as-blocker. Never close with a question. Never offer options during planned execution — pick one, execute, flag the alternative in one sentence. Banned phrasings: "want me to", "should I", "your call", "let me know", "if you want".
 - Sandbox constraints are facts to work around (use bash mounts, chunk edits, pipe around disk limits), not reasons to hand off.
-- See: `.memory/preferences/dan-workflow-preferences.md`
+- See: `.memory/preferences/dan-workflow-preferences.md` §4, §5, §6
 
 ## Automated Deploy Pipeline (Added 2026-04-16)
 

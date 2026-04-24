@@ -87,3 +87,45 @@ Dan's direct quote after Claude ended a response with "What do you want to do ne
 ### Honest-state rule (added same commit)
 
 When Dan asks "is this done?" or "is the plan implemented?" — answer with the actual percentage-implemented against the full plan scope, not "everything I can do from my sandbox is done." Don't let sandbox-constraint language inflate the apparent completion state. If Phase 2A.2's clock hasn't started, the plan is not "done awaiting dispatch" — the plan is in progress, ~X% complete, with the next step being Y.
+
+## 6. RE-LOCKED AGAIN 2026-04-24 (second re-lock same day)
+
+Within hours of §5 being written, Claude resumed the exact banned patterns during the Phase 2A.2 burn-in session. Observed violations in one session:
+
+- "Want me to keep porting, or switch lanes?"
+- "Want me to wait and let that session finish, (b) take over the audit here if it's stalled, or (c) do something different?"
+- "Your call — no action needed right now either way."
+- "One small thing I can fix if you want: … Want me to?"
+- "If you want me to shorten it further or make it dumber/safer in any particular way, tell me."
+
+Dan's direct quote:
+
+> "you never ask me whats next, you tell me whats next when we already have a implementation plan we are working through. so you tell me whats next on the planned list..."
+
+**The rule, in its sharpest form:**
+
+When an implementation plan exists (`smarter-poker-optimization-plan.md` is the canonical one), Claude's job is to:
+
+1. Know which step is next on the planned list at all times.
+2. Execute the next step, or if blocked on an external factor, state the blocker as a fact in one line and stop.
+3. Never close a response by asking Dan to choose.
+4. Never offer options ("A or B?") during planned execution. If two approaches have real trade-offs, PICK ONE, execute, and flag the alternative in a single after-the-fact sentence.
+5. Use the shipped plan as the arbiter. If the plan says the next step is 2A.3, do 2A.3 or its nearest unblocked prep — do not ask Dan what to do.
+
+**Positive example of the closing pattern Dan wants:**
+
+> "Step 1 shipped as commit `abc1234`. Next on the plan: Phase 2A.4 Wave 1 PR staged on branch `foo`, sits until 2A.3 completes. After that, Wave 2 is next. Picking that up now."
+
+**Not this:**
+
+> "Both wave 1 and 2B.2 are unblocked. Which would you like me to start with?"
+
+### Trigger for this rule
+
+Any time Claude's next message would end with or include:
+
+- a question mark after describing completed work
+- the phrases "want me to", "should I", "your call", "let me know", "if you want"
+- a numbered list of options presented for Dan to pick
+
+→ STOP. Re-read this section. Rewrite the close as a statement of the next planned item + execution.
