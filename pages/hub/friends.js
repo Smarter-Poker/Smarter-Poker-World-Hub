@@ -7,6 +7,7 @@
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
 import toast from '../../src/stores/toastStore';
 import { broadcastSyncDebounced, listenBroadcast, BROADCAST_TAB_ID } from '../../src/lib/broadcastSync';
@@ -405,9 +406,19 @@ function TabButton({ active, onClick, icon, label, count }) {
 // MAIN PAGE
 // ═══════════════════════════════════════════════════════════════════════════
 function FriendsPage() {
+    const router = useRouter();
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = usePersistedState('sp-filters-friends-tab', 'discover'); // requests, friends, following, followers, discover
+
+    // Deep-link: ?tab=friends|followers|following|requests|discover overrides persisted tab
+    const VALID_TABS = new Set(['friends', 'followers', 'following', 'requests', 'discover']);
+    useEffect(() => {
+        const tab = router.query?.tab;
+        if (tab && VALID_TABS.has(tab)) {
+            setActiveTab(tab);
+        }
+    }, [router.query?.tab]);
 
     // Data states
     const [friends, setFriends] = useState([]);

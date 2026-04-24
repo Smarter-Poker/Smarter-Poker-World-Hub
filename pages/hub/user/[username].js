@@ -1764,10 +1764,25 @@ export default function UserProfilePage() {
                             )}
 
                             <div style={{ display: 'flex', gap: 8, fontSize: 14, color: C.textSec, marginTop: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                                {[{ val: animatedStats.friends, label: 'Friends' }, { val: animatedStats.followers, label: 'Followers' }, { val: animatedStats.following, label: 'Following' }, { val: animatedStats.posts, label: 'Posts' }].map((s, i) => (
+                                {[
+                                    { val: animatedStats.friends, label: 'Friends', tab: 'friends' },
+                                    { val: animatedStats.followers, label: 'Followers', tab: 'followers' },
+                                    { val: animatedStats.following, label: 'Following', tab: 'following' },
+                                    { val: animatedStats.posts, label: 'Posts', tab: null },
+                                ].map((s, i) => (
                                     <React.Fragment key={s.label}>
                                         {i > 0 && <span>·</span>}
-                                        <span><strong style={{ display: 'inline-block', minWidth: 12, textAlign: 'center', transition: 'transform 0.3s ease, opacity 0.3s ease' }}>{s.val}</strong> {s.label}</span>
+                                        {s.tab ? (
+                                            <Link href={`/hub/friends?tab=${s.tab}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                                                <span style={{ cursor: 'pointer', transition: 'color 0.15s' }}
+                                                    onMouseEnter={e => e.currentTarget.style.color = C.blue}
+                                                    onMouseLeave={e => e.currentTarget.style.color = ''}>
+                                                    <strong style={{ display: 'inline-block', minWidth: 12, textAlign: 'center', transition: 'transform 0.3s ease, opacity 0.3s ease' }}>{s.val}</strong> {s.label}
+                                                </span>
+                                            </Link>
+                                        ) : (
+                                            <span><strong style={{ display: 'inline-block', minWidth: 12, textAlign: 'center', transition: 'transform 0.3s ease, opacity 0.3s ease' }}>{s.val}</strong> {s.label}</span>
+                                        )}
                                     </React.Fragment>
                                 ))}
                                 {checkinStreak.currentStreak >= 2 && (
