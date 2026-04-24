@@ -41,7 +41,9 @@ export default async function handler(req, res) {
             return res.status(503).json({ error: 'Service not configured' });
         }
 
-        // Upsert: if this video already has a failure record, update it
+        // Upsert: if this video already has a failure record, update last_seen_at
+        // NOTE: Do NOT include hit_count — the RPC below handles incrementing.
+        // Including it would reset hit_count to 1 on every repeat report.
         const { error: dbError } = await supabase
             .from('youtube_embed_failures')
             .upsert({
@@ -49,9 +51,9 @@ export default async function handler(req, res) {
                 error_code: code,
                 surface: String(surface || 'Unknown').slice(0, 50),
                 last_seen_at: new Date().toISOString(),
-                hit_count: 1,
             }, {
                 onConflict: 'video_id',
+                ignoreDuplicates: false,
             });
 
         if (dbError) {
@@ -64,7 +66,7 @@ export default async function handler(req, res) {
             return res.status(200).json({ ok: true, note: 'logged_error' });
         }
 
-        // Increment the hit_count via RPC (best-effort)
+        // Increment the hit_count via RPC (best-effort, handles existing records)
         await supabase.rpc('increment_yt_failure_hits', { p_video_id: String(videoId) }).catch(() => {});
 
         return res.status(200).json({ ok: true });

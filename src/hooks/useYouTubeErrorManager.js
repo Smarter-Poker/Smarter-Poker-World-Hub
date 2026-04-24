@@ -144,8 +144,9 @@ export function useYouTubeErrorManager({
                         reportToSentry(videoId, errorCode, surface);
                     }
 
-                    // Fire external callback
-                    onError?.(errorCode);
+                    // NOTE: onError is NOT called here — the auto-action timer (below)
+                    // fires it after autoActionDelay, giving the user time to see the overlay.
+                    // Calling it here would cause double-advance in sequential surfaces.
                 }
             } catch {
                 // Non-JSON or malformed — ignore silently
@@ -154,7 +155,8 @@ export function useYouTubeErrorManager({
 
         window.addEventListener('message', handleYTMessage);
         return () => window.removeEventListener('message', handleYTMessage);
-    }, [active, videoId, surface, onError, onStateChange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- onError removed: it's handled by auto-action timer, not this effect
+    }, [active, videoId, surface, onStateChange]);
 
     // ── Auto-action timer (advance/close) ─────────────────────────────────────
     useEffect(() => {
