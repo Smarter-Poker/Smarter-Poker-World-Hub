@@ -189,8 +189,38 @@ export default function VideoLibraryPage() {
     // Share toast (copy-to-clipboard feedback)
     const [shareToast, setShareToast] = useState(null); // { message, videoId }
     const shareToastTimer = useRef(null);
+    // YouTube error state for video library player
+    const [vlYtError, setVlYtError] = useState(null); // YouTube embed error code (150=age-restricted)
     // "New This Week" rail dismiss state
     const [newThisWeekDismissed, setNewThisWeekDismissed] = useState(false);
+
+    // YouTube error detection for video library player via postMessage
+    useEffect(() => {
+        if (!selectedVideo) return;
+        setVlYtError(null); // Clear error on video change
+        const YOUTUBE_ORIGINS = ['https://www.youtube-nocookie.com', 'https://www.youtube.com', 'https://youtube.com'];
+        const handleYTMessage = (e) => {
+            if (!YOUTUBE_ORIGINS.includes(e.origin)) return;
+            try {
+                const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+                if (data?.event === 'onError' && data?.info) {
+                    setVlYtError(Number(data.info));
+                }
+            } catch { /* non-JSON message */ }
+        };
+        window.addEventListener('message', handleYTMessage);
+        return () => window.removeEventListener('message', handleYTMessage);
+    }, [selectedVideo]);
+
+    // Auto-close video library player on YouTube error after 3 seconds
+    useEffect(() => {
+        if (!vlYtError) return;
+        const timer = setTimeout(() => {
+            setVlYtError(null);
+            setSelectedVideo(null);
+        }, 3000);
+        return () => clearTimeout(timer);
+    }, [vlYtError, setSelectedVideo]);
 
     
     // Infinite scroll observer
@@ -1529,7 +1559,7 @@ export default function VideoLibraryPage() {
                         <iframe
                             key={iframeKey}
                             id="youtube-player"
-                            src={`https://www.youtube.com/embed/${selectedVideo.videoId}?autoplay=1&mute=0&rel=0&modestbranding=1&fs=1&iv_load_policy=3&showinfo=0&enablejsapi=1&playsinline=1&origin=${typeof window !== 'undefined' ? encodeURIComponent(window.location.origin) : ''}`}
+                            src={`https://www.youtube.com/embed/${selectedVideo.videoId}?autoplay=1&mute=0&rel=0&modestbranding=1&fs=1&iv_load_policy=3&showinfo=0&enablejsapi=1&playsinline=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}`}
                             title={selectedVideo.title}
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
                             allowFullScreen
@@ -1539,6 +1569,43 @@ export default function VideoLibraryPage() {
                                 border: 'none',
                             }}
                         />
+                        {/* YouTube Error Overlay */}
+                        {vlYtError && (
+                            <div style={{
+                                position: 'absolute', inset: 0, zIndex: 60,
+                                background: 'linear-gradient(135deg, rgba(20,20,30,0.97) 0%, rgba(10,10,20,0.99) 100%)',
+                                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                gap: 16,
+                            }}>
+                                <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="1.5">
+                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                    <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                                </svg>
+                                <div style={{ color: 'white', fontSize: 18, fontWeight: 700 }}>
+                                    {vlYtError === 150 ? 'Age-Restricted Video' : 'Video Unavailable'}
+                                </div>
+                                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, maxWidth: 280, textAlign: 'center' }}>
+                                    This video cannot be embedded. You can watch it directly on YouTube.
+                                </div>
+                                <a
+                                    href={`https://www.youtube.com/watch?v=${selectedVideo.videoId}`}
+                                    target="_blank" rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    style={{
+                                        display: 'inline-flex', alignItems: 'center', gap: 8,
+                                        padding: '12px 28px', borderRadius: 8,
+                                        background: '#FF0000', color: 'white',
+                                        fontWeight: 700, fontSize: 15, textDecoration: 'none',
+                                        boxShadow: '0 4px 20px rgba(255,0,0,0.4)',
+                                    }}
+                                >
+                                    Watch On YouTube
+                                </a>
+                                <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, marginTop: 4 }}>
+                                    Closing in 3 seconds...
+                                </div>
+                            </div>
+                        )}
                     </div>
 
 
