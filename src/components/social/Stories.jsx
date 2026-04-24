@@ -629,9 +629,8 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
         const isVideo = cleanMime.startsWith('video/');
         setMediaType(isVideo ? 'video' : 'image');
 
-        // Upload via signed URL — avoids supabase.auth.getSession() lock contention.
-        // The SDK's storage.upload() calls getSession() internally, which fights with
-        // realtime subscriptions / feed polling for the "lock:smarter-poker-auth" named lock.
+        // Upload via signed URL — avoids SDK storage.upload() which internally
+        // acquires the auth session lock, causing contention with realtime subscriptions.
         setUploading(true);
         try {
             // Read token directly from localStorage — zero lock contention
