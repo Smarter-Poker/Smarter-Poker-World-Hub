@@ -3470,6 +3470,7 @@ export default function NewsHub() {
                         {/* Video container */}
                         <div style={{ width: '100%', height: '100%', maxWidth: '100vw', maxHeight: '100vh' }}>
                             {videoId ? (
+                                <>
                                 <iframe
                                     key={currentReel.id}
                                     src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&playsinline=1&controls=1&showinfo=0&iv_load_policy=3&fs=0&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}`}
@@ -3516,6 +3517,7 @@ export default function NewsHub() {
                                         </div>
                                     </div>
                                 )}
+                                </>
                             ) : currentReel?.video_url ? (
                                 <video
                                     key={currentReel.id}
