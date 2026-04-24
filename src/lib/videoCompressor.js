@@ -13,7 +13,12 @@
  */
 
 const TARGET_BITRATE = 2_500_000; // 2.5 Mbps — good 720p quality
-const COMPRESS_THRESHOLD = 50 * 1024 * 1024; // Only compress if > 50MB
+// ⚠️ DISABLED: Client-side compression via MediaRecorder runs at 1x real-time speed
+// on the main thread, causing 60+ second UI freezes on mobile for any video over 1 minute.
+// A 76s video takes 76+ seconds just to compress BEFORE upload even starts.
+// Server-side transcoding (CDN/Supabase) handles optimization instead.
+// To re-enable, lower COMPRESS_THRESHOLD back to 50 * 1024 * 1024 when WASM transcoding is ready.
+const COMPRESS_THRESHOLD = Infinity; // DISABLED — was 50MB, see note above
 const MAX_COMPRESS_DURATION = 120; // Skip videos > 2 minutes (real-time processing)
 const MAX_CLIENT_SIZE = 5 * 1024 * 1024 * 1024; // 5GB hard limit
 const WARN_SIZE = 200 * 1024 * 1024; // 200MB — show warning

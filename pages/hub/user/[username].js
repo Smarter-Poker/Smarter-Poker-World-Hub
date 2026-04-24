@@ -1106,8 +1106,10 @@ export default function UserProfilePage() {
                         .in('id', friendIds);
 
                     if (friendProfiles) {
+                        // mutualCount = friends the current user shares with the viewed profile
+                        const myFriendSet = new Set(myFriendIds);
                         const friendsWithMutual = friendProfiles.map(friend => {
-                            const mutualCount = myFriendIds.filter(id => friendIds.includes(id) && id !== friend.id).length;
+                            const mutualCount = [...uniqueFriendIds].filter(id => myFriendSet.has(id) && id !== friend.id).length;
                             return { ...friend, mutualCount };
                         });
                         friendsWithMutual.sort((a, b) => b.mutualCount - a.mutualCount);

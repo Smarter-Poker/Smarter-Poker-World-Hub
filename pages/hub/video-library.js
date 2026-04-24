@@ -1432,53 +1432,34 @@ export default function VideoLibraryPage() {
                         }
                     }}
                 >
-                    {/* Close button */}
+                    {/* Close button — positioned top-right, clear of YouTube's title bar */}
                     <button
                         onClick={handleCloseVideo}
                         className="vl-modal-close"
+                        aria-label="Close video"
                         style={{
                             position: 'absolute',
-                            top: 16,
-                            right: 16,
-                            width: 48,
-                            height: 48,
-                            background: 'rgba(255,255,255,0.18)',
-                            border: 'none',
+                            top: 8,
+                            right: 8,
+                            width: 40,
+                            height: 40,
+                            background: 'rgba(0,0,0,0.65)',
+                            border: '1px solid rgba(255,255,255,0.2)',
                             borderRadius: '50%',
                             color: 'white',
-                            fontSize: 24,
+                            fontSize: 20,
                             cursor: 'pointer',
                             zIndex: 1001,
-                            backdropFilter: 'blur(10px)',
-                        }}
-                    >×</button>
-
-                    {/* Fullscreen button */}
-                    <button
-                        onClick={handleFullscreen}
-                        title="Fullscreen (F)"
-                        style={{
-                            position: 'absolute',
-                            top: 16,
-                            right: 76,
-                            width: 48,
-                            height: 48,
-                            background: 'rgba(255,255,255,0.18)',
-                            border: 'none',
-                            borderRadius: '50%',
-                            color: 'white',
-                            cursor: 'pointer',
-                            zIndex: 1001,
-                            backdropFilter: 'blur(10px)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
+                            transition: 'background 0.2s',
                         }}
-                    >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
-                            <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
-                        </svg>
-                    </button>
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.85)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.65)'; }}
+                    >×</button>
+
+                    {/* Fullscreen & sound are handled by YouTube's native controls at bottom of iframe */}
 
                     {/* Prev / Next navigation arrows */}
                     <button
@@ -1534,11 +1515,11 @@ export default function VideoLibraryPage() {
                         onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
                     >›</button>
 
-                    {/* Fullscreen YouTube embed with IFrame API for time tracking */}
+                    {/* YouTube embed — flex:1 fills available space, no overlays blocking native controls */}
                     <div style={{
                         flex: 1,
                         width: '100%',
-                        height: '100%',
+                        minHeight: 0,
                         position: 'relative',
                     }}>
                         <iframe
@@ -1552,6 +1533,7 @@ export default function VideoLibraryPage() {
                                 width: '100%',
                                 height: '100%',
                                 border: 'none',
+                                display: 'block',
                             }}
                         />
                         {/* YouTube Error Overlay */}
@@ -1566,67 +1548,53 @@ export default function VideoLibraryPage() {
                     </div>
 
 
-                    {/* Video info bar at bottom */}
+                    {/* Video info bar — sits BELOW iframe, not overlaying YouTube controls */}
                     <div style={{
-                        padding: '16px 24px',
-                        background: 'linear-gradient(transparent, rgba(0,0,0,0.95))',
-                        position: 'absolute',
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
+                        padding: '10px 20px',
+                        background: 'rgba(0,0,0,0.95)',
+                        flexShrink: 0,
                     }}>
                         <h2 style={{
                             color: 'white',
-                            fontSize: 18,
+                            fontSize: 15,
                             fontWeight: 700,
                             margin: 0,
-                            marginBottom: 8,
+                            marginBottom: 4,
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
                         }}>
                             {selectedVideo.title}
                         </h2>
                         <div style={{
                             display: 'flex',
                             alignItems: 'center',
-                            gap: 16,
+                            gap: 12,
                         }}>
                             <span style={{
                                 color: C.accent,
-                                fontSize: 13,
+                                fontSize: 12,
                                 fontWeight: 600,
                                 background: 'rgba(255,68,68,0.2)',
-                                padding: '6px 14px',
-                                borderRadius: 12,
+                                padding: '4px 10px',
+                                borderRadius: 10,
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: 8,
+                                gap: 6,
                             }}>
                                 {SOURCES.find(s => s.id === selectedVideo.source)?.logo && (
-                                    <div style={{
-                                        width: 28,
-                                        height: 28,
-                                        borderRadius: 8,
-                                        background: 'rgba(255, 255, 255, 0.12)',
-                                        backdropFilter: 'blur(8px)',
-                                        border: '1px solid rgba(255, 255, 255, 0.18)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        padding: 4,
-                                        boxShadow: '0 2px 10px rgba(0, 0, 0, 0.25)',
-                                    }}>
-                                        <img
-                                            src={SOURCES.find(s => s.id === selectedVideo.source)?.logo}
-                                            alt=""
-                                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                                        />
-                                    </div>
+                                    <img
+                                        src={SOURCES.find(s => s.id === selectedVideo.source)?.logo}
+                                        alt=""
+                                        style={{ width: 18, height: 18, borderRadius: 4, objectFit: 'contain' }}
+                                    />
                                 )}
                                 {selectedVideo.source.replace('_', ' ')}
                             </span>
-                            <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>
+                            <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
                                 {selectedVideo.views} views
                             </span>
-                            <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>
+                            <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
                                 {selectedVideo.duration}
                             </span>
                         </div>
