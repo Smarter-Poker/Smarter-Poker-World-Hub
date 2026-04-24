@@ -117,8 +117,14 @@ fi
 # 3c — Registered jobs count from post-restart log
 log "Verifying registered jobs (10s window after restart)..."
 sleep 5
+# Note the `|| true` inside the remote quotes: `grep -c` exits 1 when it
+# finds zero matches (while still printing "0" on stdout). Without this,
+# the SSH call exits 1, our local `|| echo "0"` fallback fires, and we
+# end up capturing "0\n0" → "0 0" which fails `[ ... -gt 0 ]` with
+# 'integer expression expected'. Making grep's pipeline exit 0 lets the
+# count pass through cleanly.
 REGISTERED=$(ssh -i "$SSH_KEY" "root@$SERVER_IP" \
-  "journalctl -u $SERVICE --since='$RESTART_TS' --no-pager | grep -c 'Registered:'" || echo "0")
+  "journalctl -u $SERVICE --since='$RESTART_TS' --no-pager | grep -c 'Registered:' || true" || echo "0")
 log "Registered jobs: $REGISTERED"
 if [ "${REGISTERED:-0}" -lt 1 ]; then
   ssh -i "$SSH_KEY" "root@$SERVER_IP" \
@@ -126,9 +132,9 @@ if [ "${REGISTERED:-0}" -lt 1 ]; then
   die "no 'Registered:' lines in journalctl since restart — dispatcher may be silent" 4
 fi
 
-# 3d — ERROR / Exception / Traceback scan
+# 3d — ERROR / Exception / Traceback scan. Same `|| true` pattern as above.
 ERRORS=$(ssh -i "$SSH_KEY" "root@$SERVER_IP" \
-  "journalctl -u $SERVICE --since='$RESTART_TS' --no-pager | grep -cE 'ERROR|Exception|Traceback'" || echo "0")
+  "journalctl -u $SERVICE --since='$RESTART_TS' --no-pager | grep -cE 'ERROR|Exception|Traceback' || true" || echo "0")
 if [ "${ERRORS:-0}" -gt 0 ]; then
   ssh -i "$SSH_KEY" "root@$SERVER_IP" \
     "journalctl -u $SERVICE --since='$RESTART_TS' --no-pager | grep -E 'ERROR|Exception|Traceback' | head -30"
