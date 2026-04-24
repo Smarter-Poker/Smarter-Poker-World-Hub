@@ -79,3 +79,61 @@ phase-2b2-wrap-14-of-16.md).
 - 8c openclaw→workers /cron/_scaffold-ping authed: FAIL
 - 8d openclaw→workers unauthed → 401: FAIL
 - 8e Mac→workers public → blocked: PASS
+
+## 2B.2(a) RE-VERIFIED GREEN — 2026-04-24T17:13Z
+
+Initial 2B.2(a) attempt returned 403 on authed calls. Root cause: the
+Hono `ipAllowlist` middleware in the container (dist/index.mjs line
+260776) reads the client IP ONLY from `X-Forwarded-For` or `X-Real-IP`
+HTTP headers — it does NOT fall back to the TCP socket peer. Compiled
+source excerpt:
+
+```js
+const xff = c.req.header("X-Forwarded-For") ?? "";
+const clientIp = xff.split(",")[0]?.trim() || c.req.header("X-Real-IP") || "";
+if (!clientIp || !allowed.includes(clientIp)) {
+  return c.json({ error: "forbidden" }, 403);
+}
+```
+
+With openclaw sending a plain curl (no proxy headers), `clientIp=""` →
+403. Fix: set `X-Forwarded-For: <openclaw-private-ip>` on every cron
+call that targets a workers URL.
+
+### Six-gate verification (all PASS)
+
+| # | Test | Result |
+|---|---|---|
+| 8b | `GET /health` from openclaw via 10.0.0.3 (no headers) | ✅ 200 with JSON |
+| 8c | `GET /cron/_scaffold-ping` authed + `X-Forwarded-For: 10.0.0.2` | ✅ 200 `{"ok":true,...}` |
+| 8d | same as 8c but no Authorization header | ✅ 401 |
+| 8e | authed but NO X-Forwarded-For | ✅ 403 (IP check) |
+| 8f | authed + `X-Forwarded-For: 1.2.3.4` (unallowlisted) | ✅ 403 |
+| 8g | from Dan's Mac to workers' PUBLIC IP (UFW block) | ✅ 000 (timeout) |
+
+## CRITICAL for 2B.2(b) — dispatcher must send X-Forwarded-For
+
+When the Open Claw dispatcher's `fire_cron()` eventually points at a
+workers URL (e.g., flipping `/cron/video-library-*` from localhost-only
+SCRIPT_JOBS to HTTP calls against `http://10.0.0.3:8081/cron/...`),
+the HTTP request MUST include:
+
+```
+X-Forwarded-For: 10.0.0.2     # openclaw's private IP (or hostname:
+                              # bind via DISPATCHER_PRIVATE_IP env var)
+```
+
+Otherwise the middleware rejects with 403 forbidden. This is a
+one-line change in `scripts/openclaw-cron-dispatcher.py::fire_cron`:
+
+```python
+headers = {
+    'Authorization': f'Bearer {CRON_SECRET}',
+    'User-Agent':    'OpenClaw-CronDispatcher/1.3',
+    'Accept':        'application/json',
+    'X-Forwarded-For': os.environ.get('DISPATCHER_PRIVATE_IP', '10.0.0.2'),  # NEW
+}
+```
+
+Workers endpoints consume the header; Vercel endpoints ignore it. Safe
+to set unconditionally.
