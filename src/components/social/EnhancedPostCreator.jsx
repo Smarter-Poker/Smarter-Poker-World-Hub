@@ -155,9 +155,12 @@ export const EnhancedPostCreator = ({
   const xhrRef = useRef(null);          // holds active video XHR so we can abort on unmount
   const draftTimeout = useRef(null);    // debounce handle for draft auto-save
   const mountedRef = useRef(true);      // unmount guard for background upload callbacks
-  const compressionRef = useRef({});    // { [fileIndex]: { controller, promise, result } }
-  const thumbnailRef = useRef({});      // { [fileIndex]: dataUrl }
+  const compressionRef = useRef({});    // { [fileKey]: { controller, promise, result } }
+  const thumbnailRef = useRef({});      // { [fileKey]: dataUrl }
   const [thumbnails, setThumbnails] = useState({});
+
+  // Stable file key — survives array index shifts when files are removed
+  const _fileKey = (f) => `${f.name}_${f.size}_${f.lastModified}`;
 
   // Track mount lifecycle
   useEffect(() => {
@@ -264,7 +267,7 @@ export const EnhancedPostCreator = ({
         const file = filesToAdd[j];
         const mime = sniffMimeType(file);
         if (!mime.startsWith('video/')) continue;
-        const fileIdx = startIdx + j;
+        const fk = _fileKey(file);
 
         // Large file warning
         const validation = validateVideoFile(file);
@@ -273,7 +276,7 @@ export const EnhancedPostCreator = ({
         // Auto-thumbnail generation
         generateThumbnail(file).then(thumb => {
             if (!mountedRef.current || !thumb) return;
-            setThumbnails(prev => ({ ...prev, [fileIdx]: thumb }));
+            setThumbnails(prev => ({ ...prev, [fk]: thumb }));
         });
 
         // Background compression for large videos
@@ -282,23 +285,20 @@ export const EnhancedPostCreator = ({
             signal: controller.signal,
             onProgress: ({ pct }) => {
                 if (!mountedRef.current) return;
-                setUploadStatus(prev => ({ ...prev, [fileIdx]: `Compressing\u2026 ${pct}%` }));
-                setUploadProgress(prev => ({ ...prev, [fileIdx]: Math.round(pct * 0.3) })); // 0-30% = compression
+                setUploadStatus(prev => ({ ...prev, [fk]: `Compressing\u2026 ${pct}%` }));
             },
         }).then(result => {
-            compressionRef.current[fileIdx] = { ...compressionRef.current[fileIdx], result };
+            compressionRef.current[fk] = { ...compressionRef.current[fk], result };
             if (result.compressed && mountedRef.current) {
                 const savedMB = Math.round((result.originalSize - result.compressedSize) / (1024 * 1024));
                 toast.success(`Video compressed \u2014 saved ${savedMB}MB (${result.savings}% smaller)`, 3000);
-                setUploadStatus(prev => ({ ...prev, [fileIdx]: 'Compressed \u2714' }));
-                setUploadProgress(prev => ({ ...prev, [fileIdx]: undefined }));
+                setUploadStatus(prev => ({ ...prev, [fk]: 'Compressed \u2714' }));
             } else if (mountedRef.current) {
-                setUploadStatus(prev => ({ ...prev, [fileIdx]: undefined }));
-                setUploadProgress(prev => ({ ...prev, [fileIdx]: undefined }));
+                setUploadStatus(prev => ({ ...prev, [fk]: undefined }));
             }
             return result;
         });
-        compressionRef.current[fileIdx] = { controller, promise: compPromise, result: null };
+        compressionRef.current[fk] = { controller, promise: compPromise, result: null };
 
         // Signed URL prefetch (first video only)
         bgUpload.prefetch({ file, userId: user.id, folder: 'videos' });
@@ -314,14 +314,18 @@ export const EnhancedPostCreator = ({
 
   // Remove media file
   const removeMedia = useCallback((index) => {
-    // Cancel background compression if running
-    if (compressionRef.current[index]) {
-        compressionRef.current[index].controller?.abort();
-        delete compressionRef.current[index];
+    // Cancel background compression if running (use file key, not index)
+    const file = mediaFiles[index];
+    if (file) {
+        const fk = _fileKey(file);
+        if (compressionRef.current[fk]) {
+            compressionRef.current[fk].controller?.abort();
+            delete compressionRef.current[fk];
+        }
+        setThumbnails(prev => { const n = { ...prev }; delete n[fk]; return n; });
     }
-    setThumbnails(prev => { const n = { ...prev }; delete n[index]; return n; });
     setMediaFiles(prev => prev.filter((_, i) => i !== index));
-  }, []);
+  }, [mediaFiles]);
 
   // Submit post
   const handleSubmit = useCallback(async () => {
@@ -400,7 +404,8 @@ export const EnhancedPostCreator = ({
           if (isVideo) {
             // ── Use compressed file if background compression finished ──
             let fileToUpload = file;
-            const comp = compressionRef.current[i];
+            const fk = _fileKey(file);
+            const comp = compressionRef.current[fk];
             if (comp?.promise) {
                 try {
                     const result = comp.result || await Promise.race([
@@ -439,7 +444,7 @@ export const EnhancedPostCreator = ({
 
             if (bgUnsub) bgUnsub();
             // Clean up compression cache
-            delete compressionRef.current[i];
+            delete compressionRef.current[_fileKey(file)];
             uploadedMedia.push({ url: videoUrl, type: 'video', name: file.name, wasBackground });
             
             if (!wasBackground && mountedRef.current) {
@@ -716,8 +721,8 @@ export const EnhancedPostCreator = ({
                 file={file}
                 onRemove={() => removeMedia(index)}
                 uploadProgress={uploadProgress[index]}
-                uploadStatusLabel={uploadStatus[index]}
-                thumbnail={thumbnails[index]}
+                uploadStatusLabel={uploadStatus[_fileKey(file)] || uploadStatus[index]}
+                thumbnail={thumbnails[_fileKey(file)]}
               />
             ))}
           </div>
@@ -1031,8 +1036,8 @@ export const EnhancedPostCreator = ({
                 file={file}
                 onRemove={() => removeMedia(index)}
                 uploadProgress={uploadProgress[index]}
-                uploadStatusLabel={uploadStatus[index]}
-                thumbnail={thumbnails[index]}
+                uploadStatusLabel={uploadStatus[_fileKey(file)] || uploadStatus[index]}
+                thumbnail={thumbnails[_fileKey(file)]}
               />
             ))}
           </div>

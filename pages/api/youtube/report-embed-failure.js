@@ -9,10 +9,20 @@
  */
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+// Lazy-init to avoid module-scope crash if env vars aren't loaded yet
+let _supabase;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!url || !key) {
+            console.error('[youtube-report] Missing env: NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+            return null;
+        }
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -33,6 +43,11 @@ export default async function handler(req, res) {
     }
 
     try {
+        const supabase = getSupabase();
+        if (!supabase) {
+            return res.status(503).json({ error: 'Service not configured' });
+        }
+
         // Upsert: if this video already has a failure record, bump the hit count
         const { error: dbError } = await supabase
             .from('youtube_embed_failures')
