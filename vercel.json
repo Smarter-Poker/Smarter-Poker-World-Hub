@@ -438,84 +438,12 @@
   ],
   "crons": [
     {
-      "path": "/api/cron/horses-social-all",
-      "schedule": "0 */2 * * *"
-    },
-    {
-      "path": "/api/cron/horses-social-friends",
-      "schedule": "15 */6 * * *"
-    },
-    {
-      "path": "/api/cron/horses-stories",
-      "schedule": "5,20,35,50 * * * *"
-    },
-    {
-      "path": "/api/cron/horse-batch/0",
-      "schedule": "0 0 * * *"
-    },
-    {
-      "path": "/api/cron/horse-batch/1",
-      "schedule": "30 2 * * *"
-    },
-    {
-      "path": "/api/cron/horse-batch/2",
-      "schedule": "0 5 * * *"
-    },
-    {
-      "path": "/api/cron/horse-batch/3",
-      "schedule": "30 7 * * *"
-    },
-    {
-      "path": "/api/cron/horse-batch/4",
-      "schedule": "0 10 * * *"
-    },
-    {
-      "path": "/api/cron/horse-batch/5",
-      "schedule": "30 12 * * *"
-    },
-    {
-      "path": "/api/cron/horse-batch/6",
-      "schedule": "0 15 * * *"
-    },
-    {
-      "path": "/api/cron/horse-batch/7",
-      "schedule": "30 17 * * *"
-    },
-    {
-      "path": "/api/cron/horse-batch/8",
-      "schedule": "0 20 * * *"
-    },
-    {
-      "path": "/api/cron/horse-batch/9",
-      "schedule": "30 22 * * *"
-    },
-    {
       "path": "/api/cron/collusion-scan",
       "schedule": "30 3 * * *"
     },
     {
       "path": "/api/cron/ledger-reconcile",
       "schedule": "0 8 * * *"
-    },
-    {
-      "path": "/api/cron/training-daily-report",
-      "schedule": "0 8 * * *"
-    },
-    {
-      "path": "/api/cron/commander-daily-aggregate",
-      "schedule": "0 10 * * *"
-    },
-    {
-      "path": "/api/cron/freeroll-qualification-sync",
-      "schedule": "0 */6 * * *"
-    },
-    {
-      "path": "/api/cron/trivia-tournaments",
-      "schedule": "0 1 * * *"
-    },
-    {
-      "path": "/api/cron/trivia-tournament-rounds",
-      "schedule": "0 * * * *"
     },
     {
       "path": "/api/cron/vip-diamond-stipend",

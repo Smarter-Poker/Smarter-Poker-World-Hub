@@ -177,6 +177,29 @@ ALL_CRONS = [
     # Log / state cleanup
     ('/api/cron/purge-idempotency-keys',          dict(hour=8, minute=30)),
     ('/api/cron/trivia-pvp-cleanup',              dict(hour='*/4', minute=0)),
+
+    # ══ WAVE 2 (2026-04-24 — migrated from vercel.json; see phase-2a4-wave-plan.md) ══
+    # Horses infrastructure (10 batches + 3 social/stories)
+    ('/api/cron/horses-social-all',               dict(hour='*/2', minute=0)),
+    ('/api/cron/horses-social-friends',           dict(hour='*/6', minute=15)),
+    ('/api/cron/horses-stories',                  dict(minute='5,20,35,50')),
+    ('/api/cron/horse-batch/0',                   dict(hour=0, minute=0)),
+    ('/api/cron/horse-batch/1',                   dict(hour=2, minute=30)),
+    ('/api/cron/horse-batch/2',                   dict(hour=5, minute=0)),
+    ('/api/cron/horse-batch/3',                   dict(hour=7, minute=30)),
+    ('/api/cron/horse-batch/4',                   dict(hour=10, minute=0)),
+    ('/api/cron/horse-batch/5',                   dict(hour=12, minute=30)),
+    ('/api/cron/horse-batch/6',                   dict(hour=15, minute=0)),
+    ('/api/cron/horse-batch/7',                   dict(hour=17, minute=30)),
+    ('/api/cron/horse-batch/8',                   dict(hour=20, minute=0)),
+    ('/api/cron/horse-batch/9',                   dict(hour=22, minute=30)),
+    # Trivia tournament lifecycle
+    ('/api/cron/trivia-tournaments',              dict(hour=1, minute=0)),
+    ('/api/cron/trivia-tournament-rounds',        dict(minute=0)),           # hourly round advance
+    # User-facing reports / analytics aggregates
+    ('/api/cron/training-daily-report',           dict(hour=8, minute=0)),
+    ('/api/cron/commander-daily-aggregate',       dict(hour=10, minute=0)),
+    ('/api/cron/freeroll-qualification-sync',     dict(hour='*/6', minute=0)),
 ]
 
 # Legacy alias — kept through Wave 1 as a guardrail for any external tooling
