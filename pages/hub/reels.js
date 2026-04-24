@@ -188,17 +188,8 @@ export default function ReelsPage() {
         showCaptions: true
     });
 
-    // Load sound preference from localStorage on mount
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const savedPref = localStorage.getItem('reels-sound-enabled');
-            // Sound is ON by default - only turn off if explicitly set to false
-            if (savedPref === 'false') {
-                setUserWantsSound(false);
-                setMuted(true);
-            }
-        }
-    }, []);
+    // Sound is ALWAYS on by default — user requirement: never muted on load.
+    // Users can manually mute during a session, but next visit starts fresh with sound on.
 
     // Load user and preferences
     useEffect(() => {
