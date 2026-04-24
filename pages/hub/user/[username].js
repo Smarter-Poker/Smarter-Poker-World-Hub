@@ -1220,7 +1220,7 @@ export default function UserProfilePage() {
         if (!profile?.id) return;
 
         // Handler that re-triggers the main data fetch
-        const handleRealtimeUpdate = () => {
+        const handleRealtimeUpdate = async () => {
             // Clear the profile cache so next fetch gets fresh data
             try {
                 localStorage.removeItem(`sp-profile-cache-${username}`);
