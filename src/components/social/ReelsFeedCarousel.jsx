@@ -1361,7 +1361,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 }}>
                     <Link href={`/hub/user/${currentReel.profiles?.username}`} style={{
                         display: 'flex', alignItems: 'center', gap: 12,
-                        textDecoration: 'none', marginBottom: 12, pointerEvents: 'auto',
+                        textDecoration: 'none', marginBottom: 12,
                     }}>
                         <img
                             src={currentReel.profiles?.avatar_url || '/default-avatar.png'}
@@ -1385,7 +1385,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     {/* Follow button - only for other users' reels */}
                     {currentReel.author_id && authUser?.id && currentReel.author_id !== authUser.id && (
                         <button onClick={(e) => { e.stopPropagation(); handleFollow(); }} style={{
-                            pointerEvents: 'auto', padding: '4px 14px', borderRadius: 6,
+                            padding: '4px 14px', borderRadius: 6,
                             fontSize: 12, fontWeight: 600, cursor: 'pointer',
                             background: following[currentReel.author_id] ? 'transparent' : '#1877F2',
                             color: 'white',

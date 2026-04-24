@@ -63,14 +63,19 @@ export function prefetchProfile(userId, username) {
         // Wrapped through dedup to prevent duplicate in-flight requests for the same user
         dedup(`prefetch:${username}`, () => Promise.all([
             supabase.from('profiles').select('*').eq('username', username).maybeSingle(),
-            supabase.from('friendships').select('user_id, friend_id').eq('status', 'accepted').or(`user_id.eq.${userId},friend_id.eq.${userId}`).limit(200),
+            // Two-direction friend queries (matches Friends API pattern exactly)
+            supabase.from('friendships').select('friend_id').eq('user_id', userId).eq('status', 'accepted'),
+            supabase.from('friendships').select('user_id').eq('friend_id', userId).eq('status', 'accepted'),
             supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', userId),
             supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', userId),
-        ])).then(([profileRes, friendshipsRes, followingCount, followersCount]) => {
+        ])).then(([profileRes, sentFriendsRes, receivedFriendsRes, followingCount, followersCount]) => {
             if (!profileRes.data) return;
             try {
-                // Deduplicate bidirectional rows to get true friend count
-                const friendCount = new Set((friendshipsRes.data || []).map(f => f.user_id === userId ? f.friend_id : f.user_id)).size;
+                // Union both directions into a Set (matches Friends API)
+                const friendSet = new Set();
+                (sentFriendsRes.data || []).forEach(r => friendSet.add(r.friend_id));
+                (receivedFriendsRes.data || []).forEach(r => friendSet.add(r.user_id));
+                const friendCount = friendSet.size;
                 const cachePayload = {
                     _cachedAt: Date.now(),
                     profile: profileRes.data,

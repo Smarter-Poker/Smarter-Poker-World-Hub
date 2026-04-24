@@ -1482,7 +1482,7 @@ export function ReelsViewer({ onClose }) {
                 }}>
                     <Link href={`/hub/user/${currentReel?.profiles?.username}`} onClick={(e) => e.stopPropagation()} style={{
                         display: 'flex', alignItems: 'center', gap: 12,
-                        textDecoration: 'none', marginBottom: 12, pointerEvents: 'auto',
+                        textDecoration: 'none', marginBottom: 12,
                     }}>
                         <img
                             src={currentReel?.profiles?.avatar_url || '/default-avatar.png'}
@@ -1506,7 +1506,7 @@ export function ReelsViewer({ onClose }) {
                     {/* Follow button - only for other users' reels */}
                     {currentReel?.author_id && currentUserId && currentReel.author_id !== currentUserId && (
                         <button onClick={(e) => { e.stopPropagation(); handleFollow(); }} style={{
-                            pointerEvents: 'auto', padding: '4px 14px', borderRadius: 6,
+                            padding: '4px 14px', borderRadius: 6,
                             fontSize: 12, fontWeight: 600, cursor: 'pointer',
                             background: following[currentReel.author_id] ? 'transparent' : '#1877F2',
                             color: 'white',
@@ -1529,7 +1529,7 @@ export function ReelsViewer({ onClose }) {
                                 {isLong && (
                                     <span
                                         onClick={(e) => { e.stopPropagation(); setCaptionExpanded(!captionExpanded); }}
-                                        style={{ color: 'rgba(255,255,255,0.6)', cursor: 'pointer', marginLeft: 4, fontSize: 13, pointerEvents: 'auto' }}
+                                        style={{ color: 'rgba(255,255,255,0.6)', cursor: 'pointer', marginLeft: 4, fontSize: 13 }}
                                     >{captionExpanded ? ' Less' : ' See More'}</span>
                                 )}
                             </p>

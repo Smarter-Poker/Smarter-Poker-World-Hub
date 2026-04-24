@@ -432,6 +432,13 @@ async function acceptFriendRequests(maxAccepts = 15) {
                 .eq('id', request.id);
 
             if (!error) {
+                // Create reverse friendship row (matches friends.js bidirectional pattern)
+                await getSupabase()
+                    .from('friendships')
+                    .insert({ user_id: request.friend_id, friend_id: request.user_id, status: 'accepted' })
+                    .then(() => {})
+                    .catch(e => console.warn('[HorseSocial] Reverse row insert (may exist):', e?.message));
+
                 const horse = horses.find(h => h.profile_id === request.friend_id);
                 const sender = horses.find(h => h.profile_id === request.user_id);
                 console.debug(`   ${horse?.name || 'Horse'} accepted ${sender?.name || 'User'} ✓`);
