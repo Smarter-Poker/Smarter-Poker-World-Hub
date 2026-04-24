@@ -85,6 +85,100 @@ For each of Bucket B and C:
 
 ---
 
+## Deep-dive 2026-04-24 — Supabase-backed verdicts per orphan
+
+Queried production Supabase (service_role) to determine whether each feature
+is actually firing via some path other than a registered cron, or whether it's
+truly dead.
+
+### 🔴 `hard-stop` — **LIVE NEED, CURRENTLY BROKEN**
+
+**Evidence:**
+- `commander_venue_settings.hard_stop_enabled=true` → 1 venue (id=1996, time=02:00:00)
+- `commander_tables` WHERE status ≠ 'closed' → **42 rows** (34 in_use, 5 reserved, 3 available)
+- Last commander_table_sessions.ended_at: 2026-03-02 (7 weeks ago)
+- 107 commander_members registered
+
+**Interpretation:** Venue 1996 opted into hard_stop. 34 tables are currently in_use at commander venues right now. If the hard-stop cron was firing, those tables would get auto-closed when the clock hits 02:00:00 UTC. Since the cron isn't registered in either scheduler, those tables don't get the automated close — someone has to manually close them, or they run past the configured time.
+
+The 2026-03-02 `ended_at` suggests sessions HAVE been ending somehow (probably manually through the commander UI), but the cron's auto-close safety net isn't in play. Low-adoption feature, but it IS adopted.
+
+**VERDICT: Feature is live. Cron needs to be restored to Open Claw with `minute=*/1` firing.**
+
+### 🟡 `scheduled-table-opener` — **DORMANT (zero adoption)**
+
+**Evidence:**
+- `table_templates` WHERE `schedule_enabled=true` → **0 rows**
+- `tables` created in last 24h → 0 rows
+
+**Interpretation:** The feature expects admins to set `schedule_enabled=true` on table templates with `schedule_days` + `schedule_time`. Zero templates currently have it enabled. Even if the cron fired every 5 minutes, it would find nothing to do.
+
+**VERDICT: Feature is deployed but has zero usage. Handler can stay on disk with no cron scheduled. If adoption picks up, re-enable the cron. For now, safe to leave unscheduled.**
+
+### 🗑️ `update-charity-locations` — **DEAD (zero data)**
+
+**Evidence:**
+- `social_pages` WHERE category='charity' → **0 rows**
+- Actual categories in social_pages: `home game` (60), `poker` (5), `poker_club` (1), `card_club` (1), `general` (1)
+
+**Interpretation:** Feature expected a 'charity' category of social pages with a weekly `run_schedule` in metadata. Zero such rows exist. Feature was either never launched or was retired when the social_pages taxonomy changed.
+
+**VERDICT: DEAD. Safe to delete the handler file in Phase 2B.3 monolith cleanup. No cron restoration needed.**
+
+### ✅ `generate-trivia-questions` — **INTENDED MANUAL UTILITY**
+
+**Evidence:**
+- `trivia_questions` total count: **1,903 rows**
+- Most recent created_at: 2026-03-06 (~7 weeks ago — pool hasn't been refilled)
+- `trivia-daily-generator` (different handler) IS scheduled and running
+
+**Interpretation:** `generate-trivia-questions` is the bulk-refill utility; `trivia-daily-generator` is the "one fresh question per day" cron. Pool of 1,903 is plenty of runway for the daily generator even without refills.
+
+**VERDICT: Not a lost cron — manual-refill utility by design. Leave as-is. Rename to `/api/admin/generate-trivia-pool` would be clearer but not urgent.**
+
+### 🗑️ `scrape-venue-info` — **SUPERSEDED**
+
+**Evidence:**
+- `poker_venues.last_scraped_at` most recent: **2026-04-24 05:58 UTC (today)** — so scraping IS happening.
+- But NOT via this handler. Other scrapers writing `last_scraped_at`:
+  - `scripts/scrape-bravo-poker.js`
+  - `scripts/scrape-pokeratlas-directory.js`
+  - `scripts/scrape_venue_liveness.py`
+  - `scripts/scrape_targeted_202.py`
+  - + 11 more in `scripts/`
+
+**Interpretation:** The `.js` handler approach has been replaced by Python-first scrapers that run via GitHub Actions workflows (`venue-scraper.yml`, `jsonld-scraper.yml`, etc. — the 9 allowlisted scheduled workflows from CLAUDE.md §11.4). This handler is a dead alternate path.
+
+**VERDICT: SUPERSEDED. Safe to delete in Phase 2B.3.**
+
+---
+
+## Summary table — final verdicts
+
+| Handler | State | Action |
+|---|---|---|
+| `clawbot/sentry-triage` | Sub-task called by orchestrator | Leave alone |
+| `clawbot/status` | Admin dashboard API | Leave alone |
+| **`hard-stop`** | **LIVE — 34 in_use tables at venue 1996; cron is AWOL** | **Restore: add to Open Claw with `*/1` minute schedule** |
+| `scheduled-table-opener` | Dormant — 0 schedule_enabled templates | Leave unscheduled |
+| `update-charity-locations` | DEAD — 0 charity social_pages | Delete in 2B.3 |
+| `generate-trivia-questions` | Intended manual utility, 1903-Q pool | Leave as-is |
+| `scrape-venue-info` | SUPERSEDED by 15+ script-based scrapers | Delete in 2B.3 |
+
+Only **one genuine regression**: `hard-stop`. The others are explained by zero-adoption, zero-data, or supersession.
+
+### Why did hard-stop lose its schedule?
+
+Plan line 235 and earlier context don't mention it by name. Best theory: when someone hit Vercel's 40-cron Pro-plan limit and moved overflow jobs to Open Claw, hard-stop got dropped between the chairs. It isn't on the 16 Open Claw list (not in `OVERFLOW_CRONS`), and it isn't on the 40 Vercel list. It may have been intended for Open Claw but missed during the overflow migration.
+
+Fix: add one line to `scripts/openclaw-cron-dispatcher.py`:
+```python
+('/api/cron/hard-stop',                  dict(minute='*/1')),          # every minute
+```
+Then `bash scripts/deploy-openclaw.sh`. CI governance allows this because `OVERFLOW_CRONS` count increases on the Hetzner side, and `vercel.json` stays at 40 — no governance rule violated.
+
+---
+
 ## Implication for the plan
 
 The plan (smarter-poker-optimization-plan.md) lists "716+ API route count" and

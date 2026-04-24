@@ -138,6 +138,14 @@ OVERFLOW_CRONS = [
     ('/api/cron/tour-schedule-scraper',     dict(day='*/3', hour=4, minute=0)),
     ('/api/cron/scrape-charity-schedules',  dict(day='*/3', hour=3, minute=0)),
     ('/api/cron/deploy-error-poll',         dict(minute='*/2')),       # every 2 min — autopilot build error detector
+    # ── 2026-04-24 — restored from orphan audit ──────────────────────────
+    # hard-stop auto-closes commander_tables at each venue's hard_stop_time.
+    # Has 1 opted-in venue (id=1996, 02:00 UTC) with 34 in_use tables at
+    # audit time. Lost its schedule some time before 2026-04-24 — was in
+    # neither vercel.json nor this file. Idempotent: the handler checks
+    # current_time vs hard_stop_time per-venue, closes matching tables.
+    # See .memory/context/cron-handler-orphans.md for full forensics.
+    ('/api/cron/hard-stop',                 dict(minute='*/1')),       # every minute — enforces venue hard_stop_time
     # ── Video Library — daily fresh content from all 25 creators ──────────
     ('/api/cron/video-library-scraper',     dict(hour=6, minute=0)),   # Daily 6am UTC — RSS ingest
     ('/api/cron/video-library-backfill',    dict(day_of_week='sat', hour=23, minute=0)),  # Weekly Sat 23:00 UTC — fix zero-views/fake dates
