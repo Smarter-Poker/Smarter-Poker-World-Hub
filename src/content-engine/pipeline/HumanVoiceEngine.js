@@ -444,6 +444,31 @@ const COMMENT_PHRASES = {
     'downswings end. yours will too.', 'trust the math',
   ],
 
+  // Sports comment pool — used when horses comment on sports posts
+  // Must NOT include poker terminology. Keep it natural and varied.
+  sports: [
+    // Win/result reactions
+    'well deserved', 'that W was earned', 'nobody gave them a chance and here we are',
+    'statement game', 'momentum is real now', 'squeezed that one out',
+    // Loss reactions
+    'tough one to watch', 'that one stings', 'gotta bounce back fast',
+    'the season just got more interesting',
+    // Records / achievement
+    'history being made', 'generational', 'the record stood for a reason',
+    'you have to see it to believe it',
+    // Game commentary
+    'always tune in for games like this', 'every week is a movie in this league',
+    'coaching mattered a lot in this one', 'the league never has a slow stretch',
+    // Transactions / roster
+    'front office making moves', 'bold move', 'someone got a steal here',
+    'ripple effects from this will be felt',
+    // General engagement
+    'love watching this play out', 'the sport keeps delivering',
+    'athletes at this level are just built different', 'respect the grind',
+    'could watch this all day', 'the storylines this season are unreal',
+    'good time to be a fan',
+  ],
+
   general: [
     'facts', '100%', 'real talk', 'same honestly', 'valid', 'W post',
     'true', 'i felt this', 'let\'s go', 'banger',
