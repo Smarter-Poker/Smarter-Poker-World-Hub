@@ -8,7 +8,7 @@ import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
 import { useYouTubeErrorManager, YouTubeErrorOverlay } from '../../src/hooks/useYouTubeErrorManager';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
-import Image from 'next/image';
+import { getVideoPlaylists, createPlaylist, addVideoToPlaylist, removeVideoFromPlaylist } from '../../src/services/videoPlaylists';
 import { supabase } from '../../src/lib/supabase';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { useAvatar } from '../../src/contexts/AvatarContext';
@@ -160,7 +160,7 @@ export default function VideoLibraryPage() {
             const target = allVideos.find(v => v.videoId === router.query.v);
             if (target) handleOpenVideo(target);
         }
-    }, [router.query, allVideos]);
+    }, [router.query, allVideos, handleOpenVideo]);
     const [searchQuery, setSearchQuery] = useState('');
     const [showReelsModal, setShowReelsModal] = useState(false);
     const modalRef = useRef(null);
@@ -217,18 +217,20 @@ export default function VideoLibraryPage() {
 
 
     
-    // Infinite scroll observer
+    // Infinite scroll observer — created once, uses functional updater so no dep on videos.length
     const loadMoreRef = useRef(null);
     useEffect(() => {
         if (!loadMoreRef.current) return;
+        const sentinel = loadMoreRef.current;
         const observer = new IntersectionObserver((entries) => {
             if (entries[0].isIntersecting) {
-                setDisplayedCount(prev => Math.min(prev + 30, videos.length));
+                // Use the ref directly to get current videos count, avoiding stale closure
+                setDisplayedCount(prev => prev + 30);
             }
         }, { rootMargin: '400px' });
-        observer.observe(loadMoreRef.current);
+        observer.observe(sentinel);
         return () => observer.disconnect();
-    }, [videos.length]);
+    }, []); // [] — sentinel DOM node never changes, functional updater avoids stale closure
 
     // Reset displayed count when filters change
     useEffect(() => {
@@ -1178,7 +1180,7 @@ export default function VideoLibraryPage() {
                     gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
                     gap: 20,
                 }}>
-                    {videos.slice(0, displayedCount).map(video => (
+                    {videos.slice(0, Math.min(displayedCount, videos.length)).map(video => (
                         <div
                             key={video.id}
                             onClick={() => handleOpenVideo(video)}

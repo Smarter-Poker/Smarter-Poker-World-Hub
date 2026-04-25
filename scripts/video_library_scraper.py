@@ -72,10 +72,11 @@ def _load_env():
 
 _load_env()
 
-SUPABASE_URL   = os.environ.get('NEXT_PUBLIC_SUPABASE_URL', '')
-SUPABASE_KEY   = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
-CRON_SECRET    = os.environ.get('CRON_SECRET', '')
-SLACK_WEBHOOK  = os.environ.get('SLACK_WEBHOOK_URL', '')  # optional — alert on scraper failures
+SUPABASE_URL      = os.environ.get('NEXT_PUBLIC_SUPABASE_URL', '')
+SUPABASE_KEY      = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
+CRON_SECRET       = os.environ.get('CRON_SECRET', '')
+PRODUCTION_URL    = os.environ.get('NEXT_PUBLIC_SITE_URL', 'https://smarter.poker')  # used by AI tagging
+SLACK_WEBHOOK     = os.environ.get('SLACK_WEBHOOK_URL', '')  # optional — alert on scraper failures
 
 if not SUPABASE_URL or not SUPABASE_KEY:
     log.error('Missing SUPABASE credentials — check .env.local')
@@ -379,6 +380,17 @@ def fetch_channel_videos(creator: dict) -> list[dict]:
         return []
 
 
+# ── AI Tagging trigger (fires async after insert) ─────────────────────────────
+def _trigger_ai_analysis(youtube_video_id: str, title: str) -> None:
+    """Non-blocking GET to /api/video/analyze to pre-warm AI chapter cache."""
+    try:
+        headers = {'Authorization': f'Bearer {CRON_SECRET}'}
+        url = f'{PRODUCTION_URL}/api/video/analyze?videoId={youtube_video_id}&title={title}'
+        requests.get(url, headers=headers, timeout=60)
+    except Exception:
+        pass  # best-effort — failures are silent
+
+
 # ── Main scraper ─────────────────────────────────────────────────────────────────
 
 def run_scraper(dry_run: bool = False, filter_source: str | None = None,
@@ -446,16 +458,12 @@ def run_scraper(dry_run: bool = False, filter_source: str | None = None,
                         existing_ids.add(v['youtube_video_id'])
                         inserted += 1
                         
-                        # Phase 18: Pre-computed AI Tagging During Scrape
-                        def trigger_analysis(vid_id, v_title):
-                            try:
-                                headers = {'Authorization': f'Bearer {CRON_SECRET}'}
-                                url = f'http://127.0.0.1:3000/api/video/analyze?videoId={vid_id}&title={v_title}'
-                                requests.get(url, headers=headers, timeout=60)
-                            except Exception as e:
-                                pass
-                        
-                        threading.Thread(target=trigger_analysis, args=(v['id'], v['title'])).start()
+                        # Phase 18: Pre-computed AI Tagging — fires async, never blocks ingest
+                        threading.Thread(
+                            target=_trigger_ai_analysis,
+                            args=(v['youtube_video_id'], v['title']),
+                            daemon=True
+                        ).start()
                     except Exception as e:
                         if '23505' in str(e) or 'duplicate' in str(e).lower() or 'unique' in str(e).lower():
                             existing_ids.add(v['youtube_video_id'])  # already there
