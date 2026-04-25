@@ -43,7 +43,7 @@ export default async function handler(req, res) {
         .select('linked_entity_id')
         .eq('linked_entity_type', 'home_group')
         .eq('slug', id)
-        .single();
+        .maybeSingle();
       if (!sp) return res.status(404).json({ success: false, error: 'Group not found' });
       id = sp.linked_entity_id;
     }

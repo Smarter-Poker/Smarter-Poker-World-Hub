@@ -1,4 +1,6 @@
 import { reportApiError } from '../../../src/lib/sentryWrap';
+
+export const runtime = 'edge';
 /**
  * Batch analyze Wolfgang Poker videos
  * Triggers AI analysis for all 4 Wolfgang Poker videos

@@ -1,4 +1,6 @@
 import { reportApiError } from '../../../src/lib/sentryWrap';
+
+export const runtime = 'edge';
 /**
  * GIF/Sticker Search API — Server-side proxy for GIPHY API
  * ═══════════════════════════════════════════════════════════════════════════
