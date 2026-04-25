@@ -15,6 +15,8 @@
 
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
+export const runtime = 'edge';
+
 export default async function handler(req, res) {
     const start = Date.now();
     try {

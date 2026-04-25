@@ -2,6 +2,8 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
+export const runtime = 'edge';
+
 export default async function handler(req, res) {
   try {
     // BUG #167 FIX: Block in production

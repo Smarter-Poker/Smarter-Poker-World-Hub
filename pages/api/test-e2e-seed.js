@@ -2,6 +2,8 @@
 import { getController } from '../../src/lib/poker-engine/GameController';
 import { reportApiError } from '../../src/lib/sentryWrap';
 
+export const runtime = 'edge';
+
 export default async function handler(req, res) {
   try {
     const controller = await getController();

@@ -1,4 +1,6 @@
 import { reportApiError } from '../../../src/lib/sentryWrap';
+
+export const runtime = 'edge';
 /**
  * /api/poker/gen-lobby-bg
  * Generates a cinematic lobby background image via Grok API.
