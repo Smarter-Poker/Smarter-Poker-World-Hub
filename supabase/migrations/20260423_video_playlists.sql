@@ -16,12 +16,21 @@ CREATE TABLE IF NOT EXISTS video_playlist_items (
   UNIQUE(playlist_id, video_id)
 );
 
+-- Performance indexes for common query patterns
+CREATE INDEX IF NOT EXISTS idx_video_playlists_user_id
+  ON video_playlists(user_id);
+
+CREATE INDEX IF NOT EXISTS idx_video_playlist_items_playlist_id
+  ON video_playlist_items(playlist_id);
+
 ALTER TABLE video_playlists ENABLE ROW LEVEL SECURITY;
 ALTER TABLE video_playlist_items ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can manage their own playlists" ON video_playlists;
 CREATE POLICY "Users can manage their own playlists" ON video_playlists
   FOR ALL USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can manage their own playlist items" ON video_playlist_items;
 CREATE POLICY "Users can manage their own playlist items" ON video_playlist_items
   FOR ALL USING (
     EXISTS (
