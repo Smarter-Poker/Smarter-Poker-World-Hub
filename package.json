@@ -28,6 +28,7 @@
     "@ducanh2912/next-pwa": "^10.2.9",
     "@livekit/components-react": "^2.9.19",
     "@livekit/components-styles": "^1.2.0",
+    "@next/env": "^16.2.4",
     "@react-spring/three": "^10.0.3",
     "@react-three/drei": "^9.122.0",
     "@react-three/fiber": "^8.18.0",
