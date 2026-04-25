@@ -87,7 +87,10 @@ export default async function handler(req, res) {
               console.warn('[TrainingDailyChallenge] Grok generation failed:', grokError.message);
           }
 
-          // Insert the daily challenge with community scenario
+          // Insert the daily challenge with community scenario.
+          // Note: bonus_xp_multiplier removed 2026-04-25 — column doesn't exist
+          // in production schema (xp_ban_guard event trigger blocks all
+          // XP-shaped schema additions; project zero-XP policy).
           const { data: challenge, error } = await supabase
               .from('training_daily_challenges')
               .insert({
@@ -95,7 +98,6 @@ export default async function handler(req, res) {
                   game_id: selectedGameId,
                   level: level,
                   required_accuracy: 80,
-                  bonus_xp_multiplier: 2.0,
                   bonus_diamonds: 50,
                   community_scenario: communityScenario // Store the Grok-generated scenario
               })

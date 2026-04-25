@@ -78,7 +78,11 @@ export default async function handler(req, res) {
           const requiredAccuracy = isWeekend ? 90 : 85;
           const bonusDiamonds = isWeekend ? 100 : 50;
 
-          // Insert the daily challenge
+          // Insert the daily challenge.
+          // Note: bonus_xp_multiplier was removed 2026-04-25 — the column doesn't
+          // exist in production schema (event trigger xp_ban_guard blocks any XP-
+          // shaped schema additions; this is the project's zero-XP policy).
+          // Weekend bonuses now express purely through bonus_diamonds.
           const { data: challenge, error } = await getSupabase()
               .from('training_daily_challenges')
               .insert({
@@ -86,7 +90,6 @@ export default async function handler(req, res) {
                   game_id: gameId,
                   level: level,
                   required_accuracy: requiredAccuracy,
-                  bonus_xp_multiplier: isWeekend ? 3.0 : 2.0,
                   bonus_diamonds: bonusDiamonds
               })
               .select()
