@@ -1,7 +1,7 @@
-# Phase 2B.2 — Wrap at 38 of 44 handlers ported (86% complete)
+# Phase 2B.2 — Wrap at 39 of 44 handlers ported (89% complete)
 
 **Date:** 2026-04-25 (continuation of earlier 29/31 wrap — corrected scope)
-**Workers repo HEAD:** commit `8748d70` on main — CI green
+**Workers repo HEAD:** commit `b44078b` on main — CI green
 **Repo:** github.com/Smarter-Poker/smarter-poker-workers
 
 ---
@@ -13,9 +13,9 @@ dispatcher count is **44**, not 31 — the 31-snapshot was taken before
 Wave 1 absorbed all the horse/trivia/vip/commander/freeroll crons.
 
 Honest breakdown:
-- **Ported + CI green: 38/44 (86%)**
+- **Ported + CI green: 39/44 (89%)**
 - **Superseded (no port): 1**
-- **Deferred to dedicated AG dispatch: 5**
+- **Deferred to dedicated AG dispatch: 4**
 
 ## Ported in this session (handlers 23–38, 16 commits this run)
 
@@ -40,8 +40,9 @@ After scope correction (this run):
 | 36 | collusion-scan | 410→452 | `4f66d01` |
 | 37 | trivia-tournaments | 274→275 | `7ae36b8` |
 | 38 | trivia-tournament-rounds | 366→377 | `8748d70` |
+| 39 | horses-social-friends + slim HorseSocialEngine | 37→230 (incl. lib) | `b44078b` |
 
-All commits CI-green on first push. Total this run: 16 ports across 16
+All commits CI-green on first push. Total this run: 17 ports across 17
 commits.
 
 ---
@@ -62,7 +63,7 @@ No workers-repo port required.
 - Total port effort: ~2200 LOC + schema design pass
 - AG prompt staged at `~/Documents/antigravity-phase2b2-followup-tour-scraper.md`
 
-### 4 horse handlers — DEFERRED (new — Task #42 needed)
+### 3 horse handlers — DEFERRED (Task #42)
 - pages/api/cron/horse-batch (10 dispatcher slots — but file MISSING ON DISK!
   Actual file is pages/api/cron/horse/[horseIndex].js. Dispatcher bug.)
 - pages/api/cron/horses-social-friends.js (37 LOC)
@@ -72,7 +73,7 @@ No workers-repo port required.
 These all depend on the horse content engine: HorseSocialEngine (1143),
 HorseMessengerEngine (207), HumanVoiceEngine (802), HorsePersonalityService
 (262), HorseAlertingService (354), HorseScheduler, ClipLibrary, AutoPoster.
-**Total dep LOC: ~3030**.
+**Total remaining engine LOC: ~2850 (sendFriendRequests + acceptFriendRequests already extracted)**.
 
 Plus the horse-batch dispatcher path bug needs untangling — the 10
 `/api/cron/horse-batch/N` dispatcher entries fire daily but the handler
