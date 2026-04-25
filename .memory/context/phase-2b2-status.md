@@ -110,3 +110,28 @@ work. The dispatcher is correct: when a path is in `WORKERS_PREFERRED`,
 it routes to workers; otherwise it falls through to Vercel. New paths
 get added to `WORKERS_PREFERRED` one at a time as their workers handler
 comes online and probes 200.
+
+## 2026-04-25 mid-session: horse-batch path-bug investigation (FALSE POSITIVE)
+
+The wrap doc `phase-2b2-wrap-39-of-44.md` claimed:
+
+> pages/api/cron/horse-batch (10 dispatcher slots — but file MISSING ON
+> DISK! Actual file is pages/api/cron/horse/[horseIndex].js. Dispatcher bug.)
+
+This is incorrect. Both files exist:
+  pages/api/cron/horse-batch/[batchIndex].js  (16,430 bytes)  — handles batch N
+  pages/api/cron/horse/[horseIndex].js        (16,074 bytes)  — handles horse N
+
+They are separate dynamic-route handlers for different responsibilities.
+
+Live probe (2026-04-25T15:55Z):
+  GET https://smarter.poker/api/cron/horse-batch/0 → 200
+  GET https://smarter.poker/api/cron/horse/0       → 200
+
+The 10 `/api/cron/horse-batch/N` dispatcher paths have been working
+correctly the whole time. The flip blocker remains the workers-repo
+port (HorseSocialEngine + HumanVoiceEngine + ClipLibrary etc., ~3000
+LOC), not a path-resolution bug.
+
+Net effect on plan: scope unchanged, but the false bug claim is
+removed so future agents don't go on a wild goose chase.
