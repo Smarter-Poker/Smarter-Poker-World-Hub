@@ -329,16 +329,14 @@ async function postNewsLink(horse, horseIndex, newsType) {
 // Process a single horse
 async function processHorse(horse, horseIndex, horses) {
 
-    // CONTENT: 75% POKER / 25% SPORTS SPLIT
-    const hour = new Date().getUTCHours();
-    const isPokerHour = (hour % 4 !== 3);
-    const contentCategory = isPokerHour ? 'poker' : 'sports';
-
+    // CONTENT: 75% POKER / 25% SPORTS SPLIT (Randomized per post to prevent dumps)
+    const isPoker = Math.random() < 0.75;
+    const contentCategory = isPoker ? 'poker' : 'sports';
 
     const assignedSources = await getHorseSources(horse.profile_id);
 
     let result;
-    if (isPokerHour) {
+    if (isPoker) {
         result = await postNewsLink(horse, horseIndex, 'poker');
         if (!result.success) {
             result = await postVideoClip(horse, assignedSources, horseIndex, 'poker');

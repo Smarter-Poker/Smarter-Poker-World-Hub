@@ -33,6 +33,7 @@ import sys
 import json
 import time
 import uuid
+import threading
 import logging
 import subprocess
 import argparse
@@ -444,6 +445,17 @@ def run_scraper(dry_run: bool = False, filter_source: str | None = None,
                         supabase.table('video_library_videos').insert(v).execute()
                         existing_ids.add(v['youtube_video_id'])
                         inserted += 1
+                        
+                        # Phase 18: Pre-computed AI Tagging During Scrape
+                        def trigger_analysis(vid_id, v_title):
+                            try:
+                                headers = {'Authorization': f'Bearer {CRON_SECRET}'}
+                                url = f'http://127.0.0.1:3000/api/video/analyze?videoId={vid_id}&title={v_title}'
+                                requests.get(url, headers=headers, timeout=60)
+                            except Exception as e:
+                                pass
+                        
+                        threading.Thread(target=trigger_analysis, args=(v['id'], v['title'])).start()
                     except Exception as e:
                         if '23505' in str(e) or 'duplicate' in str(e).lower() or 'unique' in str(e).lower():
                             existing_ids.add(v['youtube_video_id'])  # already there

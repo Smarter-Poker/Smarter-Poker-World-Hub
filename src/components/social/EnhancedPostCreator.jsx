@@ -225,6 +225,7 @@ export const EnhancedPostCreator = ({
       setUploadStatus({});
       setError(null);
       setShowSuccess(false);
+      setPreparingMedia(false);
     }
   }, [isOpen]);
 

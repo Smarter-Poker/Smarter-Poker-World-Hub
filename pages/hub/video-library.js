@@ -572,7 +572,8 @@ export default function VideoLibraryPage() {
             const q = searchQuery.toLowerCase();
             filtered = filtered.filter(v =>
                 v.title.toLowerCase().includes(q) ||
-                v.source.toLowerCase().includes(q)
+                v.source.toLowerCase().includes(q) ||
+                (v.tags && v.tags.some(t => t.toLowerCase().includes(q)))
             );
         }
         filtered = filtered.sort((a, b) => {

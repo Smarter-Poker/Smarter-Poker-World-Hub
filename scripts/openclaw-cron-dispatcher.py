@@ -75,6 +75,26 @@ LOG_DIR      = Path.home() / '.smarter-poker' / 'logs'
 LOG_FILE     = LOG_DIR / 'openclaw-cron.log'
 REQUEST_TIMEOUT = 120  # seconds — cron jobs can be slow
 
+# ─── Phase 2A gate criterion: Hetzner monitoring + alerting (2026-04-25) ──────
+# Plan line 285: "Dashboard/alerting on Hetzner up: at minimum a weekly log
+# summary + PagerDuty/SMS if the dispatcher dies for >10 min." Implementation:
+#   * Internal _workers-healthcheck cron pings http://10.0.0.3:8081/health
+#     every 5 min; SMS-alerts after 2 consecutive failures (~10 min outage).
+#   * Internal _heartbeat cron logs ALIVE every 15 min so journalctl shows
+#     liveness; external scrape of the journal would catch a dead dispatcher.
+# Twilio creds come from env (synced to /opt/openclaw/.env via 2B.2(d) batch).
+TWILIO_SID    = os.environ.get('TWILIO_ACCOUNT_SID', '').strip()
+TWILIO_TOKEN  = os.environ.get('TWILIO_AUTH_TOKEN', '').strip()
+TWILIO_FROM   = os.environ.get('TWILIO_PHONE_NUMBER', '').strip()
+ADMIN_PHONE   = os.environ.get('ADMIN_PHONE', '+17086775221').strip()
+WORKERS_HEALTH_URL = (os.environ.get('WORKERS_BASE_URL', '').strip() or 'http://10.0.0.3:8081') + '/health'
+
+# In-memory consecutive-failure counter for the workers healthcheck.
+# Resets to 0 on success. Alerts at 2 (~10 min after first failure since
+# the cron runs every 5 min). After alerting, suppresses further alerts
+# until success+alert-clear cycle completes (avoids SMS storm).
+_workers_health_state = {'consec_fail': 0, 'alert_sent': False}
+
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 # ─── PID file lock — prevents double-execution if launchd races or restart overlaps ──
@@ -151,6 +171,7 @@ ALL_CRONS = [
     ('/api/cron/hard-stop',                 dict(minute='*/1')),       # every minute — enforces venue hard_stop_time
     # ── Video Library — daily fresh content from all 25 creators (SCRIPT_JOBS) ──
     ('/api/cron/video-library-scraper',     dict(hour=6, minute=0)),   # Daily 6am UTC — RSS ingest
+    ('/api/cron/video-library-reels',       dict(hour=7, minute=0)),   # Daily 7am UTC — Sync reels
     ('/api/cron/video-library-backfill',    dict(day_of_week='sat', hour=23, minute=0)),  # Weekly Sat 23:00 UTC — fix zero-views/fake dates
     ('/api/cron/video-library-purge',       dict(day_of_week='sun', hour=0,  minute=0)),  # Weekly Sun 00:00 UTC — delete dead videos
     ('/api/cron/video-library-views',       dict(day_of_week='fri', hour=22, minute=0)),  # Weekly Fri 22:00 UTC — refresh view counts for top 50
@@ -210,6 +231,11 @@ ALL_CRONS = [
     ('/api/cron/vip-status-check',                dict(minute=0)),          # every hour
     ('/api/cron/vip-diamond-stipend',             dict(day=1, hour=0, minute=5)),  # monthly, 1st @ 00:05 UTC
     ('/api/cron/collusion-scan',                  dict(hour=3, minute=30)),
+
+    # ══ INTERNAL — Phase 2A monitoring/alerting (closes plan line 285 gate) ═══
+    # No HTTP egress; runs in-process. SMS-alerts via Twilio on workers outage.
+    ('_internal/workers-healthcheck',             dict(minute='*/5')),      # every 5 min
+    ('_internal/heartbeat',                       dict(minute='*/15')),     # every 15 min
 ]
 
 # Legacy alias — kept through Wave 1 as a guardrail for any external tooling
@@ -228,6 +254,7 @@ SCRAPER_PY = str(
 # (Hetzner), any path in WORKERS_PREFERRED below fires via HTTP instead.
 SCRIPT_JOBS = {
     '/api/cron/video-library-scraper':  [],                   # full daily run
+    '/api/cron/video-library-reels':    ['--sync-captions'],
     '/api/cron/video-library-backfill': ['--backfill'],
     '/api/cron/video-library-purge':    ['--purge'],
     '/api/cron/video-library-views':    ['--refresh-views'],
@@ -250,6 +277,7 @@ DISPATCHER_PRIVATE_IP  = os.environ.get('DISPATCHER_PRIVATE_IP', '').strip()
 WORKERS_PREFERRED = {
     # ─── 2B.2(b) — video-library SCRIPT_JOBS, all idempotent via Supabase upserts ───
     '/api/cron/video-library-scraper':  '/cron/video-library-scraper',
+    '/api/cron/video-library-reels':    '/cron/video-library-reels',
     '/api/cron/video-library-backfill': '/cron/video-library-backfill',
     '/api/cron/video-library-purge':    '/cron/video-library-purge',
     '/api/cron/video-library-views':    '/cron/video-library-views',
@@ -405,15 +433,86 @@ def fire_script(path: str, extra_args: list):
         log.error(f'❌ {path} script {type(e).__name__}: {e}')
 
 
+def _send_sms(body: str):
+    """Best-effort Twilio SMS alert. Returns True/False."""
+    if not (TWILIO_SID and TWILIO_TOKEN and TWILIO_FROM and ADMIN_PHONE):
+        log.warning(f'[alert] Twilio not configured, would have sent: {body[:120]}')
+        return False
+    try:
+        resp = requests.post(
+            f'https://api.twilio.com/2010-04-01/Accounts/{TWILIO_SID}/Messages.json',
+            auth=(TWILIO_SID, TWILIO_TOKEN),
+            data={'From': TWILIO_FROM, 'To': ADMIN_PHONE, 'Body': body[:1500]},
+            timeout=15,
+        )
+        if 200 <= resp.status_code < 300:
+            log.info(f'[alert] Twilio SMS sent: {body[:80]}')
+            return True
+        log.error(f'[alert] Twilio HTTP {resp.status_code}: {resp.text[:200]}')
+    except Exception as e:
+        log.error(f'[alert] Twilio exception {type(e).__name__}: {e}')
+    return False
+
+
+def _workers_healthcheck_job():
+    """Internal cron — pings workers /health, alerts after 2 consec failures."""
+    state = _workers_health_state
+    try:
+        r = requests.get(WORKERS_HEALTH_URL, timeout=8)
+        ok = r.status_code == 200 and '"status":"ok"' in r.text
+    except Exception as e:
+        ok = False
+        log.warning(f'[healthcheck] workers ping failed: {type(e).__name__}: {e}')
+
+    if ok:
+        if state['alert_sent']:
+            _send_sms(f'✅ workers RECOVERED at {WORKERS_HEALTH_URL}')
+        state['consec_fail'] = 0
+        state['alert_sent'] = False
+        return
+
+    state['consec_fail'] += 1
+    log.warning(f'[healthcheck] workers DOWN (consec={state["consec_fail"]})')
+    if state['consec_fail'] >= 2 and not state['alert_sent']:
+        _send_sms(
+            f'🚨 SMARTER.POKER WORKERS DOWN ~10min — {WORKERS_HEALTH_URL} not responding. '
+            f'Affects {len(WORKERS_PREFERRED)} cron routes. Check '
+            f'`docker ps` on workers VM (Hetzner id 127930016, IP from Keychain).'
+        )
+        state['alert_sent'] = True
+
+
+def _heartbeat_job():
+    """Internal cron — logs ALIVE so journalctl scrapers can detect liveness."""
+    routed = len(WORKERS_PREFERRED)
+    total  = len(ALL_CRONS)
+    log.info(f'[heartbeat] dispatcher ALIVE — {routed}/{total} routes flipped to workers')
+
+
+# Internal jobs — fire by name, no HTTP path. Distinguished by underscore prefix.
+INTERNAL_JOBS = {
+    '_internal/workers-healthcheck': _workers_healthcheck_job,
+    '_internal/heartbeat':           _heartbeat_job,
+}
+
+
 def make_job(path):
     """Return a closure that fires the given cron path.
 
     Precedence:
-      1. workers HTTP (if path in WORKERS_PREFERRED AND WORKERS_BASE_URL set)
-      2. local script (if path in SCRIPT_JOBS, typically primary/Mac only)
-      3. Vercel HTTP (the default — smarter.poker/api/cron/...)
+      1. internal helper (if path in INTERNAL_JOBS — runs in-process)
+      2. workers HTTP (if path in WORKERS_PREFERRED AND WORKERS_BASE_URL set)
+      3. local script (if path in SCRIPT_JOBS, typically primary/Mac only)
+      4. Vercel HTTP (the default — smarter.poker/api/cron/...)
     """
-    if _workers_dispatch(path):
+    if path in INTERNAL_JOBS:
+        fn = INTERNAL_JOBS[path]
+        def _job():
+            try:
+                fn()
+            except Exception as e:
+                log.error(f'❌ internal {path}: {type(e).__name__}: {e}')
+    elif _workers_dispatch(path):
         def _job():
             fire_cron(path)   # fire_cron auto-routes to workers via _workers_dispatch
     elif path in SCRIPT_JOBS:

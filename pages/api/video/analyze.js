@@ -134,12 +134,17 @@ export default async function handler(req, res) {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
   try {
-      // BUG #267 FIX: Require JWT auth — calls paid Grok API for AI analysis
-      const token = req.headers.authorization?.replace('Bearer ', '');
-      if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-      const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
-      const authUser = authData?.user;
-      if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+      // Allow cron to bypass JWT
+      const isCron = req.headers['x-cron-secret'] === process.env.CRON_SECRET || 
+                     req.headers['authorization'] === \`Bearer \${process.env.CRON_SECRET}\`;
+                     
+      if (!isCron) {
+          const token = req.headers.authorization?.replace('Bearer ', '');
+          if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
+          const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+          const authUser = authData?.user;
+          if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+      }
 
       const { videoId, title, forceRefresh } = req.query;
 
