@@ -286,6 +286,38 @@ WORKERS_PREFERRED = {
     '/api/cron/auto-settlement':            '/cron/auto-settlement',
     '/api/cron/auto-settlement-distribute': '/cron/auto-settlement-distribute',
     '/api/cron/union-rakeback':             '/cron/union-rakeback',
+
+    # ─── 2B.2(g) Batch G — 18 routes from parallel session's 38/44 wave ─────
+    # Workers repo HEAD 6db801e (handlers 23-38 + bonus_xp_multiplier fix).
+    # All 18 probed 200 from openclaw with auth+XFF. Bumps total flipped
+    # to 36 of 44 dispatcher paths. Remaining 8: deploy-error-poll
+    # (VERCEL_TOKEN missing on workers), scrape-sports-clips (workers
+    # timeout), 5 scrape-venue-info?batch=1..5 (SUPERSEDED — Python
+    # workflows replace them, will be deleted in 2B.3), tour-schedule-scraper
+    # + horse-batch/0..9 + horses-stories + horses-social-* (DEFERRED
+    # to dedicated AG dispatch sessions per 2b2-wrap-38-of-44.md).
+    #
+    # Path remap notes:
+    #   /api/clawbot/orchestrator → /cron/clawbot-orchestrator (workers
+    #     uses hyphen instead of slash; value-side mapping handles it)
+    '/api/cron/collusion-scan':                '/cron/collusion-scan',
+    '/api/cron/commander-daily-aggregate':     '/cron/commander-daily-aggregate',
+    '/api/cron/daily-challenges':              '/cron/daily-challenges',
+    '/api/cron/freeroll-qualification-sync':   '/cron/freeroll-qualification-sync',
+    '/api/cron/hard-stop':                     '/cron/hard-stop',
+    '/api/cron/ledger-reconcile':              '/cron/ledger-reconcile',
+    '/api/cron/memory-matrix-daily-challenge': '/cron/memory-matrix-daily-challenge',
+    '/api/cron/news-scraper':                  '/cron/news-scraper',
+    '/api/cron/poker-news':                    '/cron/poker-news',
+    '/api/cron/scrape-charity-schedules':      '/cron/scrape-charity-schedules',
+    '/api/cron/training-daily-challenge':      '/cron/training-daily-challenge',
+    '/api/cron/training-daily-report':         '/cron/training-daily-report',
+    '/api/cron/trivia-tournament-rounds':      '/cron/trivia-tournament-rounds',
+    '/api/cron/trivia-tournaments':            '/cron/trivia-tournaments',
+    '/api/cron/venue-tournaments':             '/cron/venue-tournaments',
+    '/api/cron/vip-diamond-stipend':           '/cron/vip-diamond-stipend',
+    '/api/cron/vip-status-check':              '/cron/vip-status-check',
+    '/api/clawbot/orchestrator':               '/cron/clawbot-orchestrator',
 }
 
 
