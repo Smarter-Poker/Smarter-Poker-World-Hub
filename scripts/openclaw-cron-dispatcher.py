@@ -266,6 +266,14 @@ WORKERS_PREFERRED = {
     # (references training_daily_challenges.bonus_xp_multiplier column that
     # does not exist in the production schema). Defer until workers repo
     # owner reconciles the schema. Keep firing against Vercel monolith.
+    # ─── 2B.2(d) Batch C — notification routes ──────────────────────────────
+    # Each verified to return 200. OneSignal + Twilio env vars synced to
+    # /opt/workers/.env first so push/SMS actually fire (handler skips
+    # gracefully if not configured, which would silently mute alerts).
+    '/api/cron/venue-game-alerts':      '/cron/venue-game-alerts',
+    '/api/cron/license-reminders':      '/cron/license-reminders',
+    '/api/cron/scraper-watchdog':       '/cron/scraper-watchdog',
+    '/api/cron/venue-review-prompts':   '/cron/venue-review-prompts',
 }
 
 
