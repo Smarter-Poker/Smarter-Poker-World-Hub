@@ -747,11 +747,11 @@ function extractSportsContext(headline) {
 // Sports caption pools by signal type — contextually relevant reactions
 const SPORTS_CAPTION_POOLS = {
   record: [
-    'numbers like that don't happen often', 'the history books are being rewritten right now',
-    'that record stood for a reason, now it doesn't', 'hard to put that kind of achievement into context',
+    'numbers like that don\'t happen often', 'the history books are being rewritten right now',
+    'that record stood for a reason, now it doesn\'t', 'hard to put that kind of achievement into context',
     'nobody who was watching will forget this', 'generational stuff',
     'records exist to be broken. still wild when it happens.', 'that changes the conversation entirely',
-    'stats don't lie and these stats are something else', 'you have to see that number to believe it',
+    'stats don\'t lie and these stats are something else', 'you have to see that number to believe it',
   ],
   win: [
     'well deserved', 'that team is built for this', 'nobody gave them a shot and here we are',
@@ -763,11 +763,11 @@ const SPORTS_CAPTION_POOLS = {
     'tough one to process', 'that one is going to sting for a while',
     'the season just got a lot more complicated', 'too many mistakes at the wrong time',
     'gotta bounce back fast', 'a loss like that changes the narrative',
-    'hard to watch if you're a fan', 'happens to every team, timing is everything',
+    'hard to watch if you\'re a fan', 'happens to every team, timing is everything',
   ],
   injury: [
     'the worst part of any sport', 'hoping for a quick recovery',
-    'timing couldn't be worse for that team', 'next man up mentality has to kick in',
+    'timing couldn\'t be worse for that team', 'next man up mentality has to kick in',
     'a lot changes with this news', 'the season outlook just shifted significantly',
     'injuries are the one variable nobody can control',
   ],
@@ -779,8 +779,8 @@ const SPORTS_CAPTION_POOLS = {
   ],
   retirement: [
     'end of an era', 'nobody can take away what they accomplished',
-    'careers like that don't come around often', 'the sport is different without them',
-    'the highlights will hold up forever', 'a player's player',
+    'careers like that don\'t come around often', 'the sport is different without them',
+    'the highlights will hold up forever', 'a player\'s player',
     'the gap they leave behind is the best compliment you can give',
   ],
   championship: [
@@ -793,8 +793,8 @@ const SPORTS_CAPTION_POOLS = {
     'that stat line is worth staring at', 'elite performance deserves to be recognized',
     'consistent at the highest level is harder than people realize',
     'the numbers back up everything the highlights show',
-    'you can't guard that', 'that's what peak looks like',
-    'if you watched that and weren't impressed something is wrong',
+    'you can\'t guard that', 'that\'s what peak looks like',
+    'if you watched that and weren\'t impressed something is wrong',
   ],
   nba: [
     'the league has been wild this season', 'nba basketball is must-watch right now',
@@ -809,7 +809,7 @@ const SPORTS_CAPTION_POOLS = {
   mlb: [
     'baseball season is long but moments like this cut through',
     'the sport has a way of creating memories', 'anything can happen in october',
-    'that's the beauty of baseball',
+    'that\'s the beauty of baseball',
   ],
   combat: [
     'combat sports delivering again', 'you tune in for moments exactly like this',
@@ -822,7 +822,7 @@ const SPORTS_CAPTION_POOLS = {
   ],
   golf: [
     'golf has a way of humbling you at the worst time', 'the mental game in golf is everything',
-    'a round like that doesn't come together without preparation',
+    'a round like that doesn\'t come together without preparation',
   ],
   general_sports: [
     'this week in sports has been something else', 'hard to keep up with everything happening',
@@ -830,7 +830,7 @@ const SPORTS_CAPTION_POOLS = {
     'good time to be a sports fan honestly', 'the game keeps moving and so do the stories',
     'worth following closely if you care about where this is heading',
     'every season has a turning point. this might be one of them.',
-    'the storylines this year have been unreal', 'hard to argue with what's happening here',
+    'the storylines this year have been unreal', 'hard to argue with what\'s happening here',
   ],
 };
 
@@ -846,15 +846,15 @@ const POKER_NEWS_POOLS = {
   player_news: [
     'following this closely', 'the community takes notice when news like this drops',
     'names like that carry weight in the poker world', 'worth paying attention to',
-    'the poker world never stops moving', 'someone's life just changed',
+    'the poker world never stops moving', 'someone\'s life just changed',
     'every pro has a story. this one has another chapter.',
     'big news out of the poker world today',
   ],
   strategy: [
     'this is the kind of content that actually improves your game',
     'took notes reading through this', 'the theory side of poker is underrated',
-    'a lot of players skip the study phase. don't be that player.',
-    'concepts like this don't become clear overnight', 'worth the time to sit with this one',
+    'a lot of players skip the study phase. don\'t be that player.',
+    'concepts like this don\'t become clear overnight', 'worth the time to sit with this one',
     'this changes how I think about that spot',
   ],
   industry: [
@@ -866,7 +866,7 @@ const POKER_NEWS_POOLS = {
   general_poker: [
     'the scene keeps producing storylines', 'worth bookmarking this one',
     'good read for anyone following the game', 'the poker world is rarely quiet',
-    'adds context to what's been happening lately', 'not surprised, still relevant',
+    'adds context to what\'s been happening lately', 'not surprised, still relevant',
     'the game evolves and the news evolves with it',
     'one of those stories that has legs', 'always more going on than the headline suggests',
     'poker news cycle never really stops', 'the sport keeps growing its own mythology',
