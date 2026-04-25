@@ -274,6 +274,18 @@ WORKERS_PREFERRED = {
     '/api/cron/license-reminders':      '/cron/license-reminders',
     '/api/cron/scraper-watchdog':       '/cron/scraper-watchdog',
     '/api/cron/venue-review-prompts':   '/cron/venue-review-prompts',
+    # ─── 2B.2(e) Batch F — money routes (highest risk in plan terms) ───────
+    # Each compared workers-vs-monolith response side-by-side first; results
+    # match exactly (clubs_locked:3, clubs_unfrozen:3, identical message
+    # strings). Postgres-atomic idempotency guards in the underlying handlers
+    # (settlement_locks table, fn_claim_settlement_period RPC) prevent any
+    # double-payout even under transient bugs. Schedule: Mon 10:00/10:10/10:20
+    # UTC; on secondary role the +5 min stagger from STAGGERED_JOBS still
+    # applies (harmless, late-by-5min). Mon's first scheduled fire after
+    # this commit will be the production validation.
+    '/api/cron/auto-settlement':            '/cron/auto-settlement',
+    '/api/cron/auto-settlement-distribute': '/cron/auto-settlement-distribute',
+    '/api/cron/union-rakeback':             '/cron/union-rakeback',
 }
 
 
