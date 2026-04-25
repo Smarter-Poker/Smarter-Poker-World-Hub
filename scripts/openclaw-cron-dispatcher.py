@@ -325,6 +325,12 @@ WORKERS_PREFERRED = {
     # (channels_scraped:38, found:100). Dispatcher REQUEST_TIMEOUT=120s
     # easily covers it.
     '/api/cron/scrape-sports-clips':           '/cron/scrape-sports-clips',
+    # ─── 2B.2(i) — horses-social-friends (parallel session, handler 39) ────
+    # Workers repo HEAD b44078b extracted slim HorseSocialEngine.sendFriendRequests +
+    # acceptFriendRequests (the handler's only actual deps) so we don't need
+    # the full ~3000-LOC horse engine to flip this one. Probe 200:
+    # {success:true, sent:10, accepted:3}.
+    '/api/cron/horses-social-friends':         '/cron/horses-social-friends',
     # NOT FLIPPED: /api/cron/deploy-error-poll — workers handler returns
     # 500 ("VERCEL_TOKEN not configured"). The Vercel API token isn't in
     # any location reachable from the Cowork sandbox or from openclaw VM.
