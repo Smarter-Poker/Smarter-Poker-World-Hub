@@ -1,14 +1,14 @@
 /**
- * 🎮 GOD MODE ENGINE — Session Start API
- * ═══════════════════════════════════════════════════════════════════════════
+ * GOD MODE ENGINE - Session Start API
+ * ===========================================================================
  * POST /api/session/start
  *
  * Initializes a new training session for a user and game.
- * ═══════════════════════════════════════════════════════════════════════════
+ * ===========================================================================
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
@@ -53,7 +53,7 @@ export default async function handler(req, res) {
           }
 
           // Generate a session ID
-          const sessionId = uuidv4();
+          const sessionId = randomUUID();
           const effectiveUserId = user_id; // Always authenticated, no anonymous fallback
 
           // Get game info from registry
