@@ -335,7 +335,7 @@ const POST_CAPTIONS = {
     // Short
     'ICM pressure', 'deep run loading', 'final table energy',
     // Medium
-    'the bubble is brutal in any field', 'chip lead means nothing until it\'s over',
+    'chip lead means nothing until it\'s over',
     'tournament poker needs a different gear', 'one hand from a life-changing score',
     'the shove/fold math gets real near the money',
     // Longer
@@ -354,6 +354,25 @@ const POST_CAPTIONS = {
     // Longer
     'you can feel the pressure through the screen on this one',
     'the mental game matters more as stakes go up, and this shows it',
+  ],
+
+  // ── Sports highlight video captions (used when clipType === 'sports') ──────────
+  sports_highlight: [
+    // Short
+    'that was filthy', 'did not see that coming', 'highlight of the week', 'money',
+    // Medium
+    'not many people can do what he just did there', 'that play changes how you think about the game',
+    'the athleticism on display is wild', 'the best players make it look easy',
+    'moment of the game right there', 'that\'s going on the highlight reel',
+    'whole arena felt that one', 'the footwork alone is worth studying',
+    // Longer
+    'plays like that don\'t happen without years of work behind them',
+    'whoever was guarding that man was in a bad spot from the start',
+    'the timing on that was absolutely perfect',
+    'hard to watch that and not appreciate how good these athletes are',
+    'this is why you watch every game, moments like this happen fast',
+    'the crowd reaction said everything that needed to be said',
+    'breakdown of that play frame by frame would be something else',
   ],
 };
 
@@ -465,15 +484,19 @@ function pick(pool, profileId, salt = 0) {
 }
 
 // ─── Detect content type from text ───────────────────────────────────────────
+// FIXED: Use word-boundary guards to prevent 'beat' matching 'Lakers beat', etc.
 function detectCategory(text = '') {
-  const t = (text || '').toLowerCase();  // guard against explicit null
-  if (t.match(/win|champion|ship|bracelet|first.place/)) return 'tournament';
-  if (t.match(/bad.beat|bust|eliminat|cooler|suck.out/)) return 'bad_beat';
-  if (t.match(/bluff|hero.call|fold/)) return 'bluff';
-  if (t.match(/biggest|record|largest|all.time/)) return 'massive_pot';
-  if (t.match(/strategy|tip|learn|study|how.to|guide/)) return 'educational';
-  if (t.match(/vlog|session|day.in/)) return 'vlog';
-  if (t.match(/high.stakes|triton|super.high/)) return 'high_stakes';
+  const t = (text || '').toLowerCase();
+  // Specific poker terms only (word-boundary aware)
+  if (/\b(wsop|bracelet|world series of poker)\b/.test(t)) return 'tournament';
+  if (/\b(bad beat|cooler|suck.?out|one.?outer|runner.?runner)\b/.test(t)) return 'bad_beat';
+  if (/\bbluff\b/.test(t) && !/\bnfl|nba|nhl|mlb|soccer\b/.test(t)) return 'bluff';
+  if (/\b(hero call|hero fold)\b/.test(t)) return 'soul_read';
+  if (/\b(biggest pot|record pot|largest pot|all.time record|poker record)\b/.test(t)) return 'massive_pot';
+  if (/\b(strategy|gto|solver|how to play|poker tips|study)\b/.test(t)) return 'educational';
+  if (/\b(vlog|day in the life|grind vlog)\b/.test(t)) return 'vlog';
+  if (/\b(high stakes poker|triton|super high roller)\b/.test(t)) return 'high_stakes';
+  if (/\b(champion|final table|tournament win|mtt win)\b/.test(t)) return 'tournament';
   return null;
 }
 
@@ -691,58 +714,214 @@ export function generateComment(commentType, profileId) {
 }
 
 /**
+ * Extract sports-specific signal from a news headline.
+ * Returns { sport, signal } or null.
+ */
+function extractSportsContext(headline) {
+  if (!headline) return null;
+  const t = headline.toLowerCase();
+
+  let sport = null;
+  if (/\b(nba|basketball|lakers|celtics|warriors|lebron|curry|durant|knicks|bulls|heat|bucks|sixers|nets|cavs)\b/.test(t)) sport = 'nba';
+  else if (/\b(nfl|football|chiefs|eagles|cowboys|patriots|49ers|bengals|ravens|bills|packers|mahomes|quarterback|qb|touchdown)\b/.test(t)) sport = 'nfl';
+  else if (/\b(mlb|baseball|yankees|dodgers|red sox|mets|braves|astros|home run|pitcher|strikeout)\b/.test(t)) sport = 'mlb';
+  else if (/\b(nhl|hockey|puck|rangers|bruins|penguins|oilers|lightning|power play)\b/.test(t)) sport = 'nhl';
+  else if (/\b(mma|ufc|boxing|fight|knockout|submission|title fight|belt)\b/.test(t)) sport = 'combat';
+  else if (/\b(soccer|mls|premier league|champions league|la liga|bundesliga|fifa|world cup|penalty)\b/.test(t)) sport = 'soccer';
+  else if (/\b(golf|pga|masters|tiger|ryder cup|birdie|eagle)\b/.test(t)) sport = 'golf';
+  else if (/\b(tennis|wimbledon|australian open|french open|serve)\b/.test(t)) sport = 'tennis';
+
+  let signal = null;
+  if (/\b(record|all.time|history|historic|most ever|never before)\b/.test(t)) signal = 'record';
+  else if (/\b(wins|won|beat|beats|victory|defeats|clinch)\b/.test(t)) signal = 'win';
+  else if (/\b(loses|lost|loss|eliminated|exit)\b/.test(t)) signal = 'loss';
+  else if (/\b(injur|out for|hurt|sidelined|questionable|ruled out)\b/.test(t)) signal = 'injury';
+  else if (/\b(draft|trade|signs|sign|free agent|contract|deal)\b/.test(t)) signal = 'transaction';
+  else if (/\b(retire|retirement|farewell|last game|final season)\b/.test(t)) signal = 'retirement';
+  else if (/\b(championship|title|trophy|ring|playoff|series)\b/.test(t)) signal = 'championship';
+  else if (/\b(stats|stat line|career high|season high|points|yards|goals)\b/.test(t)) signal = 'performance';
+
+  return (sport || signal) ? { sport, signal } : null;
+}
+
+// Sports caption pools by signal type — contextually relevant reactions
+const SPORTS_CAPTION_POOLS = {
+  record: [
+    'numbers like that don't happen often', 'the history books are being rewritten right now',
+    'that record stood for a reason, now it doesn't', 'hard to put that kind of achievement into context',
+    'nobody who was watching will forget this', 'generational stuff',
+    'records exist to be broken. still wild when it happens.', 'that changes the conversation entirely',
+    'stats don't lie and these stats are something else', 'you have to see that number to believe it',
+  ],
+  win: [
+    'well deserved', 'that team is built for this', 'nobody gave them a shot and here we are',
+    'the W was earned not given', 'executing at the right time is everything in sports',
+    'the locker room energy after that must be something', 'that game had a lot to say',
+    'statement game', 'the momentum is real now', 'squeezed that one out',
+  ],
+  loss: [
+    'tough one to process', 'that one is going to sting for a while',
+    'the season just got a lot more complicated', 'too many mistakes at the wrong time',
+    'gotta bounce back fast', 'a loss like that changes the narrative',
+    'hard to watch if you're a fan', 'happens to every team, timing is everything',
+  ],
+  injury: [
+    'the worst part of any sport', 'hoping for a quick recovery',
+    'timing couldn't be worse for that team', 'next man up mentality has to kick in',
+    'a lot changes with this news', 'the season outlook just shifted significantly',
+    'injuries are the one variable nobody can control',
+  ],
+  transaction: [
+    'the front office is making moves', 'this changes the roster dynamic completely',
+    'bold move to make this kind of deal', 'the league just got more interesting',
+    'front office chess is its own sport', 'someone got a steal here',
+    'the ripple effects from this are going to be felt', 'blockbuster',
+  ],
+  retirement: [
+    'end of an era', 'nobody can take away what they accomplished',
+    'careers like that don't come around often', 'the sport is different without them',
+    'the highlights will hold up forever', 'a player's player',
+    'the gap they leave behind is the best compliment you can give',
+  ],
+  championship: [
+    'the stakes just got real', 'pressure separates the good from the great',
+    'built for this moment', 'championship runs are something different',
+    'every game feels different in the playoffs', 'legacy on the line',
+    'one game, everything on it', 'the team that wants it more usually gets it',
+  ],
+  performance: [
+    'that stat line is worth staring at', 'elite performance deserves to be recognized',
+    'consistent at the highest level is harder than people realize',
+    'the numbers back up everything the highlights show',
+    'you can't guard that', 'that's what peak looks like',
+    'if you watched that and weren't impressed something is wrong',
+  ],
+  nba: [
+    'the league has been wild this season', 'nba basketball is must-watch right now',
+    'the talent pool in this league is insane', 'nobody is safe in the west',
+    'east is more competitive than people give it credit', 'playoff picture is getting interesting',
+  ],
+  nfl: [
+    'sunday keeps delivering', 'nfl parity is wild this year',
+    'the league never has a slow week', 'every game has a story',
+    'coaching matters more than people admit', 'this season is going to the wire',
+  ],
+  mlb: [
+    'baseball season is long but moments like this cut through',
+    'the sport has a way of creating memories', 'anything can happen in october',
+    'that's the beauty of baseball',
+  ],
+  combat: [
+    'combat sports delivering again', 'you tune in for moments exactly like this',
+    'the best fighters make it look like they were born for it',
+    'fight game is unpredictable for a reason',
+  ],
+  soccer: [
+    'beautiful game living up to the name', 'the sport produces moments like no other',
+    'world class talent on display', 'the passion around this sport is unmatched',
+  ],
+  golf: [
+    'golf has a way of humbling you at the worst time', 'the mental game in golf is everything',
+    'a round like that doesn't come together without preparation',
+  ],
+  general_sports: [
+    'this week in sports has been something else', 'hard to keep up with everything happening',
+    'the sports world never slows down', 'athletes doing what they do at the highest level',
+    'good time to be a sports fan honestly', 'the game keeps moving and so do the stories',
+    'worth following closely if you care about where this is heading',
+    'every season has a turning point. this might be one of them.',
+    'the storylines this year have been unreal', 'hard to argue with what's happening here',
+  ],
+};
+
+// Poker news caption pools — much richer than before
+const POKER_NEWS_POOLS = {
+  tournament: [
+    'the field is going to be deep', 'tournament poker is something else at this level',
+    'the prep that goes into playing this kind of event is underrated',
+    'final table runs change careers', 'one of those events that keeps the whole community watching',
+    'the name that wins this one will be talked about', 'circuit is heating up',
+    'chip stacks are going to matter a lot here', 'one of the bigger events of the year',
+  ],
+  player_news: [
+    'following this closely', 'the community takes notice when news like this drops',
+    'names like that carry weight in the poker world', 'worth paying attention to',
+    'the poker world never stops moving', 'someone's life just changed',
+    'every pro has a story. this one has another chapter.',
+    'big news out of the poker world today',
+  ],
+  strategy: [
+    'this is the kind of content that actually improves your game',
+    'took notes reading through this', 'the theory side of poker is underrated',
+    'a lot of players skip the study phase. don't be that player.',
+    'concepts like this don't become clear overnight', 'worth the time to sit with this one',
+    'this changes how I think about that spot',
+  ],
+  industry: [
+    'the poker world is always moving', 'something to keep an eye on',
+    'bigger than it looks on the surface', 'the ecosystem around poker matters',
+    'when the industry shifts, everyone feels it eventually',
+    'changes like this take time to ripple through',
+  ],
+  general_poker: [
+    'the scene keeps producing storylines', 'worth bookmarking this one',
+    'good read for anyone following the game', 'the poker world is rarely quiet',
+    'adds context to what's been happening lately', 'not surprised, still relevant',
+    'the game evolves and the news evolves with it',
+    'one of those stories that has legs', 'always more going on than the headline suggests',
+    'poker news cycle never really stops', 'the sport keeps growing its own mythology',
+  ],
+};
+
+/**
  * Generate a news-link caption from a headline.
+ * Now extracts actual article signals for contextually relevant captions.
  * No API calls, no cost. Deduplication built in.
  */
 export function generateNewsCaption(headline, profileId, newsType = 'poker') {
   const archetype = getArchetype(profileId);
-  // Null-guard: callers may pass explicit null
   const safeHeadline = (headline && typeof headline === 'string') ? headline : '';
 
-  // Only attempt poker-context extraction if it's actually poker news
-  if (newsType === 'poker') {
-    // 65% of the time: try to build a title-aware caption from the headline
+  let pool;
+
+  if (newsType === 'sports') {
+    // Extract sports-specific context from headline
+    const sportsCtx = extractSportsContext(safeHeadline);
+    if (sportsCtx) {
+      const signalPool = sportsCtx.signal && SPORTS_CAPTION_POOLS[sportsCtx.signal];
+      const sportPool = sportsCtx.sport && SPORTS_CAPTION_POOLS[sportsCtx.sport];
+      pool = signalPool || sportPool || SPORTS_CAPTION_POOLS.general_sports;
+    } else {
+      pool = SPORTS_CAPTION_POOLS.general_sports;
+    }
+  } else {
+    // Poker news — try context extraction first (65% of the time)
     if (safeHeadline && Math.random() < 0.65) {
       const ctx = extractTitleContext(safeHeadline);
       const contextCaption = buildContextCaption(ctx, profileId);
-      // BUG-FIX: contextCaption early-return previously bypassed sanitizeHorseOutput
       if (contextCaption && contextCaption.trim().length >= 10) return sanitizeHorseOutput(contextCaption);
+    }
+
+    // Category-aware poker pool selection
+    const detected = detectCategory(safeHeadline);
+    if (detected && POST_CAPTIONS[detected]) {
+      pool = POST_CAPTIONS[detected];
+    } else {
+      const t = safeHeadline.toLowerCase();
+      if (/\b(wsop|wpt|ept|tournament|series|main event|bracelet|final table)\b/.test(t)) {
+        pool = POKER_NEWS_POOLS.tournament;
+      } else if (/\b(strategy|gto|solver|range|study|how to|tips|theory)\b/.test(t)) {
+        pool = POKER_NEWS_POOLS.strategy;
+      } else if (/\b(site|room|casino|online|regulation|legal|ban|law)\b/.test(t)) {
+        pool = POKER_NEWS_POOLS.industry;
+      } else if (/\b(player|pro|wins|cashes|result|bracelet|champion|finish|place)\b/.test(t)) {
+        pool = POKER_NEWS_POOLS.player_news;
+      } else {
+        pool = POKER_NEWS_POOLS.general_poker;
+      }
     }
   }
 
-  // Determine the pool based on newsType
-  let pool;
-  if (newsType === 'sports') {
-    pool = [
-      'game of the week type stuff', 'the numbers really do not lie',
-      'hard to argue with that performance', 'watching this one closely',
-      'not many people are talking about this yet', 'the sport has a moment here',
-      'every season has a story, this might be it', 'the pressure is real here',
-      'respect the grind no matter the sport', 'that stat line tells the whole story',
-    ];
-  } else {
-    // Fallback: detect pool from headline only if it's poker (or fallback to generic news)
-    const detected = detectCategory(safeHeadline);
-    pool = detected
-      ? POST_CAPTIONS[detected] || [
-          'worth reading if you follow the scene', 'good context for where things stand right now',
-          'hadn\'t heard this one yet', 'makes sense when you think about it',
-          'this changes a few things going forward', 'filed this one away',
-          'relevant if you\'re paying attention to the scene', 'the poker world keeps moving',
-          'worth knowing about', 'the story keeps going on this one',
-          'not surprised honestly but still worth noting', 'this one actually matters',
-        ]
-      : [
-          'worth reading if you follow the scene', 'good context for where things stand right now',
-          'hadn\'t heard this one yet', 'makes sense when you think about it',
-          'this changes a few things going forward', 'filed this one away',
-          'relevant if you\'re paying attention to the scene', 'the poker world keeps moving',
-          'worth knowing about', 'the story keeps going on this one',
-          'not surprised honestly but still worth noting', 'this one actually matters',
-        ];
-  }
-
-  // Min-length guard: retry up to 3x to avoid sub-10-char captions
   let phrase = '';
   for (let attempt = 0; attempt < 3; attempt++) {
     const candidate = pick(pool, profileId, 2);
@@ -750,17 +929,12 @@ export function generateNewsCaption(headline, profileId, newsType = 'poker') {
     if (!phrase || candidate.length > phrase.length) phrase = candidate || phrase;
   }
 
-  // 20% chance: prefix with archetype flair
-  // ONLY prefix poker-specific flairs if newsType is poker to avoid weird sports terminology
-  // Safe flairs that are fine anywhere: honestly, facts, real talk, wild, sick, crazy
   if (archetype.flair.length > 0 && Math.random() < 0.20) {
     let allowedFlairs = archetype.flair;
     if (newsType !== 'poker') {
-      // Filter out overly poker-specific flairs
-      const pokerFlairs = ['solver take', 'GTO note', 'range perspective', 'EV check', 'solver approved', 'study note'];
+      const pokerFlairs = ['solver take', 'GTO note', 'range perspective'];
       allowedFlairs = archetype.flair.filter(f => !pokerFlairs.includes(f));
     }
-    
     if (allowedFlairs.length > 0) {
       const flair = allowedFlairs[Math.floor(Math.random() * allowedFlairs.length)];
       phrase = `${flair}, ${phrase.toLowerCase()}`;
@@ -769,7 +943,6 @@ export function generateNewsCaption(headline, profileId, newsType = 'poker') {
 
   return sanitizeHorseOutput(applyStyle(phrase, archetype));
 }
-
 /**
  * Generate a direct message reply.
  * Concludes the conversation if history is getting long.

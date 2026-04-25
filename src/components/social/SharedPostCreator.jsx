@@ -46,6 +46,21 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
     // Identity switching
     const { isClubMode, clubPage, hasClubPage, switchToPersonal, switchToClub } = useActiveIdentity();
 
+    // Home group post targets
+    const [homeGroupTargets, setHomeGroupTargets] = useState([]);
+    const [activeHomeGroup, setActiveHomeGroup] = useState(null); // null = not posting as home group
+
+    useEffect(() => {
+        if (!user?.id) return;
+        let cancelled = false;
+        supabase.rpc('fn_list_my_post_targets').then(({ data, error }) => {
+            if (cancelled || error) return;
+            const hgs = (data || []).filter(t => t.kind === 'home_group');
+            if (!cancelled) setHomeGroupTargets(hgs);
+        }).catch(() => {});
+        return () => { cancelled = true; };
+    }, [user?.id]);
+
     // Click-outside handler: auto-close identity picker dropdown
     useEffect(() => {
         if (!showIdentityPicker) return;
@@ -561,7 +576,34 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
             mentions.push(match[1]);
         }
         
-        const ok = await onPost(cleanContent, urls, type, mentions, linkPreview, postVisibility);
+        // If posting as a home group, route through /api/social/pages/posts with the group's social_page_id
+        let ok;
+        if (activeHomeGroup?.social_page_id) {
+            try {
+                const token = getAccessToken();
+                const res = await fetch('/api/social/pages/posts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({
+                        page_id: activeHomeGroup.social_page_id,
+                        author_id: user?.id,
+                        content: cleanContent,
+                        content_type: urls.length > 0 ? 'media' : 'text',
+                        visibility: postVisibility,
+                        post_type: 'regular',
+                        ...(urls.length > 0 ? { media_urls: urls } : {}),
+                        ...(mentions && mentions.length > 0 ? { mentions } : {}),
+                    }),
+                });
+                const json = await res.json();
+                ok = json.success;
+            } catch (e) {
+                console.warn('[SharedPostCreator] Home group post error:', e);
+                ok = false;
+            }
+        } else {
+            ok = await onPost(cleanContent, urls, type, mentions, linkPreview, postVisibility);
+        }
         if (ok) {
             if (checkInVenue) {
                 try {
@@ -606,18 +648,24 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
     // Determine display identity:
     // If context is 'social-pages', use the authorOverride
     // If context is 'social-media', use club page override IF active, otherwise standard user
+    // Home group mode takes priority over club mode in social-media context
     let postingAs = { name: user?.name, avatar: user?.avatar };
     
     if (context === 'social-pages' && authorOverride) {
         postingAs = { name: authorOverride.name, avatar: authorOverride.avatar_url };
+    } else if (activeHomeGroup) {
+        postingAs = { name: activeHomeGroup.target_name, avatar: activeHomeGroup.target_avatar };
     } else if (isClubMode && clubPage) {
         postingAs = { name: clubPage.name, avatar: clubPage.avatar_url };
     }
 
+    const isHomeGroupMode = !!activeHomeGroup;
+    const hasAnyIdentitySwitcher = hasClubPage || homeGroupTargets.length > 0;
+
     return (
         <div style={{ background: C.card, borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.1)', marginBottom: 2, position: 'relative' }}>
-            {/* Identity Switcher Banner - only for Commander users (social-media context only) */}
-            {context === 'social-media' && hasClubPage && (
+            {/* Identity Switcher Banner - for Commander users with club pages OR home group memberships */}
+            {context === 'social-media' && hasAnyIdentitySwitcher && (
                 <div ref={identityPickerRef} style={{ padding: '8px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', transition: 'background 0.3s ease' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: C.textSec }}>
                         <span>Posting As</span>
@@ -625,17 +673,17 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                             onClick={() => setShowIdentityPicker(!showIdentityPicker)}
                             style={{
                                 display: 'flex', alignItems: 'center', gap: 6,
-                                background: isClubMode ? '#E7F3FF' : '#F0F2F5',
-                                border: `1px solid ${isClubMode ? '#1877F2' : C.border}`,
+                                background: (isClubMode || isHomeGroupMode) ? '#E7F3FF' : '#F0F2F5',
+                                border: `1px solid ${(isClubMode || isHomeGroupMode) ? '#1877F2' : C.border}`,
                                 borderRadius: 20, padding: '4px 12px 4px 4px',
                                 cursor: 'pointer', fontSize: 13, fontWeight: 600,
-                                color: isClubMode ? '#1877F2' : C.text,
+                                color: (isClubMode || isHomeGroupMode) ? '#1877F2' : C.text,
                                 transition: 'all 0.2s'
                             }}
                         >
                             <div style={{
                                 width: 24, height: 24, borderRadius: '50%',
-                                background: postingAs.avatar ? `url(${postingAs.avatar}) center/cover` : (isClubMode ? '#1877F2' : '#65676B'),
+                                background: postingAs.avatar ? `url(${postingAs.avatar}) center/cover` : ((isClubMode || isHomeGroupMode) ? '#1877F2' : '#65676B'),
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 color: 'white', fontSize: 11, fontWeight: 700
                             }}>
@@ -652,47 +700,88 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         <div style={{
                             position: 'absolute', top: '100%', left: 12, zIndex: 1001,
                             background: C.card, borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-                            border: `1px solid ${C.border}`, minWidth: 220, overflow: 'hidden'
+                            border: `1px solid ${C.border}`, minWidth: 240, overflow: 'hidden'
                         }}>
                             <div style={{ padding: '8px 12px', fontSize: 12, fontWeight: 600, color: C.textSec, borderBottom: `1px solid ${C.border}` }}>
                                 Switch Identity
                             </div>
+                            {/* Personal Account */}
                             <button
-                                onClick={() => { switchToPersonal(); setShowIdentityPicker(false); toast.success('Switched to personal account', 2000); }}
+                                onClick={() => { switchToPersonal(); setActiveHomeGroup(null); setShowIdentityPicker(false); toast.success('Switched to personal account', 2000); }}
                                 style={{
                                     display: 'flex', alignItems: 'center', gap: 10, width: '100%',
                                     padding: '10px 12px', border: 'none', cursor: 'pointer',
-                                    background: !isClubMode ? '#E7F3FF' : 'transparent',
+                                    background: !isClubMode && !isHomeGroupMode ? '#E7F3FF' : 'transparent',
                                     textAlign: 'left', transition: 'background 0.15s'
                                 }}
-                                onMouseEnter={e => { if (isClubMode) e.currentTarget.style.background = '#F0F2F5'; }}
-                                onMouseLeave={e => { if (isClubMode) e.currentTarget.style.background = 'transparent'; }}
+                                onMouseEnter={e => { if (isClubMode || isHomeGroupMode) e.currentTarget.style.background = '#F0F2F5'; }}
+                                onMouseLeave={e => { if (isClubMode || isHomeGroupMode) e.currentTarget.style.background = 'transparent'; }}
                             >
                                 <Avatar src={user?.avatar} name={user?.name} size={36} />
                                 <div>
                                     <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{user?.name || 'You'}</div>
                                     <div style={{ fontSize: 12, color: C.textSec }}>Personal Account</div>
                                 </div>
-                                {!isClubMode && <span style={{ marginLeft: 'auto', color: '#1877F2', fontSize: 18 }}>✓</span>}
+                                {!isClubMode && !isHomeGroupMode && <span style={{ marginLeft: 'auto', color: '#1877F2', fontSize: 18 }}>✓</span>}
                             </button>
-                            <button
-                                onClick={() => { switchToClub(); setShowIdentityPicker(false); toast.success(`Now posting as ${clubPage?.name || 'Club'}`, 2000); }}
-                                style={{
-                                    display: 'flex', alignItems: 'center', gap: 10, width: '100%',
-                                    padding: '10px 12px', border: 'none', cursor: 'pointer',
-                                    background: isClubMode ? '#E7F3FF' : 'transparent',
-                                    textAlign: 'left', transition: 'background 0.15s'
-                                }}
-                                onMouseEnter={e => { if (!isClubMode) e.currentTarget.style.background = '#F0F2F5'; }}
-                                onMouseLeave={e => { if (!isClubMode) e.currentTarget.style.background = 'transparent'; }}
-                            >
-                                <Avatar src={clubPage?.avatar_url} name={clubPage?.name || 'Club'} size={36} />
-                                <div>
-                                    <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{clubPage?.name || 'Club Page'}</div>
-                                    <div style={{ fontSize: 12, color: C.textSec }}>Club Page</div>
-                                </div>
-                                {isClubMode && <span style={{ marginLeft: 'auto', color: '#1877F2', fontSize: 18 }}>✓</span>}
-                            </button>
+                            {/* Club Page (only shown if user has one) */}
+                            {hasClubPage && (
+                                <button
+                                    onClick={() => { switchToClub(); setActiveHomeGroup(null); setShowIdentityPicker(false); toast.success(`Now posting as ${clubPage?.name || 'Club'}`, 2000); }}
+                                    style={{
+                                        display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+                                        padding: '10px 12px', border: 'none', cursor: 'pointer',
+                                        background: isClubMode && !isHomeGroupMode ? '#E7F3FF' : 'transparent',
+                                        textAlign: 'left', transition: 'background 0.15s'
+                                    }}
+                                    onMouseEnter={e => { if (!isClubMode || isHomeGroupMode) e.currentTarget.style.background = '#F0F2F5'; }}
+                                    onMouseLeave={e => { if (!isClubMode || isHomeGroupMode) e.currentTarget.style.background = 'transparent'; }}
+                                >
+                                    <Avatar src={clubPage?.avatar_url} name={clubPage?.name || 'Club'} size={36} />
+                                    <div>
+                                        <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{clubPage?.name || 'Club Page'}</div>
+                                        <div style={{ fontSize: 12, color: C.textSec }}>Club Page</div>
+                                    </div>
+                                    {isClubMode && !isHomeGroupMode && <span style={{ marginLeft: 'auto', color: '#1877F2', fontSize: 18 }}>✓</span>}
+                                </button>
+                            )}
+                            {/* Home Groups section */}
+                            {homeGroupTargets.length > 0 && (
+                                <>
+                                    <div style={{ padding: '6px 12px', fontSize: 11, fontWeight: 700, color: C.textSec, background: C.bg, borderTop: `1px solid ${C.border}`, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                        Home Groups
+                                    </div>
+                                    {homeGroupTargets.map(hg => {
+                                        const isActive = activeHomeGroup?.target_id === hg.target_id;
+                                        return (
+                                            <button
+                                                key={hg.target_id}
+                                                onClick={() => {
+                                                    switchToPersonal();
+                                                    setActiveHomeGroup(isActive ? null : hg);
+                                                    setShowIdentityPicker(false);
+                                                    toast.success(isActive ? 'Switched to personal account' : `Now posting as ${hg.target_name}`, 2000);
+                                                }}
+                                                style={{
+                                                    display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+                                                    padding: '10px 12px', border: 'none', cursor: 'pointer',
+                                                    background: isActive ? '#E7F3FF' : 'transparent',
+                                                    textAlign: 'left', transition: 'background 0.15s'
+                                                }}
+                                                onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = '#F0F2F5'; }}
+                                                onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
+                                            >
+                                                <Avatar src={hg.target_avatar} name={hg.target_name} size={36} />
+                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                    <div style={{ fontSize: 14, fontWeight: 600, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{hg.target_name}</div>
+                                                    <div style={{ fontSize: 12, color: C.textSec }}>{hg.target_role ? (hg.target_role.charAt(0).toUpperCase() + hg.target_role.slice(1)) : 'Member'}</div>
+                                                </div>
+                                                {isActive && <span style={{ marginLeft: 'auto', color: '#1877F2', fontSize: 18 }}>✓</span>}
+                                            </button>
+                                        );
+                                    })}
+                                </>
+                            )}
                         </div>
                     )}
                 </div>
@@ -701,6 +790,10 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                 {context === 'social-pages' && authorOverride ? (
                     <div style={{ display: 'block', flexShrink: 0 }}>
                         <Avatar src={authorOverride.avatar_url} name={authorOverride.name} size={40} />
+                    </div>
+                ) : isHomeGroupMode ? (
+                    <div style={{ display: 'block', flexShrink: 0, borderRadius: '50%', border: '2px solid #1877F2' }}>
+                        <Avatar src={activeHomeGroup.target_avatar} name={activeHomeGroup.target_name} size={40} />
                     </div>
                 ) : (isClubMode && clubPage) ? (
                     <Link href={`/hub/social-pages/${clubPage.id}`} style={{ display: 'block', cursor: 'pointer', flexShrink: 0, borderRadius: '50%', border: '2px solid #1877F2', transition: 'transform 0.2s ease' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
@@ -718,7 +811,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         onChange={handleContentChange}
                         onPaste={handlePaste}
                         disabled={uploading}
-                        placeholder={context === 'social-pages' ? `Post as ${postingAs.name}...` : (isClubMode ? `Post as ${clubPage?.name || 'Club'}...` : `What's on your mind, ${user?.name || 'Player'}?`)}
+                        placeholder={context === 'social-pages' ? `Post as ${postingAs.name}...` : isHomeGroupMode ? `Post as ${activeHomeGroup.target_name}...` : (isClubMode ? `Post as ${clubPage?.name || 'Club'}...` : `What's on your mind, ${user?.name || 'Player'}?`)}
                         style={{ width: '100%', background: C.bg, border: 'none', borderRadius: 20, padding: '10px 16px', fontSize: 16, outline: 'none', boxSizing: 'border-box', color: uploading ? '#999' : C.text, opacity: uploading ? 0.6 : 1 }}
                         maxLength={5000}
                     />
