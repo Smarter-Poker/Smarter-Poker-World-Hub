@@ -158,11 +158,12 @@ ALL_CRONS = [
     # ══ WAVE 1 (2026-04-24 — migrated from vercel.json; see phase-2a4-wave-plan.md) ══
     # Scrapers (read-only ingest into Supabase, upsert on unique keys)
     ('/api/cron/scrape-sports-clips',             dict(hour=4, minute=0)),
-    ('/api/cron/scrape-venue-info?batch=1',       dict(hour=6, minute=0)),
-    ('/api/cron/scrape-venue-info?batch=2',       dict(hour=12, minute=0)),
-    ('/api/cron/scrape-venue-info?batch=3',       dict(day_of_week='mon,wed,fri', hour=6, minute=0)),
-    ('/api/cron/scrape-venue-info?batch=4',       dict(day_of_week='mon,wed,fri', hour=12, minute=0)),
-    ('/api/cron/scrape-venue-info?batch=5',       dict(day_of_week='mon,wed,fri', hour=18, minute=0)),
+    # /api/cron/scrape-venue-info?batch=1..5 RETIRED 2026-04-25 (Phase 2B.3
+    # partial cleanup). Superseded by .github/workflows/venue-scraper.yml +
+    # daily_venue_scraper.py which has been the actual scraper since
+    # before this dispatcher existed. The .js handler was an unused parallel
+    # implementation. Handler file deleted from pages/api/cron/ in same
+    # commit. No code outside this file referenced the route.
     ('/api/cron/venue-tournaments',               dict(hour=4, minute=0)),
     ('/api/cron/refresh-venue-json',              dict(hour=5, minute=0)),   # cache refresh
     ('/api/cron/news-scraper',                    dict(hour='*/2', minute=0)),
