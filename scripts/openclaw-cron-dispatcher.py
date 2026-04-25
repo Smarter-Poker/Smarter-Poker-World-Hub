@@ -247,11 +247,25 @@ WORKERS_BASE_URL       = os.environ.get('WORKERS_BASE_URL', '').strip()
 DISPATCHER_PRIVATE_IP  = os.environ.get('DISPATCHER_PRIVATE_IP', '').strip()
 
 WORKERS_PREFERRED = {
-    # SCRIPT_JOBS now have HTTP equivalents on the workers service.
+    # ─── 2B.2(b) — video-library SCRIPT_JOBS, all idempotent via Supabase upserts ───
     '/api/cron/video-library-scraper':  '/cron/video-library-scraper',
     '/api/cron/video-library-backfill': '/cron/video-library-backfill',
     '/api/cron/video-library-purge':    '/cron/video-library-purge',
     '/api/cron/video-library-views':    '/cron/video-library-views',
+    # ─── 2B.2(c) Batch A+B — lowest-risk: scrapers, content gen, log cleanup ───
+    # Each verified to return 200 from openclaw via private net before flip.
+    # Each handler is idempotent via DELETE-by-cutoff or upsert-on-unique-key.
+    '/api/cron/scraper-data-cleanup':   '/cron/scraper-data-cleanup',
+    '/api/cron/purge-idempotency-keys': '/cron/purge-idempotency-keys',
+    '/api/cron/trivia-pvp-cleanup':     '/cron/trivia-pvp-cleanup',
+    '/api/cron/refresh-venue-json':     '/cron/refresh-venue-json',
+    '/api/cron/content-health-check':   '/cron/content-health-check',
+    '/api/cron/trivia-daily-generator': '/cron/trivia-daily-generator',
+    '/api/cron/pokernews-videos':       '/cron/pokernews-videos',
+    # NOT FLIPPED: /api/cron/daily-challenges — workers handler returns 500
+    # (references training_daily_challenges.bonus_xp_multiplier column that
+    # does not exist in the production schema). Defer until workers repo
+    # owner reconciles the schema. Keep firing against Vercel monolith.
 }
 
 
