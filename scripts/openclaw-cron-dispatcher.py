@@ -318,6 +318,18 @@ WORKERS_PREFERRED = {
     '/api/cron/vip-diamond-stipend':           '/cron/vip-diamond-stipend',
     '/api/cron/vip-status-check':              '/cron/vip-status-check',
     '/api/clawbot/orchestrator':               '/cron/clawbot-orchestrator',
+    # ─── 2B.2(h) — late add: scrape-sports-clips ───────────────────────────
+    # Re-probed after fixing 30s timeout in the test harness — workers
+    # responds 200 in ~40s with same payload shape as monolith
+    # (channels_scraped:38, found:100). Dispatcher REQUEST_TIMEOUT=120s
+    # easily covers it.
+    '/api/cron/scrape-sports-clips':           '/cron/scrape-sports-clips',
+    # NOT FLIPPED: /api/cron/deploy-error-poll — workers handler returns
+    # 500 ("VERCEL_TOKEN not configured"). The Vercel API token isn't in
+    # any location reachable from the Cowork sandbox or from openclaw VM.
+    # On Vercel-hosted monolith the token is injected via Vercel project
+    # env vars — that's where it has to keep firing. Workers can't autofix
+    # Vercel deployment errors without Vercel API auth anyway.
 }
 
 
