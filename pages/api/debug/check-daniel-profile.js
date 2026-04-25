@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 export default function handler(req, res) {
   return res.status(410).json({
     error: 'This debug endpoint has been permanently disabled',

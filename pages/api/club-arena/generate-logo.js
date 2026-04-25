@@ -1,4 +1,6 @@
 import { reportApiError } from '../../../src/lib/sentryWrap';
+
+export const runtime = 'edge';
 /**
  * Generate Club Logo API — Server-side proxy to xAI Grok
  * ═══════════════════════════════════════════════════════════════
