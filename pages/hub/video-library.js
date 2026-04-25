@@ -58,6 +58,7 @@ function normaliseDbVideo(row) {
         thumbnail: row.thumbnail_url || `https://img.youtube.com/vi/${row.youtube_video_id}/maxresdefault.jpg`,
         publishedAt: row.published_at,
         scrapedAt: row.scraped_at,
+        tags: Array.isArray(row.tags) ? row.tags : (row.tags || []),
         // Sort key: prefer published_at when it's a real date (not today), else use scraped_at
         _sortKey: row.published_at,
     };
@@ -114,7 +115,7 @@ export default function VideoLibraryPage() {
             while (true) {
                 const { data, error } = await supabase
                     .from('video_library_videos')
-                    .select('youtube_video_id, source_id, source_name, type, title, thumbnail_url, views_text, views_count, duration, published_at, scraped_at')
+                    .select('youtube_video_id, source_id, source_name, type, title, thumbnail_url, views_text, views_count, duration, published_at, scraped_at, tags')
                     .order('scraped_at', { ascending: false })
                     .range(from, from + PAGE_SIZE - 1);
                 if (cancelled || error || !data || data.length === 0) break;

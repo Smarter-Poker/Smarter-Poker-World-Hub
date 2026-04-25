@@ -190,10 +190,27 @@ const COMMENT_TEMPLATES = {
         "trust the process", "keep playing your game", "sample size matters"
     ],
     sports: [
-        "love watching this play out", "the numbers don't lie", "wild to see",
-        "such an unpredictable season", "the talent level right now is insane",
-        "they really have a chance this year", "every week is a movie",
-        "always tune in for these games", "could watch this all day", "respect the grind"
+        // Win reactions
+        "well deserved", "that W was earned", "nobody gave them a chance and here we are",
+        "statement game right there", "momentum is real now", "squeezed that one out",
+        // Loss/adversity
+        "tough one to watch", "that one stings", "gotta bounce back fast",
+        "the season just got more interesting", "rough timing for that result",
+        // Record/Achievement
+        "history being made", "generational stuff right there",
+        "the record stood for a reason", "you have to see it to believe it",
+        // Game commentary
+        "always tune in for games like this", "every week is a movie in this league",
+        "the talent level right now is insane", "coaching mattered a lot in this one",
+        "this league never has a slow stretch", "parity is wild this season",
+        // Roster/transactions
+        "front office making moves", "bold move", "someone got a steal here",
+        "depth is going to be tested now", "ripple effects from this are gonna be felt",
+        // General engagement
+        "love watching this play out", "the sport keeps delivering",
+        "athletes at this level are just built different", "respect the grind",
+        "could watch this all day", "the storylines this season are unreal",
+        "good time to be a fan honestly", "wild to see",
     ],
     bankroll: [
         "bankroll management is key", "protect the roll",
@@ -573,22 +590,24 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
             post.link_site_name.includes('Sports')
         );
 
+        // FIXED: Use word-boundary regex to prevent sports content bleeding into poker comment types
+        // e.g. 'beat' in 'Lakers beat the Celtics' must NOT trigger bad_beat comment
         if (isSports) commentType = 'sports';
         else if (post.content_type === 'video') commentType = 'video';
         else if (post.content_type === 'photo') commentType = 'photo';
-        else if (lc.includes('beat') || lc.includes('suck') || lc.includes('cooler') || lc.includes('one-outer')) commentType = 'bad_beat';
-        else if (lc.includes('wsop') || lc.includes('bracelet') || lc.includes('world series')) commentType = 'wsop';
-        else if (lc.includes('tournament') || lc.includes('mtt') || lc.includes('final table') || lc.includes('bubble')) commentType = 'tournament';
-        else if (lc.includes('plo') || lc.includes('omaha') || lc.includes('pot limit')) commentType = 'plo';
-        else if (lc.includes('hcl') || lc.includes('hustler') || lc.includes('live at the bike')) commentType = 'hcl';
-        else if (lc.includes('bluff') || lc.includes('fold') || lc.includes('hero call')) commentType = 'bluff';
-        else if (lc.includes('river') || lc.includes('runout') || lc.includes('runner')) commentType = 'river';
-        else if (lc.includes('session') || lc.includes('profit') || lc.includes('won') || lc.includes('cashed')) commentType = 'session_report';
-        else if (lc.includes('cash game') || lc.includes('stakes') || lc.includes('1/2') || lc.includes('2/5') || lc.includes('5/10')) commentType = 'cash_game';
-        else if (lc.includes('grind') || lc.includes('volume') || lc.includes('hours')) commentType = 'grind';
-        else if (lc.includes('variance') || lc.includes('downswing') || lc.includes('upswing') || lc.includes('run bad')) commentType = 'variance';
-        else if (lc.includes('bankroll') || lc.includes('roll') || lc.includes('moving up')) commentType = 'bankroll';
-        else if (lc.includes('strategy') || lc.includes('gto') || lc.includes('solver') || lc.includes('range') || lc.includes('ev') || lc.includes('sizing')) commentType = 'strategy';
+        else if (/\b(bad beat|suck.?out|cooler|one.?outer|runner.?runner)\b/.test(lc)) commentType = 'bad_beat';
+        else if (/\b(wsop|bracelet|world series of poker)\b/.test(lc)) commentType = 'wsop';
+        else if (/\b(tournament|final table|bubble|mtt)\b/.test(lc)) commentType = 'tournament';
+        else if (/\b(plo|omaha|pot.?limit omaha)\b/.test(lc)) commentType = 'plo';
+        else if (/\b(hcl|hustler casino live|live at the bike)\b/.test(lc)) commentType = 'hcl';
+        else if (/\b(bluff|hero.?call|hero.?fold)\b/.test(lc)) commentType = 'bluff';
+        else if (/\b(river card|runout|runner.?runner)\b/.test(lc)) commentType = 'river';
+        else if (/\b(session|profit|cashed)\b/.test(lc)) commentType = 'session_report';
+        else if (/\b(cash game|1\/2|2\/5|5\/10|nosebleed)\b/.test(lc)) commentType = 'cash_game';
+        else if (/\b(grind|grinding|volume|hours played)\b/.test(lc)) commentType = 'grind';
+        else if (/\b(variance|downswing|upswing|run bad|run good)\b/.test(lc)) commentType = 'variance';
+        else if (/\b(bankroll|moving up stakes)\b/.test(lc)) commentType = 'bankroll';
+        else if (/\b(strategy|gto|solver|ev|bet sizing)\b/.test(lc)) commentType = 'strategy';
 
         // BUG-WR06 FIX: enforce minimum length after applyWritingStyle
         // A short template can shrink further after style transforms; retry with 'general' fallbacks

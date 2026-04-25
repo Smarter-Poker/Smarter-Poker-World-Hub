@@ -245,7 +245,7 @@ async function postVideoClip(horse, assignedSources, horseIndex, clipType = 'spo
     }
 
     // Generate human-sounding caption — no API call, no cost
-    const clipCategory = clip.category || (clipType === 'poker' ? 'massive_pot' : 'general');
+    const clipCategory = clip.category || (clipType === 'poker' ? 'massive_pot' : 'sports_highlight');
     const caption = generatePostCaption(clipCategory, horse.profile_id, clip.title || '');
 
     const { data: post, error } = await getSupabase().from('social_posts').insert({
