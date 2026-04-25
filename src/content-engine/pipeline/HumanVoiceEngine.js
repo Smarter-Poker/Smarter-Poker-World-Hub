@@ -694,9 +694,18 @@ export function generatePostCaption(category, profileId, clipTitle = '') {
   }
 
   // 20% chance: prefix with archetype flair (randomized pick, not always same word)
+  // For sports content, block poker-specific and poker-hyperbole flairs
   if (archetype.flair.length > 0 && Math.random() < 0.20) {
-    const flair = archetype.flair[Math.floor(Math.random() * archetype.flair.length)];
-    phrase = `${flair}, ${phrase.toLowerCase()}`;
+    let flairPool = archetype.flair;
+    const isSportsCategory = category === 'sports_highlight';
+    if (isSportsCategory) {
+      const blockedForSports = ['solver take', 'GTO note', 'range perspective', 'massive', 'huge', 'unreal', 'textbook', 'seen it', 'classic spot', 'idk', 'not convinced', 'questionable'];
+      flairPool = archetype.flair.filter(f => !blockedForSports.includes(f));
+    }
+    if (flairPool.length > 0) {
+      const flair = flairPool[Math.floor(Math.random() * flairPool.length)];
+      phrase = `${flair}, ${phrase.toLowerCase()}`;
+    }
   }
 
   return sanitizeHorseOutput(applyStyle(phrase, archetype));
@@ -737,7 +746,7 @@ function extractSportsContext(headline) {
   else if (/\b(loses|lost|loss|eliminated|exit)\b/.test(t)) signal = 'loss';
   else if (/\b(injur|out for|hurt|sidelined|questionable|ruled out)\b/.test(t)) signal = 'injury';
   else if (/\b(draft|trade|signs|sign|free agent|contract|deal)\b/.test(t)) signal = 'transaction';
-  else if (/\b(retire|retirement|farewell|last game|final season)\b/.test(t)) signal = 'retirement';
+  else if (/\b(retire[sd]?|retirement|farewell|last game|final season)\b/.test(t)) signal = 'retirement';
   else if (/\b(championship|title|trophy|ring|playoff|series)\b/.test(t)) signal = 'championship';
   else if (/\b(stats|stat line|career high|season high|points|yards|goals)\b/.test(t)) signal = 'performance';
 
@@ -895,8 +904,9 @@ export function generateNewsCaption(headline, profileId, newsType = 'poker') {
       pool = SPORTS_CAPTION_POOLS.general_sports;
     }
   } else {
-    // Poker news — try context extraction first (65% of the time)
-    if (safeHeadline && Math.random() < 0.65) {
+    // Poker news — try context extraction first (85% of the time — raised from 65%)
+    // Higher probability prevents well-known venue/player headlines from falling through
+    if (safeHeadline && Math.random() < 0.85) {
       const ctx = extractTitleContext(safeHeadline);
       const contextCaption = buildContextCaption(ctx, profileId);
       if (contextCaption && contextCaption.trim().length >= 10) return sanitizeHorseOutput(contextCaption);
@@ -908,13 +918,14 @@ export function generateNewsCaption(headline, profileId, newsType = 'poker') {
       pool = POST_CAPTIONS[detected];
     } else {
       const t = safeHeadline.toLowerCase();
-      if (/\b(wsop|wpt|ept|tournament|series|main event|bracelet|final table)\b/.test(t)) {
+      if (/\b(wsop|wpt|ept|tournament|series|main event|bracelet|final table|deep run)\b/.test(t)) {
         pool = POKER_NEWS_POOLS.tournament;
-      } else if (/\b(strategy|gto|solver|range|study|how to|tips|theory)\b/.test(t)) {
+      } else if (/\b(strategy|gto|solver|range|study|how to|tips|theory|deep dive)\b/.test(t)) {
         pool = POKER_NEWS_POOLS.strategy;
-      } else if (/\b(site|room|casino|online|regulation|legal|ban|law)\b/.test(t)) {
+      } else if (/\b(regulation|legal|ban|law|bill|legislation|license|market)\b/.test(t)) {
+        // NOTE: 'casino' and 'site' are intentionally NOT here — they route to player_news below
         pool = POKER_NEWS_POOLS.industry;
-      } else if (/\b(player|pro|wins|cashes|result|bracelet|champion|finish|place)\b/.test(t)) {
+      } else if (/\b(player|pro|wins|cashes|result|bracelet|champion|finish|place|casino|live at|tonight|hustler|bellagio|lodge|aria|stones)\b/.test(t)) {
         pool = POKER_NEWS_POOLS.player_news;
       } else {
         pool = POKER_NEWS_POOLS.general_poker;
@@ -932,8 +943,19 @@ export function generateNewsCaption(headline, profileId, newsType = 'poker') {
   if (archetype.flair.length > 0 && Math.random() < 0.20) {
     let allowedFlairs = archetype.flair;
     if (newsType !== 'poker') {
-      const pokerFlairs = ['solver take', 'GTO note', 'range perspective'];
-      allowedFlairs = archetype.flair.filter(f => !pokerFlairs.includes(f));
+      // Block ALL flairs that feel poker-specific OR too hyperbolic for sports news
+      const blockedForSports = [
+        'solver take', 'GTO note', 'range perspective',
+        'massive', 'huge', 'unreal',
+        'textbook', 'seen it', 'classic spot',
+        'idk', 'not convinced', 'questionable',
+      ];
+      allowedFlairs = archetype.flair.filter(f => !blockedForSports.includes(f));
+    } else if (pool === POKER_NEWS_POOLS.industry || pool === POKER_NEWS_POOLS.strategy || pool === POKER_NEWS_POOLS.general_poker) {
+      // Even on poker news, don't prefix industry/strategy/general articles
+      // with hype flairs like 'massive' or 'huge' — sounds odd on news about regulation or theory
+      const blockedForProse = ['massive', 'huge', 'unreal'];
+      allowedFlairs = archetype.flair.filter(f => !blockedForProse.includes(f));
     }
     if (allowedFlairs.length > 0) {
       const flair = allowedFlairs[Math.floor(Math.random() * allowedFlairs.length)];
