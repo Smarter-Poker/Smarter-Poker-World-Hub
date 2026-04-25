@@ -136,7 +136,7 @@ export default async function handler(req, res) {
   try {
       // Allow cron to bypass JWT
       const isCron = req.headers['x-cron-secret'] === process.env.CRON_SECRET || 
-                     req.headers['authorization'] === \`Bearer \${process.env.CRON_SECRET}\`;
+                     req.headers['authorization'] === `Bearer ${process.env.CRON_SECRET}`;
                      
       if (!isCron) {
           const token = req.headers.authorization?.replace('Bearer ', '');
@@ -214,7 +214,7 @@ export default async function handler(req, res) {
           {
               "timestamp": "5:15",
               "title": "Hero Opens UTG with AKs",
-              "situation": "Hero in UTG with A♠K♠ facing 6 players",
+              "situation": "Hero in UTG with AKs facing 6 players",
               "analysis": "Standard 3x open. When facing 3-bet from BTN, calling is correct given stack depths.",
               "result": "Hero calls 3-bet and check-raises turn on Q-7-3-K board"
           },
