@@ -362,19 +362,15 @@ export default async function handler(req, res) {
 
           const horse = horses[index];
 
-          // CONTENT: 75% POKER / 25% SPORTS SPLIT (for BOTH videos AND news)
-          // Hours 0,1,2,4,5,6,8,9,10,12,13,14,16,17,18,20,21,22 = POKER (75%)
-          // Hours 3,7,11,15,19,23 = SPORTS (25%)
-          const hour = new Date().getUTCHours();
-          const isPokerHour = (hour % 4 !== 3);
-          const contentCategory = isPokerHour ? 'poker' : 'sports';
-
+          // CONTENT: 75% POKER / 25% SPORTS SPLIT (Randomized per post to prevent dumps)
+          const isPoker = Math.random() < 0.75;
+          const contentCategory = isPoker ? 'poker' : 'sports';
 
           const assignedSources = await getHorseSources(horse.profile_id);
 
           // Try news first, fallback to video clip of SAME CATEGORY
           let result;
-          if (isPokerHour) {
+          if (isPoker) {
               // POKER HOUR: Try poker news, fallback to poker video
               result = await postNewsLink(horse, index, 'poker');
               if (!result.success) {
