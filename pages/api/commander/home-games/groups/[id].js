@@ -28,10 +28,24 @@ export default async function handler(req, res) {
 
     if (req.method !== 'GET') { const _u = await guardUser(req, res); if (!_u) return; }
 
-    const { id } = req.query;
+    let { id } = req.query;
 
     if (!id) {
       return res.status(400).json({ success: false, error: 'Group ID required' });
+    }
+
+    // Resolve slug → UUID via social_pages (if not already a UUID or invite code)
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    const isInviteCode = !isUUID && id.length === 8 && /^[A-Z0-9]+$/i.test(id);
+    if (!isUUID && !isInviteCode) {
+      const { data: sp } = await getSupabase()
+        .from('social_pages')
+        .select('linked_entity_id')
+        .eq('linked_entity_type', 'home_group')
+        .eq('slug', id)
+        .single();
+      if (!sp) return res.status(404).json({ success: false, error: 'Group not found' });
+      id = sp.linked_entity_id;
     }
 
     if (req.method === 'GET') {
