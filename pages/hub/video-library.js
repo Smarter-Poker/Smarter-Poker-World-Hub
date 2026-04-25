@@ -919,9 +919,9 @@ export default function VideoLibraryPage() {
                         padding: '8px 4px 12px',
                         scrollbarWidth: 'none',
                     }}>
-                        {SOURCES.filter(source => source.id !== 'ALL').map(source => {
+                        {SOURCES.filter(source => source && typeof source === 'object' && source.id && source.id !== 'ALL').map(source => {
                             const isActive = selectedSource === source.id;
-                            const initials = source.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+                            const initials = (source.name || source.id || '').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
                             return (
                                 <button
                                     key={source.id}
