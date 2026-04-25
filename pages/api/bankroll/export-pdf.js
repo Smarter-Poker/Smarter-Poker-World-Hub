@@ -4,8 +4,6 @@
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { checkFeatureAccess } from '../../../src/lib/gates/premiumFeatureGate';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
@@ -96,6 +94,10 @@ export default async function handler(req, res) {
           const avgSession = sessionCount > 0 ? (netResult / sessionCount).toFixed(0) : 0;
 
           // Generate PDF
+          // Dynamic-import jspdf only after auth + feature-gate pass (Phase 4.3)
+          const { jsPDF } = await import('jspdf');
+          const { default: autoTable } = await import('jspdf-autotable');
+
           const doc = new jsPDF();
           const pageWidth = doc.internal.pageSize.getWidth();
 

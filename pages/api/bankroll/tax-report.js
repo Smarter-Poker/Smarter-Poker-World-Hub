@@ -4,8 +4,6 @@
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
@@ -108,7 +106,7 @@ export default async function handler(req, res) {
           }
 
           // Generate PDF
-          const pdfBuffer = generateTaxPDF(report, user);
+          const pdfBuffer = await generateTaxPDF(report, user);
 
           res.setHeader('Content-Type', 'application/pdf');
           res.setHeader('Content-Disposition', `attachment; filename=poker_tax_report_${year}.pdf`);
@@ -229,7 +227,11 @@ function calculateTaxReport(sessions, trips, year) {
     };
 }
 
-function generateTaxPDF(report, user) {
+async function generateTaxPDF(report, user) {
+        // Dynamic-import jspdf only after auth + feature-gate pass (Phase 4.3)
+    const { default: jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
+
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
 
