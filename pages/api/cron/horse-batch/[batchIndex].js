@@ -316,7 +316,8 @@ async function postNewsLink(horse, horseIndex, newsType) {
             visibility: 'public',
             link_url: article.link,
             link_title: article.title,
-            link_site_name: source.name
+            link_site_name: source.name,
+            metadata: { news_type: newsType }  // Stored for streak prevention
         }).select().maybeSingle();
 
         if (error) return { success: false, error: error.message };
@@ -329,8 +330,34 @@ async function postNewsLink(horse, horseIndex, newsType) {
 // Process a single horse
 async function processHorse(horse, horseIndex, horses) {
 
-    // CONTENT: 75% POKER / 25% SPORTS SPLIT (Randomized per post to prevent dumps)
-    const isPoker = Math.random() < 0.75;
+    // STREAK PREVENTION: Check last 3 posts — if all same type, force-switch
+    // Without this, pure 75/25 random can produce 10-20 consecutive poker posts.
+    let isPoker = Math.random() < 0.75;
+    try {
+        const { data: lastPosts } = await getSupabase()
+            .from('social_posts')
+            .select('metadata')
+            .eq('author_id', horse.profile_id)
+            .order('created_at', { ascending: false })
+            .limit(3);
+
+        if (lastPosts && lastPosts.length >= 3) {
+            const recentTypes = lastPosts
+                .map(p => {
+                    const t = p.metadata?.clip_type || p.metadata?.news_type;
+                    if (t === 'poker' || t === 'sports') return t;
+                    return null;
+                })
+                .filter(Boolean);
+            const allPoker = recentTypes.length >= 3 && recentTypes.every(t => t === 'poker');
+            const allSports = recentTypes.length >= 3 && recentTypes.every(t => t === 'sports');
+            if (allPoker) { isPoker = false; /* force sports break */ }
+            else if (allSports) { isPoker = true; /* force poker break */ }
+        }
+    } catch (_streakErr) {
+        // Streak check is best-effort — never fail the cron over this
+    }
+
     const contentCategory = isPoker ? 'poker' : 'sports';
 
     const assignedSources = await getHorseSources(horse.profile_id);

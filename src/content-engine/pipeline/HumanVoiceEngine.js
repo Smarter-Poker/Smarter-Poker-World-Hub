@@ -232,6 +232,8 @@ function applyQuestionStyle(text, archetype) {
   if (!out.endsWith('?')) out = out.replace(/[.!,;?]*$/, '') + '?';
   return out.trim();
 }
+
+// ─── Structural length variance ───────────────────────────────────────────────
 // Ensures mix of short (1-4 words), medium (5-9), and longer phrases.
 // Pool selection is seeded by horse + time so patterns shift naturally.
 // Per-horse call counter — increments monotonically, breaks timeBucket ties
@@ -858,10 +860,11 @@ export function generatePostCaption(category, profileId, clipTitle = '') {
 export function generateComment(commentType, profileId, postId = null) {
   const archetype = getArchetype(profileId);
 
-  // 18% chance: inject a question comment for authenticity (bots never ask questions)
+  // Map commentType to question domain
+  // controversy → poker questions (it's a poker platform context)
   const questionDomain = commentType === 'sports' ? 'sports'
-    : (commentType === 'general' || commentType === 'video' || commentType === 'bad_beat' || commentType === 'bluff' || commentType === 'tournament') ? 'poker'
-    : 'general';
+    : (commentType === 'general' || commentType === 'photo') ? 'general'
+    : 'poker'; // poker, video, bad_beat, bluff, tournament, controversy → poker questions
   if (Math.random() < 0.18 && QUESTION_COMMENTS[questionDomain]) {
     const qPool = QUESTION_COMMENTS[questionDomain];
     // Use deterministic pick + postId as extra salt to vary across horses on same post
@@ -1149,9 +1152,17 @@ export function generateNewsCaption(headline, profileId, newsType = 'poker') {
       allowedFlairs = archetype.flair.filter(f => !blockedForSports.includes(f));
     } else if (pool === POKER_NEWS_POOLS.industry || pool === POKER_NEWS_POOLS.strategy || pool === POKER_NEWS_POOLS.general_poker) {
       // Even on poker news, don't prefix industry/strategy/general articles
-      // with hype flairs like 'massive' or 'huge' — sounds odd on news about regulation or theory
+      // with hype flairs like 'massive' or 'huge' — sounds odd on regulation or theory news
       const blockedForProse = ['massive', 'huge', 'unreal'];
       allowedFlairs = archetype.flair.filter(f => !blockedForProse.includes(f));
+    } else if (pool === POKER_NEWS_POOLS.controversy) {
+      // CRITICAL: Controversy/scandal headlines must NEVER get poker-analysis flair prefixes.
+      // "GTO note, the poker world is small" reads as tone-deaf and bot-like.
+      const blockedForControversy = [
+        'solver take', 'GTO note', 'range perspective',
+        'massive', 'huge', 'unreal', 'textbook', 'seen it', 'classic spot',
+      ];
+      allowedFlairs = archetype.flair.filter(f => !blockedForControversy.includes(f));
     }
     if (allowedFlairs.length > 0) {
       const flair = allowedFlairs[Math.floor(Math.random() * allowedFlairs.length)];
