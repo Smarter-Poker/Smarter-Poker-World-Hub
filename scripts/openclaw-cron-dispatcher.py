@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-OpenClaw Cron Dispatcher v1.4
+OpenClaw Cron Dispatcher v1.5
 ==============================
 
 ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
@@ -359,6 +359,16 @@ WORKERS_PREFERRED = {
     # the full ~3000-LOC horse engine to flip this one. Probe 200:
     # {success:true, sent:10, accepted:3}.
     '/api/cron/horses-social-friends':         '/cron/horses-social-friends',
+    # ─── 2B.2(j) — tour-schedule-scraper (handler 40) ──────────────────────
+    # Workers repo has src/routes/tour-schedule-scraper.ts (325 LOC) wired in
+    # via app.get('/cron/tour-schedule-scraper') AND POST. The disk-based
+    # registry/sources JSONs are replaced with Supabase tables
+    # tour_schedule_registry + tour_schedule_sources (migration applied
+    # 2026-04-26 in 20260426_tour_scraper_tables.sql). Imports
+    # tourPdfExtractor + tourHtmlExtractor + scraperAlerts from workers libs.
+    # Schedule: every 3 days at 04:00 UTC (low-traffic window), so first
+    # production fire after this commit will be the validation.
+    '/api/cron/tour-schedule-scraper':         '/cron/tour-schedule-scraper',
     # NOT FLIPPED: /api/cron/deploy-error-poll — workers handler returns
     # 500 ("VERCEL_TOKEN not configured"). The Vercel API token isn't in
     # any location reachable from the Cowork sandbox or from openclaw VM.
@@ -590,7 +600,7 @@ def main():
         role = 'primary'
 
     log.info('=' * 60)
-    log.info('OpenClaw Cron Dispatcher v1.4 starting up')
+    log.info('OpenClaw Cron Dispatcher v1.5 starting up')
     if WORKERS_BASE_URL:
         log.info(f'Workers routing:   {len(WORKERS_PREFERRED)} paths → {WORKERS_BASE_URL}')
     if DISPATCHER_PRIVATE_IP:

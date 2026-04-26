@@ -210,7 +210,17 @@ function ModerationTab({ group, token }) {
         body: { post_id: postId, action: 'hide' },
       });
       setReports(prev => prev.filter(r => r.id !== postId));
-    } catch (e) { alert(e.message); }
+    } catch (e) {
+      // REPORT_ALREADY_RESOLVED: another moderator already actioned this report (409)
+      const msg = e.message || '';
+      if (msg.includes('ESCALATION_REQUIRED') || msg.includes('409') || msg.includes('already')) {
+        alert('This report has already been actioned by another moderator.');
+      } else {
+        alert(msg || 'Failed to hide post. Please try again.');
+      }
+      // Refresh the list to reflect current server state
+      load();
+    }
     setActing(null);
   };
 
