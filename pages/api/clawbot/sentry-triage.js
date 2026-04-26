@@ -20,8 +20,6 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
  */
 
 import {
-
-export const runtime = 'edge';
   runTask,
   logAudit,
   verifyCronAuth,
@@ -30,6 +28,8 @@ export const runtime = 'edge';
   getSupabase,
   TASK_IDS,
 } from '../../../src/lib/clawbot';
+
+export const runtime = 'edge';
 
 // ─── Config ─────────────────────────────────────────────────────────
 const SENTRY_ORG = 'smarter-poker';
