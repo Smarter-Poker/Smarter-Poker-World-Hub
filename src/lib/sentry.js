@@ -11,7 +11,7 @@ let sentryLoadAttempted = false;
 
 /**
  * Initialize Sentry on demand (lazy loading)
- * Uses globalThis-based require lookup to avoid Edge Runtime dynamic code evaluation issues.
+ * Uses eval-based require lookup to avoid Edge Runtime static analysis issues.
  * At runtime, if @sentry/nextjs is installed, it will be loaded; otherwise fallback to console.
  */
 function getSentry() {
@@ -30,15 +30,11 @@ function getSentry() {
     }
 
     try {
-        // Access require via globalThis to hide it from webpack's static analysis,
-        // preventing it from bundling @sentry/nextjs into Edge Runtime chunks.
-        // This avoids `eval` (which is disallowed in Edge Runtime).
-        // This code path is never executed in Edge Runtime (guarded above).
-        const nodeRequire = typeof __non_webpack_require__ !== 'undefined'
-            ? __non_webpack_require__
-            : (typeof process !== 'undefined' && process.mainModule && process.mainModule.require)
-                ? process.mainModule.require.bind(process.mainModule)
-                : null;
+        // Use process.mainModule.require to avoid webpack bundling.
+        // Guarded above so this never executes in Edge Runtime.
+        const nodeRequire = (typeof process !== 'undefined' && process.mainModule && process.mainModule.require)
+            ? process.mainModule.require.bind(process.mainModule)
+            : null;
         if (!nodeRequire) return null;
         Sentry = nodeRequire('@sentry/nextjs');
         return Sentry;
