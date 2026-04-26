@@ -484,6 +484,13 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                                 },
                                 onComplete: ({ publicUrl }) => resolve(publicUrl),
                                 onError: ({ error }) => reject(error),
+                                onBackground: () => {
+                                    // Hide SPC's inline upload indicators — GhostPostCard takes over
+                                    if (mountedRef.current) {
+                                        setUploadProgress(null);
+                                        setUploading(false);
+                                    }
+                                },
                             });
                             bgUpload.start({ file: fileToUpload, userId: user.id, folder, content: content?.trim(), thumbnail: staged.thumbnail }).catch(reject);
                         });
