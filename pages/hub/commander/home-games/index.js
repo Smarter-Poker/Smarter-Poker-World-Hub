@@ -63,10 +63,11 @@ export default function PlayerHomeGamesHub() {
   }, []);
 
   // Realtime listener — live updates for home-games/index.js
+  // v2 suffix forces WebSocket reconnect for stale pre-migration sessions.
   useEffect(() => {
     if (!user?.id) return;
     const ch = supabase
-      .channel(`hg-list:${user?.id}`)
+      .channel(`hg-list-v2:${user?.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_home_groups' }, () => { loadGames(); })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
@@ -442,7 +443,8 @@ export default function PlayerHomeGamesHub() {
                   group={{
                     ...game,
                     is_private: game.visibility === 'private',
-                    member_count: game.rsvp_count || 0,
+                    // B2: prefer server member_count; rsvp_count is a different field
+                    member_count: game.member_count ?? game.rsvp_count ?? 0,
                     default_game_type: game.game_type,
                     default_stakes: game.stakes
                   }}

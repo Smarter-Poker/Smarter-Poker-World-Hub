@@ -187,6 +187,25 @@ export default function VideoLibraryPage() {
     const [watchStats, setWatchStats] = useState(null); // User's watch statistics
     const [showStats, setShowStats] = useState(false); // Stats modal visibility
 
+    // ── P3: Sort mode — 'default' | 'trending' | 'top_rated' ─────────────────
+    const [sortMode, setSortMode] = useState('default');
+
+    // ── P3: Trending score — views weighted by recency (7-day half-life) ──────
+    // Computed once when allVideos changes, memoized via useMemo pattern
+    const trendingScores = (() => {
+        const now = Date.now();
+        const HALF_LIFE_MS = 7 * 24 * 3600 * 1000; // 7 days
+        const scores = new Map();
+        allVideos.forEach(v => {
+            const views = v.views ? parseInt(String(v.views).replace(/[KMk]/g, m => m === 'K' || m === 'k' ? '000' : '000000').replace(/[^0-9]/g,'')) || 0 : 0;
+            const scraped = v.scrapedAt || v.publishedAt;
+            const ageMs = scraped ? now - new Date(scraped).getTime() : HALF_LIFE_MS * 4;
+            const recencyMultiplier = Math.pow(2, -ageMs / HALF_LIFE_MS); // exponential decay
+            scores.set(v.id, views * recencyMultiplier + (ageMs < 3 * 24 * 3600 * 1000 ? 50000 : 0)); // boost very new
+        });
+        return scores;
+    })();
+
     // ── Stage 2/3 Feature State ──────────────────────────────────────────────
     // Duration filter: 'ALL' | 'SHORT' (<15 min) | 'MEDIUM' (15-30) | 'LONG' (>30)
     const [selectedDuration, setSelectedDuration] = useState('ALL');
@@ -277,7 +296,7 @@ export default function VideoLibraryPage() {
     }, []);
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // TIER 3 REALTIME: Video Library Updates
+    // TIER 3 REALTIME: Video Library Updates (P3: also syncs watchProgress Map)
     // ═══════════════════════════════════════════════════════════════════════════
     useEffect(() => {
         if (!userId) return;
@@ -290,9 +309,10 @@ export default function VideoLibraryPage() {
                 table: 'user_video_watch_history',
                 filter: `user_id=eq.${userId}`
             }, () => {
-                // Reload watch stats and recently watched
+                // Reload watch stats, recently watched, AND watch progress map (cross-device sync)
                 getWatchStats(userId).then(stats => setWatchStats(stats));
                 getRecentlyWatched(userId, 10).then(recent => setRecentlyWatched(recent));
+                getWatchProgress(userId).then(progressMap => setWatchProgress(progressMap)).catch(() => {});
             })
             .on('postgres_changes', {
                 event: '*',
@@ -301,7 +321,7 @@ export default function VideoLibraryPage() {
                 filter: `user_id=eq.${userId}`
             }, () => {
                 getVideoPlaylists(userId).then(setPlaylists).catch(err => console.warn('Playlists error:', err));
-            getVideoFavorites(userId).then(data => {
+                getVideoFavorites(userId).then(data => {
                     setFavorites(new Set((data || []).map(v => v.video_id)));
                 });
             })
@@ -588,14 +608,26 @@ export default function VideoLibraryPage() {
                 (v.tags && v.tags.some(t => t.toLowerCase().includes(q)))
             );
         }
-        filtered = filtered.sort((a, b) => {
-            const aWatched = watchedVideos.has(a.id);
-            const bWatched = watchedVideos.has(b.id);
-            if (aWatched === bWatched) return 0;
-            return aWatched ? 1 : -1;
-        });
+        // Apply sort mode
+        if (sortMode === 'trending') {
+            filtered = [...filtered].sort((a, b) => (trendingScores.get(b.id) || 0) - (trendingScores.get(a.id) || 0));
+        } else if (sortMode === 'top_rated') {
+            filtered = [...filtered].sort((a, b) => {
+                const aViews = parseInt(String(a.views || '0').replace(/[KMk]/g, m => m.toUpperCase() === 'K' ? '000' : '000000').replace(/[^0-9]/g,'')) || 0;
+                const bViews = parseInt(String(b.views || '0').replace(/[KMk]/g, m => m.toUpperCase() === 'K' ? '000' : '000000').replace(/[^0-9]/g,'')) || 0;
+                return bViews - aViews;
+            });
+        } else {
+            // Default: watched videos sink to bottom
+            filtered = filtered.sort((a, b) => {
+                const aWatched = watchedVideos.has(a.id);
+                const bWatched = watchedVideos.has(b.id);
+                if (aWatched === bWatched) return 0;
+                return aWatched ? 1 : -1;
+            });
+        }
         setVideos(filtered);
-    }, [selectedSource, selectedType, selectedDuration, searchQuery, watchedVideos, allVideos]);
+    }, [selectedSource, selectedType, selectedDuration, searchQuery, watchedVideos, allVideos, sortMode, trendingScores]);
 
 
     // Keyboard navigation in modal
@@ -645,6 +677,31 @@ export default function VideoLibraryPage() {
         if (totalSeconds === 0) return 0;
         return Math.min(100, (progress.watchedSeconds / totalSeconds) * 100);
     }, [watchProgress]);
+
+    // ── P3: Related Videos — same source first, then tag overlap, max 8 ──────
+    const relatedVideos = selectedVideo ? (() => {
+        if (!selectedVideo) return [];
+        const currentTags = new Set((selectedVideo.tags || []).map(t => t.toLowerCase()));
+        const scored = allVideos
+            .filter(v => v.id !== selectedVideo.id)
+            .map(v => {
+                let score = 0;
+                if (v.source === selectedVideo.source) score += 10;
+                if (v.type === selectedVideo.type) score += 3;
+                const vTags = (v.tags || []).map(t => t.toLowerCase());
+                const overlap = vTags.filter(t => currentTags.has(t)).length;
+                score += overlap * 5;
+                // Slight recency boost
+                const ageMs = v.scrapedAt ? Date.now() - new Date(v.scrapedAt).getTime() : Infinity;
+                if (ageMs < 7 * 24 * 3600 * 1000) score += 2;
+                return { video: v, score };
+            })
+            .filter(x => x.score > 0)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 8)
+            .map(x => x.video);
+        return scored;
+    })() : [];
 
     // "New This Week" — videos scraped in the past 7 days, sorted newest first
     const newThisWeek = allVideos
@@ -797,6 +854,40 @@ export default function VideoLibraryPage() {
                                     onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)'; e.currentTarget.style.transform = 'none'; } }}
                                 >
                                     {type.name}
+                                </button>
+                            );
+                        })}
+
+                        {/* Sort Mode Buttons */}
+                        {[
+                            { id: 'default',   label: 'Latest' },
+                            { id: 'trending',  label: '🔥 Trending' },
+                            { id: 'top_rated', label: '⭐ Top Rated' },
+                        ].map(s => {
+                            const isActive = sortMode === s.id;
+                            return (
+                                <button
+                                    key={s.id}
+                                    onClick={() => setSortMode(s.id)}
+                                    style={{
+                                        padding: '9px 18px',
+                                        background: isActive
+                                            ? 'linear-gradient(135deg, rgba(255,165,0,0.25) 0%, rgba(255,80,0,0.25) 100%)'
+                                            : 'rgba(255,255,255,0.04)',
+                                        border: isActive
+                                            ? '1.5px solid rgba(255,140,0,0.7)'
+                                            : '1.5px solid rgba(255,255,255,0.1)',
+                                        borderRadius: 10,
+                                        color: isActive ? '#FFA500' : 'rgba(255,255,255,0.6)',
+                                        fontSize: 13,
+                                        fontWeight: isActive ? 700 : 500,
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s ease',
+                                        whiteSpace: 'nowrap',
+                                        boxShadow: isActive ? '0 0 12px rgba(255,140,0,0.2)' : 'none',
+                                    }}
+                                >
+                                    {s.label}
                                 </button>
                             );
                         })}
@@ -1820,56 +1911,153 @@ export default function VideoLibraryPage() {
                     </div>
 
 
-                    {/* Video info bar — sits BELOW iframe, not overlaying YouTube controls */}
+                    {/* Video info bar + Related Videos Rail — sits BELOW iframe */}
                     <div style={{
-                        padding: '10px 20px',
                         background: 'rgba(0,0,0,0.95)',
                         flexShrink: 0,
+                        maxHeight: '35vh',
+                        overflowY: 'auto',
+                        scrollbarWidth: 'thin',
                     }}>
-                        <h2 style={{
-                            color: 'white',
-                            fontSize: 15,
-                            fontWeight: 700,
-                            margin: 0,
-                            marginBottom: 4,
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                        }}>
-                            {selectedVideo.title}
-                        </h2>
-                        <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 12,
-                        }}>
-                            <span style={{
-                                color: C.accent,
-                                fontSize: 12,
-                                fontWeight: 600,
-                                background: 'rgba(255,68,68,0.2)',
-                                padding: '4px 10px',
-                                borderRadius: 10,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 6,
+                        {/* Info Row */}
+                        <div style={{ padding: '10px 20px 8px' }}>
+                            <h2 style={{
+                                color: 'white',
+                                fontSize: 15,
+                                fontWeight: 700,
+                                margin: 0,
+                                marginBottom: 6,
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
                             }}>
-                                {SOURCES.find(s => s.id === selectedVideo.source)?.logo && (
-                                    <img
-                                        src={SOURCES.find(s => s.id === selectedVideo.source)?.logo}
-                                        alt=""
-                                        style={{ width: 18, height: 18, borderRadius: 4, objectFit: 'contain' }}
-                                    />
+                                {selectedVideo.title}
+                            </h2>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                                <span style={{
+                                    color: C.accent, fontSize: 12, fontWeight: 600,
+                                    background: 'rgba(255,68,68,0.2)', padding: '4px 10px',
+                                    borderRadius: 10, display: 'flex', alignItems: 'center', gap: 6,
+                                }}>
+                                    {SOURCES.find(s => s.id === selectedVideo.source)?.logo && (
+                                        <img src={SOURCES.find(s => s.id === selectedVideo.source)?.logo}
+                                            alt="" style={{ width: 18, height: 18, borderRadius: 4, objectFit: 'contain' }} />
+                                    )}
+                                    {selectedVideo.source.replace('_', ' ')}
+                                </span>
+                                <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
+                                    {selectedVideo.views} views
+                                </span>
+                                <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
+                                    {selectedVideo.duration}
+                                </span>
+                                {/* ── P3: Train This Spot — GTO deep-link ── */}
+                                {selectedVideo.tags && selectedVideo.tags.length > 0 && (
+                                    <button
+                                        onClick={() => {
+                                            // Deep-link to GTO Trainer with video context pre-loaded
+                                            const params = new URLSearchParams({
+                                                ref: 'video-library',
+                                                vid: selectedVideo.videoId,
+                                                title: selectedVideo.title.slice(0, 80),
+                                                source: selectedVideo.source,
+                                            });
+                                            window.open(`/hub/training?${params.toString()}`, '_blank', 'noopener');
+                                        }}
+                                        style={{
+                                            padding: '5px 14px',
+                                            background: 'linear-gradient(135deg, rgba(0,200,83,0.2) 0%, rgba(0,150,60,0.2) 100%)',
+                                            border: '1.5px solid rgba(0,200,83,0.55)',
+                                            borderRadius: 10,
+                                            color: '#34C759',
+                                            fontSize: 12,
+                                            fontWeight: 700,
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 5,
+                                            transition: 'all 0.2s',
+                                            whiteSpace: 'nowrap',
+                                            boxShadow: '0 0 8px rgba(0,200,83,0.15)',
+                                            letterSpacing: '0.2px',
+                                        }}
+                                        onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0,200,83,0.35) 0%, rgba(0,150,60,0.35) 100%)'; e.currentTarget.style.boxShadow = '0 0 16px rgba(0,200,83,0.35)'; }}
+                                        onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0,200,83,0.2) 0%, rgba(0,150,60,0.2) 100%)'; e.currentTarget.style.boxShadow = '0 0 8px rgba(0,200,83,0.15)'; }}
+                                        title="Open GTO Trainer with context from this video"
+                                    >
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                            <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+                                        </svg>
+                                        Train This Spot
+                                    </button>
                                 )}
-                                {selectedVideo.source.replace('_', ' ')}
-                            </span>
-                            <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
-                                {selectedVideo.views} views
-                            </span>
-                            <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
-                                {selectedVideo.duration}
-                            </span>
+                            </div>
                         </div>
+
+                        {/* ── P3: Related Videos Rail ── */}
+                        {relatedVideos.length > 0 && (
+                            <div style={{ padding: '4px 20px 14px' }}>
+                                <div style={{
+                                    fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)',
+                                    letterSpacing: '0.8px', marginBottom: 10, textTransform: 'uppercase',
+                                }}>
+                                    Up Next
+                                </div>
+                                <div style={{
+                                    display: 'flex',
+                                    gap: 12,
+                                    overflowX: 'auto',
+                                    scrollbarWidth: 'thin',
+                                    paddingBottom: 4,
+                                }}>
+                                    {relatedVideos.map(v => (
+                                        <div
+                                            key={v.id}
+                                            onClick={() => handleOpenVideo(v)}
+                                            style={{
+                                                minWidth: 160,
+                                                flexShrink: 0,
+                                                cursor: 'pointer',
+                                                borderRadius: 8,
+                                                overflow: 'hidden',
+                                                background: '#1a1a1a',
+                                                border: '1px solid rgba(255,255,255,0.08)',
+                                                transition: 'transform 0.15s, border-color 0.15s',
+                                            }}
+                                            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'; }}
+                                            onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; }}
+                                        >
+                                            <div style={{ position: 'relative', aspectRatio: '16/9', background: '#111' }}>
+                                                <img
+                                                    src={getThumbnail(v.videoId)}
+                                                    alt={v.title}
+                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                    loading="lazy"
+                                                />
+                                                {v.duration && (
+                                                    <div style={{
+                                                        position: 'absolute', bottom: 4, right: 4,
+                                                        background: 'rgba(0,0,0,0.85)', color: '#fff',
+                                                        fontSize: 9, fontWeight: 600, padding: '2px 5px', borderRadius: 3,
+                                                    }}>{v.duration}</div>
+                                                )}
+                                            </div>
+                                            <div style={{ padding: '7px 8px' }}>
+                                                <div style={{
+                                                    color: '#fff', fontSize: 11, fontWeight: 600,
+                                                    overflow: 'hidden', textOverflow: 'ellipsis',
+                                                    display: '-webkit-box', WebkitLineClamp: 2,
+                                                    WebkitBoxOrient: 'vertical', lineHeight: 1.3,
+                                                }}>{v.title}</div>
+                                                <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 9, marginTop: 3 }}>
+                                                    {v.source.replace('_', ' ')}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

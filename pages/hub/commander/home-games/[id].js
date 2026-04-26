@@ -16,7 +16,8 @@ import { toast } from 'react-hot-toast';
 function EventCard({ event, onRsvp, userRsvp }) {
   const eventDate = new Date(event.scheduled_date);
   const isPast = eventDate < new Date();
-  const isFull = event.rsvp_count >= event.max_players;
+  // B2 fix: use server-authoritative rsvp_yes counter (was rsvp_count before audit)
+  const isFull = (event.rsvp_yes ?? event.rsvp_count ?? 0) >= event.max_players;
 
   return (
     <div className={`cmd-panel p-4 ${isPast ? 'opacity-60' : ''}`}>
@@ -32,7 +33,7 @@ function EventCard({ event, onRsvp, userRsvp }) {
         <div className="flex items-center gap-2">
           <span className="flex items-center gap-1 text-sm text-[#64748B]">
             <Users className="w-4 h-4" />
-            {event.rsvp_count || 0}/{event.max_players}
+            {(event.rsvp_yes ?? event.rsvp_count ?? 0)}/{event.max_players}
           </span>
           {isFull && <span className="text-xs text-[#EF4444] font-medium">Full</span>}
         </div>
@@ -231,22 +232,26 @@ export default function HomeGameDetailPage() {
     fetchGroup();
   }, [fetchGroup]);
   // Realtime listener — live updates for home-games/[id].js
+  // v2 suffix forces WebSocket reconnect for sessions that opened before the
+  // 2026-04-26 publication migration (realtime didn't include these tables).
   useEffect(() => {
     if (!id) return;
     const ch = supabase
-      .channel(`hg-detail:${id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_home_games', filter: `group_id=eq.${id}` }, () => { fetchGroup(); })
+      .channel(`hg-detail-v2:${id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_home_games', filter: `group_id=eq.${id}` }, (payload) => { fetchGroup(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_home_posts', filter: `group_id=eq.${id}` }, (payload) => { fetchGroup(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_home_members', filter: `group_id=eq.${id}` }, (payload) => { fetchGroup(); })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [id]);
 
-  // Realtime listener — rsvps
+  // Realtime listener — rsvps (v2 suffix forces reconnect for stale sessions)
   useEffect(() => {
     if (events.length === 0) return;
     const gameIds = events.map(e => e.id);
     const ch = supabase
-      .channel(`hg-rsvps:group-${id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_home_rsvps', filter: `game_id=in.(${gameIds.join(',')})` }, () => { fetchGroup(); })
+      .channel(`hg-rsvps-v2:group-${id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_home_rsvps', filter: `game_id=in.(${gameIds.join(',')})` }, (payload) => { fetchGroup(); })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [events]);
@@ -336,10 +341,25 @@ export default function HomeGameDetailPage() {
 
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
-      if (data.success) {
-        setRsvps(prev => ({ ...prev, [event.id]: status }));
+
+      // Use the ACTUAL response returned by the server — the DB trigger
+      // fn_hg_enforce_rsvp_capacity may silently downgrade 'yes' → 'waitlist'.
+      // Never display the optimistic status; always reconcile with server value.
+      const actualResponse = data.rsvp?.response || null;
+
+      if (actualResponse) {
+        setRsvps(prev => ({ ...prev, [event.id]: actualResponse }));
+        if (actualResponse === 'waitlist' && status === 'yes') {
+          // B14: game is full — player was auto-waitlisted
+          const waitlistPos = data.rsvp?.waitlist_position || '';
+          toast(waitlistPos
+            ? `You're #${waitlistPos} on the waitlist — the game is full`
+            : "You're on the waitlist — the game is full",
+            { icon: '⏳' }
+          );
+        }
         fetchGroup();
-      } else {
+      } else if (data.error) {
         const errCode = data.error?.code || data.error;
         if (errCode === 'GAME_STARTED') {
           toast.error('This game started already — messaging the host');
@@ -349,6 +369,9 @@ export default function HomeGameDetailPage() {
         } else {
           toast.error(data.error?.message || data.error || 'Failed to RSVP');
         }
+      } else {
+        // Fallback for older API shape
+        if (data.success !== false) fetchGroup();
       }
     } catch (error) {
       console.warn('RSVP failed:', error);

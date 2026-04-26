@@ -57,9 +57,18 @@ function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
       if (data.success || data.event) {
         onSubmit?.(data.event);
         onClose();
+      } else if (data.error) {
+        // B13: surface PAST_SCHEDULED_DATE from the DB trigger
+        const errMsg = data.error?.message || data.error || '';
+        if (errMsg.includes('PAST_SCHEDULED_DATE') || errMsg.includes('past')) {
+          toast.error('Cannot schedule a game in the past — please choose a future date');
+        } else {
+          toast.error(errMsg || 'Failed to schedule game');
+        }
       }
     } catch (error) {
       console.warn('Failed to schedule event:', error);
+      toast.error(error.message || 'Failed to schedule game');
     } finally {
       setSubmitting(false);
     }
@@ -380,10 +389,12 @@ export default function ManageHomeGamePage() {
     return () => _c.abort();
   }, [fetchData, authChecking]);
   // Realtime listener — live updates for home-games/[id]/manage.js
+  // v2 suffix forces reconnect for browser sessions opened before the
+  // 2026-04-26 publication migration.
   useEffect(() => {
     if (!id) return;
     const ch = supabase
-      .channel(`hg-manage:${id}`)
+      .channel(`hg-manage-v2:${id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_home_games', filter: `group_id=eq.${id}` }, () => { fetchData(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_home_members', filter: `group_id=eq.${id}` }, () => { fetchData(); })
       .subscribe();
@@ -711,7 +722,8 @@ export default function ManageHomeGamePage() {
                             </span>
                             <span className="flex items-center gap-1">
                               <Users className="w-4 h-4" />
-                              {event.rsvp_count || 0}/{event.max_players}
+                              {/* B2: use server-authoritative rsvp_yes (not legacy rsvp_count) */}
+                              {(event.rsvp_yes ?? event.rsvp_count) || 0}/{event.max_players}
                             </span>
                             <span className="flex items-center gap-1">
                               <DollarSign className="w-4 h-4" />
