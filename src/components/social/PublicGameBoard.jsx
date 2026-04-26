@@ -366,7 +366,7 @@ export default function PublicGameBoard({ C, pageId, pageName, userId, userName,
                     })}
                 </div>
             )}
-            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
         </div>
     );
 }
