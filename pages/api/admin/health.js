@@ -18,8 +18,6 @@ import { getEmailStatus } from '../../../src/lib/emailTemplates';
 import { getSentryStatus } from '../../../src/lib/sentry';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-export const runtime = 'edge';
-
 // ─── Phase 5.1.4 live-probe helpers ────────────────────────────────────────
 // Keep probes short-timeout and swallow-on-error: a failing probe should
 // degrade the response to `status: degraded` with a per-probe reason, not
