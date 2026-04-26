@@ -437,5 +437,15 @@
     }
   ],
   "crons": [],
-  "buildCommand": "NODE_OPTIONS='--max-old-space-size=7168' next build"
+  "buildCommand": "NODE_OPTIONS='--max-old-space-size=7168' next build",
+  "rewrites": [
+    {
+      "source": "/commander/:path*",
+      "destination": "https://commander.smarter.poker/commander/:path*"
+    },
+    {
+      "source": "/api/commander/:path*",
+      "destination": "https://commander.smarter.poker/api/:path*"
+    }
+  ]
 }
