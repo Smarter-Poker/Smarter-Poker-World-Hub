@@ -10,8 +10,15 @@ let Sentry = null;
 let sentryLoadAttempted = false;
 
 /**
+ * Check if running in Edge Runtime
+ */
+function isEdgeRuntime() {
+    return typeof EdgeRuntime !== 'undefined' || (typeof process !== 'undefined' && process.env.NEXT_RUNTIME === 'edge');
+}
+
+/**
  * Initialize Sentry on demand (lazy loading)
- * Uses eval-based require lookup to avoid Edge Runtime static analysis issues.
+ * Uses process.mainModule.require to avoid webpack bundling and Edge Runtime static analysis issues.
  * At runtime, if @sentry/nextjs is installed, it will be loaded; otherwise fallback to console.
  */
 function getSentry() {
@@ -20,7 +27,7 @@ function getSentry() {
     sentryLoadAttempted = true;
 
     // Skip loading in Edge Runtime to avoid dynamic code evaluation errors
-    if (typeof EdgeRuntime !== 'undefined') {
+    if (isEdgeRuntime()) {
         return null;
     }
 
@@ -49,6 +56,10 @@ function getSentry() {
  * @param {object} context - Additional context (tags, extra data, user)
  */
 export async function captureError(error, context = {}) {
+    if (isEdgeRuntime()) {
+        console.warn('[Sentry Edge Fallback]', error, context);
+        return;
+    }
     const sentry = getSentry();
     if (!sentry) {
         console.warn('[Sentry Fallback]', error, context);
@@ -91,6 +102,10 @@ export async function captureError(error, context = {}) {
  * @param {object} context
  */
 export async function captureMessage(message, level = 'info', context = {}) {
+    if (isEdgeRuntime()) {
+        console.debug(`[Sentry Edge Fallback] [${level}]`, message);
+        return;
+    }
     const sentry = getSentry();
     if (!sentry) {
         console.debug(`[Sentry Fallback] [${level}]`, message);
@@ -117,6 +132,7 @@ export async function captureMessage(message, level = 'info', context = {}) {
  * @param {object} user - { id, email, username }
  */
 export async function setUser(user) {
+    if (isEdgeRuntime()) return;
     const sentry = getSentry();
     if (!sentry) return;
     sentry.setUser(user ? {
@@ -131,6 +147,7 @@ export async function setUser(user) {
  * @param {object} breadcrumb - { category, message, data, level }
  */
 export async function addBreadcrumb(breadcrumb) {
+    if (isEdgeRuntime()) return;
     const sentry = getSentry();
     if (!sentry || typeof sentry.addBreadcrumb !== 'function') return;
     sentry.addBreadcrumb({
@@ -148,6 +165,7 @@ export async function addBreadcrumb(breadcrumb) {
  * @returns {object|null} transaction or null
  */
 export async function startTransaction(name, op = 'custom') {
+    if (isEdgeRuntime()) return null;
     const sentry = getSentry();
     if (!sentry) return null;
     return sentry.startTransaction({ name, op });
