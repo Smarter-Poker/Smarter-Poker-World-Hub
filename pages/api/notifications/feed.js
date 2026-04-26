@@ -15,6 +15,8 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
+export const runtime = 'edge';
+
 // ── Server-side in-memory TTL cache ──────────────────────────────────────────
 // On warm Vercel instances, repeated fetches within 15s return instantly (<5ms)
 // instead of paying the full Supabase round-trip cost every call.

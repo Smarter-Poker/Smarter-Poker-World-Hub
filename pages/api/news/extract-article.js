@@ -1,4 +1,6 @@
 import { reportApiError } from '../../../src/lib/sentryWrap';
+
+export const runtime = 'edge';
 /**
  * Article Content Extraction API — FULL ARTICLE BODY
  * Two-phase approach:

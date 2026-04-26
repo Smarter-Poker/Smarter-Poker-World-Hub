@@ -9,6 +9,8 @@ import { getGrokClient } from '../../../src/lib/grokClient';
 import { validateBatch } from '../../../src/lib/triviaValidator';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
+export const runtime = 'edge';
+
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {

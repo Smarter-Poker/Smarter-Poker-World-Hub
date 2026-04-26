@@ -14,6 +14,8 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 const { applyCors } = require('../../../src/lib/cors');
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
+export const runtime = 'edge';
+
 let _sb = null;
 function getSupabase() {
     if (!_sb) {
