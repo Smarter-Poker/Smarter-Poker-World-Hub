@@ -2369,19 +2369,11 @@ export default function VirtualSandbox() {
               {/* Train This Spot — full mapper deep-link with hand context */}
               <button
                 onClick={() => {
-<<<<<<< Updated upstream
-=======
-                  // Build rich context from the current sandbox scenario
->>>>>>> Stashed changes
                   const hand = `${heroHand.card1 || ''}${heroHand.card2 || ''}`;
                   const board = communityCards.filter(Boolean).join(' ');
                   const street = board.split(' ').length === 0 ? 'preflop'
                     : board.split(' ').length <= 3 ? 'flop'
                     : board.split(' ').length === 4 ? 'turn' : 'river';
-<<<<<<< Updated upstream
-=======
-                  // Derive intelligent tags from the scenario
->>>>>>> Stashed changes
                   const tags = [
                     heroPosition?.toLowerCase(),
                     street,

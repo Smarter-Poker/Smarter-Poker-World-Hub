@@ -2120,10 +2120,6 @@ export default function ReelsPage() {
                             background: 'rgba(0,200,83,0.25)',
                             border: '1.5px solid rgba(0,200,83,0.7)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-<<<<<<< Updated upstream
-=======
-                            filter: 'drop-shadow(0 0 6px rgba(0,200,83,0.5))',
->>>>>>> Stashed changes
                             animation: 'tts-glow 2.5s ease-in-out infinite',
                         }}>
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34C759" strokeWidth="2.5">

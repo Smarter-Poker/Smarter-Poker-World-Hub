@@ -536,11 +536,7 @@ export default function VideoLibraryPage() {
     // Handle closing a video - save watch duration
     const handleCloseVideo = useCallback(async () => {
         // BUG-J FIX: guard against double-save (Escape + close button simultaneously).
-<<<<<<< Updated upstream
         // Null the refs BEFORE the await so a concurrent call exits immediately.
-=======
-        // Null the ref BEFORE the await so a second concurrent call sees null and exits.
->>>>>>> Stashed changes
         if (!watchStartTimeRef.current || !currentWatchingVideoRef.current || !userId) {
             setSelectedVideo(null);
             setVlHudVisible(false);
@@ -556,11 +552,7 @@ export default function VideoLibraryPage() {
         watchStartTimeRef.current = null;
         currentWatchingVideoRef.current = null;
 
-<<<<<<< Updated upstream
         if (true) { // scoping block
-=======
-        if (true) { // scoping block (was if (watchStartTimeRef.current...))
->>>>>>> Stashed changes
             const watchedSeconds = Math.floor((Date.now() - startTime) / 1000);
 
 
@@ -799,15 +791,9 @@ export default function VideoLibraryPage() {
     // Cleanup interval on unmount
     useEffect(() => () => { if (timeTrackingInterval.current) clearInterval(timeTrackingInterval.current); }, []);
 
-<<<<<<< Updated upstream
     // ── BUG-I FIX: Flush pending watch time on tab hide / browser close ──────────
     // Without this, a user closing the tab mid-video loses all watch time because
     // handleCloseVideo never runs. visibilitychange fires reliably on mobile too.
-=======
-    // ── BUG-I FIX: Flush pending watch time on tab hide / browser close ─────────
-    // Without this, a user who closes the tab while the video modal is open loses all
-    // accumulated watch time because handleCloseVideo never runs.
->>>>>>> Stashed changes
     const pendingFlushRef = useRef(false);
     useEffect(() => {
         const flushWatchTime = () => {
@@ -816,28 +802,15 @@ export default function VideoLibraryPage() {
             pendingFlushRef.current = true;
             const watchedSeconds = Math.floor((Date.now() - watchStartTimeRef.current) / 1000);
             const video = currentWatchingVideoRef.current;
-<<<<<<< Updated upstream
             if (watchedSeconds > 0) {
                 watchStartTimeRef.current = null;
                 currentWatchingVideoRef.current = null;
-=======
-            // Use sendBeacon for guaranteed delivery on page hide
-            if (watchedSeconds > 0) {
-                // Optimistic: reset refs immediately
-                watchStartTimeRef.current = null;
-                currentWatchingVideoRef.current = null;
-                // Fire-and-forget via service — if page is unloading, supabase will try its best
->>>>>>> Stashed changes
                 updateWatchDuration(userId, video.id, watchedSeconds, {
                     title: video.title,
                     url: `https://youtube.com/watch?v=${video.videoId}`,
                     thumbnail: `https://img.youtube.com/vi/${video.videoId}/maxresdefault.jpg`
                 }).catch(() => {});
             }
-<<<<<<< Updated upstream
-=======
-            // Reset debounce after 2s
->>>>>>> Stashed changes
             setTimeout(() => { pendingFlushRef.current = false; }, 2000);
         };
         const onHide = () => { if (document.visibilityState === 'hidden') flushWatchTime(); };
@@ -2018,11 +1991,8 @@ export default function VideoLibraryPage() {
                                 try {
                                     const win = e.target.contentWindow;
                                     win.postMessage(JSON.stringify({ event: 'listening' }), '*');
-<<<<<<< Updated upstream
                                     iframeUnmuteTimers.current.forEach(clearTimeout);
                                     iframeUnmuteTimers.current = [];
-=======
->>>>>>> Stashed changes
                                     iframeUnmuteTimers.current = [200, 600, 1200].map(d => setTimeout(() => {
                                         try {
                                             win.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
