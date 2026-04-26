@@ -500,7 +500,7 @@ const nextConfig = {
         },
         {
           source: '/api/commander/:path*',
-          destination: 'https://commander.smarter.poker/api/commander/:path*',
+          destination: 'https://commander.smarter.poker/api/:path*',
         },
         // Commander-specific /api/admin paths only — explicit per-route to
         // avoid hijacking the 28 monolith /api/admin/* routes (check-*, etc).
