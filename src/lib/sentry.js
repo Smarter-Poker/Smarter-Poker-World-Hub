@@ -3,11 +3,12 @@
  * Centralized error tracking and reporting for Smarter.Poker
  *
  * Setup: Add NEXT_PUBLIC_SENTRY_DSN to environment variables
- * Install: npm install @sentry/nextjs
  */
 
-let Sentry = null;
-let sentryLoadAttempted = false;
+// Static import — avoids all dynamic require() / webpack bundling issues.
+// @sentry/nextjs is installed and safe to import statically.
+// Edge-runtime checks below prevent Sentry APIs from being called in edge contexts.
+import * as SentrySDK from '@sentry/nextjs';
 
 /**
  * Check if running in Edge Runtime
@@ -17,37 +18,12 @@ function isEdgeRuntime() {
 }
 
 /**
- * Initialize Sentry on demand (lazy loading)
- * Uses runtime require to avoid webpack bundling and Edge Runtime static analysis issues.
- * At runtime, if @sentry/nextjs is installed, it will be loaded; otherwise fallback to console.
+ * Get Sentry instance — null-safe, edge-safe.
  */
 function getSentry() {
-    if (Sentry) return Sentry;
-    if (sentryLoadAttempted) return null;
-    sentryLoadAttempted = true;
-
-    // Skip loading in Edge Runtime to avoid dynamic code evaluation errors
-    if (isEdgeRuntime()) {
-        return null;
-    }
-
-    // Skip loading in browser environment
-    if (typeof window !== 'undefined') {
-        return null;
-    }
-
-    try {
-        // Use process.mainModule.require to avoid webpack static analysis.
-        // Guarded above so this never executes in Edge Runtime or browser.
-        const req = (typeof process !== 'undefined' && process.mainModule && process.mainModule.require)
-            ? process.mainModule.require.bind(process.mainModule)
-            : null;
-        if (!req) return null;
-        Sentry = req('@sentry/nextjs');
-        return Sentry;
-    } catch {
-        return null;
-    }
+    if (isEdgeRuntime()) return null;
+    if (typeof window !== 'undefined') return null;
+    return SentrySDK || null;
 }
 
 /**
