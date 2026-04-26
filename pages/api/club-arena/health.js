@@ -15,7 +15,7 @@
 
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-export const runtime = 'edge';
+// Node.js runtime (default) — uses process.uptime which is not edge-compatible
 
 export default async function handler(req, res) {
     const start = Date.now();

@@ -5,7 +5,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-export const runtime = 'edge';
+// Node.js runtime (default) — uses process.uptime and process.memoryUsage which are not edge-compatible
 
 let _supabase = null;
 function getSupabase() {
