@@ -8,7 +8,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { getAccessToken } from '../../providers/SupabaseProvider';
+import { getAccessToken } from '../lib/authUtils';
 
 const POLL_INTERVAL = 5000; // 5 seconds
 const MAX_POLLS = 60;       // Stop after 5 minutes
