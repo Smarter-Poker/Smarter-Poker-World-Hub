@@ -482,7 +482,7 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
                 />
 
                 {/* Ghost Post — optimistic uploading placeholder */}
-                <GhostPostCard />
+                <GhostPostCard user={currentUser} />
 
                 {/* Reels Section (Inserted into feed) */}
                 <ReelsCarousel reels={reels} onViewAll={() => { }} currentUser={currentUser} />

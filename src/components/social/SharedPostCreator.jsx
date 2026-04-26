@@ -485,7 +485,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                                 onComplete: ({ publicUrl }) => resolve(publicUrl),
                                 onError: ({ error }) => reject(error),
                             });
-                            bgUpload.start({ file: fileToUpload, userId: user.id, folder }).catch(reject);
+                            bgUpload.start({ file: fileToUpload, userId: user.id, folder, content: content?.trim(), thumbnail: staged.thumbnail }).catch(reject);
                         });
                         if (bgUnsub) bgUnsub();
                         // Revoke blob URL now that we have the real URL
@@ -496,13 +496,14 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         delete compressionRef.current[staged.url];
                         uploadedMedia.push({ type: 'video', url: videoUrl });
 
-                        // Persist thumbnail to cloud storage (non-blocking)
+                        // Persist thumbnail to cloud storage (best-effort, awaited so URL is included in post)
                         if (staged.thumbnail) {
-                            uploadThumbnail(staged.thumbnail, user.id).then(thumbUrl => {
+                            try {
+                                const thumbUrl = await uploadThumbnail(staged.thumbnail, user.id);
                                 if (thumbUrl) {
                                     uploadedMedia.push({ type: 'thumbnail', url: thumbUrl });
                                 }
-                            }).catch(() => { /* thumbnail upload is best-effort */ });
+                            } catch (_) { /* thumbnail upload is best-effort */ }
                         }
                     } else {
                         // Compress image before upload

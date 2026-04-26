@@ -487,7 +487,7 @@ export const EnhancedPostCreator = ({
                 },
               });
 
-              bgUpload.start({ file: fileToUpload, userId: user.id, folder }).catch(reject);
+              bgUpload.start({ file: fileToUpload, userId: user.id, folder, content: content?.trim(), thumbnail: thumbnailRef.current[_fileKey(file)] || null }).catch(reject);
             });
 
             if (bgUnsub) bgUnsub();

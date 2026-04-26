@@ -186,6 +186,8 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
                     file: fileToUpload,
                     userId: user.id,
                     folder: 'reels',
+                    content: caption?.trim(),
+                    thumbnail,
                 }).catch(reject);
             });
             if (bgUnsub) bgUnsub();
