@@ -9,7 +9,6 @@
  * GET ?venue_id=1234           — all tournaments for venue
  * GET ?venue_id=1234&days=60  — dated events up to 60 days out (default: all)
  */
-import { withSentry } from '../../../src/lib/sentry';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 const { applyCors } = require('../../../src/lib/cors');
 import { reportApiError } from '../../../src/lib/sentryWrap';
@@ -287,4 +286,4 @@ function generateDatedInstances(recurring, daysAhead = 45) {  // Reduced from 90
     return result;
 }
 
-export default withSentry(handler);
+export default handler;
