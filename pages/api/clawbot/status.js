@@ -13,6 +13,8 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
  */
 
 import {
+
+export const runtime = 'edge';
   getSupabase,
   CLAWBOT_VERSION,
   TASK_IDS,

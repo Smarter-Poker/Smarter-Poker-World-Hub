@@ -20,6 +20,8 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
  */
 
 import {
+
+export const runtime = 'edge';
   runTask,
   logAudit,
   verifyCronAuth,

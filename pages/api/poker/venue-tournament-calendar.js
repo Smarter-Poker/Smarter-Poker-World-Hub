@@ -11,6 +11,8 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
+export const runtime = 'edge';
+
 let _sb = null;
 function getSupabase() {
     if (!_sb) {

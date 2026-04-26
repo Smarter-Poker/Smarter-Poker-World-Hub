@@ -7,6 +7,8 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { captureError, addBreadcrumb } from '../../../../src/lib/sentry';
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 
+export const runtime = 'edge';
+
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {

@@ -18,6 +18,8 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import allVenuesData from '../../../public/data/all-venues.json';
 
+export const runtime = 'edge';
+
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {

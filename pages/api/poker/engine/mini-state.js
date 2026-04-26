@@ -11,6 +11,8 @@
 
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 
+export const runtime = 'edge';
+
 // ── Phase mapping: engine phases → display phases ──
 const DISPLAY_PHASE = {
   idle: 'idle',

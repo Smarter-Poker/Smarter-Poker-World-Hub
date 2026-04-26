@@ -14,6 +14,8 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
+export const runtime = 'edge';
+
 function getSupabase() {
     return createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL,
