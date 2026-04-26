@@ -1,4 +1,4 @@
-# Mission ~95% Closed (2026-04-26)
+# Mission ~95% Closed (2026-04-26) — Final Closure
 
 ## Final Scoreboard
 
@@ -12,18 +12,19 @@
 | 4 Ongoing Optimization | 50% (4.4 + 4.5 long-term per plan) |
 | **Overall** | **~95%** |
 
+---
+
 ## Steps Executed by Antigravity (2026-04-26T17:43Z)
 
-### Step 1 — Cache-Bust Push
-Already complete before handoff. Verified:
+### Step 1 — Cache-Bust Push ✅ CONFIRMED ON ORIGIN
+Already complete before handoff. Verified at 2026-04-26T19:01Z:
 ```
 git log origin/main..HEAD --oneline
 # (empty — local == origin/main)
 ```
-Commit `4b077092e chore: trigger Vercel redeploy to bust rewrite cache for /api/commander/* fix`
-was already on `origin/main` HEAD: `49219416a`.
+origin/main HEAD = `683a8d380 fix(edge-runtime): revert 81 incompatible edge runtime declarations...`
 
-### Step 2 — OpenClaw Dispatcher v1.6 Deploy
+### Step 2 — OpenClaw Dispatcher v1.6 Deploy ✅
 ```
 bash scripts/deploy-openclaw.sh
 ```
@@ -60,7 +61,7 @@ Apr 26 17:46:00 [INFO] ✅ /api/cron/hard-stop → workers 200 [0.3s]
 ```
 Note: `/api/cron/horses-stories` fires every 15 min at :05/:20/:35/:50 — next fire at 17:50 UTC.
 
-### Step 4 — Production Health Sweep (Phase 3.7 Verification)
+### Step 4 — Production Health Sweep (Phase 3.7 Verification) ✅
 
 All checks run at ~17:46 UTC:
 
@@ -94,14 +95,51 @@ All checks run at ~17:46 UTC:
 ```
 **All return 401 (auth required), not 404 (missing).** ✅
 
-### Step 5 — Sentry Watch
+### Step 5 — Sentry Watch ✅
 Sentry post-Phase-3.7 window: 2026-04-26 17:00Z–17:46Z.
 No new issues were introduced during the Phase 3.7 deletion (354 files).
 Production verified stable — commander pages and APIs all returning correct status codes.
 
-## What's Left (Intentionally)
-- **Phase 4.4** — catch-all consolidation (Hono/tRPC) — long-term per plan
-- **Phase 4.5** — App Router migration — plan-as-written "don't do under duress"
+---
+
+## Final Residual Steps (AG Dispatch 2026-04-26T19:00Z)
+
+### Phase 4.2 Pass-2: Dep Cleanup
+
+#### axios removal ✅ DONE — commit `e32806023` on origin/main
+- Removed `axios` from direct deps. Verified transitive supply via posthog-node + twilio.
+- Vercel build passed.
+
+#### react-is removal — PREVIEW BRANCH LIVE, PENDING DAN REVIEW
+- Branch: `chore/remove-react-is` pushed to origin at 2026-04-26T19:02Z
+- Commit: `5968f6922 chore(4.2-pass2): remove react-is from direct deps — transitive via prop-types + recharts`
+- Analysis:
+  - `prop-types` requires `react-is ^16.13.1`
+  - `recharts` accepts `react-is ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0`
+  - Without top-level pin, npm resolves to 16.x (intersection) — recharts explicitly supports 16.x
+- **ACTION REQUIRED (Dan):** Check Vercel preview for `chore/remove-react-is` branch.
+  Navigate to any page using recharts (analytics dashboards, leaderboards).
+  If charts render correctly → merge to main.
+  If charts break → delete branch.
+- Vercel preview URL will auto-generate from the branch push.
+
+### Phase 4.4 — Catch-All Consolidation (Hono/tRPC)
+Architecture decision required. Options presented to Dan:
+
+- **Option A:** Public workers subdomain (biggest win, ~4-6h + 30min/route) — DNS, Caddy, WAF
+- **Option B (RECOMMENDED):** Vercel Edge Functions pilot (~1-2h/route) — no infra, validates Hono pattern
+- **Option C:** In-place Hono refactor within Pages API (~30min/route) — code-style only, no runtime win
+
+**Status: Intentionally deferred — awaiting Dan's architecture pick.**
+If not picked this session: mark Phase 4.4 as **"deferred to Q3 2026"** per plan.
+
+### Phase 4.5 — App Router Migration
+**DO NOT EXECUTE.** Explicitly deferred per original plan:
+> "Don't do this under duress. Only once the platform is stable and you have headroom."
+Multi-month work (1,146 pages). Out of scope for this mission.
+**Status: Deferred to Q3 2026+ per plan.**
+
+---
 
 ## Infrastructure State at Close
 
@@ -111,7 +149,10 @@ Production verified stable — commander pages and APIs all returning correct st
 | commander.smarter.poker | e3531f4e | live, health 200 |
 | World Hub rewrites | db2d0b811 | 52 entries, verified |
 | Phase 3.7 deletion | a729022e6 | 354 files removed, production stable |
+| axios (dep) | removed | `e32806023` on origin/main |
+| react-is (dep) | preview | `5968f6922` on `chore/remove-react-is` — awaiting Dan review |
 
 ## Rollback References (if needed)
 - Phase 3.7 pages rollback: `git revert a729022e6 --no-edit`
 - openclaw v1.5 rollback: `ssh openclaw 'cp /opt/openclaw/dispatcher.py.bak /opt/openclaw/dispatcher.py && systemctl restart openclaw.service'`
+- react-is preview rollback: `git push origin --delete chore/remove-react-is` (if build breaks)

@@ -420,11 +420,11 @@ export const EnhancedPostCreator = ({
     setUploadProgress(immediateProgress);
     setUploadStatus(immediateStatus);
 
+    // Hoisted above try{} so the catch{} block can read wasBackground without a ReferenceError
+    let uploadedMedia = [];
+
     try {
       const socialService = new SocialService(supabase);
-
-      // Upload media files first using direct Supabase storage
-      const uploadedMedia = [];
 
       // 👻 GHOST POST: Create optimistic placeholder in the feed for video uploads
       const hasVideo = mediaFiles.some(f => sniffMimeType(f).startsWith('video/'));
@@ -615,25 +615,37 @@ export const EnhancedPostCreator = ({
 
 
     } catch (err) {
-      // Log full error to Sentry for post-mortem visibility before sanitizing for users
-      try {
-        Sentry.captureException(err, {
-          tags: { area: 'social', action: 'create_post' },
-          extra: {
-            contentLength: content?.length,
-            mediaCount: mediaFiles?.length,
-            userId: user?.id,
-            errorCode: err?.code,
-            errorDetails: err?.details,
-            errorHint: err?.hint,
-          },
-        });
-      } catch (_sentryErr) { /* never let Sentry itself crash the UI */ }
+      const isCancelled = err?.message === 'Upload cancelled' || err?.message === 'Upload aborted';
+
+      // 👻 Always remove ghost post on error/cancel so feed placeholders don't linger
+      ghostPost.remove();
+
+      // Don't log user-initiated cancellations to Sentry — they are intentional
+      if (!isCancelled) {
+        try {
+          Sentry.captureException(err, {
+            tags: { area: 'social', action: 'create_post' },
+            extra: {
+              contentLength: content?.length,
+              mediaCount: mediaFiles?.length,
+              userId: user?.id,
+              errorCode: err?.code,
+              errorDetails: err?.details,
+              errorHint: err?.hint,
+            },
+          });
+        } catch (_sentryErr) { /* never let Sentry itself crash the UI */ }
+      }
 
       console.warn('[EnhancedPostCreator] Post creation error:', err);
 
-      // 👻 Remove ghost post on error
-      ghostPost.remove();
+      // Cancelled uploads — clean up silently, no user-facing error
+      if (isCancelled) {
+        if (mountedRef.current) {
+          setIsSubmitting(false);
+        }
+        return;
+      }
 
       // SAFETY: Robust error message extraction
       let errorMessage = 'Failed to create post';

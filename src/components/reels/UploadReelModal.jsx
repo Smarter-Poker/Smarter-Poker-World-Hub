@@ -261,9 +261,10 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
             }
         } catch (err) {
             console.warn('Upload error:', err);
-            // Only update error state if modal is still mounted
-            // (bgUpload already shows an error toast if it was in background mode)
-            if (mountedRef.current) {
+            // Suppress user-initiated cancellations — these are intentional, not errors
+            const isCancelled = err?.message === 'Upload cancelled' || err?.message === 'Upload aborted';
+            // Only update error state if modal is still mounted and it's a real failure
+            if (mountedRef.current && !isCancelled) {
                 setUploading(false);
                 setError(err.message || 'Failed to upload reel');
             }
@@ -283,7 +284,24 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
             <div style={styles.modal}>
                 <div style={styles.header}>
                     <h2 style={styles.title}>Upload Reel</h2>
-                    <button onClick={onClose} style={styles.closeButton}>✕</button>
+                    <button
+                        onClick={() => {
+                            if (uploading) {
+                                // Warn user that an upload is in progress
+                                const confirmed = window.confirm(
+                                    'An upload is in progress. Cancel the upload and close?'
+                                );
+                                if (confirmed) {
+                                    bgUpload.abort();
+                                    onClose?.();
+                                }
+                            } else {
+                                onClose?.();
+                            }
+                        }}
+                        style={styles.closeButton}
+                        aria-label="Close"
+                    >✕</button>
                 </div>
 
                 <div style={styles.content}>

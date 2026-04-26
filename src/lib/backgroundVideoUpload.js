@@ -644,12 +644,18 @@ const bgUpload = {
             try { _activeXhr.abort(); } catch (_) {}
             _activeXhr = null;
         }
+        // If upload was active/background, notify listeners of cancellation
+        // before clearing them so callers (e.g. ghostPost.remove()) can clean up
+        const wasActive = _state === 'uploading' || _state === 'background';
         _state = 'idle';
         _progress = 0;
         _label = '';
         _uploadStartTime = null;
         _lastEta = '';
         _ghostMeta = null;
+        if (wasActive) {
+            _emit('onError', { error: new Error('Upload cancelled') });
+        }
         _listeners.clear();
         _prefetchCache = null;
         _queuePosition = 0;
