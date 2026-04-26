@@ -822,7 +822,11 @@ function ReelViewer({ reels, startIndex, onClose }) {
         setPlaybackSpeed(newSpeed);
         // Use videoRef instead of document.querySelector to avoid grabbing wrong element
         if (videoRef.current) videoRef.current.playbackRate = newSpeed;
-        const iframe = containerRef.current?.querySelector('iframe[src*="youtube"]');
+        // Scope to the active player (width:100%) to avoid accidentally sending the
+        // setPlaybackRate command to the hidden 1×1 preload iframe which also matches
+        // 'iframe[src*="youtube"]' and appears first in the DOM.
+        const iframe = containerRef.current?.querySelector('iframe[src*="youtube"][width="100%"], iframe[src*="youtube-nocookie"][style*="width: 100%"]')
+            ?? containerRef.current?.querySelectorAll('iframe[src*="youtube"]')?.[0];
         if (iframe) {
             iframe.contentWindow?.postMessage(JSON.stringify({ event: 'listening' }), '*');
             iframe.contentWindow?.postMessage(JSON.stringify({
@@ -911,9 +915,12 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 incrementMetric(currentReel, 'share_count', 1);
                 if (authUser?.id) busEmit.socialPostShared(currentReel.id, authUser.id);
             }
-        } catch {
-            setShareToast(true);
-            setTimeout(() => setShareToast(false), 2000);
+        } catch (err) {
+            // AbortError = user cancelled the native Web Share sheet — totally normal, stay silent.
+            // Any other error (clipboard denied, share API not available) = real failure, show toast.
+            if (err?.name !== 'AbortError') {
+                showErrorToast('Share failed \u2014 try again');
+            }
         }
     };
 

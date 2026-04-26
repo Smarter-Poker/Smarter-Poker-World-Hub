@@ -1,6 +1,7 @@
 /**
  * POST /api/training/log-request
- * Logs a "Train This Spot" conversion event to the training_requests table.
+ * Logs a "Train This Spot" conversion event to the training_events table.
+ * Uses event_type='train_this_spot' and event_data jsonb for context.
  * Lightweight fire-and-forget analytics — never blocks the user.
  *
  * Body: { ref, vid, title, source, tags, matchedGameIds, userId }
@@ -26,14 +27,17 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'ref and vid are required' });
         }
 
-        const { error } = await supabaseAdmin.from('training_requests').insert({
+        const { error } = await supabaseAdmin.from('training_events').insert({
             user_id: userId || null,
-            source_ref: ref,            // 'video-library' | 'reels' | 'sandbox'
-            video_id: String(vid).slice(0, 100),
-            video_title: String(title || '').slice(0, 200),
-            video_source: String(source || '').slice(0, 100),
-            video_tags: Array.isArray(tags) ? tags : String(tags || '').split(',').filter(Boolean),
-            matched_game_ids: Array.isArray(matchedGameIds) ? matchedGameIds : [],
+            event_type: 'train_this_spot',
+            event_data: {
+                source_ref: ref,                             // 'video-library' | 'reels' | 'sandbox'
+                video_id: String(vid).slice(0, 100),
+                video_title: String(title || '').slice(0, 200),
+                video_source: String(source || '').slice(0, 100),
+                video_tags: Array.isArray(tags) ? tags : String(tags || '').split(',').filter(Boolean),
+                matched_game_ids: Array.isArray(matchedGameIds) ? matchedGameIds : [],
+            },
             created_at: new Date().toISOString(),
         });
 

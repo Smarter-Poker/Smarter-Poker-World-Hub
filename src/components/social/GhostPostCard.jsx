@@ -8,7 +8,7 @@
  *
  * Subscribes to bgUpload events and auto-removes on completion or error.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import bgUpload from '../../lib/backgroundVideoUpload';
 
 const SOCIAL_COLORS = {
@@ -27,6 +27,21 @@ export default function GhostPostCard({ user }) {
     const [meta, setMeta] = useState(null); // { content, thumbnail, fileName }
     const [queueInfo, setQueueInfo] = useState(null); // { position, total }
 
+    // Ref to track meta — avoids stale closure inside subscribe callback
+    const metaRef = useRef(null);
+    // Ref to track error auto-hide timeout so it can be cancelled on unmount/dismiss
+    const errorTimerRef = useRef(null);
+    // Ref to track mounted state — prevents setState after unmount
+    const mountedRef = useRef(true);
+
+    useEffect(() => {
+        mountedRef.current = true;
+        return () => {
+            mountedRef.current = false;
+            if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+        };
+    }, []);
+
     useEffect(() => {
         const unsub = bgUpload.subscribe({
             onProgress: ({ pct, label: lbl, state, queuePosition, queueTotal }) => {
@@ -35,12 +50,15 @@ export default function GhostPostCard({ user }) {
                     setProgress(pct);
                     setLabel(lbl);
                     if (queueTotal > 1) setQueueInfo({ position: queuePosition, total: queueTotal });
-                    if (!meta && bgUpload.ghostMeta) {
+                    // Use ref (not closure-captured meta) to avoid stale read
+                    if (!metaRef.current && bgUpload.ghostMeta) {
+                        metaRef.current = bgUpload.ghostMeta;
                         setMeta(bgUpload.ghostMeta);
                     }
                 }
             },
             onGhostPost: (ghostMeta) => {
+                metaRef.current = ghostMeta;
                 setVisible(true);
                 setMeta(ghostMeta);
             },
@@ -48,11 +66,14 @@ export default function GhostPostCard({ user }) {
                 // Brief "complete" flash then fade out
                 setLabel('Upload Complete!');
                 setProgress(100);
-                setTimeout(() => setVisible(false), 2000);
+                setTimeout(() => { if (mountedRef.current) setVisible(false); }, 2000);
             },
             onError: () => {
                 setLabel('Upload Failed');
-                setTimeout(() => setVisible(false), 3000);
+                // Store timer ref so it can be cancelled if user clicks Dismiss
+                errorTimerRef.current = setTimeout(() => {
+                    if (mountedRef.current) setVisible(false);
+                }, 3000);
             },
         });
 
@@ -61,7 +82,10 @@ export default function GhostPostCard({ user }) {
             setVisible(true);
             setProgress(bgUpload.progress);
             setLabel(bgUpload.label);
-            if (bgUpload.ghostMeta) setMeta(bgUpload.ghostMeta);
+            if (bgUpload.ghostMeta) {
+                metaRef.current = bgUpload.ghostMeta;
+                setMeta(bgUpload.ghostMeta);
+            }
         }
 
         return unsub;
@@ -128,7 +152,12 @@ export default function GhostPostCard({ user }) {
                 {/* Cancel / Dismiss button — always shown when upload is not complete */}
                 {!isComplete && (
                     <button
-                        onClick={() => { bgUpload.abort(); setVisible(false); }}
+                        onClick={() => {
+                            // Cancel any pending error auto-hide timer
+                            if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+                            bgUpload.abort();
+                            setVisible(false);
+                        }}
                         style={{
                             background: isFailed ? 'rgba(250,56,62,0.1)' : 'rgba(0,0,0,0.05)',
                             border: 'none',

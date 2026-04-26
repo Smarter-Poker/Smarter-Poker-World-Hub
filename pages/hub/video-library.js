@@ -196,6 +196,8 @@ export default function VideoLibraryPage() {
     const modalOverlayRef = useRef(null); // ref for native fullscreen
     const [menuOpen, setMenuOpen] = useState(false);
     const [iframeKey, setIframeKey] = useState(0); // bump to force iframe remount (guarantees autoplay)
+    // BUG-K FIX: store unmute timer IDs so we can clear them if modal closes before 1200ms
+    const iframeUnmuteTimers = useRef([]);
 
     // Swipe / TikTok navigation state
     const swipeTouchStart = useRef(null);
@@ -402,8 +404,8 @@ export default function VideoLibraryPage() {
 
     // Hamburger menu handlers - save to Supabase
     const updatePreference = useCallback(async (key, value) => {
-        const newPrefs = { ...preferences, [key]: value };
-        setPreferences(newPrefs);
+        // BUG-C FIX: use functional setState so rapid toggles never read stale preferences
+        setPreferences(prev => ({ ...prev, [key]: value }));
 
         if (userId) {
             try {
@@ -412,7 +414,7 @@ export default function VideoLibraryPage() {
                 console.warn('Failed to save preference:', error);
             }
         }
-    }, [preferences]);
+    }, [userId]);
 
     const menuConfig = getMenuConfig('video-library', user, preferences, {
         setAutoplay: (val) => updatePreference('autoplay', val),
@@ -511,9 +513,26 @@ export default function VideoLibraryPage() {
 
     // Handle closing a video - save watch duration
     const handleCloseVideo = useCallback(async () => {
-        if (watchStartTimeRef.current && currentWatchingVideoRef.current && userId) {
-            const watchedSeconds = Math.floor((Date.now() - watchStartTimeRef.current) / 1000);
-            const video = currentWatchingVideoRef.current;
+        // BUG-J FIX: guard against double-save (Escape + close button simultaneously).
+        // Null the ref BEFORE the await so a second concurrent call sees null and exits.
+        if (!watchStartTimeRef.current || !currentWatchingVideoRef.current || !userId) {
+            setSelectedVideo(null);
+            setVlHudVisible(false);
+            clearTimeout(vlHudTimer.current);
+            if (typeof window !== 'undefined' && savedScrollY.current > 0) {
+                requestAnimationFrame(() => window.scrollTo({ top: savedScrollY.current, behavior: 'instant' }));
+            }
+            return;
+        }
+        const startTime = watchStartTimeRef.current;
+        const video = currentWatchingVideoRef.current;
+        // Clear refs IMMEDIATELY to prevent concurrent call from re-entering
+        watchStartTimeRef.current = null;
+        currentWatchingVideoRef.current = null;
+
+        if (true) { // scoping block (was if (watchStartTimeRef.current...))
+            const watchedSeconds = Math.floor((Date.now() - startTime) / 1000);
+
 
             if (watchedSeconds > 0) {
                 try {
@@ -582,11 +601,12 @@ export default function VideoLibraryPage() {
                     console.warn('Error saving watch duration:', err);
                 }
             }
-        }
+        } // end scoping block
 
-        // Clear refs
-        watchStartTimeRef.current = null;
-        currentWatchingVideoRef.current = null;
+        // Refs already cleared above — just clean up UI
+        // BUG-K FIX: cancel in-flight iframe unmute timers before iframe unmounts
+        iframeUnmuteTimers.current.forEach(clearTimeout);
+        iframeUnmuteTimers.current = [];
         setSelectedVideo(null);
         // Reset HUD state
         setVlHudVisible(false);
@@ -689,12 +709,8 @@ export default function VideoLibraryPage() {
         return `${hours}h ${mins}m`;
     };
 
-    // Get progress percentage for a video — memoized map avoids re-computing 345× per render
-    // Rebuilt only when watchProgress Map changes
-    const progressPercentMap = useState(() => new Map())[0]; // stable ref
-    useEffect(() => {
-        // No-op if empty
-    }, [watchProgress]);
+    // BUG-D FIX: removed dead progressPercentMap useState (frozen empty Map, never used)
+    // and its no-op useEffect([watchProgress]). getProgressPercent reads watchProgress directly.
     const getProgressPercent = useCallback((videoId, durationStr) => {
         const progress = watchProgress.get(videoId);
         if (!progress) return 0;
@@ -752,6 +768,41 @@ export default function VideoLibraryPage() {
 
     // Cleanup interval on unmount
     useEffect(() => () => { if (timeTrackingInterval.current) clearInterval(timeTrackingInterval.current); }, []);
+
+    // ── BUG-I FIX: Flush pending watch time on tab hide / browser close ─────────
+    // Without this, a user who closes the tab while the video modal is open loses all
+    // accumulated watch time because handleCloseVideo never runs.
+    const pendingFlushRef = useRef(false);
+    useEffect(() => {
+        const flushWatchTime = () => {
+            if (pendingFlushRef.current) return; // debounce double-fire
+            if (!watchStartTimeRef.current || !currentWatchingVideoRef.current || !userId) return;
+            pendingFlushRef.current = true;
+            const watchedSeconds = Math.floor((Date.now() - watchStartTimeRef.current) / 1000);
+            const video = currentWatchingVideoRef.current;
+            // Use sendBeacon for guaranteed delivery on page hide
+            if (watchedSeconds > 0) {
+                // Optimistic: reset refs immediately
+                watchStartTimeRef.current = null;
+                currentWatchingVideoRef.current = null;
+                // Fire-and-forget via service — if page is unloading, supabase will try its best
+                updateWatchDuration(userId, video.id, watchedSeconds, {
+                    title: video.title,
+                    url: `https://youtube.com/watch?v=${video.videoId}`,
+                    thumbnail: `https://img.youtube.com/vi/${video.videoId}/maxresdefault.jpg`
+                }).catch(() => {});
+            }
+            // Reset debounce after 2s
+            setTimeout(() => { pendingFlushRef.current = false; }, 2000);
+        };
+        const onHide = () => { if (document.visibilityState === 'hidden') flushWatchTime(); };
+        document.addEventListener('visibilitychange', onHide);
+        window.addEventListener('beforeunload', flushWatchTime);
+        return () => {
+            document.removeEventListener('visibilitychange', onHide);
+            window.removeEventListener('beforeunload', flushWatchTime);
+        };
+    }, [userId]);
 
     return (
         <PageTransition>
@@ -1771,7 +1822,12 @@ export default function VideoLibraryPage() {
                                         removeVideoFavorite(userId, videoId).catch(() => {});
                                     } else {
                                         setFavorites(prev => new Set([...prev, videoId]));
-                                        addVideoFavorite(userId, videoId).catch(() => {});
+                                        // BUG-B FIX: pass full metadata so DB columns are not null
+                                        addVideoFavorite(userId, videoId, {
+                                            title: selectedVideo?.title || '',
+                                            source: selectedVideo?.source || '',
+                                            video_url: `https://youtube.com/watch?v=${selectedVideo?.videoId || videoId}`
+                                        }).catch(() => {});
                                     }
                                     vlRevealHud(); // reset auto-hide timer
                                 }}
@@ -1911,10 +1967,13 @@ export default function VideoLibraryPage() {
                             onLoad={(e) => {
                                 // mute=1 in URL ensures mobile autoplay compliance.
                                 // Now unmute immediately — the user tapped a card (valid gesture), so audio is allowed.
+                                // BUG-K FIX: track timer IDs so they can be cancelled if modal closes < 1200ms
+                                iframeUnmuteTimers.current.forEach(clearTimeout);
+                                iframeUnmuteTimers.current = [];
                                 try {
                                     const win = e.target.contentWindow;
                                     win.postMessage(JSON.stringify({ event: 'listening' }), '*');
-                                    [200, 600, 1200].forEach(d => setTimeout(() => {
+                                    iframeUnmuteTimers.current = [200, 600, 1200].map(d => setTimeout(() => {
                                         try {
                                             win.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
                                             win.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');

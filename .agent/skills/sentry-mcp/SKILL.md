@@ -3,6 +3,9 @@ name: Sentry MCP — AI-Powered Error Triage
 description: Query Sentry error logs, stack traces, and user impact data directly from the agent. Use for post-deploy error monitoring, debugging production issues, and prioritizing bugs by impact.
 ---
 
+> [!CAUTION]
+> **AUTO-FIX PIPELINE DISABLED (2026-04-26)** — Do NOT auto-remediate Sentry errors after deploys. Query Sentry to gather diagnostics, then **STOP and report findings to the user**. The user will decide what to fix and when. Do NOT autonomously push fixes based on Sentry data.
+
 # Sentry MCP — AI-Powered Error Triage
 
 > **Production error intelligence** — Query error traces, stack traces, and user impact data directly. Diagnose issues without opening the Sentry dashboard.
@@ -53,12 +56,12 @@ description: Query Sentry error logs, stack traces, and user impact data directl
 - **Project:** hub-vanguard (or equivalent)
 - **DSN:** Configured in `next.config.js` via `@sentry/nextjs`
 
-## Post-Deploy Chain
+## Post-Deploy Chain (REPORTING ONLY — Auto-Fix Disabled)
 
 ```
 Vercel Deploy
     → Wait 2-3 minutes
     → Sentry: "Any new errors since deploy?"
-    → If yes → Diagnose → Fix → Redeploy
-    → If no → ✅ Deployment healthy
+    → Report findings to the user
+    → STOP — user will decide whether to fix and how
 ```

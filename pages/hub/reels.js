@@ -2096,6 +2096,42 @@ export default function ReelsPage() {
                         </span>
                     </button>
 
+                    {/* Train This Spot — deep-link to GTO trainer with reel context */}
+                    <button
+                        onClick={() => {
+                            const ytVid = getYouTubeVideoId(currentReel?.video_url);
+                            const title = (currentReel?.caption || '').slice(0, 80);
+                            const params = new URLSearchParams({
+                                ref: 'reels',
+                                vid: ytVid || currentReel?.id || '',
+                                title,
+                                source: 'Reels',
+                            });
+                            router.push(`/hub/training?${params.toString()}`);
+                        }}
+                        aria-label="Train This Spot"
+                        style={{
+                            background: 'none', border: 'none', cursor: 'pointer',
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                        }}
+                    >
+                        <div style={{
+                            width: 36, height: 36, borderRadius: '50%',
+                            background: 'rgba(0,200,83,0.25)',
+                            border: '1.5px solid rgba(0,200,83,0.7)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            filter: 'drop-shadow(0 0 6px rgba(0,200,83,0.5))',
+                            animation: 'tts-glow 2.5s ease-in-out infinite',
+                        }}>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34C759" strokeWidth="2.5">
+                                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                                <path d="M2 17l10 5 10-5"/>
+                                <path d="M2 12l10 5 10-5"/>
+                            </svg>
+                        </div>
+                        <span style={{ color: '#34C759', fontSize: 10, fontWeight: 700, textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>Train</span>
+                    </button>
+
                     {/* More (···) - opens panel with Sound, Report, Speed, Link */}
                     <div style={{ position: 'relative' }}>
                         <button onClick={() => setShowMoreMenu(prev => !prev)} aria-label="More options" style={{
@@ -2420,6 +2456,10 @@ export default function ReelsPage() {
                     @keyframes pulse {
                         0%, 100% { box-shadow: 0 0 0 0 rgba(0,212,255,0.3); }
                         50% { box-shadow: 0 0 0 8px rgba(0,212,255,0); }
+                    }
+                    @keyframes tts-glow {
+                        0%, 100% { box-shadow: 0 0 6px rgba(0,200,83,0.4); border-color: rgba(0,200,83,0.7); }
+                        50%       { box-shadow: 0 0 18px rgba(0,200,83,0.8); border-color: rgba(0,200,83,1); }
                     }
                 `}</style>
 
