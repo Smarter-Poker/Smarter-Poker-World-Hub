@@ -3,7 +3,7 @@
  * Browse and watch complete hands from HCL, The Lodge, Triton, and more
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
 import { useYouTubeErrorManager, YouTubeErrorOverlay } from '../../src/hooks/useYouTubeErrorManager';
 import SEOHead from '../../src/components/seo/SEOHead';
@@ -190,21 +190,23 @@ export default function VideoLibraryPage() {
     // ── P3: Sort mode — 'default' | 'trending' | 'top_rated' ─────────────────
     const [sortMode, setSortMode] = useState('default');
 
-    // ── P3: Trending score — views weighted by recency (7-day half-life) ──────
-    // Computed once when allVideos changes, memoized via useMemo pattern
-    const trendingScores = (() => {
+    // ── P3: Trending score — views × recency decay (7-day half-life)
+    // useMemo: stable Map reference — only recomputes when allVideos changes.
+    // CRITICAL: IIFE here would create a new Map every render, triggering the
+    // filter useEffect on every state change (infinite re-render loop in trending mode).
+    const trendingScores = useMemo(() => {
         const now = Date.now();
         const HALF_LIFE_MS = 7 * 24 * 3600 * 1000; // 7 days
         const scores = new Map();
         allVideos.forEach(v => {
-            const views = v.views ? parseInt(String(v.views).replace(/[KMk]/g, m => m === 'K' || m === 'k' ? '000' : '000000').replace(/[^0-9]/g,'')) || 0 : 0;
+            const views = parseViews(v.views);
             const scraped = v.scrapedAt || v.publishedAt;
             const ageMs = scraped ? now - new Date(scraped).getTime() : HALF_LIFE_MS * 4;
-            const recencyMultiplier = Math.pow(2, -ageMs / HALF_LIFE_MS); // exponential decay
-            scores.set(v.id, views * recencyMultiplier + (ageMs < 3 * 24 * 3600 * 1000 ? 50000 : 0)); // boost very new
+            const decay = Math.pow(2, -ageMs / HALF_LIFE_MS);
+            scores.set(v.id, views * decay + (ageMs < 3 * 24 * 3600 * 1000 ? 50000 : 0));
         });
         return scores;
-    })();
+    }, [allVideos]); // ← stable dep: only recomputes when the video list changes
 
     // ── Stage 2/3 Feature State ──────────────────────────────────────────────
     // Duration filter: 'ALL' | 'SHORT' (<15 min) | 'MEDIUM' (15-30) | 'LONG' (>30)
@@ -306,7 +308,9 @@ export default function VideoLibraryPage() {
             .on('postgres_changes', {
                 event: '*',
                 schema: 'public',
-                table: 'user_video_watch_history',
+                // FIX: was 'user_video_watch_history' — actual table is 'video_watch_history'
+                // (confirmed in src/services/videoWatchHistory.js). Wrong name = RT never fires.
+                table: 'video_watch_history',
                 filter: `user_id=eq.${userId}`
             }, () => {
                 // Reload watch stats, recently watched, AND watch progress map (cross-device sync)
@@ -612,11 +616,9 @@ export default function VideoLibraryPage() {
         if (sortMode === 'trending') {
             filtered = [...filtered].sort((a, b) => (trendingScores.get(b.id) || 0) - (trendingScores.get(a.id) || 0));
         } else if (sortMode === 'top_rated') {
-            filtered = [...filtered].sort((a, b) => {
-                const aViews = parseInt(String(a.views || '0').replace(/[KMk]/g, m => m.toUpperCase() === 'K' ? '000' : '000000').replace(/[^0-9]/g,'')) || 0;
-                const bViews = parseInt(String(b.views || '0').replace(/[KMk]/g, m => m.toUpperCase() === 'K' ? '000' : '000000').replace(/[^0-9]/g,'')) || 0;
-                return bViews - aViews;
-            });
+            // FIX: was regex-based parser that gave '2.3M' → 23,000,000 (10x wrong)
+            // parseViews() correctly handles decimals: '2.3M' → 2,300,000
+            filtered = [...filtered].sort((a, b) => parseViews(b.views) - parseViews(a.views));
         } else {
             // Default: watched videos sink to bottom
             filtered = filtered.sort((a, b) => {
@@ -646,6 +648,22 @@ export default function VideoLibraryPage() {
     // Get YouTube thumbnail
     const getThumbnail = (videoId) => `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
 
+    // Parse views string ('1.5K' → 1500, '2.3M' → 2300000, '800' → 800)
+    // IMPORTANT: the old regex approach ('2.3M'.replace(/M/,'000000') = '23M') was 10x wrong
+    // for decimals. This float-based parser is the single source of truth for both
+    // trendingScores and top_rated sort.
+    const parseViews = (v) => {
+        if (!v) return 0;
+        const s = String(v).trim();
+        const m = s.match(/^([0-9.]+)\s*([KMkm])?/);
+        if (!m) return 0;
+        const num = parseFloat(m[1]) || 0;
+        const suffix = (m[2] || '').toUpperCase();
+        if (suffix === 'M') return Math.round(num * 1_000_000);
+        if (suffix === 'K') return Math.round(num * 1_000);
+        return Math.round(num);
+    };
+
     // Parse duration string (e.g., "18:34" or "1:23:45") to seconds
     const parseDuration = (durationStr) => {
         if (!durationStr) return 0;
@@ -654,6 +672,7 @@ export default function VideoLibraryPage() {
         if (parts.length === 2) return parts[0] * 60 + parts[1];
         return parts[0] || 0;
     };
+
 
     // Format seconds to readable time
     const formatTime = (seconds) => {
@@ -679,7 +698,10 @@ export default function VideoLibraryPage() {
     }, [watchProgress]);
 
     // ── P3: Related Videos — same source first, then tag overlap, max 8 ──────
-    const relatedVideos = selectedVideo ? (() => {
+    // useMemo: only recomputes when selectedVideo or allVideos changes.
+    // CRITICAL: IIFE would score all 345 videos on every render (HUD show/hide,
+    // state updates) causing visible jank on mobile. useMemo prevents this.
+    const relatedVideos = useMemo(() => {
         if (!selectedVideo) return [];
         const currentTags = new Set((selectedVideo.tags || []).map(t => t.toLowerCase()));
         const scored = allVideos
@@ -691,7 +713,6 @@ export default function VideoLibraryPage() {
                 const vTags = (v.tags || []).map(t => t.toLowerCase());
                 const overlap = vTags.filter(t => currentTags.has(t)).length;
                 score += overlap * 5;
-                // Slight recency boost
                 const ageMs = v.scrapedAt ? Date.now() - new Date(v.scrapedAt).getTime() : Infinity;
                 if (ageMs < 7 * 24 * 3600 * 1000) score += 2;
                 return { video: v, score };
@@ -701,10 +722,12 @@ export default function VideoLibraryPage() {
             .slice(0, 8)
             .map(x => x.video);
         return scored;
-    })() : [];
+    }, [selectedVideo, allVideos]); // ← recomputes only when modal video or library changes
 
     // "New This Week" — videos scraped in the past 7 days, sorted newest first
-    const newThisWeek = allVideos
+    // useMemo: inline .filter().sort() on 345 videos on every render was causing
+    // unnecessary CPU work on every state change (HUD, modal open, etc.)
+    const newThisWeek = useMemo(() => allVideos
         .filter(v => {
             const scraped = v.scrapedAt || v.publishedAt;
             if (!scraped) return false;
@@ -712,7 +735,8 @@ export default function VideoLibraryPage() {
             return age < 7 * 24 * 3600;
         })
         .sort((a, b) => new Date(b.scrapedAt || b.publishedAt) - new Date(a.scrapedAt || a.publishedAt))
-        .slice(0, 20);
+        .slice(0, 20)
+    , [allVideos]); // ← stable: recomputes only when library refreshes
 
     // Cleanup share toast timer on unmount
     useEffect(() => () => { if (shareToastTimer.current) clearTimeout(shareToastTimer.current); }, []);
@@ -1952,7 +1976,8 @@ export default function VideoLibraryPage() {
                                     {selectedVideo.duration}
                                 </span>
                                 {/* ── P3: Train This Spot — GTO deep-link ── */}
-                                {selectedVideo.tags && selectedVideo.tags.length > 0 && (
+                                {/* Guard: require at least one non-empty tag (length>0 passes for ['']) */}
+                                {selectedVideo.tags && selectedVideo.tags.some(t => t && t.trim().length > 0) && (
                                     <button
                                         onClick={() => {
                                             // Deep-link to GTO Trainer with video context pre-loaded

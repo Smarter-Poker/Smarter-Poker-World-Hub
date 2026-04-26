@@ -50,6 +50,16 @@ let _lastEta = '';            // cached ETA string for label display
 // ─── Ghost post metadata ─────────────────────────────────────────────────────
 let _ghostMeta = null;        // { userId, content, thumbnail, fileName }
 
+// ─── Network state ───────────────────────────────────────────────────────────
+let _networkListeners = null;
+
+// ─── Retry support ───────────────────────────────────────────────────────────
+let _lastUploadParams = null;  // saved for retry-on-failure
+
+// ─── Queue progress ──────────────────────────────────────────────────────────
+let _queuePosition = 0;
+let _queueTotal = 0;
+
 // ─── beforeunload protection ──────────────────────────────────────────────────
 function _installBeforeUnload() {
     if (_beforeUnloadHandler) return; // already installed
@@ -60,6 +70,32 @@ function _removeBeforeUnload() {
     if (!_beforeUnloadHandler) return;
     window.removeEventListener('beforeunload', _beforeUnloadHandler);
     _beforeUnloadHandler = null;
+}
+
+// ─── Network state listeners (online/offline) ────────────────────────────────
+function _installNetworkListeners() {
+    if (_networkListeners || typeof window === 'undefined') return;
+    const handleOffline = () => {
+        if (_state === 'uploading' || _state === 'background') {
+            _label = 'Waiting for connection…';
+            _emit('onProgress', { state: _state, pct: _progress, label: _label, queuePosition: _queuePosition, queueTotal: _queueTotal });
+        }
+    };
+    const handleOnline = () => {
+        if (_state === 'uploading' || _state === 'background') {
+            _label = 'Connection restored — resuming…';
+            _emit('onProgress', { state: _state, pct: _progress, label: _label, queuePosition: _queuePosition, queueTotal: _queueTotal });
+        }
+    };
+    _networkListeners = { offline: handleOffline, online: handleOnline };
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('online', handleOnline);
+}
+function _removeNetworkListeners() {
+    if (!_networkListeners) return;
+    window.removeEventListener('offline', _networkListeners.offline);
+    window.removeEventListener('online', _networkListeners.online);
+    _networkListeners = null;
 }
 
 // Prefetch cache — stores the signed URL so start() can skip the network call
@@ -87,7 +123,7 @@ function _setState(state, progress, label) {
     _state = state;
     if (progress !== undefined) _progress = progress;
     if (label !== undefined) _label = label;
-    _emit('onProgress', { state: _state, pct: _progress, label: _label });
+    _emit('onProgress', { state: _state, pct: _progress, label: _label, queuePosition: _queuePosition, queueTotal: _queueTotal });
 }
 
 /**
@@ -394,6 +430,12 @@ const bgUpload = {
         // Prevent accidental tab close during upload
         _installBeforeUnload();
 
+        // Save params for retry-on-failure
+        _lastUploadParams = { file, userId, folder, bgAfterMs, onDismiss, onRouter, content, thumbnail };
+
+        // Network state monitoring — shows connection status in progress label
+        _installNetworkListeners();
+
         // 10-second background trigger
         _bgTimer = setTimeout(() => {
             if (_state !== 'uploading') return;
@@ -449,7 +491,9 @@ const bgUpload = {
             clearTimeout(_bgTimer);
             _bgTimer = null;
             _removeBeforeUnload();
+            _removeNetworkListeners();
             _clearUploadIntent();
+            _lastUploadParams = null;
             // Dismiss the persistent background toast before showing completion
             if (_bgToastId) {
                 useToastStore.getState().removeToast(_bgToastId);
@@ -468,6 +512,7 @@ const bgUpload = {
             clearTimeout(_bgTimer);
             _bgTimer = null;
             _removeBeforeUnload();
+            _removeNetworkListeners();
             _clearUploadIntent();
             _activeXhr = null;
             // Dismiss the persistent background toast
@@ -479,9 +524,18 @@ const bgUpload = {
             _setState('error', 0, err.message || 'Upload failed');
             _emit('onError', { error: err });
 
-            // Only show error toast if modal is already gone (background mode)
+            // Show error toast with retry button if in background mode
             if (wasBackground) {
-                toast.error(`Video upload failed: ${err.message}`);
+                const retryParams = _lastUploadParams;
+                if (retryParams) {
+                    toast.action(
+                        `Video upload failed: ${err.message}. Tap to retry.`,
+                        () => { bgUpload.retry(); },
+                        'error'
+                    );
+                } else {
+                    toast.error(`Video upload failed: ${err.message}`);
+                }
             }
 
             throw err;

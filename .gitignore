@@ -1,115 +1,97 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
-.vscode/*
+!.venv/.gitkeep
 !.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-.vercel
-.env*.local
-.next/
-
+!data/bravo-logs/.gitkeep
+!data/charity-scraper-logs/.gitkeep
+!data/pokeratlas-logs/.gitkeep
+!data/scrape-evidence/.gitkeep
+!data/tournament-logs/.gitkeep
+# Agent brain artifacts (may contain tokens from browser sessions)
+# Auto-generated service worker files (next-pwa / workbox)
+# Background shell state
+# Charity scraper logs — keep dir, ignore contents
+# Club Arena build artifacts — DO NOT gitignore!
 # Content engine
-src/content-engine/node_modules
-
 # Credentials (keep secure)
+# Deploy audit trail
+# Editor directories and files
+# Ephemeral daemon state logs — keep dir, ignore contents
+# Keep directories via .gitkeep — ignore contents only
+# Legacy one-off scripts, logs, SQL moved from root
+# Local deployment logs and temporary files
+# Logs
+# NEVER manually add files to public/hub/club-arena/.
+# Next.js build artifacts
+# Poker Brain dev assets (reference screenshots, debug crops)
+# Python bytecode
+# Scraper daemon outputs (data goes to Supabase, these are ephemeral local audit trails)
+# Soft-deleted paths (sandboxed delete tombstones)
+# Source maps inside public/ — uploaded to Sentry at build, not shipped to browsers via git
+# Use scripts/build-club-arena.sh to rebuild — it atomically
+# Vercel deploys from git, so these MUST be committed.
+# Virtiofs EPERM workaround: stale rename tombstones (safe to ignore; cleaned up outside git)
+# cleans old hashes, copies new build, and commits+pushes.
+**/*.dead.*/
+**/*.dead/
+**/*.stale.*/
+*.dead
+*.dead.*
+*.env.*
+*.local
+*.log
+*.njsproj
+*.ntvs*
+*.pyc
+*.sln
+*.stale.*
+*.suo
+*.sw?
+.DS_Store
 .agent/skills/credentials/
 .agent/skills/deployment.md
+.bg-shell/
+.env
+.env*.local
 .env.production
-*.env.*
-
-# Agent brain artifacts (may contain tokens from browser sessions)
 .gemini/
-
-# Auto-generated service worker files (next-pwa / workbox)
+.idea
+.memory/
+.memory/**
+.next/
+.venv
+.vercel
+.vscode/*
+__pycache__/
+_legacy_club_arena_standalone_pages.dead/
+_legacy_logs/
+_legacy_scripts/
+_legacy_sql/
+data/bravo-live-snapshot.json
+data/bravo-logs/*
+data/charity-scraper-logs/*
+data/pokeratlas-live-snapshot.json
+data/pokeratlas-logs/*
+data/scrape-evidence/*
+data/tournament-logs/*
+dist
+dist-ssr
+git_status_all.txt
+lerna-debug.log*
+logs
+logs/
+node_modules
+npm-debug.log*
+pnpm-debug.log*
+pokerbrain-assets/
+public/hub/club-arena/assets/*.css.map
+public/hub/club-arena/assets/*.js.map
 public/sw.js
 public/sw.js.map
 public/workbox-*.js
 public/workbox-*.js.map
-
-# Deploy audit trail
-logs/
-
-# Next.js build artifacts
 public/worker-*.js
-
-# Legacy one-off scripts, logs, SQL moved from root
-_legacy_scripts/
-_legacy_logs/
-_legacy_sql/
-.venv
-!.venv/.gitkeep
-
-# Scraper daemon outputs (data goes to Supabase, these are ephemeral local audit trails)
-# Keep directories via .gitkeep — ignore contents only
-data/scrape-evidence/*
-!data/scrape-evidence/.gitkeep
-data/bravo-live-snapshot.json
-data/pokeratlas-live-snapshot.json
-data/bravo-logs/*
-!data/bravo-logs/.gitkeep
-data/pokeratlas-logs/*
-!data/pokeratlas-logs/.gitkeep
-
-# Charity scraper logs — keep dir, ignore contents
-data/charity-scraper-logs/*
-!data/charity-scraper-logs/.gitkeep
-
-# Background shell state
-.bg-shell/
-
-# Python bytecode
-__pycache__/
-*.pyc
-
-# Poker Brain dev assets (reference screenshots, debug crops)
-pokerbrain-assets/
 scripts/poker-brain/.venv/
-
-# Ephemeral daemon state logs — keep dir, ignore contents
-data/tournament-logs/*
-!data/tournament-logs/.gitkeep
-
-# Club Arena build artifacts — DO NOT gitignore!
-# Vercel deploys from git, so these MUST be committed.
-# Use scripts/build-club-arena.sh to rebuild — it atomically
-# cleans old hashes, copies new build, and commits+pushes.
-# NEVER manually add files to public/hub/club-arena/.
-
-# Local deployment logs and temporary files
+src/content-engine/node_modules
 vercel_deploy_output.txt
-git_status_all.txt
-
-
-# Soft-deleted paths (sandboxed delete tombstones)
-*.dead
-**/*.dead/
-*.dead.*
-**/*.dead.*/
-_legacy_club_arena_standalone_pages.dead/
-
-# Virtiofs EPERM workaround: stale rename tombstones (safe to ignore; cleaned up outside git)
-*.stale.*
-**/*.stale.*/
-
-# Source maps inside public/ — uploaded to Sentry at build, not shipped to browsers via git
-public/hub/club-arena/assets/*.js.map
-public/hub/club-arena/assets/*.css.map
-.env
+yarn-debug.log*
+yarn-error.log*
