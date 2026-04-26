@@ -479,7 +479,62 @@ const nextConfig = {
       //
       // afterFiles handles SPA routing — serves index.html for routes that
       // don't match a real file in public/ or a native Next.js page.
-      beforeFiles: [],
+      beforeFiles: [
+        // Phase 3-deploy: commander.smarter.poker proxy.
+        // beforeFiles runs BEFORE Next.js pages/, so this beats the legacy
+        // pages/commander/* monolith routes that still exist during the
+        // migration window. Phase 3.7 monolith cleanup will delete those.
+        {
+          source: '/commander/:path*',
+          destination: 'https://commander.smarter.poker/commander/:path*',
+        },
+        {
+          source: '/api/commander/:path*',
+          destination: 'https://commander.smarter.poker/api/commander/:path*',
+        },
+        // Commander-specific /api/admin paths only — explicit per-route to
+        // avoid hijacking the 28 monolith /api/admin/* routes (check-*, etc).
+        {
+          source: '/api/admin/api-keys/:path*',
+          destination: 'https://commander.smarter.poker/api/admin/api-keys/:path*',
+        },
+        {
+          source: '/api/admin/api-keys',
+          destination: 'https://commander.smarter.poker/api/admin/api-keys',
+        },
+        {
+          source: '/api/admin/audit-logs',
+          destination: 'https://commander.smarter.poker/api/admin/audit-logs',
+        },
+        {
+          source: '/api/admin/leads',
+          destination: 'https://commander.smarter.poker/api/admin/leads',
+        },
+        {
+          source: '/api/admin/pilots',
+          destination: 'https://commander.smarter.poker/api/admin/pilots',
+        },
+        {
+          source: '/api/admin/pin-logout',
+          destination: 'https://commander.smarter.poker/api/admin/pin-logout',
+        },
+        {
+          source: '/api/admin/pin-setup',
+          destination: 'https://commander.smarter.poker/api/admin/pin-setup',
+        },
+        {
+          source: '/api/admin/pin-verify',
+          destination: 'https://commander.smarter.poker/api/admin/pin-verify',
+        },
+        {
+          source: '/api/admin/venues/:path*',
+          destination: 'https://commander.smarter.poker/api/admin/venues/:path*',
+        },
+        {
+          source: '/api/admin/venues',
+          destination: 'https://commander.smarter.poker/api/admin/venues',
+        },
+      ],
       afterFiles: [],
       // fallback rewrites run LAST — after pages AND public/ files.
       // This ensures all static files (JS/CSS/images/cards/logos) in
