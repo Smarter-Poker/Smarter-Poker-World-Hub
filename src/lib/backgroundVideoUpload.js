@@ -351,7 +351,7 @@ const bgUpload = {
         _listeners.add(listener);
         // Immediately emit current state so late subscribers are in sync
         if (_state !== 'idle') {
-            listener.onProgress?.({ state: _state, pct: _progress, label: _label });
+            listener.onProgress?.({ state: _state, pct: _progress, label: _label, queuePosition: _queuePosition, queueTotal: _queueTotal });
         }
         return () => _listeners.delete(listener);
     },
@@ -403,8 +403,20 @@ const bgUpload = {
         const savedPrefetch = _prefetchCache;
         const savedListeners = new Set(_listeners);
 
-        // Abort any previous upload (this resets _prefetchCache, _listeners, etc.)
-        bgUpload.abort();
+        // Silent reset of previous upload state (NOT a user-facing abort — no onError emission)
+        clearTimeout(_bgTimer);
+        _bgTimer = null;
+        _removeBeforeUnload();
+        _removeNetworkListeners();
+        _clearUploadIntent();
+        if (_bgToastId) {
+            useToastStore.getState().removeToast(_bgToastId);
+            _bgToastId = null;
+        }
+        if (_activeXhr) {
+            try { _activeXhr.abort(); } catch (_) {}
+            _activeXhr = null;
+        }
 
         // Restore saved state so new subscribers and prefetch cache survive
         _prefetchCache = savedPrefetch;

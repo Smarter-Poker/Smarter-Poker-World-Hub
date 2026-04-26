@@ -19,26 +19,32 @@ export function useTranscodeStatus(postId, enabled = false) {
     const [outputUrl, setOutputUrl] = useState(null);
     const pollCountRef = useRef(0);
     const intervalRef = useRef(null);
+    const mountedRef = useRef(true);
 
     useEffect(() => {
+        // Reset on postId change
+        mountedRef.current = true;
+        pollCountRef.current = 0;
+
         if (!enabled || !postId) return;
 
         async function poll() {
             try {
-                const token = await getAccessToken();
+                const token = getAccessToken();
                 if (!token) return;
 
                 const res = await fetch(`/api/video/transcode-status?postId=${postId}`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 
-                if (!res.ok) return;
+                if (!res.ok || !mountedRef.current) return;
                 const data = await res.json();
+                if (!mountedRef.current) return;
                 
                 if (!data.success || !data.job) {
                     // No job found — video doesn't need transcoding
                     setStatus(null);
-                    clearInterval(intervalRef.current);
+                    if (intervalRef.current) clearInterval(intervalRef.current);
                     return;
                 }
 
@@ -48,14 +54,14 @@ export function useTranscodeStatus(postId, enabled = false) {
                 
                 if (job.status === 'complete') {
                     setOutputUrl(job.output_url);
-                    clearInterval(intervalRef.current);
+                    if (intervalRef.current) clearInterval(intervalRef.current);
                 } else if (job.status === 'error') {
-                    clearInterval(intervalRef.current);
+                    if (intervalRef.current) clearInterval(intervalRef.current);
                 }
 
                 pollCountRef.current++;
                 if (pollCountRef.current >= MAX_POLLS) {
-                    clearInterval(intervalRef.current);
+                    if (intervalRef.current) clearInterval(intervalRef.current);
                 }
             } catch (_) {
                 // Silently fail — polling should be resilient
@@ -68,7 +74,11 @@ export function useTranscodeStatus(postId, enabled = false) {
         intervalRef.current = setInterval(poll, POLL_INTERVAL);
 
         return () => {
-            if (intervalRef.current) clearInterval(intervalRef.current);
+            mountedRef.current = false;
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = null;
+            }
         };
     }, [postId, enabled]);
 

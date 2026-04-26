@@ -99,7 +99,7 @@ app.post('/create', async (c) => {
         expires_at: expiresAt,
       })
       .select('id')
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
     return c.json({ success: true, callId: data.id, expiresAt });
