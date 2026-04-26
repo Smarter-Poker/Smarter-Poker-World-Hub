@@ -484,6 +484,16 @@ const nextConfig = {
         // beforeFiles runs BEFORE Next.js pages/, so this beats the legacy
         // pages/commander/* monolith routes that still exist during the
         // migration window. Phase 3.7 monolith cleanup will delete those.
+        //
+        // Note: must list /commander BARE in addition to /commander/:path*.
+        // The :path* matcher with empty path captures '' and produces
+        // destination '.../commander/' (trailing slash) which next.js then
+        // 308-redirects back to '/commander', creating a loop. Listing the
+        // bare path explicitly ensures no trailing slash is appended.
+        {
+          source: '/commander',
+          destination: 'https://commander.smarter.poker/commander',
+        },
         {
           source: '/commander/:path*',
           destination: 'https://commander.smarter.poker/commander/:path*',
