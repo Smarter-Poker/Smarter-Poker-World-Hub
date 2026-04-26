@@ -166,6 +166,7 @@ function ReelCard({ reel, onClick }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                     <img
                         src={reel.profiles?.avatar_url || '/default-avatar.png'}
+                        alt={reel.profiles?.username || 'User'}
                         style={{
                             width: 24,
                             height: 24,
@@ -325,9 +326,14 @@ function ReelViewer({ reels, startIndex, onClose }) {
     const [commentSort, setCommentSort] = useState('newest');
     const [copyToast, setCopyToast] = useState(false);
     const COMMENT_MAX_LENGTH = 280;
-    // #10 Error Toast
+    // #10 Error Toast — timer tracked in ref so it can be cleared on unmount
     const [errorToast, setErrorToast] = useState(null);
-    const showErrorToast = (msg) => { setErrorToast(msg); setTimeout(() => setErrorToast(null), 3000); };
+    const errorToastTimerRef = useRef(null);
+    const showErrorToast = (msg) => {
+        if (errorToastTimerRef.current) clearTimeout(errorToastTimerRef.current);
+        setErrorToast(msg);
+        errorToastTimerRef.current = setTimeout(() => setErrorToast(null), 3000);
+    };
     // #6 Comment Like Counts
     const [commentLikeCounts, setCommentLikeCounts] = useState({});
     // UX Overhaul - More menu + Reaction picker
@@ -1047,18 +1053,21 @@ function ReelViewer({ reels, startIndex, onClose }) {
             progressRAF.current = null;
         }
 
-        // Deduplicated view count - only fire once per reel per session (auth only)
+        // Deduplicated view count — defer 2s so rapid swipes don't inflate counts.
+        // Only fires if the user actually watches for at least 2 seconds.
         const reelId = reels[currentIndex]?.id;
-        if (reelId && authUser?.id && !viewedReelsRef.current.has(reelId)) {
-            viewedReelsRef.current.add(reelId);
-            setViewCounts(prev => ({ ...prev, [reelId]: (prev[reelId] || reels[currentIndex]?.view_count || 0) + 1 }));
-            incrementMetric(reels[currentIndex], 'view_count', 1);
-        }
+        const viewCountTimer = (reelId && authUser?.id && !viewedReelsRef.current.has(reelId))
+            ? setTimeout(() => {
+                viewedReelsRef.current.add(reelId);
+                setViewCounts(prev => ({ ...prev, [reelId]: (prev[reelId] || reels[currentIndex]?.view_count || 0) + 1 }));
+                incrementMetric(reels[currentIndex], 'view_count', 1);
+            }, 2000)
+            : null;
 
         // Play via canplay event - video element may be remounting due to key change,
         // calling play() immediately causes AbortError on mobile Safari.
         const video = videoRef.current;
-        if (!video) return () => clearTimeout(ytReadyFallback);
+        if (!video) return () => { clearTimeout(ytReadyFallback); clearTimeout(viewCountTimer); };
         // For native video, set ytReady immediately when play starts so the
         // pause/play button is visible without waiting 3s for the fallback timer.
         const onPlay = () => setYtReady(true);
@@ -1075,6 +1084,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
         }
         return () => {
             clearTimeout(ytReadyFallback);
+            clearTimeout(viewCountTimer);
             video.removeEventListener('canplay', onCanPlay);
             video.removeEventListener('play', onPlay);
         };
@@ -1138,6 +1148,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
             if (reactionTimerRef.current) clearTimeout(reactionTimerRef.current);
             if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
             if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+            if (errorToastTimerRef.current) clearTimeout(errorToastTimerRef.current);
         };
     }, []);
 
@@ -2090,9 +2101,15 @@ export function ReelsFeedCarousel() {
     const [viewerOpen, setViewerOpen] = useState(false);
     const [viewerStartIndex, setViewerStartIndex] = useState(0);
     const scrollRef = useRef(null);
+    // Tracks first vs subsequent loads — background refreshes skip the loading skeleton
+    const isInitialLoadRef = useRef(true);
+    // Debounce ref: collapses burst Realtime INSERTs into a single reload
+    const reloadDebounceRef = useRef(null);
 
-    const loadReels = useCallback(async () => {
-        setLoading(true);
+    const loadReels = useCallback(async (isBackground = false) => {
+        // Background refresh (triggered by Realtime): don't flash the loading skeleton.
+        // Only the very first load should show the shimmer placeholder.
+        if (!isBackground) setLoading(true);
         try {
             // Parallel fetch: social_reels + social_posts with video content
             const [reelsResult, postsResult] = await Promise.all([
@@ -2165,6 +2182,7 @@ export function ReelsFeedCarousel() {
             console.warn('Load reels error:', e);
             setLoadError(true);
         }
+        isInitialLoadRef.current = false;
         setLoading(false);
     }, []);
 
@@ -2175,25 +2193,29 @@ export function ReelsFeedCarousel() {
         // Unique channel name prevents duplicate subscriptions in React StrictMode
         // (double-invoke of useEffect in dev would create two channels with the same
         // static name, causing loadReels() to fire twice per INSERT event).
+        // Debounced background reload: two rapid INSERTs collapse into one fetch.
+        const debouncedReload = () => {
+            if (reloadDebounceRef.current) clearTimeout(reloadDebounceRef.current);
+            reloadDebounceRef.current = setTimeout(() => loadReels(true), 400);
+        };
         const _ch = supabase
             .channel(`reels-feed-carousel-${Math.random().toString(36).slice(2, 8)}`)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_reels' }, () => {
-                loadReels();
-            })
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_posts' }, () => {
-                loadReels();
-            })
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_reels' }, debouncedReload)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_posts' }, debouncedReload)
             .subscribe();
 
         const handleDataMutated = (event) => {
             if (event?.payload === 'social' || event?.payload === 'reels') {
-                loadReels();
+                // EventBus-triggered reload is also a background refresh
+                if (reloadDebounceRef.current) clearTimeout(reloadDebounceRef.current);
+                reloadDebounceRef.current = setTimeout(() => loadReels(true), 400);
             }
         };
         eventBus.on(EventType.DATA_MUTATED, handleDataMutated);
 
-        return () => { 
-            supabase.removeChannel(_ch); 
+        return () => {
+            if (reloadDebounceRef.current) clearTimeout(reloadDebounceRef.current);
+            supabase.removeChannel(_ch);
             eventBus.off(EventType.DATA_MUTATED, handleDataMutated);
         };
     }, [loadReels]);
