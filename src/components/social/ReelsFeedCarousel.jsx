@@ -496,11 +496,11 @@ function ReelViewer({ reels, startIndex, onClose }) {
     }, [reels]);
 
     const goNext = () => {
-        if (currentIndex < reels.length - 1) setCurrentIndex(prev => prev + 1);
+        setCurrentIndex(prev => prev < reels.length - 1 ? prev + 1 : prev);
     };
 
     const goPrev = () => {
-        if (currentIndex > 0) setCurrentIndex(prev => prev - 1);
+        setCurrentIndex(prev => prev > 0 ? prev - 1 : prev);
     };
 
     // Auto-hide overlay after 2.5 seconds — but NOT when video is paused
@@ -949,7 +949,12 @@ function ReelViewer({ reels, startIndex, onClose }) {
             });
             setReportSubmitted(true);
             setTimeout(() => { setShowReportModal(false); setReportSubmitted(false); setReportReason(''); }, 2000);
-        } catch { /* silent */ }
+        } catch (err) {
+            // Roll back the optimistic submitted state and show an error
+            setReportSubmitted(false);
+            console.warn('[ReelsFeedCarousel] Report submission failed:', err?.message || err);
+            showErrorToast('Report failed — please try again');
+        }
     };
 
     // YouTube auto-advance: listen for onStateChange postMessage (state 0 = ended)
