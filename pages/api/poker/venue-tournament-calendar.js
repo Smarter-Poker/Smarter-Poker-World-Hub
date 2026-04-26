@@ -283,4 +283,8 @@ function generateDatedInstances(recurring, daysAhead = 45) {  // Reduced from 90
     return result;
 }
 
+export const config = {
+    runtime: 'nodejs',
+};
+
 export default handler;
