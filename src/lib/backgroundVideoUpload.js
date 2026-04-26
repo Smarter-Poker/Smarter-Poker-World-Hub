@@ -454,10 +454,10 @@ const bgUpload = {
 
             // Show persistent "uploading in background" toast (stays until upload completes)
             _bgToastId = toast.action(
-                'Your Video Is Uploading In The Background — We Will Notify You When Complete',
-                null,   // no click action
-                'info', // toast type
-                2000    // auto-dismiss after 2 seconds
+                'Upload Is Running In The Background — Do Not Close This App Until Upload Is Completed',
+                null,    // no click action
+                'info',  // toast type
+                // No duration = persistent, auto-removed when upload completes or errors
             );
         }, bgAfterMs);
 

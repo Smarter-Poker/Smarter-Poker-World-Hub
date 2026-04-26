@@ -125,23 +125,35 @@ export default function GhostPostCard({ user }) {
                         {isComplete ? 'Posted!' : isFailed ? 'Failed' : queueInfo ? `Uploading Video ${queueInfo.position} of ${queueInfo.total}…` : 'Uploading Video…'}
                     </div>
                 </div>
-                {/* Cancel button */}
-                {!isComplete && !isFailed && (
+                {/* Cancel / Dismiss button — always shown when upload is not complete */}
+                {!isComplete && (
                     <button
                         onClick={() => { bgUpload.abort(); setVisible(false); }}
                         style={{
-                            background: 'rgba(0,0,0,0.05)', border: 'none',
-                            borderRadius: '50%', width: 32, height: 32,
+                            background: isFailed ? 'rgba(250,56,62,0.1)' : 'rgba(0,0,0,0.05)',
+                            border: 'none',
+                            borderRadius: isFailed ? 6 : '50%',
+                            width: isFailed ? 'auto' : 32,
+                            height: isFailed ? 'auto' : 32,
+                            padding: isFailed ? '4px 10px' : 0,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            cursor: 'pointer', color: SOCIAL_COLORS.textSec, fontSize: 14,
+                            cursor: 'pointer',
+                            color: isFailed ? '#FA383E' : SOCIAL_COLORS.textSec,
+                            fontSize: isFailed ? 12 : 14,
+                            fontWeight: isFailed ? 600 : 400,
                             flexShrink: 0,
+                            gap: 4,
                         }}
-                        aria-label="Cancel upload"
+                        aria-label={isFailed ? 'Dismiss failed upload' : 'Cancel upload'}
                     >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                            <line x1="18" y1="6" x2="6" y2="18" />
-                            <line x1="6" y1="6" x2="18" y2="18" />
-                        </svg>
+                        {isFailed ? (
+                            <>Dismiss</>
+                        ) : (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                <line x1="18" y1="6" x2="6" y2="18" />
+                                <line x1="6" y1="6" x2="18" y2="18" />
+                            </svg>
+                        )}
                     </button>
                 )}
             </div>
