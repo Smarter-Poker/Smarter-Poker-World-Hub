@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-OpenClaw Cron Dispatcher v1.5
+OpenClaw Cron Dispatcher v1.6
 ==============================
 
 ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
@@ -369,6 +369,29 @@ WORKERS_PREFERRED = {
     # Schedule: every 3 days at 04:00 UTC (low-traffic window), so first
     # production fire after this commit will be the validation.
     '/api/cron/tour-schedule-scraper':         '/cron/tour-schedule-scraper',
+    # ─── 2B.2(k) — horse engine port complete (handlers 41-52, batch close) ─
+    # Workers repo HEAD 02cd35a — 8 commits ported HorseScheduler, ClipLibrary,
+    # HumanVoiceEngine, HorseSocialEngine (full), HorseMessengerEngine
+    # (~4,330 LOC TS) plus 3 new handler routes:
+    #   - horses-social-all → src/routes/horses-social-all.ts
+    #   - horses-stories → src/routes/horses-stories.ts
+    #   - horse-batch/:N → src/routes/horse-by-index.ts (single handler, 10 batches)
+    # Phase 2B.2 closes to 100% with this flip (44 of 44 plan-listed paths
+    # served by workers code). Schedule: 2-hour cycles (social-all),
+    # 15-minute (stories), every 2.5h staggered (horse-batch). First
+    # production fires after deploy will be the validation window.
+    '/api/cron/horses-social-all':             '/cron/horses-social-all',
+    '/api/cron/horses-stories':                '/cron/horses-stories',
+    '/api/cron/horse-batch/0':                 '/cron/horse-batch/0',
+    '/api/cron/horse-batch/1':                 '/cron/horse-batch/1',
+    '/api/cron/horse-batch/2':                 '/cron/horse-batch/2',
+    '/api/cron/horse-batch/3':                 '/cron/horse-batch/3',
+    '/api/cron/horse-batch/4':                 '/cron/horse-batch/4',
+    '/api/cron/horse-batch/5':                 '/cron/horse-batch/5',
+    '/api/cron/horse-batch/6':                 '/cron/horse-batch/6',
+    '/api/cron/horse-batch/7':                 '/cron/horse-batch/7',
+    '/api/cron/horse-batch/8':                 '/cron/horse-batch/8',
+    '/api/cron/horse-batch/9':                 '/cron/horse-batch/9',
     # NOT FLIPPED: /api/cron/deploy-error-poll — workers handler returns
     # 500 ("VERCEL_TOKEN not configured"). The Vercel API token isn't in
     # any location reachable from the Cowork sandbox or from openclaw VM.
@@ -600,7 +623,7 @@ def main():
         role = 'primary'
 
     log.info('=' * 60)
-    log.info('OpenClaw Cron Dispatcher v1.5 starting up')
+    log.info('OpenClaw Cron Dispatcher v1.6 starting up')
     if WORKERS_BASE_URL:
         log.info(f'Workers routing:   {len(WORKERS_PREFERRED)} paths → {WORKERS_BASE_URL}')
     if DISPATCHER_PRIVATE_IP:
