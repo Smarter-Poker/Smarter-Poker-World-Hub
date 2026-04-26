@@ -138,37 +138,33 @@ async function postVideoClip(horse, assignedSources, horseIndex, clipType = 'spo
             return { success: false, error: 'ClipLibrary not available' };
         }
 
-        // Try to get a poker clip (with deduplication handled by getRandomClip)
+    // PERF: Build usedUrls ONCE before the loop (avoids re-querying up to 20x per horse)
+        const since48h_poker = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+        const { data: recentPokerVideos } = await getSupabase()
+            .from('social_posts')
+            .select('media_urls')
+            .eq('content_type', 'video')
+            .gte('created_at', since48h_poker)
+            .limit(100);
+        const pokerUsedUrls = new Set();
+        (recentPokerVideos || []).forEach(p => {
+            if (p.media_urls) p.media_urls.forEach(url => pokerUsedUrls.add(url));
+        });
+
         const maxAttempts = 20;
         for (let i = 0; i < maxAttempts; i++) {
             const candidate = getRandomClip();
             if (!candidate) continue;
 
-            // Check if this clip was recently posted
             const videoId = candidate.video_id || candidate.id;
             const embedUrl = convertToEmbedUrl(candidate.source_url);
 
-            // Quick check against recent posts
-            const since48h = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-            const { data: recentVideos } = await getSupabase()
-                .from('social_posts')
-                .select('media_urls')
-                .eq('content_type', 'video')
-                .gte('created_at', since48h)
-                .limit(100);
-
-            const usedUrls = new Set();
-            (recentVideos || []).forEach(p => {
-                if (p.media_urls) p.media_urls.forEach(url => usedUrls.add(url));
-            });
-
-            if (!usedUrls.has(embedUrl) && !usedUrls.has(candidate.source_url)) {
+            if (!pokerUsedUrls.has(embedUrl) && !pokerUsedUrls.has(candidate.source_url)) {
                 // VALIDATE: Check if video actually exists on YouTube
                 const isValid = await validateYouTubeVideo(candidate.source_url);
                 if (isValid) {
                     clip = candidate;
                     break;
-                } else {
                 }
             }
         }
@@ -419,7 +415,6 @@ export default async function handler(req, res) {
               horse: horse.name,
               horseIndex: index,
               contentCategory,
-              hour,
               ...result
           });
 

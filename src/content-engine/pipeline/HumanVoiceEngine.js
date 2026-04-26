@@ -198,9 +198,10 @@ function applyStyle(text, archetype) {
     else if (punctRoll > 0.20) out += '.';
     // else: no punct (20%)
   } else { // 'normal'
-    if (punctRoll > 0.55) out += '.';
-    else if (punctRoll > 0.85) out += '?';
-    // else: no punct
+    if (punctRoll < 0.55) { /* no punct (55%) */ }
+    else if (punctRoll < 0.82) out += '.';  // period (27%)
+    else if (punctRoll < 0.92) out += '?';  // question (10%)
+    // else nothing additional (8%)
   }
 
   return out.trim();
@@ -1100,34 +1101,45 @@ export function generateNewsCaption(headline, profileId, newsType = 'poker') {
       pool = SPORTS_CAPTION_POOLS.general_sports;
     }
   } else {
-    // Poker news — try context extraction (85% of the time)
+    // CONTROVERSY PRE-CHECK: Run keyword scan BEFORE context extraction.
+    // A headline like "Mike Postle Cheating Scandal" has a known player name AND
+    // controversy keywords — without this guard, extractTitleContext fires first
+    // and routes to the player template pool, bypassing the controversy pool entirely.
+    const controversyTest = safeHeadline.toLowerCase();
+    const isControversy = /\b(scandal|cheating|cheat|banned|ban|suspended|suspension|lawsuit|fraud|exposed|controversy|investigation|collusion)\b/.test(controversyTest);
+
+    // Poker news — try context extraction (85% of the time) UNLESS it's a controversy headline
     // Short-circuit: skip extraction if headline is too short to yield meaningful context
     const wordCount = safeHeadline.trim().split(/\s+/).length;
-    if (safeHeadline && wordCount >= 3 && Math.random() < 0.85) {
+    if (!isControversy && safeHeadline && wordCount >= 3 && Math.random() < 0.85) {
       const ctx = extractTitleContext(safeHeadline);
       const contextCaption = buildContextCaption(ctx, profileId);
       if (contextCaption && contextCaption.trim().length >= 10) return sanitizeHorseOutput(contextCaption);
     }
 
-    // Category-aware poker pool selection
-    const detected = detectCategory(safeHeadline);
-    if (detected && POST_CAPTIONS[detected]) {
-      pool = POST_CAPTIONS[detected];
+    // CONTROVERSY ABSOLUTE PRIORITY: If headline contains scandal keywords, go directly
+    // to controversy pool — DO NOT run detectCategory (wsop/bracelet in headline would
+    // otherwise hijack the route to POST_CAPTIONS.tournament before we check isControversy).
+    if (isControversy) {
+      pool = POKER_NEWS_POOLS.controversy;
     } else {
-      const t = safeHeadline.toLowerCase();
-      // PRIORITY: Controversy overrides all other categories — scandal/fraud wins over tournament keywords
-      if (/\b(scandal|cheating|cheat|banned|ban|suspended|suspension|lawsuit|fraud|exposed|controversy|investigation|collusion)\b/.test(t)) {
-        pool = POKER_NEWS_POOLS.controversy;
-      } else if (/\b(wsop|wpt|world poker tour|ept|tournament|series|main event|bracelet|final table|deep run|heads.?up championship)\b/.test(t)) {
-        pool = POKER_NEWS_POOLS.tournament;
-      } else if (/\b(strategy|gto|solver|range|study|how to|tips|theory|deep dive)\b/.test(t)) {
-        pool = POKER_NEWS_POOLS.strategy;
-      } else if (/\b(regulation|legal|law|bill|legislation|license|market)\b/.test(t)) {
-        pool = POKER_NEWS_POOLS.industry;
-      } else if (/\b(player|pro|wins|cashes|result|bracelet|champion|finish|place|casino|live at|tonight|hustler|bellagio|lodge|aria|stones)\b/.test(t)) {
-        pool = POKER_NEWS_POOLS.player_news;
+      // Category-aware poker pool selection (only for non-controversy headlines)
+      const detected = detectCategory(safeHeadline);
+      if (detected && POST_CAPTIONS[detected]) {
+        pool = POST_CAPTIONS[detected];
       } else {
-        pool = POKER_NEWS_POOLS.general_poker;
+        const t = controversyTest; // already lowercased above
+        if (/\b(wsop|wpt|world poker tour|ept|tournament|series|main event|bracelet|final table|deep run|heads.?up championship)\b/.test(t)) {
+          pool = POKER_NEWS_POOLS.tournament;
+        } else if (/\b(strategy|gto|solver|range|study|how to|tips|theory|deep dive)\b/.test(t)) {
+          pool = POKER_NEWS_POOLS.strategy;
+        } else if (/\b(regulation|legal|law|bill|legislation|license|market)\b/.test(t)) {
+          pool = POKER_NEWS_POOLS.industry;
+        } else if (/\b(player|pro|wins|cashes|result|bracelet|champion|finish|place|casino|live at|tonight|hustler|bellagio|lodge|aria|stones)\b/.test(t)) {
+          pool = POKER_NEWS_POOLS.player_news;
+        } else {
+          pool = POKER_NEWS_POOLS.general_poker;
+        }
       }
     }
   }
@@ -1172,6 +1184,7 @@ export function generateNewsCaption(headline, profileId, newsType = 'poker') {
 
   return sanitizeHorseOutput(applyStyle(phrase, archetype));
 }
+
 /**
  * Generate a direct message reply.
  * Concludes the conversation if history is getting long.
