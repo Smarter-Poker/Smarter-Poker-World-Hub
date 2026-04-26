@@ -15,7 +15,8 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-export const runtime = 'edge';
+// NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
+// and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
 
 // ── Server-side in-memory TTL cache ──────────────────────────────────────────
 // On warm Vercel instances, repeated fetches within 15s return instantly (<5ms)

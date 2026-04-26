@@ -10,8 +10,7 @@
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 import { getController } from '../../../../src/lib/poker-engine/GameController';
 
-export const runtime = 'edge';
-
+// runtime: node (default) — reverted from edge: depends on Node-only modules (sentryWrap @sentry/nextjs / supabaseServerClient / serverAuth) or Pages Router APIs (req.query, res.status) that don't run on Vercel Edge
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'POST only' });

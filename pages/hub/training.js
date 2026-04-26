@@ -689,7 +689,9 @@ function VideoContextBanner({ videoContext, matchedGames, onDismiss, onLaunchGam
                     <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 13, fontWeight: 800, color: '#34C759', letterSpacing: 0.5, marginBottom: 1 }}>Train This Spot</div>
                         <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            AI-matched drills for this exact video
+                            {videoContext.ref === 'reels' ? 'AI-matched drills for this reel'
+                             : videoContext.ref === 'sandbox' ? 'AI-matched drills for this hand'
+                             : 'AI-matched drills for this exact video'}
                         </div>
                     </div>
                     <button onClick={onDismiss} style={{
@@ -969,20 +971,41 @@ export default function TrainingPage() {
     useEffect(() => {
         if (!router.isReady) return;
         const ctx = getVideoContext(router.query);
-        if (ctx.ref === 'video-library' && ctx.vid) {
-            setVideoContext(ctx);
-            const gameIds = findBestGames(ctx);
-            const games = gameIds
-                .map(id => getGameById(id))
-                .filter(Boolean)
-                .slice(0, 3);
-            setVideoMatchedGames(games);
-            setShowVideoContextModal(true);
-            // Clean URL without triggering re-render
-            if (typeof window !== 'undefined') {
-                window.history.replaceState({}, '', '/hub/training');
-            }
+        // Accept deep-links from all training sources: video-library, reels, sandbox
+        const VALID_REFS = ['video-library', 'reels', 'sandbox'];
+        if (!VALID_REFS.includes(ctx.ref) || !ctx.vid) return;
+
+        setVideoContext(ctx);
+        const gameIds = findBestGames(ctx);
+        const games = gameIds
+            .map(id => getGameById(id))
+            .filter(Boolean)
+            .slice(0, 3);
+        setVideoMatchedGames(games);
+        setShowVideoContextModal(true);
+
+        // Clean URL without triggering re-render
+        if (typeof window !== 'undefined') {
+            window.history.replaceState({}, '', '/hub/training');
         }
+
+        // Fire analytics (fire-and-forget — never blocks the user)
+        const userId = typeof window !== 'undefined'
+            ? JSON.parse(localStorage.getItem('supabase.auth.token') || '{}')?.currentSession?.user?.id
+            : null;
+        fetch('/api/training/log-request', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                ref: ctx.ref,
+                vid: ctx.vid,
+                title: ctx.title,
+                source: ctx.source,
+                tags: ctx.tags,
+                matchedGameIds: gameIds.slice(0, 3),
+                userId,
+            }),
+        }).catch(() => {}); // Silently ignore failures — analytics must never block
     }, [router.isReady, router.query]);
 
     const {

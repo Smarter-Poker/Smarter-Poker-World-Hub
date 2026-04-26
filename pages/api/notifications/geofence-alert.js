@@ -13,7 +13,8 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { sendPushNotification } from '../../../src/lib/onesignal-server';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-export const runtime = 'edge';
+// NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
+// and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
 
 
 const ONESIGNAL_APP_ID = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;

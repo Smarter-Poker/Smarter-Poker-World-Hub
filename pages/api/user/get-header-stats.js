@@ -2,7 +2,8 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-export const runtime = 'edge';
+// NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
+// and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
 
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';

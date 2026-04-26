@@ -1,6 +1,7 @@
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-export const runtime = 'edge';
+// NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
+// and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
 /**
  * GIF/Sticker Search API — Server-side proxy for GIPHY API
  * ═══════════════════════════════════════════════════════════════════════════

@@ -11,8 +11,7 @@
 
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 
-export const runtime = 'edge';
-
+// runtime: node (default) — reverted from edge: depends on Node-only modules (sentryWrap @sentry/nextjs / supabaseServerClient / serverAuth) or Pages Router APIs (req.query, res.status) that don't run on Vercel Edge
 // ── Phase mapping: engine phases → display phases ──
 const DISPLAY_PHASE = {
   idle: 'idle',
