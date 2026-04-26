@@ -1,11 +1,10 @@
 /**
- * POST /api/sandbox/social-export
- * W6-6: Exports a Sandbox Session Report to the social_posts feed table.
+ * GET /api/sandbox/saved-hands
+ * W6-1: Retrieves all saved hands for a user, grouped by folder.
  */
 import { createClient } from '@supabase/supabase-js';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../../src/lib/sentryWrap';
 
-export const runtime = 'edge';
 
 function getSupabase() {
     return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
@@ -13,7 +12,7 @@ function getSupabase() {
 
 export default async function handler(req, res) {
   try {
-      if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
+      if (req.method !== 'GET') return res.status(405).json({ success: false, error: 'Method not allowed' });
 
       try {
           const supabase = getSupabase();
@@ -31,33 +30,20 @@ export default async function handler(req, res) {
 
           if (!userId) return res.status(401).json({ success: false, error: 'Authentication required' });
 
-          const { handCount, content, evLoss } = req.body;
-
-          // Use the existing social_posts table format
           const { data, error } = await supabase
-              .from('social_posts')
-              .insert({
-                  user_id: userId,
-                  content: content || `Just wrapped up a Sandbox session analyzing ${handCount} spots. ${evLoss ? `Identified ${evLoss.toFixed(2)} EV lost.` : 'Reviewing my lines.'} #study-grind`,
-                  post_type: 'sandbox_report',
-                  metadata: {
-                      handCount, evLoss, source: 'Sandbox'
-                  }
-              })
-              .select('id')
-              .maybeSingle();
+              .from('sandbox_saved_hands')
+              .select('*')
+              .eq('user_id', userId)
+              .order('created_at', { ascending: false });
 
           if (error) {
-              // Graceful fallback if social_posts table doesn't exist yet on this env
-              if (error.code === '42P01') {
-                  return res.status(200).json({ success: true, dummy: true, message: 'Simulated post (social_posts table pending Phase 14)' });
-              }
+              if (error.code === '42P01') return res.status(200).json({ success: true, hands: [] }); // table doesn't exist yet
               throw error;
           }
 
-          return res.status(200).json({ success: true, post: data });
+          return res.status(200).json({ success: true, hands: data || [] });
       } catch (err) {
-          console.warn('[social-export] Error:', err);
+          console.warn('[saved-hands] Error:', err);
           return res.status(500).json({ success: false, error: err.message });
       }
 

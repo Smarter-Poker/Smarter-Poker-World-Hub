@@ -1975,47 +1975,49 @@ export default function VideoLibraryPage() {
                                 <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
                                     {selectedVideo.duration}
                                 </span>
-                                {/* ── P3: Train This Spot — GTO deep-link ── */}
-                                {/* Guard: require at least one non-empty tag (length>0 passes for ['']) */}
-                                {selectedVideo.tags && selectedVideo.tags.some(t => t && t.trim().length > 0) && (
-                                    <button
-                                        onClick={() => {
-                                            // Deep-link to GTO Trainer with video context pre-loaded
-                                            const params = new URLSearchParams({
-                                                ref: 'video-library',
-                                                vid: selectedVideo.videoId,
-                                                title: selectedVideo.title.slice(0, 80),
-                                                source: selectedVideo.source,
-                                            });
-                                            window.open(`/hub/training?${params.toString()}`, '_blank', 'noopener');
-                                        }}
-                                        style={{
-                                            padding: '5px 14px',
-                                            background: 'linear-gradient(135deg, rgba(0,200,83,0.2) 0%, rgba(0,150,60,0.2) 100%)',
-                                            border: '1.5px solid rgba(0,200,83,0.55)',
-                                            borderRadius: 10,
-                                            color: '#34C759',
-                                            fontSize: 12,
-                                            fontWeight: 700,
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: 5,
-                                            transition: 'all 0.2s',
-                                            whiteSpace: 'nowrap',
-                                            boxShadow: '0 0 8px rgba(0,200,83,0.15)',
-                                            letterSpacing: '0.2px',
-                                        }}
-                                        onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0,200,83,0.35) 0%, rgba(0,150,60,0.35) 100%)'; e.currentTarget.style.boxShadow = '0 0 16px rgba(0,200,83,0.35)'; }}
-                                        onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0,200,83,0.2) 0%, rgba(0,150,60,0.2) 100%)'; e.currentTarget.style.boxShadow = '0 0 8px rgba(0,200,83,0.15)'; }}
-                                        title="Open GTO Trainer with context from this video"
-                                    >
-                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                            <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
-                                        </svg>
-                                        Train This Spot
-                                    </button>
-                                )}
+                                {/* ── Train This Spot — GTO deep-link ── */}
+                                <button
+                                    onClick={() => {
+                                        // Deep-link to GTO Trainer with full video context pre-loaded
+                                        const tags = Array.isArray(selectedVideo.tags)
+                                            ? selectedVideo.tags.filter(t => t && t.trim()).join(',')
+                                            : '';
+                                        const params = new URLSearchParams({
+                                            ref: 'video-library',
+                                            vid: selectedVideo.videoId,
+                                            title: selectedVideo.title.slice(0, 80),
+                                            source: selectedVideo.source,
+                                        });
+                                        if (tags) params.set('tags', tags);
+                                        router.push(`/hub/training?${params.toString()}`);
+                                    }}
+                                    style={{
+                                        padding: '5px 14px',
+                                        background: 'linear-gradient(135deg, rgba(0,200,83,0.2) 0%, rgba(0,150,60,0.2) 100%)',
+                                        border: '1.5px solid rgba(0,200,83,0.55)',
+                                        borderRadius: 10,
+                                        color: '#34C759',
+                                        fontSize: 12,
+                                        fontWeight: 700,
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 5,
+                                        transition: 'all 0.2s',
+                                        whiteSpace: 'nowrap',
+                                        boxShadow: '0 0 8px rgba(0,200,83,0.15)',
+                                        letterSpacing: '0.2px',
+                                        animation: 'tts-pulse 2.5s ease-in-out infinite',
+                                    }}
+                                    onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0,200,83,0.35) 0%, rgba(0,150,60,0.35) 100%)'; e.currentTarget.style.boxShadow = '0 0 20px rgba(0,200,83,0.45)'; e.currentTarget.style.animation = 'none'; }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0,200,83,0.2) 0%, rgba(0,150,60,0.2) 100%)'; e.currentTarget.style.boxShadow = '0 0 8px rgba(0,200,83,0.15)'; e.currentTarget.style.animation = 'tts-pulse 2.5s ease-in-out infinite'; }}
+                                    title="Open GTO Trainer with AI-matched drills from this video"
+                                >
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                        <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+                                    </svg>
+                                    Train This Spot
+                                </button>
                             </div>
                         </div>
 
@@ -2097,6 +2099,12 @@ export default function VideoLibraryPage() {
                 @keyframes vl-shimmer {
                     0%   { background-position: 200% 0; }
                     100% { background-position: -200% 0; }
+                }
+
+                /* Train This Spot button pulse */
+                @keyframes tts-pulse {
+                    0%, 100% { box-shadow: 0 0 8px rgba(0,200,83,0.15); border-color: rgba(0,200,83,0.55); }
+                    50%       { box-shadow: 0 0 20px rgba(0,200,83,0.4); border-color: rgba(0,200,83,0.85); }
                 }
 
                 /* Mobile: stack search on its own row */

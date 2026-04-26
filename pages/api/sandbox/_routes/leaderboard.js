@@ -4,7 +4,7 @@
  * Returns top 10 users by accuracy % (min 20 hands this week).
  */
 import { createClient } from '@supabase/supabase-js';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 function getSupabase() {
     return createClient(

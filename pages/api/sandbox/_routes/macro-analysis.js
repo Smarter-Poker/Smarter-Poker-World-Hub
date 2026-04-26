@@ -3,7 +3,7 @@
  * W6-4: Analyzes up to 1000 recent sandbox_coach_results for systemic leaks.
  */
 import { createClient } from '@supabase/supabase-js';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 function getSupabase() {
     return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);

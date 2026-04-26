@@ -7,7 +7,7 @@
  *  - Weakest street
  */
 import { createClient } from '@supabase/supabase-js';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 function getSupabase() {
     return createClient(

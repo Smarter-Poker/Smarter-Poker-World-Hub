@@ -1,11 +1,11 @@
 /**
- * GET /api/sandbox/saved-hands
- * W6-1: Retrieves all saved hands for a user, grouped by folder.
+ * POST /api/sandbox/save-hand
+ * W6-1: Persists a configured sandbox state into a custom user folder.
+ * Table: sandbox_saved_hands (id, user_id, folder_name, tags, state_json)
  */
 import { createClient } from '@supabase/supabase-js';
-import { reportApiError } from '../../../src/lib/sentryWrap';
-
-export const runtime = 'edge';
+import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
+import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 function getSupabase() {
     return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
@@ -13,7 +13,8 @@ function getSupabase() {
 
 export default async function handler(req, res) {
   try {
-      if (req.method !== 'GET') return res.status(405).json({ success: false, error: 'Method not allowed' });
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+      if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
 
       try {
           const supabase = getSupabase();
@@ -31,20 +32,32 @@ export default async function handler(req, res) {
 
           if (!userId) return res.status(401).json({ success: false, error: 'Authentication required' });
 
+          const { folder_name, tags, state_json } = req.body;
+          if (!folder_name || !state_json) {
+              return res.status(400).json({ success: false, error: 'Folder name and state_json required' });
+          }
+
           const { data, error } = await supabase
               .from('sandbox_saved_hands')
+              .insert({
+                  user_id: userId,
+                  folder_name: folder_name.trim(),
+                  tags: Array.isArray(tags) ? tags : [],
+                  state_json
+              })
               .select('*')
-              .eq('user_id', userId)
-              .order('created_at', { ascending: false });
+              .maybeSingle();
 
           if (error) {
-              if (error.code === '42P01') return res.status(200).json({ success: true, hands: [] }); // table doesn't exist yet
+              if (error.code === '42P01') {
+                  console.warn('[save-hand] sandbox_saved_hands table missing — run migration to restore');
+              }
               throw error;
           }
 
-          return res.status(200).json({ success: true, hands: data || [] });
+          return res.status(200).json({ success: true, hand: data });
       } catch (err) {
-          console.warn('[saved-hands] Error:', err);
+          console.warn('[save-hand] Error:', err);
           return res.status(500).json({ success: false, error: err.message });
       }
 

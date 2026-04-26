@@ -192,22 +192,27 @@ export default function GhostPostCard({ user }) {
                     padding: '12px 16px',
                     background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
                 }}>
-                    {/* Progress bar */}
+                    {/* Progress bar — animated shimmer */}
                     <div style={{
-                        height: 4,
-                        borderRadius: 2,
-                        background: 'rgba(255,255,255,0.2)',
+                        height: 6,
+                        borderRadius: 3,
+                        background: 'rgba(255,255,255,0.15)',
                         overflow: 'hidden',
                         marginBottom: 6,
+                        position: 'relative',
                     }}>
                         <div style={{
                             height: '100%',
-                            borderRadius: 2,
+                            borderRadius: 3,
                             background: isFailed
                                 ? '#FA383E'
-                                : 'linear-gradient(90deg, #1877F2, #42B72A)',
+                                : isComplete
+                                    ? '#42B72A'
+                                    : 'linear-gradient(90deg, #1877F2, #42B72A, #1877F2)',
+                            backgroundSize: '200% 100%',
+                            animation: isComplete || isFailed ? 'none' : 'progressShimmer 2s linear infinite',
                             width: `${Math.min(progress, 100)}%`,
-                            transition: 'width 0.3s ease',
+                            transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
                         }} />
                     </div>
                     <div style={{
@@ -215,9 +220,16 @@ export default function GhostPostCard({ user }) {
                         color: 'rgba(255,255,255,0.9)',
                         fontWeight: 600,
                         textAlign: 'center',
+                        letterSpacing: '0.02em',
                     }}>
                         {label}
                     </div>
+                    <style>{`
+                        @keyframes progressShimmer {
+                            0% { background-position: 200% 0; }
+                            100% { background-position: -200% 0; }
+                        }
+                    `}</style>
                 </div>
             </div>
         </div>

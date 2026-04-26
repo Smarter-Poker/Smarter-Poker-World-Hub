@@ -17,6 +17,7 @@ import { eventBus, EventType, busEmit } from '../../../engine/EventBus';
 import TrendingPosts from '../TrendingPosts';
 import FeedFilterTabs from '../FeedFilterTabs';
 import GhostPostCard from '../GhostPostCard';
+import UploadRecoveryBanner from '../UploadRecoveryBanner';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 📱 LEFT SIDEBAR (Shortcuts)
@@ -480,6 +481,9 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
                         });
                     }}
                 />
+
+                {/* Upload Recovery — shows if a previous upload was interrupted */}
+                <UploadRecoveryBanner />
 
                 {/* Ghost Post — optimistic uploading placeholder */}
                 <GhostPostCard user={currentUser} />

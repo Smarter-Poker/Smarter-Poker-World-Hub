@@ -1,0 +1,49 @@
+/**
+ * Phase 4.4 — Catch-all consolidation pilot for /api/sandbox/*
+ *
+ * Replaces 11 individual handler files with a single dispatcher.
+ * Each sub-route's logic lives in pages/api/sandbox/_routes/<name>.js
+ * (the underscore-prefix tells Pages Router to NOT compile it as its
+ * own route).
+ *
+ * Per plan §4.4 — "Module by module, incrementally." Sandbox is the
+ * pilot slice; pattern can extend to larger directories (training,
+ * poker, club-arena, social, etc.) in follow-up commits.
+ *
+ * Bundle-size win: 11 lambdas → 1 lambda for /api/sandbox/*. Each
+ * sub-handler still gets its own code path but Vercel's File Tracing
+ * only walks node_modules once per lambda, not 11 times.
+ */
+import coachAccuracy from './_routes/coach-accuracy.js';
+import coachResult from './_routes/coach-result.js';
+import createShare from './_routes/create-share.js';
+import customDrill from './_routes/custom-drill.js';
+import equitySnapshot from './_routes/equity-snapshot.js';
+import leaderboard from './_routes/leaderboard.js';
+import macroAnalysis from './_routes/macro-analysis.js';
+import saveHand from './_routes/save-hand.js';
+import savedHands from './_routes/saved-hands.js';
+import sessionStats from './_routes/session-stats.js';
+import socialExport from './_routes/social-export.js';
+
+const ROUTES = {
+  'coach-accuracy': coachAccuracy,
+  'coach-result': coachResult,
+  'create-share': createShare,
+  'custom-drill': customDrill,
+  'equity-snapshot': equitySnapshot,
+  leaderboard,
+  'macro-analysis': macroAnalysis,
+  'save-hand': saveHand,
+  'saved-hands': savedHands,
+  'session-stats': sessionStats,
+  'social-export': socialExport,
+};
+
+export default async function handler(req, res) {
+  const segments = Array.isArray(req.query.path) ? req.query.path : [req.query.path].filter(Boolean);
+  const route = segments[0] || '';
+  const fn = ROUTES[route];
+  if (!fn) return res.status(404).json({ error: `Unknown sandbox route: ${route}` });
+  return fn(req, res);
+}

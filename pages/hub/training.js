@@ -91,6 +91,8 @@ import useTrainingRealtime from '../../src/hooks/useTrainingRealtime';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
 // busEmit not needed at page level — DiamondEngine auto-emits, useTrainingBus has own import
+import { findBestGames, getVideoContext } from '../../src/utils/videoToTrainingMapper';
+import { getGameById } from '../../src/data/TRAINING_LIBRARY';
 
 
 // Register GSAP plugins
@@ -635,6 +637,186 @@ function GameLane({ title, icon, color, games, onGameClick, getProgress, badge, 
 // MAIN PAGE
 // ═══════════════════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════════════════════
+// VIDEO CONTEXT BANNER — shown when arriving from "Train This Spot"
+// ═══════════════════════════════════════════════════════════════════════════
+function VideoContextBanner({ videoContext, matchedGames, onDismiss, onLaunchGame }) {
+    if (!videoContext?.vid) return null;
+    const thumbnailUrl = `https://img.youtube.com/vi/${videoContext.vid}/mqdefault.jpg`;
+    const sourceLabel = (videoContext.source || '').replace(/_/g, ' ');
+
+    return (
+        <div style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            zIndex: 9000,
+            background: 'rgba(0,0,0,0.88)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+        }}>
+            <div style={{
+                background: 'linear-gradient(135deg, #0a0a1a, #0f1a2e)',
+                borderRadius: 24,
+                border: '1.5px solid rgba(0,212,255,0.3)',
+                boxShadow: '0 0 60px rgba(0,212,255,0.12), 0 30px 80px rgba(0,0,0,0.7)',
+                width: '100%',
+                maxWidth: 520,
+                overflow: 'hidden',
+                animation: 'tts-slide-in 0.35s cubic-bezier(0.34,1.56,0.64,1) both',
+            }}>
+                {/* Header */}
+                <div style={{
+                    padding: '20px 24px 16px',
+                    borderBottom: '1px solid rgba(255,255,255,0.07)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                }}>
+                    <div style={{
+                        width: 40, height: 40, borderRadius: 10,
+                        background: 'linear-gradient(135deg, rgba(0,200,83,0.3), rgba(0,150,60,0.15))',
+                        border: '1.5px solid rgba(0,200,83,0.5)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                    }}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#34C759" strokeWidth="2.5">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+                        </svg>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: '#34C759', letterSpacing: 0.5, marginBottom: 1 }}>Train This Spot</div>
+                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            AI-matched drills for this exact video
+                        </div>
+                    </div>
+                    <button onClick={onDismiss} style={{
+                        background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.5)',
+                        fontSize: 16, flexShrink: 0, transition: 'background 0.15s',
+                    }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.12)'}
+                       onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.07)'}>
+                        ✕
+                    </button>
+                </div>
+
+                {/* Video Preview */}
+                <div style={{ padding: '16px 24px', display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+                    <div style={{
+                        width: 120, height: 68, borderRadius: 10, overflow: 'hidden',
+                        flexShrink: 0, background: '#111', position: 'relative',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                    }}>
+                        <img src={thumbnailUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                             onError={e => { e.currentTarget.style.display = 'none'; }} />
+                        <div style={{
+                            position: 'absolute', top: 4, right: 4,
+                            background: 'rgba(0,0,0,0.75)', borderRadius: 4, padding: '1px 5px',
+                            fontSize: 9, fontWeight: 700, color: '#fff',
+                        }}>VIDEO</div>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{
+                            fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.4,
+                            marginBottom: 6, overflow: 'hidden',
+                            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                        }}>{videoContext.title || 'Poker Video'}</div>
+                        {sourceLabel && (
+                            <div style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 5,
+                                background: 'rgba(255,68,68,0.12)', border: '1px solid rgba(255,68,68,0.25)',
+                                borderRadius: 8, padding: '3px 8px',
+                            }}>
+                                <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#FF4444', flexShrink: 0 }} />
+                                <span style={{ fontSize: 10, fontWeight: 700, color: '#FF8888' }}>{sourceLabel}</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Matched Games */}
+                <div style={{ padding: '0 24px 20px' }}>
+                    <div style={{
+                        fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)',
+                        letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: 10,
+                    }}>AI-Recommended Drills</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {matchedGames.map((game, idx) => (
+                            <button key={game.id} onClick={() => onLaunchGame(game)} style={{
+                                display: 'flex', alignItems: 'center', gap: 12,
+                                padding: '12px 14px',
+                                background: idx === 0 ? 'rgba(0,200,83,0.1)' : 'rgba(255,255,255,0.04)',
+                                border: `1.5px solid ${idx === 0 ? 'rgba(0,200,83,0.35)' : 'rgba(255,255,255,0.08)'}`,
+                                borderRadius: 12, cursor: 'pointer', textAlign: 'left', width: '100%',
+                                transition: 'all 0.18s',
+                            }}
+                            onMouseEnter={e => {
+                                e.currentTarget.style.background = idx === 0 ? 'rgba(0,200,83,0.18)' : 'rgba(255,255,255,0.08)';
+                                e.currentTarget.style.borderColor = idx === 0 ? 'rgba(0,200,83,0.6)' : 'rgba(255,255,255,0.2)';
+                                e.currentTarget.style.transform = 'translateX(2px)';
+                            }}
+                            onMouseLeave={e => {
+                                e.currentTarget.style.background = idx === 0 ? 'rgba(0,200,83,0.1)' : 'rgba(255,255,255,0.04)';
+                                e.currentTarget.style.borderColor = idx === 0 ? 'rgba(0,200,83,0.35)' : 'rgba(255,255,255,0.08)';
+                                e.currentTarget.style.transform = 'none';
+                            }}>
+                                <div style={{
+                                    width: 36, height: 36, borderRadius: 8, flexShrink: 0,
+                                    background: idx === 0 ? 'rgba(0,200,83,0.2)' : 'rgba(255,255,255,0.08)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontSize: 18,
+                                }}>{game.icon || '🎯'}</div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <span style={{
+                                            fontSize: 13, fontWeight: 700,
+                                            color: idx === 0 ? '#34C759' : '#fff',
+                                        }}>{game.name}</span>
+                                        {idx === 0 && (
+                                            <span style={{
+                                                fontSize: 9, fontWeight: 800, color: '#34C759',
+                                                background: 'rgba(0,200,83,0.15)', borderRadius: 6,
+                                                padding: '2px 6px', letterSpacing: 0.5,
+                                            }}>BEST MATCH</span>
+                                        )}
+                                    </div>
+                                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>
+                                        {game.focus} · {['★','★★','★★★','★★★★','★★★★★'][Math.min((game.difficulty || 1) - 1, 4)]} Difficulty
+                                    </div>
+                                </div>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="2.5">
+                                    <path d="M9 18l6-6-6-6"/>
+                                </svg>
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Browse All */}
+                    <button onClick={onDismiss} style={{
+                        marginTop: 12, width: '100%', padding: '10px',
+                        background: 'transparent', border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: 10, color: 'rgba(255,255,255,0.4)', fontSize: 12,
+                        fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'; e.currentTarget.style.color = 'rgba(255,255,255,0.6)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; }}>
+                        Browse All 100 Training Games
+                    </button>
+                </div>
+            </div>
+            <style>{`
+                @keyframes tts-slide-in {
+                    from { opacity: 0; transform: scale(0.9) translateY(20px); }
+                    to { opacity: 1; transform: scale(1) translateY(0); }
+                }
+            `}</style>
+        </div>
+    );
+}
+
 export default function TrainingPage() {
     const router = useRouter();
     useTrainingBus('training-hub');
@@ -653,6 +835,11 @@ export default function TrainingPage() {
     //  ARENA STATE - Show arena inline after intro video
     const [showArena, setShowArena] = useState(false);
     const [activeGame, setActiveGame] = useState(null);
+
+    // ── TRAIN THIS SPOT STATE ─────────────────────────────────────────────
+    const [videoContext, setVideoContext] = useState(null);       // parsed URL params
+    const [videoMatchedGames, setVideoMatchedGames] = useState([]); // top 3 matched games
+    const [showVideoContextModal, setShowVideoContextModal] = useState(false);
 
     //  INTRO VIDEO STATE - Video plays while page loads in background
     // Only show once per session (not on every reload)
@@ -777,6 +964,26 @@ export default function TrainingPage() {
         };
         init();
     }, []);
+
+    // ── TRAIN THIS SPOT: Separate effect — only runs when router is ready ──
+    useEffect(() => {
+        if (!router.isReady) return;
+        const ctx = getVideoContext(router.query);
+        if (ctx.ref === 'video-library' && ctx.vid) {
+            setVideoContext(ctx);
+            const gameIds = findBestGames(ctx);
+            const games = gameIds
+                .map(id => getGameById(id))
+                .filter(Boolean)
+                .slice(0, 3);
+            setVideoMatchedGames(games);
+            setShowVideoContextModal(true);
+            // Clean URL without triggering re-render
+            if (typeof window !== 'undefined') {
+                window.history.replaceState({}, '', '/hub/training');
+            }
+        }
+    }, [router.isReady, router.query]);
 
     const {
         isLoaded,
@@ -953,6 +1160,12 @@ export default function TrainingPage() {
 
     const bestStreak = getBestStreak();
 
+    // Handle launching a game from the VideoContextModal
+    const handleLaunchVideoGame = (game) => {
+        setShowVideoContextModal(false);
+        handleGameClick(game);
+    };
+
     if (!isLoaded) {
         return (
             <div style={styles.loading}>
@@ -970,6 +1183,17 @@ export default function TrainingPage() {
         <PageTransition>
             {/* Action-level Upgrade Gating Popup */}
             {UpgradePopup}
+
+            {/* ── TRAIN THIS SPOT MODAL ── */}
+            {showVideoContextModal && videoContext && videoMatchedGames.length > 0 && (
+                <VideoContextBanner
+                    videoContext={videoContext}
+                    matchedGames={videoMatchedGames}
+                    onDismiss={() => setShowVideoContextModal(false)}
+                    onLaunchGame={handleLaunchVideoGame}
+                />
+            )}
+
             {/*  INTRO VIDEO OVERLAY - Plays while page loads behind it */}
             {showPageIntro && (
                 <div style={{

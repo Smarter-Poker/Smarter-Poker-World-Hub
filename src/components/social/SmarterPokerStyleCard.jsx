@@ -8,6 +8,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { getAuthorDisplayName } from '../../utils/displayName';
+import TranscodeStatusBadge from './TranscodeStatusBadge';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🎨 SMARTERPOKER COLOR PALETTE
@@ -417,6 +418,9 @@ export const SPPostCard = ({
                     )}
                 </div>
             </div>
+
+            {/* Transcoding status indicator — shows 'Processing...' for newly uploaded videos */}
+            <TranscodeStatusBadge postId={post.id} mediaType={post.media_type || post.mediaType} />
 
             {/* Content */}
             <div className="sp-post-content">

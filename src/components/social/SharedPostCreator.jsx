@@ -899,12 +899,50 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         {media.map((m, i) => (
                             <div key={i} style={{ position: 'relative', aspectRatio: media.length === 1 ? '16/9' : '1', borderRadius: 8, overflow: 'hidden' }}>
                                 {m.type === 'video' ? (
-                                    // Thumbnail image or dark placeholder — never load <video> for preview (freezes mobile)
-                                    m.thumbnail ? (
-                                        <img src={m.thumbnail} alt="Video thumbnail" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    // Tap-to-preview: shows thumbnail by default, loads <video> on tap
+                                    m._previewing ? (
+                                        <video
+                                            src={m.url}
+                                            controls
+                                            playsInline
+                                            autoPlay
+                                            muted
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#000' }}
+                                            onEnded={() => setMedia(prev => prev.map((item, idx) => idx === i ? { ...item, _previewing: false } : item))}
+                                        />
+                                    ) : m.thumbnail ? (
+                                        <div
+                                            style={{ width: '100%', height: '100%', position: 'relative', cursor: 'pointer' }}
+                                            onClick={() => setMedia(prev => prev.map((item, idx) => idx === i ? { ...item, _previewing: true } : item))}
+                                        >
+                                            <img src={m.thumbnail} alt="Video thumbnail" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            {/* Play button overlay */}
+                                            <div style={{
+                                                position: 'absolute', inset: 0,
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                background: 'rgba(0,0,0,0.2)',
+                                            }}>
+                                                <div style={{
+                                                    width: 44, height: 44, borderRadius: '50%',
+                                                    background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                }}>
+                                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+                                                </div>
+                                            </div>
+                                        </div>
                                     ) : (
-                                        <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, #1a1a2e, #16213e)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                            <svg width="48" height="48" viewBox="0 0 24 24" fill="rgba(255,255,255,0.3)"><path d="M8 5v14l11-7z"/></svg>
+                                        <div
+                                            style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, #1a1a2e, #16213e)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                            onClick={() => setMedia(prev => prev.map((item, idx) => idx === i ? { ...item, _previewing: true } : item))}
+                                        >
+                                            <div style={{
+                                                width: 44, height: 44, borderRadius: '50%',
+                                                background: 'rgba(255,255,255,0.15)',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            }}>
+                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="rgba(255,255,255,0.7)"><path d="M8 5v14l11-7z"/></svg>
+                                            </div>
                                         </div>
                                     )
                                 ) : (
