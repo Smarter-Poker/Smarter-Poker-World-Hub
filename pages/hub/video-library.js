@@ -75,6 +75,34 @@ const C = {
     blue: '#0A84FF',
 };
 
+// ─── Pure helpers at module scope (must be here, not inside the component).
+// Placing them inside the component caused a TDZ crash during SSR prerendering:
+// useMemo(trendingScores) references parseViews before its `const` declaration
+// when the minifier reorders declarations, producing "Cannot access 'e8' before
+// initialization" and breaking the /hub/video-library static build step.
+
+/** Parse views string ('1.5K' → 1500, '2.3M' → 2300000, '800' → 800) */
+function parseViews(v) {
+    if (!v) return 0;
+    const s = String(v).trim();
+    const m = s.match(/^([0-9.]+)\s*([KMkm])?/);
+    if (!m) return 0;
+    const num = parseFloat(m[1]) || 0;
+    const suffix = (m[2] || '').toUpperCase();
+    if (suffix === 'M') return Math.round(num * 1_000_000);
+    if (suffix === 'K') return Math.round(num * 1_000);
+    return Math.round(num);
+}
+
+/** Parse duration string (e.g., "18:34" or "1:23:45") to seconds */
+function parseDuration(durationStr) {
+    if (!durationStr) return 0;
+    const parts = durationStr.split(':').map(Number);
+    if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    if (parts.length === 2) return parts[0] * 60 + parts[1];
+    return parts[0] || 0;
+}
+
 export default function VideoLibraryPage() {
     const router = useRouter();
     const { user } = useAvatar();
@@ -648,30 +676,8 @@ export default function VideoLibraryPage() {
     // Get YouTube thumbnail
     const getThumbnail = (videoId) => `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
 
-    // Parse views string ('1.5K' → 1500, '2.3M' → 2300000, '800' → 800)
-    // IMPORTANT: the old regex approach ('2.3M'.replace(/M/,'000000') = '23M') was 10x wrong
-    // for decimals. This float-based parser is the single source of truth for both
-    // trendingScores and top_rated sort.
-    const parseViews = (v) => {
-        if (!v) return 0;
-        const s = String(v).trim();
-        const m = s.match(/^([0-9.]+)\s*([KMkm])?/);
-        if (!m) return 0;
-        const num = parseFloat(m[1]) || 0;
-        const suffix = (m[2] || '').toUpperCase();
-        if (suffix === 'M') return Math.round(num * 1_000_000);
-        if (suffix === 'K') return Math.round(num * 1_000);
-        return Math.round(num);
-    };
-
-    // Parse duration string (e.g., "18:34" or "1:23:45") to seconds
-    const parseDuration = (durationStr) => {
-        if (!durationStr) return 0;
-        const parts = durationStr.split(':').map(Number);
-        if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
-        if (parts.length === 2) return parts[0] * 60 + parts[1];
-        return parts[0] || 0;
-    };
+    // parseViews / parseDuration are now module-scope functions (defined above the component)
+    // to prevent a TDZ crash during SSR prerendering. See the comment above for details.
 
 
     // Format seconds to readable time
