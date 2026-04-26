@@ -196,10 +196,11 @@ class HealthWatchdog {
     // Guard against Edge Runtime where process.memoryUsage may not exist or throw
     let mem;
     try {
-      if (typeof process.memoryUsage !== 'function') {
+      const memUsageFn = process && process['memoryUsage'];
+      if (typeof memUsageFn !== 'function') {
         return null;
       }
-      mem = process.memoryUsage();
+      mem = memUsageFn.call(process);
     } catch (e) {
       return null;
     }
