@@ -10,7 +10,6 @@
  * GET ?venue_id=1234&days=60  — dated events up to 60 days out (default: all)
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { applyCors } from '../../../src/lib/cors';
 
 let _sb = null;
 function getSupabase() {
