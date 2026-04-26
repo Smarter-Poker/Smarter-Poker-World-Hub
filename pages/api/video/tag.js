@@ -9,13 +9,18 @@
  * Body: { videoId, title, source, type, duration }
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 
-// NOTE: No edge runtime — needs Node.js for full Supabase client + res.status() Pages API
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+// Lazy-init Supabase admin (avoids crash during Next.js static prerendering when env vars are undefined)
+let _supabaseAdmin = null;
+function getSupabase() {
+    if (!_supabaseAdmin) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabaseAdmin = createClient(url, key);
+    }
+    return _supabaseAdmin;
+}
 
 const CRON_SECRET = process.env.CRON_SECRET;
 
@@ -160,7 +165,7 @@ export default async function handler(req, res) {
         try {
             const tags = await generateTagsWithGrok(title, source, type, duration);
 
-            const { error } = await supabaseAdmin
+            const { error } = await getSupabase()
                 .from('video_library_videos')
                 .update({ tags })
                 .eq('youtube_video_id', videoId);
@@ -181,7 +186,7 @@ export default async function handler(req, res) {
 
         try {
             // Fetch untagged videos
-            const { data: untagged, error: fetchErr } = await supabaseAdmin
+            const { data: untagged, error: fetchErr } = await getSupabase()
                 .from('video_library_videos')
                 .select('youtube_video_id, title, source_id, type, duration, tags')
                 .or('tags.is.null,tags.eq.[]')
@@ -208,7 +213,7 @@ export default async function handler(req, res) {
                             v.type,
                             v.duration
                         );
-                        const { error } = await supabaseAdmin
+                        const { error } = await getSupabase()
                             .from('video_library_videos')
                             .update({ tags })
                             .eq('youtube_video_id', v.youtube_video_id);
