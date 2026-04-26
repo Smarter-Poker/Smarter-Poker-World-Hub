@@ -24,9 +24,19 @@ function getSentry() {
         return null;
     }
 
+    // Skip loading in browser environment
+    if (typeof window !== 'undefined') {
+        return null;
+    }
+
     try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
-        Sentry = require('@sentry/nextjs');
+        // Use eval to hide require from webpack's static analysis,
+        // preventing it from bundling @sentry/nextjs into Edge Runtime chunks.
+        // This is safe because this code path is never executed in Edge Runtime
+        // (guarded by the EdgeRuntime check above).
+        // eslint-disable-next-line no-eval
+        const nodeRequire = eval('require');
+        Sentry = nodeRequire('@sentry/nextjs');
         return Sentry;
     } catch {
         return null;
