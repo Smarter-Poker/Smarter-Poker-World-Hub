@@ -3,7 +3,15 @@
  * Centralized error tracking and reporting for Smarter.Poker
  *
  * Setup: Add NEXT_PUBLIC_SENTRY_DSN to environment variables
+ *
+ * IMPORTANT: Uses a static import of @sentry/nextjs.
+ * - In Node.js contexts: uses the full server bundle
+ * - In Edge Runtime contexts: webpack automatically resolves to @sentry/nextjs/edge
+ *   via the package.json "edge" export condition
+ * - No dynamic require() — avoids all webpack bundling errors
  */
+
+import * as SentrySDK from '@sentry/nextjs';
 
 /**
  * Check if running in Edge Runtime
@@ -13,21 +21,13 @@ function isEdgeRuntime() {
 }
 
 /**
- * Get Sentry instance — null-safe, edge-safe.
- * Uses eval'd require to avoid bundling @sentry/nextjs in Edge Runtime.
+ * Get the Sentry SDK instance — edge-safe guard.
+ * In edge context returns the edge-compatible SDK.
+ * In browser context returns null (no server-side Sentry in browser).
  */
 function getSentry() {
-    if (isEdgeRuntime()) return null;
     if (typeof window !== 'undefined') return null;
-    try {
-        // Use eval to hide require from webpack static analysis
-        // Edge Runtime check above prevents this from running in edge
-        const dynamicRequire = eval('require');
-        if (typeof dynamicRequire !== 'function') return null;
-        return dynamicRequire('@sentry/nextjs');
-    } catch (e) {
-        return null;
-    }
+    return SentrySDK || null;
 }
 
 /**
@@ -36,43 +36,39 @@ function getSentry() {
  * @param {object} context - Additional context (tags, extra data, user)
  */
 export async function captureError(error, context = {}) {
-    if (isEdgeRuntime()) {
-        console.warn('[Sentry Edge Fallback]', error, context);
-        return;
-    }
     const sentry = getSentry();
     if (!sentry) {
-        console.warn('[Sentry Fallback]', error, context);
+        if (isEdgeRuntime()) {
+            console.warn('[Sentry Edge Fallback]', error);
+        } else {
+            console.warn('[Sentry Fallback]', error, context);
+        }
         return;
     }
 
-    sentry.withScope((scope) => {
-        if (context.tags) {
-            Object.entries(context.tags || {}).forEach(([key, value]) => {
-                scope.setTag(key, value);
-            });
-        }
-
-        if (context.extra) {
-            Object.entries(context.extra || {}).forEach(([key, value]) => {
-                scope.setExtra(key, value);
-            });
-        }
-
-        if (context.user) {
-            scope.setUser(context.user);
-        }
-
-        if (context.level) {
-            scope.setLevel(context.level);
-        }
-
-        if (typeof error === 'string') {
-            sentry.captureMessage(error, context.level || 'error');
-        } else {
-            sentry.captureException(error);
-        }
-    });
+    try {
+        sentry.withScope((scope) => {
+            if (context.tags) {
+                Object.entries(context.tags || {}).forEach(([key, value]) => {
+                    scope.setTag(key, value);
+                });
+            }
+            if (context.extra) {
+                Object.entries(context.extra || {}).forEach(([key, value]) => {
+                    scope.setExtra(key, value);
+                });
+            }
+            if (context.user) scope.setUser(context.user);
+            if (context.level) scope.setLevel(context.level);
+            if (typeof error === 'string') {
+                sentry.captureMessage(error, context.level || 'error');
+            } else {
+                sentry.captureException(error);
+            }
+        });
+    } catch {
+        console.warn('[Sentry captureError failed]', error);
+    }
 }
 
 /**
@@ -82,29 +78,29 @@ export async function captureError(error, context = {}) {
  * @param {object} context
  */
 export async function captureMessage(message, level = 'info', context = {}) {
-    if (isEdgeRuntime()) {
-        console.debug(`[Sentry Edge Fallback] [${level}]`, message);
-        return;
-    }
     const sentry = getSentry();
     if (!sentry) {
         console.debug(`[Sentry Fallback] [${level}]`, message);
         return;
     }
 
-    sentry.withScope((scope) => {
-        if (context.tags) {
-            Object.entries(context.tags || {}).forEach(([key, value]) => {
-                scope.setTag(key, value);
-            });
-        }
-        if (context.extra) {
-            Object.entries(context.extra || {}).forEach(([key, value]) => {
-                scope.setExtra(key, value);
-            });
-        }
-        sentry.captureMessage(message, level);
-    });
+    try {
+        sentry.withScope((scope) => {
+            if (context.tags) {
+                Object.entries(context.tags || {}).forEach(([key, value]) => {
+                    scope.setTag(key, value);
+                });
+            }
+            if (context.extra) {
+                Object.entries(context.extra || {}).forEach(([key, value]) => {
+                    scope.setExtra(key, value);
+                });
+            }
+            sentry.captureMessage(message, level);
+        });
+    } catch {
+        console.debug(`[Sentry captureMessage failed] [${level}]`, message);
+    }
 }
 
 /**
@@ -112,14 +108,15 @@ export async function captureMessage(message, level = 'info', context = {}) {
  * @param {object} user - { id, email, username }
  */
 export async function setUser(user) {
-    if (isEdgeRuntime()) return;
     const sentry = getSentry();
     if (!sentry) return;
-    sentry.setUser(user ? {
-        id: user.id,
-        email: user.email,
-        username: user.username || user.user_metadata?.username,
-    } : null);
+    try {
+        sentry.setUser(user ? {
+            id: user.id,
+            email: user.email,
+            username: user.username || user.user_metadata?.username,
+        } : null);
+    } catch { /* no-op */ }
 }
 
 /**
@@ -127,15 +124,16 @@ export async function setUser(user) {
  * @param {object} breadcrumb - { category, message, data, level }
  */
 export async function addBreadcrumb(breadcrumb) {
-    if (isEdgeRuntime()) return;
     const sentry = getSentry();
     if (!sentry || typeof sentry.addBreadcrumb !== 'function') return;
-    sentry.addBreadcrumb({
-        category: breadcrumb.category || 'app',
-        message: breadcrumb.message,
-        data: breadcrumb.data,
-        level: breadcrumb.level || 'info',
-    });
+    try {
+        sentry.addBreadcrumb({
+            category: breadcrumb.category || 'app',
+            message: breadcrumb.message,
+            data: breadcrumb.data,
+            level: breadcrumb.level || 'info',
+        });
+    } catch { /* no-op */ }
 }
 
 /**
@@ -145,10 +143,13 @@ export async function addBreadcrumb(breadcrumb) {
  * @returns {object|null} transaction or null
  */
 export async function startTransaction(name, op = 'custom') {
-    if (isEdgeRuntime()) return null;
     const sentry = getSentry();
-    if (!sentry) return null;
-    return sentry.startTransaction({ name, op });
+    if (!sentry || typeof sentry.startTransaction !== 'function') return null;
+    try {
+        return sentry.startTransaction({ name, op });
+    } catch {
+        return null;
+    }
 }
 
 /**

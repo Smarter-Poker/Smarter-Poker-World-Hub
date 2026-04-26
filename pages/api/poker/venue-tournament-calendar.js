@@ -11,10 +11,6 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-export const config = {
-    runtime: 'nodejs',
-};
-
 let _sb = null;
 function getSupabase() {
     if (!_sb) {
