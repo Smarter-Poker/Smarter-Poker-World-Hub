@@ -373,11 +373,12 @@ function ReelViewer({ reels, startIndex, onClose }) {
     // Pre-fetch existing likes + bookmarks + dislikes + follows on mount
     useEffect(() => {
         if (!authUser?.id) return;
-        // Load likes (filter by reaction_type='like')
+        // Load likes — limit 500 to guard against users with massive engagement history
         supabase.from('social_likes')
             .select('post_id')
             .eq('user_id', authUser.id)
             .eq('reaction_type', 'like')
+            .limit(500)
             .then(({ data }) => {
                 if (data) {
                     const likeMap = {};
@@ -390,6 +391,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
             .select('post_id')
             .eq('user_id', authUser.id)
             .eq('reaction_type', 'dislike')
+            .limit(500)
             .then(({ data }) => {
                 if (data) {
                     const dislikeMap = {};
@@ -402,6 +404,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
             .select('post_id')
             .eq('user_id', authUser.id)
             .eq('interaction_type', 'bookmark')
+            .limit(500)
             .then(({ data }) => {
                 if (data) {
                     const saveMap = {};
@@ -413,6 +416,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
         supabase.from('follows')
             .select('following_id')
             .eq('follower_id', authUser.id)
+            .limit(1000)
             .then(({ data }) => {
                 if (data) {
                     const followMap = {};
@@ -467,17 +471,25 @@ function ReelViewer({ reels, startIndex, onClose }) {
         };
     }, [authUser?.id]);
 
-    // Initialize counts from reel data
+    // Initialize counts from reel data — MERGE only, never overwrite existing optimistic values.
+    // Critical: loadReels() fires on every Realtime INSERT. Without merge, optimistic like/view
+    // updates are silently nuked the moment any new post appears in the feed.
     useEffect(() => {
-        const lc = {}, cc = {}, vc = {};
-        reels.forEach(r => {
-            lc[r.id] = r.like_count || 0;
-            cc[r.id] = r.comment_count || 0;
-            vc[r.id] = r.view_count || 0;
+        setLikeCounts(prev => {
+            const merged = { ...prev };
+            reels.forEach(r => { if (!(r.id in merged)) merged[r.id] = r.like_count || 0; });
+            return merged;
         });
-        setLikeCounts(lc);
-        setCommentCounts(cc);
-        setViewCounts(vc);
+        setCommentCounts(prev => {
+            const merged = { ...prev };
+            reels.forEach(r => { if (!(r.id in merged)) merged[r.id] = r.comment_count || 0; });
+            return merged;
+        });
+        setViewCounts(prev => {
+            const merged = { ...prev };
+            reels.forEach(r => { if (!(r.id in merged)) merged[r.id] = r.view_count || 0; });
+            return merged;
+        });
     }, [reels]);
 
     const goNext = () => {
@@ -1083,9 +1095,16 @@ function ReelViewer({ reels, startIndex, onClose }) {
     handleSaveRef.current = handleSave;
     handleCommentsRef.current = handleToggleComments;
 
-    // Cleanup RAF on unmount to prevent memory leak - must be before early return
+    // Cleanup RAF + pending timers on unmount to prevent memory leaks.
+    // reactionTimerRef and longPressTimerRef can fire into a dead component
+    // if the user starts a long-press and the viewer closes before the timeout.
     useEffect(() => {
-        return () => { if (progressRAF.current) cancelAnimationFrame(progressRAF.current); };
+        return () => {
+            if (progressRAF.current) cancelAnimationFrame(progressRAF.current);
+            if (reactionTimerRef.current) clearTimeout(reactionTimerRef.current);
+            if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+            if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+        };
     }, []);
 
     // Keyboard navigation
@@ -2108,8 +2127,11 @@ export function ReelsFeedCarousel() {
     useEffect(() => {
         loadReels();
 
+        // Unique channel name prevents duplicate subscriptions in React StrictMode
+        // (double-invoke of useEffect in dev would create two channels with the same
+        // static name, causing loadReels() to fire twice per INSERT event).
         const _ch = supabase
-            .channel(`reels-feed-carousel`)
+            .channel(`reels-feed-carousel-${Math.random().toString(36).slice(2, 8)}`)
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_reels' }, () => {
                 loadReels();
             })
