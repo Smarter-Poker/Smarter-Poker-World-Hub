@@ -264,7 +264,28 @@ export default function VideoLibraryPage() {
         surface: 'VideoLibrary',
         autoActionDelay: 3000,
         onError: () => {
+            // BUG-19 FIX: flush watch time + restore scroll on YT error close
+            // (previously only closed modal, leaving scroll locked at video position)
+            if (watchStartTimeRef.current && currentWatchingVideoRef.current && userId) {
+                const watchedSeconds = Math.floor((Date.now() - watchStartTimeRef.current) / 1000);
+                const video = currentWatchingVideoRef.current;
+                watchStartTimeRef.current = null;
+                currentWatchingVideoRef.current = null;
+                if (watchedSeconds > 0) {
+                    updateWatchDuration(userId, video.id, watchedSeconds, {
+                        title: video.title,
+                        url: `https://youtube.com/watch?v=${video.videoId}`,
+                        thumbnail: `https://img.youtube.com/vi/${video.videoId}/maxresdefault.jpg`
+                    }).catch(() => {});
+                }
+            } else {
+                watchStartTimeRef.current = null;
+                currentWatchingVideoRef.current = null;
+            }
             setSelectedVideo(null);
+            if (typeof window !== 'undefined' && savedScrollY.current > 0) {
+                requestAnimationFrame(() => window.scrollTo({ top: savedScrollY.current, behavior: 'instant' }));
+            }
         },
     });
 
@@ -286,10 +307,11 @@ export default function VideoLibraryPage() {
         return () => observer.disconnect();
     }, []); // [] — sentinel DOM node never changes, functional updater avoids stale closure
 
-    // Reset displayed count when filters change
+    // Reset displayed count when filters OR sort mode changes
     useEffect(() => {
         setDisplayedCount(30);
-    }, [selectedSource, selectedType, selectedDuration, searchQuery]);
+    // BUG-18 FIX: sortMode added — switching Trending/Top-Rated/Latest now resets pagination
+    }, [selectedSource, selectedType, selectedDuration, searchQuery, sortMode]);
 
     const timeTrackingInterval = useRef(null); // keep for watch-time ticking
 
