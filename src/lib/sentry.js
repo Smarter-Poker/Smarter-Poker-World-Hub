@@ -14,16 +14,18 @@ function isEdgeRuntime() {
 
 /**
  * Get Sentry instance — null-safe, edge-safe.
- * Uses dynamic require to avoid bundling @sentry/nextjs in Edge Runtime.
+ * Uses globalThis require to avoid bundling @sentry/nextjs in Edge Runtime.
  */
 function getSentry() {
     if (isEdgeRuntime()) return null;
     if (typeof window !== 'undefined') return null;
     try {
-        // Use eval to prevent webpack from statically analyzing this require
+        // Access require via globalThis to prevent webpack static analysis
         // This avoids "Dynamic Code Evaluation not allowed in Edge Runtime" errors
-        // eslint-disable-next-line no-eval
-        const req = eval('require');
+        const req = typeof __non_webpack_require__ !== 'undefined'
+            ? __non_webpack_require__
+            : (typeof module !== 'undefined' && module.require ? module.require.bind(module) : null);
+        if (!req) return null;
         return req('@sentry/nextjs');
     } catch (e) {
         return null;
