@@ -12,6 +12,8 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
+export const runtime = 'edge';
+
 export default async function handler(req, res) {
     // Auth check
     if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {

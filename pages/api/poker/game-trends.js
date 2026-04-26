@@ -8,6 +8,8 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { gameShortLabel } from '../../../src/components/poker-near-me/normalize-game';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
+export const runtime = 'edge';
+
 let _supabase = null;
 function getSupabase() {
   if (!_supabase) {

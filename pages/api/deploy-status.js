@@ -5,6 +5,8 @@
  * Used by the admin dashboard at /hub/admin/autofix
  */
 
+export const runtime = 'edge';
+
 export const config = { maxDuration: 30 };
 
 const TEAM_ID = 'team_SVD8r7AOPH065G3usBxVvrBc';

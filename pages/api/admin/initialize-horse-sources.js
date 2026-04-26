@@ -20,6 +20,8 @@ import { CLIP_SOURCES } from '../../../src/content-engine/pipeline/ClipLibrary.j
 import { SPORTS_CLIP_SOURCES } from '../../../src/content-engine/pipeline/SportsClipLibrary.js';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
+export const runtime = 'edge';
+
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {

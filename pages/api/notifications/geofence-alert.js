@@ -13,6 +13,8 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { sendPushNotification } from '../../../src/lib/onesignal-server';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
+export const runtime = 'edge';
+
 
 const ONESIGNAL_APP_ID = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
 const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
