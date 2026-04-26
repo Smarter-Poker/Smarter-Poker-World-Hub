@@ -630,7 +630,14 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 setNotInterestedIds(prev => { const n = new Set(prev); n.add(currentId); if (typeof window !== 'undefined') localStorage.setItem('reels-not-interested', JSON.stringify([...n])); return n; });
             }
         } catch {
+            // Roll back optimistic dislike update and alert the user
             setDisliked(prev => ({ ...prev, [currentId]: wasDisliked }));
+            // Also roll back the like-count adjustment that mutual exclusion made
+            if (!wasDisliked && liked[currentId]) {
+                setLiked(prev => ({ ...prev, [currentId]: true }));
+                setLikeCounts(prev => ({ ...prev, [currentId]: (prev[currentId] || 0) + 1 }));
+            }
+            showErrorToast('Dislike failed \u2014 try again');
         }
     };
 
@@ -726,6 +733,11 @@ function ReelViewer({ reels, startIndex, onClose }) {
     // Phase 6 - Comment like toggle
     const handleCommentLike = async (commentId) => {
         if (!authUser?.id) return;
+        // Guard: skip temp comments (optimistic, not yet DB-persisted).
+        // Temp IDs are Date.now() — a 13-digit numeric string when cast.
+        // Liking a temp ID would insert a dangling social_interactions row
+        // with a non-UUID comment_id that can never be cleaned up.
+        if (typeof commentId === 'number' || String(commentId).length === 13) return;
         const wasLiked = commentLikes[commentId];
         setCommentLikes(prev => ({ ...prev, [commentId]: !wasLiked }));
         // #4 Optimistic comment like count sync
@@ -749,8 +761,10 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 });
             }
         } catch {
+            // Roll back optimistic update and alert user
             setCommentLikes(prev => ({ ...prev, [commentId]: wasLiked }));
             setCommentLikeCounts(prev => ({ ...prev, [commentId]: Math.max(0, (prev[commentId] || 0) + (wasLiked ? 1 : -1)) }));
+            showErrorToast('Like failed \u2014 try again');
         }
     };
 
@@ -1447,6 +1461,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     }}>
                         <img
                             src={currentReel.profiles?.avatar_url || '/default-avatar.png'}
+                            alt={currentReel.profiles?.username || 'User'}
                             style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', border: '2px solid white' }}
                         />
                         <div>
@@ -1888,7 +1903,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                             )}
                             {reelComments.map(c => (
                                 <div key={c.id} style={{ display: 'flex', gap: 8, marginBottom: 12, paddingLeft: c.parent_id ? 24 : 0 }}>
-                                    <img src={c.profiles?.avatar_url || '/default-avatar.png'} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
+                                    <img src={c.profiles?.avatar_url || '/default-avatar.png'} alt={c.profiles?.username || 'User'} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
                                     <div style={{ flex: 1 }}>
                                         <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: 12, fontWeight: 600 }}>{c.profiles?.username || 'User'}</span>
                                         <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginLeft: 8 }}>{c.created_at ? timeAgo(c.created_at) : ''}</span>
