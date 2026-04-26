@@ -11,9 +11,9 @@ import { SPPostCard, FBStoriesRow, SP_COLORS, SPAvatar } from '../SmarterPokerSt
 import { EnhancedPostCreator } from '../EnhancedPostCreator';
 import { ReelsCarousel } from '../SmarterPokerReels';
 import { FriendsList } from '../SmarterPokerFriends';
-import { useSupabase } from '../../providers/SupabaseProvider';
-import { SocialService } from '../../services/SocialService';
-import { eventBus, EventType, busEmit } from '../../engine/EventBus';
+import { useSupabase } from '../../../providers/SupabaseProvider';
+import { SocialService } from '../../../services/SocialService';
+import { eventBus, EventType, busEmit } from '../../../engine/EventBus';
 import TrendingPosts from '../TrendingPosts';
 import FeedFilterTabs from '../FeedFilterTabs';
 import GhostPostCard from '../GhostPostCard';
