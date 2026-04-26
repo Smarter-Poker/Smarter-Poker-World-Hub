@@ -11,7 +11,6 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyCors } from '../../../src/lib/cors';
-import { reportApiError } from '../../../src/lib/sentryWrap';
 
 let _sb = null;
 function getSupabase() {
@@ -198,7 +197,6 @@ async function handler(req, res) {
         });
 
     } catch (err) {
-        try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         console.warn('[venue-tournament-calendar] Unhandled error:', err);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }
