@@ -20,8 +20,11 @@ function getSentry() {
     if (isEdgeRuntime()) return null;
     if (typeof window !== 'undefined') return null;
     try {
-        // eslint-disable-next-line global-require
-        return require('@sentry/nextjs');
+        // Use eval to prevent webpack from statically analyzing this require
+        // This avoids "Dynamic Code Evaluation not allowed in Edge Runtime" errors
+        // eslint-disable-next-line no-eval
+        const req = eval('require');
+        return req('@sentry/nextjs');
     } catch (e) {
         return null;
     }
