@@ -1109,10 +1109,8 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     .eq('user_id', authUser.id)
                     .eq('interaction_type', 'bookmark');
             } else {
-                await supabase.from('social_interactions').delete()
-                    .eq('post_id', currentReel.id)
-                    .eq('user_id', authUser.id)
-                    .eq('interaction_type', 'bookmark');
+                // Removed redundant DELETE before INSERT — if state says not saved,
+                // no row exists to delete. The extra round-trip wasted latency.
                 await supabase.from('social_interactions').insert({
                     post_id: currentReel.id, user_id: authUser.id, interaction_type: 'bookmark'
                 });
@@ -1267,7 +1265,14 @@ function ReelViewer({ reels, startIndex, onClose }) {
 
     // Progress bar update loop for native videos
     const updateProgress = () => {
-        if (videoRef.current && videoRef.current.duration) {
+        // Early-exit when paused: avoids running setProgress at 60fps for nothing.
+        // onPause/onEnded cancel the RAF; this guard catches any edge cases where
+        // the cancel fires just after the rAF callback has already been scheduled.
+        if (!videoRef.current || videoRef.current.paused) {
+            progressRAF.current = null;
+            return;
+        }
+        if (videoRef.current.duration) {
             setProgress((videoRef.current.currentTime / videoRef.current.duration) * 100);
         }
         progressRAF.current = requestAnimationFrame(updateProgress);
@@ -1362,7 +1367,8 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         onEnded={() => {
                             if (progressRAF.current) cancelAnimationFrame(progressRAF.current);
                             setProgress(0);
-                            if (currentIndex < reels.length - 1) goNext();
+                            // goNext() already guards bounds internally via functional setter
+                            goNext();
                         }}
                     />
                 )}

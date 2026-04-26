@@ -16,7 +16,8 @@
  *   user_id  - current user ID (for likes & bookmarks)
  */
 
-export const runtime = 'edge';
+// NOTE: This handler uses Node.js Pages Router API (req.query, res.setHeader, res.status)
+// and CANNOT run on Edge Runtime. Keep as Node.js runtime (no export const runtime = 'edge').
 
 const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPA_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
