@@ -60,7 +60,19 @@ export function validateVideoFile(file) {
                         : 'on mobile';
         warning = `Large video (${sizeMB}MB) — upload may take a few minutes ${connLabel}.`;
     }
-    return { valid: true, warning, sizeMB };
+
+    // Detect formats that need server-side transcoding
+    const name = (file.name || '').toLowerCase();
+    const type = (file.type || '').toLowerCase();
+    let formatWarning = null;
+    const isHEVC = type.includes('hevc') || type.includes('hev1') || name.endsWith('.hevc');
+    const isMOV = type === 'video/quicktime' || name.endsWith('.mov');
+    const isUncommon = type.includes('x-matroska') || name.endsWith('.mkv') || name.endsWith('.avi');
+    if (isHEVC || isMOV || isUncommon) {
+        formatWarning = 'Your video will be optimized for all devices after upload.';
+    }
+
+    return { valid: true, warning, formatWarning, sizeMB };
 }
 
 /**

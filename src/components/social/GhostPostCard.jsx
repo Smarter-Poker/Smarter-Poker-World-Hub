@@ -25,14 +25,16 @@ export default function GhostPostCard({ user }) {
     const [progress, setProgress] = useState(0);
     const [label, setLabel] = useState('Uploading…');
     const [meta, setMeta] = useState(null); // { content, thumbnail, fileName }
+    const [queueInfo, setQueueInfo] = useState(null); // { position, total }
 
     useEffect(() => {
         const unsub = bgUpload.subscribe({
-            onProgress: ({ pct, label: lbl, state }) => {
+            onProgress: ({ pct, label: lbl, state, queuePosition, queueTotal }) => {
                 if (state === 'background') {
                     setVisible(true);
                     setProgress(pct);
                     setLabel(lbl);
+                    if (queueTotal > 1) setQueueInfo({ position: queuePosition, total: queueTotal });
                     if (!meta && bgUpload.ghostMeta) {
                         setMeta(bgUpload.ghostMeta);
                     }
@@ -89,6 +91,7 @@ export default function GhostPostCard({ user }) {
             <div style={{
                 display: 'flex', alignItems: 'center', gap: 10,
                 padding: '12px 16px',
+                position: 'relative',
             }}>
                 {avatarUrl ? (
                     <img
@@ -106,7 +109,7 @@ export default function GhostPostCard({ user }) {
                         {displayName[0]?.toUpperCase()}
                     </div>
                 )}
-                <div>
+                <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600, fontSize: 14, color: SOCIAL_COLORS.text }}>
                         {displayName}
                     </div>
@@ -119,9 +122,28 @@ export default function GhostPostCard({ user }) {
                             background: isFailed ? '#FA383E' : isComplete ? '#42B72A' : SOCIAL_COLORS.blue,
                             animation: isComplete || isFailed ? 'none' : 'uploadPulse 1s ease-in-out infinite',
                         }} />
-                        {isComplete ? 'Posted!' : isFailed ? 'Failed' : 'Uploading Video…'}
+                        {isComplete ? 'Posted!' : isFailed ? 'Failed' : queueInfo ? `Uploading Video ${queueInfo.position} of ${queueInfo.total}…` : 'Uploading Video…'}
                     </div>
                 </div>
+                {/* Cancel button */}
+                {!isComplete && !isFailed && (
+                    <button
+                        onClick={() => { bgUpload.abort(); setVisible(false); }}
+                        style={{
+                            background: 'rgba(0,0,0,0.05)', border: 'none',
+                            borderRadius: '50%', width: 32, height: 32,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            cursor: 'pointer', color: SOCIAL_COLORS.textSec, fontSize: 14,
+                            flexShrink: 0,
+                        }}
+                        aria-label="Cancel upload"
+                    >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                    </button>
+                )}
             </div>
 
             {/* Caption */}

@@ -245,6 +245,9 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                 if (validation.warning) {
                     toast.info(validation.warning, 5000);
                 }
+                if (validation.formatWarning) {
+                    toast.info(validation.formatWarning, 4000);
+                }
             }
 
             const localUrl = URL.createObjectURL(file);

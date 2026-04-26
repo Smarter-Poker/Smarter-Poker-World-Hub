@@ -503,8 +503,11 @@ const bgUpload = {
     async _processQueue() {
         if (_isProcessingQueue || _uploadQueue.length === 0) return;
         _isProcessingQueue = true;
+        _queueTotal = _uploadQueue.length;
+        _queuePosition = 0;
 
         while (_uploadQueue.length > 0) {
+            _queuePosition++;
             const job = _uploadQueue.shift();
             try {
                 const result = await bgUpload.start(job);
@@ -514,6 +517,8 @@ const bgUpload = {
             }
         }
 
+        _queuePosition = 0;
+        _queueTotal = 0;
         _isProcessingQueue = false;
     },
 
@@ -546,12 +551,31 @@ const bgUpload = {
     /** Get ghost post metadata for feed placeholder */
     get ghostMeta() { return _ghostMeta; },
 
+    /** Get queue progress */
+    get queuePosition() { return _queuePosition; },
+    get queueTotal() { return _queueTotal; },
+
+    /**
+     * Retry the last failed upload.
+     * Called from the retry toast button.
+     */
+    retry() {
+        if (!_lastUploadParams) return;
+        const params = { ..._lastUploadParams };
+        _lastUploadParams = null;
+        bgUpload.start(params).catch((err) => {
+            console.warn('[bgUpload] Retry failed:', err.message);
+        });
+    },
+
     /** Abort the active upload */
     abort() {
         clearTimeout(_bgTimer);
         _bgTimer = null;
         _removeBeforeUnload();
+        _removeNetworkListeners();
         _clearUploadIntent();
+        _lastUploadParams = null;
         if (_bgToastId) {
             useToastStore.getState().removeToast(_bgToastId);
             _bgToastId = null;
@@ -568,6 +592,8 @@ const bgUpload = {
         _ghostMeta = null;
         _listeners.clear();
         _prefetchCache = null;
+        _queuePosition = 0;
+        _queueTotal = 0;
         // Clear the queue
         _uploadQueue.forEach(job => job.reject(new Error('Upload aborted')));
         _uploadQueue = [];

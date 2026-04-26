@@ -320,6 +320,7 @@ export const EnhancedPostCreator = ({
         // Large file warning
         const validation = validateVideoFile(file);
         if (validation.warning) toast.info(validation.warning, 5000);
+        if (validation.formatWarning) toast.info(validation.formatWarning, 4000);
 
         // Auto-thumbnail generation
         generateThumbnail(file).then(thumb => {
