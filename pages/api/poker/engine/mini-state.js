@@ -11,13 +11,9 @@
 
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 
-<<<<<<< Updated upstream
-// runtime: node (default) — reverted from edge: depends on Node-only modules (sentryWrap @sentry/nextjs / supabaseServerClient / serverAuth) or Pages Router APIs (req.query, res.status) that don't run on Vercel Edge
-=======
 // NOTE: This handler uses Node.js Pages Router API (req.query, res.setHeader, res.status, require())
 // and CANNOT run on Edge Runtime. Keep as Node.js runtime.
 
->>>>>>> Stashed changes
 // ── Phase mapping: engine phases → display phases ──
 const DISPLAY_PHASE = {
   idle: 'idle',
