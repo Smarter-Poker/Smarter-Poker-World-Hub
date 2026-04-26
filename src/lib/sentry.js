@@ -5,11 +5,6 @@
  * Setup: Add NEXT_PUBLIC_SENTRY_DSN to environment variables
  */
 
-// Static import — avoids all dynamic require() / webpack bundling issues.
-// @sentry/nextjs is installed and safe to import statically.
-// Edge-runtime checks below prevent Sentry APIs from being called in edge contexts.
-import * as SentrySDK from '@sentry/nextjs';
-
 /**
  * Check if running in Edge Runtime
  */
@@ -19,11 +14,17 @@ function isEdgeRuntime() {
 
 /**
  * Get Sentry instance — null-safe, edge-safe.
+ * Uses dynamic require to avoid bundling @sentry/nextjs in Edge Runtime.
  */
 function getSentry() {
     if (isEdgeRuntime()) return null;
     if (typeof window !== 'undefined') return null;
-    return SentrySDK || null;
+    try {
+        // eslint-disable-next-line global-require
+        return require('@sentry/nextjs');
+    } catch (e) {
+        return null;
+    }
 }
 
 /**
