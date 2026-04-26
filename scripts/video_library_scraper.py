@@ -243,9 +243,18 @@ def purge_dead_videos(batch_size: int = 20, dry_run: bool = False) -> dict:
         log.warning(f'  DEAD [{d[0]}] {d[1]} — {d[2]}')
 
     if dead_ids and not dry_run:
+        # Get the youtube_video_ids of dead videos for orphan cleanup
+        dead_youtube_ids = [v['youtube_video_id'] for v in all_vids if v['id'] in dead_ids]
         for db_id in dead_ids:
             supabase.table('video_library_videos').delete().eq('id', db_id).execute()
         log.info(f'Deleted {len(dead_ids)} unplayable videos.')
+        # Purge orphaned video_analysis rows for the deleted videos
+        if dead_youtube_ids:
+            try:
+                supabase.table('video_analysis').delete().in_('video_id', dead_youtube_ids).execute()
+                log.info(f'Purged {len(dead_youtube_ids)} orphaned video_analysis rows.')
+            except Exception as e:
+                log.warning(f'video_analysis orphan cleanup failed (non-fatal): {e}')
 
     return {'checked': checked, 'dead': len(dead_ids), 'purged': 0 if dry_run else len(dead_ids)}
 
@@ -386,7 +395,38 @@ def _trigger_ai_analysis(youtube_video_id: str, title: str) -> None:
     try:
         headers = {'Authorization': f'Bearer {CRON_SECRET}'}
         url = f'{PRODUCTION_URL}/api/video/analyze?videoId={youtube_video_id}&title={title}'
-        requests.get(url, headers=headers, timeout=60)
+        import urllib.request
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=60):
+            pass
+    except Exception:
+        pass  # best-effort — failures are silent
+
+
+def _trigger_ai_tag(youtube_video_id: str, title: str, source_id: str, v_type: str, duration: str) -> None:
+    """Non-blocking POST to /api/video/tag — writes tags to video_library_videos.tags."""
+    try:
+        if not CRON_SECRET:
+            return
+        import json as _json
+        import urllib.request as _req
+        payload = _json.dumps({
+            'videoId': youtube_video_id,
+            'title':   title,
+            'source':  source_id,
+            'type':    v_type,
+            'duration': duration,
+        }).encode('utf-8')
+        r = _req.Request(
+            f'{PRODUCTION_URL}/api/video/tag',
+            data=payload, method='POST',
+            headers={
+                'Content-Type':  'application/json',
+                'x-cron-secret': CRON_SECRET,
+            }
+        )
+        with _req.urlopen(r, timeout=60):
+            pass
     except Exception:
         pass  # best-effort — failures are silent
 
@@ -457,8 +497,14 @@ def run_scraper(dry_run: bool = False, filter_source: str | None = None,
                         supabase.table('video_library_videos').insert(v).execute()
                         existing_ids.add(v['youtube_video_id'])
                         inserted += 1
-                        
+
                         # Phase 18: Pre-computed AI Tagging — fires async, never blocks ingest
+                        threading.Thread(
+                            target=_trigger_ai_tag,
+                            args=(v['youtube_video_id'], v['title'], v['source_id'], v['type'], v.get('duration', '')),
+                            daemon=True
+                        ).start()
+                        # Also pre-warm AI chapter analysis cache
                         threading.Thread(
                             target=_trigger_ai_analysis,
                             args=(v['youtube_video_id'], v['title']),
@@ -605,6 +651,7 @@ if __name__ == '__main__':
     parser.add_argument('--purge',         action='store_true', help='Check all videos for playability and delete dead ones')
     parser.add_argument('--backfill',      action='store_true', help='Backfill missing published_at dates and views only')
     parser.add_argument('--refresh-views', action='store_true', help='Re-fetch view counts for top 50 most-viewed videos', dest='refresh_views')
+    parser.add_argument('--tag-backfill',  action='store_true', help='AI-tag all untagged videos via /api/video/tag', dest='tag_backfill')
     args = parser.parse_args()
 
     if args.purge:
@@ -616,5 +663,18 @@ if __name__ == '__main__':
     elif args.refresh_views:
         result = refresh_views(limit=50, dry_run=args.dry_run)
         log.info(f'View refresh complete: {result}')
+    elif args.tag_backfill:
+        log.info('Starting AI tag backfill for all untagged videos...')
+        # Call the /api/video/tag GET endpoint which handles batching internally
+        import urllib.request as _req
+        import json as _json
+        try:
+            url = f'{PRODUCTION_URL}/api/video/tag?limit=200'
+            r = _req.Request(url, headers={'x-cron-secret': CRON_SECRET})
+            with _req.urlopen(r, timeout=300) as resp:
+                data = _json.loads(resp.read())
+            log.info(f'Tag backfill complete: {data}')
+        except Exception as e:
+            log.error(f'Tag backfill failed: {e}')
     else:
         run_scraper(dry_run=args.dry_run, filter_source=args.source)

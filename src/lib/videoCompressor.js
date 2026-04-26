@@ -21,7 +21,25 @@ const TARGET_BITRATE = 2_500_000; // 2.5 Mbps — good 720p quality
 const COMPRESS_THRESHOLD = Infinity; // DISABLED — was 50MB, see note above
 const MAX_COMPRESS_DURATION = 120; // Skip videos > 2 minutes (real-time processing)
 const MAX_CLIENT_SIZE = 5 * 1024 * 1024 * 1024; // 5GB hard limit
-const WARN_SIZE = 200 * 1024 * 1024; // 200MB — show warning
+
+/**
+ * Get connection-aware warning threshold.
+ * Uses navigator.connection.effectiveType to adapt to network speed:
+ *   - WiFi/4G: 300MB threshold
+ *   - 3G:      100MB threshold
+ *   - 2G:      25MB threshold
+ *   - Unknown:  200MB default
+ */
+function _getWarnThreshold() {
+    try {
+        const conn = navigator?.connection?.effectiveType;
+        if (conn === '4g') return 300 * 1024 * 1024;
+        if (conn === '3g') return 100 * 1024 * 1024;
+        if (conn === '2g') return 25 * 1024 * 1024;
+        if (conn === 'slow-2g') return 10 * 1024 * 1024;
+    } catch (_) { /* navigator.connection not available */ }
+    return 200 * 1024 * 1024; // default fallback
+}
 
 /**
  * Validate a video file before staging.
@@ -33,9 +51,15 @@ export function validateVideoFile(file) {
     if (file.size > MAX_CLIENT_SIZE) {
         return { valid: false, error: `Video is too large (${sizeMB}MB). Maximum is 5GB.`, sizeMB };
     }
-    const warning = file.size > WARN_SIZE
-        ? `Large video (${sizeMB}MB) — upload may take a few minutes on mobile.`
-        : null;
+    const warnThreshold = _getWarnThreshold();
+    let warning = null;
+    if (file.size > warnThreshold) {
+        const connType = navigator?.connection?.effectiveType;
+        const connLabel = connType === '2g' || connType === 'slow-2g' ? 'on a slow connection'
+                        : connType === '3g' ? 'on 3G'
+                        : 'on mobile';
+        warning = `Large video (${sizeMB}MB) — upload may take a few minutes ${connLabel}.`;
+    }
     return { valid: true, warning, sizeMB };
 }
 

@@ -1,17 +1,23 @@
 /**
- * 🎬 BACKGROUND VIDEO UPLOAD MANAGER v2.0
+ * 🎬 BACKGROUND VIDEO UPLOAD MANAGER v3.0
  * src/lib/backgroundVideoUpload.js
  *
  * Production-grade singleton with:
  *   1. URL PREFETCHING — signed URL is fetched when user selects a file,
  *      not when they hit "Post". Saves ~500ms of dead time.
- *   2. RESUMABLE CHUNKED UPLOADS — XHR with automatic retry on failure.
+ *   2. RESUMABLE XHR UPLOADS — XHR with automatic retry on failure.
  *      If the user loses signal, we retry with exponential backoff.
  *   3. 10-SECOND BACKGROUND RULE — if upload takes >10s, the modal
  *      auto-dismisses and a persistent banner appears. The user can
  *      browse freely. Completion fires a clickable toast.
- *   4. GHOST POST SUPPORT — emits events that let the feed inject
- *      a placeholder "uploading" card at the top of the feed.
+ *   4. GHOST POST SUPPORT — emits events via EventBus so the feed can
+ *      inject a placeholder "uploading" card at the top of the feed.
+ *   5. UPLOAD ETA — tracks bytes/second to estimate remaining time.
+ *   6. SESSION PERSISTENCE — saves upload intent to sessionStorage so
+ *      uploads that complete after page navigation can still trigger
+ *      a recovery dialog.
+ *   7. UPLOAD QUEUE — supports queueing multiple uploads for multi-video
+ *      posts (processed sequentially).
  *
  * Usage:
  *   import bgUpload from '@/lib/backgroundVideoUpload';
@@ -37,6 +43,13 @@ let _bgTimer = null;
 let _bgToastId = null;        // ID of the persistent "uploading in background" toast
 let _beforeUnloadHandler = null; // Prevents accidental tab close during upload
 
+// ─── ETA tracking ─────────────────────────────────────────────────────────────
+let _uploadStartTime = null;  // Date.now() when XHR upload begins
+let _lastEta = '';            // cached ETA string for label display
+
+// ─── Ghost post metadata ─────────────────────────────────────────────────────
+let _ghostMeta = null;        // { userId, content, thumbnail, fileName }
+
 // ─── beforeunload protection ──────────────────────────────────────────────────
 function _installBeforeUnload() {
     if (_beforeUnloadHandler) return; // already installed
@@ -57,6 +70,13 @@ const PREFETCH_TTL = 4 * 60 * 1000; // 4 minutes (signed URLs expire in 5)
 const RETRY_DELAYS = [0, 1000, 3000, 5000, 10000]; // exponential backoff
 const MAX_RETRIES = RETRY_DELAYS.length;
 
+// ─── Upload Queue ─────────────────────────────────────────────────────────────
+let _uploadQueue = [];        // Array of { file, userId, folder, resolve, reject }
+let _isProcessingQueue = false;
+
+// ─── Session Storage Keys ─────────────────────────────────────────────────────
+const STORAGE_KEY = 'sp-bg-upload-intent';
+
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 
 function _emit(type, payload) {
@@ -68,6 +88,35 @@ function _setState(state, progress, label) {
     if (progress !== undefined) _progress = progress;
     if (label !== undefined) _label = label;
     _emit('onProgress', { state: _state, pct: _progress, label: _label });
+}
+
+/**
+ * Format seconds into a human-readable ETA string.
+ */
+function _formatEta(seconds) {
+    if (!seconds || seconds <= 0 || !isFinite(seconds)) return '';
+    if (seconds < 60) return `${Math.ceil(seconds)}s left`;
+    if (seconds < 3600) return `${Math.ceil(seconds / 60)}min left`;
+    return `${Math.floor(seconds / 3600)}h ${Math.ceil((seconds % 3600) / 60)}min left`;
+}
+
+/**
+ * Save upload intent to sessionStorage for cross-navigation recovery.
+ */
+function _saveUploadIntent(data) {
+    try {
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
+            ...data,
+            timestamp: Date.now(),
+        }));
+    } catch (_) { /* sessionStorage not available */ }
+}
+
+/**
+ * Clear saved upload intent.
+ */
+function _clearUploadIntent() {
+    try { sessionStorage.removeItem(STORAGE_KEY); } catch (_) {}
 }
 
 /**
@@ -111,6 +160,9 @@ async function _fetchUploadMeta(file, userId, folder) {
  * Execute an XHR PUT upload with retry support.
  * On HTTP 400/403 (expired/consumed signed URL), fetches a FRESH signed URL before retrying.
  * On network failure, waits and retries up to MAX_RETRIES times.
+ *
+ * Includes ETA tracking: calculates bytes/second from upload progress events
+ * and emits estimated time remaining in the progress label.
  */
 function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0, _userId, _folder) {
     return new Promise((resolve, reject) => {
@@ -120,6 +172,9 @@ function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0, _userId, _fold
         // Track max progress so retries never show progress going backwards
         let maxPctReached = _progress || 0;
 
+        // ETA tracking — start time is set on first progress event
+        if (attempt === 0) _uploadStartTime = Date.now();
+
         xhr.upload.onprogress = (evt) => {
             if (!evt.lengthComputable) return;
             const pct = Math.round((evt.loaded / evt.total) * 93) + 5;
@@ -128,10 +183,25 @@ function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0, _userId, _fold
             const displayPct = Math.min(clampedPct, 97);
             // Label shows clean 0-100% derived from bar position (5-97 range → 0-100)
             const labelPct = Math.round(((displayPct - 5) / 92) * 100);
+
+            // ── ETA CALCULATION ──────────────────────────────────────────
+            let eta = '';
+            if (_uploadStartTime && evt.loaded > 0) {
+                const elapsedSec = (Date.now() - _uploadStartTime) / 1000;
+                if (elapsedSec > 2) { // wait 2s for stable rate
+                    const bytesPerSec = evt.loaded / elapsedSec;
+                    const remainingBytes = evt.total - evt.loaded;
+                    const remainingSec = remainingBytes / bytesPerSec;
+                    eta = _formatEta(remainingSec);
+                    _lastEta = eta;
+                }
+            }
+            const etaSuffix = eta ? ` — ~${eta}` : (_lastEta ? ` — ~${_lastEta}` : '');
+
             _setState(
                 _state,
                 displayPct,
-                `Uploading… ${labelPct}%`
+                `Uploading… ${labelPct}%${etaSuffix}`
             );
         };
 
@@ -145,6 +215,8 @@ function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0, _userId, _fold
                 const reason = xhr.status === 400 ? 'URL expired' : 'session expired';
                 // Reset progress so retry shows upload restarting (not stuck at 100%)
                 _progress = 5;
+                _uploadStartTime = Date.now(); // reset ETA for fresh attempt
+                _lastEta = '';
                 _setState(_state, 5, `${reason} — getting new URL (attempt ${attempt + 2}/${MAX_RETRIES + 1})…`);
                 setTimeout(async () => {
                     try {
@@ -230,7 +302,7 @@ const bgUpload = {
 
     /**
      * Subscribe to upload events.
-     * @param {{ onProgress?, onComplete?, onError?, onBackground? }} listener
+     * @param {{ onProgress?, onComplete?, onError?, onBackground?, onGhostPost? }} listener
      * @returns {Function} unsubscribe
      */
     subscribe(listener) {
@@ -280,9 +352,11 @@ const bgUpload = {
      * @param {number}   [opts.bgAfterMs]  - Switch to background after N ms (default: 10000)
      * @param {Function} [opts.onDismiss]  - Called when bg mode activates (close modal here)
      * @param {Function} [opts.onRouter]   - Router push fn for completion toast click
+     * @param {string}   [opts.content]    - Post content for ghost post metadata
+     * @param {string}   [opts.thumbnail]  - Thumbnail data URL for ghost post
      * @returns {Promise<{ publicUrl: string, wasBackground: boolean }>}
      */
-    async start({ file, userId, folder = 'videos', bgAfterMs = 10_000, onDismiss, onRouter }) {
+    async start({ file, userId, folder = 'videos', bgAfterMs = 10_000, onDismiss, onRouter, content, thumbnail }) {
         // Save state BEFORE abort() wipes everything
         const savedPrefetch = _prefetchCache;
         const savedListeners = new Set(_listeners);
@@ -297,7 +371,19 @@ const bgUpload = {
         _state = 'uploading';
         _progress = 0;
         _label = 'Preparing…';
+        _uploadStartTime = null;
+        _lastEta = '';
+        _ghostMeta = { userId, content: content || '', thumbnail, fileName: file.name };
         _emit('onProgress', { state: _state, pct: _progress, label: _label });
+
+        // Save upload intent to sessionStorage for cross-navigation recovery
+        _saveUploadIntent({
+            userId,
+            folder,
+            fileName: file.name,
+            fileSize: file.size,
+            content: content || '',
+        });
 
         // Prevent accidental tab close during upload
         _installBeforeUnload();
@@ -308,6 +394,16 @@ const bgUpload = {
             _state = 'background';
             _emit('onBackground', {});
             onDismiss?.();
+
+            // Emit ghost post event so the feed can show a placeholder card
+            _emit('onGhostPost', {
+                userId,
+                content: content || '',
+                thumbnail,
+                fileName: file.name,
+                progress: _progress,
+            });
+
             // Show persistent "uploading in background" toast (stays until upload completes)
             _bgToastId = toast.action(
                 'Your Video Is Uploading In The Background — We Will Notify You When Complete',
@@ -347,6 +443,7 @@ const bgUpload = {
             clearTimeout(_bgTimer);
             _bgTimer = null;
             _removeBeforeUnload();
+            _clearUploadIntent();
             // Dismiss the persistent background toast before showing completion
             if (_bgToastId) {
                 useToastStore.getState().removeToast(_bgToastId);
@@ -365,6 +462,7 @@ const bgUpload = {
             clearTimeout(_bgTimer);
             _bgTimer = null;
             _removeBeforeUnload();
+            _clearUploadIntent();
             _activeXhr = null;
             // Dismiss the persistent background toast
             if (_bgToastId) {
@@ -377,18 +475,83 @@ const bgUpload = {
 
             // Only show error toast if modal is already gone (background mode)
             if (wasBackground) {
-                toast.error(`🎥 Video upload failed: ${err.message}`);
+                toast.error(`Video upload failed: ${err.message}`);
             }
 
             throw err;
         }
     },
 
+    /**
+     * 🔗 QUEUE — Add a file to the upload queue for sequential processing.
+     * Returns a promise that resolves when THIS specific file finishes uploading.
+     * Useful for multi-video posts where files are uploaded one after another.
+     *
+     * @param {Object} opts - Same opts as start()
+     * @returns {Promise<{ publicUrl: string, wasBackground: boolean }>}
+     */
+    enqueue(opts) {
+        return new Promise((resolve, reject) => {
+            _uploadQueue.push({ ...opts, resolve, reject });
+            bgUpload._processQueue();
+        });
+    },
+
+    /**
+     * Internal: process the upload queue sequentially.
+     */
+    async _processQueue() {
+        if (_isProcessingQueue || _uploadQueue.length === 0) return;
+        _isProcessingQueue = true;
+
+        while (_uploadQueue.length > 0) {
+            const job = _uploadQueue.shift();
+            try {
+                const result = await bgUpload.start(job);
+                job.resolve(result);
+            } catch (err) {
+                job.reject(err);
+            }
+        }
+
+        _isProcessingQueue = false;
+    },
+
+    /**
+     * Check for a dangling upload intent from a previous page navigation.
+     * Call this on mount in the social feed component.
+     * @returns {{ userId, folder, fileName, fileSize, content, timestamp } | null}
+     */
+    checkDanglingIntent() {
+        try {
+            const raw = sessionStorage.getItem(STORAGE_KEY);
+            if (!raw) return null;
+            const intent = JSON.parse(raw);
+            // Only return if less than 15 minutes old
+            if (Date.now() - intent.timestamp > 15 * 60 * 1000) {
+                _clearUploadIntent();
+                return null;
+            }
+            return intent;
+        } catch (_) { return null; }
+    },
+
+    /**
+     * Clear a dangling intent (user dismissed recovery dialog).
+     */
+    clearDanglingIntent() {
+        _clearUploadIntent();
+    },
+
+    /** Get ghost post metadata for feed placeholder */
+    get ghostMeta() { return _ghostMeta; },
+
     /** Abort the active upload */
     abort() {
         clearTimeout(_bgTimer);
         _bgTimer = null;
         _removeBeforeUnload();
+        _clearUploadIntent();
         if (_bgToastId) {
             useToastStore.getState().removeToast(_bgToastId);
             _bgToastId = null;
@@ -400,8 +563,15 @@ const bgUpload = {
         _state = 'idle';
         _progress = 0;
         _label = '';
+        _uploadStartTime = null;
+        _lastEta = '';
+        _ghostMeta = null;
         _listeners.clear();
         _prefetchCache = null;
+        // Clear the queue
+        _uploadQueue.forEach(job => job.reject(new Error('Upload aborted')));
+        _uploadQueue = [];
+        _isProcessingQueue = false;
     },
 };
 

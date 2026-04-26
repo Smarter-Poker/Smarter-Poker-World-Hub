@@ -11,6 +11,7 @@ import { SharedAvatar as Avatar } from './SharedAvatar';
 import { MAX_MEDIA, compressImage, getYouTubeVideoId, validateYouTubeVideo, sniffMimeType, SOCIAL_COLORS as C } from '../../../src/lib/socialHelpers';
 import bgUpload from '../../../src/lib/backgroundVideoUpload';
 import { validateVideoFile, generateThumbnail, compressVideo } from '../../../src/lib/videoCompressor';
+import { uploadThumbnail } from '../../../src/lib/thumbnailUploader';
 
 
 export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages, authorOverride, context = 'social-media' }) {
@@ -168,11 +169,30 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
     // Instead of relying on focus events (which don't fire on iOS), we show
     // a visible "Preparing..." indicator immediately when the button is clicked.
     // The indicator stays until handleFiles fires (file ready or cancel).
-    // Safety timeout: auto-clear after 120s in case onChange never fires.
+    //
+    // CANCEL DETECTION: On iOS, tapping Cancel in the picker doesn't fire onChange.
+    // We use visibilitychange as a secondary signal — when the picker dismisses,
+    // the page becomes visible. If no file was selected after 2s, clear the indicator.
+    // 120s hard safety timeout remains as ultimate backstop.
     useEffect(() => {
         if (!preparingMedia) return;
-        const timer = setTimeout(() => setPreparingMedia(false), 120_000);
-        return () => clearTimeout(timer);
+        const handleVisibility = () => {
+            if (document.visibilityState === 'visible' && _pickerOpenRef.current) {
+                // Wait 2s for onChange to fire (transcoding may still be in progress)
+                setTimeout(() => {
+                    if (_pickerOpenRef.current) {
+                        setPreparingMedia(false);
+                        _pickerOpenRef.current = false;
+                    }
+                }, 2000);
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibility);
+        const timer = setTimeout(() => { setPreparingMedia(false); _pickerOpenRef.current = false; }, 120_000);
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibility);
+            clearTimeout(timer);
+        };
     }, [preparingMedia]);
 
     /**
@@ -475,6 +495,15 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         // Clean up compression cache
                         delete compressionRef.current[staged.url];
                         uploadedMedia.push({ type: 'video', url: videoUrl });
+
+                        // Persist thumbnail to cloud storage (non-blocking)
+                        if (staged.thumbnail) {
+                            uploadThumbnail(staged.thumbnail, user.id).then(thumbUrl => {
+                                if (thumbUrl) {
+                                    uploadedMedia.push({ type: 'thumbnail', url: thumbUrl });
+                                }
+                            }).catch(() => { /* thumbnail upload is best-effort */ });
+                        }
                     } else {
                         // Compress image before upload
                         const compressedFile = await compressImage(staged.file);
@@ -994,7 +1023,6 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                     <span style={{ fontSize: 14, fontWeight: 600, color: '#1877F2' }}>
                         Preparing Your Video — This May Take A Moment For Longer Videos...
                     </span>
-                    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
                 </div>
             )}
             <div style={{ borderTop: `1px solid ${C.border}` }}>

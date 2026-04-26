@@ -174,6 +174,29 @@ export const EnhancedPostCreator = ({
   // Stable file key — survives array index shifts when files are removed
   const _fileKey = (f) => `${f.name}_${f.size}_${f.lastModified}`;
 
+  // ── iOS FILE PICKER PREPARATION DETECTION ────────────────────────────────
+  // State-driven: sets preparingMedia on button click, clears on handleFileSelect.
+  // Uses visibilitychange for smarter iOS cancel detection (~2-5s vs 120s timeout).
+  useEffect(() => {
+      if (!preparingMedia) return;
+      const handleVisibility = () => {
+          if (document.visibilityState === 'visible' && _pickerOpenRef.current) {
+              setTimeout(() => {
+                  if (_pickerOpenRef.current) {
+                      setPreparingMedia(false);
+                      _pickerOpenRef.current = false;
+                  }
+              }, 2000);
+          }
+      };
+      document.addEventListener('visibilitychange', handleVisibility);
+      const timer = setTimeout(() => { setPreparingMedia(false); _pickerOpenRef.current = false; }, 120_000);
+      return () => {
+          document.removeEventListener('visibilitychange', handleVisibility);
+          clearTimeout(timer);
+      };
+  }, [preparingMedia]);
+
   // Track mount lifecycle
   useEffect(() => {
     mountedRef.current = true;
@@ -190,13 +213,6 @@ export const EnhancedPostCreator = ({
     };
   }, []);
 
-  // ── iOS FILE PICKER PREPARATION DETECTION ──────────────────────────────
-  // State-driven: sets preparingMedia on button click, clears on handleFileSelect.
-  useEffect(() => {
-      if (!preparingMedia) return;
-      const timer = setTimeout(() => setPreparingMedia(false), 120_000);
-      return () => clearTimeout(timer);
-  }, [preparingMedia]);
 
   // Character count
   const charCount = content.length;
@@ -776,7 +792,7 @@ export const EnhancedPostCreator = ({
               <span style={{ fontSize: 13, fontWeight: 600, color: '#1877F2' }}>
                   Preparing Your Video — This May Take A Moment...
               </span>
-              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
           </div>
         )}
         <div className="inline-divider" />
@@ -1110,7 +1126,7 @@ export const EnhancedPostCreator = ({
               <span style={{ fontSize: 13, fontWeight: 600, color: '#1877F2' }}>
                   Preparing Your Video — This May Take A Moment...
               </span>
-              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
           </div>
         )}
 

@@ -596,3 +596,12 @@ img[style*="borderRadius:50%"] {
 
 .animate-fadeIn   { animation: fadeIn 0.3s ease forwards; }
 .animate-slideUp  { animation: slideUp 0.4s ease forwards; }
+
+/* Spinner animation — used by video upload preparing indicators */
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Pulse animation — used by ghost post upload placeholder */
+@keyframes uploadPulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}

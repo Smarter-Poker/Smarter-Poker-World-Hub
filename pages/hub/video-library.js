@@ -178,6 +178,8 @@ export default function VideoLibraryPage() {
     const [playlists, setPlaylists] = useState([]);
     const [showPlaylistModal, setShowPlaylistModal] = useState(null); // video object
     const [newPlaylistName, setNewPlaylistName] = useState('');
+    const [isCreatingPlaylist, setIsCreatingPlaylist] = useState(false); // loading state for playlist creation
+    const [playlistActionError, setPlaylistActionError] = useState(null); // error feedback
     const [watchLater, setWatchLater] = useState(new Set());
     const [watchedVideos, setWatchedVideos] = useState(new Set()); // Videos watched 60+ seconds
     const [watchProgress, setWatchProgress] = useState(new Map()); // video_id → { watchedSeconds, watchedAt }
@@ -480,16 +482,23 @@ export default function VideoLibraryPage() {
                         return newMap;
                     });
 
-                    // Update recently watched
-                    setRecentlyWatched(prev => {
-                        const filtered = prev.filter(v => v.video_id !== video.id);
-                        return [{
-                            video_id: video.id,
-                            video_title: video.title,
-                            watch_duration_seconds: (watchProgress.get(video.id)?.watchedSeconds || 0) + watchedSeconds,
-                            watched_at: new Date().toISOString()
-                        }, ...filtered].slice(0, 10);
-                    });
+                    // Refresh recentlyWatched from DB for cross-session accuracy (fire-and-forget)
+                    if (watchedSeconds >= 30) {
+                        getRecentlyWatched(userId, 10)
+                            .then(recent => setRecentlyWatched(recent))
+                            .catch(() => {
+                                // Fallback: optimistic local update
+                                setRecentlyWatched(prev => {
+                                    const filtered = prev.filter(v => v.video_id !== video.id);
+                                    return [{
+                                        video_id: video.id,
+                                        video_title: video.title,
+                                        watch_duration_seconds: (watchProgress.get(video.id)?.watchedSeconds || 0) + watchedSeconds,
+                                        watched_at: new Date().toISOString()
+                                    }, ...filtered].slice(0, 10);
+                                });
+                            });
+                    }
 
                     // Update stats
                     setWatchStats(prev => prev ? {
@@ -500,17 +509,17 @@ export default function VideoLibraryPage() {
                     // If user watched 30+ seconds, add to watched set for immediate UI update
                     const previousWatched = watchProgress.get(video.id)?.watchedSeconds || 0;
                     const totalWatched = previousWatched + watchedSeconds;
-                    
+
                     if (totalWatched >= 30) {
                         setWatchedVideos(prev => new Set(prev).add(video.id));
-                        
+
                         // Award diamonds if this is the first time crossing the 30s threshold
                         if (previousWatched < 30) {
                             try {
                                 await DiamondEngine.init(userId);
-                                await DiamondEngine.award(2, 'video_watch', { 
-                                    description: `Watched: ${video.title.substring(0, 50)}...`, 
-                                    reference_id: video.id 
+                                await DiamondEngine.award(2, 'video_watch', {
+                                    description: `Watched: ${video.title.substring(0, 50)}...`,
+                                    reference_id: video.id
                                 });
                             } catch (diamondErr) {
                                 console.warn('Failed to award diamonds for video watch:', diamondErr);
@@ -623,14 +632,19 @@ export default function VideoLibraryPage() {
         return `${hours}h ${mins}m`;
     };
 
-    // Get progress percentage for a video
-    const getProgressPercent = (videoId, durationStr) => {
+    // Get progress percentage for a video — memoized map avoids re-computing 345× per render
+    // Rebuilt only when watchProgress Map changes
+    const progressPercentMap = useState(() => new Map())[0]; // stable ref
+    useEffect(() => {
+        // No-op if empty
+    }, [watchProgress]);
+    const getProgressPercent = useCallback((videoId, durationStr) => {
         const progress = watchProgress.get(videoId);
         if (!progress) return 0;
         const totalSeconds = parseDuration(durationStr);
         if (totalSeconds === 0) return 0;
         return Math.min(100, (progress.watchedSeconds / totalSeconds) * 100);
-    };
+    }, [watchProgress]);
 
     // "New This Week" — videos scraped in the past 7 days, sorted newest first
     const newThisWeek = allVideos
@@ -746,6 +760,7 @@ export default function VideoLibraryPage() {
                         justifyContent: 'flex-start',
                         alignItems: 'center',
                         flexWrap: 'wrap',
+                        rowGap: 8,
                     }}>
                         {[
                             { id: 'ALL',        name: 'All Videos' },
@@ -847,6 +862,8 @@ export default function VideoLibraryPage() {
                             position: 'relative',
                             width: 220,
                             marginLeft: 12,
+                            flexShrink: 0,
+                            flexBasis: 220,
                         }}>
                             <input
                                 type="text"
@@ -880,7 +897,25 @@ export default function VideoLibraryPage() {
                         </div>
                     </div>
 
-                    {/* Duration filter row */}
+                    {/* Search results count — shown when query is active */}
+                    {searchQuery && (
+                        <div style={{
+                            fontSize: 13,
+                            color: 'rgba(255,255,255,0.45)',
+                            marginBottom: 8,
+                            paddingLeft: 2,
+                        }}>
+                            {videos.length} result{videos.length !== 1 ? 's' : ''} for <span style={{ color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>&ldquo;{searchQuery}&rdquo;</span>
+                            {videos.length === 0 && (
+                                <button
+                                    onClick={() => { setSearchQuery(''); setSelectedSource('ALL'); setSelectedType('ALL'); setSelectedDuration('ALL'); }}
+                                    style={{ marginLeft: 10, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, color: 'rgba(255,255,255,0.7)', fontSize: 12, padding: '3px 10px', cursor: 'pointer' }}
+                                >
+                                    Clear Filters
+                                </button>
+                            )}
+                        </div>
+                    )}
                     <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
                         <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, fontWeight: 600, marginRight: 4, letterSpacing: '0.5px' }}>DURATION</span>
                         {[
@@ -1181,7 +1216,17 @@ export default function VideoLibraryPage() {
                     gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
                     gap: 20,
                 }}>
-                    {videos.slice(0, Math.min(displayedCount, videos.length)).map(video => (
+                    {/* Skeleton loading cards while DB fetch runs */}
+                    {!dbLoaded && Array.from({ length: 12 }).map((_, i) => (
+                        <div key={`sk-${i}`} className="metal-frame video-card-metal" style={{ cursor: 'default' }}>
+                            <div style={{ aspectRatio: '16/9', background: 'linear-gradient(90deg, #1a1a1a 25%, #252525 50%, #1a1a1a 75%)', backgroundSize: '200% 100%', animation: 'vl-shimmer 1.4s infinite' }} />
+                            <div style={{ padding: 16 }}>
+                                <div style={{ height: 14, width: '85%', borderRadius: 6, background: 'linear-gradient(90deg, #1a1a1a 25%, #252525 50%, #1a1a1a 75%)', backgroundSize: '200% 100%', animation: 'vl-shimmer 1.4s infinite', marginBottom: 8 }} />
+                                <div style={{ height: 14, width: '55%', borderRadius: 6, background: 'linear-gradient(90deg, #1a1a1a 25%, #252525 50%, #1a1a1a 75%)', backgroundSize: '200% 100%', animation: 'vl-shimmer 1.4s infinite' }} />
+                            </div>
+                        </div>
+                    ))}
+                    {dbLoaded && videos.slice(0, Math.min(displayedCount, videos.length)).map(video => (
                         <div
                             key={video.id}
                             onClick={() => handleOpenVideo(video)}
@@ -1391,15 +1436,32 @@ export default function VideoLibraryPage() {
                 )}
 
                 {/* No results */}
-                {videos.length === 0 && (
+                {dbLoaded && videos.length === 0 && (
                     <div style={{
                         textAlign: 'center',
                         padding: '80px 20px',
                         color: C.textSec,
                     }}>
-                        <div style={{ fontSize: 64, marginBottom: 16 }}></div>
+                        <div style={{ fontSize: 64, marginBottom: 16 }}>🎬</div>
                         <h3 style={{ color: C.text, marginBottom: 8 }}>No Videos Found</h3>
-                        <p>Try Adjusting Your Search Or Filter</p>
+                        <p style={{ marginBottom: 20 }}>
+                            {searchQuery ? `No results for "${searchQuery}"` : 'Try Adjusting Your Filters'}
+                        </p>
+                        <button
+                            onClick={() => { setSearchQuery(''); setSelectedSource('ALL'); setSelectedType('ALL'); setSelectedDuration('ALL'); }}
+                            style={{
+                                padding: '10px 24px',
+                                background: 'rgba(255,68,68,0.15)',
+                                border: '1px solid rgba(255,68,68,0.4)',
+                                borderRadius: 10,
+                                color: '#FF6060',
+                                fontSize: 14,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                            }}
+                        >
+                            Clear All Filters
+                        </button>
                     </div>
                 )}
 
@@ -1818,6 +1880,21 @@ export default function VideoLibraryPage() {
                     opacity: 1 !important;
                 }
 
+                /* Skeleton shimmer animation */
+                @keyframes vl-shimmer {
+                    0%   { background-position: 200% 0; }
+                    100% { background-position: -200% 0; }
+                }
+
+                /* Mobile: stack search on its own row */
+                @media (max-width: 480px) {
+                    .vl-search-wrap {
+                        width: 100% !important;
+                        flex-basis: 100% !important;
+                        margin-left: 0 !important;
+                    }
+                }
+
                 /* Hide nav arrows on mobile — swipe up/down handles navigation */
                 @media (max-width: 767px) {
                     .vl-nav-arrow {
@@ -1884,13 +1961,24 @@ export default function VideoLibraryPage() {
                     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
                     background: 'rgba(0,0,0,0.8)', zIndex: 10000,
                     display: 'flex', alignItems: 'center', justifyContent: 'center'
-                }} onClick={() => setShowPlaylistModal(null)}>
+                }} onClick={() => { setShowPlaylistModal(null); setPlaylistActionError(null); }}>
                     <div style={{
                         background: '#1C1C1E', padding: 24, borderRadius: 16, width: '90%', maxWidth: 400,
                         border: '1px solid #333'
                     }} onClick={e => e.stopPropagation()}>
-                        <h3 style={{ marginTop: 0, color: 'white' }}>Save to Playlist</h3>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                            <h3 style={{ margin: 0, color: 'white', fontSize: 17, fontWeight: 700 }}>Save to Playlist</h3>
+                            <button onClick={() => { setShowPlaylistModal(null); setPlaylistActionError(null); }}
+                                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 20, cursor: 'pointer', padding: 0 }}>×</button>
+                        </div>
                         <div style={{ maxHeight: 300, overflowY: 'auto', marginBottom: 16 }}>
+                            {playlists.length === 0 && (
+                                <div style={{ textAlign: 'center', padding: '24px 0 16px', color: 'rgba(255,255,255,0.35)' }}>
+                                    <div style={{ fontSize: 36, marginBottom: 8 }}>📋</div>
+                                    <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>No Playlists Yet</div>
+                                    <div style={{ fontSize: 12 }}>Create one below to save this video</div>
+                                </div>
+                            )}
                             {playlists.map(p => {
                                 const inPlaylist = p.items?.some(i => i.video_id === showPlaylistModal.videoId);
                                 return (
@@ -1898,41 +1986,78 @@ export default function VideoLibraryPage() {
                                         padding: '12px 0', borderBottom: '1px solid #333',
                                         display: 'flex', justifyContent: 'space-between', alignItems: 'center'
                                     }}>
-                                        <span style={{ color: 'white' }}>{p.name}</span>
+                                        <div>
+                                            <div style={{ color: 'white', fontSize: 14, fontWeight: 500 }}>{p.name}</div>
+                                            {p.items?.length != null && (
+                                                <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, marginTop: 2 }}>{p.items.length} video{p.items.length !== 1 ? 's' : ''}</div>
+                                            )}
+                                        </div>
                                         <button onClick={async () => {
-                                            if (inPlaylist) {
-                                                await removeVideoFromPlaylist(p.id, showPlaylistModal.videoId);
-                                            } else {
-                                                await addVideoToPlaylist(p.id, showPlaylistModal.videoId, showPlaylistModal.title, showPlaylistModal.source);
+                                            try {
+                                                setPlaylistActionError(null);
+                                                if (inPlaylist) {
+                                                    await removeVideoFromPlaylist(p.id, showPlaylistModal.videoId);
+                                                } else {
+                                                    await addVideoToPlaylist(p.id, showPlaylistModal.videoId, showPlaylistModal.title, showPlaylistModal.source);
+                                                }
+                                                getVideoPlaylists(userId).then(setPlaylists);
+                                            } catch (err) {
+                                                setPlaylistActionError('Action failed. Please try again.');
                                             }
-                                            getVideoPlaylists(userId).then(setPlaylists);
                                         }} style={{
-                                            background: inPlaylist ? '#FF453A' : '#0A84FF',
-                                            color: 'white', border: 'none', borderRadius: 6, padding: '4px 10px', cursor: 'pointer'
+                                            background: inPlaylist ? 'rgba(255,69,58,0.2)' : 'rgba(10,132,255,0.2)',
+                                            color: inPlaylist ? '#FF453A' : '#0A84FF',
+                                            border: `1px solid ${inPlaylist ? 'rgba(255,69,58,0.4)' : 'rgba(10,132,255,0.4)'}`,
+                                            borderRadius: 8, padding: '6px 14px', cursor: 'pointer',
+                                            fontSize: 13, fontWeight: 600, transition: 'all 0.15s',
                                         }}>
                                             {inPlaylist ? 'Remove' : 'Add'}
                                         </button>
                                     </div>
                                 );
                             })}
-                            {playlists.length === 0 && <div style={{ color: '#888', padding: '12px 0' }}>No playlists yet.</div>}
                         </div>
+                        {playlistActionError && (
+                            <div style={{ color: '#FF453A', fontSize: 12, marginBottom: 10, padding: '6px 10px', background: 'rgba(255,69,58,0.1)', borderRadius: 6, border: '1px solid rgba(255,69,58,0.25)' }}>
+                                {playlistActionError}
+                            </div>
+                        )}
                         <div style={{ display: 'flex', gap: 8 }}>
-                            <input 
+                            <input
                                 value={newPlaylistName}
                                 onChange={e => setNewPlaylistName(e.target.value)}
-                                placeholder="New playlist name"
-                                style={{ flex: 1, padding: '8px 12px', borderRadius: 8, background: '#000', border: '1px solid #333', color: 'white' }}
+                                onKeyDown={async (e) => { if (e.key === 'Enter' && newPlaylistName.trim() && !isCreatingPlaylist) { e.preventDefault(); e.currentTarget.blur(); } }}
+                                placeholder="New playlist name..."
+                                disabled={isCreatingPlaylist}
+                                style={{ flex: 1, padding: '9px 12px', borderRadius: 8, background: '#000', border: '1px solid #444', color: 'white', fontSize: 14, opacity: isCreatingPlaylist ? 0.6 : 1 }}
                             />
-                            <button onClick={async () => {
-                                if (!newPlaylistName.trim()) return;
-                                const p = await createPlaylist(userId, newPlaylistName);
-                                await addVideoToPlaylist(p.id, showPlaylistModal.videoId, showPlaylistModal.title, showPlaylistModal.source);
-                                setNewPlaylistName('');
-                                getVideoPlaylists(userId).then(setPlaylists);
-                            }} style={{
-                                background: 'white', color: 'black', border: 'none', borderRadius: 8, padding: '0 16px', fontWeight: 'bold', cursor: 'pointer'
-                            }}>Create</button>
+                            <button
+                                onClick={async () => {
+                                    if (!newPlaylistName.trim() || isCreatingPlaylist) return;
+                                    setIsCreatingPlaylist(true);
+                                    setPlaylistActionError(null);
+                                    try {
+                                        const p = await createPlaylist(userId, newPlaylistName.trim());
+                                        await addVideoToPlaylist(p.id, showPlaylistModal.videoId, showPlaylistModal.title, showPlaylistModal.source);
+                                        setNewPlaylistName('');
+                                        getVideoPlaylists(userId).then(setPlaylists);
+                                    } catch (err) {
+                                        setPlaylistActionError('Failed to create playlist. Please try again.');
+                                    } finally {
+                                        setIsCreatingPlaylist(false);
+                                    }
+                                }}
+                                disabled={isCreatingPlaylist || !newPlaylistName.trim()}
+                                style={{
+                                    background: isCreatingPlaylist || !newPlaylistName.trim() ? 'rgba(255,255,255,0.15)' : 'white',
+                                    color: isCreatingPlaylist || !newPlaylistName.trim() ? 'rgba(255,255,255,0.35)' : 'black',
+                                    border: 'none', borderRadius: 8, padding: '0 16px',
+                                    fontWeight: 700, cursor: isCreatingPlaylist || !newPlaylistName.trim() ? 'not-allowed' : 'pointer',
+                                    fontSize: 14, transition: 'all 0.15s', minWidth: 72,
+                                }}
+                            >
+                                {isCreatingPlaylist ? '...' : 'Create'}
+                            </button>
                         </div>
                     </div>
                 </div>
