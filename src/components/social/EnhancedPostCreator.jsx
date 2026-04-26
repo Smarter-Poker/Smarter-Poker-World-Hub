@@ -542,12 +542,16 @@ export const EnhancedPostCreator = ({
             }
           }
         } catch (uploadErr) {
-          console.warn('Media upload failed:', uploadErr);
-          ghostPost.remove(); // Clean up ghost post on upload failure
-          setError(`Upload failed: ${uploadErr.message}`);
-          setIsSubmitting(false);
-          return;
-        }
+              if (bgUnsub) { bgUnsub(); bgUnsub = null; } // Always clean up listener on error
+              console.warn('Media upload failed:', uploadErr);
+              ghostPost.remove(); // Clean up ghost post on upload failure
+              const isCancelled = uploadErr?.message === 'Upload cancelled' || uploadErr?.message === 'Upload aborted';
+              if (!isCancelled) {
+                  setError(`Upload failed: ${uploadErr.message}`);
+              }
+              setIsSubmitting(false);
+              return;
+            }
       }
 
       // Determine content type — compare against normalized 'video'/'photo' strings set during upload,

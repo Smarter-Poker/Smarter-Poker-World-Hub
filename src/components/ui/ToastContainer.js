@@ -50,8 +50,13 @@ export default function ToastContainer() {
                     const isActionable = typeof t.onClick === 'function';
 
                     const handleClick = () => {
-                        if (isActionable) t.onClick();
-                        removeToast(t.id);
+                        // Only auto-dismiss on body click when toast has an action.
+                        // Persistent warning toasts (onClick=null) must be dismissed
+                        // via the explicit ✕ button to prevent accidental dismissal.
+                        if (isActionable) {
+                            t.onClick();
+                            removeToast(t.id);
+                        }
                     };
 
                     return (
