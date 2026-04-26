@@ -16,8 +16,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
-
-export const runtime = 'edge';
+import allVenuesData from '../../../public/data/all-venues.json';
 
 let _supabase = null;
 function getSupabase() {
@@ -53,7 +52,6 @@ export default async function handler(req, res) {
         }
 
         // ── Load all venues from JSON (the 483-venue master list) ──
-        const allVenuesData = require('../../../public/data/all-venues.json');
         const allVenues = allVenuesData?.venues || [];
 
         if (allVenues.length === 0) {

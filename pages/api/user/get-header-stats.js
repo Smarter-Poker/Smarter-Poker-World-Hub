@@ -1,8 +1,7 @@
-const { createClient } = require('../../../src/lib/supabaseServerClient');
-const { getServerUser, getServerUserWithFallback } = require('../../../src/lib/serverAuth');
+import { createClient } from '../../../src/lib/supabaseServerClient';
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-export const runtime = 'edge';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;

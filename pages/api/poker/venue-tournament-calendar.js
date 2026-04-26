@@ -9,8 +9,10 @@
  * GET ?venue_id=1234           — all tournaments for venue
  * GET ?venue_id=1234&days=60  — dated events up to 60 days out (default: all)
  */
+import { withSentry } from '../../../src/lib/sentry';
 import { createClient } from '../../../src/lib/supabaseServerClient';
-const { applyCors } = require('../../../src/lib/cors');
+import { applyCors } from '../../../src/lib/cors';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 let _sb = null;
 function getSupabase() {
@@ -197,6 +199,7 @@ async function handler(req, res) {
         });
 
     } catch (err) {
+        try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         console.warn('[venue-tournament-calendar] Unhandled error:', err);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }
@@ -284,8 +287,4 @@ function generateDatedInstances(recurring, daysAhead = 45) {  // Reduced from 90
     return result;
 }
 
-export const config = {
-    runtime: 'nodejs',
-};
-
-export default handler;
+export default withSentry(handler);

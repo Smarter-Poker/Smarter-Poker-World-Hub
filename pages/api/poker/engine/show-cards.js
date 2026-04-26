@@ -8,8 +8,7 @@
  */
 
 import { reportApiError } from '../../../../src/lib/sentryWrap';
-
-export const runtime = 'edge';
+import { getController } from '../../../../src/lib/poker-engine/GameController';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -23,7 +22,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { getController } = require('../../../../src/lib/poker-engine/GameController');
     let controller;
     try {
       controller = await getController();
