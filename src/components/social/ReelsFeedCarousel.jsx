@@ -83,7 +83,10 @@ function ReelCard({ reel, onClick }) {
 
     const handleMouseEnter = () => {
         setIsHovered(true);
-        if (!isYouTube && videoRef.current) videoRef.current.play();
+        if (!isYouTube && videoRef.current) {
+            const p = videoRef.current.play();
+            if (p !== undefined) p.catch(() => {}); // suppress AbortError on rapid hover
+        }
     };
 
     const handleMouseLeave = () => {
@@ -710,6 +713,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
             setCommentCounts(prev => ({ ...prev, [currentReel.id]: (prev[currentReel.id] || 0) + 1 }));
         } catch {
             setReelComments(prev => prev.filter(c => c.id !== tempId));
+            showErrorToast('Comment failed \u2014 please try again');
         }
     };
 
@@ -722,8 +726,16 @@ function ReelViewer({ reels, startIndex, onClose }) {
         setCommentLikeCounts(prev => ({ ...prev, [commentId]: Math.max(0, (prev[commentId] || 0) + (wasLiked ? -1 : 1)) }));
         try {
             if (wasLiked) {
+                // Use .eq('metadata->>comment_id') not .match({metadata:{...}})
+                // .match() applies JSONB '=' (exact object equality) and fails if
+                // the stored value has any extra keys or different serialization.
+                // The text-cast operator maps to the partial index on metadata->>'comment_id'.
                 await supabase.from('social_interactions')
-                    .delete().match({ user_id: authUser.id, post_id: currentReel.id, interaction_type: 'comment_like', metadata: { comment_id: commentId } });
+                    .delete()
+                    .eq('user_id', authUser.id)
+                    .eq('post_id', currentReel.id)
+                    .eq('interaction_type', 'comment_like')
+                    .eq('metadata->>comment_id', commentId);
             } else {
                 await supabase.from('social_interactions').insert({
                     user_id: authUser.id, post_id: currentReel.id,
@@ -739,7 +751,9 @@ function ReelViewer({ reels, startIndex, onClose }) {
     // Phase 6 - Delete own comment
     const handleDeleteComment = async (commentId) => {
         if (!authUser?.id || !currentReel?.id) return;
-        const prev = reelComments;
+        // Optimistic remove — functional updater avoids stale-snapshot issues
+        // under concurrent rapid deletes (using 'const prev = ...' is a closure
+        // snapshot that becomes wrong after the first async delete in flight)
         setReelComments(c => c.filter(x => x.id !== commentId));
         try {
             const { error } = await supabase.from('social_comments').delete()
@@ -748,7 +762,16 @@ function ReelViewer({ reels, startIndex, onClose }) {
             // DB trigger handles comment_count decrement atomically
             setCommentCounts(p => ({ ...p, [currentReel.id]: Math.max(0, (p[currentReel.id] || 1) - 1) }));
             busEmit.socialCommentAdded && busEmit.socialCommentAdded(currentReel.id, authUser.id, { removed: true });
-        } catch { setReelComments(prev); }
+        } catch {
+            // Re-fetch to restore accurate state (safer than restoring a stale snapshot)
+            supabase.from('social_comments')
+                .select('*, profiles:author_id (username, avatar_url)')
+                .eq('post_id', currentReel.id)
+                .order('created_at', { ascending: commentSort === 'oldest' })
+                .limit(50)
+                .then(({ data }) => { if (data) setReelComments(data); });
+            showErrorToast('Delete failed \u2014 please try again');
+        }
     };
 
     // Phase 7 - Edit own comment
