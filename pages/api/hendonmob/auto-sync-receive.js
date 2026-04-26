@@ -12,6 +12,8 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
+export const runtime = 'edge';
+
 const AUTO_SYNC_SECRET = process.env.HENDON_AUTO_SYNC_SECRET || '';
 
 let _supabase = null;

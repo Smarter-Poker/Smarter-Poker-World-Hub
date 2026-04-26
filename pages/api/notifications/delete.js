@@ -6,6 +6,8 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
+export const runtime = 'edge';
+
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
