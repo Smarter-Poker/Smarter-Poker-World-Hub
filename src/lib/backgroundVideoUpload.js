@@ -184,8 +184,9 @@ function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0, _userId, _fold
             // Label shows clean 0-100% derived from bar position (5-97 range → 0-100)
             const labelPct = Math.round(((displayPct - 5) / 92) * 100);
 
-            // ── ETA CALCULATION ──────────────────────────────────────────
+            // ── SPEED + ETA CALCULATION ───────────────────────────────────
             let eta = '';
+            let speedStr = '';
             if (_uploadStartTime && evt.loaded > 0) {
                 const elapsedSec = (Date.now() - _uploadStartTime) / 1000;
                 if (elapsedSec > 2) { // wait 2s for stable rate
@@ -194,6 +195,11 @@ function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0, _userId, _fold
                     const remainingSec = remainingBytes / bytesPerSec;
                     eta = _formatEta(remainingSec);
                     _lastEta = eta;
+                    // Format upload speed
+                    const mbps = bytesPerSec / (1024 * 1024);
+                    speedStr = mbps >= 1
+                        ? ` at ${mbps.toFixed(1)} MB/s`
+                        : ` at ${Math.round(bytesPerSec / 1024)} KB/s`;
                 }
             }
             const etaSuffix = eta ? ` — ~${eta}` : (_lastEta ? ` — ~${_lastEta}` : '');
@@ -201,7 +207,7 @@ function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0, _userId, _fold
             _setState(
                 _state,
                 displayPct,
-                `Uploading… ${labelPct}%${etaSuffix}`
+                `Uploading… ${labelPct}%${speedStr}${etaSuffix}`
             );
         };
 
