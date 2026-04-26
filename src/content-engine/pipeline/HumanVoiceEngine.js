@@ -1,17 +1,18 @@
 /**
- * HumanVoiceEngine.js — v2.0
+ * HumanVoiceEngine.js — v3.0
  * ─────────────────────────────────────────────────────────────────────────────
  * Zero-cost, zero-API human voice generation for horse social posts.
  *
  * Key guarantees:
- *   • No horse repeats a phrase used in their last 10 posts
- *   • No two horses see the same phrase on the same calendar day
+ *   • No horse repeats a phrase used in their last 15 posts
+ *   • No two horses use the same phrase on the same post (cross-horse dedup)
  *   • Every horse has a consistent but distinct voice archetype
  *   • No AI-pattern phrases (blader/humanizer 29-rule implementation)
- *   • No emoji-based formatting patterns
- *   • Structural variety: some short, some mid-length, never uniform
+ *   • Question comments injected 18% of time for authenticity
+ *   • Time-of-day voice shift: night = more casual, morning = more sharp
+ *   • Structural variety: short (2-3w), medium (5-9w), long (10-15w) mixed
  *
- * Implementation: in-memory dedupe map + Supabase horse_used_phrases column
+ * Implementation: in-memory dedupe map + per-post cross-horse registry
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -19,6 +20,32 @@
 // Map<profileId, { lastUsed: string[], dayKey: string, dayUsed: Set<string> }>
 const horseMemory = new Map();
 const MEMORY_DEPTH = 15; // last N phrases remembered per horse
+
+// ─── Cross-horse post-level comment registry ──────────────────────────────────
+// Prevents multiple horses from posting the same comment on the same post.
+// Map<postId, Set<string (normalized phrase)>> — auto-expires after 2h
+const POST_COMMENT_REGISTRY = new Map();
+const POST_REGISTRY_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
+
+function registerCommentOnPost(postId, phrase) {
+  if (!postId) return;
+  const now = Date.now();
+  // Prune expired entries
+  for (const [pid, entry] of POST_COMMENT_REGISTRY) {
+    if (now - entry.ts > POST_REGISTRY_TTL_MS) POST_COMMENT_REGISTRY.delete(pid);
+  }
+  if (!POST_COMMENT_REGISTRY.has(postId)) {
+    POST_COMMENT_REGISTRY.set(postId, { ts: now, phrases: new Set() });
+  }
+  POST_COMMENT_REGISTRY.get(postId).phrases.add(phrase.toLowerCase().trim());
+}
+
+function isAlreadyCommentedOnPost(postId, phrase) {
+  if (!postId) return false;
+  const entry = POST_COMMENT_REGISTRY.get(postId);
+  if (!entry) return false;
+  return entry.phrases.has(phrase.toLowerCase().trim());
+}
 
 function getTodayKey() {
   const d = new Date();
@@ -180,7 +207,31 @@ function applyStyle(text, archetype) {
 }
 
 
-// ─── Structural length variance ───────────────────────────────────────────────
+// ─── Question-specific style (preserves the ? mark) ─────────────────────────
+// Regular applyStyle strips trailing ? because it treats all punct uniformly.
+// Questions need the ? preserved — only apply capitalization, not punct.
+function applyQuestionStyle(text, archetype) {
+  let out = scrub(text).trim();
+  // Strip trailing period/comma/exclamation only — NOT question mark
+  out = out.replace(/[.!,;]+$/, '').trim();
+  // Apply capitalization based on archetype (same logic as applyStyle)
+  const capRoll = Math.random();
+  const cs = archetype.capStyle;
+  if (cs === 'all_lower') {
+    if (capRoll < 0.65) out = out.toLowerCase();
+    else out = out[0].toUpperCase() + out.slice(1).toLowerCase();
+  } else if (cs === 'first_cap') {
+    if (capRoll < 0.80) out = out[0].toUpperCase() + out.slice(1);
+    else out = out.toLowerCase();
+  } else {
+    if (capRoll < 0.65) { /* leave as-is */ }
+    else if (capRoll < 0.85) out = out[0].toUpperCase() + out.slice(1);
+    else out = out.toLowerCase();
+  }
+  // Ensure question mark is at the end
+  if (!out.endsWith('?')) out = out.replace(/[.!,;?]*$/, '') + '?';
+  return out.trim();
+}
 // Ensures mix of short (1-4 words), medium (5-9), and longer phrases.
 // Pool selection is seeded by horse + time so patterns shift naturally.
 // Per-horse call counter — increments monotonically, breaks timeBucket ties
@@ -358,21 +409,29 @@ const POST_CAPTIONS = {
 
   // ── Sports highlight video captions (used when clipType === 'sports') ──────────
   sports_highlight: [
-    // Short
-    'that was filthy', 'did not see that coming', 'highlight of the week', 'money',
-    // Medium
-    'not many people can do what he just did there', 'that play changes how you think about the game',
+    // Very short (2-3 words) — adds range variety
+    'just money', 'that\'s different', 'nasty', 'no way', 'ice cold',
+    'look at that', 'wow', 'come on',
+    // Short (4-6 words)
+    'that was filthy', 'did not see that coming', 'highlight of the week',
+    'has to be a poster', 'nobody touches him when he\'s on',
+    // Medium (7-12 words)
+    'not many people can do what he just did there',
+    'that play changes how you think about the game',
     'the athleticism on display is wild', 'the best players make it look easy',
     'moment of the game right there', 'that\'s going on the highlight reel',
     'whole arena felt that one', 'the footwork alone is worth studying',
-    // Longer
+    'built different. that\'s the only explanation.',
+    'you practice that a thousand times and still might not pull it off in-game',
+    // Longer (13+ words)
     'plays like that don\'t happen without years of work behind them',
     'whoever was guarding that man was in a bad spot from the start',
-    'the timing on that was absolutely perfect',
+    'the timing on that was absolutely perfect. you just can\'t teach that.',
     'hard to watch that and not appreciate how good these athletes are',
     'this is why you watch every game, moments like this happen fast',
     'the crowd reaction said everything that needed to be said',
     'breakdown of that play frame by frame would be something else',
+    'the gap between good and elite becomes very obvious in moments like this',
   ],
 };
 
@@ -450,23 +509,47 @@ const COMMENT_PHRASES = {
     // Win/result reactions
     'well deserved', 'that W was earned', 'nobody gave them a chance and here we are',
     'statement game', 'momentum is real now', 'squeezed that one out',
+    'that\'s how you answer doubters', 'clean execution when it mattered',
     // Loss reactions
     'tough one to watch', 'that one stings', 'gotta bounce back fast',
-    'the season just got more interesting',
+    'the season just got more interesting', 'happens to the best teams',
+    'early in the season, not the end of the world',
     // Records / achievement
     'history being made', 'generational', 'the record stood for a reason',
-    'you have to see it to believe it',
+    'you have to see it to believe it', 'this is what peak performance looks like',
     // Game commentary
     'always tune in for games like this', 'every week is a movie in this league',
     'coaching mattered a lot in this one', 'the league never has a slow stretch',
+    'depth of roster showing up right now',
     // Transactions / roster
     'front office making moves', 'bold move', 'someone got a steal here',
-    'ripple effects from this will be felt',
+    'ripple effects from this will be felt', 'this changes the whole conference picture',
     // General engagement
     'love watching this play out', 'the sport keeps delivering',
     'athletes at this level are just built different', 'respect the grind',
     'could watch this all day', 'the storylines this season are unreal',
-    'good time to be a fan',
+    'good time to be a fan', 'hard to look away from this team right now',
+    'the preparation behind every play like this is insane',
+  ],
+
+  // Photo comment pool — for image posts (not video)
+  photo: [
+    'great shot', 'the look says everything', 'table presence',
+    'reads like a player', 'this photo has energy', 'framing is perfect',
+    'captured that moment well', 'says more than a caption could',
+    'you can feel the tension in this one', 'that\'s the face of someone who knows',
+    'these are the moments that last', 'this needs no caption',
+    'poker has a look and this is it', 'moments like these don\'t get staged',
+  ],
+
+  // Controversy / scandal pool — for drama/scandal headlines (e.g. cheating, bans)
+  controversy: [
+    'if true, that\'s a big deal', 'poker doesn\'t need this',
+    'the community deserves better than this', 'follow the evidence, not the noise',
+    'this one\'s going to have some fallout', 'everyone saw something was off',
+    'integrity matters in this game', 'not the first time something like this came up',
+    'people knew. nobody said anything.', 'if half of what\'s being said is true, it\'s bad',
+    'reputations take years to build', 'the poker world is small, things come out eventually',
   ],
 
   general: [
@@ -475,6 +558,33 @@ const COMMENT_PHRASES = {
     'needed this', 'dead on', 'this hits', 'hard agree', 'say it louder',
     'exactly', 'not wrong', 'always', 'every time', 'preach', 'that\'s the one',
     'couldn\'t have said it better', 'this is why I follow this page', 'the truth',
+  ],
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// QUESTION COMMENT POOLS
+// Injected ~18% of the time to make comment sections feel authentically human.
+// Real users ask questions — bots almost never do.
+// ═══════════════════════════════════════════════════════════════════════════════
+const QUESTION_COMMENTS = {
+  sports: [
+    'anyone watching this live?', 'did anyone see this coming?',
+    'what\'s your take on that trade?', 'am I wrong or is this team legit now?',
+    'how many games do they win from here?', 'anyone think they actually pull this off?',
+    'does this change the playoff picture?', 'is this the best we\'ve seen from him this year?',
+    'who beats them right now?', 'coach of the year conversation starting yet?',
+    'anyone keeping track of how many records he\'s broken?',
+  ],
+  poker: [
+    'anyone else catch this?', 'what would you have done there?',
+    'who else was sweating that river?', 'is this the best hand of the year so far?',
+    'anyone know what the stack sizes were?', 'would you have made that call?',
+    'how often does this line actually work?', 'anyone seen a bigger pot this month?',
+    'is this the best player in the world right now?',
+  ],
+  general: [
+    'thoughts?', 'anyone else?', 'just me or?',
+    'am I wrong here?', 'who else felt this?',
   ],
 };
 
@@ -710,11 +820,12 @@ export function generatePostCaption(category, profileId, clipTitle = '') {
 
   const archetype = getArchetype(profileId);
 
-  // Min-length guard: retry up to 3x to avoid sub-10-char captions
+  // Min-length guard: retry up to 3x to avoid trivially empty captions
+  // NOTE: threshold is 5, not 10, to allow the very short 2-3 word sports entries ("nasty", "no way")
   let phrase = '';
   for (let attempt = 0; attempt < 3; attempt++) {
     const candidate = pick(pool, profileId);
-    if (candidate && candidate.trim().length >= 10) { phrase = candidate; break; }
+    if (candidate && candidate.trim().length >= 5) { phrase = candidate; break; }
     if (!phrase || candidate.length > phrase.length) phrase = candidate || phrase;
   }
 
@@ -738,12 +849,54 @@ export function generatePostCaption(category, profileId, clipTitle = '') {
 
 /**
  * Generate a comment on a post.
- * No API calls, no cost. Deduplication built in.
+ * No API calls, no cost. Deduplication + cross-horse post dedup built in.
+ *
+ * @param {string} commentType  - Pool key (sports, bad_beat, tournament, general, etc.)
+ * @param {string} profileId    - Horse profile ID
+ * @param {string} [postId]     - Optional post ID for cross-horse dedup
  */
-export function generateComment(commentType, profileId) {
-  const pool = COMMENT_PHRASES[commentType] || COMMENT_PHRASES.general;
+export function generateComment(commentType, profileId, postId = null) {
   const archetype = getArchetype(profileId);
-  const phrase = pick(pool, profileId, 1);
+
+  // 18% chance: inject a question comment for authenticity (bots never ask questions)
+  const questionDomain = commentType === 'sports' ? 'sports'
+    : (commentType === 'general' || commentType === 'video' || commentType === 'bad_beat' || commentType === 'bluff' || commentType === 'tournament') ? 'poker'
+    : 'general';
+  if (Math.random() < 0.18 && QUESTION_COMMENTS[questionDomain]) {
+    const qPool = QUESTION_COMMENTS[questionDomain];
+    // Use deterministic pick + postId as extra salt to vary across horses on same post
+    const postSalt = postId ? postId.split('').reduce((a, c) => a + c.charCodeAt(0), 0) : 0;
+    const idx = (getHorseHash(profileId) + postSalt + qPool.length) % qPool.length;
+    let qPhrase = qPool[idx];
+    // Cross-horse dedup: try next candidates if this question was already used on this post
+    for (let i = 0; i < qPool.length; i++) {
+      const candidate = qPool[(idx + i) % qPool.length];
+      if (!isAlreadyCommentedOnPost(postId, candidate)) { qPhrase = candidate; break; }
+    }
+    registerCommentOnPost(postId, qPhrase);
+    recordUsed(profileId, qPhrase);
+    // Use applyQuestionStyle (not applyStyle) — preserves the ? mark
+    return sanitizeHorseOutput(applyQuestionStyle(qPhrase, archetype));
+  }
+
+  const pool = COMMENT_PHRASES[commentType] || COMMENT_PHRASES.general;
+
+  // Cross-horse post dedup: pick a phrase not already used on this post by another horse
+  let phrase = '';
+  const postSalt = postId ? postId.split('').reduce((a, c) => a + c.charCodeAt(0), 0) : 0;
+  const h = getHorseHash(profileId);
+  for (let i = 0; i < pool.length; i++) {
+    const candidate = pool[(h + postSalt + i) % pool.length];
+    if (!isRecentlyUsed(profileId, candidate) && !isAlreadyCommentedOnPost(postId, candidate)) {
+      phrase = candidate;
+      break;
+    }
+  }
+  // Fallback: use any available phrase even if used elsewhere
+  if (!phrase) phrase = pick(pool, profileId, 1);
+
+  registerCommentOnPost(postId, phrase);
+  recordUsed(profileId, phrase);
   return sanitizeHorseOutput(applyStyle(phrase, archetype));
 }
 
@@ -905,6 +1058,21 @@ const POKER_NEWS_POOLS = {
     'one of those stories that has legs', 'always more going on than the headline suggests',
     'poker news cycle never really stops', 'the sport keeps growing its own mythology',
   ],
+  // Controversy / scandal pool — cheating allegations, bans, legal disputes
+  controversy: [
+    'if true, that\'s a big deal for the community',
+    'poker doesn\'t need this kind of story',
+    'the community deserves better than this',
+    'follow the evidence, not the noise',
+    'this one\'s going to have some fallout',
+    'everyone saw something was off',
+    'integrity matters in this game more than people admit',
+    'not the first time something like this surfaced',
+    'people knew. nobody said anything.',
+    'reputations take years to build',
+    'the poker world is small. things come out eventually.',
+    'hard to know what\'s real until more facts come out',
+  ],
 };
 
 /**
@@ -929,9 +1097,10 @@ export function generateNewsCaption(headline, profileId, newsType = 'poker') {
       pool = SPORTS_CAPTION_POOLS.general_sports;
     }
   } else {
-    // Poker news — try context extraction first (85% of the time — raised from 65%)
-    // Higher probability prevents well-known venue/player headlines from falling through
-    if (safeHeadline && Math.random() < 0.85) {
+    // Poker news — try context extraction (85% of the time)
+    // Short-circuit: skip extraction if headline is too short to yield meaningful context
+    const wordCount = safeHeadline.trim().split(/\s+/).length;
+    if (safeHeadline && wordCount >= 3 && Math.random() < 0.85) {
       const ctx = extractTitleContext(safeHeadline);
       const contextCaption = buildContextCaption(ctx, profileId);
       if (contextCaption && contextCaption.trim().length >= 10) return sanitizeHorseOutput(contextCaption);
@@ -943,12 +1112,14 @@ export function generateNewsCaption(headline, profileId, newsType = 'poker') {
       pool = POST_CAPTIONS[detected];
     } else {
       const t = safeHeadline.toLowerCase();
-      if (/\b(wsop|wpt|ept|tournament|series|main event|bracelet|final table|deep run)\b/.test(t)) {
+      // PRIORITY: Controversy overrides all other categories — scandal/fraud wins over tournament keywords
+      if (/\b(scandal|cheating|cheat|banned|ban|suspended|suspension|lawsuit|fraud|exposed|controversy|investigation|collusion)\b/.test(t)) {
+        pool = POKER_NEWS_POOLS.controversy;
+      } else if (/\b(wsop|wpt|world poker tour|ept|tournament|series|main event|bracelet|final table|deep run|heads.?up championship)\b/.test(t)) {
         pool = POKER_NEWS_POOLS.tournament;
       } else if (/\b(strategy|gto|solver|range|study|how to|tips|theory|deep dive)\b/.test(t)) {
         pool = POKER_NEWS_POOLS.strategy;
-      } else if (/\b(regulation|legal|ban|law|bill|legislation|license|market)\b/.test(t)) {
-        // NOTE: 'casino' and 'site' are intentionally NOT here — they route to player_news below
+      } else if (/\b(regulation|legal|law|bill|legislation|license|market)\b/.test(t)) {
         pool = POKER_NEWS_POOLS.industry;
       } else if (/\b(player|pro|wins|cashes|result|bracelet|champion|finish|place|casino|live at|tonight|hustler|bellagio|lodge|aria|stones)\b/.test(t)) {
         pool = POKER_NEWS_POOLS.player_news;
