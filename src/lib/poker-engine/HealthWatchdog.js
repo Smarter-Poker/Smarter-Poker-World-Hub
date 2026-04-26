@@ -190,14 +190,20 @@ class HealthWatchdog {
   }
 
   _checkMemory() {
-    if (typeof process === 'undefined' || typeof process.memoryUsage !== 'function') {
+    if (typeof process === 'undefined') {
       return null;
     }
-    // Guard against Edge Runtime where process.memoryUsage exists but throws
+    // Guard against Edge Runtime where process.memoryUsage may not exist or throw
     let mem;
     try {
+      if (typeof process.memoryUsage !== 'function') {
+        return null;
+      }
       mem = process.memoryUsage();
     } catch (e) {
+      return null;
+    }
+    if (!mem || typeof mem.heapUsed !== 'number' || typeof mem.heapTotal !== 'number') {
       return null;
     }
     const heapUsedMB = Math.round(mem.heapUsed / 1024 / 1024);
