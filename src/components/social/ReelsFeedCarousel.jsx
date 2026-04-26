@@ -886,8 +886,11 @@ function ReelViewer({ reels, startIndex, onClose }) {
             } else if (platform === 'whatsapp') {
                 window.open(`https://wa.me/?text=${encodeURIComponent(title + ' ' + url)}`, '_blank');
             }
-            if (platform !== 'copy') incrementMetric(currentReel, 'share_count', 1);
-            if (authUser?.id) busEmit.socialPostShared(currentReel.id, authUser.id);
+            // Clipboard copy = link preview, not a social share — skip metric + bus event
+            if (platform !== 'copy') {
+                incrementMetric(currentReel, 'share_count', 1);
+                if (authUser?.id) busEmit.socialPostShared(currentReel.id, authUser.id);
+            }
         } catch {
             setShareToast(true);
             setTimeout(() => setShareToast(false), 2000);
@@ -1051,6 +1054,10 @@ function ReelViewer({ reels, startIndex, onClose }) {
         // calling play() immediately causes AbortError on mobile Safari.
         const video = videoRef.current;
         if (!video) return () => clearTimeout(ytReadyFallback);
+        // For native video, set ytReady immediately when play starts so the
+        // pause/play button is visible without waiting 3s for the fallback timer.
+        const onPlay = () => setYtReady(true);
+        video.addEventListener('play', onPlay, { once: true });
         const onCanPlay = () => {
             const p = video.play();
             if (p !== undefined) p.catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); // suppress AbortError
@@ -1064,6 +1071,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
         return () => {
             clearTimeout(ytReadyFallback);
             video.removeEventListener('canplay', onCanPlay);
+            video.removeEventListener('play', onPlay);
         };
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentIndex]);
@@ -2116,13 +2124,16 @@ export function ReelsFeedCarousel() {
                 (profiles || []).forEach(p => { pm[p.id] = p; });
                 const existingIds = new Set(allReels.map(r => r.id));
                 ytPosts.forEach(p => {
-                    if (!existingIds.has(p.id)) {
+                    const videoUrl = p.media_urls?.[0];
+                    // Guard: skip posts where the resolved URL is falsy
+                    // (content_type='video' posts can pass the filter even with empty media_urls)
+                    if (!existingIds.has(p.id) && videoUrl) {
                         allReels.push({
                             // CRITICAL: source flag tells incrementMetric which table to update
                             source: 'posts',
                             id: p.id,
                             author_id: p.author_id,
-                            video_url: p.media_urls[0],
+                            video_url: videoUrl,
                             caption: p.content,
                             like_count: p.like_count || 0,
                             comment_count: p.comment_count || 0,
