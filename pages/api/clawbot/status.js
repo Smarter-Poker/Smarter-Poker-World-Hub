@@ -13,12 +13,12 @@ import { reportApiError } from '../../../src/lib/sentryWrap';
  */
 
 import {
-
-export const runtime = 'edge';
   getSupabase,
   CLAWBOT_VERSION,
   TASK_IDS,
 } from '../../../src/lib/clawbot';
+
+export const runtime = 'edge';
 
 // Task metadata for display
 const TASK_CATALOG = [
