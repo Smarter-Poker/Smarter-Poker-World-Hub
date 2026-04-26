@@ -2366,9 +2366,44 @@ export default function VirtualSandbox() {
                 Copy Share Link
               </button>
 
-              {/* Train This Spot -- Phase 3 */}
-              <button onClick={() => router.push(`/hub/training?position=${heroPosition}&hand=${heroHand.card1 || ''}${heroHand.card2 || ''}`)}
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', fontSize: '12px', fontWeight: '600', background: 'rgba(35,116,225,0.1)', border: '1px solid rgba(35,116,225,0.2)', color: '#4599FF', cursor: 'pointer', marginBottom: 8 }}>
+              {/* Train This Spot — full mapper deep-link with hand context */}
+              <button
+                onClick={() => {
+                  const hand = `${heroHand.card1 || ''}${heroHand.card2 || ''}`;
+                  const board = communityCards.filter(Boolean).join(' ');
+                  const street = board.split(' ').length === 0 ? 'preflop'
+                    : board.split(' ').length <= 3 ? 'flop'
+                    : board.split(' ').length === 4 ? 'turn' : 'river';
+                  const tags = [
+                    heroPosition?.toLowerCase(),
+                    street,
+                    gameType?.toLowerCase(),
+                    parseFloat(heroStack) < 20 ? 'short stack' : null,
+                    parseFloat(heroStack) < 20 ? 'push fold' : null,
+                  ].filter(Boolean).join(',');
+                  const title = `${heroPosition} vs ${board || 'Preflop'} — ${gameType || 'NLH'}`;
+                  const params = new URLSearchParams({
+                    ref: 'sandbox',
+                    vid: hand || 'sandbox',
+                    title: title.slice(0, 80),
+                    source: 'Sandbox',
+                    tags,
+                  });
+                  router.push(`/hub/training?${params.toString()}`);
+                }}
+                style={{
+                  width: '100%', padding: '10px', borderRadius: '8px', fontSize: '12px',
+                  fontWeight: '700', background: 'linear-gradient(135deg, rgba(0,200,83,0.15), rgba(0,150,60,0.15))',
+                  border: '1.5px solid rgba(0,200,83,0.5)', color: '#34C759', cursor: 'pointer',
+                  marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  animation: 'tts-pulse 2.5s ease-in-out infinite',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0,200,83,0.3), rgba(0,150,60,0.3))'; e.currentTarget.style.animation = 'none'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0,200,83,0.15), rgba(0,150,60,0.15))'; e.currentTarget.style.animation = 'tts-pulse 2.5s ease-in-out infinite'; }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+                </svg>
                 Train This Spot
               </button>
 
@@ -2566,6 +2601,10 @@ export default function VirtualSandbox() {
         }
         .analyzing-pulse {
           animation: analyze-pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes tts-pulse {
+          0%, 100% { box-shadow: 0 0 8px rgba(0,200,83,0.15); border-color: rgba(0,200,83,0.5); }
+          50%       { box-shadow: 0 0 20px rgba(0,200,83,0.5); border-color: rgba(0,200,83,0.9); }
         }
       `}</style>
     </div >
