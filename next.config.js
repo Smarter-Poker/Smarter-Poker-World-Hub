@@ -121,59 +121,6 @@ const nextConfig = {
   // hit "Cannot use import statement outside a module").
   transpilePackages: ['@react-three/fiber', '@react-three/drei', '@react-three/postprocessing'],
 
-  // ─── Server External Packages (OOM FIX) ────────────────────────────────────
-  // Tell Next.js NOT to bundle these in the server bundle. They are native,
-  // browser-only, or too large to webpack. Dramatically reduces build RAM by
-  // preventing standalone mode from deep-tracing their entire dependency subtrees.
-  //
-  // NOTE (2026-04-20, Phase 1-bonus): phaser3-rex-plugins, replicate, and
-  // @pinecone-database/pinecone were REMOVED from dependencies. Leaving their
-  // names here is a no-op (Next just doesn't find them), but the list should
-  // be cleaned up in a follow-up to stay honest.
-  serverExternalPackages: [
-    'puppeteer', 'puppeteer-extra', 'puppeteer-extra-plugin-stealth',
-    'canvas', 'phaser',
-    'pg', 'pg-protocol',
-    'sharp',
-    'pdf-parse',
-    'twilio',
-    'jspdf', 'jspdf-autotable',
-    'docx',
-    'livekit-server-sdk',
-    'posthog-node',
-    '@sentry/node',
-  ],
-
-  // ─── Output File Tracing — Serverless Bundle Exclusions ───────────────────
-  // [Phase 1.1] serverExternalPackages keeps webpack from bundling these, but
-  // Next's file tracer (nft) STILL copies their full node_modules subtrees
-  // into each lambda zip. outputFileTracingExcludes is the second knob that
-  // tells nft to skip those paths entirely, so the lambda ships without them.
-  // This is the biggest single lambda-size win in Phase 1 — puppeteer alone
-  // weighs ~300MB with its Chromium download.
-  //
-  // Verified 2026-04-20 via `grep -rn "from 'pkg'|require('pkg')" pages/ src/`:
-  //   - puppeteer/-core/-extra: only referenced in /scripts/ and as comments.
-  //     Scripts run on Hetzner / locally, never in Vercel lambdas.
-  //   - canvas: all page usage is browser `document.createElement('canvas')`
-  //     (DOM API), not the npm `canvas` native binding.
-  //   - phaser: browser-only game lib, never imported server-side.
-  //   - pdf-parse: zero import references anywhere in pages/ or src/.
-  //   - three/examples: huge demo asset bundle, tree-shaking can't reach it.
-  outputFileTracingExcludes: {
-    '*': [
-      'node_modules/puppeteer/**',
-      'node_modules/puppeteer-core/**',
-      'node_modules/puppeteer-extra/**',
-      'node_modules/puppeteer-extra-plugin-stealth/**',
-      'node_modules/@puppeteer/**',
-      'node_modules/canvas/**',
-      'node_modules/phaser/**',
-      'node_modules/pdf-parse/**',
-      'node_modules/three/examples/**',
-    ],
-  },
-
   // ─── Build Memory Optimization ──────────────────────────────────────────────
   // With 950+ pages, the build needs memory-efficient compilation.
   // workerThreads offloads page compilation to separate workers (lower per-worker memory).
@@ -182,6 +129,39 @@ const nextConfig = {
   // condition where vendor chunks get deleted mid-request, triggering
   // "Cannot find module './chunks/vendor-chunks/next.js'" 500 errors.
   experimental: {
+    // ─── Server External Packages (OOM FIX) ────────────────────────────────────
+    // Tell Next.js NOT to bundle these in the server bundle. They are native,
+    // browser-only, or too large to webpack. Dramatically reduces build RAM by
+    // preventing standalone mode from deep-tracing their entire dependency subtrees.
+    serverComponentsExternalPackages: [
+      'puppeteer', 'puppeteer-extra', 'puppeteer-extra-plugin-stealth',
+      'canvas', 'phaser',
+      'pg', 'pg-protocol',
+      'sharp',
+      'pdf-parse',
+      'twilio',
+      'jspdf', 'jspdf-autotable',
+      'docx',
+      'livekit-server-sdk',
+      'posthog-node',
+      '@sentry/node',
+    ],
+
+    // ─── Output File Tracing — Serverless Bundle Exclusions ───────────────────
+    outputFileTracingExcludes: {
+      '*': [
+        'node_modules/puppeteer/**',
+        'node_modules/puppeteer-core/**',
+        'node_modules/puppeteer-extra/**',
+        'node_modules/puppeteer-extra-plugin-stealth/**',
+        'node_modules/@puppeteer/**',
+        'node_modules/canvas/**',
+        'node_modules/phaser/**',
+        'node_modules/pdf-parse/**',
+        'node_modules/three/examples/**',
+      ],
+    },
+
     // [Phase 1.4, 2026-04-21] cpus: 1→2. Phases 1.1–1.3 removed ~49MB of
     // unused deps, excluded puppeteer/phaser/canvas/pdf-parse from the
     // file tracer, moved puppeteer+canvas to devDeps (Vercel skips them
