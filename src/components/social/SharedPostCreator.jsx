@@ -488,10 +488,15 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                                 onComplete: ({ publicUrl }) => resolve(publicUrl),
                                 onError: ({ error }) => reject(error),
                                 onBackground: () => {
-                                    // Hide SPC's inline upload indicators — GhostPostCard takes over
+                                    // Upload moved to background — reset the composer.
+                                    // GhostPostCard in the feed shows progress.
                                     if (mountedRef.current) {
                                         setUploadProgress(null);
                                         setUploading(false);
+                                        setContent('');
+                                        setMedia([]);
+                                        setLinkPreview(null);
+                                        try { localStorage.removeItem('sp-post-draft'); } catch (_) {}
                                     }
                                 },
                             });
