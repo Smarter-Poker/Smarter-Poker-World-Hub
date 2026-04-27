@@ -91,7 +91,7 @@ import useTrainingRealtime from '../../src/hooks/useTrainingRealtime';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
 // busEmit not needed at page level — DiamondEngine auto-emits, useTrainingBus has own import
-import { findBestGames, getVideoContext } from '../../src/utils/videoToTrainingMapper';
+import { findBestGames, getVideoContext, extractCardsFromContext, buildSandboxUrl } from '../../src/utils/videoToTrainingMapper';
 import { getGameById } from '../../src/data/TRAINING_LIBRARY';
 
 
@@ -643,6 +643,9 @@ function GameLane({ title, icon, color, games, onGameClick, getProgress, badge, 
 function VideoContextBanner({ videoContext, matchedGames, onDismiss, onLaunchGame }) {
     if (!videoContext?.vid) return null;
     const thumbnailUrl = `https://img.youtube.com/vi/${videoContext.vid}/mqdefault.jpg`;
+    const extracted = extractCardsFromContext(videoContext);
+    const sandboxUrl = buildSandboxUrl(videoContext);
+    const hasSandboxContext = !!(extracted.hand || extracted.board || extracted.position);
     const sourceLabel = (videoContext.source || '').replace(/_/g, ' ');
 
     return (
@@ -796,15 +799,40 @@ function VideoContextBanner({ videoContext, matchedGames, onDismiss, onLaunchGam
                         ))}
                     </div>
 
+                    {/* ── Open in Virtual Sandbox ── */}
+                    <button
+                        onClick={() => { onDismiss(); window.location.href = sandboxUrl; }}
+                        style={{
+                            marginTop: 14, width: '100%', padding: '12px 14px',
+                            background: hasSandboxContext
+                                ? 'linear-gradient(135deg, rgba(0,150,255,0.12), rgba(0,100,200,0.12))'
+                                : 'rgba(255,255,255,0.04)',
+                            border: `1.5px solid ${hasSandboxContext ? 'rgba(0,150,255,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                            borderRadius: 12, color: hasSandboxContext ? '#4DA6FF' : 'rgba(255,255,255,0.45)',
+                            fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                            transition: 'all 0.18s',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = hasSandboxContext ? 'linear-gradient(135deg, rgba(0,150,255,0.22), rgba(0,100,200,0.22))' : 'rgba(255,255,255,0.08)'; e.currentTarget.style.borderColor = hasSandboxContext ? 'rgba(0,150,255,0.65)' : 'rgba(255,255,255,0.2)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = hasSandboxContext ? 'linear-gradient(135deg, rgba(0,150,255,0.12), rgba(0,100,200,0.12))' : 'rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor = hasSandboxContext ? 'rgba(0,150,255,0.4)' : 'rgba(255,255,255,0.1)'; }}
+                    >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/>
+                        </svg>
+                        {hasSandboxContext
+                            ? `Solve in Sandbox${extracted.hand ? ` (${extracted.hand.slice(0,2)} ${extracted.hand.slice(2)})` : ''}`
+                            : 'Open in Virtual Sandbox'}
+                    </button>
+
                     {/* Browse All */}
                     <button onClick={onDismiss} style={{
-                        marginTop: 12, width: '100%', padding: '10px',
-                        background: 'transparent', border: '1px solid rgba(255,255,255,0.1)',
-                        borderRadius: 10, color: 'rgba(255,255,255,0.4)', fontSize: 12,
+                        marginTop: 8, width: '100%', padding: '10px',
+                        background: 'transparent', border: '1px solid rgba(255,255,255,0.08)',
+                        borderRadius: 10, color: 'rgba(255,255,255,0.35)', fontSize: 11,
                         fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
                     }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'; e.currentTarget.style.color = 'rgba(255,255,255,0.6)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; }}>
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)'; e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.35)'; }}>
                         Browse All 100 Training Games
                     </button>
                 </div>

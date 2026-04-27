@@ -183,3 +183,83 @@ export function getVideoContext(query = {}) {
         ref: query.ref || null,
     };
 }
+
+/**
+ * extractCardsFromContext(videoContext) → { hand, board, position, gameType, street }
+ * Attempts to parse actual poker cards, positions, and scenario details
+ * from video metadata (titles, tags, captions).
+ *
+ * Card format: Rank(2-9,T,J,Q,K,A) + Suit(c,d,h,s)  e.g. "AcKd"
+ */
+export function extractCardsFromContext(videoContext = {}) {
+    const text = [
+        videoContext.title || '',
+        videoContext.vid || '',
+        Array.isArray(videoContext.tags) ? videoContext.tags.join(' ') : (videoContext.tags || ''),
+    ].join(' ');
+
+    // Card pattern: Rank + Suit — case-insensitive
+    const CARD_RE = /(?<![a-zA-Z])([2-9TJQKA][cdhs])(?![a-zA-Z])/gi;
+    const rawCards = [...text.matchAll(CARD_RE)].map(m =>
+        m[1].charAt(0).toUpperCase() + m[1].charAt(1).toLowerCase()
+    );
+    // Deduplicate while preserving order
+    const cards = [...new Set(rawCards)];
+
+    // Position detection
+    const POS_RE = /\b(UTG|UTG\+[12]|MP|MP[12]|HJ|CO|BTN|SB|BB)\b/gi;
+    const positions = [...text.matchAll(POS_RE)].map(m => m[1].toUpperCase());
+
+    // Game type detection
+    const isMTT = /\b(tournament|mtt|tourney|pko|satellite|bounty)\b/i.test(text);
+    const isCash = /\b(cash|ring|nlhe?|live cash)\b/i.test(text);
+
+    // Street detection
+    const hasRiver = /\briver\b/i.test(text);
+    const hasTurn = /\bturn\b/i.test(text);
+    const hasFlop = /\bflop\b/i.test(text);
+    const hasPreflop = /\bpreflop|pre-flop\b/i.test(text);
+
+    return {
+        hand: cards.length >= 2 ? cards.slice(0, 2).join('') : null,       // e.g. "AcKd"
+        board: cards.length >= 5 ? cards.slice(2, 7)                        // up to 5 board cards
+             : cards.length >= 4 ? cards.slice(2, 6)
+             : cards.length >= 3 ? cards.slice(2, 5) : null,
+        position: positions[0] || null,
+        gameType: isMTT ? 'mtt' : isCash ? 'cash' : null,
+        street: hasRiver ? 'river' : hasTurn ? 'turn' : hasFlop ? 'flop'
+              : hasPreflop ? 'preflop' : null,
+    };
+}
+
+/**
+ * buildSandboxUrl(videoContext) → string
+ * Converts a video context (with optional extracted cards) into a full
+ * Virtual Sandbox URL with pre-loaded state.
+ *
+ * Sandbox accepts: ?h=AcKd&p=BTN&b=Ah,7s,2c&g=cash&s=100
+ */
+export function buildSandboxUrl(videoContext = {}) {
+    const extracted = extractCardsFromContext(videoContext);
+    const params = new URLSearchParams();
+
+    // Hand (hero cards)
+    if (extracted.hand) params.set('h', extracted.hand);
+
+    // Position
+    if (extracted.position) params.set('p', extracted.position);
+
+    // Board cards (comma-separated for sandbox parser)
+    if (extracted.board && extracted.board.length > 0) {
+        params.set('b', extracted.board.join(','));
+    }
+
+    // Game type
+    if (extracted.gameType) params.set('g', extracted.gameType);
+
+    // TTS source marker (so sandbox knows this came from Train This Spot)
+    params.set('ref', 'train-this-spot');
+
+    const qs = params.toString();
+    return `/hub/personal-assistant/sandbox${qs ? '?' + qs : ''}`;
+}
