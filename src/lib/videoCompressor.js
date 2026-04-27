@@ -13,10 +13,13 @@
  */
 
 const TARGET_BITRATE = 2_500_000; // 2.5 Mbps — good 720p quality
-const COMPRESS_THRESHOLD = 50 * 1024 * 1024; // 50MB
+// ⚠️ DISABLED: Client-side compression via MediaRecorder runs at 1x real-time speed on mobile.
+// A 60s clip takes 60+ seconds to compress on-device, freezing the UI before upload even begins.
+// TUS chunked uploads (tus-js-client, 6 MB chunks) now handle large files reliably instead.
+// Re-enable by lowering COMPRESS_THRESHOLD to 50 * 1024 * 1024 ONLY when ffmpeg.wasm is integrated.
+const COMPRESS_THRESHOLD = Infinity; // DISABLED — see note above
 const MAX_COMPRESS_DURATION = 120; // Skip videos > 2 minutes (real-time processing)
 const MAX_CLIENT_SIZE = 5 * 1024 * 1024 * 1024; // 5GB hard limit
-const MAX_FINAL_SIZE = 50 * 1024 * 1024; // 50MB hard cap for the output
 
 /**
  * Get connection-aware warning threshold.

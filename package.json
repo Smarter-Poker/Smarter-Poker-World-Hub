@@ -56,7 +56,6 @@
     "lz-string": "^1.5.0",
     "next": "^14.2.35",
     "openai": "^6.16.0",
-    "pdf-parse": "^2.4.5",
     "pg-protocol": "^1.13.0",
     "phaser": "^3.90.0",
     "posthog-js": "^1.200.0",

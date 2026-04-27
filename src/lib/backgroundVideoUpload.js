@@ -292,21 +292,41 @@ function _uploadWithTus(file, meta, mimeType) {
         // Store reference so abort() can cancel mid-upload
         _activeXhr = upload;
 
-        // 5-minute hard client-side timeout — never hang forever on iOS
+        // 5-minute hard client-side timeout — never hang forever on iOS.
+        // Use a _settled flag because tus captures callbacks at construction time;
+        // mutating upload.options.onSuccess/onError AFTER construction does NOT
+        // affect the internally-stored copies. The options literal above is the
+        // only place we can reliably wire clearTimeout.
+        let _settled = false;
         const hardTimeout = setTimeout(() => {
+            if (_settled) return;
+            _settled = true;
             try { upload.abort(); } catch (_) {}
             _activeXhr = null;
             reject(new Error('Upload timed out after 5 minutes. Please try on a stronger Wi-Fi connection.'));
         }, UPLOAD_HARD_TIMEOUT_MS);
 
-        // Clear timeout on success/error (those callbacks already fire above)
-        const _origSuccess = upload.options.onSuccess;
-        const _origError = upload.options.onError;
-        upload.options.onSuccess = () => { clearTimeout(hardTimeout); _origSuccess(); };
-        upload.options.onError = (err) => { clearTimeout(hardTimeout); _origError(err); };
+        // Patch the already-constructed upload options so the same object reference
+        // that tus holds internally gets clearTimeout + settled-guard.
+        const _rawSuccess = upload.options.onSuccess;
+        const _rawError = upload.options.onError;
+        upload.options.onSuccess = () => {
+            if (_settled) return;
+            _settled = true;
+            clearTimeout(hardTimeout);
+            _rawSuccess();
+        };
+        upload.options.onError = (err) => {
+            if (_settled) return;
+            _settled = true;
+            clearTimeout(hardTimeout);
+            _rawError(err);
+        };
 
-        // Try to resume from a previous incomplete upload first
+        // Try to resume from a previous incomplete upload first.
+        // Guard against abort() firing while findPreviousUploads is in-flight.
         upload.findPreviousUploads().then((previousUploads) => {
+            if (_settled) return; // abort() fired during async lookup — don't start
             if (previousUploads.length > 0) {
                 _setState(_state, 5, 'Resuming previous upload…');
                 upload.resumeFromPreviousUpload(previousUploads[0]);
@@ -314,7 +334,7 @@ function _uploadWithTus(file, meta, mimeType) {
             upload.start();
         }).catch(() => {
             // findPreviousUploads is best-effort — start fresh if it fails
-            upload.start();
+            if (!_settled) upload.start();
         });
     });
 }

@@ -28,6 +28,12 @@ export async function uploadThumbnail(dataUrl, userId, folder = 'thumbnails') {
         const res = await fetch(dataUrl);
         const blob = await res.blob();
 
+        // Guard: reject empty blobs — malformed canvas.toDataURL() produces 0-byte output
+        if (blob.size < 100) {
+            console.warn('[ThumbnailUploader] Blob too small, likely malformed data URL — skipping');
+            return null;
+        }
+
         // Build filename
         const timestamp = Date.now();
         const fileName = `thumb_${timestamp}.jpg`;
