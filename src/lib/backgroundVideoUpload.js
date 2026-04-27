@@ -104,8 +104,8 @@ let _prefetchCache = null;    // { file, userId, folder, meta, timestamp }
 const PREFETCH_TTL = 4 * 60 * 1000; // 4 minutes (signed URLs expire in 5)
 
 // Retry config for failed uploads
-const RETRY_DELAYS = [0, 3000, 8000]; // 3 total attempts: immediate + 2 retries
-const MAX_RETRIES = RETRY_DELAYS.length - 1; // = 2 retries after the first attempt
+const RETRY_DELAYS = [0, 3000, 8000, 15000, 30000, 60000]; // 6 total attempts with escalating backoff
+const MAX_RETRIES = RETRY_DELAYS.length - 1; // = 5 retries after the first attempt
 
 // ─── Upload Queue ─────────────────────────────────────────────────────────────
 let _uploadQueue = [];        // Array of { file, userId, folder, resolve, reject }
@@ -409,8 +409,8 @@ function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0, _userId, _fold
                     }, delay);
                 } else {
                     const errMsg = xhr.status === 400
-                        ? 'Upload rejected — please tap Retry to try again.'
-                        : 'Upload session expired — please tap Retry to try again.';
+                        ? 'Upload failed after 6 attempts — please try again later.'
+                        : 'Upload session expired after 6 attempts — please try again later.';
                     reject(new Error(errMsg));
                 }
             } else if (xhr.status >= 500 && attempt < MAX_RETRIES) {
@@ -424,8 +424,8 @@ function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0, _userId, _fold
                 }, delay);
             } else {
                 const errMsg = xhr.status === 413
-                    ? 'File is too large for the server.'
-                    : `Upload failed (HTTP ${xhr.status}) — please tap Retry.`;
+                    ? 'File is too large for the server. Please trim the video and try again.'
+                    : 'Upload failed after 6 attempts — please try again later.';
                 reject(new Error(errMsg));
             }
         };
@@ -442,7 +442,7 @@ function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0, _userId, _fold
                         .catch(reject);
                 }, delay);
             } else {
-                reject(new Error('Network error during upload — please check your connection and try again.'));
+                reject(new Error('Upload failed after 6 attempts — please check your connection and try again later.'));
             }
         };
 
@@ -458,7 +458,7 @@ function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0, _userId, _fold
                         .catch(reject);
                 }, delay);
             } else {
-                reject(new Error('Upload timed out — please check your connection and try again.'));
+                reject(new Error('Upload failed after 6 attempts — please try on a stronger Wi-Fi connection.'));
             }
         };
 

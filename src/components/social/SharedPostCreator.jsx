@@ -1069,11 +1069,30 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                             transition: 'width 0.3s ease'
                         }} />
                     </div>
-                    <div style={{ fontSize: 13, color: C.textSec, marginTop: 4, textAlign: 'center', fontWeight: 600 }}>
-                        {uploadProgress.label || `Uploading… ${uploadProgress.pct || 0}%`}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
+                        <div style={{ fontSize: 13, color: C.textSec, fontWeight: 600 }}>
+                            {uploadProgress.label || `Uploading… ${uploadProgress.pct || 0}%`}
+                        </div>
+                        <button
+                            onClick={() => {
+                                bgUpload.abort();
+                                if (mountedRef.current) {
+                                    setUploading(false);
+                                    setUploadProgress(null);
+                                }
+                            }}
+                            style={{
+                                background: 'none', border: '1px solid #ccc', borderRadius: 12,
+                                padding: '2px 10px', fontSize: 12, color: '#666', cursor: 'pointer',
+                                fontWeight: 600, flexShrink: 0, marginLeft: 8
+                            }}
+                        >
+                            Cancel
+                        </button>
                     </div>
                 </div>
             )}
+
             {/* ── Preparing Media Indicator (iOS transcoding) ── */}
             {preparingMedia && (
                 <div style={{

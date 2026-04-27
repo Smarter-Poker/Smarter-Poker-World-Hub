@@ -11,6 +11,7 @@ import { supabase } from '../../lib/supabase';
 import { sniffMimeType } from '../../lib/socialHelpers';
 import bgUpload from '../../lib/backgroundVideoUpload';
 import { validateVideoFile, generateThumbnail, compressVideo } from '../../lib/videoCompressor';
+import { uploadThumbnail } from '../../lib/thumbnailUploader';
 import toast from '../../stores/toastStore';
 
 
@@ -203,6 +204,12 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
                 setUploadLabel('Saving reel…');
             }
 
+            // Upload thumbnail to Storage (best-effort — reel still saves if this fails)
+            let thumbnailUrl = null;
+            if (thumbnail && thumbnail.startsWith('data:') && user?.id) {
+                thumbnailUrl = await uploadThumbnail(thumbnail, user.id, 'thumbnails').catch(() => null);
+            }
+
             // Create social_reels entry
             const { data: reelRow, error: insertError } = await supabase
                 .from('social_reels')
@@ -210,6 +217,7 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
                     author_id: user.id,
                     video_url: publicUrl,
                     caption: caption.trim() || null,
+                    thumbnail_url: thumbnailUrl,
                     like_count: 0,
                     comment_count: 0,
                     share_count: 0,
@@ -235,6 +243,7 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
                         content: caption.trim() || '',
                         content_type: 'video',
                         media_urls: [publicUrl],
+                        thumbnail_url: thumbnailUrl,
                         visibility: 'public',
                         like_count: 0,
                         comment_count: 0,
@@ -373,9 +382,36 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
                     {uploading && (
                         <div style={styles.progressContainer}>
                             <div style={{ ...styles.progressBar, width: `${uploadProgress}%` }} />
-                            <span style={styles.progressLabel}>
-                                {uploadLabel || `${uploadProgress}%`}
-                            </span>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
+                                <span style={styles.progressLabel}>
+                                    {uploadLabel || `${uploadProgress}%`}
+                                </span>
+                                <button
+                                    onClick={() => {
+                                        bgUpload.abort();
+                                        if (mountedRef.current) {
+                                            setUploading(false);
+                                            setUploadProgress(0);
+                                            setUploadLabel('');
+                                            _uploadingRef.current = false;
+                                        }
+                                    }}
+                                    style={{
+                                        background: 'none',
+                                        border: '1px solid rgba(255,255,255,0.3)',
+                                        borderRadius: 12,
+                                        padding: '3px 12px',
+                                        fontSize: 12,
+                                        color: 'rgba(255,255,255,0.7)',
+                                        cursor: 'pointer',
+                                        fontWeight: 700,
+                                        marginLeft: 8,
+                                        flexShrink: 0,
+                                    }}
+                                >
+                                    Cancel
+                                </button>
+                            </div>
                         </div>
                     )}
 

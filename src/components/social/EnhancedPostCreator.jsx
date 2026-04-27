@@ -20,6 +20,7 @@ import bgUpload from '../../lib/backgroundVideoUpload';
 import { validateVideoFile, generateThumbnail, compressVideo } from '../../lib/videoCompressor';
 import ghostPost from '../../stores/ghostPostStore';
 import { VideoThumbnailPicker } from './VideoThumbnailPicker';
+import { uploadThumbnail } from '../../lib/thumbnailUploader';
 
 import { useSupabase } from '../../providers/SupabaseProvider';
 
@@ -69,7 +70,7 @@ const MAX_CHARS = 2000;
 // 🖼️ MEDIA PREVIEW COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
-const MediaPreview = ({ file, onRemove, uploadProgress, uploadStatusLabel, thumbnail }) => {
+const MediaPreview = ({ file, onRemove, onCancelUpload, uploadProgress, uploadStatusLabel, thumbnail }) => {
   const [preview, setPreview] = useState(null);
   // Use sniffMimeType so iOS MOV files (which have empty file.type) are detected as video
   const isVideo = sniffMimeType(file).startsWith('video/');
@@ -100,7 +101,7 @@ const MediaPreview = ({ file, onRemove, uploadProgress, uploadStatusLabel, thumb
         <img src={preview} alt="Preview" className="preview-media" />
       )}
 
-      {/* Upload Progress Overlay */}
+      {/* Upload Progress Overlay — shows clock dial + % + Cancel button */}
       {uploadProgress !== undefined && uploadProgress < 100 && (
         <div className="upload-progress-overlay">
           <div
@@ -112,10 +113,27 @@ const MediaPreview = ({ file, onRemove, uploadProgress, uploadStatusLabel, thumb
           {uploadStatusLabel && (
             <span className="progress-label">{uploadStatusLabel}</span>
           )}
+          <button
+            onClick={onCancelUpload || onRemove}
+            style={{
+              marginTop: 6,
+              background: 'rgba(255,255,255,0.15)',
+              border: '1px solid rgba(255,255,255,0.4)',
+              borderRadius: 10,
+              padding: '3px 12px',
+              fontSize: 11,
+              color: '#fff',
+              cursor: 'pointer',
+              fontWeight: 700,
+              letterSpacing: '0.02em',
+            }}
+          >
+            Cancel
+          </button>
         </div>
       )}
 
-      {/* Remove Button */}
+      {/* Remove Button — disabled during upload (Cancel button in overlay handles cancel) */}
       <button
         className="remove-media-btn"
         onClick={onRemove}
@@ -323,10 +341,14 @@ export const EnhancedPostCreator = ({
         if (validation.warning) toast.info(validation.warning, 5000);
         if (validation.formatWarning) toast.info(validation.formatWarning, 4000);
 
-        // Auto-thumbnail generation
+        // Auto-thumbnail generation — also write to thumbnailRef so upload can persist it
         generateThumbnail(file).then(thumb => {
           if (!mountedRef.current || !thumb) return;
           setThumbnails(prev => ({ ...prev, [fk]: thumb }));
+          // Only set in ref if user hasn't already picked a custom one
+          if (!thumbnailRef.current[fk]) {
+            thumbnailRef.current[fk] = thumb;
+          }
         });
 
         // Background compression for large videos
@@ -592,13 +614,24 @@ export const EnhancedPostCreator = ({
           ? 'image'
           : 'text';
 
+      // Upload thumbnail data URL to Storage before persisting — avoids storing large base64 in DB
+      const rawThumb = uploadedMedia.find(m => m.type === 'video')?.thumbnail || null;
+      let persistedThumbnailUrl = null;
+      if (rawThumb && rawThumb.startsWith('data:') && user?.id) {
+        // Best-effort: failure here means no thumbnail but post still goes through
+        persistedThumbnailUrl = await uploadThumbnail(rawThumb, user.id, 'thumbnails').catch(() => null);
+      } else if (rawThumb && rawThumb.startsWith('http')) {
+        // Already a real URL (e.g. from a previous upload or YouTube)
+        persistedThumbnailUrl = rawThumb;
+      }
+
       // Create post with rich media objects
       const newPost = await socialService.createPost({
         authorId: user.id,
         content: content.trim() || (contentType === 'image' ? '📸' : contentType === 'video' ? '🎬' : ''),
         contentType,
         mediaUrls: uploadedMedia.map(m => m.url),
-        thumbnailUrl: uploadedMedia.find(m => m.type === 'video')?.thumbnail || null,
+        thumbnailUrl: persistedThumbnailUrl,
         visibility
       });
 
@@ -819,6 +852,14 @@ export const EnhancedPostCreator = ({
                   <MediaPreview
                     file={file}
                     onRemove={() => removeMedia(index)}
+                    onCancelUpload={() => {
+                      bgUpload.abort();
+                      if (mountedRef.current) {
+                        setUploadProgress({});
+                        setUploadStatus({});
+                        setIsSubmitting(false);
+                      }
+                    }}
                     uploadProgress={uploadProgress[index]}
                     uploadStatusLabel={uploadStatus[fk] || uploadStatus[index]}
                     thumbnail={thumbnails[fk]}
@@ -1164,6 +1205,14 @@ export const EnhancedPostCreator = ({
                   <MediaPreview
                     file={file}
                     onRemove={() => removeMedia(index)}
+                    onCancelUpload={() => {
+                      bgUpload.abort();
+                      if (mountedRef.current) {
+                        setUploadProgress({});
+                        setUploadStatus({});
+                        setIsSubmitting(false);
+                      }
+                    }}
                     uploadProgress={uploadProgress[index]}
                     uploadStatusLabel={uploadStatus[fk] || uploadStatus[index]}
                     thumbnail={thumbnails[fk]}
