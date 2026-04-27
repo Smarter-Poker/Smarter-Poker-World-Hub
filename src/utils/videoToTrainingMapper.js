@@ -9,7 +9,12 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import { TRAINING_LIBRARY } from '../data/TRAINING_LIBRARY';
+// Lazy-load to avoid Webpack circular initialization (TDZ crash)
+let _lib = null;
+function getLib() {
+    if (!_lib) _lib = require('../data/TRAINING_LIBRARY').TRAINING_LIBRARY;
+    return _lib;
+}
 
 // ── Keyword → Game ID weight table ─────────────────────────────────────────
 // Each entry: { keywords: string[], gameIds: string[], weight: number }
@@ -144,7 +149,7 @@ export function findBestGames(videoContext = {}) {
     // Boost games in the preferred category for this source
     const preferredCat = SOURCE_CATEGORY_MAP[source] || SOURCE_CATEGORY_MAP[source?.toUpperCase()];
     if (preferredCat) {
-        for (const game of TRAINING_LIBRARY) {
+        for (const game of getLib()) {
             if (game.category === preferredCat && scores.has(game.id)) {
                 scores.set(game.id, (scores.get(game.id) || 0) + 3);
             }
@@ -157,7 +162,7 @@ export function findBestGames(videoContext = {}) {
         .map(([id]) => id);
 
     // Return top 3 unique results, filtered to valid game IDs
-    const validIds = new Set(TRAINING_LIBRARY.map(g => g.id));
+    const validIds = new Set(getLib().map(g => g.id));
     const results = sorted.filter(id => validIds.has(id)).slice(0, 3);
 
     // Fallback: if no matches, return safe defaults by source category
