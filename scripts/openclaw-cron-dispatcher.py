@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-OpenClaw Cron Dispatcher v1.6
+OpenClaw Cron Dispatcher v1.7
 ==============================
 
 ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
@@ -392,12 +392,7 @@ WORKERS_PREFERRED = {
     '/api/cron/horse-batch/7':                 '/cron/horse-batch/7',
     '/api/cron/horse-batch/8':                 '/cron/horse-batch/8',
     '/api/cron/horse-batch/9':                 '/cron/horse-batch/9',
-    # NOT FLIPPED: /api/cron/deploy-error-poll — workers handler returns
-    # 500 ("VERCEL_TOKEN not configured"). The Vercel API token isn't in
-    # any location reachable from the Cowork sandbox or from openclaw VM.
-    # On Vercel-hosted monolith the token is injected via Vercel project
-    # env vars — that's where it has to keep firing. Workers can't autofix
-    # Vercel deployment errors without Vercel API auth anyway.
+    '/api/cron/deploy-error-poll':             '/cron/deploy-error-poll',
 }
 
 
@@ -623,7 +618,7 @@ def main():
         role = 'primary'
 
     log.info('=' * 60)
-    log.info('OpenClaw Cron Dispatcher v1.6 starting up')
+    log.info('OpenClaw Cron Dispatcher v1.7 starting up')
     if WORKERS_BASE_URL:
         log.info(f'Workers routing:   {len(WORKERS_PREFERRED)} paths → {WORKERS_BASE_URL}')
     if DISPATCHER_PRIVATE_IP:
