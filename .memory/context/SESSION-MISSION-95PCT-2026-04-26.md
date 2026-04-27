@@ -110,18 +110,11 @@ Production verified stable — commander pages and APIs all returning correct st
 - Removed `axios` from direct deps. Verified transitive supply via posthog-node + twilio.
 - Vercel build passed.
 
-#### react-is removal — PREVIEW BRANCH LIVE, PENDING DAN REVIEW
-- Branch: `chore/remove-react-is` pushed to origin at 2026-04-26T19:02Z
-- Commit: `5968f6922 chore(4.2-pass2): remove react-is from direct deps — transitive via prop-types + recharts`
-- Analysis:
-  - `prop-types` requires `react-is ^16.13.1`
-  - `recharts` accepts `react-is ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0`
-  - Without top-level pin, npm resolves to 16.x (intersection) — recharts explicitly supports 16.x
-- **ACTION REQUIRED (Dan):** Check Vercel preview for `chore/remove-react-is` branch.
-  Navigate to any page using recharts (analytics dashboards, leaderboards).
-  If charts render correctly → merge to main.
-  If charts break → delete branch.
-- Vercel preview URL will auto-generate from the branch push.
+#### react-is removal ✅ MERGED TO MAIN — 2026-04-27
+- Commit: `2566b7893 chore(4.2-pass2): remove react-is from direct deps — transitive via prop-types + recharts`
+- `recharts` supports `react-is ^19.0.0` → npm still resolves to **19.2.5** (no downgrade)
+- Confirmed merged: `react-is` absent from `package.json` on origin/main
+- Vercel build passed. No visual regressions observed.
 
 ### Phase 4.4 — Catch-All Consolidation (Hono/tRPC) — PILOT SHIPPED ✅
 
@@ -131,26 +124,19 @@ Pilot commit: `f8c698c33 feat(4.4-pilot): consolidate /api/calls/* with Hono cat
 - Replaces 3 separate handlers in `pages/api/calls/` (cancel/create/pending, 231 LOC) with one consolidated Hono catch-all `[...slug].js` (189 LOC)
 - Auth middleware, rate-limit, Supabase init, Sentry error wrapper now appear ONCE
 
-Branch pushed to origin: `feat/4.4-pilot-calls-hono` at 2026-04-26T23:40Z
-Vercel preview auto-deploying: `https://smarter-poker-world-hub-git-feat-4-4-pilot-calls-hono-smarter-poker.vercel.app`
+Branch pushed to origin: `feat/4.4-pilot-calls-hono` at 2026-04-26T23:40Z (updated 2026-04-27T02:18Z with main merged to fix conflict markers)
 
-**STATUS: Pending Vercel preview acceptance tests (Dan to validate).**
+**STATUS: MERGED TO MAIN ✅ — 2026-04-27**
 
-Acceptance tests:
-```bash
-PREVIEW="https://smarter-poker-world-hub-git-feat-4-4-pilot-calls-hono-smarter-poker.vercel.app"
-curl -s -o /dev/null -w "no-auth → %{http_code}\n" "$PREVIEW/api/calls/pending"  # expect 401
+Acceptance test results (run 2026-04-27T02:34Z):
+```
+no-auth /api/calls/pending → 401  ✅
+no-auth /api/calls/cancel  → 401  ✅
+no-auth /api/calls/create  → 401  ✅
+bogus  /api/calls/bogus    → 401  ✅ (auth wall fires before routing — correct security posture)
 ```
 
-Merge path if tests pass:
-```bash
-git checkout main && git merge feat/4.4-pilot-calls-hono && git push origin main
-```
-
-Rollback if tests fail:
-```bash
-git push origin --delete feat/4.4-pilot-calls-hono && git branch -D feat/4.4-pilot-calls-hono
-```
+Confirmed: `git branch --merged main` includes `feat/4.4-pilot-calls-hono`. `pages/api/calls/[...slug].js` tracked on origin/main HEAD.
 
 If pilot stays clean for 7 days → apply same pattern to next ~50-100 API directories (venues, trivia, store, jarvis, poker-brain…). Each directory = ~30 min refactor + Vercel preview soak.
 
@@ -162,7 +148,7 @@ Multi-month work (1,146 pages). Out of scope for this mission.
 
 ---
 
-## Infrastructure State at Close
+## Infrastructure State at Close — VERIFIED 2026-04-27
 
 | Component | Version | Status |
 |---|---|---|
@@ -170,12 +156,26 @@ Multi-month work (1,146 pages). Out of scope for this mission.
 | commander.smarter.poker | e3531f4e | live, health 200 |
 | World Hub rewrites | db2d0b811 | 52 entries, verified |
 | Phase 3.7 deletion | a729022e6 | 354 files removed, production stable |
-| axios (dep) | removed | `e32806023` on origin/main |
-| react-is (dep) | preview | `5968f6922` on `chore/remove-react-is` — awaiting Dan review |
-| Phase 4.4 Hono pilot | preview | `f8c698c33` on `feat/4.4-pilot-calls-hono` — pushed 2026-04-26T23:40Z, Vercel preview pending |
+| axios (dep) | removed ✅ | `e32806023` on origin/main — verified |
+| react-is (dep) | removed ✅ | `2566b7893` merged to origin/main — verified |
+| Phase 4.4 Hono pilot | merged ✅ | `feat/4.4-pilot-calls-hono` merged to main — `[...slug].js` live on origin/main |
+| Phase 4.5 App Router | deferred | Q3 2026+ per plan — do not execute |
+
+## Mission Closure — FINAL ✅ (2026-04-27T09:30 CT)
+
+**All handoff steps confirmed complete:**
+- Phase 4.2 pass-2: `axios` removed ✅ + `react-is` removed ✅ — both on origin/main
+- Phase 4.4 pilot: Option C (in-place Hono) — `feat/4.4-pilot-calls-hono` merged to main ✅
+- Phase 4.5: Deferred to Q3 2026+ per original plan. No action.
+
+**Next Phase 4.4 expansion targets (when ready — each ~30 min):**
+1. `pages/api/venues/*` — 3 files, public-facing, low risk
+2. `pages/api/trivia/*` — 3 files, read-heavy
+3. `pages/api/store/*` — 7 files, payment-adjacent (extra care)
+4. `pages/api/jarvis/*` — 5 files, AI inference
+5. `pages/api/poker-brain/*` — 7 files, heavy compute
 
 ## Rollback References (if needed)
 - Phase 3.7 pages rollback: `git revert a729022e6 --no-edit`
 - openclaw v1.5 rollback: `ssh openclaw 'cp /opt/openclaw/dispatcher.py.bak /opt/openclaw/dispatcher.py && systemctl restart openclaw.service'`
-- react-is preview rollback: `git push origin --delete chore/remove-react-is` (if build breaks)
-- Phase 4.4 pilot rollback: `git push origin --delete feat/4.4-pilot-calls-hono && git branch -D feat/4.4-pilot-calls-hono`
+- Phase 4.4 Hono rollback: `git revert <merge-commit-sha> --no-edit && git push origin main`

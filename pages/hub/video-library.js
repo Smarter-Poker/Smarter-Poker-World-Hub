@@ -26,6 +26,8 @@ import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { DiamondEngine } from '../../src/services/DiamondEngine';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
 import { ReelsViewer } from '../../src/components/social/Reels';
+import { findBestGames, buildSandboxUrl, extractCardsFromContext } from '../../src/utils/videoToTrainingMapper';
+import { getGameById } from '../../src/data/TRAINING_LIBRARY';
 
 // Static fallback catalog — used until DB fetch resolves
 import {
@@ -243,6 +245,7 @@ export default function VideoLibraryPage() {
     const [selectedDuration, setSelectedDuration] = useState('ALL');
     // Share toast (copy-to-clipboard feedback)
     const [shareToast, setShareToast] = useState(null); // { message, videoId }
+    const [ttsOverlay, setTtsOverlay] = useState(null); // Train This Spot in-place overlay { ctx, games }
     const shareToastTimer = useRef(null);
 
     // Video modal HUD (heart/comment/share/save) — tap to show, auto-hides
@@ -2060,21 +2063,28 @@ export default function VideoLibraryPage() {
                                 <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
                                     {selectedVideo.duration}
                                 </span>
-                                {/* ── Train This Spot — GTO deep-link ── */}
+                                {/* ── Train This Spot — in-place overlay ── */}
                                 <button
                                     onClick={() => {
-                                        // Deep-link to GTO Trainer with full video context pre-loaded
                                         const tags = Array.isArray(selectedVideo.tags)
-                                            ? selectedVideo.tags.filter(t => t && t.trim()).join(',')
-                                            : '';
-                                        const params = new URLSearchParams({
+                                            ? selectedVideo.tags.filter(t => t && t.trim())
+                                            : [];
+                                        const ctx = {
                                             ref: 'video-library',
                                             vid: selectedVideo.videoId,
                                             title: selectedVideo.title.slice(0, 80),
                                             source: selectedVideo.source,
-                                        });
-                                        if (tags) params.set('tags', tags);
-                                        router.push(`/hub/training?${params.toString()}`);
+                                            tags,
+                                        };
+                                        const gameIds = findBestGames(ctx);
+                                        const games = gameIds.map(id => getGameById(id)).filter(Boolean).slice(0, 3);
+                                        setTtsOverlay({ ctx, games });
+                                        // Fire analytics
+                                        fetch('/api/training/log-request', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ ref: 'video-library', vid: ctx.vid, title: ctx.title, source: ctx.source, tags, matchedGameIds: gameIds.slice(0, 3) }),
+                                        }).catch(() => {});
                                     }}
                                     style={{
                                         padding: '5px 14px',
@@ -2368,6 +2378,69 @@ export default function VideoLibraryPage() {
                     </div>
                 </div>
             )}
+
+            {/* ── Train This Spot In-Place Overlay ── */}
+            {ttsOverlay && (
+                <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 9500, animation: 'tts-sheet-up 0.32s cubic-bezier(0.34,1.56,0.64,1) both' }}>
+                    <div onClick={() => setTtsOverlay(null)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', zIndex: -1 }} />
+                    <div style={{ background: 'linear-gradient(180deg, #0a0f1e, #060a14)', borderRadius: '20px 20px 0 0', border: '1px solid rgba(0,200,83,0.2)', borderBottom: 'none', maxHeight: '75vh', overflow: 'auto', boxShadow: '0 -10px 60px rgba(0,0,0,0.7), 0 0 40px rgba(0,200,83,0.08)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px' }}><div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.15)' }} /></div>
+                        <div style={{ padding: '8px 20px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, rgba(0,200,83,0.3), rgba(0,150,60,0.15))', border: '1.5px solid rgba(0,200,83,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34C759" strokeWidth="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                            </div>
+                            <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: 14, fontWeight: 800, color: '#34C759' }}>Train This Spot</div>
+                                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>AI-matched drills for this video</div>
+                            </div>
+                            <button onClick={() => setTtsOverlay(null)} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', fontSize: 16 }}>✕</button>
+                        </div>
+                        <div style={{ padding: '0 20px 12px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                            <div style={{ width: 100, height: 56, borderRadius: 8, overflow: 'hidden', flexShrink: 0, background: '#111', border: '1px solid rgba(255,255,255,0.08)' }}>
+                                <img src={`https://img.youtube.com/vi/${ttsOverlay.ctx.vid}/mqdefault.jpg`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.currentTarget.style.display = 'none'; }} />
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.35, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{ttsOverlay.ctx.title || 'Poker Video'}</div>
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 4, background: 'rgba(255,68,68,0.1)', border: '1px solid rgba(255,68,68,0.2)', borderRadius: 6, padding: '2px 7px' }}>
+                                    <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#FF4444' }} />
+                                    <span style={{ fontSize: 9, fontWeight: 700, color: '#FF8888' }}>{(ttsOverlay.ctx.source || '').replace(/_/g, ' ')}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div style={{ padding: '0 20px 8px' }}>
+                            <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 8 }}>AI-Recommended Drills</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                {ttsOverlay.games.map((game, idx) => (
+                                    <button key={game.id} onClick={() => { setTtsOverlay(null); router.push(`/hub/training?autoLaunch=${game.id}`); }} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: idx === 0 ? 'rgba(0,200,83,0.08)' : 'rgba(255,255,255,0.03)', border: `1.5px solid ${idx === 0 ? 'rgba(0,200,83,0.3)' : 'rgba(255,255,255,0.06)'}`, borderRadius: 10, cursor: 'pointer', textAlign: 'left', width: '100%', transition: 'all 0.15s' }}>
+                                        <div style={{ width: 32, height: 32, borderRadius: 7, flexShrink: 0, background: idx === 0 ? 'rgba(0,200,83,0.15)' : 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>{game.icon || '🎯'}</div>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                                <span style={{ fontSize: 12, fontWeight: 700, color: idx === 0 ? '#34C759' : '#fff' }}>{game.name}</span>
+                                                {idx === 0 && <span style={{ fontSize: 8, fontWeight: 800, color: '#34C759', background: 'rgba(0,200,83,0.12)', borderRadius: 5, padding: '1px 5px' }}>BEST MATCH</span>}
+                                            </div>
+                                            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', marginTop: 1 }}>{game.focus} · {'★'.repeat(Math.min(game.difficulty || 1, 5))} Difficulty</div>
+                                        </div>
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2.5"><path d="M9 18l6-6-6-6"/></svg>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div style={{ padding: '6px 20px 20px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            <button onClick={() => { setTtsOverlay(null); router.push(buildSandboxUrl(ttsOverlay.ctx)); }} style={{ width: '100%', padding: '10px 12px', borderRadius: 10, background: 'linear-gradient(135deg, rgba(0,150,255,0.1), rgba(0,100,200,0.1))', border: '1.5px solid rgba(0,150,255,0.35)', color: '#4DA6FF', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, transition: 'all 0.15s' }}>
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>
+                                {(() => { const ex = extractCardsFromContext(ttsOverlay.ctx); return ex.hand ? `Solve in Sandbox (${ex.hand.slice(0,2)} ${ex.hand.slice(2)})` : 'Open in Virtual Sandbox'; })()}
+                            </button>
+                            <button onClick={() => { setTtsOverlay(null); router.push('/hub/training'); }} style={{ width: '100%', padding: '8px', borderRadius: 8, background: 'transparent', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.3)', fontSize: 10, fontWeight: 600, cursor: 'pointer' }}>Browse All 100 Training Games</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            <style>{`
+                @keyframes tts-sheet-up {
+                    from { transform: translateY(100%); opacity: 0.7; }
+                    to { transform: translateY(0); opacity: 1; }
+                }
+            `}</style>
 
         </PageTransition>
     );

@@ -595,7 +595,7 @@ export default function UniversalHeader({
             </Head>
 
             {/* Mobile-responsive CSS */}
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 .universal-header {
                     background: ${C.bg};
                     padding: 8px 12px;
@@ -934,7 +934,7 @@ export default function UniversalHeader({
                         font-size: 18px;
                     }
                 }
-            `}</style>
+            `}} />
 
             <header className="universal-header">
                 {/* LEFT: Hamburger Menu + Back/Hub Button + "Smarter.Poker" */}
