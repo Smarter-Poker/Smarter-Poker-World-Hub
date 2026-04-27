@@ -32,9 +32,10 @@
 import { getAccessToken } from './authUtils';
 import { sniffMimeType } from './socialHelpers';
 import toast, { useToastStore } from '../stores/toastStore';
+import * as tus from 'tus-js-client';
 
 // ─── Module-level singletons ──────────────────────────────────────────────────
-let _activeXhr = null;        // XMLHttpRequest — survives modal unmount
+let _activeXhr = null;        // XMLHttpRequest or tus.Upload — survives modal unmount
 let _listeners = new Set();   // { onProgress, onComplete, onError, onBackground }
 let _state = 'idle';          // 'idle' | 'uploading' | 'background' | 'done' | 'error'
 let _progress = 0;
@@ -112,6 +113,13 @@ let _isProcessingQueue = false;
 
 // ─── Session Storage Keys ─────────────────────────────────────────────────────
 const STORAGE_KEY = 'sp-bg-upload-intent';
+const TUS_URL_KEY_PREFIX = 'sp-tus-url:'; // stores resumable TUS upload URL per file key
+
+// ─── TUS chunk size ────────────────────────────────────────────────────────────
+const TUS_CHUNK_SIZE = 6 * 1024 * 1024; // 6 MB — Supabase recommended
+
+// ─── Client-side hard timeout for the entire upload session ───────────────────
+const UPLOAD_HARD_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes — surfaces real error, never hangs
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 
@@ -193,12 +201,129 @@ async function _fetchUploadMeta(file, userId, folder) {
 }
 
 /**
- * Execute an XHR PUT upload with retry support.
+ * Upload via TUS resumable protocol (primary path for video).
+ * Uses tus-js-client with 6 MB chunks, auto-retry, and sessionStorage resume.
+ * Wraps the entire operation in a 5-minute hard timeout.
+ *
+ * @param {File}   file
+ * @param {Object} meta  — response from _fetchUploadMeta (must include tusEndpoint, token, path, bucket)
+ * @param {string} mimeType
+ * @returns {Promise<null>}  resolves on success; caller uses the publicUrl from meta
+ */
+function _uploadWithTus(file, meta, mimeType) {
+    return new Promise((resolve, reject) => {
+        _uploadStartTime = Date.now();
+        let maxPctReached = _progress || 0;
+
+        // Session-storage key for this specific file so a tab refresh can resume
+        const resumeKey = `${TUS_URL_KEY_PREFIX}${file.name}_${file.size}`;
+
+        const upload = new tus.Upload(file, {
+            endpoint: meta.tusEndpoint,
+            chunkSize: TUS_CHUNK_SIZE,
+            retryDelays: [0, 3000, 8000, 15000], // auto-retry on transient errors
+            // Persist the upload URL so a refresh can resume from where it left off
+            urlStorage: typeof window !== 'undefined' ? new tus.SessionStorageUrlStorage(resumeKey) : undefined,
+            metadata: {
+                bucketName: meta.bucket,
+                objectName: meta.path,
+                contentType: (mimeType || '').split(';')[0].trim() || 'video/mp4',
+                cacheControl: '3600',
+            },
+            // Supabase TUS requires the auth token in Authorization header
+            headers: {
+                Authorization: `Bearer ${getAccessToken() || ''}`,
+            },
+            onProgress: (bytesUploaded, bytesTotal) => {
+                const rawPct = bytesTotal > 0 ? Math.round((bytesUploaded / bytesTotal) * 93) + 5 : 5;
+                const clampedPct = Math.max(rawPct, maxPctReached);
+                maxPctReached = clampedPct;
+                const displayPct = Math.min(clampedPct, 97);
+                const labelPct = Math.round(((displayPct - 5) / 92) * 100);
+
+                let speedStr = '';
+                let eta = '';
+                if (_uploadStartTime && bytesUploaded > 0) {
+                    const elapsedSec = (Date.now() - _uploadStartTime) / 1000;
+                    if (elapsedSec > 2) {
+                        const bytesPerSec = bytesUploaded / elapsedSec;
+                        const remainingBytes = bytesTotal - bytesUploaded;
+                        const remainingSec = remainingBytes / bytesPerSec;
+                        eta = _formatEta(remainingSec);
+                        _lastEta = eta;
+                        const mbps = bytesPerSec / (1024 * 1024);
+                        speedStr = mbps >= 1
+                            ? ` at ${mbps.toFixed(1)} MB/s`
+                            : ` at ${Math.round(bytesPerSec / 1024)} KB/s`;
+                    }
+                }
+                const etaSuffix = eta ? ` — ~${eta}` : (_lastEta ? ` — ~${_lastEta}` : '');
+                _setState(_state, displayPct, `Uploading… ${labelPct}%${speedStr}${etaSuffix}`);
+            },
+            onSuccess: () => {
+                _activeXhr = null;
+                // Clean up resume URL — upload is complete
+                try { if (typeof window !== 'undefined') sessionStorage.removeItem(resumeKey); } catch (_) {}
+                resolve(null);
+            },
+            onError: (err) => {
+                _activeXhr = null;
+                // tus-js-client has exhausted its retryDelays — surface the error
+                const msg = err?.message || String(err) || 'TUS upload failed';
+                // Detect abort (user cancelled)
+                if (msg.toLowerCase().includes('abort') || msg.toLowerCase().includes('cancel')) {
+                    reject(new Error('Upload cancelled'));
+                } else {
+                    reject(new Error(`Upload failed — ${msg}. Please check your connection and try again.`));
+                }
+            },
+            onBeforeRequest: (req) => {
+                // Refresh auth token on each chunk request (long uploads may outlast short-lived tokens)
+                const token = getAccessToken();
+                if (token) req.setHeader('Authorization', `Bearer ${token}`);
+            },
+        });
+
+        // Store reference so abort() can cancel mid-upload
+        _activeXhr = upload;
+
+        // 5-minute hard client-side timeout — never hang forever on iOS
+        const hardTimeout = setTimeout(() => {
+            try { upload.abort(); } catch (_) {}
+            _activeXhr = null;
+            reject(new Error('Upload timed out after 5 minutes. Please try on a stronger Wi-Fi connection.'));
+        }, UPLOAD_HARD_TIMEOUT_MS);
+
+        // Clear timeout on success/error (those callbacks already fire above)
+        const _origSuccess = upload.options.onSuccess;
+        const _origError = upload.options.onError;
+        upload.options.onSuccess = () => { clearTimeout(hardTimeout); _origSuccess(); };
+        upload.options.onError = (err) => { clearTimeout(hardTimeout); _origError(err); };
+
+        // Try to resume from a previous incomplete upload first
+        upload.findPreviousUploads().then((previousUploads) => {
+            if (previousUploads.length > 0) {
+                _setState(_state, 5, 'Resuming previous upload…');
+                upload.resumeFromPreviousUpload(previousUploads[0]);
+            }
+            upload.start();
+        }).catch(() => {
+            // findPreviousUploads is best-effort — start fresh if it fails
+            upload.start();
+        });
+    });
+}
+
+/**
+ * FALLBACK: Execute an XHR PUT upload with retry support.
+ * Used when TUS metadata (tusEndpoint) is not available (e.g. old cached meta).
  * On HTTP 400/403 (expired/consumed signed URL), fetches a FRESH signed URL before retrying.
  * On network failure, waits and retries up to MAX_RETRIES times.
  *
  * Includes ETA tracking: calculates bytes/second from upload progress events
  * and emits estimated time remaining in the progress label.
+ *
+ * ⚠️  BUG 3 FIX IS HERE — do not remove the alreadyConsumed detection block.
  */
 function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0, _userId, _folder) {
     return new Promise((resolve, reject) => {
@@ -415,6 +540,11 @@ const bgUpload = {
         const savedPrefetch = _prefetchCache;
         const savedListeners = new Set(_listeners);
 
+        // Enforce 50MB hard cap on the final output file before starting
+        if (file.size > 50 * 1024 * 1024) {
+            throw new Error('Video is too large (max 50 MB). Please trim the video and try again.');
+        }
+
         // Silent reset of previous upload state (NOT a user-facing abort — no onError emission)
         clearTimeout(_bgTimer);
         _bgTimer = null;
@@ -513,11 +643,19 @@ const bgUpload = {
 
             _setState('uploading', 5, 'Uploading…');
 
-            // ── Step 2: XHR upload with automatic retry on failure ────────────
+            // ── Step 2: Upload — prefer TUS (chunked/resumable) for all videos ─
+            // Falls back to XHR PUT if tusEndpoint is not present in meta (old cached meta).
             const mimeType = sniffMimeType(file);
-            const freshPublicUrl = await _uploadWithRetry(file, meta.signedUrl, mimeType, 0, userId, folder);
-            // If a retry produced a fresh URL, use that; otherwise use the original
-            const finalPublicUrl = freshPublicUrl || meta.publicUrl;
+            let finalPublicUrl;
+            if (meta.tusEndpoint) {
+                // TUS path: chunked, resumable, iOS-safe
+                await _uploadWithTus(file, meta, mimeType);
+                finalPublicUrl = meta.publicUrl;
+            } else {
+                // XHR fallback: preserves Bug 3 fix (alreadyConsumed detection)
+                const freshPublicUrl = await _uploadWithRetry(file, meta.signedUrl, mimeType, 0, userId, folder);
+                finalPublicUrl = freshPublicUrl || meta.publicUrl;
+            }
 
             // ── Upload complete ───────────────────────────────────────────────
             clearTimeout(_bgTimer);

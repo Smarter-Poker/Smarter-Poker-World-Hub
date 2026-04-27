@@ -13,14 +13,10 @@
  */
 
 const TARGET_BITRATE = 2_500_000; // 2.5 Mbps — good 720p quality
-// ⚠️ DISABLED: Client-side compression via MediaRecorder runs at 1x real-time speed
-// on the main thread, causing 60+ second UI freezes on mobile for any video over 1 minute.
-// A 76s video takes 76+ seconds just to compress BEFORE upload even starts.
-// Server-side transcoding (CDN/Supabase) handles optimization instead.
-// To re-enable, lower COMPRESS_THRESHOLD back to 50 * 1024 * 1024 when WASM transcoding is ready.
-const COMPRESS_THRESHOLD = Infinity; // DISABLED — was 50MB, see note above
+const COMPRESS_THRESHOLD = 50 * 1024 * 1024; // 50MB
 const MAX_COMPRESS_DURATION = 120; // Skip videos > 2 minutes (real-time processing)
 const MAX_CLIENT_SIZE = 5 * 1024 * 1024 * 1024; // 5GB hard limit
+const MAX_FINAL_SIZE = 50 * 1024 * 1024; // 50MB hard cap for the output
 
 /**
  * Get connection-aware warning threshold.
@@ -179,6 +175,94 @@ export function generateThumbnail(file, timeSeconds = 2) {
         } catch (_) { /* play() not supported in this context — rely on preload */ }
 
         setTimeout(() => finish(null), 8000); // 8s timeout (iOS can be slow)
+    });
+}
+
+/**
+ * Generate multiple evenly-spaced JPEG frames from a video file.
+ * Used by the thumbnail picker filmstrip. Reuses a single video element
+ * with sequential seeks for efficiency (avoids N parallel video elements).
+ *
+ * @param {File} file - Video file
+ * @param {number} [count=6] - Number of frames to generate
+ * @returns {Promise<Array<{ dataUrl: string|null, timeSeconds: number }>>}
+ */
+export function generateFrames(file, count = 6) {
+    return new Promise((resolve) => {
+        if (typeof document === 'undefined' || !file || !file.size) {
+            return resolve([]);
+        }
+
+        const video = document.createElement('video');
+        video.muted = true;
+        video.playsInline = true;
+        video.preload = 'metadata';
+        video.setAttribute('playsinline', '');
+        video.setAttribute('webkit-playsinline', '');
+
+        const blobUrl = URL.createObjectURL(file);
+        video.src = blobUrl;
+
+        const cleanup = () => {
+            try { video.pause(); video.removeAttribute('src'); video.load(); } catch (_) {}
+            try { URL.revokeObjectURL(blobUrl); } catch (_) {}
+        };
+
+        const captureAt = (timeSeconds) => new Promise((res) => {
+            let done = false;
+            const finish = (dataUrl) => {
+                if (done) return;
+                done = true;
+                res({ dataUrl, timeSeconds });
+            };
+
+            video.onseeked = () => {
+                try {
+                    const canvas = document.createElement('canvas');
+                    const maxDim = 360; // smaller for filmstrip thumbnails
+                    const vw = video.videoWidth || 640;
+                    const vh = video.videoHeight || 360;
+                    const ratio = Math.min(maxDim / vw, maxDim / vh, 1);
+                    canvas.width = Math.round(vw * ratio);
+                    canvas.height = Math.round(vh * ratio);
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.65);
+                    finish(dataUrl.length > 800 ? dataUrl : null);
+                } catch {
+                    finish(null);
+                }
+            };
+
+            setTimeout(() => finish(null), 5000);
+            video.currentTime = timeSeconds;
+        });
+
+        video.onloadedmetadata = async () => {
+            const duration = video.duration || 10;
+            // Spread frames across the video, skipping the very first and last 5%
+            const times = Array.from({ length: count }, (_, i) => {
+                return Math.max(0.1, (duration * 0.05) + (duration * 0.9 * i) / Math.max(count - 1, 1));
+            });
+
+            const frames = [];
+            for (const t of times) {
+                frames.push(await captureAt(t));
+            }
+
+            cleanup();
+            resolve(frames);
+        };
+
+        video.onerror = () => { cleanup(); resolve([]); };
+
+        // iOS: trigger loading
+        try {
+            const p = video.play();
+            if (p && p.then) p.then(() => video.pause()).catch(() => {});
+        } catch (_) {}
+
+        setTimeout(() => { cleanup(); resolve([]); }, 20000); // 20s hard timeout
     });
 }
 

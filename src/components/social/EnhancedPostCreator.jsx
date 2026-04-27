@@ -7,11 +7,9 @@
  */
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import * as Sentry from '@sentry/nextjs';
-import { SocialService } from '../../services/SocialService';
-import { validatePostContent } from '../../services/social-types';
 import toast from '../../stores/toastStore';
 import { claimReward } from '../../lib/claimReward';
+import { VideoThumbnailPicker } from './VideoThumbnailPicker';
 import { busEmit } from '../../engine/EventBus';
 import { broadcastSync, BROADCAST_TAB_ID } from '../../lib/broadcastSync';
 import { getAccessToken } from '../../lib/authUtils';
@@ -253,23 +251,34 @@ export const EnhancedPostCreator = ({
     };
   }, []);
 
+  const handleClose = useCallback(() => {
+    if (isSubmitting) {
+      if (window.confirm('An upload is in progress. Cancel the upload and close?')) {
+        bgUpload.abort();
+        if (onClose) onClose();
+      }
+    } else {
+      if (onClose) onClose();
+    }
+  }, [isSubmitting, onClose]);
+
   // Handle escape key
   useEffect(() => {
     const handleEscape = (e) => {
-      if (e.key === 'Escape' && isOpen && !isSubmitting) {
-        if (onClose) onClose();
+      if (e.key === 'Escape' && isOpen) {
+        handleClose();
       }
     };
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
-  }, [isOpen, isSubmitting, onClose]);
+  }, [isOpen, handleClose]);
 
   // Handle backdrop click
   const handleBackdropClick = useCallback((e) => {
-    if (e.target === modalRef.current && !isSubmitting) {
-      if (onClose) onClose();
+    if (e.target === modalRef.current) {
+      handleClose();
     }
-  }, [isSubmitting, onClose]);
+  }, [handleClose]);
 
   // Handle file selection
   const handleFileSelect = useCallback((e) => {
@@ -796,16 +805,31 @@ export const EnhancedPostCreator = ({
         {/* Media Previews */}
         {mediaFiles.length > 0 && (
           <div className="media-preview-grid-inline">
-            {mediaFiles.map((file, index) => (
-              <MediaPreview
-                key={index}
-                file={file}
-                onRemove={() => removeMedia(index)}
-                uploadProgress={uploadProgress[index]}
-                uploadStatusLabel={uploadStatus[_fileKey(file)] || uploadStatus[index]}
-                thumbnail={thumbnails[_fileKey(file)]}
-              />
-            ))}
+            {mediaFiles.map((file, index) => {
+              const isVideo = file.type.startsWith('video');
+              const fk = _fileKey(file);
+              return (
+                <div key={index} style={{ width: '100%' }}>
+                  <MediaPreview
+                    file={file}
+                    onRemove={() => removeMedia(index)}
+                    uploadProgress={uploadProgress[index]}
+                    uploadStatusLabel={uploadStatus[fk] || uploadStatus[index]}
+                    thumbnail={thumbnails[fk]}
+                  />
+                  {isVideo && !isSubmitting && (
+                    <VideoThumbnailPicker
+                      file={file}
+                      currentThumbnail={thumbnails[fk]}
+                      onSelect={(thumb) => {
+                        setThumbnails(prev => ({ ...prev, [fk]: thumb }));
+                        thumbnailRef.current[fk] = thumb;
+                      }}
+                    />
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -1126,16 +1150,31 @@ export const EnhancedPostCreator = ({
         {/* Media Previews */}
         {mediaFiles.length > 0 && (
           <div className="media-preview-grid">
-            {mediaFiles.map((file, index) => (
-              <MediaPreview
-                key={index}
-                file={file}
-                onRemove={() => removeMedia(index)}
-                uploadProgress={uploadProgress[index]}
-                uploadStatusLabel={uploadStatus[_fileKey(file)] || uploadStatus[index]}
-                thumbnail={thumbnails[_fileKey(file)]}
-              />
-            ))}
+            {mediaFiles.map((file, index) => {
+              const isVideo = file.type.startsWith('video');
+              const fk = _fileKey(file);
+              return (
+                <div key={index} style={{ width: '100%' }}>
+                  <MediaPreview
+                    file={file}
+                    onRemove={() => removeMedia(index)}
+                    uploadProgress={uploadProgress[index]}
+                    uploadStatusLabel={uploadStatus[fk] || uploadStatus[index]}
+                    thumbnail={thumbnails[fk]}
+                  />
+                  {isVideo && !isSubmitting && (
+                    <VideoThumbnailPicker
+                      file={file}
+                      currentThumbnail={thumbnails[fk]}
+                      onSelect={(thumb) => {
+                        setThumbnails(prev => ({ ...prev, [fk]: thumb }));
+                        thumbnailRef.current[fk] = thumb;
+                      }}
+                    />
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
 

@@ -159,6 +159,11 @@ export default async function handler(req, res) {
           const { data: urlData } = getSupabase().storage.from(BUCKET).getPublicUrl(storagePath);
           const publicUrl = urlData?.publicUrl;
 
+          // TUS resumable upload endpoint — Supabase Storage supports TUS out of the box.
+          // Clients that support tus-js-client should prefer this over the signed PUT URL
+          // for large files (especially on mobile) — it enables chunked, resumable uploads.
+          const tusEndpoint = `${supabaseUrl}/storage/v1/upload/resumable`;
+
           return res.status(200).json({
               success: true,
               signedUrl: fullSignedUrl,
@@ -166,6 +171,8 @@ export default async function handler(req, res) {
               path: storagePath,
               publicUrl,
               type: isVideo ? 'video' : isAudio ? 'audio' : 'photo',
+              tusEndpoint,
+              bucket: BUCKET,
           });
 
       } catch (err) {
