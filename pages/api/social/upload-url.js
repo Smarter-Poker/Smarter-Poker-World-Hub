@@ -160,9 +160,12 @@ export default async function handler(req, res) {
           const publicUrl = urlData?.publicUrl;
 
           // TUS resumable upload endpoint — Supabase Storage supports TUS out of the box.
-          // Clients that support tus-js-client should prefer this over the signed PUT URL
-          // for large files (especially on mobile) — it enables chunked, resumable uploads.
-          const tusEndpoint = `${supabaseUrl}/storage/v1/upload/resumable`;
+          // IMPORTANT: Use direct storage hostname (PROJECT.storage.supabase.co) NOT the API
+          // gateway (PROJECT.supabase.co) — per Supabase docs this is required for large files.
+          // Direct storage bypasses the API gateway and routes directly to the storage service.
+          const tusEndpoint = supabaseUrl.includes('.supabase.co')
+              ? supabaseUrl.replace('.supabase.co', '.storage.supabase.co') + '/storage/v1/upload/resumable'
+              : `${supabaseUrl}/storage/v1/upload/resumable`;
 
           return res.status(200).json({
               success: true,

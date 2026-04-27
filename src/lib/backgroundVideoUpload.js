@@ -221,26 +221,41 @@ function _uploadWithTus(file, meta, mimeType) {
         _uploadStartTime = Date.now();
         let maxPctReached = _progress || 0;
 
-        // Session-storage key for this specific file so a tab refresh can resume
-        const resumeKey = `${TUS_URL_KEY_PREFIX}${file.name}_${file.size}`;
+        // ── Supabase TUS endpoint: already using direct storage hostname (set by upload-url.js)
+        // Docs: use PROJECT.storage.supabase.co NOT PROJECT.supabase.co
+        const tusEndpoint = meta.tusEndpoint;
+
+        // ── Build TUS headers per Supabase spec ──────────────────────────────
+        // Standard auth: user JWT in Authorization header
+        // Presigned upload: include data.token in x-signature header
+        // x-upsert: false prevents 409 conflicts when retrying (don't overwrite on retry)
+        const tusHeaders = {
+            Authorization: `Bearer ${getAccessToken() || ''}`,
+            'x-upsert': 'false',
+        };
+        // When using createSignedUploadUrl, data.token MUST go in x-signature header
+        // Without this, Supabase rejects the TUS creation request with 400/403
+        if (meta.token) {
+            tusHeaders['x-signature'] = meta.token;
+        }
 
         const upload = new tus.Upload(file, {
-            endpoint: meta.tusEndpoint,
+            endpoint: tusEndpoint,
             chunkSize: TUS_CHUNK_SIZE,
             retryDelays: [0, 3000, 8000, 15000], // auto-retry on transient errors
-            // fingerprint persists the TUS upload URL in sessionStorage so a tab refresh can resume
+            // Required by Supabase TUS: combines POST+PATCH into one request for speed
+            uploadDataDuringCreation: true,
+            // fingerprint persists the TUS upload URL so a tab refresh can resume
             fingerprint: (f) => Promise.resolve(`${TUS_URL_KEY_PREFIX}${f.name}_${f.size}_${f.lastModified}`),
             storeFingerprintForResuming: true,
+            removeFingerprintOnSuccess: true, // tus cleans up stored URL when upload completes
             metadata: {
                 bucketName: meta.bucket,
                 objectName: meta.path,
                 contentType: (mimeType || '').split(';')[0].trim() || 'video/mp4',
                 cacheControl: '3600',
             },
-            // Supabase TUS requires the auth token in Authorization header
-            headers: {
-                Authorization: `Bearer ${getAccessToken() || ''}`,
-            },
+            headers: tusHeaders,
             onProgress: (bytesUploaded, bytesTotal) => {
                 const rawPct = bytesTotal > 0 ? Math.round((bytesUploaded / bytesTotal) * 93) + 5 : 5;
                 const clampedPct = Math.max(rawPct, maxPctReached);
@@ -269,8 +284,7 @@ function _uploadWithTus(file, meta, mimeType) {
             },
             onSuccess: () => {
                 _activeXhr = null;
-                // Clean up resume URL — upload is complete
-                try { if (typeof window !== 'undefined') sessionStorage.removeItem(resumeKey); } catch (_) {}
+                // tus-js-client removes the stored fingerprint automatically (removeFingerprintOnSuccess: true)
                 resolve(null);
             },
             onError: (err) => {
@@ -286,8 +300,10 @@ function _uploadWithTus(file, meta, mimeType) {
             },
             onBeforeRequest: (req) => {
                 // Refresh auth token on each chunk request (long uploads may outlast short-lived tokens)
-                const token = getAccessToken();
-                if (token) req.setHeader('Authorization', `Bearer ${token}`);
+                const freshToken = getAccessToken();
+                if (freshToken) req.setHeader('Authorization', `Bearer ${freshToken}`);
+                // Re-apply x-signature on every chunk (presigned token must accompany all requests)
+                if (meta.token) req.setHeader('x-signature', meta.token);
             },
         });
 

@@ -1,9 +1,14 @@
 -- ═══════════════════════════════════════════════════════════════════════════
--- MIGRATION: Add thumbnail_url to fn_get_social_feed_v2
--- Ensures the main feed RPC returns thumbnail_url so video posts can show
--- user-selected cover frames immediately on render (no flicker).
+-- MIGRATION: Replace fn_get_social_feed_v2 stub with real implementation
+-- The phantom_rpcs.sql created a jsonb-returning stub (p_user_id, p_page, p_limit).
+-- The real function returns a TABLE with proper columns incl. thumbnail_url.
+-- We must DROP the stub first since PG won't replace a function that changes return type.
 -- ═══════════════════════════════════════════════════════════════════════════
 
+-- Drop the 3-arg stub from phantom_rpcs.sql (different signature from real function)
+DROP FUNCTION IF EXISTS public.fn_get_social_feed_v2(uuid, integer, integer);
+
+-- Create the real 4-arg implementation (matches SocialService.getFeed call signature)
 CREATE OR REPLACE FUNCTION public.fn_get_social_feed_v2(
     p_user_id UUID,
     p_limit INTEGER,
@@ -69,4 +74,4 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 GRANT EXECUTE ON FUNCTION public.fn_get_social_feed_v2(uuid, integer, integer, text) TO anon, authenticated;
 
 COMMENT ON FUNCTION public.fn_get_social_feed_v2 IS
-  'Returns social feed posts including thumbnail_url for video cover frame display.';
+  'Real social feed function: returns TABLE rows with thumbnail_url for video posts.';

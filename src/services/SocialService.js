@@ -166,6 +166,11 @@ export class SocialService {
                 postResult = createPost({
                     ...rpcData,
                     post_id: rpcData.id,
+                    // fn_create_social_post only returns {success, id} — manually include
+                    // fields we already have in scope so the immediate feed card is correct.
+                    thumbnail_url: thumbnailUrl || null,
+                    content_type: contentType,
+                    media_urls: mediaUrls,
                     author_username: 'You',
                     author_avatar: null,
                     author_level: 1,

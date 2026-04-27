@@ -5077,7 +5077,7 @@ function SocialMediaPage() {
         observerRef.current.observe(node);
     }, []); // Empty deps - uses refs for current values
 
-    const handlePost = async (content, urls, type, mentions = [], linkPreview = null, visibility = 'public') => {
+    const handlePost = async (content, urls, type, mentions = [], linkPreview = null, visibility = 'public', thumbnailUrl = null) => {
         if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social]  handlePost called with:', { content: content?.substring(0, 50), urls, type, mentions, hasLinkPreview: !!linkPreview });
         if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social]  linkPreview FULL OBJECT:', JSON.stringify(linkPreview, null, 2));
         if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social]  User state:', { id: user?.id, name: user?.name, hasUser: !!user });
@@ -5161,32 +5161,63 @@ function SocialMediaPage() {
                 return true;
             }
 
-            // ═══ PERSONAL POST — existing flow ═══
-            // Build base payload
-            const insertPayload = {
-                author_id: user.id,
-                content,
-                content_type: type,
-                media_urls: urls,
-                visibility: visibility || 'public',
-            };
-
-            // EXPLICIT: Add link metadata if available (from link preview)
+            // ═══ PERSONAL POST — use fn_create_social_post RPC (supports thumbnail_url, achievement_data) ═══
+            // Build link metadata for achievement_data field
+            let achievementData = null;
             if (linkPreview) {
                 if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social]  Adding link metadata from preview:', linkPreview);
-                insertPayload.link_url = linkPreview.url || urls[0];
-                insertPayload.link_title = linkPreview.title || null;
-                insertPayload.link_description = linkPreview.description || null;
-                insertPayload.link_image = linkPreview.image || null;
-                insertPayload.link_site_name = linkPreview.domain || null;
+                achievementData = JSON.stringify({
+                    link_url: linkPreview.url || urls[0],
+                    link_title: linkPreview.title || null,
+                    link_description: linkPreview.description || null,
+                    link_image: linkPreview.image || null,
+                    link_site_name: linkPreview.domain || null,
+                });
             }
 
-            if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social]  FINAL insert payload:', JSON.stringify(insertPayload, null, 2));
+            if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social]  Calling fn_create_social_post with:', { content: content?.substring(0, 50), type, urlCount: urls.length, hasThumbnail: !!thumbnailUrl });
 
-            const { data, error } = await supabase.from('social_posts').insert(insertPayload).select().maybeSingle();
+            // Try RPC first (supports thumbnail_url + avoids RLS ambiguity triggers)
+            let data = null;
+            let error = null;
+            const { data: rpcResult, error: rpcError } = await supabase.rpc('fn_create_social_post', {
+                p_author_id: user.id,
+                p_content: content || '',
+                p_content_type: type,
+                p_media_urls: urls,
+                p_visibility: visibility || 'public',
+                p_achievement_data: achievementData,
+                p_thumbnail_url: thumbnailUrl || null,
+            });
 
-            if (error || !data) {
-                console.warn('[Social] ❌ Supabase insert error:', error?.message, error?.details, error?.hint, error?.code);
+            if (!rpcError && rpcResult?.success) {
+                data = rpcResult; // { success: true, id: uuid }
+            } else {
+                if (rpcError) console.warn('[Social] ⚠️ RPC failed, falling back to direct insert:', rpcError.message);
+                // Fallback: direct insert (legacy path — no thumbnail_url support)
+                const insertPayload = {
+                    author_id: user.id,
+                    content,
+                    content_type: type,
+                    media_urls: urls,
+                    visibility: visibility || 'public',
+                    thumbnail_url: thumbnailUrl || null,
+                };
+                // Carry link metadata in dedicated columns when RPC is unavailable
+                if (linkPreview) {
+                    insertPayload.link_url = linkPreview.url || urls[0];
+                    insertPayload.link_title = linkPreview.title || null;
+                    insertPayload.link_description = linkPreview.description || null;
+                    insertPayload.link_image = linkPreview.image || null;
+                    insertPayload.link_site_name = linkPreview.domain || null;
+                }
+                const { data: directData, error: directError } = await supabase.from('social_posts').insert(insertPayload).select('id').maybeSingle();
+                data = directData;
+                error = directError;
+            }
+
+            if (error || !data?.id) {
+                console.warn('[Social] ❌ Post creation error:', error?.message, error?.details, error?.hint, error?.code);
                 throw error || new Error('Post creation returned no data');
             }
 
@@ -5238,7 +5269,7 @@ function SocialMediaPage() {
                     }
                 }
 
-                // AUTO-SAVE VIDEOS TO REELS 
+                // AUTO-SAVE VIDEOS TO REELS
                 // When a video is posted, automatically create a Reel entry
                 if (type === 'video' && urls.length > 0) {
                     const videoUrl = urls.find(url =>
@@ -5249,6 +5280,7 @@ function SocialMediaPage() {
                     await supabase.from('social_reels').insert({
                         author_id: user.id,
                         video_url: videoUrl,
+                        thumbnail_url: thumbnailUrl || null,
                         caption: content || null,
                         source_post_id: data.id,
                         is_public: true,

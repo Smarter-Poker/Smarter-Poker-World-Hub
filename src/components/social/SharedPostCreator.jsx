@@ -593,8 +593,10 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         }
 
         // ── STEP 2: Create the post with uploaded URLs ───────────────────────
-        let urls = uploadedMedia.map(m => m.url);
-        let type = uploadedMedia.some(m => m.type === 'video') ? 'video' : uploadedMedia.length ? 'image' : 'text';
+        let urls = uploadedMedia.filter(m => m.type !== 'thumbnail').map(m => m.url);
+        let type = uploadedMedia.some(m => m.type === 'video') ? 'video' : uploadedMedia.filter(m => m.type !== 'thumbnail').length ? 'image' : 'text';
+        // Persist thumbnail URL for video posts — extracted from uploadedMedia or from direct upload above
+        const persistedThumbnailUrl = uploadedMedia.find(m => m.type === 'thumbnail')?.url || null;
         let cleanContent = content;
 
         if (linkPreview && type === 'text') {
@@ -657,7 +659,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                 ok = false;
             }
         } else {
-            ok = await onPost(cleanContent, urls, type, mentions, linkPreview, postVisibility);
+            ok = await onPost(cleanContent, urls, type, mentions, linkPreview, postVisibility, persistedThumbnailUrl);
         }
         if (ok) {
             if (checkInVenue) {

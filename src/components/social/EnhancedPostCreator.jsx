@@ -395,6 +395,8 @@ export const EnhancedPostCreator = ({
         delete compressionRef.current[fk];
       }
       setThumbnails(prev => { const n = { ...prev }; delete n[fk]; return n; });
+      // Also purge from ref so stale thumbnail can't persist for re-added files with same key
+      delete thumbnailRef.current[fk];
     }
     setMediaFiles(prev => prev.filter((_, i) => i !== index));
   }, [mediaFiles]);
@@ -674,6 +676,8 @@ export const EnhancedPostCreator = ({
           setMediaFiles([]);
           setUploadProgress({});
           setUploadStatus({});
+          setThumbnails({});
+          thumbnailRef.current = {};
           setShowSuccess(false);
           try { localStorage.removeItem('sp-enhanced-post-draft'); } catch (_) { }
           onPostCreated?.(newPost);

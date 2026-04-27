@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { generateFrames, generateThumbnail } from '../../lib/videoCompressor';
+import { generateFrames } from '../../lib/videoCompressor';
 import { SP_COLORS } from './SmarterPokerStyleCard';
 
 export const VideoThumbnailPicker = ({ file, currentThumbnail, onSelect }) => {
     const [frames, setFrames] = useState([]);
     const [loading, setLoading] = useState(true);
+    // Keep onSelect in a ref so the effect doesn't need it as a dep (avoids stale closure)
+    const onSelectRef = React.useRef(onSelect);
+    React.useLayoutEffect(() => { onSelectRef.current = onSelect; });
 
     useEffect(() => {
         let mounted = true;
@@ -22,7 +25,7 @@ export const VideoThumbnailPicker = ({ file, currentThumbnail, onSelect }) => {
                 
                 // If we don't have a current thumbnail yet, pick the first frame
                 if (!currentThumbnail && validFrames.length > 0) {
-                    onSelect(validFrames[0].dataUrl);
+                    onSelectRef.current(validFrames[0].dataUrl);
                 }
             } catch (err) {
                 console.warn('Failed to load video frames', err);
@@ -92,7 +95,7 @@ export const VideoThumbnailPicker = ({ file, currentThumbnail, onSelect }) => {
                                     className={`frame-btn ${currentThumbnail === frame.dataUrl ? 'active' : ''}`}
                                     onClick={(e) => {
                                         e.preventDefault();
-                                        onSelect(frame.dataUrl);
+                                        onSelectRef.current(frame.dataUrl);
                                     }}
                                 >
                                     <img src={frame.dataUrl} alt={`Frame ${idx}`} />

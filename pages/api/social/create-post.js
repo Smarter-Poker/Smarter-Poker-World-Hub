@@ -33,7 +33,7 @@ export default async function handler(req, res) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
 
       try {
-          const { content, content_type = 'text', visibility = 'public', metadata, media_urls } = req.body;
+          const { content, content_type = 'text', visibility = 'public', metadata, media_urls, thumbnail_url } = req.body;
 
           const hasContent = content && content.trim().length > 0;
           const hasMedia = Array.isArray(media_urls) && media_urls.length > 0;
@@ -57,7 +57,8 @@ export default async function handler(req, res) {
                   p_content_type: content_type,
                   p_media_urls: media_urls || [],
                   p_visibility: visibility,
-                  p_achievement_data: metadata ? JSON.stringify(metadata) : null
+                  p_achievement_data: metadata ? JSON.stringify(metadata) : null,
+                  p_thumbnail_url: thumbnail_url || null,
               });
 
           if (rpcError) {
