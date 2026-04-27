@@ -103,8 +103,8 @@ let _prefetchCache = null;    // { file, userId, folder, meta, timestamp }
 const PREFETCH_TTL = 4 * 60 * 1000; // 4 minutes (signed URLs expire in 5)
 
 // Retry config for failed uploads
-const RETRY_DELAYS = [0, 1000, 3000, 5000, 10000]; // exponential backoff
-const MAX_RETRIES = RETRY_DELAYS.length;
+const RETRY_DELAYS = [0, 3000, 8000]; // 3 total attempts: immediate + 2 retries
+const MAX_RETRIES = RETRY_DELAYS.length - 1; // = 2 retries after the first attempt
 
 // ─── Upload Queue ─────────────────────────────────────────────────────────────
 let _uploadQueue = [];        // Array of { file, userId, folder, resolve, reject }
@@ -250,30 +250,47 @@ function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0, _userId, _fold
         xhr.onload = () => {
             _activeXhr = null;
             if (xhr.status >= 200 && xhr.status < 300) {
-                resolve(null); // success with original URL — no publicUrl override
-            } else if ((xhr.status === 400 || xhr.status === 403) && attempt < MAX_RETRIES && _userId) {
-                // Signed URL was consumed or expired — get a FRESH one and retry
-                const delay = RETRY_DELAYS[attempt] || 10000;
-                const reason = xhr.status === 400 ? 'URL expired' : 'session expired';
-                // Reset progress so retry shows upload restarting (not stuck at 100%)
-                _progress = 5;
-                _uploadStartTime = Date.now(); // reset ETA for fresh attempt
-                _lastEta = '';
-                _setState(_state, 5, `${reason} — getting new URL (attempt ${attempt + 2}/${MAX_RETRIES + 1})…`);
-                setTimeout(async () => {
-                    try {
-                        const freshMeta = await _fetchUploadMeta(file, _userId, _folder || 'videos');
-                        _uploadWithRetry(file, freshMeta.signedUrl, mimeType, attempt + 1, _userId, _folder)
-                            .then((nestedUrl) => resolve(nestedUrl || freshMeta.publicUrl))
-                            .catch(reject);
-                    } catch (fetchErr) {
-                        reject(new Error(`Upload failed (HTTP ${xhr.status}) and could not get new URL: ${fetchErr.message}`));
-                    }
-                }, delay);
+                resolve(null); // success — caller uses original publicUrl
+            } else if (xhr.status === 400 || xhr.status === 403) {
+                // Check response body FIRST — Supabase returns 400 "already been used" when
+                // the upload SUCCEEDED server-side but the XHR response was lost (mobile
+                // network drop). Retrying treats success as failure and causes the
+                // "getting new URL (attempt 6/6)" storm. Detect it and resolve as success.
+                const body = (xhr.responseText || '').toLowerCase();
+                const alreadyConsumed = body.includes('already') || body.includes('reuse');
+                if (alreadyConsumed && attempt === 0) {
+                    // File is in Supabase. Signed URL consumed = upload completed.
+                    console.warn('[bgUpload] 400 already-consumed on first attempt — resolving as success');
+                    resolve(null);
+                    return;
+                }
+                // Retry path: fetch a fresh URL and try again
+                if (attempt < MAX_RETRIES && _userId) {
+                    const delay = RETRY_DELAYS[attempt + 1] || 8000;
+                    const reason = xhr.status === 400 ? 'URL expired' : 'Session expired';
+                    _progress = 5;
+                    _uploadStartTime = Date.now();
+                    _lastEta = '';
+                    _setState(_state, 5, `${reason} — getting new URL (attempt ${attempt + 2}/${MAX_RETRIES + 1})…`);
+                    setTimeout(async () => {
+                        try {
+                            const freshMeta = await _fetchUploadMeta(file, _userId, _folder || 'videos');
+                            _uploadWithRetry(file, freshMeta.signedUrl, mimeType, attempt + 1, _userId, _folder)
+                                .then((nestedUrl) => resolve(nestedUrl || freshMeta.publicUrl))
+                                .catch(reject);
+                        } catch (fetchErr) {
+                            reject(new Error(`Upload failed (HTTP ${xhr.status}) — could not get new URL: ${fetchErr.message}`));
+                        }
+                    }, delay);
+                } else {
+                    const errMsg = xhr.status === 400
+                        ? 'Upload rejected — please tap Retry to try again.'
+                        : 'Upload session expired — please tap Retry to try again.';
+                    reject(new Error(errMsg));
+                }
             } else if (xhr.status >= 500 && attempt < MAX_RETRIES) {
-                // Server error — retry with backoff
-                _activeXhr = null;
-                const delay = RETRY_DELAYS[attempt] || 10000;
+                // Server error — retry with backoff using correct delay index
+                const delay = RETRY_DELAYS[attempt + 1] || 8000;
                 _setState(_state, maxPctReached, `Server error — retrying (attempt ${attempt + 2}/${MAX_RETRIES + 1})…`);
                 setTimeout(() => {
                     _uploadWithRetry(file, signedUrl, mimeType, attempt + 1, _userId, _folder)
@@ -281,14 +298,9 @@ function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0, _userId, _fold
                         .catch(reject);
                 }, delay);
             } else {
-                // Non-retryable errors
                 const errMsg = xhr.status === 413
                     ? 'File is too large for the server.'
-                    : xhr.status === 400
-                    ? 'Upload rejected — the signed URL was already used. Please try again.'
-                    : xhr.status === 403
-                    ? 'Upload session expired — please try again.'
-                    : `Upload failed (HTTP ${xhr.status})`;
+                    : `Upload failed (HTTP ${xhr.status}) — please tap Retry.`;
                 reject(new Error(errMsg));
             }
         };

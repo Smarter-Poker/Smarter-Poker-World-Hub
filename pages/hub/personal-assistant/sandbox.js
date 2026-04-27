@@ -69,6 +69,8 @@ import { idbSaveSessionLog, idbLoadSessionLog, idbSyncSavedHands, idbGetSavedHan
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
+import { findBestGames } from '../../../src/utils/videoToTrainingMapper';
+import { getGameById } from '../../../src/data/TRAINING_LIBRARY';
 
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -1091,6 +1093,7 @@ export default function VirtualSandbox() {
 
   // Save bookmark (Feature #5)
   const [saveStatus, setSaveStatus] = useState(null); // 'saving', 'saved', 'error'
+  const [ttsOverlay, setTtsOverlay] = useState(null); // Train This Spot in-place overlay
   const saveBookmark = async () => {
     try {
       const user = getAuthUser();
@@ -2366,30 +2369,38 @@ export default function VirtualSandbox() {
                 Copy Share Link
               </button>
 
-              {/* Train This Spot — full mapper deep-link with hand context */}
+              {/* Train This Spot — in-place overlay with hand context */}
               <button
                 onClick={() => {
                   const hand = `${heroHand.card1 || ''}${heroHand.card2 || ''}`;
                   const board = communityCards.filter(Boolean).join(' ');
-                  const street = board.split(' ').length === 0 ? 'preflop'
-                    : board.split(' ').length <= 3 ? 'flop'
-                    : board.split(' ').length === 4 ? 'turn' : 'river';
+                  const street = board.split(' ').filter(Boolean).length === 0 ? 'preflop'
+                    : board.split(' ').filter(Boolean).length <= 3 ? 'flop'
+                    : board.split(' ').filter(Boolean).length === 4 ? 'turn' : 'river';
                   const tags = [
                     heroPosition?.toLowerCase(),
                     street,
                     gameType?.toLowerCase(),
                     parseFloat(heroStack) < 20 ? 'short stack' : null,
                     parseFloat(heroStack) < 20 ? 'push fold' : null,
-                  ].filter(Boolean).join(',');
-                  const title = `${heroPosition} vs ${board || 'Preflop'} — ${gameType || 'NLH'}`;
-                  const params = new URLSearchParams({
+                  ].filter(Boolean);
+                  const title = `${heroPosition || 'Hero'} vs ${board || 'Preflop'} — ${gameType || 'NLH'}`;
+                  const ctx = {
                     ref: 'sandbox',
                     vid: hand || 'sandbox',
                     title: title.slice(0, 80),
                     source: 'Sandbox',
                     tags,
-                  });
-                  router.push(`/hub/training?${params.toString()}`);
+                  };
+                  const gameIds = findBestGames(ctx);
+                  const games = gameIds.map(id => getGameById(id)).filter(Boolean).slice(0, 3);
+                  setTtsOverlay({ ctx, games, hand, board, street });
+                  // Fire analytics
+                  fetch('/api/training/log-request', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ref: 'sandbox', vid: ctx.vid, title: ctx.title, source: 'Sandbox', tags, matchedGameIds: gameIds.slice(0, 3) }),
+                  }).catch(() => {});
                 }}
                 style={{
                   width: '100%', padding: '10px', borderRadius: '8px', fontSize: '12px',
@@ -2605,6 +2616,70 @@ export default function VirtualSandbox() {
         @keyframes tts-pulse {
           0%, 100% { box-shadow: 0 0 8px rgba(0,200,83,0.15); border-color: rgba(0,200,83,0.5); }
           50%       { box-shadow: 0 0 20px rgba(0,200,83,0.5); border-color: rgba(0,200,83,0.9); }
+        }
+      `}</style>
+      {/* ── Train This Spot In-Place Overlay ── */}
+      {ttsOverlay && (
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 9500, animation: 'tts-sheet-up 0.32s cubic-bezier(0.34,1.56,0.64,1) both' }}>
+          <div onClick={() => setTtsOverlay(null)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', zIndex: -1 }} />
+          <div style={{ background: 'linear-gradient(180deg, #0a0f1e, #060a14)', borderRadius: '20px 20px 0 0', border: '1px solid rgba(0,200,83,0.2)', borderBottom: 'none', maxHeight: '75vh', overflow: 'auto', boxShadow: '0 -10px 60px rgba(0,0,0,0.7), 0 0 40px rgba(0,200,83,0.08)' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px' }}><div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.15)' }} /></div>
+            <div style={{ padding: '8px 20px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, rgba(0,200,83,0.3), rgba(0,150,60,0.15))', border: '1.5px solid rgba(0,200,83,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34C759" strokeWidth="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 800, color: '#34C759' }}>Train This Spot</div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>AI-matched drills for your hand</div>
+              </div>
+              <button onClick={() => setTtsOverlay(null)} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', fontSize: 16 }}>✕</button>
+            </div>
+            {/* Hand context card — sandbox has exact state */}
+            <div style={{ padding: '0 20px 12px' }}>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '10px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {ttsOverlay.hand ? ttsOverlay.hand.match(/.{2}/g)?.map((c, i) => (
+                    <div key={i} style={{ width: 28, height: 38, borderRadius: 5, background: 'linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.04))', border: '1px solid rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: 'cdhs'.indexOf(c[1]) < 2 ? '#FF6B6B' : '#fff' }}>{c}</div>
+                  )) : <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>No hand set</span>}
+                </div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>
+                  {ttsOverlay.street && <span style={{ textTransform: 'capitalize', fontWeight: 700, color: '#4DA6FF' }}>{ttsOverlay.street}</span>}
+                  {ttsOverlay.board && <span> · Board: {ttsOverlay.board}</span>}
+                </div>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 'auto', background: 'rgba(0,200,83,0.08)', border: '1px solid rgba(0,200,83,0.2)', borderRadius: 6, padding: '2px 7px' }}>
+                  <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#34C759' }} />
+                  <span style={{ fontSize: 9, fontWeight: 700, color: '#34C759' }}>Sandbox</span>
+                </div>
+              </div>
+            </div>
+            <div style={{ padding: '0 20px 8px' }}>
+              <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 8 }}>AI-Recommended Drills</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {ttsOverlay.games.map((game, idx) => (
+                  <button key={game.id} onClick={() => { setTtsOverlay(null); router.push(`/hub/training?autoLaunch=${game.id}`); }} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: idx === 0 ? 'rgba(0,200,83,0.08)' : 'rgba(255,255,255,0.03)', border: `1.5px solid ${idx === 0 ? 'rgba(0,200,83,0.3)' : 'rgba(255,255,255,0.06)'}`, borderRadius: 10, cursor: 'pointer', textAlign: 'left', width: '100%', transition: 'all 0.15s' }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 7, flexShrink: 0, background: idx === 0 ? 'rgba(0,200,83,0.15)' : 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>{game.icon || '🎯'}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: idx === 0 ? '#34C759' : '#fff' }}>{game.name}</span>
+                        {idx === 0 && <span style={{ fontSize: 8, fontWeight: 800, color: '#34C759', background: 'rgba(0,200,83,0.12)', borderRadius: 5, padding: '1px 5px' }}>BEST MATCH</span>}
+                      </div>
+                      <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', marginTop: 1 }}>{game.focus} · {'★'.repeat(Math.min(game.difficulty || 1, 5))} Difficulty</div>
+                    </div>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2.5"><path d="M9 18l6-6-6-6"/></svg>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div style={{ padding: '6px 20px 20px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <button onClick={() => { setTtsOverlay(null); router.push('/hub/training'); }} style={{ width: '100%', padding: '10px 12px', borderRadius: 10, background: 'transparent', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.35)', fontSize: 10, fontWeight: 600, cursor: 'pointer' }}>Browse All 100 Training Games</button>
+            </div>
+          </div>
+        </div>
+      )}
+      <style>{`
+        @keyframes tts-sheet-up {
+          from { transform: translateY(100%); opacity: 0.7; }
+          to { transform: translateY(0); opacity: 1; }
         }
       `}</style>
     </div >

@@ -484,7 +484,21 @@ export const EnhancedPostCreator = ({
                 },
                 onError: ({ error }) => reject(error),
                 onBackground: () => {
-                  if (onClose) onClose();
+                  if (onClose) {
+                    // Modal mode — close the modal
+                    onClose();
+                  } else {
+                    // Inline mode — clear the form so it's ready for the next post.
+                    // GhostPostCard takes over showing upload progress in the feed.
+                    if (mountedRef.current) {
+                      setContent('');
+                      setMediaFiles([]);
+                      setUploadProgress({});
+                      setUploadStatus({});
+                      setIsSubmitting(false);
+                      try { localStorage.removeItem('sp-enhanced-post-draft'); } catch (_) {}
+                    }
+                  }
                 },
               });
 
