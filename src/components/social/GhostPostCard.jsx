@@ -44,7 +44,7 @@ export default function GhostPostCard({ user }) {
     }, []);
 
     useEffect(() => {
-        const unsub = bgUpload.subscribe({
+        const unsub = bgUpload.subscribePermanent({
             onProgress: ({ pct, label: lbl, state, queuePosition, queueTotal }) => {
                 if (state === 'background') {
                     if (!mountedRef.current) return;

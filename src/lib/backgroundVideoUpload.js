@@ -36,7 +36,8 @@ import * as tus from 'tus-js-client';
 
 // ─── Module-level singletons ──────────────────────────────────────────────────
 let _activeXhr = null;        // XMLHttpRequest or tus.Upload — survives modal unmount
-let _listeners = new Set();   // { onProgress, onComplete, onError, onBackground }
+let _listeners = new Set();          // Ephemeral: upload-Promise subscribers; cleared on each new start()
+let _permanentListeners = new Set(); // Permanent: feed-level components (GhostPostCard etc.); never cleared
 let _state = 'idle';          // 'idle' | 'uploading' | 'background' | 'done' | 'error'
 let _progress = 0;
 let _label = '';
@@ -125,6 +126,7 @@ const UPLOAD_HARD_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes — surfaces real err
 
 function _emit(type, payload) {
     _listeners.forEach((l) => l[type]?.(payload));
+    _permanentListeners.forEach((l) => l[type]?.(payload));
 }
 
 function _setState(state, progress, label) {
@@ -521,6 +523,22 @@ const bgUpload = {
     },
 
     /**
+     * Subscribe PERMANENTLY — survives start() resets and abort() calls.
+     * Use this for feed-level components (GhostPostCard) that must receive
+     * background/complete/error events across ALL uploads, not just one.
+     * @param {{ onProgress?, onComplete?, onError?, onBackground?, onGhostPost? }} listener
+     * @returns {Function} unsubscribe
+     */
+    subscribePermanent(listener) {
+        _permanentListeners.add(listener);
+        // Immediately emit current state so late subscribers are in sync
+        if (_state !== 'idle') {
+            listener.onProgress?.({ state: _state, pct: _progress, label: _label, queuePosition: _queuePosition, queueTotal: _queueTotal });
+        }
+        return () => _permanentListeners.delete(listener);
+    },
+
+    /**
      * 🚀 PREFETCH — Call this the moment the user selects a video file.
      * Fetches the signed upload URL in the background while they type their
      * caption. By the time they hit "Post", the URL is already cached and
@@ -587,10 +605,15 @@ const bgUpload = {
         // (caller always calls bgUpload.subscribe() right after start(), so we start fresh)
         const prevState = _state;
         _state = 'idle'; // set idle before emit so onError handlers don't see 'uploading'
-        if ((prevState === 'uploading' || prevState === 'background') && savedListeners.size > 0) {
-            savedListeners.forEach(l => l.onError?.({ error: new Error('Upload superseded') }));
+        if (prevState === 'uploading' || prevState === 'background') {
+            const supersededError = { error: new Error('Upload superseded') };
+            // Notify ephemeral Promise subscribers (causes Promise.reject in EPC/SPC)
+            savedListeners.forEach(l => l.onError?.(supersededError));
+            // Notify permanent subscribers (causes GhostPostCard to hide old ghost)
+            _permanentListeners.forEach(l => l.onError?.(supersededError));
         }
-        // Clear stale listeners AFTER notifying them — new subscribe() call adds fresh ones
+        // Clear stale ephemeral listeners — new subscribe() call adds fresh ones
+        // _permanentListeners intentionally kept alive (GhostPostCard et al.)
         _listeners = new Set();
         // Restore prefetch cache (still valid for the new upload if same file+user+folder)
         _prefetchCache = savedPrefetch;
