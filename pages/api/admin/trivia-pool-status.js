@@ -143,29 +143,20 @@ export default async function handler(req, res) {
             );
         }
 
-        // If POST request, trigger bulk generation
+        // POST manual-trigger removed 2026-04-27 (Phase 2B.3 Option B).
+        // Generation now runs daily at 04:30 UTC via Open Claw on Hetzner —
+        // the workers VM at 10.0.0.3:8081 fires /cron/generate-trivia-questions
+        // (see scripts/openclaw-cron-dispatcher.py WORKERS_PREFERRED).
+        // The monolith handler that this admin route used to call no longer
+        // exists; calling it would hit a public 404. Read-only stats below
+        // continue to work normally.
         if (req.method === 'POST') {
-            const { batches = 5 } = req.body || {};
-
-            // Call the generation endpoint
-            const response = await fetch(
-                `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/cron/generate-trivia-questions`,
-                {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${process.env.CRON_SECRET}`
-                    }
-                }
-            );
-
-            if (!response.ok) throw new Error(`Request failed (${response.status})`);
-            const genResult = await response.json();
-
-            return res.status(200).json({
+            return res.status(410).json({
                 ...poolStatus,
                 bulkGeneration: {
-                    triggered: true,
-                    result: genResult
+                    triggered: false,
+                    error: 'Manual bulk-generation removed. Generation now runs daily at 04:30 UTC via Open Claw → workers VM. Stats endpoint (GET) still works.',
+                    nextScheduledRun: 'Daily 04:30 UTC',
                 }
             });
         }

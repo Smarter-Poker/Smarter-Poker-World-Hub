@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-OpenClaw Cron Dispatcher v1.7
+OpenClaw Cron Dispatcher v1.8
 ==============================
 
 ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
@@ -398,6 +398,12 @@ WORKERS_PREFERRED = {
     '/api/cron/horse-batch/7':                 '/cron/horse-batch/7',
     '/api/cron/horse-batch/8':                 '/cron/horse-batch/8',
     '/api/cron/horse-batch/9':                 '/cron/horse-batch/9',
+    # ─── 2B.3 Option B — generate-trivia-questions (handler 53) ─────────────
+    # Workers repo has src/routes/generate-trivia-questions.ts (TS port of the
+    # 560 LOC monolith handler) + src/lib/triviaValidator.ts (218 LOC port of
+    # 5-layer QA gate). Scheduled daily at 04:30 UTC. Closes the last monolith
+    # cron exception — pages/api/cron/ is now empty.
+    '/api/cron/generate-trivia-questions':     '/cron/generate-trivia-questions',
     '/api/cron/deploy-error-poll':             '/cron/deploy-error-poll',
 }
 
@@ -624,7 +630,7 @@ def main():
         role = 'primary'
 
     log.info('=' * 60)
-    log.info('OpenClaw Cron Dispatcher v1.7 starting up')
+    log.info('OpenClaw Cron Dispatcher v1.8 starting up')
     if WORKERS_BASE_URL:
         log.info(f'Workers routing:   {len(WORKERS_PREFERRED)} paths → {WORKERS_BASE_URL}')
     if DISPATCHER_PRIVATE_IP:
