@@ -65,7 +65,6 @@
     "react-confetti": "^6.4.0",
     "react-dom": "18.3.1",
     "react-hot-toast": "^2.6.0",
-    "react-is": "^19.2.5",
     "react-onesignal": "^3.4.6",
     "react-window": "^2.2.5",
     "recharts": "^3.7.0",
