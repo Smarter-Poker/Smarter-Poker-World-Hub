@@ -169,6 +169,16 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
             let wasBackground = false;
 
             const publicUrl = await new Promise((resolve, reject) => {
+                // start() MUST be called before subscribe() because start() clears existing listeners
+                // to supersede any pending uploads. If subscribe() is called first, it gets wiped.
+                bgUpload.start({
+                    file: fileToUpload,
+                    userId: user.id,
+                    folder: 'reels',
+                    content: caption?.trim(),
+                    thumbnail,
+                }).catch(reject);
+
                 bgUnsub = bgUpload.subscribe({
                     onProgress: ({ pct, label }) => {
                         if (!mountedRef.current) return;
@@ -184,14 +194,6 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
                         onClose?.();
                     },
                 });
-
-                bgUpload.start({
-                    file: fileToUpload,
-                    userId: user.id,
-                    folder: 'reels',
-                    content: caption?.trim(),
-                    thumbnail,
-                }).catch(reject);
             });
             if (bgUnsub) bgUnsub();
             compressionRef.current = null;

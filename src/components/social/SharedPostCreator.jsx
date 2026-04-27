@@ -480,6 +480,9 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         // ── Background-capable video upload ─────────────────────
                         let bgUnsub = null;
                         const videoUrl = await new Promise((resolve, reject) => {
+                            // start() MUST be called before subscribe() because start() clears existing listeners
+                            // to supersede any pending uploads. If subscribe() is called first, it gets wiped.
+                            bgUpload.start({ file: fileToUpload, userId: user.id, folder, content: content?.trim(), thumbnail: staged.thumbnail }).catch(reject);
                             bgUnsub = bgUpload.subscribe({
                                 onProgress: ({ pct, label }) => {
                                     if (!mountedRef.current) return;
@@ -500,7 +503,6 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                                     }
                                 },
                             });
-                            bgUpload.start({ file: fileToUpload, userId: user.id, folder, content: content?.trim(), thumbnail: staged.thumbnail }).catch(reject);
                         });
                         if (bgUnsub) bgUnsub();
                         // Revoke blob URL now that we have the real URL

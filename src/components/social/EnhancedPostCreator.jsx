@@ -471,6 +471,10 @@ export const EnhancedPostCreator = ({
             let wasBackground = false;
 
             const videoUrl = await new Promise((resolve, reject) => {
+              // start() MUST be called before subscribe() because start() clears existing listeners
+              // to supersede any pending uploads. If subscribe() is called first, it gets wiped.
+              bgUpload.start({ file: fileToUpload, userId: user.id, folder, content: content?.trim(), thumbnail: thumbnailRef.current[_fileKey(file)] || null }).catch(reject);
+
               bgUnsub = bgUpload.subscribe({
                 onProgress: ({ pct, label }) => {
                   if (!mountedRef.current) return;
@@ -501,8 +505,6 @@ export const EnhancedPostCreator = ({
                   }
                 },
               });
-
-              bgUpload.start({ file: fileToUpload, userId: user.id, folder, content: content?.trim(), thumbnail: thumbnailRef.current[_fileKey(file)] || null }).catch(reject);
             });
 
             if (bgUnsub) bgUnsub();
