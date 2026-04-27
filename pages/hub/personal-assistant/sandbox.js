@@ -70,7 +70,6 @@ import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { findBestGames } from '../../../src/utils/videoToTrainingMapper';
-import { getGameById } from '../../../src/data/TRAINING_LIBRARY';
 
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -2393,7 +2392,9 @@ export default function VirtualSandbox() {
                     tags,
                   };
                   const gameIds = findBestGames(ctx);
-                  const games = gameIds.map(id => getGameById(id)).filter(Boolean).slice(0, 3);
+                  // Lazy-load to avoid Webpack circular initialization
+                  const { getGameById: lookupGame } = require('../../../src/data/TRAINING_LIBRARY');
+                  const games = gameIds.map(id => lookupGame(id)).filter(Boolean).slice(0, 3);
                   setTtsOverlay({ ctx, games, hand, board, street });
                   // Fire analytics
                   fetch('/api/training/log-request', {

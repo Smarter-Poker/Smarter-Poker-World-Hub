@@ -27,7 +27,6 @@ import { DiamondEngine } from '../../src/services/DiamondEngine';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
 import { ReelsViewer } from '../../src/components/social/Reels';
 import { findBestGames, buildSandboxUrl, extractCardsFromContext } from '../../src/utils/videoToTrainingMapper';
-import { getGameById } from '../../src/data/TRAINING_LIBRARY';
 
 // Static fallback catalog — used until DB fetch resolves
 import {
@@ -2077,7 +2076,9 @@ export default function VideoLibraryPage() {
                                             tags,
                                         };
                                         const gameIds = findBestGames(ctx);
-                                        const games = gameIds.map(id => getGameById(id)).filter(Boolean).slice(0, 3);
+                                        // Lazy-load to avoid Webpack circular initialization
+                                        const { getGameById: lookupGame } = require('../../src/data/TRAINING_LIBRARY');
+                                        const games = gameIds.map(id => lookupGame(id)).filter(Boolean).slice(0, 3);
                                         setTtsOverlay({ ctx, games });
                                         // Fire analytics
                                         fetch('/api/training/log-request', {

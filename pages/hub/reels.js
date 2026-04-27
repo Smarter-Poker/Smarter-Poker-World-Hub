@@ -21,7 +21,6 @@ import { busEmit, eventBus, EventType } from '../../src/engine/EventBus';
 import GiphyPicker from '../../src/components/shared/GiphyPicker';
 import { getAccessToken } from '../../src/lib/authUtils';
 import { findBestGames, buildSandboxUrl, extractCardsFromContext } from '../../src/utils/videoToTrainingMapper';
-import { getGameById } from '../../src/data/TRAINING_LIBRARY';
 
 
 const C = {
@@ -2112,7 +2111,9 @@ export default function ReelsPage() {
                                 tags: (currentReel?.tags || []),
                             };
                             const gameIds = findBestGames(ctx);
-                            const games = gameIds.map(id => getGameById(id)).filter(Boolean).slice(0, 3);
+                            // Lazy-load to avoid Webpack circular initialization
+                            const { getGameById: lookupGame } = require('../../src/data/TRAINING_LIBRARY');
+                            const games = gameIds.map(id => lookupGame(id)).filter(Boolean).slice(0, 3);
                             setTtsOverlay({ ctx, games });
 
                             // Fire analytics (fire-and-forget)
