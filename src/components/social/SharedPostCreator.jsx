@@ -563,7 +563,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                 } catch (err) {
                     if (bgUnsub) { bgUnsub(); bgUnsub = null; } // Always clean up listener
                     console.warn('[SharedPostCreator] Upload error:', err);
-                    const isCancelled = err?.message === 'Upload cancelled' || err?.message === 'Upload aborted';
+                    const isCancelled = err?.message === 'Upload cancelled' || err?.message === 'Upload aborted' || err?.message === 'Upload superseded';
                     if (isCancelled) {
                         // User-initiated cancel — reset state silently, don't show error
                         if (mountedRef.current) { setUploadProgress(null); setUploading(false); }

@@ -487,10 +487,11 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
             console.warn('[deploy-autofix] 🚨 ANTHROPIC BILLING ALERT: API credits exhausted or payment required');
             const adminPhone = process.env.MY_PHONE_NUMBER || process.env.ADMIN_PHONE;
             if (adminPhone) {
-              sendSMS(
-                adminPhone,
-                `🚨 SMARTER.POKER ALERT 🚨\n\nAnthropic (Claude) API credits are exhausted.\n\nStatus: ${claudeRes.status}\nError: ${errBody.substring(0, 120)}\n\nAdd credits at: console.anthropic.com\n\nAutofix has switched to Grok as fallback.`
-              ).catch(e => console.warn('[deploy-autofix] SMS billing alert failed:', e.message));
+// sendSMS(
+              //   adminPhone,
+              //   `🚨 SMARTER.POKER ALERT 🚨\n\nAnthropic (Claude) API credits are exhausted.\n\nStatus: ${claudeRes.status}\nError: ${errBody.substring(0, 120)}\n\nAdd credits at: console.anthropic.com\n\nAutofix has switched to Grok as fallback.`
+              // ).catch(e => console.warn('[deploy-autofix] SMS billing alert failed:', e.message));
+              console.warn('[deploy-autofix] SMS billing alert disabled per user request');
             }
           }
         }

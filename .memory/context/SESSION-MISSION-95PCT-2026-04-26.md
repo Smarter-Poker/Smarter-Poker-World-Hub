@@ -123,15 +123,36 @@ Production verified stable — commander pages and APIs all returning correct st
   If charts break → delete branch.
 - Vercel preview URL will auto-generate from the branch push.
 
-### Phase 4.4 — Catch-All Consolidation (Hono/tRPC)
-Architecture decision required. Options presented to Dan:
+### Phase 4.4 — Catch-All Consolidation (Hono/tRPC) — PILOT SHIPPED ✅
 
-- **Option A:** Public workers subdomain (biggest win, ~4-6h + 30min/route) — DNS, Caddy, WAF
-- **Option B (RECOMMENDED):** Vercel Edge Functions pilot (~1-2h/route) — no infra, validates Hono pattern
-- **Option C:** In-place Hono refactor within Pages API (~30min/route) — code-style only, no runtime win
+**Option C (in-place Hono refactor) selected by Dan/Cowork.**
 
-**Status: Intentionally deferred — awaiting Dan's architecture pick.**
-If not picked this session: mark Phase 4.4 as **"deferred to Q3 2026"** per plan.
+Pilot commit: `f8c698c33 feat(4.4-pilot): consolidate /api/calls/* with Hono catch-all router`
+- Replaces 3 separate handlers in `pages/api/calls/` (cancel/create/pending, 231 LOC) with one consolidated Hono catch-all `[...slug].js` (189 LOC)
+- Auth middleware, rate-limit, Supabase init, Sentry error wrapper now appear ONCE
+
+Branch pushed to origin: `feat/4.4-pilot-calls-hono` at 2026-04-26T23:40Z
+Vercel preview auto-deploying: `https://smarter-poker-world-hub-git-feat-4-4-pilot-calls-hono-smarter-poker.vercel.app`
+
+**STATUS: Pending Vercel preview acceptance tests (Dan to validate).**
+
+Acceptance tests:
+```bash
+PREVIEW="https://smarter-poker-world-hub-git-feat-4-4-pilot-calls-hono-smarter-poker.vercel.app"
+curl -s -o /dev/null -w "no-auth → %{http_code}\n" "$PREVIEW/api/calls/pending"  # expect 401
+```
+
+Merge path if tests pass:
+```bash
+git checkout main && git merge feat/4.4-pilot-calls-hono && git push origin main
+```
+
+Rollback if tests fail:
+```bash
+git push origin --delete feat/4.4-pilot-calls-hono && git branch -D feat/4.4-pilot-calls-hono
+```
+
+If pilot stays clean for 7 days → apply same pattern to next ~50-100 API directories (venues, trivia, store, jarvis, poker-brain…). Each directory = ~30 min refactor + Vercel preview soak.
 
 ### Phase 4.5 — App Router Migration
 **DO NOT EXECUTE.** Explicitly deferred per original plan:
@@ -151,8 +172,10 @@ Multi-month work (1,146 pages). Out of scope for this mission.
 | Phase 3.7 deletion | a729022e6 | 354 files removed, production stable |
 | axios (dep) | removed | `e32806023` on origin/main |
 | react-is (dep) | preview | `5968f6922` on `chore/remove-react-is` — awaiting Dan review |
+| Phase 4.4 Hono pilot | preview | `f8c698c33` on `feat/4.4-pilot-calls-hono` — pushed 2026-04-26T23:40Z, Vercel preview pending |
 
 ## Rollback References (if needed)
 - Phase 3.7 pages rollback: `git revert a729022e6 --no-edit`
 - openclaw v1.5 rollback: `ssh openclaw 'cp /opt/openclaw/dispatcher.py.bak /opt/openclaw/dispatcher.py && systemctl restart openclaw.service'`
 - react-is preview rollback: `git push origin --delete chore/remove-react-is` (if build breaks)
+- Phase 4.4 pilot rollback: `git push origin --delete feat/4.4-pilot-calls-hono && git branch -D feat/4.4-pilot-calls-hono`

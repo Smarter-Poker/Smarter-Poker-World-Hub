@@ -207,6 +207,7 @@ async function createAlertIssue(title, body, { alertKey, ghPat } = {}) {
 // SMS alerting via Twilio — non-blocking, never throws
 // ─────────────────────────────────────────────────────────────────────────────
 async function sendSmsAlert(message) {
+  return; // DISABLED per user request
   const accountSid = process.env.TWILIO_ACCOUNT_SID;
   const authToken = process.env.TWILIO_AUTH_TOKEN;
   const fromPhone = process.env.TWILIO_PHONE_NUMBER;

@@ -545,7 +545,7 @@ export const EnhancedPostCreator = ({
               if (bgUnsub) { bgUnsub(); bgUnsub = null; } // Always clean up listener on error
               console.warn('Media upload failed:', uploadErr);
               ghostPost.remove(); // Clean up ghost post on upload failure
-              const isCancelled = uploadErr?.message === 'Upload cancelled' || uploadErr?.message === 'Upload aborted';
+              const isCancelled = uploadErr?.message === 'Upload cancelled' || uploadErr?.message === 'Upload aborted' || uploadErr?.message === 'Upload superseded';
               if (!isCancelled) {
                   setError(`Upload failed: ${uploadErr.message}`);
               }
@@ -619,7 +619,7 @@ export const EnhancedPostCreator = ({
 
 
     } catch (err) {
-      const isCancelled = err?.message === 'Upload cancelled' || err?.message === 'Upload aborted';
+      const isCancelled = err?.message === 'Upload cancelled' || err?.message === 'Upload aborted' || err?.message === 'Upload superseded';
 
       // 👻 Always remove ghost post on error/cancel so feed placeholders don't linger
       ghostPost.remove();

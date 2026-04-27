@@ -262,7 +262,7 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
         } catch (err) {
             console.warn('Upload error:', err);
             // Suppress user-initiated cancellations — these are intentional, not errors
-            const isCancelled = err?.message === 'Upload cancelled' || err?.message === 'Upload aborted';
+            const isCancelled = err?.message === 'Upload cancelled' || err?.message === 'Upload aborted' || err?.message === 'Upload superseded';
             // Only update error state if modal is still mounted and it's a real failure
             if (mountedRef.current && !isCancelled) {
                 setUploading(false);
