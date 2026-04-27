@@ -175,6 +175,9 @@ export default function VideoLibraryPage() {
 
     // Handle query parameters for deep linking
     const savedScrollY = useRef(0); // restore scroll when modal closes
+    // Stable ref so the early query-param useEffect can call handleOpenVideo
+    // without putting it in the dependency array (avoids TDZ in minified output)
+    const handleOpenVideoRef = useRef(null);
     useEffect(() => {
         if (router.query.type) {
             setSelectedType(router.query.type.toUpperCase());
@@ -188,9 +191,9 @@ export default function VideoLibraryPage() {
         // ?v=VIDEO_ID — auto-open a specific video
         if (router.query.v && allVideos.length > 0) {
             const target = allVideos.find(v => v.videoId === router.query.v);
-            if (target) handleOpenVideo(target);
+            if (target && handleOpenVideoRef.current) handleOpenVideoRef.current(target);
         }
-    }, [router.query, allVideos, handleOpenVideo]);
+    }, [router.query, allVideos]);
     const [searchQuery, setSearchQuery] = useState('');
     const [showReelsModal, setShowReelsModal] = useState(false);
     const modalRef = useRef(null);
@@ -497,6 +500,8 @@ export default function VideoLibraryPage() {
         setSelectedVideo(video);
         setIframeKey(k => k + 1); // force iframe remount → guaranteed autoplay
     }, []);
+    // Keep ref in sync so early useEffects can call it without a TDZ dep
+    useEffect(() => { handleOpenVideoRef.current = handleOpenVideo; }, [handleOpenVideo]);
 
     // Navigate to next video in list (TikTok swipe down / arrow right)
     const handleNextVideo = useCallback(() => {
