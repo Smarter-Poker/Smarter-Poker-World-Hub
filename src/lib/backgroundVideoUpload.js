@@ -564,11 +564,14 @@ const bgUpload = {
         }
 
         // Notify old listeners that their upload was superseded — rejects any pending Promise
+        // (caller always calls bgUpload.subscribe() right after start(), so we start fresh)
         const prevState = _state;
         _state = 'idle'; // set idle before emit so onError handlers don't see 'uploading'
         if ((prevState === 'uploading' || prevState === 'background') && savedListeners.size > 0) {
             savedListeners.forEach(l => l.onError?.({ error: new Error('Upload superseded') }));
         }
+        // Clear stale listeners AFTER notifying them — new subscribe() call adds fresh ones
+        _listeners = new Set();
         // Restore prefetch cache (still valid for the new upload if same file+user+folder)
         _prefetchCache = savedPrefetch;
 
@@ -791,8 +794,9 @@ const bgUpload = {
      */
     retry() {
         if (!_lastUploadParams) return;
+        // Keep _lastUploadParams alive during the retry attempt so that
+        // if the retry itself fails, the catch block can show a retry toast again.
         const params = { ..._lastUploadParams };
-        _lastUploadParams = null;
         bgUpload.start(params).catch((err) => {
             console.warn('[bgUpload] Retry failed:', err.message);
         });

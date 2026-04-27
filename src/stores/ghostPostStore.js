@@ -32,7 +32,7 @@ function _autoClean() {
             try { URL.revokeObjectURL(_ghost.videoPreviewUrl); } catch (_) {}
         }
         _ghost = null;
-        // Don't notify here — let the caller's subscribe handle it
+        _notify(); // Notify subscribers so stale ghost cards actually disappear
     }
 }
 
