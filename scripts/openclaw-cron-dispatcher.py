@@ -161,6 +161,12 @@ ALL_CRONS = [
     ('/api/cron/tour-schedule-scraper',     dict(day='*/3', hour=4, minute=0)),
     ('/api/cron/scrape-charity-schedules',  dict(day='*/3', hour=3, minute=0)),
     ('/api/cron/deploy-error-poll',         dict(minute='*/2')),       # every 2 min — autopilot build error detector
+    # ── 2B.3 Option B (2026-04-27) — generate-trivia-questions ──────────────
+    # Was monolith-only (admin manual trigger). Ported to workers; now scheduled
+    # daily at 04:30 UTC. Generates up to 3 batches of 30 questions each per
+    # run (90 questions/day max), with 5-layer QA validation gate. Idempotent:
+    # short-circuits if all 18,000 target questions exist.
+    ('/api/cron/generate-trivia-questions', dict(hour=4, minute=30)),
     # ── 2026-04-24 — restored from orphan audit ──────────────────────────
     # hard-stop auto-closes commander_tables at each venue's hard_stop_time.
     # Has 1 opted-in venue (id=1996, 02:00 UTC) with 34 in_use tables at

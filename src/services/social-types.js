@@ -100,6 +100,7 @@ export function createPost(row, author = null) {
         content: row.content,
         contentType: row.content_type || 'text',
         mediaUrls: row.media_urls || [],
+        thumbnail_url: row.thumbnail_url || null,
         engagement: {
             likeCount: row.like_count || 0,
             commentCount: row.comment_count || 0,

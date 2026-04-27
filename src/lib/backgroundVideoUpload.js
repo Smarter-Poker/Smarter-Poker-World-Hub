@@ -561,7 +561,6 @@ const bgUpload = {
         }
 
         // Notify old listeners that their upload was superseded — rejects any pending Promise
-        // (caller always calls bgUpload.subscribe() right after start(), so we start fresh)
         const prevState = _state;
         _state = 'idle'; // set idle before emit so onError handlers don't see 'uploading'
         if ((prevState === 'uploading' || prevState === 'background') && savedListeners.size > 0) {
@@ -569,8 +568,6 @@ const bgUpload = {
         }
         // Restore prefetch cache (still valid for the new upload if same file+user+folder)
         _prefetchCache = savedPrefetch;
-        // Start with a clean listeners set — caller will subscribe immediately after
-        _listeners = new Set();
 
         _state = 'uploading';
         _progress = 0;

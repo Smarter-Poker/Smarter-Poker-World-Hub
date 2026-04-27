@@ -1380,6 +1380,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         autoPlay
                         muted={muted}
                         playsInline
+                        poster={currentReel.thumbnail_url || undefined}
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         onPlay={() => {
                             setPaused(false);
@@ -2139,7 +2140,7 @@ export function ReelsFeedCarousel() {
                     .limit(20),
                 supabase
                     .from('social_posts')
-                    .select('id, author_id, content, content_type, media_urls, like_count, comment_count, created_at, visibility')
+                    .select('id, author_id, content, content_type, media_urls, thumbnail_url, like_count, comment_count, created_at, visibility')
                     .eq('visibility', 'public')
                     .not('media_urls', 'is', null)
                     .order('created_at', { ascending: false })
@@ -2177,6 +2178,7 @@ export function ReelsFeedCarousel() {
                             id: p.id,
                             author_id: p.author_id,
                             video_url: videoUrl,
+                            thumbnail_url: p.thumbnail_url,
                             caption: p.content,
                             like_count: p.like_count || 0,
                             comment_count: p.comment_count || 0,

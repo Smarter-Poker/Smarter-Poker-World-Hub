@@ -47,13 +47,14 @@ export class SocialService {
                     post_id: row.post_id,
                     author_id: row.author_id,
                     author_username: row.author_username,
-                    author_full_name: row.author_full_name,                       // NEW: For display name preference
-                    author_display_name_preference: row.author_display_name_preference, // NEW: User's preference
+                    author_full_name: row.author_full_name,
+                    author_display_name_preference: row.author_display_name_preference,
                     author_avatar: row.author_avatar,
                     author_level: row.author_level,
                     content: row.content,
                     content_type: row.content_type,
                     media_urls: row.media_urls,
+                    thumbnail_url: row.thumbnail_url || null,
                     like_count: row.like_count,
                     comment_count: row.comment_count,
                     share_count: row.share_count,
@@ -141,7 +142,7 @@ export class SocialService {
      * @param {boolean} postData.autoStory - If true, also create a story (default: true)
      * @returns {Promise<SocialPost>}
      */
-    async createPost({ authorId, content, contentType = 'text', mediaUrls = [], visibility = 'public', achievementData = null, autoStory = true }) {
+    async createPost({ authorId, content, contentType = 'text', mediaUrls = [], thumbnailUrl = null, visibility = 'public', achievementData = null, autoStory = true }) {
         try {
             console.debug('📝 Creating post:', { authorId, content: content?.substring(0, 50), contentType, autoStory });
 
@@ -154,6 +155,7 @@ export class SocialService {
                 p_content: content,
                 p_content_type: contentType,
                 p_media_urls: mediaUrls,
+                p_thumbnail_url: thumbnailUrl || null,
                 p_visibility: visibility,
                 p_achievement_data: achievementData
             });
@@ -182,6 +184,7 @@ export class SocialService {
                         content,
                         content_type: contentType,
                         media_urls: mediaUrls,
+                        thumbnail_url: thumbnailUrl || null,
                         visibility,
                         achievement_data: achievementData
                     })

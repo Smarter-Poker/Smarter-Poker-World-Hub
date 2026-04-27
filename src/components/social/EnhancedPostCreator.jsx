@@ -7,9 +7,11 @@
  */
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import * as Sentry from '@sentry/nextjs';
+import { SocialService } from '../../services/SocialService';
+import { validatePostContent } from '../../services/social-types';
 import toast from '../../stores/toastStore';
 import { claimReward } from '../../lib/claimReward';
-import { VideoThumbnailPicker } from './VideoThumbnailPicker';
 import { busEmit } from '../../engine/EventBus';
 import { broadcastSync, BROADCAST_TAB_ID } from '../../lib/broadcastSync';
 import { getAccessToken } from '../../lib/authUtils';
@@ -17,6 +19,7 @@ import { compressImage, sniffMimeType } from '../../lib/socialHelpers';
 import bgUpload from '../../lib/backgroundVideoUpload';
 import { validateVideoFile, generateThumbnail, compressVideo } from '../../lib/videoCompressor';
 import ghostPost from '../../stores/ghostPostStore';
+import { VideoThumbnailPicker } from './VideoThumbnailPicker';
 
 import { useSupabase } from '../../providers/SupabaseProvider';
 
@@ -90,7 +93,7 @@ const MediaPreview = ({ file, onRemove, uploadProgress, uploadStatusLabel, thumb
           <img src={preview} alt="Video preview" className="preview-media" />
         ) : (
           <div className="preview-media" style={{ background: 'linear-gradient(135deg, #1a1a2e, #16213e)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="rgba(255,255,255,0.3)"><path d="M8 5v14l11-7z"/></svg>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="rgba(255,255,255,0.3)"><path d="M8 5v14l11-7z" /></svg>
           </div>
         )
       ) : (
@@ -176,23 +179,23 @@ export const EnhancedPostCreator = ({
   // State-driven: sets preparingMedia on button click, clears on handleFileSelect.
   // Uses visibilitychange for smarter iOS cancel detection (~2-5s vs 120s timeout).
   useEffect(() => {
-      if (!preparingMedia) return;
-      const handleVisibility = () => {
-          if (document.visibilityState === 'visible' && _pickerOpenRef.current) {
-              setTimeout(() => {
-                  if (_pickerOpenRef.current) {
-                      setPreparingMedia(false);
-                      _pickerOpenRef.current = false;
-                  }
-              }, 2000);
+    if (!preparingMedia) return;
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && _pickerOpenRef.current) {
+        setTimeout(() => {
+          if (_pickerOpenRef.current) {
+            setPreparingMedia(false);
+            _pickerOpenRef.current = false;
           }
-      };
-      document.addEventListener('visibilitychange', handleVisibility);
-      const timer = setTimeout(() => { setPreparingMedia(false); _pickerOpenRef.current = false; }, 120_000);
-      return () => {
-          document.removeEventListener('visibilitychange', handleVisibility);
-          clearTimeout(timer);
-      };
+        }, 2000);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    const timer = setTimeout(() => { setPreparingMedia(false); _pickerOpenRef.current = false; }, 120_000);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      clearTimeout(timer);
+    };
   }, [preparingMedia]);
 
   // Track mount lifecycle
@@ -205,7 +208,7 @@ export const EnhancedPostCreator = ({
       // Cleanup happens via bgUpload.abort() when a new upload starts.
       // Abort any running background compressions
       Object.values(compressionRef.current).forEach(c => {
-          try { c.controller?.abort(); } catch (_) {}
+        try { c.controller?.abort(); } catch (_) { }
       });
       compressionRef.current = {};
     };
@@ -233,7 +236,7 @@ export const EnhancedPostCreator = ({
   useEffect(() => {
     if (!isOpen) {
       // Abort any in-progress video upload when the modal closes
-      if (xhrRef.current) { try { xhrRef.current.abort(); } catch (_) {} xhrRef.current = null; }
+      if (xhrRef.current) { try { xhrRef.current.abort(); } catch (_) { } xhrRef.current = null; }
       setMediaFiles([]);
       setUploadProgress({});
       setUploadStatus({});
@@ -246,39 +249,28 @@ export const EnhancedPostCreator = ({
   // Abort XHR on component unmount (navigation away mid-upload)
   useEffect(() => {
     return () => {
-      if (xhrRef.current) { try { xhrRef.current.abort(); } catch (_) {} }
+      if (xhrRef.current) { try { xhrRef.current.abort(); } catch (_) { } }
       if (draftTimeout.current) clearTimeout(draftTimeout.current);
     };
   }, []);
 
-  const handleClose = useCallback(() => {
-    if (isSubmitting) {
-      if (window.confirm('An upload is in progress. Cancel the upload and close?')) {
-        bgUpload.abort();
-        if (onClose) onClose();
-      }
-    } else {
-      if (onClose) onClose();
-    }
-  }, [isSubmitting, onClose]);
-
   // Handle escape key
   useEffect(() => {
     const handleEscape = (e) => {
-      if (e.key === 'Escape' && isOpen) {
-        handleClose();
+      if (e.key === 'Escape' && isOpen && !isSubmitting) {
+        if (onClose) onClose();
       }
     };
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
-  }, [isOpen, handleClose]);
+  }, [isOpen, isSubmitting, onClose]);
 
   // Handle backdrop click
   const handleBackdropClick = useCallback((e) => {
-    if (e.target === modalRef.current) {
-      handleClose();
+    if (e.target === modalRef.current && !isSubmitting) {
+      if (onClose) onClose();
     }
-  }, [handleClose]);
+  }, [isSubmitting, onClose]);
 
   // Handle file selection
   const handleFileSelect = useCallback((e) => {
@@ -333,28 +325,28 @@ export const EnhancedPostCreator = ({
 
         // Auto-thumbnail generation
         generateThumbnail(file).then(thumb => {
-            if (!mountedRef.current || !thumb) return;
-            setThumbnails(prev => ({ ...prev, [fk]: thumb }));
+          if (!mountedRef.current || !thumb) return;
+          setThumbnails(prev => ({ ...prev, [fk]: thumb }));
         });
 
         // Background compression for large videos
         const controller = new AbortController();
         const compPromise = compressVideo(file, {
-            signal: controller.signal,
-            onProgress: ({ pct }) => {
-                if (!mountedRef.current) return;
-                setUploadStatus(prev => ({ ...prev, [fk]: `Compressing\u2026 ${pct}%` }));
-            },
+          signal: controller.signal,
+          onProgress: ({ pct }) => {
+            if (!mountedRef.current) return;
+            setUploadStatus(prev => ({ ...prev, [fk]: `Compressing\u2026 ${pct}%` }));
+          },
         }).then(result => {
-            compressionRef.current[fk] = { ...compressionRef.current[fk], result };
-            if (result.compressed && mountedRef.current) {
-                const savedMB = Math.round((result.originalSize - result.compressedSize) / (1024 * 1024));
-                toast.success(`Video compressed \u2014 saved ${savedMB}MB (${result.savings}% smaller)`, 3000);
-                setUploadStatus(prev => ({ ...prev, [fk]: 'Compressed \u2714' }));
-            } else if (mountedRef.current) {
-                setUploadStatus(prev => ({ ...prev, [fk]: undefined }));
-            }
-            return result;
+          compressionRef.current[fk] = { ...compressionRef.current[fk], result };
+          if (result.compressed && mountedRef.current) {
+            const savedMB = Math.round((result.originalSize - result.compressedSize) / (1024 * 1024));
+            toast.success(`Video compressed \u2014 saved ${savedMB}MB (${result.savings}% smaller)`, 3000);
+            setUploadStatus(prev => ({ ...prev, [fk]: 'Compressed \u2714' }));
+          } else if (mountedRef.current) {
+            setUploadStatus(prev => ({ ...prev, [fk]: undefined }));
+          }
+          return result;
         });
         compressionRef.current[fk] = { controller, promise: compPromise, result: null };
 
@@ -375,12 +367,12 @@ export const EnhancedPostCreator = ({
     // Cancel background compression if running (use file key, not index)
     const file = mediaFiles[index];
     if (file) {
-        const fk = _fileKey(file);
-        if (compressionRef.current[fk]) {
-            compressionRef.current[fk].controller?.abort();
-            delete compressionRef.current[fk];
-        }
-        setThumbnails(prev => { const n = { ...prev }; delete n[fk]; return n; });
+      const fk = _fileKey(file);
+      if (compressionRef.current[fk]) {
+        compressionRef.current[fk].controller?.abort();
+        delete compressionRef.current[fk];
+      }
+      setThumbnails(prev => { const n = { ...prev }; delete n[fk]; return n; });
     }
     setMediaFiles(prev => prev.filter((_, i) => i !== index));
   }, [mediaFiles]);
@@ -442,7 +434,7 @@ export const EnhancedPostCreator = ({
         // Create a blurred preview from the first video file
         const firstVideo = mediaFiles.find(f => sniffMimeType(f).startsWith('video/'));
         if (firstVideo) {
-          try { videoPreviewUrl = URL.createObjectURL(firstVideo); } catch (_) {}
+          try { videoPreviewUrl = URL.createObjectURL(firstVideo); } catch (_) { }
         }
         ghostPost.create({
           content: content.trim(),
@@ -465,13 +457,13 @@ export const EnhancedPostCreator = ({
             const fk = _fileKey(file);
             const comp = compressionRef.current[fk];
             if (comp?.promise) {
-                try {
-                    const result = comp.result || await Promise.race([
-                        comp.promise,
-                        new Promise(r => setTimeout(() => r({ file, compressed: false }), 500)),
-                    ]);
-                    if (result.compressed) fileToUpload = result.file;
-                } catch (_) { /* use original */ }
+              try {
+                const result = comp.result || await Promise.race([
+                  comp.promise,
+                  new Promise(r => setTimeout(() => r({ file, compressed: false }), 500)),
+                ]);
+                if (result.compressed) fileToUpload = result.file;
+              } catch (_) { /* use original */ }
             }
 
             // ── Background-capable video upload ───────────────────────────────
@@ -480,10 +472,16 @@ export const EnhancedPostCreator = ({
             let wasBackground = false;
 
             const videoUrl = await new Promise((resolve, reject) => {
-              // start() MUST be called before subscribe() because start() clears existing listeners
-              // to supersede any pending uploads. If subscribe() is called first, it gets wiped.
-              bgUpload.start({ file: fileToUpload, userId: user.id, folder, content: content?.trim(), thumbnail: thumbnailRef.current[_fileKey(file)] || null }).catch(reject);
+              // 1. Start the upload (this clears any old listeners from previous uploads)
+              bgUpload.start({ 
+                  file: fileToUpload, 
+                  userId: user.id, 
+                  folder, 
+                  content: content?.trim(), 
+                  thumbnail: thumbnailRef.current[_fileKey(file)] || null 
+              }).catch(reject);
 
+              // 2. Subscribe to the new upload's events immediately after
               bgUnsub = bgUpload.subscribe({
                 onProgress: ({ pct, label }) => {
                   if (!mountedRef.current) return;
@@ -509,7 +507,7 @@ export const EnhancedPostCreator = ({
                       setUploadProgress({});
                       setUploadStatus({});
                       setIsSubmitting(false);
-                      try { localStorage.removeItem('sp-enhanced-post-draft'); } catch (_) {}
+                      try { localStorage.removeItem('sp-enhanced-post-draft'); } catch (_) { }
                     }
                   }
                 },
@@ -519,8 +517,15 @@ export const EnhancedPostCreator = ({
             if (bgUnsub) bgUnsub();
             // Clean up compression cache
             delete compressionRef.current[_fileKey(file)];
-            uploadedMedia.push({ url: videoUrl, type: 'video', name: file.name, wasBackground });
-            
+            // Carry the selected thumbnail alongside the video URL so createPost can persist it
+            uploadedMedia.push({ 
+              url: videoUrl, 
+              type: 'video', 
+              name: file.name, 
+              thumbnail: thumbnailRef.current[_fileKey(file)] || null, 
+              wasBackground 
+            });
+
             if (!wasBackground && mountedRef.current) {
               setUploadProgress(prev => ({ ...prev, [videoIndex]: 100 }));
               setUploadStatus(prev => ({ ...prev, [videoIndex]: 'Done' }));
@@ -532,51 +537,51 @@ export const EnhancedPostCreator = ({
             setUploadProgress(prev => ({ ...prev, [i]: 10 }));
             const compressedFile = await compressImage(file);
             if (compressedFile.size > 4.5 * 1024 * 1024) {
-                throw new Error(`Image is too large (max 4.5MB). Please choose a smaller image.`);
+              throw new Error(`Image is too large (max 4.5MB). Please choose a smaller image.`);
             }
-            
+
             const formData = new FormData();
             formData.append('file', compressedFile);
             formData.append('folder', folder);
             formData.append('prefix', user.id);
-            
+
             const _imgToken = getAccessToken();
             if (!_imgToken) {
-                throw new Error('Authentication required — please refresh the page and try again.');
+              throw new Error('Authentication required — please refresh the page and try again.');
             }
-            
+
             setUploadProgress(prev => ({ ...prev, [i]: 50 }));
             const res = await fetch('/api/social/upload', {
-                method: 'POST',
-                headers: { Authorization: `Bearer ${_imgToken}` },
-                body: formData,
+              method: 'POST',
+              headers: { Authorization: `Bearer ${_imgToken}` },
+              body: formData,
             });
-            
+
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
-            
+
             if (json.success && json.url) {
-                uploadedMedia.push({
-                    url: json.url,
-                    type: json.type || 'photo',
-                    name: file.name
-                });
-                setUploadProgress(prev => ({ ...prev, [i]: 100 }));
+              uploadedMedia.push({
+                url: json.url,
+                type: json.type || 'photo',
+                name: file.name
+              });
+              setUploadProgress(prev => ({ ...prev, [i]: 100 }));
             } else {
-                throw new Error(json.error || 'Unknown upload error');
+              throw new Error(json.error || 'Unknown upload error');
             }
           }
         } catch (uploadErr) {
-              if (bgUnsub) { bgUnsub(); bgUnsub = null; } // Always clean up listener on error
-              console.warn('Media upload failed:', uploadErr);
-              ghostPost.remove(); // Clean up ghost post on upload failure
-              const isCancelled = uploadErr?.message === 'Upload cancelled' || uploadErr?.message === 'Upload aborted' || uploadErr?.message === 'Upload superseded';
-              if (!isCancelled) {
-                  setError(`Upload failed: ${uploadErr.message}`);
-              }
-              setIsSubmitting(false);
-              return;
-            }
+          if (bgUnsub) { bgUnsub(); bgUnsub = null; } // Always clean up listener on error
+          console.warn('Media upload failed:', uploadErr);
+          ghostPost.remove(); // Clean up ghost post on upload failure
+          const isCancelled = uploadErr?.message === 'Upload cancelled' || uploadErr?.message === 'Upload aborted' || uploadErr?.message === 'Upload superseded';
+          if (!isCancelled) {
+            setError(`Upload failed: ${uploadErr.message}`);
+          }
+          setIsSubmitting(false);
+          return;
+        }
       }
 
       // Determine content type — compare against normalized 'video'/'photo' strings set during upload,
@@ -593,6 +598,7 @@ export const EnhancedPostCreator = ({
         content: content.trim() || (contentType === 'image' ? '📸' : contentType === 'video' ? '🎬' : ''),
         contentType,
         mediaUrls: uploadedMedia.map(m => m.url),
+        thumbnailUrl: uploadedMedia.find(m => m.type === 'video')?.thumbnail || null,
         visibility
       });
 
@@ -623,7 +629,7 @@ export const EnhancedPostCreator = ({
           'success'
         );
         // Clean up state even though modal is gone
-        try { localStorage.removeItem('sp-enhanced-post-draft'); } catch (_) {}
+        try { localStorage.removeItem('sp-enhanced-post-draft'); } catch (_) { }
         onPostCreated?.(newPost);
       } else {
         // Quick upload (<10s) — stay in modal, show success animation
@@ -636,7 +642,7 @@ export const EnhancedPostCreator = ({
           setUploadProgress({});
           setUploadStatus({});
           setShowSuccess(false);
-          try { localStorage.removeItem('sp-enhanced-post-draft'); } catch (_) {}
+          try { localStorage.removeItem('sp-enhanced-post-draft'); } catch (_) { }
           onPostCreated?.(newPost);
           if (onClose) onClose();
         }, 1500);
@@ -791,7 +797,7 @@ export const EnhancedPostCreator = ({
                 try {
                   if (val.trim()) localStorage.setItem('sp-enhanced-post-draft', val);
                   else localStorage.removeItem('sp-enhanced-post-draft');
-                } catch (_) {}
+                } catch (_) { }
               }, 2000);
             }}
             maxLength={MAX_CHARS}
@@ -839,16 +845,16 @@ export const EnhancedPostCreator = ({
         {/* Divider */}
         {preparingMedia && (
           <div style={{
-              padding: '10px 12px', background: 'linear-gradient(135deg, #E8F4FD, #D4E9F7)',
-              borderRadius: 6, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8
+            padding: '10px 12px', background: 'linear-gradient(135deg, #E8F4FD, #D4E9F7)',
+            borderRadius: 6, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8
           }}>
-              <div style={{
-                  width: 16, height: 16, border: '2.5px solid #1877F2', borderTopColor: 'transparent',
-                  borderRadius: '50%', animation: 'spin 0.8s linear infinite'
-              }} />
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#1877F2' }}>
-                  Preparing Your Video — This May Take A Moment...
-              </span>
+            <div style={{
+              width: 16, height: 16, border: '2.5px solid #1877F2', borderTopColor: 'transparent',
+              borderRadius: '50%', animation: 'spin 0.8s linear infinite'
+            }} />
+            <span style={{ fontSize: 13, fontWeight: 600, color: '#1877F2' }}>
+              Preparing Your Video — This May Take A Moment...
+            </span>
 
           </div>
         )}
@@ -1121,7 +1127,7 @@ export const EnhancedPostCreator = ({
                 try {
                   if (val.trim()) localStorage.setItem('sp-enhanced-post-draft', val);
                   else localStorage.removeItem('sp-enhanced-post-draft');
-                } catch (_) {}
+                } catch (_) { }
               }, 2000);
             }}
             maxLength={MAX_CHARS}
@@ -1188,16 +1194,16 @@ export const EnhancedPostCreator = ({
         {/* Preparing Media Indicator */}
         {preparingMedia && (
           <div style={{
-              padding: '10px 12px', background: 'rgba(24,119,242,0.1)',
-              borderRadius: 6, margin: '0 16px 12px', display: 'flex', alignItems: 'center', gap: 8
+            padding: '10px 12px', background: 'rgba(24,119,242,0.1)',
+            borderRadius: 6, margin: '0 16px 12px', display: 'flex', alignItems: 'center', gap: 8
           }}>
-              <div style={{
-                  width: 16, height: 16, border: '2.5px solid #1877F2', borderTopColor: 'transparent',
-                  borderRadius: '50%', animation: 'spin 0.8s linear infinite'
-              }} />
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#1877F2' }}>
-                  Preparing Your Video — This May Take A Moment...
-              </span>
+            <div style={{
+              width: 16, height: 16, border: '2.5px solid #1877F2', borderTopColor: 'transparent',
+              borderRadius: '50%', animation: 'spin 0.8s linear infinite'
+            }} />
+            <span style={{ fontSize: 13, fontWeight: 600, color: '#1877F2' }}>
+              Preparing Your Video — This May Take A Moment...
+            </span>
 
           </div>
         )}
