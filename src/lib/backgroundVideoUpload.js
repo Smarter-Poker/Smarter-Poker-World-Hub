@@ -193,8 +193,12 @@ async function _fetchUploadMeta(file, userId, folder) {
     }
 
     const meta = await metaRes.json();
-    if (!meta.success || !meta.signedUrl?.startsWith('http')) {
+    if (!meta.success) {
         throw new Error(meta.error || 'Invalid upload URL received');
+    }
+    // Must have either a TUS endpoint (preferred) or a signed PUT URL (fallback)
+    if (!meta.tusEndpoint && !meta.signedUrl?.startsWith('http')) {
+        throw new Error(meta.error || 'No upload URL received from server');
     }
 
     return meta;
@@ -222,8 +226,9 @@ function _uploadWithTus(file, meta, mimeType) {
             endpoint: meta.tusEndpoint,
             chunkSize: TUS_CHUNK_SIZE,
             retryDelays: [0, 3000, 8000, 15000], // auto-retry on transient errors
-            // Persist the upload URL so a refresh can resume from where it left off
-            urlStorage: typeof window !== 'undefined' ? new tus.SessionStorageUrlStorage(resumeKey) : undefined,
+            // fingerprint persists the TUS upload URL in sessionStorage so a tab refresh can resume
+            fingerprint: (f) => Promise.resolve(`${TUS_URL_KEY_PREFIX}${f.name}_${f.size}_${f.lastModified}`),
+            storeFingerprintForResuming: true,
             metadata: {
                 bucketName: meta.bucket,
                 objectName: meta.path,
@@ -274,7 +279,7 @@ function _uploadWithTus(file, meta, mimeType) {
                 if (msg.toLowerCase().includes('abort') || msg.toLowerCase().includes('cancel')) {
                     reject(new Error('Upload cancelled'));
                 } else {
-                    reject(new Error(`Upload failed — ${msg}. Please check your connection and try again.`));
+                    reject(new Error('Upload failed after multiple attempts — please check your connection and try again later.'));
                 }
             },
             onBeforeRequest: (req) => {
@@ -383,9 +388,10 @@ function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0, _userId, _fold
                 // "getting new URL (attempt 6/6)" storm. Detect it and resolve as success.
                 const body = (xhr.responseText || '').toLowerCase();
                 const alreadyConsumed = body.includes('already') || body.includes('reuse');
-                if (alreadyConsumed && attempt === 0) {
+                // alreadyConsumed can happen on ANY retry (server got bytes, ACK was lost)
+                if (alreadyConsumed) {
                     // File is in Supabase. Signed URL consumed = upload completed.
-                    console.warn('[bgUpload] 400 already-consumed on first attempt — resolving as success');
+                    console.warn('[bgUpload] 400 already-consumed — resolving as success');
                     resolve(null);
                     return;
                 }
@@ -433,8 +439,8 @@ function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0, _userId, _fold
         xhr.onerror = () => {
             _activeXhr = null;
             if (attempt < MAX_RETRIES) {
-                // Network error — retry with backoff
-                const delay = RETRY_DELAYS[attempt] || 10000;
+                // Network error — retry with backoff using next delay slot
+                const delay = RETRY_DELAYS[attempt + 1] || 10000;
                 _setState(_state, maxPctReached, `Connection lost — retrying (attempt ${attempt + 2}/${MAX_RETRIES + 1})…`);
                 setTimeout(() => {
                     _uploadWithRetry(file, signedUrl, mimeType, attempt + 1, _userId, _folder)
@@ -450,7 +456,8 @@ function _uploadWithRetry(file, signedUrl, mimeType, attempt = 0, _userId, _fold
         xhr.ontimeout = () => {
             _activeXhr = null;
             if (attempt < MAX_RETRIES) {
-                const delay = RETRY_DELAYS[attempt] || 10000;
+                // Timeout — retry with backoff using next delay slot
+                const delay = RETRY_DELAYS[attempt + 1] || 10000;
                 _setState(_state, maxPctReached, `Upload timed out — retrying (attempt ${attempt + 2}/${MAX_RETRIES + 1})…`);
                 setTimeout(() => {
                     _uploadWithRetry(file, signedUrl, mimeType, attempt + 1, _userId, _folder)
@@ -540,10 +547,6 @@ const bgUpload = {
         const savedPrefetch = _prefetchCache;
         const savedListeners = new Set(_listeners);
 
-        // Enforce 50MB hard cap on the final output file before starting
-        if (file.size > 50 * 1024 * 1024) {
-            throw new Error('Video is too large (max 50 MB). Please trim the video and try again.');
-        }
 
         // Silent reset of previous upload state (NOT a user-facing abort — no onError emission)
         clearTimeout(_bgTimer);

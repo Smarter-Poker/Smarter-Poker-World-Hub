@@ -72,10 +72,18 @@ export default function GhostPostCard({ user }) {
                 setProgress(100);
                 setTimeout(() => { if (mountedRef.current) setVisible(false); }, 2000);
             },
-            onError: () => {
+            onError: ({ error }) => {
                 if (!mountedRef.current) return;
+                // User-initiated cancel — hide silently without showing "Upload Failed"
+                const isCancelled = error?.message === 'Upload cancelled'
+                    || error?.message === 'Upload aborted'
+                    || error?.message === 'Upload superseded';
+                if (isCancelled) {
+                    setVisible(false);
+                    return;
+                }
+                // Real failure — show error state for 3s then auto-hide
                 setLabel('Upload Failed');
-                // Store timer ref so it can be cancelled if user clicks Dismiss
                 errorTimerRef.current = setTimeout(() => {
                     if (mountedRef.current) setVisible(false);
                 }, 3000);
