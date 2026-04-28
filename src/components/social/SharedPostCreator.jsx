@@ -1098,6 +1098,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                             </div>
                         </div>
                     )}
+                    <div style={{ fontSize: 12, color: C.textSec, marginTop: 4 }}>{media.length}/{MAX_MEDIA} files</div>
                 </div>
             )}
             {(linkPreview || linkLoading) && (

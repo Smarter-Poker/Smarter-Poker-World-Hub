@@ -202,7 +202,7 @@ async function executeFollow(horseProfileId, targetUserId) {
 
         // Check if already following
         const { data: existing } = await supabase
-            .from('follows')
+            .from('social_follows')
             .select('id')
             .eq('follower_id', horseProfileId)
             .eq('following_id', targetUserId)
@@ -212,7 +212,7 @@ async function executeFollow(horseProfileId, targetUserId) {
 
         // Create follow
         await supabase
-            .from('follows')
+            .from('social_follows')
             .insert({
                 follower_id: horseProfileId,
                 following_id: targetUserId
