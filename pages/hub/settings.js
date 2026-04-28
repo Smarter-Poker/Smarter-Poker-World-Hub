@@ -176,7 +176,8 @@ export default function SettingsPage() {
         daily_challenges: true,
         messenger_alerts: true,
         diamond_rewards: true,
-        club_updates: true
+        club_updates: true,
+        live_notifications: true,
     });
     const [notificationsLoaded, setNotificationsLoaded] = useState(false);
 
@@ -1458,6 +1459,12 @@ export default function SettingsPage() {
                                             description="Announcements From Clubs You Are A Member Of"
                                             value={notificationPrefs.club_updates}
                                             onChange={(v) => updateNotificationPref('club_updates', v)}
+                                        />
+                                        <Toggle
+                                            label="Live Stream Notifications"
+                                            description="Get Notified When Friends Or People You Follow Go Live"
+                                            value={notificationPrefs.live_notifications}
+                                            onChange={(v) => updateNotificationPref('live_notifications', v)}
                                         />
                                     </div>
                                 </div>

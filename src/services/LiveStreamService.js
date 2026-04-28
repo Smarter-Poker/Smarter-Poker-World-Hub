@@ -75,18 +75,21 @@ class LiveStreamService {
      * @param {MediaStream} mediaStream - Camera/mic stream
      * @returns {Promise<{streamId: string, stream: object}>}
      */
-    async startBroadcast(userId, title, mediaStream) {
+    async startBroadcast(userId, title, mediaStream, thumbnailUrl) {
         this.currentUserId = userId;
         this.localStream = mediaStream;
 
         // Create stream record in database
+        const insertPayload = {
+            broadcaster_id: userId,
+            title: title || 'Live Stream',
+            status: 'live',
+        };
+        if (thumbnailUrl) insertPayload.thumbnail_url = thumbnailUrl;
+
         const { data: stream, error } = await supabase
             .from('live_streams')
-            .insert({
-                broadcaster_id: userId,
-                title: title || 'Live Stream',
-                status: 'live',
-            })
+            .insert(insertPayload)
             .select()
             .maybeSingle();
 
@@ -100,7 +103,7 @@ class LiveStreamService {
         // Subscribe to viewer count changes
         this.subscribeToViewers(stream.id);
 
-        // Notify all followers that user is going live
+        // Notify followers via server-side API (bypasses notification RLS)
         this.notifyFollowers(userId, title || 'Live Stream', stream.id);
 
         console.debug('🔴 Broadcast started:', stream.id);
@@ -115,35 +118,16 @@ class LiveStreamService {
      */
     async notifyFollowers(userId, title, streamId) {
         try {
-            // Get broadcaster's username for the notification
-            const { data: broadcaster } = await supabase
-                .from('profiles')
-                .select('username')
-                .eq('id', userId)
-                .maybeSingle();
-
-            const username = broadcaster?.username || 'Someone you follow';
-
-            // Get all followers of this user
-            const { data: followers, error } = await supabase
-                .from('social_follows')
-                .select('follower_id')
-                .eq('following_id', userId);
-
-            if (error || !followers?.length) return;
-
-            // Create notifications for all followers
-            const notifications = followers.map(f => ({
-                user_id: f.follower_id,
-                type: 'live',
-                title: '🔴 Live Now',
-                message: `${username} is live: ${title}`,
-                link: `/hub/social-media?stream=${streamId}`,
-                read: false
-            }));
-
-            await supabase.from('notifications').insert(notifications);
-            console.debug(`📣 Notified ${followers.length} followers about live stream`);
+            // Route through API so service-role can bypass notification RLS
+            // Also respects each follower's settings.live_notifications preference
+            const resp = await fetch('/api/notifications/live-notify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ streamId, title }),
+                credentials: 'same-origin',
+            });
+            const data = await resp.json().catch(() => ({}));
+            console.debug(`📣 Notified ${data.notified ?? '?'} followers about live stream`);
         } catch (err) {
             logError('notifyFollowers', err);
         }

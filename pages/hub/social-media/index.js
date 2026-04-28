@@ -6410,7 +6410,7 @@ function SocialMediaPage() {
                         <div className="social-feed-layout" style={{ display: 'flex', gap: 16, justifyContent: 'center', width: '100%', boxSizing: 'border-box' }}>
                             <div className="social-feed-column" style={{ flex: 1, minWidth: 0 }}>
                                 {/* Stories Bar */}
-                                {user && <StoriesBar userId={user.id} userAvatar={user.avatar} />}
+                                {user && <StoriesBar userId={user.id} userAvatar={user.avatar} onOpenLive={(stream) => setWatchingStream(stream)} />}
 
                                 {/* Post Creator */}
                                 {user && <SharedPostCreator context="social-media" user={user} onPost={handlePost} isPosting={isPosting} onGoLive={() => setShowGoLiveModal(true)} onOpenClubPages={() => { setShowClubPages(true); router.replace('/hub/social-media?view=club-pages', undefined, { shallow: true }); }} />}
@@ -6730,6 +6730,7 @@ function SocialMediaPage() {
                     <LiveStreamViewer
                         stream={watchingStream}
                         userId={user?.id}
+                        user={user}
                         onClose={() => {
                             setWatchingStream(null);
                             // Refresh live streams

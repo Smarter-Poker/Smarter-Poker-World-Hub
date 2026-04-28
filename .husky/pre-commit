@@ -36,4 +36,38 @@ if [ $DANGEROUS -eq 1 ]; then
 fi
 
 echo "✅ No dangerous auth patterns found"
+
+# 🛡️ MERGE CONFLICT MARKER CHECK
+# SWC build errors for conflict markers are opaque ("Module parse failed").
+# Catch them early before they reach Vercel.
+CONFLICT_FAIL=0
+for file in $FILES; do
+  if git show ":$file" 2>/dev/null | grep -qE '^(<<<<<<<|>>>>>>>|={7,}$)'; then
+    echo "🚫 BLOCKED: $file contains a merge conflict marker"
+    CONFLICT_FAIL=1
+  fi
+done
+
+if [ $CONFLICT_FAIL -eq 1 ]; then
+  echo ""
+  echo "❌ Commit blocked! Resolve merge conflicts first."
+  exit 1
+fi
+
+# 🛡️ transpilePackages GUARD — @smarter-poker/commander-shared ships raw JSX.
+# If removed from next.config.js, the Vercel build crashes with:
+#   "Module parse failed: Unexpected token" on any .jsx in node_modules.
+# See failed deploys 4xJcGVy2N / DWyP5RYRT (April 2026). DO NOT REMOVE.
+ALL_STAGED=$(git diff --cached --name-only --diff-filter=ACM || true)
+if echo "$ALL_STAGED" | grep -q 'next.config'; then
+  STAGED_CONFIG=$(git show ":next.config.js" 2>/dev/null || git show ":next.config.mjs" 2>/dev/null || true)
+  if [ -n "$STAGED_CONFIG" ]; then
+    if ! echo "$STAGED_CONFIG" | grep -q '@smarter-poker/commander-shared'; then
+      echo "🚫 BLOCKED: next.config.js is missing @smarter-poker/commander-shared"
+      echo "   in transpilePackages — build will crash. See deploy 4xJcGVy2N."
+      exit 1
+    fi
+  fi
+fi
+
 exit 0

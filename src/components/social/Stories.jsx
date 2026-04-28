@@ -196,9 +196,10 @@ function StoryAvatar({ story, onClick, isOwn, hasStory, onCreateStory, isLive })
 }
 
 // Stories Bar - horizontal scroll of stories at top of feed
-export function StoriesBar({ userId, userAvatar, onCreateStory }) {
+export function StoriesBar({ userId, userAvatar, onCreateStory, onOpenLive }) {
     const [stories, setStories] = useState([]);
     const [liveUsers, setLiveUsers] = useState(new Set()); // Track who is live
+    const [liveStreamMap, setLiveStreamMap] = useState({}); // author_id → stream object
     const [loading, setLoading] = useState(true);
     const [viewingStory, setViewingStory] = useState(null);
     const [showCreate, setShowCreate] = useState(false);
@@ -215,10 +216,13 @@ export function StoriesBar({ userId, userAvatar, onCreateStory }) {
         try {
             const { data } = await supabase
                 .from('live_streams')
-                .select('broadcaster_id')
+                .select('id, broadcaster_id, title, thumbnail_url')
                 .eq('status', 'live');
             if (data) {
                 setLiveUsers(new Set(data.map(s => s.broadcaster_id)));
+                const map = {};
+                data.forEach(s => { map[s.broadcaster_id] = s; });
+                setLiveStreamMap(map);
             }
         } catch {
             // live_streams table may not exist — fail silently
@@ -282,6 +286,14 @@ export function StoriesBar({ userId, userAvatar, onCreateStory }) {
     };
 
     const handleViewStory = async (storyGroup) => {
+        // If the user is live, route to the live stream instead
+        if (liveUsers.has(storyGroup.author_id)) {
+            const stream = liveStreamMap[storyGroup.author_id];
+            if (onOpenLive && stream) {
+                onOpenLive(stream);
+                return;
+            }
+        }
         setViewingStory(storyGroup);
         if (!storyGroup.is_own) {
             await supabase.rpc('fn_view_story', {

@@ -3,21 +3,26 @@
    TikTok/SmarterPoker Live style immersive viewer with chat overlay
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { liveStreamService } from '../../services/LiveStreamService';
+import { supabase } from '../../lib/supabase';
 import { busEmit } from '../../engine/EventBus';
 
 const C = {
     red: '#FA383E',
 };
 
-export function LiveStreamViewer({ stream, userId, onClose }) {
+export function LiveStreamViewer({ stream, userId, user, onClose }) {
     const [remoteStream, setRemoteStream] = useState(null);
     const [viewerCount, setViewerCount] = useState(stream?.viewer_count || 0);
     const [isConnecting, setIsConnecting] = useState(true);
     const [error, setError] = useState('');
+    const [comments, setComments] = useState([]);
+    const [commentInput, setCommentInput] = useState('');
 
     const videoRef = useRef(null);
+    const commentsEndRef = useRef(null);
+    const commentChannelRef = useRef(null);
 
     useEffect(() => {
         if (!stream?.id || !userId) return;
@@ -58,8 +63,23 @@ export function LiveStreamViewer({ stream, userId, onClose }) {
 
         connect();
 
+        // Subscribe to live comments realtime
+        if (stream?.id) {
+            // Load existing comments
+            supabase.from('live_comments').select('*').eq('stream_id', stream.id)
+                .order('created_at', { ascending: true }).limit(50)
+                .then(({ data }) => { if (data) setComments(data); });
+
+            const ch = supabase.channel(`live-comments-${stream.id}`)
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'live_comments', filter: `stream_id=eq.${stream.id}` },
+                    (payload) => { setComments(prev => [...prev, payload.new]); }
+                ).subscribe();
+            commentChannelRef.current = ch;
+        }
+
         return () => {
             liveStreamService.leaveStream();
+            if (commentChannelRef.current) supabase.removeChannel(commentChannelRef.current);
         };
     }, [stream?.id, userId]);
 
@@ -69,6 +89,25 @@ export function LiveStreamViewer({ stream, userId, onClose }) {
             videoRef.current.srcObject = remoteStream;
         }
     }, [remoteStream]);
+
+    // Auto-scroll comments
+    useEffect(() => {
+        commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [comments]);
+
+    const handleSendComment = async () => {
+        const text = commentInput.trim();
+        if (!text || !stream?.id || !userId) return;
+        setCommentInput('');
+        try {
+            await supabase.from('live_comments').insert({
+                stream_id: stream.id,
+                user_id: userId,
+                text,
+                author_name: user?.name || user?.full_name || user?.username || 'Viewer',
+            });
+        } catch (err) { console.warn('[LiveStreamViewer] comment failed:', err); }
+    };
 
     const handleLeave = async () => {
         await liveStreamService.leaveStream();
@@ -249,6 +288,32 @@ export function LiveStreamViewer({ stream, userId, onClose }) {
                         {stream.title}
                     </div>
                 )}
+            </div>
+
+            {/* COMMENTS OVERLAY */}
+            <div style={{ position:'absolute', bottom:80, left:0, width:'min(320px,60vw)', maxHeight:200, overflowY:'auto', padding:'0 12px', scrollbarWidth:'none', zIndex:5 }}>
+                {comments.map((c, i) => (
+                    <div key={c.id || i} style={{ marginBottom:6, display:'flex', alignItems:'flex-start', gap:6 }}>
+                        <span style={{ color:'#00CFFF', fontWeight:700, fontSize:13, whiteSpace:'nowrap' }}>{c.author_name || 'User'}</span>
+                        <span style={{ color:'white', fontSize:13, lineHeight:1.4 }}>{c.text}</span>
+                    </div>
+                ))}
+                <div ref={commentsEndRef} />
+            </div>
+
+            {/* COMMENT INPUT */}
+            <div style={{ position:'absolute', bottom:24, left:12, right:12, zIndex:10, display:'flex', gap:8 }}>
+                <input
+                    value={commentInput}
+                    onChange={e => setCommentInput(e.target.value)}
+                    onKeyDown={e => { if(e.key==='Enter') handleSendComment(); }}
+                    placeholder="Say something..."
+                    style={{ flex:1, padding:'9px 14px', borderRadius:22, border:'1.5px solid rgba(255,255,255,.3)', background:'rgba(0,0,0,.5)', color:'white', fontSize:14, outline:'none' }}
+                />
+                <button
+                    onClick={handleSendComment}
+                    style={{ padding:'9px 16px', borderRadius:22, border:'none', background:'rgba(0,120,255,.85)', color:'white', fontSize:14, fontWeight:700, cursor:'pointer' }}
+                >Send</button>
             </div>
 
             {/* Pulse animation */}

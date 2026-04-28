@@ -42,6 +42,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
     const commentsEndRef = useRef(null);
     const thumbnailInputRef = useRef(null);
     const hideControlsRef = useRef(null);
+    const commentChannelRef = useRef(null);
 
     useEffect(() => {
         if (isOpen) { requestMediaAccess(); }
@@ -50,8 +51,25 @@ export function GoLiveModal({ isOpen, onClose, user }) {
             if (timerRef.current) clearInterval(timerRef.current);
             if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current?.stop();
             if (hideControlsRef.current) clearTimeout(hideControlsRef.current);
+            if (commentChannelRef.current) supabase.removeChannel(commentChannelRef.current);
         };
     }, [isOpen]);
+
+    // Subscribe to viewer comments when stream goes live
+    useEffect(() => {
+        if (!streamId) return;
+        const ch = supabase
+            .channel(`live-comments-broadcaster-${streamId}`)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'live_comments', filter: `stream_id=eq.${streamId}` },
+                (payload) => {
+                    if (payload.new.user_id !== user?.id) { // Don't double-add own comments
+                        setComments(prev => [...prev, payload.new]);
+                    }
+                }
+            ).subscribe();
+        commentChannelRef.current = ch;
+        return () => { supabase.removeChannel(ch); };
+    }, [streamId, user?.id]);
 
     useEffect(() => {
         if (streamRef.current && videoRef.current) {
