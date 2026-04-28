@@ -560,7 +560,6 @@ export default function VideoLibraryPage() {
         currentWatchingVideoRef.current = null;
 
         if (true) { // scoping block (was if (watchStartTimeRef.current...))
-        if (true) { // scoping block
             const watchedSeconds = Math.floor((Date.now() - startTime) / 1000);
 
 
