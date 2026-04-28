@@ -2368,7 +2368,6 @@ export default function VirtualSandbox() {
                 Copy Share Link
               </button>
 
-<<<<<<< Updated upstream
               {/* Train This Spot — in-place overlay with hand context */}
               <button
                 onClick={() => {
@@ -2377,39 +2376,20 @@ export default function VirtualSandbox() {
                   const street = board.split(' ').filter(Boolean).length === 0 ? 'preflop'
                     : board.split(' ').filter(Boolean).length <= 3 ? 'flop'
                     : board.split(' ').filter(Boolean).length === 4 ? 'turn' : 'river';
-=======
-              {/* Train This Spot — full mapper deep-link with hand context */}
-              <button
-                onClick={() => {
-                  // Build rich context from the current sandbox scenario
-                  const hand = `${heroHand.card1 || ''}${heroHand.card2 || ''}`;
-                  const board = communityCards.filter(Boolean).join(' ');
-                  const street = board.split(' ').length === 0 ? 'preflop'
-                    : board.split(' ').length <= 3 ? 'flop'
-                    : board.split(' ').length === 4 ? 'turn' : 'river';
-                  // Derive intelligent tags from the scenario
->>>>>>> Stashed changes
                   const tags = [
                     heroPosition?.toLowerCase(),
                     street,
                     gameType?.toLowerCase(),
                     parseFloat(heroStack) < 20 ? 'short stack' : null,
                     parseFloat(heroStack) < 20 ? 'push fold' : null,
-<<<<<<< Updated upstream
                   ].filter(Boolean);
                   const title = `${heroPosition || 'Hero'} vs ${board || 'Preflop'} — ${gameType || 'NLH'}`;
                   const ctx = {
-=======
-                  ].filter(Boolean).join(',');
-                  const title = `${heroPosition} vs ${board || 'Preflop'} — ${gameType || 'NLH'}`;
-                  const params = new URLSearchParams({
->>>>>>> Stashed changes
                     ref: 'sandbox',
                     vid: hand || 'sandbox',
                     title: title.slice(0, 80),
                     source: 'Sandbox',
                     tags,
-<<<<<<< Updated upstream
                   };
                   const gameIds = findBestGames(ctx);
                   // Lazy-load to avoid Webpack circular initialization
@@ -2422,10 +2402,6 @@ export default function VirtualSandbox() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ ref: 'sandbox', vid: ctx.vid, title: ctx.title, source: 'Sandbox', tags, matchedGameIds: gameIds.slice(0, 3) }),
                   }).catch(() => {});
-=======
-                  });
-                  router.push(`/hub/training?${params.toString()}`);
->>>>>>> Stashed changes
                 }}
                 style={{
                   width: '100%', padding: '10px', borderRadius: '8px', fontSize: '12px',
@@ -2642,7 +2618,6 @@ export default function VirtualSandbox() {
           0%, 100% { box-shadow: 0 0 8px rgba(0,200,83,0.15); border-color: rgba(0,200,83,0.5); }
           50%       { box-shadow: 0 0 20px rgba(0,200,83,0.5); border-color: rgba(0,200,83,0.9); }
         }
-<<<<<<< Updated upstream
       `}</style>
       {/* ── Train This Spot In-Place Overlay ── */}
       {ttsOverlay && (
@@ -2707,8 +2682,6 @@ export default function VirtualSandbox() {
           from { transform: translateY(100%); opacity: 0.7; }
           to { transform: translateY(0); opacity: 1; }
         }
-=======
->>>>>>> Stashed changes
       `}</style>
     </div >
   );
