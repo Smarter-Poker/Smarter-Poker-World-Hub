@@ -222,6 +222,7 @@ function _uploadWithTus(file, meta, mimeType) {
         let maxPctReached = _progress || 0;
         const cleanMime = (mimeType || '').split(';')[0].trim() || 'video/mp4';
 
+<<<<<<< Updated upstream
         // ── Auth headers ──────────────────────────────────────────────────────
         // Supabase TUS requires BOTH:
         //   1. Authorization: Bearer {user-jwt}
@@ -242,6 +243,16 @@ function _uploadWithTus(file, meta, mimeType) {
             removeFingerprintOnSuccess: true,
             // NOTE: storeFingerprintForResuming intentionally omitted.
             // Stale fingerprints from previous failed uploads cause silent 7-8% stall.
+=======
+        const upload = new tus.Upload(file, {
+            endpoint: meta.tusEndpoint,
+            chunkSize: TUS_CHUNK_SIZE,
+            retryDelays: [0, 3000, 8000, 15000], // auto-retry on transient errors
+            // fingerprint persists the TUS upload URL so a tab refresh can resume
+            fingerprint: (f) => Promise.resolve(`${TUS_URL_KEY_PREFIX}${f.name}_${f.size}_${f.lastModified}`),
+            storeFingerprintForResuming: true,
+            removeFingerprintOnSuccess: true, // tus cleans up stored URL when upload completes
+>>>>>>> Stashed changes
             metadata: {
                 bucketName: meta.bucket,
                 objectName: meta.path,
@@ -277,6 +288,10 @@ function _uploadWithTus(file, meta, mimeType) {
             },
             onSuccess: () => {
                 _activeXhr = null;
+<<<<<<< Updated upstream
+=======
+                // tus-js-client removes the stored fingerprint automatically (removeFingerprintOnSuccess: true)
+>>>>>>> Stashed changes
                 resolve(null);
             },
             onError: (err) => {

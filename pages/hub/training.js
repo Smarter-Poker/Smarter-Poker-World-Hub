@@ -1000,6 +1000,7 @@ export default function TrainingPage() {
         if (!router.isReady) return;
         const ctx = getVideoContext(router.query);
         // Accept deep-links from all training sources: video-library, reels, sandbox
+<<<<<<< Updated upstream
         const VALID_REFS = ['video-library', 'reels', 'sandbox'];
         if (!VALID_REFS.includes(ctx.ref) || !ctx.vid) return;
 
@@ -1015,6 +1016,22 @@ export default function TrainingPage() {
         // Clean URL without triggering re-render
         if (typeof window !== 'undefined') {
             window.history.replaceState({}, '', '/hub/training');
+=======
+        const validRefs = ['video-library', 'reels', 'sandbox'];
+        if (validRefs.includes(ctx.ref) && ctx.vid) {
+            setVideoContext(ctx);
+            const gameIds = findBestGames(ctx);
+            const games = gameIds
+                .map(id => getGameById(id))
+                .filter(Boolean)
+                .slice(0, 3);
+            setVideoMatchedGames(games);
+            setShowVideoContextModal(true);
+            // Clean URL without triggering re-render
+            if (typeof window !== 'undefined') {
+                window.history.replaceState({}, '', '/hub/training');
+            }
+>>>>>>> Stashed changes
         }
 
         // Fire analytics (fire-and-forget — never blocks the user)

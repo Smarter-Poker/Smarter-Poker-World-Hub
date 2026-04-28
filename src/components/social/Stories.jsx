@@ -155,7 +155,7 @@ function StoryAvatar({ story, onClick, isOwn, hasStory, onCreateStory, isLive })
                     {isLive && (
                         <div style={{
                             position: 'absolute', bottom: -4, left: '50%', transform: 'translateX(-50%)',
-                            background: '#FA383E', color: 'white',
+                            background: '#0066FF', color: 'white',
                             padding: '2px 6px', borderRadius: 4,
                             fontSize: 10, fontWeight: 700,
                             border: '2px solid white',
@@ -181,7 +181,7 @@ function StoryAvatar({ story, onClick, isOwn, hasStory, onCreateStory, isLive })
 
             <span style={{
                 fontSize: 12,
-                color: isLive ? '#FA383E' : C.text,
+                color: isLive ? '#0066FF' : C.text,
                 fontWeight: isLive ? 700 : 400,
                 textAlign: 'center',
                 maxWidth: 70,

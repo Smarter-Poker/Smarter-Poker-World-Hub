@@ -88,6 +88,16 @@ export default function LivesPage() {
         fetchStreams();
     }, [fetchStreams]);
 
+    // Handle ?id= deep link — jump to specific stream after load
+    useEffect(() => {
+        if (!router.isReady || !streams.length || !router.query.id) return;
+        const idx = streams.findIndex(s => s.id === router.query.id);
+        if (idx !== -1) {
+            setCurrentIndex(idx);
+            router.replace('/hub/lives', undefined, { shallow: true });
+        }
+    }, [streams, router.isReady, router.query.id]);
+
     // Handle swipe navigation
     const handleTouchStart = (e) => {
         setTouchStart(e.touches[0].clientY);

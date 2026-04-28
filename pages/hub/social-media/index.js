@@ -4808,7 +4808,25 @@ function SocialMediaPage() {
                 } catch (e) { console.warn('Referral follow error:', e); }
             })();
         }
-    }, [user, router.query.createPage, router.query.ref, router.query.viewPage]);
+        // Handle ?stream=<streamId> query param (from go-live notifications)
+        if (router.query.stream && user) {
+            const streamId = router.query.stream;
+            (async () => {
+                try {
+                    const { data: streamData } = await supabase
+                        .from('live_streams')
+                        .select('*, profiles!broadcaster_id(username, avatar_url)')
+                        .eq('id', streamId)
+                        .eq('status', 'live')
+                        .maybeSingle();
+                    if (streamData) {
+                        setWatchingStream(streamData);
+                    }
+                } catch (e) { console.warn('[stream param] failed:', e); }
+                router.replace('/hub/social-media', undefined, { shallow: true });
+            })();
+        }
+    }, [user, router.query.createPage, router.query.ref, router.query.viewPage, router.query.stream]);
 
     //  REFRESH NOTIFICATIONS when modal opens — always show latest data
     useEffect(() => {
