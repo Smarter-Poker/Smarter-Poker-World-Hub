@@ -687,12 +687,14 @@ const bgUpload = {
                 progress: _progress,
             });
 
-            // Show persistent "uploading in background" toast (stays until upload completes)
+            // Show brief "uploading in background" toast — auto-dismisses after 4s
+            // The ghost post card in the feed shows live upload progress, so persistent
+            // toast is unnecessary and annoying.
             _bgToastId = toast.action(
                 'Upload Is Running In The Background — Do Not Close This App Until Upload Is Completed',
                 null,    // no click action
                 'info',  // toast type
-                // No duration = persistent, auto-removed when upload completes or errors
+                4000,    // auto-dismiss after 4 seconds
             );
         }, bgAfterMs);
 
