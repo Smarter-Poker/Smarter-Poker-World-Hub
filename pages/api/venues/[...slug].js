@@ -17,18 +17,11 @@
  *   = 242 LOC of boilerplate, now ~190 LOC with shared middleware.
  *
  * Auth pattern note (vs calls/* pilot):
-<<<<<<< Updated upstream
  *   These handlers use `getServerUserWithFallback(req, supabase)` from
  *   `src/lib/serverAuth.js` — local HMAC verify first (Web Crypto, post-4.1d
  *   ESM-clean) with GoTrue network fallback if JWT secret missing. This is
  *   distinct from a direct `supabase.auth.getUser(token)` call and matches
  *   the post-4.1d ESM-clean pattern.
-=======
- *   These handlers use `getServerUserWithFallback(req, supabase)` instead of
- *   direct `supabase.auth.getUser(token)`. The fallback path does local HMAC
- *   verify before falling back to GoTrue network call, matching the post-4.1d
- *   ESM-clean pattern.
->>>>>>> Stashed changes
  */
 
 import { Hono } from 'hono';
