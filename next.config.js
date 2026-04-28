@@ -119,7 +119,7 @@ const nextConfig = {
   // Next.js 14 loads ESM packages without transpilation. Keeping the three
   // R3F wrappers because they DO need transpilation (CJS consumers otherwise
   // hit "Cannot use import statement outside a module").
-  transpilePackages: ['@react-three/fiber', '@react-three/drei', '@react-three/postprocessing'],
+  transpilePackages: ['@react-three/fiber', '@react-three/drei', '@react-three/postprocessing', '@smarter-poker/commander-shared'],
 
   // ─── Build Memory Optimization ──────────────────────────────────────────────
   // With 950+ pages, the build needs memory-efficient compilation.
