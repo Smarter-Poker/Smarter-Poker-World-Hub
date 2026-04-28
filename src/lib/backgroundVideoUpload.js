@@ -216,7 +216,7 @@ async function _fetchUploadMeta(file, userId, folder) {
  * @param {string} mimeType
  * @returns {Promise<null>}  resolves on success; caller uses the publicUrl from meta
  */
-    function _uploadWithTus(file, meta, mimeType) {
+function _uploadWithTus(file, meta, mimeType) {
     return new Promise((resolve, reject) => {
         _uploadStartTime = Date.now();
         let maxPctReached = _progress || 0;
