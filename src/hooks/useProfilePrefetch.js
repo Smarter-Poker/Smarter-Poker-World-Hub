@@ -66,8 +66,8 @@ export function prefetchProfile(userId, username) {
             // Two-direction friend queries (matches Friends API pattern exactly)
             supabase.from('friendships').select('friend_id').eq('user_id', userId).eq('status', 'accepted'),
             supabase.from('friendships').select('user_id').eq('friend_id', userId).eq('status', 'accepted'),
-            supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', userId),
-            supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', userId),
+            supabase.from('social_follows').select('*', { count: 'exact', head: true }).eq('follower_id', userId),
+            supabase.from('social_follows').select('*', { count: 'exact', head: true }).eq('following_id', userId),
         ])).then(([profileRes, sentFriendsRes, receivedFriendsRes, followingCount, followersCount]) => {
             if (!profileRes.data) return;
             try {

@@ -217,7 +217,7 @@ export function ReelsViewer({ onClose }) {
             Promise.all([
                 supabase.from('social_likes').select('post_id, reaction_type').eq('user_id', user.id).in('reaction_type', ['like', 'dislike']),
                 supabase.from('social_interactions').select('post_id').eq('user_id', user.id).eq('interaction_type', 'bookmark'),
-                supabase.from('follows').select('following_id').eq('follower_id', user.id),
+                supabase.from('social_follows').select('following_id').eq('follower_id', user.id),
             ]).then(([likesRes, bookmarksRes, followsRes]) => {
                 if (likesRes.data) {
                     const likeMap = {}, dislikeMap = {};
@@ -467,9 +467,9 @@ export function ReelsViewer({ onClose }) {
         haptic(wasFollowing ? 5 : 15);
         try {
             if (wasFollowing) {
-                await supabase.from('follows').delete().eq('follower_id', currentUserId).eq('following_id', authorId);
+                await supabase.from('social_follows').delete().eq('follower_id', currentUserId).eq('following_id', authorId);
             } else {
-                await supabase.from('follows').insert({ follower_id: currentUserId, following_id: authorId });
+                await supabase.from('social_follows').insert({ follower_id: currentUserId, following_id: authorId });
             }
             busEmit.socialFollowChanged && busEmit.socialFollowChanged(authorId, currentUserId, { added: !wasFollowing });
         } catch {

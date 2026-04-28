@@ -190,6 +190,13 @@ export const EnhancedPostCreator = ({
   const _pickerOpenRef = useRef(false);  // tracks if iOS file picker is open
   const [thumbnails, setThumbnails] = useState({});
 
+  // Auto-dismiss error after 10 seconds
+  useEffect(() => {
+    if (!error) return;
+    const timer = setTimeout(() => setError(null), 10_000);
+    return () => clearTimeout(timer);
+  }, [error]);
+
   // Stable file key — survives array index shifts when files are removed
   const _fileKey = (f) => `${f.name}_${f.size}_${f.lastModified}`;
 
@@ -885,7 +892,16 @@ export const EnhancedPostCreator = ({
         )}
 
         {/* Error */}
-        {error && <div className="error-inline">⚠️ {error}</div>}
+        {error && (
+          <div className="error-inline">
+            <span>⚠️ {error}</span>
+            <button
+              className="error-dismiss-btn"
+              onClick={() => setError(null)}
+              aria-label="Dismiss error"
+            >×</button>
+          </div>
+        )}
 
         {/* Divider */}
         {preparingMedia && (
@@ -1034,10 +1050,26 @@ export const EnhancedPostCreator = ({
           }
 
           .error-inline {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
             color: #DC2626;
             font-size: 14px;
             padding: 8px 0;
           }
+          .error-inline .error-dismiss-btn {
+            flex-shrink: 0;
+            background: none;
+            border: none;
+            color: #DC2626;
+            font-size: 18px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0 2px;
+            opacity: 0.7;
+          }
+          .error-inline .error-dismiss-btn:hover { opacity: 1; }
 
           .inline-divider {
             height: 1px;
@@ -1240,7 +1272,12 @@ export const EnhancedPostCreator = ({
         {/* Error Message */}
         {error && (
           <div className="error-message">
-            ⚠️ {error}
+            <span>⚠️ {error}</span>
+            <button
+              className="error-dismiss-btn"
+              onClick={() => setError(null)}
+              aria-label="Dismiss error"
+            >×</button>
           </div>
         )}
 
@@ -1690,6 +1727,10 @@ export const EnhancedPostCreator = ({
         
         /* Error */
         .error-message {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
           margin: 0 20px 16px;
           padding: 12px;
           background: rgba(255, 68, 68, 0.1);
@@ -1698,6 +1739,18 @@ export const EnhancedPostCreator = ({
           color: #FF6B6B;
           font-size: 0.9rem;
         }
+        .error-message .error-dismiss-btn {
+          flex-shrink: 0;
+          background: none;
+          border: none;
+          color: #FF6B6B;
+          font-size: 20px;
+          line-height: 1;
+          cursor: pointer;
+          padding: 0 2px;
+          opacity: 0.7;
+        }
+        .error-message .error-dismiss-btn:hover { opacity: 1; }
         
         /* Actions */
         .creator-actions {

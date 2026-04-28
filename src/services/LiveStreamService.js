@@ -126,7 +126,7 @@ class LiveStreamService {
 
             // Get all followers of this user
             const { data: followers, error } = await supabase
-                .from('follows')
+                .from('social_follows')
                 .select('follower_id')
                 .eq('following_id', userId);
 
