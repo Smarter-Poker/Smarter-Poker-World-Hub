@@ -55,3 +55,4 @@ All responses include 5 hardened security headers (configured in `vercel.json`):
 ## CODEOWNERS
 
 Critical paths (CI, security, API routes) require admin review — see `.github/CODEOWNERS`.
+
