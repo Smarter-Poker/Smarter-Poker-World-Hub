@@ -82,7 +82,7 @@ BRAVO_LOGIN_URL = 'https://www.bravopokerlive.com/login/'
 # in .env.local as backup accounts. Daemon cycles to the next on login failure.
 # Create each backup account through the proxy (different IP) to avoid IP-linking.
 _cred_pool_raw = [
-    (os.environ.get('BRAVO_EMAIL',   'danbek4545@gmail.com'), os.environ.get('BRAVO_PASS')),
+    (os.environ.get('BRAVO_EMAIL'), os.environ.get('BRAVO_PASS')),
     (os.environ.get('BRAVO_EMAIL_2'), os.environ.get('BRAVO_PASS_2')),
     (os.environ.get('BRAVO_EMAIL_3'), os.environ.get('BRAVO_PASS_3')),
 ]
