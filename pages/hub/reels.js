@@ -235,7 +235,7 @@ export default function ReelsPage() {
 
                 // Pre-fetch follows
                 const { data: followData } = await supabase
-                    .from('follows')
+                    .from('social_follows')
                     .select('following_id')
                     .eq('follower_id', authUser.id);
                 if (followData) {
@@ -779,10 +779,10 @@ export default function ReelsPage() {
         haptic(wasFollowing ? 5 : 15);
         try {
             if (wasFollowing) {
-                await supabase.from('follows').delete()
+                await supabase.from('social_follows').delete()
                     .eq('follower_id', user.id).eq('following_id', authorId);
             } else {
-                await supabase.from('follows').insert({
+                await supabase.from('social_follows').insert({
                     follower_id: user.id, following_id: authorId
                 });
             }

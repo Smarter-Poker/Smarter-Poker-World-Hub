@@ -516,7 +516,7 @@ function NotificationsPage() {
                 supabase.from('friendships').delete().eq('user_id', requesterId).eq('friend_id', user.id).eq('status', 'pending').then().catch(e => console.warn('Exception:', e));
             }
 
-            supabase.from('follows').upsert({ follower_id: requesterId, following_id: user.id, source: 'declined_friend_request' }, { onConflict: 'follower_id,following_id' }).then().catch(e => console.warn('Exception:', e));
+            supabase.from('social_follows').upsert({ follower_id: requesterId, following_id: user.id }, { onConflict: 'follower_id,following_id' }).then().catch(e => console.warn('Exception:', e));
             // BUG-FIX: Removed mutation of notification type/message in DB.
             // Only mark as read — do not change type from 'friend_request' to 'new_follow'.
             supabase.from('notifications').update({ read: true }).eq('id', notification.id).then().catch(e => console.warn('Exception:', e));

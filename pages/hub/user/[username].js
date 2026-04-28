@@ -723,6 +723,7 @@ export default function UserProfilePage() {
     const [photos, setPhotos] = useState([]);
     const [videos, setVideos] = useState([]);
     const [reels, setReels] = useState([]);
+    const [pastLives, setPastLives] = useState([]);
     const [isPosting, setIsPosting] = useState(false);
     const [horseProfileIds, setHorseProfileIds] = useState(new Set());
     const [postContent, setPostContent] = useState('');
@@ -1043,8 +1044,8 @@ export default function UserProfilePage() {
                     supabase.from('friendships').select('friend_id').eq('user_id', data.id).eq('status', 'accepted'),
                     // Query 2: friendships where profile is the receiver
                     supabase.from('friendships').select('user_id').eq('friend_id', data.id).eq('status', 'accepted'),
-                    supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', data.id),
-                    supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', data.id),
+                    supabase.from('social_follows').select('*', { count: 'exact', head: true }).eq('follower_id', data.id),
+                    supabase.from('social_follows').select('*', { count: 'exact', head: true }).eq('following_id', data.id),
                     supabase.from('social_posts').select('*', { count: 'exact', head: true }).eq('author_id', data.id),
                 ];
 
@@ -1057,7 +1058,7 @@ export default function UserProfilePage() {
                         supabase.from('friendships').select('friend_id').eq('user_id', user.id).eq('status', 'accepted'),
                         supabase.from('friendships').select('user_id').eq('friend_id', user.id).eq('status', 'accepted'),
                         // Follow check
-                        supabase.from('follows').select('id').eq('follower_id', user.id).eq('following_id', data.id).maybeSingle()
+                        supabase.from('social_follows').select('id').eq('follower_id', user.id).eq('following_id', data.id).maybeSingle()
                     );
                 }
 
@@ -1146,9 +1147,11 @@ export default function UserProfilePage() {
                     supabase.from('social_posts').select('id, media_urls, content, created_at, content_type').eq('author_id', data.id).eq('content_type', 'video').not('media_urls', 'is', null).order('created_at', { ascending: false }).limit(30),
                     // Reels
                     supabase.from('social_reels').select('id, video_url, caption, thumbnail_url, view_count, created_at').eq('author_id', data.id).order('created_at', { ascending: false }).limit(30),
+                    // Past Lives (posted recordings only)
+                    supabase.from('live_streams').select('id, title, video_url, thumbnail_url, viewer_count, created_at').eq('broadcaster_id', data.id).eq('status', 'ended').eq('is_posted', true).not('video_url', 'is', null).order('created_at', { ascending: false }).limit(20),
                 ];
 
-                const [postsData, photosData, videosData, reelsData] = await Promise.all(contentPromises);
+                const [postsData, photosData, videosData, reelsData, livesData] = await Promise.all(contentPromises);
 
                 const userPosts = postsData.data || [];
                 setPosts(userPosts);
@@ -1168,6 +1171,9 @@ export default function UserProfilePage() {
 
                 const userReels = reelsData.data || [];
                 setReels(userReels);
+
+                const userLives = livesData?.data || [];
+                setPastLives(userLives);
 
                 // Fetch poker activity (fire-and-forget, non-blocking)
                 let anonUid = null;
@@ -1248,8 +1254,8 @@ export default function UserProfilePage() {
                     const [postsData, postsCountRes, followingRes, followersRes, sentFriendsRes, receivedFriendsRes] = await Promise.all([
                         supabase.from('social_posts').select('*').eq('author_id', profile.id).order('created_at', { ascending: false }).limit(20),
                         supabase.from('social_posts').select('*', { count: 'exact', head: true }).eq('author_id', profile.id),
-                        supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', profile.id),
-                        supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', profile.id),
+                        supabase.from('social_follows').select('*', { count: 'exact', head: true }).eq('follower_id', profile.id),
+                        supabase.from('social_follows').select('*', { count: 'exact', head: true }).eq('following_id', profile.id),
                         // Two-direction friend count (matches Friends API)
                         supabase.from('friendships').select('friend_id').eq('user_id', profile.id).eq('status', 'accepted'),
                         supabase.from('friendships').select('user_id').eq('friend_id', profile.id).eq('status', 'accepted'),
@@ -1295,7 +1301,7 @@ export default function UserProfilePage() {
         const _ch = supabase
             .channel(`user-profile:${profile.id}`)
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_posts', filter: `author_id=eq.${profile.id}` }, handleRealtimeUpdate)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'follows' }, handleRealtimeUpdate)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'social_follows' }, handleRealtimeUpdate)
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'friendships', filter: `friend_id=eq.${profile.id}` }, handleRealtimeUpdate)
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'friendships', filter: `user_id=eq.${profile.id}` }, handleRealtimeUpdate)
             .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'friendships' }, handleRealtimeUpdate)
@@ -1413,12 +1419,12 @@ export default function UserProfilePage() {
         }));
         try {
             if (wasFollowing) {
-                const { error } = await supabase.from('follows').delete()
+                const { error } = await supabase.from('social_follows').delete()
                     .eq('follower_id', currentUser.id)
                     .eq('following_id', profile.id);
                 if (error) throw error;
             } else {
-                const { error } = await supabase.from('follows').insert({
+                const { error } = await supabase.from('social_follows').insert({
                     follower_id: currentUser.id,
                     following_id: profile.id
                 });
@@ -2079,7 +2085,7 @@ export default function UserProfilePage() {
                     position: 'sticky', top: 0, zIndex: 50,
                     boxShadow: '0 2px 4px rgba(0,0,0,0.04)',
                 }}>
-                    {['all', 'poker', 'photos', 'videos', 'reels'].map(tab => (
+                    {['all', 'poker', 'photos', 'videos', 'reels', 'lives'].map(tab => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
@@ -2766,6 +2772,45 @@ export default function UserProfilePage() {
                                     </p>
                                     {isOwnProfile && (
                                         <Link href="/hub/social-media" style={{ display: 'inline-block', padding: '8px 20px', background: C.blue, color: 'white', borderRadius: 8, fontWeight: 600, fontSize: 13, textDecoration: 'none' }}>Create a Reel</Link>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    {/* LIVES TAB */}
+                    {activeTab === 'lives' && (
+                        <div>
+                            <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 700, color: C.text }}>Past Lives</h3>
+                            {pastLives.length > 0 ? (
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+                                    {pastLives.map(live => (
+                                        <Link key={live.id} href={`/hub/lives?id=${live.id}`} style={{ textDecoration: 'none' }}>
+                                            <div style={{ borderRadius: 12, overflow: 'hidden', background: '#000', position: 'relative', aspectRatio: '16/9' }}>
+                                                {live.thumbnail_url ? (
+                                                    <img src={live.thumbnail_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={live.title} loading="lazy" />
+                                                ) : (
+                                                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.5)', fontSize: 36 }}>📺</div>
+                                                )}
+                                                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '24px 10px 8px', background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)' }}>
+                                                    <div style={{ color: 'white', fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{live.title || 'Live Replay'}</div>
+                                                    <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11, marginTop: 2 }}>👁 {live.viewer_count || 0} · {new Date(live.created_at).toLocaleDateString()}</div>
+                                                </div>
+                                                <div style={{ position: 'absolute', top: 8, left: 8, background: '#FA383E', color: 'white', fontSize: 10, fontWeight: 700, padding: '3px 7px', borderRadius: 4 }}>LIVE</div>
+                                            </div>
+                                        </Link>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div style={{ background: C.card, borderRadius: 12, padding: 40, textAlign: 'center', color: C.textSec }}>
+                                    <div style={{ fontSize: 40, marginBottom: 12 }}>🔴</div>
+                                    <p style={{ fontWeight: 600, fontSize: 16, margin: '0 0 4px', color: C.text }}>
+                                        {isOwnProfile ? 'No Past Lives Yet' : 'No Past Lives'}
+                                    </p>
+                                    <p style={{ fontSize: 13, margin: '0 0 12px' }}>
+                                        {isOwnProfile ? 'Go live and post the replay to see it here.' : `${displayName} hasn't posted any live replays.`}
+                                    </p>
+                                    {isOwnProfile && (
+                                        <Link href="/hub/social-media" style={{ display: 'inline-block', padding: '8px 20px', background: '#FA383E', color: 'white', borderRadius: 8, fontWeight: 600, fontSize: 13, textDecoration: 'none' }}>Go Live</Link>
                                     )}
                                 </div>
                             )}

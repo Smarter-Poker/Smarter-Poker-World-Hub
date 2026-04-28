@@ -136,45 +136,23 @@ export default async function handler(req, res) {
               ? [folder || 'stories', prefix, `${timestamp}_${safeName}`].filter(Boolean).join('/')
               : [(isVideo ? (folder || 'videos') : isAudio ? (folder || 'audio') : (folder || 'photos')), prefix, `${timestamp}_${safeName}`].filter(Boolean).join('/');
 
-          // Create signed upload URL (one-time use, expires in 5 minutes)
-          const { data, error: signError } = await getSupabase().storage
-              .from(BUCKET)
-              .createSignedUploadUrl(storagePath);
-
-          if (signError) {
-              console.warn('[Upload-URL API] Signed URL error:', signError.message);
-              return res.status(500).json({ success: false, error: 'Failed to create upload URL: ' + signError.message });
-          }
-
-          // Build the full absolute PUT URL.
-          // createSignedUploadUrl returns data.signedUrl as a relative path like
-          // "/object/upload/sign/bucket/path?token=..." — the client must PUT to
-          // the full Supabase Storage URL, not the app origin.
-          const rawSignedPath = data.signedUrl; // may already be absolute or relative
-          const fullSignedUrl = rawSignedPath.startsWith('http')
-              ? rawSignedPath
-              : `${supabaseUrl}/storage/v1${rawSignedPath}`;
-
           // Get the public URL for after upload completes
           const { data: urlData } = getSupabase().storage.from(BUCKET).getPublicUrl(storagePath);
           const publicUrl = urlData?.publicUrl;
 
-          // TUS resumable upload endpoint — Supabase Storage supports TUS out of the box.
-          // IMPORTANT: Use direct storage hostname (PROJECT.storage.supabase.co) NOT the API
-          // gateway (PROJECT.supabase.co) — per Supabase docs this is required for large files.
-          // Direct storage bypasses the API gateway and routes directly to the storage service.
+          // TUS resumable upload endpoint — direct storage hostname required for large files.
+          // Client creates TUS session using its own JWT (blanket authenticated INSERT policy allows it).
+          // 6MB chunks bypass gateway timeouts entirely.
           const tusEndpoint = supabaseUrl.includes('.supabase.co')
               ? supabaseUrl.replace('.supabase.co', '.storage.supabase.co') + '/storage/v1/upload/resumable'
               : `${supabaseUrl}/storage/v1/upload/resumable`;
 
           return res.status(200).json({
               success: true,
-              signedUrl: fullSignedUrl,
-              token: data.token,
+              tusEndpoint,
               path: storagePath,
               publicUrl,
               type: isVideo ? 'video' : isAudio ? 'audio' : 'photo',
-              tusEndpoint,
               bucket: BUCKET,
           });
 

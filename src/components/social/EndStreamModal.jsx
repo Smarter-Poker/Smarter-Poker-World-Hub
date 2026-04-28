@@ -97,6 +97,7 @@ export function EndStreamModal({
                 content: caption || '🔴 Live replay',
                 content_type: 'video',
                 media_urls: [videoUrl],
+                thumbnail_url: thumbnailUrl || null,
                 visibility: 'public'
             });
 

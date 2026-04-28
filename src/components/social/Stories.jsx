@@ -225,6 +225,18 @@ export function StoriesBar({ userId, userAvatar, onCreateStory }) {
         }
     };
 
+    // Realtime: refresh live badges when any stream goes live or ends
+    useEffect(() => {
+        if (!userId) return;
+        const ch = supabase
+            .channel('stories-live-monitor')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'live_streams' }, () => {
+                loadLiveUsers();
+            })
+            .subscribe();
+        return () => { supabase.removeChannel(ch); };
+    }, [userId]);
+
     const loadStories = async () => {
         console.debug('[Stories] Loading stories for userId:', userId);
         setLoading(true);

@@ -1214,13 +1214,13 @@ export default function VideoLibraryPage() {
                                                     src={source.logo}
                                                     alt={source.name}
                                                     style={{
-                                                        width: source.logo.endsWith('.jpg') ? '100%' : '92%',
-                                                        height: source.logo.endsWith('.jpg') ? '100%' : '92%',
-                                                        objectFit: source.logo.endsWith('.jpg') ? 'cover' : 'contain',
-                                                        borderRadius: source.logo.endsWith('.jpg') ? 13 : 0,
+                                                        width: '100%',
+                                                        height: '100%',
+                                                        objectFit: 'cover',
+                                                        borderRadius: 0,
                                                         filter: isActive
                                                             ? 'brightness(1.1) drop-shadow(0 0 8px rgba(255,80,80,0.7))'
-                                                            : 'brightness(0.9) saturate(0.95)',
+                                                            : 'brightness(1) saturate(1)',
                                                         transition: 'filter 0.25s',
                                                     }}
                                                     loading="lazy"

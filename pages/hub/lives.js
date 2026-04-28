@@ -66,6 +66,7 @@ export default function LivesPage() {
                 .from('live_streams')
                 .select('*, profiles!broadcaster_id(username, avatar_url, full_name)')
                 .eq('status', 'ended')
+                .eq('is_posted', true)
                 .not('video_url', 'is', null)
                 .order('created_at', { ascending: false })
                 .limit(50);

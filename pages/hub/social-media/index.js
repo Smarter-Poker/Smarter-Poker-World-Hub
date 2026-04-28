@@ -4928,7 +4928,7 @@ function SocialMediaPage() {
                 try {
                     const [{ data: friendships }, { data: follows }] = await Promise.all([
                         supabase.from('friendships').select('user_id, friend_id').or(`user_id.eq.${authUserId},friend_id.eq.${authUserId}`).eq('status', 'accepted'),
-                        supabase.from('follows').select('following_id').eq('follower_id', authUserId),
+                        supabase.from('social_follows').select('following_id').eq('follower_id', authUserId),
                     ]);
                     if (friendships) friendIds = [...new Set(friendships.map(f => f.user_id === authUserId ? f.friend_id : f.user_id))];
                     if (follows) followingIds = follows.map(f => f.following_id);
@@ -6715,10 +6715,12 @@ function SocialMediaPage() {
                 {/* Go Live Modal */}
                 <GoLiveModal
                     isOpen={showGoLiveModal}
-                    onClose={() => {
+                    onClose={(action) => {
                         setShowGoLiveModal(false);
-                        // Refresh live streams after closing
-                        LiveStreamService.getLiveStreams().then(setLiveStreams).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+                        LiveStreamService.getLiveStreams()
+                            .then(streams => setLiveStreams(streams || []))
+                            .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+                        if (action === 'posted') { fetchPosts?.(); }
                     }}
                     user={user}
                 />

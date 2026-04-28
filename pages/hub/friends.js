@@ -694,7 +694,7 @@ function FriendsPage() {
         setFollowingIds(prev => new Set([...prev, userId]));
 
         const { error } = await supabase
-            .from('follows')
+            .from('social_follows')
             .insert({ follower_id: user.id, following_id: userId, source: 'direct' });
 
         if (error) {
@@ -720,7 +720,7 @@ function FriendsPage() {
         setFollowingIds(prev => { const s = new Set(prev); s.delete(userId); return s; });
 
         const { error } = await supabase
-            .from('follows')
+            .from('social_follows')
             .delete()
             .eq('follower_id', user.id)
             .eq('following_id', userId);
@@ -831,10 +831,9 @@ function FriendsPage() {
 
         // Fire-and-forget DB updates
         supabase.from('friendships').delete().eq('id', request.id).then().catch(e => console.warn('[friends] Handled exception:', e));
-        supabase.from('follows').upsert({
+        supabase.from('social_follows').upsert({
             follower_id: request.user_id,
-            following_id: user.id,
-            source: 'declined_friend_request'
+            following_id: user.id
         }, { onConflict: 'follower_id,following_id' }).then().catch(e => console.warn('[friends] Handled exception:', e));
 
         actionInProgress.current = false;

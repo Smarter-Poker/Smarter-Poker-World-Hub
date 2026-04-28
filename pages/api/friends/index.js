@@ -115,7 +115,7 @@ export default async function handler(req, res) {
 
           // 5. Following — also use two-query approach
           const { data: followingRaw } = await getSupabase()
-            .from('follows')
+            .from('social_follows')
             .select('following_id')
             .eq('follower_id', userId)
             .limit(200);
@@ -124,7 +124,7 @@ export default async function handler(req, res) {
 
           // 6. Followers
           const { data: followerRaw } = await getSupabase()
-            .from('follows')
+            .from('social_follows')
             .select('follower_id')
             .eq('following_id', userId)
             .limit(200);
