@@ -809,7 +809,7 @@ export default function VideoLibraryPage() {
             pendingFlushRef.current = true;
             const watchedSeconds = Math.floor((Date.now() - watchStartTimeRef.current) / 1000);
             const video = currentWatchingVideoRef.current;
-            // Use sendBeacon for guaranteed delivery on page hide
+            // Fire-and-forget via service — if page is unloading, supabase will try its best
             if (watchedSeconds > 0) {
                 // Optimistic: reset refs immediately
                 watchStartTimeRef.current = null;
@@ -1214,12 +1214,13 @@ export default function VideoLibraryPage() {
                                                     src={source.logo}
                                                     alt={source.name}
                                                     style={{
-                                                        width: '80%',
-                                                        height: '80%',
-                                                        objectFit: 'contain',
+                                                        width: source.logo.endsWith('.jpg') ? '100%' : '92%',
+                                                        height: source.logo.endsWith('.jpg') ? '100%' : '92%',
+                                                        objectFit: source.logo.endsWith('.jpg') ? 'cover' : 'contain',
+                                                        borderRadius: source.logo.endsWith('.jpg') ? 13 : 0,
                                                         filter: isActive
-                                                            ? 'brightness(1.2) drop-shadow(0 0 8px rgba(255,80,80,0.7))'
-                                                            : 'brightness(0.85) saturate(0.9)',
+                                                            ? 'brightness(1.1) drop-shadow(0 0 8px rgba(255,80,80,0.7))'
+                                                            : 'brightness(0.9) saturate(0.95)',
                                                         transition: 'filter 0.25s',
                                                     }}
                                                     loading="lazy"
@@ -2002,6 +2003,7 @@ export default function VideoLibraryPage() {
                                 try {
                                     const win = e.target.contentWindow;
                                     win.postMessage(JSON.stringify({ event: 'listening' }), '*');
+
                                     iframeUnmuteTimers.current = [200, 600, 1200].map(d => setTimeout(() => {
                                         try {
                                             win.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');

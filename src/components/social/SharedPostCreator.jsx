@@ -10,7 +10,7 @@ import TrendingVenues from './TrendingVenues';
 import { SharedAvatar as Avatar } from './SharedAvatar';
 import { MAX_MEDIA, compressImage, getYouTubeVideoId, validateYouTubeVideo, sniffMimeType, SOCIAL_COLORS as C } from '../../../src/lib/socialHelpers';
 import bgUpload from '../../../src/lib/backgroundVideoUpload';
-import { validateVideoFile, generateThumbnail, compressVideo } from '../../../src/lib/videoCompressor';
+import { validateVideoFile, generateThumbnail, generateFrames, compressVideo } from '../../../src/lib/videoCompressor';
 import { uploadThumbnail } from '../../../src/lib/thumbnailUploader';
 
 
@@ -18,6 +18,10 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
     const [postVisibility, setPostVisibility] = useState('public');
     const [content, setContent] = useState('');
     const [media, setMedia] = useState([]);
+    const [thumbPickerIdx, setThumbPickerIdx] = useState(null); // index of video whose thumbnail picker is open
+    const [thumbFrames, setThumbFrames] = useState([]);          // filmstrip frames for open picker
+    const [thumbFramesLoading, setThumbFramesLoading] = useState(false);
+    const thumbFileInputRef = useRef(null);
     const [uploading, setUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(null); // null | { pct: number, label: string }
     const [error, setError] = useState('');
@@ -997,10 +1001,103 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                                         VIDEO
                                     </div>
                                 )}
+                                {/* ── Thumbnail picker trigger (videos only) ── */}
+                                {m.type === 'video' && !m._previewing && (
+                                    <button
+                                        onClick={() => {
+                                            if (thumbPickerIdx === i) {
+                                                setThumbPickerIdx(null);
+                                                return;
+                                            }
+                                            setThumbPickerIdx(i);
+                                            setThumbFrames([]);
+                                            setThumbFramesLoading(true);
+                                            generateFrames(m.file, 6).then(frames => {
+                                                setThumbFrames(frames);
+                                                setThumbFramesLoading(false);
+                                            });
+                                        }}
+                                        style={{
+                                            position: 'absolute', bottom: 4, right: 4,
+                                            background: 'rgba(0,0,0,0.75)', border: '1px solid rgba(255,255,255,0.3)',
+                                            color: 'white', borderRadius: 6, padding: '3px 8px',
+                                            fontSize: 11, cursor: 'pointer', backdropFilter: 'blur(4px)',
+                                            display: 'flex', alignItems: 'center', gap: 4,
+                                        }}
+                                    >
+                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+                                        Thumbnail
+                                    </button>
+                                )}
                             </div>
                         ))}
                     </div>
-                    <div style={{ fontSize: 12, color: C.textSec, marginTop: 4 }}>{media.length}/{MAX_MEDIA} files</div>
+                    {/* ── Thumbnail Picker Panel ── */}
+                    {thumbPickerIdx !== null && media[thumbPickerIdx]?.type === 'video' && (
+                        <div style={{
+                            margin: '8px 0 0', background: 'rgba(0,0,0,0.85)',
+                            borderRadius: 10, padding: '10px 12px', border: '1px solid rgba(255,255,255,0.12)',
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                                <span style={{ color: 'white', fontSize: 13, fontWeight: 600 }}>Choose Thumbnail</span>
+                                <button onClick={() => setThumbPickerIdx(null)}
+                                    style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>×</button>
+                            </div>
+                            {/* Frame filmstrip */}
+                            {thumbFramesLoading ? (
+                                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, textAlign: 'center', padding: '12px 0' }}>Extracting frames…</div>
+                            ) : (
+                                <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4 }}>
+                                    {thumbFrames.map((f, fi) => f.dataUrl && (
+                                        <div key={fi}
+                                            onClick={() => {
+                                                setMedia(prev => prev.map((item, idx) => idx === thumbPickerIdx ? { ...item, thumbnail: f.dataUrl } : item));
+                                                setThumbPickerIdx(null);
+                                            }}
+                                            style={{
+                                                flexShrink: 0, width: 80, height: 52, borderRadius: 6, overflow: 'hidden',
+                                                cursor: 'pointer', border: media[thumbPickerIdx]?.thumbnail === f.dataUrl ? '2px solid #4f9eff' : '2px solid transparent',
+                                                transition: 'border-color 0.15s',
+                                            }}
+                                        >
+                                            <img src={f.dataUrl} alt={`Frame ${fi + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            {/* Upload custom thumbnail */}
+                            <div style={{ marginTop: 8, borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 8 }}>
+                                <input
+                                    ref={thumbFileInputRef}
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    style={{ display: 'none' }}
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+                                        const reader = new FileReader();
+                                        reader.onload = (ev) => {
+                                            setMedia(prev => prev.map((item, idx) => idx === thumbPickerIdx ? { ...item, thumbnail: ev.target.result } : item));
+                                            setThumbPickerIdx(null);
+                                        };
+                                        reader.readAsDataURL(file);
+                                        e.target.value = '';
+                                    }}
+                                />
+                                <button
+                                    onClick={() => thumbFileInputRef.current?.click()}
+                                    style={{
+                                        width: '100%', background: 'rgba(255,255,255,0.08)', border: '1px dashed rgba(255,255,255,0.25)',
+                                        color: 'rgba(255,255,255,0.75)', borderRadius: 8, padding: '8px 0',
+                                        fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                                    }}
+                                >
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M19 7v3h-2V7h-3V5h3V2h2v3h3v2h-3zm-3 4V8h-3V5H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-8h-3zM5 19l3-4 2 3 3-4 4 5H5z"/></svg>
+                                    Upload Your Own Image
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
             {(linkPreview || linkLoading) && (

@@ -2098,16 +2098,25 @@ export default function ReelsPage() {
                         </span>
                     </button>
 
+<<<<<<< Updated upstream
                     {/* Train This Spot — opens in-place overlay (no navigation) */}
+=======
+                    {/* Train This Spot — deep-link to GTO trainer with reel context */}
+>>>>>>> Stashed changes
                     <button
                         onClick={() => {
                             const ytVid = getYouTubeVideoId(currentReel?.video_url);
                             const title = (currentReel?.caption || '').slice(0, 80);
+<<<<<<< Updated upstream
                             const ctx = {
+=======
+                            const params = new URLSearchParams({
+>>>>>>> Stashed changes
                                 ref: 'reels',
                                 vid: ytVid || currentReel?.id || '',
                                 title,
                                 source: 'Reels',
+<<<<<<< Updated upstream
                                 tags: (currentReel?.tags || []),
                             };
                             const gameIds = findBestGames(ctx);
@@ -2122,6 +2131,10 @@ export default function ReelsPage() {
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ ref: 'reels', vid: ctx.vid, title: ctx.title, source: 'Reels', matchedGameIds: gameIds.slice(0, 3) }),
                             }).catch(() => {});
+=======
+                            });
+                            router.push(`/hub/training?${params.toString()}`);
+>>>>>>> Stashed changes
                         }}
                         aria-label="Train This Spot"
                         style={{
@@ -2134,7 +2147,14 @@ export default function ReelsPage() {
                             background: 'rgba(0,200,83,0.25)',
                             border: '1.5px solid rgba(0,200,83,0.7)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
+<<<<<<< Updated upstream
                             filter: 'drop-shadow(0 0 6px rgba(0,200,83,0.5))',
+=======
+<<<<<<< Updated upstream
+=======
+                            filter: 'drop-shadow(0 0 6px rgba(0,200,83,0.5))',
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
                             animation: 'tts-glow 2.5s ease-in-out infinite',
                         }}>
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34C759" strokeWidth="2.5">

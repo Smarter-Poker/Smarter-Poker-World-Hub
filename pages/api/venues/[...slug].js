@@ -19,7 +19,9 @@
  * Auth pattern note (vs calls/* pilot):
  *   These handlers use `getServerUserWithFallback(req, supabase)` from
  *   `src/lib/serverAuth.js` — local HMAC verify first (Web Crypto, post-4.1d
- *   ESM-clean) with GoTrue network fallback if JWT secret missing.
+ *   ESM-clean) with GoTrue network fallback if JWT secret missing. This is
+ *   distinct from a direct `supabase.auth.getUser(token)` call and matches
+ *   the post-4.1d ESM-clean pattern.
  */
 
 import { Hono } from 'hono';

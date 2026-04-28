@@ -28,9 +28,10 @@ import { config } from 'dotenv';
 config({ path: '../../../.env.local' });
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// Use SERVICE_ROLE_KEY to bypass RLS when posting on behalf of horses
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HARDENING CONSTANTS
@@ -218,7 +219,7 @@ async function postForHorse(horse, attemptNumber = 1) {
         // Create story
         console.debug(`   📱 Creating story...`);
         const { data: story, error: storyError } = await supabase
-            .from('stories')
+            .from('social_stories')  // FIXED: was 'stories' (non-existent table)
             .insert({
                 author_id: horse.profile_id,
                 media_url: videoUrl,
