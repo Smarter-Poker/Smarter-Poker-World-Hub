@@ -221,6 +221,7 @@ function _uploadWithTus(file, meta, mimeType) {
         _uploadStartTime = Date.now();
         let maxPctReached = _progress || 0;
 
+<<<<<<< Updated upstream
         // ── Supabase TUS endpoint: already using direct storage hostname (set by upload-url.js)
         // Docs: use PROJECT.storage.supabase.co NOT PROJECT.supabase.co
         const tusEndpoint = meta.tusEndpoint;
@@ -241,12 +242,17 @@ function _uploadWithTus(file, meta, mimeType) {
             tusHeaders['x-signature'] = meta.token;
         }
 
+=======
+>>>>>>> Stashed changes
         const upload = new tus.Upload(file, {
             endpoint: tusEndpoint,
             chunkSize: TUS_CHUNK_SIZE,
             retryDelays: [0, 3000, 8000, 15000], // auto-retry on transient errors
+<<<<<<< Updated upstream
             // Required by Supabase TUS: combines POST+PATCH into one request for speed
             uploadDataDuringCreation: true,
+=======
+>>>>>>> Stashed changes
             // fingerprint persists the TUS upload URL so a tab refresh can resume
             fingerprint: (f) => Promise.resolve(`${TUS_URL_KEY_PREFIX}${f.name}_${f.size}_${f.lastModified}`),
             storeFingerprintForResuming: true,

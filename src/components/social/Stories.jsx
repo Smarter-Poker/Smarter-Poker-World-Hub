@@ -42,7 +42,7 @@ const STORY_GRADIENTS = [
 // Story Ring - shows colored ring for unviewed stories or LIVE status
 function StoryRing({ hasUnviewed, isLive, children, size = 64, onClick }) {
     // Red glowing ring for live users
-    const liveGradient = 'linear-gradient(135deg, #FA383E, #FF6B6B, #FA383E)';
+    const liveGradient = 'linear-gradient(135deg, #0066FF, #00C6FF, #0066FF)';
     const unviewedGradient = 'linear-gradient(135deg, #833AB4, #FD1D1D, #FCB045)';
     const defaultBorder = '#DADDE1';
 
@@ -60,7 +60,7 @@ function StoryRing({ hasUnviewed, isLive, children, size = 64, onClick }) {
                 cursor: 'pointer',
                 // Pulsing animation for live users
                 animation: isLive ? 'liveGlow 1.5s ease-in-out infinite' : 'none',
-                boxShadow: isLive ? '0 0 15px rgba(250, 56, 62, 0.6)' : 'none',
+                boxShadow: isLive ? '0 0 18px rgba(0, 120, 255, 0.75), 0 0 35px rgba(0, 180, 255, 0.35)' : 'none',
             }}
         >
             <div style={{
