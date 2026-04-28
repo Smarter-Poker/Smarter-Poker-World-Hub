@@ -220,47 +220,32 @@ function _uploadWithTus(file, meta, mimeType) {
     return new Promise((resolve, reject) => {
         _uploadStartTime = Date.now();
         let maxPctReached = _progress || 0;
+        const cleanMime = (mimeType || '').split(';')[0].trim() || 'video/mp4';
 
-<<<<<<< Updated upstream
-        // ── Supabase TUS endpoint: already using direct storage hostname (set by upload-url.js)
-        // Docs: use PROJECT.storage.supabase.co NOT PROJECT.supabase.co
-        const tusEndpoint = meta.tusEndpoint;
-
-        // ── Build TUS headers per Supabase spec ──────────────────────────────
-        // Standard auth: user JWT in Authorization header
-        // Presigned upload: include data.token in x-signature header
-        // x-upsert: true allows overwrite — Supabase returns 400 "Asset already exists"
-        // if a previous attempt wrote any bytes to this path. Since we use unique
-        // timestamp-prefixed paths, upsert is safe and prevents false 400 errors on retry.
+        // ── Auth headers ──────────────────────────────────────────────────────
+        // Supabase TUS requires BOTH:
+        //   1. Authorization: Bearer {user-jwt}
+        //   2. x-signature: {presigned-token}  (from createSignedUploadUrl)
+        // Without x-signature, the TUS POST returns 400 even for authenticated users.
         const tusHeaders = {
             Authorization: `Bearer ${getAccessToken() || ''}`,
             'x-upsert': 'true',
         };
-        // When using createSignedUploadUrl, data.token MUST go in x-signature header
-        // Without this, Supabase rejects the TUS creation request with 400/403
         if (meta.token) {
             tusHeaders['x-signature'] = meta.token;
         }
 
-=======
->>>>>>> Stashed changes
         const upload = new tus.Upload(file, {
-            endpoint: tusEndpoint,
-            chunkSize: TUS_CHUNK_SIZE,
-            retryDelays: [0, 3000, 8000, 15000], // auto-retry on transient errors
-<<<<<<< Updated upstream
-            // Required by Supabase TUS: combines POST+PATCH into one request for speed
-            uploadDataDuringCreation: true,
-=======
->>>>>>> Stashed changes
-            // fingerprint persists the TUS upload URL so a tab refresh can resume
-            fingerprint: (f) => Promise.resolve(`${TUS_URL_KEY_PREFIX}${f.name}_${f.size}_${f.lastModified}`),
-            storeFingerprintForResuming: true,
-            removeFingerprintOnSuccess: true, // tus cleans up stored URL when upload completes
+            endpoint: meta.tusEndpoint,
+            chunkSize: TUS_CHUNK_SIZE,          // 6MB — immune to gateway timeouts
+            retryDelays: [0, 3000, 8000, 15000, 30000],
+            removeFingerprintOnSuccess: true,
+            // NOTE: storeFingerprintForResuming intentionally omitted.
+            // Stale fingerprints from previous failed uploads cause silent 7-8% stall.
             metadata: {
                 bucketName: meta.bucket,
                 objectName: meta.path,
-                contentType: (mimeType || '').split(';')[0].trim() || 'video/mp4',
+                contentType: cleanMime,
                 cacheControl: '3600',
             },
             headers: tusHeaders,
@@ -288,76 +273,46 @@ function _uploadWithTus(file, meta, mimeType) {
                     }
                 }
                 const etaSuffix = eta ? ` — ~${eta}` : (_lastEta ? ` — ~${_lastEta}` : '');
-                _setState(_state, displayPct, `Uploading\u2026 ${labelPct}%${speedStr}${etaSuffix}`);
+                _setState(_state, displayPct, `Uploading… ${labelPct}%${speedStr}${etaSuffix}`);
             },
             onSuccess: () => {
                 _activeXhr = null;
-                // tus-js-client removes the stored fingerprint automatically (removeFingerprintOnSuccess: true)
                 resolve(null);
             },
             onError: (err) => {
                 _activeXhr = null;
-                // tus-js-client has exhausted its retryDelays — surface the error
-                const msg = err?.message || String(err) || 'TUS upload failed';
-                // Detect abort (user cancelled)
+                const msg = err?.message || String(err) || 'TUS upload error';
                 if (msg.toLowerCase().includes('abort') || msg.toLowerCase().includes('cancel')) {
                     reject(new Error('Upload cancelled'));
                 } else {
-                    reject(new Error('Upload failed after multiple attempts — please check your connection and try again later.'));
+                    reject(new Error(`Upload failed: ${msg.slice(0, 300)} — please try again.`));
                 }
             },
+            // Refresh JWT + x-signature on every chunk (token stays valid for 5min per chunk)
             onBeforeRequest: (req) => {
-                // Refresh auth token on each chunk request (long uploads may outlast short-lived tokens)
                 const freshToken = getAccessToken();
                 if (freshToken) req.setHeader('Authorization', `Bearer ${freshToken}`);
-                // Re-apply x-signature on every chunk (presigned token must accompany all requests)
                 if (meta.token) req.setHeader('x-signature', meta.token);
             },
         });
 
-        // Store reference so abort() can cancel mid-upload
         _activeXhr = upload;
 
-        // 5-minute hard client-side timeout — never hang forever on iOS.
         let _settled = false;
         const hardTimeout = setTimeout(() => {
             if (_settled) return;
             _settled = true;
             try { upload.abort(); } catch (_) {}
             _activeXhr = null;
-            reject(new Error('Upload timed out after 5 minutes. Please try on a stronger Wi-Fi connection.'));
-        }, UPLOAD_HARD_TIMEOUT_MS);
+            reject(new Error('Upload timed out after 10 minutes. Please try on a stronger connection.'));
+        }, 10 * 60 * 1000);
 
-        // Patch the already-constructed upload options so the same object reference
-        // that tus holds internally gets clearTimeout + settled-guard.
         const _rawSuccess = upload.options.onSuccess;
         const _rawError = upload.options.onError;
-        upload.options.onSuccess = () => {
-            if (_settled) return;
-            _settled = true;
-            clearTimeout(hardTimeout);
-            _rawSuccess();
-        };
-        upload.options.onError = (err) => {
-            if (_settled) return;
-            _settled = true;
-            clearTimeout(hardTimeout);
-            _rawError(err);
-        };
+        upload.options.onSuccess = () => { if (_settled) return; _settled = true; clearTimeout(hardTimeout); _rawSuccess(); };
+        upload.options.onError = (e) => { if (_settled) return; _settled = true; clearTimeout(hardTimeout); _rawError(e); };
 
-        // Try to resume from a previous incomplete upload first.
-        // Guard against abort() firing while findPreviousUploads is in-flight.
-        upload.findPreviousUploads().then((previousUploads) => {
-            if (_settled) return; // abort() fired during async lookup — don't start
-            if (previousUploads.length > 0) {
-                _setState(_state, 5, 'Resuming previous upload\u2026');
-                upload.resumeFromPreviousUpload(previousUploads[0]);
-            }
-            upload.start();
-        }).catch(() => {
-            // findPreviousUploads is best-effort — start fresh if it fails
-            if (!_settled) upload.start();
-        });
+        upload.start();
     });
 }
 

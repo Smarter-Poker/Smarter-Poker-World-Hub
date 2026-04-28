@@ -7,7 +7,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { liveStreamService } from '../../services/LiveStreamService';
 import { EndStreamModal } from './EndStreamModal';
-import { supabase } from '../../lib/supabaseClient';
+import { supabase } from '../../lib/supabase';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505',

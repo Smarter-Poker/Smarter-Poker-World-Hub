@@ -136,13 +136,22 @@ export default async function handler(req, res) {
               ? [folder || 'stories', prefix, `${timestamp}_${safeName}`].filter(Boolean).join('/')
               : [(isVideo ? (folder || 'videos') : isAudio ? (folder || 'audio') : (folder || 'photos')), prefix, `${timestamp}_${safeName}`].filter(Boolean).join('/');
 
+          // Create a presigned TUS upload token.
+          // Supabase TUS requires x-signature on every request — plain JWT-only POSTs return 400.
+          const { data: signData, error: signError } = await getSupabase().storage
+              .from(BUCKET)
+              .createSignedUploadUrl(storagePath);
+
+          if (signError) {
+              console.warn('[Upload-URL API] Signed URL error:', signError.message);
+              return res.status(500).json({ success: false, error: 'Failed to create upload token: ' + signError.message });
+          }
+
           // Get the public URL for after upload completes
           const { data: urlData } = getSupabase().storage.from(BUCKET).getPublicUrl(storagePath);
           const publicUrl = urlData?.publicUrl;
 
-          // TUS resumable upload endpoint — direct storage hostname required for large files.
-          // Client creates TUS session using its own JWT (blanket authenticated INSERT policy allows it).
-          // 6MB chunks bypass gateway timeouts entirely.
+          // TUS endpoint — direct storage hostname required for large files (bypasses API gateway)
           const tusEndpoint = supabaseUrl.includes('.supabase.co')
               ? supabaseUrl.replace('.supabase.co', '.storage.supabase.co') + '/storage/v1/upload/resumable'
               : `${supabaseUrl}/storage/v1/upload/resumable`;
@@ -150,6 +159,7 @@ export default async function handler(req, res) {
           return res.status(200).json({
               success: true,
               tusEndpoint,
+              token: signData.token,      // presigned token — sent as x-signature on every TUS chunk
               path: storagePath,
               publicUrl,
               type: isVideo ? 'video' : isAudio ? 'audio' : 'photo',

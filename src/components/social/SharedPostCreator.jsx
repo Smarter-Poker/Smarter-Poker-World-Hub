@@ -18,10 +18,14 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
     const [postVisibility, setPostVisibility] = useState('public');
     const [content, setContent] = useState('');
     const [media, setMedia] = useState([]);
-    const [thumbPickerIdx, setThumbPickerIdx] = useState(null); // index of video whose thumbnail picker is open
-    const [thumbFrames, setThumbFrames] = useState([]);          // filmstrip frames for open picker
+    const [thumbPickerIdx, setThumbPickerIdx] = useState(null);
+    const [thumbFrames, setThumbFrames] = useState([]);
     const [thumbFramesLoading, setThumbFramesLoading] = useState(false);
+    const [scrubberTime, setScrubberTime] = useState(0);   // current scrubber position in seconds
+    const [scrubberDuration, setScrubberDuration] = useState(0);
+    const [scrubberCapture, setScrubberCapture] = useState(null); // data URL of scrubber preview frame
     const thumbFileInputRef = useRef(null);
+    const scrubberVideoRef = useRef(null);
     const [uploading, setUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(null); // null | { pct: number, label: string }
     const [error, setError] = useState('');
@@ -1011,6 +1015,9 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                                             }
                                             setThumbPickerIdx(i);
                                             setThumbFrames([]);
+                                            setScrubberCapture(null);
+                                            setScrubberTime(0);
+                                            setScrubberDuration(0);
                                             setThumbFramesLoading(true);
                                             generateFrames(m.file, 6).then(frames => {
                                                 setThumbFrames(frames);
@@ -1035,42 +1042,113 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                     {/* ── Thumbnail Picker Panel ── */}
                     {thumbPickerIdx !== null && media[thumbPickerIdx]?.type === 'video' && (
                         <div style={{
-                            margin: '8px 0 0', background: 'rgba(0,0,0,0.85)',
-                            borderRadius: 10, padding: '10px 12px', border: '1px solid rgba(255,255,255,0.12)',
+                            margin: '8px 0 0', background: 'rgba(0,0,0,0.9)',
+                            borderRadius: 10, padding: '10px 12px', border: '1px solid rgba(255,255,255,0.15)',
                         }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                                 <span style={{ color: 'white', fontSize: 13, fontWeight: 600 }}>Choose Thumbnail</span>
                                 <button onClick={() => setThumbPickerIdx(null)}
-                                    style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>×</button>
+                                    style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>&times;</button>
                             </div>
-                            {/* Frame filmstrip */}
-                            {thumbFramesLoading ? (
-                                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, textAlign: 'center', padding: '12px 0' }}>Extracting frames…</div>
-                            ) : (
-                                <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4 }}>
-                                    {thumbFrames.map((f, fi) => f.dataUrl && (
-                                        <div key={fi}
-                                            onClick={() => {
-                                                setMedia(prev => prev.map((item, idx) => idx === thumbPickerIdx ? { ...item, thumbnail: f.dataUrl } : item));
-                                                setThumbPickerIdx(null);
-                                            }}
-                                            style={{
-                                                flexShrink: 0, width: 80, height: 52, borderRadius: 6, overflow: 'hidden',
-                                                cursor: 'pointer', border: media[thumbPickerIdx]?.thumbnail === f.dataUrl ? '2px solid #4f9eff' : '2px solid transparent',
-                                                transition: 'border-color 0.15s',
-                                            }}
-                                        >
-                                            <img src={f.dataUrl} alt={`Frame ${fi + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                        </div>
-                                    ))}
-                                </div>
+
+                            {/* Hidden video for scrubbing */}
+                            <video
+                                ref={scrubberVideoRef}
+                                src={media[thumbPickerIdx]?.url}
+                                muted playsInline preload="metadata"
+                                style={{ display: 'none' }}
+                                onLoadedMetadata={() => {
+                                    const dur = scrubberVideoRef.current?.duration || 0;
+                                    setScrubberDuration(dur);
+                                    setScrubberTime(0);
+                                }}
+                                onSeeked={() => {
+                                    // Capture the frame the user scrubbed to
+                                    const v = scrubberVideoRef.current;
+                                    if (!v) return;
+                                    try {
+                                        const canvas = document.createElement('canvas');
+                                        canvas.width = Math.min(v.videoWidth || 640, 640);
+                                        canvas.height = Math.round(canvas.width * ((v.videoHeight || 360) / (v.videoWidth || 640)));
+                                        canvas.getContext('2d').drawImage(v, 0, 0, canvas.width, canvas.height);
+                                        setScrubberCapture(canvas.toDataURL('image/jpeg', 0.85));
+                                    } catch (_) {}
+                                }}
+                            />
+
+                            {/* Scrubber preview */}
+                            <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', background: '#000', borderRadius: 8, overflow: 'hidden', marginBottom: 10 }}>
+                                {scrubberCapture ? (
+                                    <img src={scrubberCapture} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                ) : (
+                                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>Drag slider to pick frame</div>
+                                )}
+                                {scrubberDuration > 0 && (
+                                    <div style={{ position: 'absolute', bottom: 6, right: 8, background: 'rgba(0,0,0,0.7)', color: 'white', fontSize: 10, padding: '2px 6px', borderRadius: 4 }}>
+                                        {Math.floor(scrubberTime / 60)}:{String(Math.floor(scrubberTime % 60)).padStart(2, '0')} / {Math.floor(scrubberDuration / 60)}:{String(Math.floor(scrubberDuration % 60)).padStart(2, '0')}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Scrubber slider */}
+                            <input
+                                type="range" min="0" max={scrubberDuration || 100} step="0.1"
+                                value={scrubberTime}
+                                onChange={(e) => {
+                                    const t = parseFloat(e.target.value);
+                                    setScrubberTime(t);
+                                    if (scrubberVideoRef.current) scrubberVideoRef.current.currentTime = t;
+                                }}
+                                style={{ width: '100%', accentColor: '#4f9eff', marginBottom: 10, cursor: 'pointer' }}
+                            />
+
+                            {/* Use this frame button */}
+                            {scrubberCapture && (
+                                <button
+                                    onClick={() => {
+                                        setMedia(prev => prev.map((item, idx) => idx === thumbPickerIdx ? { ...item, thumbnail: scrubberCapture } : item));
+                                        setThumbPickerIdx(null);
+                                        setScrubberCapture(null);
+                                    }}
+                                    style={{
+                                        width: '100%', background: '#4f9eff', border: 'none',
+                                        color: 'white', borderRadius: 8, padding: '8px 0',
+                                        fontSize: 13, fontWeight: 600, cursor: 'pointer', marginBottom: 8,
+                                    }}
+                                >Use This Frame</button>
                             )}
+
+                            {/* Quick-pick filmstrip */}
+                            {thumbFramesLoading ? (
+                                <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, textAlign: 'center', padding: '4px 0' }}>Loading frames…</div>
+                            ) : thumbFrames.length > 0 && (
+                                <>
+                                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, marginBottom: 4 }}>Quick picks:</div>
+                                    <div style={{ display: 'flex', gap: 5, overflowX: 'auto', paddingBottom: 4 }}>
+                                        {thumbFrames.map((f, fi) => f.dataUrl && (
+                                            <div key={fi}
+                                                onClick={() => {
+                                                    setMedia(prev => prev.map((item, idx) => idx === thumbPickerIdx ? { ...item, thumbnail: f.dataUrl } : item));
+                                                    setThumbPickerIdx(null);
+                                                    setScrubberCapture(null);
+                                                }}
+                                                style={{
+                                                    flexShrink: 0, width: 72, height: 46, borderRadius: 5, overflow: 'hidden',
+                                                    cursor: 'pointer', border: '2px solid transparent', transition: 'border-color 0.15s',
+                                                }}
+                                            >
+                                                <img src={f.dataUrl} alt={`Frame ${fi + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+
                             {/* Upload custom thumbnail */}
                             <div style={{ marginTop: 8, borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 8 }}>
                                 <input
                                     ref={thumbFileInputRef}
-                                    type="file"
-                                    accept="image/jpeg,image/png,image/webp"
+                                    type="file" accept="image/jpeg,image/png,image/webp"
                                     style={{ display: 'none' }}
                                     onChange={(e) => {
                                         const file = e.target.files?.[0];
@@ -1079,6 +1157,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                                         reader.onload = (ev) => {
                                             setMedia(prev => prev.map((item, idx) => idx === thumbPickerIdx ? { ...item, thumbnail: ev.target.result } : item));
                                             setThumbPickerIdx(null);
+                                            setScrubberCapture(null);
                                         };
                                         reader.readAsDataURL(file);
                                         e.target.value = '';
@@ -1087,8 +1166,8 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                                 <button
                                     onClick={() => thumbFileInputRef.current?.click()}
                                     style={{
-                                        width: '100%', background: 'rgba(255,255,255,0.08)', border: '1px dashed rgba(255,255,255,0.25)',
-                                        color: 'rgba(255,255,255,0.75)', borderRadius: 8, padding: '8px 0',
+                                        width: '100%', background: 'rgba(255,255,255,0.08)', border: '1px dashed rgba(255,255,255,0.2)',
+                                        color: 'rgba(255,255,255,0.7)', borderRadius: 8, padding: '7px 0',
                                         fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                                     }}
                                 >
