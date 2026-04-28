@@ -475,6 +475,8 @@ export const EnhancedPostCreator = ({
         const folder = isVideo ? 'videos' : 'photos';
 
         try {
+          let bgUnsub = null;   // hoisted: catch block can safely call bgUnsub() for both video/image
+          let wasBackground = false;
           if (isVideo) {
             // ── Use compressed file if background compression finished ──
             let fileToUpload = file;
@@ -492,8 +494,6 @@ export const EnhancedPostCreator = ({
 
             // ── Background-capable video upload ───────────────────────────────
             const videoIndex = i;
-            let bgUnsub = null;
-            let wasBackground = false;
 
             const videoUrl = await new Promise((resolve, reject) => {
               // 1. Start the upload (this clears any old listeners from previous uploads)

@@ -462,6 +462,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
             for (const staged of stagedFiles) {
                 const isVideo = staged.type === 'video';
                 const folder = isVideo ? 'videos' : 'photos';
+                let bgUnsub = null; // hoisted: accessible in catch regardless of video/image path
                 try {
                     if (isVideo) {
                         // ── Use compressed file if background compression finished ──
@@ -478,7 +479,6 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         }
 
                         // ── Background-capable video upload ─────────────────────
-                        let bgUnsub = null;
                         const videoUrl = await new Promise((resolve, reject) => {
                             // start() MUST be called before subscribe() because start() clears existing listeners
                             // to supersede any pending uploads. If subscribe() is called first, it gets wiped.

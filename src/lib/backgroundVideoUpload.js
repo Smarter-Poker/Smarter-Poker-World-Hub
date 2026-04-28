@@ -228,10 +228,12 @@ function _uploadWithTus(file, meta, mimeType) {
         // ── Build TUS headers per Supabase spec ──────────────────────────────
         // Standard auth: user JWT in Authorization header
         // Presigned upload: include data.token in x-signature header
-        // x-upsert: false prevents 409 conflicts when retrying (don't overwrite on retry)
+        // x-upsert: true allows overwrite — Supabase returns 400 "Asset already exists"
+        // if a previous attempt wrote any bytes to this path. Since we use unique
+        // timestamp-prefixed paths, upsert is safe and prevents false 400 errors on retry.
         const tusHeaders = {
             Authorization: `Bearer ${getAccessToken() || ''}`,
-            'x-upsert': 'false',
+            'x-upsert': 'true',
         };
         // When using createSignedUploadUrl, data.token MUST go in x-signature header
         // Without this, Supabase rejects the TUS creation request with 400/403
@@ -606,6 +608,15 @@ const bgUpload = {
         clearTimeout(_bgTimer);
         _bgTimer = null;
         _removeBeforeUnload();
+
+        // Purge stale TUS fingerprints from localStorage — old incomplete uploads leave
+        // behind stored TUS upload URLs that are now expired/invalid. Without this cleanup,
+        // tus-js-client tries to resume from a dead URL and Supabase returns 400.
+        try {
+            Object.keys(localStorage).filter(k => k.startsWith(TUS_URL_KEY_PREFIX)).forEach(k => {
+                try { localStorage.removeItem(k); } catch (_) {}
+            });
+        } catch (_) { /* localStorage may be unavailable (SSR, private browsing) */ }
         _removeNetworkListeners();
         _clearUploadIntent();
         if (_bgToastId) {
