@@ -10,19 +10,8 @@
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 import { getController } from '../../../../src/lib/poker-engine/GameController';
 
-<<<<<<< Updated upstream
 // NOTE: This handler imports GameController (→ HealthWatchdog → process.memoryUsage)
 // and uses req.body, res.status() — all incompatible with Edge Runtime. Keep as Node.js runtime.
-
-=======
-<<<<<<< Updated upstream
-// runtime: node (default) — reverted from edge: depends on Node-only modules (sentryWrap @sentry/nextjs / supabaseServerClient / serverAuth) or Pages Router APIs (req.query, res.status) that don't run on Vercel Edge
-=======
-// NOTE: This handler imports GameController (→ HealthWatchdog → process.memoryUsage)
-// and uses req.body, res.status() — all incompatible with Edge Runtime. Keep as Node.js runtime.
-
->>>>>>> Stashed changes
->>>>>>> Stashed changes
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'POST only' });
