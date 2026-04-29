@@ -121,6 +121,8 @@ export function GoLiveModal({ isOpen, onClose, user }) {
         const file = e.target.files[0];
         if (!file) return;
         setThumbnailFile(file);
+        // FIX: revoke previous blob URL to prevent memory leak
+        if (thumbnailPreview) URL.revokeObjectURL(thumbnailPreview);
         setThumbnailPreview(URL.createObjectURL(file));
     };
 
@@ -307,6 +309,8 @@ export function GoLiveModal({ isOpen, onClose, user }) {
         setRecordedBlob(null);
         setThumbnailUrl(null);
         setThumbnailFile(null);
+        // FIX: revoke blob URL before clearing
+        if (thumbnailPreview) URL.revokeObjectURL(thumbnailPreview);
         setThumbnailPreview(null);
         setStreamId(null);
         setElapsedTime(0);
@@ -411,7 +415,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                                     )}
                                     {thumbnailPreview && (
                                         <div style={{ position:'absolute', top:6, right:8, background:'rgba(0,0,0,.6)', color:'white', borderRadius:'50%', width:24, height:24, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, cursor:'pointer' }}
-                                            onClick={(e) => { e.stopPropagation(); setThumbnailPreview(null); setThumbnailFile(null); }}>✕</div>
+                                            onClick={(e) => { e.stopPropagation(); if (thumbnailPreview) URL.revokeObjectURL(thumbnailPreview); setThumbnailPreview(null); setThumbnailFile(null); }}>✕</div>
                                     )}
                                 </div>
                                 <input ref={thumbnailInputRef} type="file" accept="image/*" style={{ display:'none' }} onChange={handleThumbnailSelect} />

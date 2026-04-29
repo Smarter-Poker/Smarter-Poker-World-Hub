@@ -1637,7 +1637,7 @@ export default function VideoLibraryPage() {
                         display: 'flex',
                         flexDirection: 'column',
                     }}
-                    /* Touch-swipe for TikTok-style navigation */
+                    /* Touch-swipe for TikTok-style navigation — handled by dedicated overlay below */
                     onTouchStart={e => {
                         swipeTouchStart.current = e.touches[0].clientX;
                         swipeTouchStartY.current = e.touches[0].clientY;
@@ -1707,7 +1707,6 @@ export default function VideoLibraryPage() {
                             cursor: 'pointer',
                             zIndex: 1001,
                             backdropFilter: 'blur(10px)',
-                            display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             transition: 'background 0.2s',
@@ -1734,7 +1733,6 @@ export default function VideoLibraryPage() {
                             cursor: 'pointer',
                             zIndex: 1001,
                             backdropFilter: 'blur(10px)',
-                            display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             transition: 'background 0.2s',
@@ -1743,7 +1741,7 @@ export default function VideoLibraryPage() {
                         onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
                     >›</button>
 
-                    {/* YouTube embed — flex:1 fills available space */}
+                    {/* YouTube embed — takes FULL viewport on mobile */}
                     <div style={{
                         flex: 1,
                         width: '100%',
@@ -1751,20 +1749,48 @@ export default function VideoLibraryPage() {
                         position: 'relative',
                         overflow: 'hidden',
                     }}>
-                        {/* Transparent tap zone — LEFT STRIP ONLY to reveal HUD.
-                            Deliberately narrow (15%) to avoid blocking YouTube's central play button on mobile.
-                            Desktop users can also click anywhere on the video since YouTube passes clicks through. */}
+                        {/* Mobile swipe overlay — sits ON TOP of iframe to capture swipe gestures.
+                            The iframe is cross-origin, so touch events don't bubble to the parent.
+                            Single taps pass through via pointer-events toggling. */}
                         <div
+                            className="vl-swipe-overlay"
+                            onTouchStart={e => {
+                                swipeTouchStart.current = e.touches[0].clientX;
+                                swipeTouchStartY.current = e.touches[0].clientY;
+                                // Record time to distinguish tap vs swipe
+                                swipeTouchStart.current_time = Date.now();
+                            }}
+                            onTouchEnd={e => {
+                                const dx = e.changedTouches[0].clientX - (swipeTouchStart.current || 0);
+                                const dy = e.changedTouches[0].clientY - (swipeTouchStartY.current || 0);
+                                const elapsed = Date.now() - (swipeTouchStart.current_time || 0);
+                                swipeTouchStart.current = null;
+                                swipeTouchStartY.current = null;
+                                // Vertical swipe (TikTok-style): up = next, down = prev
+                                if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 50) {
+                                    e.preventDefault();
+                                    if (dy < 0) handleNextVideo(); else handlePrevVideo();
+                                }
+                                // Horizontal swipe
+                                else if (Math.abs(dx) > 50) {
+                                    e.preventDefault();
+                                    if (dx < 0) handleNextVideo(); else handlePrevVideo();
+                                }
+                                // Short tap — reveal HUD
+                                else if (elapsed < 300 && Math.abs(dx) < 10 && Math.abs(dy) < 10) {
+                                    vlRevealHud();
+                                }
+                            }}
                             onClick={vlRevealHud}
-                            onTouchEnd={(e) => { e.preventDefault(); vlRevealHud(); }}
                             style={{
                                 position: 'absolute',
                                 top: 0, left: 0,
-                                width: '15%',
-                                height: '60%',
+                                width: '100%',
+                                height: '100%',
                                 zIndex: 5,
                                 cursor: 'pointer',
                                 WebkitTapHighlightColor: 'transparent',
+                                background: 'transparent',
                             }}
                         />
 
@@ -1949,12 +1975,17 @@ export default function VideoLibraryPage() {
                                     const win = e.target.contentWindow;
                                     win.postMessage(JSON.stringify({ event: 'listening' }), '*');
 
-                                    iframeUnmuteTimers.current = [200, 600, 1200].map(d => setTimeout(() => {
-                                        try {
-                                            win.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
-                                            win.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
-                                        } catch { /* best-effort */ }
-                                    }, d));
+                                    // Only auto-unmute on desktop — on mobile, auto-unmute can
+                                    // cause iOS/Android to PAUSE the video entirely.
+                                    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+                                    if (!isMobile) {
+                                        iframeUnmuteTimers.current = [200, 600, 1200].map(d => setTimeout(() => {
+                                            try {
+                                                win.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
+                                                win.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
+                                            } catch { /* best-effort */ }
+                                        }, d));
+                                    }
                                 } catch { /* best-effort */ }
                             }}
                             style={{
@@ -1976,11 +2007,10 @@ export default function VideoLibraryPage() {
                     </div>
 
 
-                    {/* Video info bar + Related Videos Rail — sits BELOW iframe */}
-                    <div style={{
-                        background: 'rgba(0,0,0,0.95)',
+                    {/* Video info bar + Related Videos Rail — ABSOLUTE on mobile, flex child on desktop */}
+                    <div className="vl-info-bar" style={{
+                        background: 'linear-gradient(transparent, rgba(0,0,0,0.95) 30%)',
                         flexShrink: 0,
-                        maxHeight: 'min(25vh, 180px)',
                         overflowY: 'auto',
                         overflowX: 'hidden',
                         scrollbarWidth: 'thin',
@@ -2074,7 +2104,7 @@ export default function VideoLibraryPage() {
 
                         {/* ── P3: Related Videos Rail ── */}
                         {relatedVideos.length > 0 && (
-                            <div style={{ padding: '4px 20px 14px' }}>
+                            <div className="vl-up-next-rail" style={{ padding: '4px 20px 14px' }}>
                                 <div style={{
                                     fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)',
                                     letterSpacing: '0.8px', marginBottom: 10, textTransform: 'uppercase',
@@ -2170,6 +2200,34 @@ export default function VideoLibraryPage() {
                 /* Hide nav arrows on mobile — swipe up/down handles navigation */
                 @media (max-width: 767px) {
                     .vl-nav-arrow {
+                        display: none !important;
+                    }
+                    /* On mobile: info bar becomes absolute overlay at bottom */
+                    .vl-info-bar {
+                        position: absolute !important;
+                        bottom: 0 !important;
+                        left: 0 !important;
+                        right: 0 !important;
+                        max-height: 100px !important;
+                        pointer-events: auto;
+                        z-index: 6;
+                    }
+                    /* Hide Up Next rail on mobile */
+                    .vl-up-next-rail {
+                        display: none !important;
+                    }
+                }
+
+                /* Desktop: nav arrows and info bar */
+                @media (min-width: 768px) {
+                    .vl-nav-arrow {
+                        display: flex;
+                    }
+                    .vl-info-bar {
+                        max-height: min(25vh, 200px);
+                    }
+                    /* Desktop: hide swipe overlay so iframe is interactive */
+                    .vl-swipe-overlay {
                         display: none !important;
                     }
                 }

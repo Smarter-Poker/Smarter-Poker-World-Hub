@@ -33,10 +33,12 @@ export function EndStreamModal({
     const videoRef = useRef(null);
 
     // Set video source when blob is available
+    // FIX: revoke previous objectURL on change/unmount to prevent memory leak
     useEffect(() => {
-        if (videoBlob && videoRef.current) {
-            videoRef.current.src = URL.createObjectURL(videoBlob);
-        }
+        if (!videoBlob || !videoRef.current) return;
+        const objectUrl = URL.createObjectURL(videoBlob);
+        videoRef.current.src = objectUrl;
+        return () => { URL.revokeObjectURL(objectUrl); };
     }, [videoBlob]);
 
     const formatDuration = (seconds) => {
