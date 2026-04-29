@@ -7,9 +7,10 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { supabase } from '../../src/lib/supabase';
+import { LiveStreamViewer } from '../../src/components/social/LiveStreamViewer';
 
 import { useFeatureGate } from '../../src/components/gates/FeatureGatePopup';
-import { getAuthUser, authedFetch } from '../../src/lib/authUtils';
+import { getAuthUser, authedFetch, getAccessToken } from '../../src/lib/authUtils';
 
 // Colors
 const C = {
@@ -35,17 +36,23 @@ export default function LivesPage() {
     const [likeBusy, setLikeBusy] = useState(false);
     const [shareBusy, setShareBusy] = useState(false);
     const [userId, setUserId] = useState(null);
+    const [user, setUser] = useState(null);
     const [categoryFilter, setCategoryFilter] = useState('all');
+    const [watchingStream, setWatchingStream] = useState(null);
+    const [myDrafts, setMyDrafts] = useState([]);
+    const [showDrafts, setShowDrafts] = useState(false);
+    const [publishingDraft, setPublishingDraft] = useState(null);
     const containerRef = useRef(null);
     const videoRefs = useRef({});
 
     // Get auth user for FeatureGate
-    useEffect(() => {    const _c = new AbortController();
-
-        const user = getAuthUser();
-        if (user) setUserId(user.id);
-    return () => _c.abort();
-  }, []);
+    useEffect(() => {
+        const authUser = getAuthUser();
+        if (authUser) {
+            setUserId(authUser.id);
+            setUser(authUser);
+        }
+    }, []);
 
     // ═══ ACTION GATE: Users can explore/watch, but interactions are gated ═══
     const { guardAction, UpgradePopup } = useFeatureGate('lives');
@@ -93,6 +100,74 @@ export default function LivesPage() {
     useEffect(() => {
         fetchStreams();
     }, [fetchStreams]);
+
+    // Fetch user's draft (saved but not published) streams
+    const fetchMyDrafts = useCallback(async () => {
+        if (!userId) return;
+        try {
+            const { data } = await supabase
+                .from('live_streams')
+                .select('*')
+                .eq('broadcaster_id', userId)
+                .eq('status', 'ended')
+                .eq('is_draft', true)
+                .not('video_url', 'is', null)
+                .order('created_at', { ascending: false })
+                .limit(20);
+            setMyDrafts(data || []);
+        } catch (e) {
+            console.warn('fetchMyDrafts error:', e);
+        }
+    }, [userId]);
+
+    useEffect(() => {
+        fetchMyDrafts();
+    }, [fetchMyDrafts]);
+
+    // Publish a draft stream to the feed + social posts
+    const publishDraft = async (draft) => {
+        if (publishingDraft) return;
+        setPublishingDraft(draft.id);
+        try {
+            const token = getAccessToken();
+            const resp = await fetch('/api/live/end-stream', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({ stream_id: draft.id, action: 'post', caption: draft.title || 'Live Replay' }),
+            });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.error || 'Publish failed');
+            await Promise.all([fetchStreams(), fetchMyDrafts()]);
+        } catch (err) {
+            console.warn('Publish draft error:', err);
+        } finally {
+            setPublishingDraft(null);
+        }
+    };
+
+    // Delete a draft stream
+    const deleteDraft = async (draft) => {
+        if (!confirm('Delete this saved stream? This cannot be undone.')) return;
+        try {
+            const token = getAccessToken();
+            await fetch('/api/live/end-stream', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({ stream_id: draft.id, action: 'delete' }),
+            });
+            await fetchMyDrafts();
+        } catch (err) {
+            console.warn('Delete draft error:', err);
+        }
+    };
 
     // Handle ?id= deep link — jump to specific stream after load
     useEffect(() => {
@@ -364,6 +439,20 @@ export default function LivesPage() {
                                 {cat.label}
                             </button>
                         ))}
+                        {/* My Drafts button — only show if user has drafts */}
+                        {myDrafts.length > 0 && (
+                            <button
+                                onClick={() => setShowDrafts(true)}
+                                style={{
+                                    padding: '6px 14px', borderRadius: 20, border: '1px solid rgba(255,215,0,0.4)',
+                                    background: 'rgba(255,215,0,0.1)',
+                                    color: '#FFD700', fontSize: 13, fontWeight: 600,
+                                    cursor: 'pointer', whiteSpace: 'nowrap',
+                                }}
+                            >
+                                My Drafts ({myDrafts.length})
+                            </button>
+                        )}
                     </div>
 
                     {/* Loading State — Shimmer Skeleton */}
@@ -485,8 +574,9 @@ export default function LivesPage() {
                                 </div>
                             )}
 
-                            {/* Live Badge */}
+                            {/* Live Badge + Watch Button */}
                             {stream.isLive && (
+                                <>
                                 <div style={{
                                     position: 'absolute',
                                     top: 70,
@@ -499,8 +589,35 @@ export default function LivesPage() {
                                     fontWeight: 700,
                                     animation: 'pulse 1.5s infinite',
                                 }}>
-                                    🔴 LIVE
+                                    LIVE
                                 </div>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (!guardAction()) return;
+                                        setWatchingStream(stream);
+                                    }}
+                                    style={{
+                                        position: 'absolute',
+                                        top: '50%',
+                                        left: '50%',
+                                        transform: 'translate(-50%, -50%)',
+                                        background: 'rgba(250, 56, 62, 0.9)',
+                                        backdropFilter: 'blur(10px)',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: 16,
+                                        padding: '16px 32px',
+                                        fontSize: 18,
+                                        fontWeight: 700,
+                                        cursor: 'pointer',
+                                        boxShadow: '0 4px 24px rgba(250, 56, 62, 0.4)',
+                                        zIndex: 10,
+                                    }}
+                                >
+                                    Watch Live
+                                </button>
+                                </>
                             )}
 
                             {/* Bottom Info Overlay */}
@@ -714,11 +831,112 @@ export default function LivesPage() {
 
                 {/* Pulse animation */}
                 <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.7; }
-        }
-      `}</style>
+         @keyframes pulse {
+           0%, 100% { opacity: 1; }
+           50% { opacity: 0.7; }
+         }
+       `}</style>
+
+                {/* My Drafts drawer */}
+                {showDrafts && (
+                    <div
+                        onClick={() => setShowDrafts(false)}
+                        style={{
+                            position: 'fixed', inset: 0, zIndex: 500,
+                            background: 'rgba(0,0,0,0.7)',
+                            display: 'flex', alignItems: 'flex-end',
+                        }}
+                    >
+                        <div
+                            onClick={e => e.stopPropagation()}
+                            style={{
+                                width: '100%',
+                                background: '#111',
+                                borderRadius: '20px 20px 0 0',
+                                maxHeight: '70vh',
+                                overflow: 'auto',
+                                padding: '20px 16px',
+                            }}
+                        >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                                <h3 style={{ margin: 0, color: 'white', fontSize: 18, fontWeight: 700 }}>My Saved Streams</h3>
+                                <button onClick={() => setShowDrafts(false)} style={{ background: 'none', border: 'none', color: 'white', fontSize: 22, cursor: 'pointer' }}>&#10005;</button>
+                            </div>
+                            {myDrafts.length === 0 ? (
+                                <div style={{ textAlign: 'center', padding: '32px 0', color: 'rgba(255,255,255,0.5)' }}>
+                                    No saved streams. After going live, choose &quot;Save To Lives&quot; to save here.
+                                </div>
+                            ) : (
+                                myDrafts.map(draft => (
+                                    <div key={draft.id} style={{
+                                        display: 'flex', gap: 12, padding: '12px 0',
+                                        borderBottom: '1px solid rgba(255,255,255,0.08)',
+                                        alignItems: 'center',
+                                    }}>
+                                        <div style={{
+                                            width: 80, height: 56, borderRadius: 8, overflow: 'hidden',
+                                            background: '#222', flexShrink: 0,
+                                        }}>
+                                            {draft.thumbnail_url ? (
+                                                <img src={draft.thumbnail_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+                                            ) : (
+                                                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555', fontSize: 24 }}>&#128250;</div>
+                                            )}
+                                        </div>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ color: 'white', fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                {draft.title || 'Untitled Stream'}
+                                            </div>
+                                            <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2 }}>
+                                                {new Date(draft.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => publishDraft(draft)}
+                                            disabled={publishingDraft === draft.id}
+                                            style={{
+                                                padding: '8px 16px',
+                                                background: publishingDraft === draft.id ? '#333' : 'linear-gradient(135deg, #00D4FF, #0088FF)',
+                                                color: 'white', border: 'none', borderRadius: 8,
+                                                fontSize: 13, fontWeight: 700,
+                                                cursor: publishingDraft === draft.id ? 'wait' : 'pointer',
+                                                whiteSpace: 'nowrap',
+                                            }}
+                                        >
+                                            {publishingDraft === draft.id ? 'Publishing...' : 'Publish'}
+                                        </button>
+                                        <button
+                                            onClick={() => deleteDraft(draft)}
+                                            style={{
+                                                padding: '8px 12px',
+                                                background: 'rgba(250,56,62,0.15)',
+                                                color: '#FA383E',
+                                                border: '1px solid rgba(250,56,62,0.3)',
+                                                borderRadius: 8, fontSize: 13, fontWeight: 600,
+                                                cursor: 'pointer',
+                                            }}
+                                        >
+                                            Delete
+                                        </button>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* LiveStreamViewer overlay for watching active live streams */}
+                {watchingStream && userId && (
+                    <LiveStreamViewer
+                        stream={watchingStream}
+                        userId={userId}
+                        user={user}
+                        onClose={() => {
+                            setWatchingStream(null);
+                            fetchStreams();
+                        }}
+                    />
+                )}
 
             {UpgradePopup}
         </>
