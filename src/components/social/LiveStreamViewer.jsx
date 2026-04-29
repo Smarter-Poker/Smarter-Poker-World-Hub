@@ -39,12 +39,14 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     const [loadingMoreComments, setLoadingMoreComments] = useState(false);
     const [isFollowing, setIsFollowing] = useState(false); // #7: follow broadcaster
     const [followLoading, setFollowLoading] = useState(false);
+    const [pinnedComment, setPinnedComment] = useState(null); // #18: pinned comment from broadcaster
 
     const videoRef = useRef(null);
     const commentsEndRef = useRef(null);
     const commentChannelRef = useRef(null);
     const giftChannelRef = useRef(null);
     const commentInputRef = useRef(null); // #10: blur after send to dismiss keyboard
+    const pinChannelRef = useRef(null); // #18: pinned comment subscription
 
     useEffect(() => {
         if (!stream?.id || !userId) return;
@@ -141,6 +143,35 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
             giftChannelRef.current = giftCh;
         }
 
+        // #18: Subscribe to pinned comments
+        if (stream?.id) {
+            const pinCh = supabase.channel(`live-pins-${stream.id}`)
+                .on('postgres_changes', {
+                    event: 'INSERT', schema: 'public', table: 'live_pins',
+                    filter: `stream_id=eq.${stream.id}`,
+                }, async (payload) => {
+                    if (payload.new?.comment_id) {
+                        const { data: comment } = await supabase.from('live_comments')
+                            .select('*').eq('id', payload.new.comment_id).maybeSingle();
+                        if (comment) setPinnedComment(comment);
+                    }
+                })
+                .subscribe();
+            pinChannelRef.current = pinCh;
+
+            // Also fetch existing pinned comment
+            supabase.from('live_pins')
+                .select('comment_id').eq('stream_id', stream.id)
+                .order('created_at', { ascending: false }).limit(1).maybeSingle()
+                .then(async ({ data: pin }) => {
+                    if (pin?.comment_id) {
+                        const { data: comment } = await supabase.from('live_comments')
+                            .select('*').eq('id', pin.comment_id).maybeSingle();
+                        if (comment) setPinnedComment(comment);
+                    }
+                });
+        }
+
         return () => {
             if (!hasLeft) {
                 hasLeft = true;
@@ -148,6 +179,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
             }
             if (commentChannelRef.current) supabase.removeChannel(commentChannelRef.current);
             if (giftChannelRef.current) supabase.removeChannel(giftChannelRef.current);
+            if (pinChannelRef.current) supabase.removeChannel(pinChannelRef.current);
             liveStreamService.onStreamEnded = null;
             liveStreamService.onViewerCountChange = null;
             liveStreamService.onReconnecting = null;
@@ -460,7 +492,22 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                         {stream.title}
                     </div>
                 )}
+                {/* #9: Stream description */}
+                {stream?.description && (
+                    <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, lineHeight: 1.3, marginTop: 4 }}>
+                        {stream.description}
+                    </div>
+                )}
             </div>
+
+            {/* #18: PINNED COMMENT (viewer side) */}
+            {pinnedComment && (
+                <div style={{ position:'absolute', bottom:290, left:12, right:80, zIndex:10, background:'rgba(0,0,0,0.7)', borderRadius:10, padding:'8px 12px', border:'1px solid rgba(255,215,0,0.3)' }}>
+                    <div style={{ color:'#FFD700', fontSize:11, fontWeight:700, marginBottom:4 }}>PINNED</div>
+                    <span style={{ color:'#00CFFF', fontWeight:700, fontSize:12, marginRight:6 }}>{pinnedComment.author_name || 'User'}</span>
+                    <span style={{ color:'white', fontSize:12 }}>{pinnedComment.text}</span>
+                </div>
+            )}
 
             {/* COMMENTS OVERLAY */}
             <div style={{ position:'absolute', bottom:80, left:0, width:'min(320px,60vw)', maxHeight:200, overflowY:'auto', padding:'0 12px', scrollbarWidth:'none', zIndex:5 }}>
