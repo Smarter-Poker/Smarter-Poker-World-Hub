@@ -1,6 +1,11 @@
 /**
- * 🎬 BACKGROUND VIDEO UPLOAD MANAGER v3.0
+ * BACKGROUND VIDEO UPLOAD MANAGER v3.1
  * src/lib/backgroundVideoUpload.js
+ *
+ * v3.1 (2026-04-29): empty-Bearer JWS race fix — _ensureBearer falls back
+ * to supabase.auth.refreshSession() when getAccessToken() returns null;
+ * applied to both initial TUS POST headers and per-chunk onBeforeRequest.
+ * Cache-bust comment to force Vercel to rebuild this module's chunk.
  *
  * Production-grade singleton with:
  *   1. URL PREFETCHING — signed URL is fetched when user selects a file,
@@ -252,6 +257,7 @@ async function _uploadWithTus(file, meta, mimeType) {
         let maxPctReached = _progress || 0;
         const cleanMime = (mimeType || '').split(';')[0].trim() || 'video/mp4';
 
+<<<<<<< Updated upstream
         // ── Auth headers ──────────────────────────────────────────────────────
         // Headers required for Supabase TUS resumable uploads:
         //   1. Authorization: Bearer <user-jwt>  — primary auth (validated as JWS)
@@ -275,6 +281,16 @@ async function _uploadWithTus(file, meta, mimeType) {
             removeFingerprintOnSuccess: true,
             // NOTE: storeFingerprintForResuming intentionally omitted.
             // Stale fingerprints from previous failed uploads cause silent 7-8% stall.
+=======
+        const upload = new tus.Upload(file, {
+            endpoint: meta.tusEndpoint,
+            chunkSize: TUS_CHUNK_SIZE,
+            retryDelays: [0, 3000, 8000, 15000], // auto-retry on transient errors
+            // fingerprint persists the TUS upload URL so a tab refresh can resume
+            fingerprint: (f) => Promise.resolve(`${TUS_URL_KEY_PREFIX}${f.name}_${f.size}_${f.lastModified}`),
+            storeFingerprintForResuming: true,
+            removeFingerprintOnSuccess: true, // tus cleans up stored URL when upload completes
+>>>>>>> Stashed changes
             metadata: {
                 bucketName: meta.bucket,
                 objectName: meta.path,
@@ -310,7 +326,11 @@ async function _uploadWithTus(file, meta, mimeType) {
             },
             onSuccess: () => {
                 _activeXhr = null;
+<<<<<<< Updated upstream
 
+=======
+                // tus-js-client removes the stored fingerprint automatically (removeFingerprintOnSuccess: true)
+>>>>>>> Stashed changes
                 resolve(null);
             },
             onError: (err) => {
