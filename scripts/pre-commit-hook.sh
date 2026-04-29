@@ -7,7 +7,12 @@
 #   Blocks any commit that touches public/hub/club-arena/ UNLESS it was
 #   triggered by scripts/build-club-arena.sh.
 #
-# CHECK B: Dangerous Supabase Auth Pattern Detection
+# CHECK B: Merge / Stash Conflict Marker Detection  ★ CRITICAL ★
+#   Blocks commits containing <<<<<<< / ======= / >>>>>>> markers.
+#   These cause "Module parse failed" Vercel build failures that are
+#   extremely hard to diagnose. See April 2026 incident (7 files corrupted).
+#
+# CHECK C: Dangerous Supabase Auth Pattern Detection
 #   Blocks commits containing supabase.auth.getUser() or getSession()
 #   (must use authUtils.ts safe wrappers instead).
 #
@@ -51,18 +56,64 @@ if [ "$ARENA_STAGED" -gt 0 ]; then
     fi
 fi
 
-# ─── CHECK B: Dangerous Supabase Auth Patterns ──────────────────────────────
+# ─── CHECK B: Merge / Stash Conflict Marker Detection ───────────────────────
+# ★ CRITICAL — This check alone prevents the April 2026 "Module parse failed"
+# incident that took down Vercel deployments for hours. Conflict markers from
+# git merge, git stash pop, or git rebase are syntactically invalid JS/TS and
+# cause opaque SWC parser errors that are nearly impossible to trace back to
+# the source file without manual grep auditing.
+# ─────────────────────────────────────────────────────────────────────────────
+FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(js|jsx|ts|tsx|json|css)$' | grep -v 'public/hub/club-arena/assets/' | grep -v 'node_modules/')
+
+CONFLICT_FAIL=0
+if [ -n "$FILES" ]; then
+    for file in $FILES; do
+        # Check for all three types of conflict markers:
+        #   <<<<<<< (merge/stash start)
+        #   ======= (divider — only block if exactly 7 '=' on a line by itself)
+        #   >>>>>>> (merge/stash end)
+        if git show ":$file" 2>/dev/null | grep -qE '^<{7} |^>{7} '; then
+            echo "🚫 CONFLICT MARKER: $file"
+            # Show the offending lines for quick diagnosis
+            git show ":$file" 2>/dev/null | grep -nE '^<{7} |^={7}$|^>{7} ' | head -6
+            CONFLICT_FAIL=1
+        fi
+    done
+fi
+
+if [ $CONFLICT_FAIL -eq 1 ]; then
+    echo ""
+    echo "╔══════════════════════════════════════════════════════════════╗"
+    echo "║  🚫  GIT CONFLICT MARKERS DETECTED                         ║"
+    echo "╠══════════════════════════════════════════════════════════════╣"
+    echo "║                                                              ║"
+    echo "║  One or more staged files contain unresolved conflict        ║"
+    echo "║  markers (<<<<<<< / ======= / >>>>>>>).                     ║"
+    echo "║                                                              ║"
+    echo "║  These cause 'Module parse failed' errors on Vercel that     ║"
+    echo "║  are extremely hard to diagnose.                             ║"
+    echo "║                                                              ║"
+    echo "║  FIX: Open the flagged files, resolve the conflicts, then   ║"
+    echo "║  stage and commit again.                                     ║"
+    echo "║                                                              ║"
+    echo "╚══════════════════════════════════════════════════════════════╝"
+    echo ""
+    exit 1
+fi
+
+# ─── CHECK C: Dangerous Supabase Auth Patterns ──────────────────────────────
 echo "🔍 Scanning for dangerous Supabase auth patterns..."
 
-FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(js|jsx|ts|tsx)$' | grep -v 'public/hub/club-arena/assets/' | grep -v 'authUtils' | grep -v 'AvatarContext' | grep -v 'safeSupabase' | grep -v 'eslint-plugin')
+# Re-filter to just JS/TS files (excluding allowlisted utility files)
+AUTH_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(js|jsx|ts|tsx)$' | grep -v 'public/hub/club-arena/assets/' | grep -v 'authUtils' | grep -v 'AvatarContext' | grep -v 'safeSupabase' | grep -v 'eslint-plugin')
 
-if [ -z "$FILES" ]; then
+if [ -z "$AUTH_FILES" ]; then
     echo "✅ No relevant files to check"
     exit 0
 fi
 
 DANGEROUS=0
-for file in $FILES; do
+for file in $AUTH_FILES; do
     if git show ":$file" 2>/dev/null | grep -q 'supabase\.auth\.getUser'; then
         echo "🚫 BLOCKED: $file contains supabase.auth.getUser()"
         echo "   Use: import { getAuthUser } from '@/lib/authUtils'"
@@ -82,5 +133,5 @@ if [ $DANGEROUS -eq 1 ]; then
     exit 1
 fi
 
-echo "✅ No dangerous auth patterns found"
+echo "✅ All checks passed (conflict markers, auth patterns)"
 exit 0

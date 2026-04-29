@@ -156,8 +156,10 @@ fi
 echo "✅ No GitHub PAT patterns found in trackable files"
 
 # ── 0b. ACCOUNT ENFORCEMENT GATE ──
-# ONLY the paid Smarter-Poker account (admin@smarter.poker) is authorized for pushes.
-# This prevents agents from ever using the wrong account.
+# ONLY the paid Smarter-Poker GitHub account is authorized for pushes.
+# The commit email MUST be 254329056+Smarter-Poker@users.noreply.github.com
+# (GitHub rejects pushes with admin@smarter.poker due to email privacy — GH007).
+# admin@smarter.poker is the Vercel/billing identity, NOT the commit author.
 REQUIRED_ACCOUNT="Smarter-Poker"
 CURRENT_ACCOUNT=$(gh api /user --jq '.login' 2>/dev/null || echo "UNKNOWN")
 # Fallback: if gh CLI isn't available, check if the remote URL contains the correct account
@@ -167,12 +169,23 @@ if [ "$CURRENT_ACCOUNT" = "UNKNOWN" ]; then
         CURRENT_ACCOUNT="$REQUIRED_ACCOUNT"
     fi
 fi
+
+# ── 0b-email. GIT EMAIL ENFORCEMENT ──
+# Ensure the commit email is the noreply alias. If an agent set it to
+# admin@smarter.poker, silently fix it to prevent GH007 push rejections.
+CURRENT_GIT_EMAIL=$(git config user.email 2>/dev/null || echo "")
+REQUIRED_GIT_EMAIL="254329056+Smarter-Poker@users.noreply.github.com"
+if [ "$CURRENT_GIT_EMAIL" != "$REQUIRED_GIT_EMAIL" ]; then
+    echo "⚠️  Fixing git user.email: $CURRENT_GIT_EMAIL → $REQUIRED_GIT_EMAIL"
+    git config user.email "$REQUIRED_GIT_EMAIL"
+fi
+
 if [ "$CURRENT_ACCOUNT" != "$REQUIRED_ACCOUNT" ]; then
     echo ""
     echo "🚨🚨🚨 CRITICAL: WRONG GITHUB ACCOUNT! 🚨🚨🚨"
     echo "═══════════════════════════════════════════════════"
     echo "   Current:  $CURRENT_ACCOUNT"
-    echo "   Required: $REQUIRED_ACCOUNT (admin@smarter.poker)"
+    echo "   Required: $REQUIRED_ACCOUNT (254329056+Smarter-Poker@users.noreply.github.com)"
     echo ""
     echo "   Run: gh auth logout -h github.com"
     echo "   Then re-authenticate with the Smarter-Poker token."
