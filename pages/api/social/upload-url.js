@@ -136,11 +136,15 @@ export default async function handler(req, res) {
               ? [folder || 'stories', prefix, `${timestamp}_${safeName}`].filter(Boolean).join('/')
               : [(isVideo ? (folder || 'videos') : isAudio ? (folder || 'audio') : (folder || 'photos')), prefix, `${timestamp}_${safeName}`].filter(Boolean).join('/');
 
-          // Create a presigned TUS upload token.
-          // Supabase TUS requires x-signature on every request — plain JWT-only POSTs return 400.
+          // Create a presigned upload token. { upsert: true } makes the token's
+          // claim match the client's `x-upsert: true` header so retries to the
+          // same path don't fail with "Asset already exists" after a partial
+          // upload. createSignedUploadUrl returns BOTH a single-shot signedUrl
+          // (for small-file PUT, used by thumbnailUploader) and a token (used
+          // as x-signature on the TUS resumable path for videos/large files).
           const { data: signData, error: signError } = await getSupabase().storage
               .from(BUCKET)
-              .createSignedUploadUrl(storagePath);
+              .createSignedUploadUrl(storagePath, { upsert: true });
 
           if (signError) {
               console.warn('[Upload-URL API] Signed URL error:', signError.message);
@@ -159,7 +163,8 @@ export default async function handler(req, res) {
           return res.status(200).json({
               success: true,
               tusEndpoint,
-              token: signData.token,      // presigned token — sent as x-signature on every TUS chunk
+              token: signData.token,         // presigned token — used as x-signature on TUS chunks
+              signedUrl: signData.signedUrl, // single-shot PUT URL — used by thumbnailUploader for small files
               path: storagePath,
               publicUrl,
               type: isVideo ? 'video' : isAudio ? 'audio' : 'photo',

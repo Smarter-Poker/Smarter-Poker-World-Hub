@@ -29,10 +29,29 @@
  *   const { publicUrl, wasBackground } = await bgUpload.start({ file, userId, folder });
  */
 
-import { getAccessToken } from './authUtils';
+import { getAccessToken, SUPABASE_ANON_KEY } from './authUtils';
 import { sniffMimeType } from './socialHelpers';
 import toast, { useToastStore } from '../stores/toastStore';
 import * as tus from 'tus-js-client';
+
+// ─── Auth resilience helper ──────────────────────────────────────────────────
+// getAccessToken() is a one-shot localStorage read that races with Supabase SDK
+// token refresh, fails in PWA standalone mode (separate localStorage scope from
+// Safari), and returns null under iOS memory pressure. When that happens, the
+// TUS Authorization header becomes "Bearer " (empty) and Supabase Storage
+// rejects the request with "Invalid Compact JWS" before ever reading
+// x-signature. This helper falls back to an active SDK refresh when localStorage
+// is empty so the bearer header is never blank.
+async function _ensureBearer() {
+    let token = getAccessToken();
+    if (token) return token;
+    try {
+        const { supabase } = await import('./supabase');
+        const { data } = await supabase.auth.refreshSession();
+        token = data?.session?.access_token || null;
+    } catch (_) { /* refresh failed; caller will reject with a clear error */ }
+    return token;
+}
 
 // ─── Module-level singletons ──────────────────────────────────────────────────
 let _activeXhr = null;        // XMLHttpRequest or tus.Upload — survives modal unmount
@@ -216,19 +235,33 @@ async function _fetchUploadMeta(file, userId, folder) {
  * @param {string} mimeType
  * @returns {Promise<null>}  resolves on success; caller uses the publicUrl from meta
  */
-function _uploadWithTus(file, meta, mimeType) {
+async function _uploadWithTus(file, meta, mimeType) {
+    // ── Auth resolution (must happen BEFORE the TUS upload is constructed) ──
+    // Supabase Storage validates Authorization: Bearer <user-jwt> as a JWS
+    // FIRST. If it's empty or malformed, the request fails with "Invalid
+    // Compact JWS" no matter how valid x-signature is. Resolve a guaranteed
+    // non-empty bearer token now; if we can't, fail loudly with a user-readable
+    // error rather than shipping "Bearer " on the wire.
+    const userToken = await _ensureBearer();
+    if (!userToken) {
+        throw new Error('Session expired. Please refresh the page and try again.');
+    }
+
     return new Promise((resolve, reject) => {
         _uploadStartTime = Date.now();
         let maxPctReached = _progress || 0;
         const cleanMime = (mimeType || '').split(';')[0].trim() || 'video/mp4';
 
         // ── Auth headers ──────────────────────────────────────────────────────
-        // Supabase TUS requires BOTH:
-        //   1. Authorization: Bearer {user-jwt}
-        //   2. x-signature: {presigned-token}  (from createSignedUploadUrl)
-        // Without x-signature, the TUS POST returns 400 even for authenticated users.
+        // Headers required for Supabase TUS resumable uploads:
+        //   1. Authorization: Bearer <user-jwt>  — primary auth (validated as JWS)
+        //   2. apikey: <anon-key>                — project context, matches docs example
+        //   3. x-upsert: true                    — allow path overwrite on retry
+        // Optional (extra path-binding when server creates a presigned token):
+        //   4. x-signature: <token>              — only validated AFTER Authorization passes
         const tusHeaders = {
-            Authorization: `Bearer ${getAccessToken() || ''}`,
+            Authorization: `Bearer ${userToken}`,
+            apikey: SUPABASE_ANON_KEY,
             'x-upsert': 'true',
         };
         if (meta.token) {
@@ -289,10 +322,14 @@ function _uploadWithTus(file, meta, mimeType) {
                     reject(new Error(`Upload failed: ${msg.slice(0, 300)} — please try again.`));
                 }
             },
-            // Refresh JWT + x-signature on every chunk (token stays valid for 5min per chunk)
-            onBeforeRequest: (req) => {
-                const freshToken = getAccessToken();
-                if (freshToken) req.setHeader('Authorization', `Bearer ${freshToken}`);
+            // Refresh Authorization on every chunk PATCH so multi-minute uploads
+            // survive token rotation. _ensureBearer falls back to an active SDK
+            // refresh when localStorage is stale; tus-js-client v4 awaits the
+            // returned Promise, so an async callback is safe here.
+            onBeforeRequest: async (req) => {
+                const fresh = await _ensureBearer();
+                if (fresh) req.setHeader('Authorization', `Bearer ${fresh}`);
+                req.setHeader('apikey', SUPABASE_ANON_KEY);
                 if (meta.token) req.setHeader('x-signature', meta.token);
             },
         });

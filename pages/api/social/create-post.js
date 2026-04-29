@@ -62,7 +62,11 @@ export default async function handler(req, res) {
               });
 
           if (rpcError) {
-              // Fallback: direct insert with service role key
+              // Fallback: direct insert with service role key.
+              // IMPORTANT: keep this column list in sync with fn_create_social_post —
+              // dropping a field here silently loses data when the RPC fails. Bug
+              // history: thumbnail_url was missing here for ~6 weeks, so any post
+              // created via the fallback path lost its thumbnail.
               const { data: directPost, error: directError } = await getSupabase()
                   .from('social_posts')
                   .insert({
@@ -72,6 +76,7 @@ export default async function handler(req, res) {
                       media_urls: media_urls || [],
                       visibility,
                       metadata: metadata || null,
+                      thumbnail_url: thumbnail_url || null,
                       created_at: new Date().toISOString()
                   })
                   .select('id')

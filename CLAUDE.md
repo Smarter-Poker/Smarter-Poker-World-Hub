@@ -1,7 +1,10 @@
 # Smarter-Poker-World-Hub -- Agent Instructions
 
 ALL agents (Claude, AntiGravity, Cowork, any AI) MUST read this file at session start.
-This is the single source of truth for **this repo**. Updated 2026-04-21.
+This is the single source of truth for **this repo**. Updated 2026-04-28.
+
+**Also read `.memory/SUMMARY.md` at session start** — it contains the cross-session
+rule index, problem history, and architectural decisions. Append to it at session end.
 
 **Platform-level plan** (World Hub + Club Arena + Club Engine + Supabase + Hetzner):
 `./CLUB-ARENA-OFFICIAL-UPGRADE-INTEGRATION.md`
@@ -27,11 +30,31 @@ There is exactly ONE deployment path. No exceptions. No alternatives.
 The `smarter-poker` Vercel project (`prj_FNUaJmcjRnwCSh1JzblIUYuOXDGK`) is a DEAD DUPLICATE.
 Its git integration is disconnected. Its deploy hooks are deleted. Do not touch it.
 
-### 1.2 Mandatory End-of-Session Push
+### 1.2 Mandatory End-of-Session Push (RULE-001 in `.memory/`)
 
-Every agent MUST run `git-safe-push.sh` before ending a session. No exceptions.
-Uncommitted work is unfinished work. If the script fails, fix the issue and re-run
-until it exits 0. Never leave files uncommitted in the working directory.
+Every agent MUST do ALL THREE of the following at the end of every session,
+no exceptions:
+
+1. **Push code.** Run `git-safe-push.sh` until it exits 0 with
+   `DEPLOY_VERIFIED:true` and `SHA_MATCHED:true`. Auditing without shipping is
+   forbidden. If a fix is identified, ship it in the same session — even if
+   other audit items remain — then open follow-up work for the rest.
+
+2. **Write and apply SQL.** If the work touched data, schema, RLS, RPCs, or
+   anything in Supabase, save migrations under
+   `supabase/migrations/<YYYYMMDD>_<description>.sql` AND apply them to
+   production via the Supabase MCP `apply_migration` tool. Confirm via
+   `list_migrations` that the migration appears. Never apply schema changes
+   via raw `execute_sql` — migrations only, so the change is auditable.
+
+3. **Update operating memory.** If a new rule, decision, or pattern was
+   learned, append it to `.memory/SUMMARY.md` with a detail file under the
+   appropriate subdirectory (`rules/`, `decisions/`, `patterns/`,
+   `problems/`). Update this file (`CLAUDE.md`) if other agents need to see
+   it at session start.
+
+NEVER claim "the fix is documented" as success. Only "production
+`/api/health` serves SHA `<hash>` containing the new code" counts.
 
 Before pushing, verify the staged files make sense:
 1. Run `git status` to see what will be committed
