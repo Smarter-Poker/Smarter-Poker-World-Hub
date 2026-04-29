@@ -26,6 +26,10 @@ const MAX_IMAGE_SIZE = 10 * 1024 * 1024;        // 10MB for images
 
 const ALLOWED_TYPES = [
     'image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml',
+    // iPhone Photos default formats — accepted at the bucket layer 2026-04-29.
+    // NOTE: render natively on Safari/iOS but NOT on Chrome/Firefox desktop.
+    // Server-side conversion to JPEG is a follow-up in .memory/SUMMARY.md.
+    'image/heic', 'image/heif',
     'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo',
     'video/x-m4v', 'video/3gpp', 'video/3gpp2', 'video/hevc',
     'video/x-matroska',
@@ -41,6 +45,7 @@ const EXT_MIME_MAP = {
     hevc: 'video/hevc', mkv: 'video/x-matroska',
     jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
     gif: 'image/gif', webp: 'image/webp',
+    heic: 'image/heic', heif: 'image/heif',  // iPhone Photos
     // Audio
     webm_audio: 'audio/webm', ogg: 'audio/ogg', mp3: 'audio/mpeg',
     m4a: 'audio/x-m4a', aac: 'audio/aac', wav: 'audio/wav',
