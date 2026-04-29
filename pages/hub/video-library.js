@@ -1945,19 +1945,18 @@ export default function VideoLibraryPage() {
                                     const win = e.target.contentWindow;
                                     win.postMessage(JSON.stringify({ event: 'listening' }), '*');
 
-                                    // Auto-unmute after a slight delay. The user tapped a video
-                                    // card which counts as a user gesture, so iOS allows unmute.
-                                    // On mobile: SKIP unmute — it causes iOS to PAUSE the video.
-                                    // User can unmute via YouTube's native volume button.
+                                    // Auto-unmute after a delay. The user tapped a video card
+                                    // (valid gesture), so browsers allow unmute.
+                                    // Mobile: single attempt at 1200ms (multiple rapid calls overwhelm iOS).
+                                    // Desktop: 3-stage for reliability.
                                     const isMobileDevice = typeof window !== 'undefined' && ('ontouchstart' in window || window.innerWidth < 1024);
-                                    if (!isMobileDevice) {
-                                        iframeUnmuteTimers.current = [200, 600, 1200].map(d => setTimeout(() => {
-                                            try {
-                                                win.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
-                                                win.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
-                                            } catch { /* best-effort */ }
-                                        }, d));
-                                    }
+                                    const delays = isMobileDevice ? [1200] : [200, 600, 1200];
+                                    iframeUnmuteTimers.current = delays.map(d => setTimeout(() => {
+                                        try {
+                                            win.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
+                                            win.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
+                                        } catch { /* best-effort */ }
+                                    }, d));
                                 } catch { /* best-effort */ }
                             }}
                             style={{
