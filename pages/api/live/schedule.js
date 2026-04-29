@@ -71,7 +71,7 @@ export default async function handler(req, res) {
                 type: 'live_scheduled',
                 title: 'Upcoming Live Stream',
                 message: `${displayName} is going live: "${title}" on ${scheduledDate}`,
-                link: `/hub/social-media`,
+                link: `/hub/lives`,
                 actor_id: user.id,
                 read: false,
             }));

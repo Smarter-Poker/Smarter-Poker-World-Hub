@@ -275,7 +275,7 @@ export default function LivesPage() {
       })
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
-  }, [userId]);
+  }, [userId, fetchStreams]);
 
     return (
         <>
@@ -664,8 +664,8 @@ export default function LivesPage() {
                                 )}
                                 {chatMessages.map((m, i) => (
                                     <div key={m.id || i} style={{ marginBottom: 10 }}>
-                                        <span style={{ color: C.blue, fontWeight: 600, fontSize: 13 }}>{m.author?.username || 'User'}: </span>
-                                        <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: 14 }}>{m.content}</span>
+                                        <span style={{ color: C.blue, fontWeight: 600, fontSize: 13 }}>{m.author_name || m.author?.username || 'User'}: </span>
+                                        <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: 14 }}>{m.text || m.content}</span>
                                     </div>
                                 ))}
                             </div>
