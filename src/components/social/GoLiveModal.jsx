@@ -391,7 +391,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
     return (
         <>
         <div
-            style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.88)', zIndex:10000, display:'flex', alignItems:'center', justifyContent:'center' }}
+            style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.88)', zIndex:10000, display:'flex', alignItems:(stage === 'live' || stage === 'countdown') ? 'center' : 'flex-start', justifyContent:'center', overflowY: (stage === 'live' || stage === 'countdown') ? 'hidden' : 'auto', padding: (stage === 'live' || stage === 'countdown') ? 0 : '20px 0' }}
             onClick={(e) => { if (e.target === e.currentTarget && stage !== 'live') onClose(); }}
         >
             <style>{`
@@ -407,7 +407,8 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                 width: (stage === 'live' || stage === 'countdown') ? '100%' : 'min(560px, 92vw)',
                 height: (stage === 'live' || stage === 'countdown') ? '100%' : 'auto',
                 maxHeight: (stage === 'live' || stage === 'countdown') ? '100%' : '92vh',
-                overflow: 'hidden',
+                overflow: (stage === 'live' || stage === 'countdown') ? 'hidden' : 'auto',
+                WebkitOverflowScrolling: 'touch',
                 position: 'relative',
             }}>
 
