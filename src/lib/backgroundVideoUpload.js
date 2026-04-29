@@ -718,19 +718,18 @@ const bgUpload = {
 
             _setState('uploading', 5, 'Uploading…');
 
-            // ── Step 2: Upload — prefer TUS (chunked/resumable) for all videos ─
-            // Falls back to XHR PUT if tusEndpoint is not present in meta (old cached meta).
+            // ── Step 2: TUS upload — chunked/resumable for all videos ─────
+            // The XHR-PUT fallback was removed in sweep 5 (2026-04-29) — every
+            // /api/social/upload-url response includes tusEndpoint, so the
+            // fallback was unreachable dead code. If a future API change ever
+            // returns a meta without tusEndpoint, fail loudly instead of
+            // silently bypassing the TUS protocol.
             const mimeType = sniffMimeType(file);
-            let finalPublicUrl;
-            if (meta.tusEndpoint) {
-                // TUS path: chunked, resumable, iOS-safe
-                await _uploadWithTus(file, meta, mimeType);
-                finalPublicUrl = meta.publicUrl;
-            } else {
-                // XHR fallback: preserves Bug 3 fix (alreadyConsumed detection)
-                const freshPublicUrl = await _uploadWithRetry(file, meta.signedUrl, mimeType, 0, userId, folder);
-                finalPublicUrl = freshPublicUrl || meta.publicUrl;
+            if (!meta.tusEndpoint) {
+                throw new Error('Server did not return a TUS endpoint — upload aborted.');
             }
+            await _uploadWithTus(file, meta, mimeType);
+            const finalPublicUrl = meta.publicUrl;
 
             // ── Upload complete ───────────────────────────────────────────────
             clearTimeout(_bgTimer);

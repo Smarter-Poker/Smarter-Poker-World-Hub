@@ -27,32 +27,36 @@ export default function QuickLogWidget({ userId, onSubmit, onOpenFullModal }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (!amount || !userId) return;
+        // Sweep-5 audit fix: add isSubmitting guard to prevent double-submit
+        // (rapid clicks before button disables) and wrap body in try/finally so
+        // an uncaught throw can't leave isSubmitting stuck at true forever.
+        if (!amount || !userId || isSubmitting) return;
 
         setIsSubmitting(true);
-
-        const numAmount = parseFloat(amount);
-        const grossIn = isWin ? 0 : numAmount;
-        const grossOut = isWin ? numAmount : 0;
-
-        const formData = {
-            category,
-            entry_date: new Date().toISOString().split('T')[0],
-            gross_in: grossIn,
-            gross_out: grossOut,
-            notes: 'Quick logged',
-        };
-
         try {
-            await onSubmit?.(formData);
-            setShowSuccess(true);
-            setAmount('');
-            setTimeout(() => setShowSuccess(false), 2000);
-        } catch (error) {
-            console.warn('Quick log failed:', error);
-        }
+            const numAmount = parseFloat(amount);
+            const grossIn = isWin ? 0 : numAmount;
+            const grossOut = isWin ? numAmount : 0;
 
-        setIsSubmitting(false);
+            const formData = {
+                category,
+                entry_date: new Date().toISOString().split('T')[0],
+                gross_in: grossIn,
+                gross_out: grossOut,
+                notes: 'Quick logged',
+            };
+
+            try {
+                await onSubmit?.(formData);
+                setShowSuccess(true);
+                setAmount('');
+                setTimeout(() => setShowSuccess(false), 2000);
+            } catch (error) {
+                console.warn('Quick log failed:', error);
+            }
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     if (!userId) {
