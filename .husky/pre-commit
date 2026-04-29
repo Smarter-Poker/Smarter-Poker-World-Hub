@@ -40,9 +40,12 @@ echo "✅ No dangerous auth patterns found"
 # 🛡️ MERGE CONFLICT MARKER CHECK
 # SWC build errors for conflict markers are opaque ("Module parse failed").
 # Catch them early before they reach Vercel.
+# NOTE: match ANYWHERE on a line — stash pop can produce markers indented
+# inside comments/code, not just at column 0. Previous ^ anchored patterns
+# missed markers like ` * <<<<<<< Updated upstream` in JSDoc blocks.
 CONFLICT_FAIL=0
 for file in $FILES; do
-  if git show ":$file" 2>/dev/null | grep -qE '^(<<<<<<<|>>>>>>>|={7,}$)'; then
+  if git show ":$file" 2>/dev/null | grep -qE '(<<<<<<<|>>>>>>>|^={7}$)'; then
     echo "🚫 BLOCKED: $file contains a merge conflict marker"
     CONFLICT_FAIL=1
   fi

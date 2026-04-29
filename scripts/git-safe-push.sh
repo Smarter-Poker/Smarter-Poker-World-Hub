@@ -413,6 +413,32 @@ echo ""
 echo "🔄 Phase 2: Staging and committing..."
 git add -A
 
+# ── 2a. MERGE CONFLICT MARKER GATE (UNCONDITIONAL) ──
+# This is the REAL safety net. Pre-commit/pre-push hooks can be bypassed
+# with --no-verify/--skip-hooks. This check runs EVERY time, no exceptions.
+# Matches anywhere on a line — stash pop produces indented markers inside
+# JSDoc comments that the previous ^ anchored hooks missed.
+# deploy-autofix.js is excluded because it legitimately references these strings.
+CONFLICT_STAGED=$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null \
+  | grep -E '\.(js|jsx|ts|tsx|css)$' \
+  | grep -v 'deploy-autofix.js' \
+  | while IFS= read -r f; do
+      git show ":$f" 2>/dev/null | grep -qE '(<<<<<<<|>>>>>>>)' && echo "$f"
+    done || true)
+if [ -n "$CONFLICT_STAGED" ]; then
+    echo ""
+    echo "🚨🚨🚨 BLOCKED: Merge conflict markers in staged files! 🚨🚨🚨"
+    echo "═══════════════════════════════════════════════════"
+    echo "$CONFLICT_STAGED" | sed 's/^/   ❌ /'
+    echo ""
+    echo "   These WILL break the Vercel build. Resolve all conflict markers first."
+    echo "═══════════════════════════════════════════════════"
+    git reset HEAD 2>/dev/null || true
+    echo "PUSH_OK:false"
+    echo "REASON:merge_conflict_markers"
+    exit 2
+fi
+
 # Check if there's actually anything to commit
 if git diff --cached --quiet 2>/dev/null; then
   echo "ℹ️  No staged changes to commit."
