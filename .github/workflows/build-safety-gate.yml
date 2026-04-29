@@ -47,7 +47,13 @@ jobs:
           # not packages owned by the user account. NPM_AUTH_TOKEN is a PAT with
           # write:packages scope belonging to the Smarter-Poker user, which can
           # read all their private packages.
+          #
+          # NODE_AUTH_TOKEN → used by actions/setup-node's generated .npmrc
+          # NPM_TOKEN      → used by the project's .npmrc (${NPM_TOKEN})
+          # Both must be set because npm reads both .npmrc files and the
+          # project .npmrc takes precedence for the @smarter-poker scope.
           NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
         run: |
           npm ci --ignore-scripts 2>/dev/null || {
             echo "::warning::npm ci failed (lockfile sync issue) — falling back to npm install"
