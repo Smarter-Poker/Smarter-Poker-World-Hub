@@ -35,6 +35,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
 
     useEffect(() => {
         if (!stream?.id || !userId) return;
+        let hasLeft = false; // FIX: prevent double leaveStream on unmount after handleLeave
 
         const connect = async () => {
             try {
@@ -84,6 +85,11 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                 .order('created_at', { ascending: true }).limit(50)
                 .then(({ data }) => { if (data) setComments(data); });
 
+            // FIX: remove any existing channel before creating new one (React Strict Mode double-mount)
+            if (commentChannelRef.current) {
+                supabase.removeChannel(commentChannelRef.current);
+                commentChannelRef.current = null;
+            }
             const ch = supabase.channel(`live-comments-${stream.id}`)
                 .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'live_comments', filter: `stream_id=eq.${stream.id}` },
                     (payload) => { setComments(prev => [...prev, payload.new]); }
@@ -92,7 +98,11 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
         }
 
         return () => {
-            liveStreamService.leaveStream();
+            // FIX: only leaveStream once — handleLeave already called it if user pressed close
+            if (!hasLeft) {
+                hasLeft = true;
+                liveStreamService.leaveStream();
+            }
             if (commentChannelRef.current) supabase.removeChannel(commentChannelRef.current);
         };
     }, [stream?.id, userId]);
@@ -119,14 +129,15 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                 stream_id: stream.id,
                 user_id: userId,
                 text,
-                author_name: user?.name || user?.full_name || user?.username || 'Viewer',
+                author_name: user?.full_name || user?.user_metadata?.full_name || user?.username || user?.email?.split('@')[0] || 'Viewer',
             });
         } catch (err) { console.warn('[LiveStreamViewer] comment failed:', err); }
     };
 
     const handleLeave = async () => {
+        // FIX: prevent double leaveStream on unmount
+        liveStreamService.isManualDisconnect = true;
         await liveStreamService.leaveStream();
-        // Notify other components that we left the stream
         busEmit.dataMutated?.('live_streams');
         onClose();
     };

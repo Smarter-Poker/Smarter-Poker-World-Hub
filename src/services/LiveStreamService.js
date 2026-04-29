@@ -44,6 +44,7 @@ class LiveStreamService {
         this.isManualDisconnect = false; // FIX: was undefined, causing spurious reconnect
         this.onRemoteStream = null;
         this._viewerChannel = null; // FIX: viewer subscription channel ref for cleanup
+        this._remoteStreamDelivered = false; // FIX: guard double onRemoteStream fire
 
         // Callbacks
         this.onViewerCountChange = null;
@@ -172,9 +173,13 @@ class LiveStreamService {
         this.room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
             // FIX: track.mediaStream does not exist in livekit-client v2.
             // Use _trackToStream() which wraps track.mediaStreamTrack correctly.
+            // Also guard against double-fire if manual participant loop already delivered the stream.
             if (track.kind === Track.Kind.Video) {
                 const ms = this._trackToStream(track);
-                if (ms) this.onRemoteStream?.(ms);
+                if (ms) {
+                    this._remoteStreamDelivered = true;
+                    this.onRemoteStream?.(ms);
+                }
             }
         });
 
@@ -358,17 +363,21 @@ class LiveStreamService {
         const { token, url } = await this._getToken(streamId, false);
         await this._connectRoom(url, token, false, null);
 
-        // Handle already-published tracks
+        // Handle already-published tracks that fired before TrackSubscribed listener
+        // FIG: use a flag to prevent double-fire when autoSubscribe also triggers TrackSubscribed
+        let remoteStreamDelivered = false;
         for (const [, participant] of this.room.remoteParticipants) {
             for (const [, publication] of participant.trackPublications) {
                 if (publication.isSubscribed && publication.track) {
-                    if (publication.track.kind === Track.Kind.Video) {
+                    if (publication.track.kind === Track.Kind.Video && !remoteStreamDelivered) {
                         const ms = this._trackToStream(publication.track);
-                        if (ms) onRemoteStream?.(ms);
+                        if (ms) { onRemoteStream?.(ms); remoteStreamDelivered = true; }
                     }
                 }
             }
         }
+        // FIX: store a flag so TrackSubscribed handler won't double-fire if loop already delivered
+        this._remoteStreamDelivered = remoteStreamDelivered;
 
         // Subscribe to viewer count
         this._subscribeToViewers(streamId);

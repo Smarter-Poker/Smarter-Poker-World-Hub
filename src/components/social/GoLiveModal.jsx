@@ -163,12 +163,23 @@ export function GoLiveModal({ isOpen, onClose, user }) {
         setStage('countdown');
         setCountdown(5);
 
-        // Upload thumbnail if provided, else capture from video
+        // Upload thumbnail if provided, else auto-capture from video and upload
         let thumbUrl = null;
         if (thumbnailFile) {
             thumbUrl = await uploadThumbnail(thumbnailFile);
-        } else {
-            thumbUrl = captureThumbnail(); // data URL fallback
+        } else if (user?.id) {
+            // FIX: captureThumbnail() returns a data URL (can be several MB as base64).
+            // Storing raw data URLs in a DB text column causes silent insert failures
+            // on row size limits. Convert to Blob and upload to storage instead.
+            const dataUrl = captureThumbnail();
+            if (dataUrl) {
+                try {
+                    const res = await fetch(dataUrl);
+                    const blob = await res.blob();
+                    const autoFile = new File([blob], 'auto-thumb.jpg', { type: 'image/jpeg' });
+                    thumbUrl = await uploadThumbnail(autoFile);
+                } catch (_) { thumbUrl = null; /* non-fatal — stream continues without thumb */ }
+            }
         }
         setThumbnailUrl(thumbUrl);
 

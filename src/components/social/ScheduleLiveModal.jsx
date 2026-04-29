@@ -4,6 +4,7 @@
  * Notifies followers automatically when scheduled.
  */
 import { useState, useRef } from 'react';
+import { supabase } from '../../lib/supabase';
 
 const C = {
     bg: '#0A0A1A',
@@ -31,7 +32,7 @@ export function ScheduleLiveModal({ isOpen, onClose, user }) {
     const handleThumbnailUpload = async (e) => {
         const file = e.target.files?.[0];
         if (!file || !user?.id) return;
-        const { supabase } = await import('../../lib/supabase');
+        // FIX: supabase now statically imported (was wasteful dynamic import on every click)
         const filename = `${user.id}/scheduled-${Date.now()}.jpg`;
         const { data, error } = await supabase.storage
             .from('live-recordings')

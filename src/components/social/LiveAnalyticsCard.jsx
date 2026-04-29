@@ -28,6 +28,7 @@ export function LiveAnalyticsCard({ streamId, onContinue }) {
 
     useEffect(() => {
         if (!streamId) return;
+        let cancelled = false;
         const load = async () => {
             try {
                 const { data } = await supabase
@@ -35,15 +36,17 @@ export function LiveAnalyticsCard({ streamId, onContinue }) {
                     .select('*')
                     .eq('id', streamId)
                     .maybeSingle();
-                setAnalytics(data);
+                if (!cancelled) setAnalytics(data);
             } catch (e) {
                 console.warn('[analytics] failed:', e);
             } finally {
-                setLoading(false);
+                if (!cancelled) setLoading(false);
             }
         };
         // Short delay so DB has time to aggregate
-        setTimeout(load, 1500);
+        // FIX: store timer so cleanup can cancel it on unmount
+        const timer = setTimeout(load, 1500);
+        return () => { cancelled = true; clearTimeout(timer); };
     }, [streamId]);
 
     return (
