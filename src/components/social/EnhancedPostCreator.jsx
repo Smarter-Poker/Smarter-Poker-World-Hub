@@ -772,6 +772,16 @@ export const EnhancedPostCreator = ({
         setError(userFriendlyMessage);
         setIsSubmitting(false);
       }
+    } finally {
+      // BUG FIX (4-pass audit, sweep 2): non-background success path never
+      // reset isSubmitting. In inline mode (SmarterPokerFeedView, where
+      // onClose is undefined and the modal doesn't unmount on success),
+      // the Post button stayed disabled forever after a successful post.
+      // The success animation's setTimeout resets content/mediaFiles/etc.
+      // but had no setIsSubmitting(false). Belt-and-suspenders: also reset
+      // here in finally so any future code path that forgets to reset is
+      // caught. Idempotent with existing resets in onBackground/catch paths.
+      if (mountedRef.current) setIsSubmitting(false);
     }
   }, [content, mediaFiles, visibility, user, supabase, onPostCreated, onClose, isSubmitting]);
 
