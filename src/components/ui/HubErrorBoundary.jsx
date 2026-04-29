@@ -114,22 +114,40 @@ export class HubErrorBoundary extends React.Component {
                         </button>
                     </div>
 
-                    {/* Dev-only error details */}
-                    {process.env.NODE_ENV === 'development' && this.state.error && (
-                        <pre style={{
-                            marginTop: 16,
-                            padding: 16,
-                            background: '#1a0000',
-                            border: '1px solid #ff000044',
-                            borderRadius: 8,
-                            color: '#ff6b6b',
-                            fontSize: 11,
-                            maxWidth: 600,
-                            overflowX: 'auto',
-                            textAlign: 'left',
-                        }}>
-                            {String(this.state.error)}
-                        </pre>
+                    {/* Error details — visible in BOTH dev and prod so users (and Dan) can
+                        see exactly what threw without needing DevTools. Toggle with the link
+                        below if it's too noisy in normal use. */}
+                    {this.state.error && (
+                        <details style={{ marginTop: 16, maxWidth: 720, width: '100%' }}>
+                            <summary style={{
+                                color: '#ff6b6b',
+                                fontSize: 12,
+                                cursor: 'pointer',
+                                textAlign: 'center',
+                                userSelect: 'none',
+                            }}>
+                                Show error details
+                            </summary>
+                            <pre style={{
+                                marginTop: 12,
+                                padding: 16,
+                                background: '#1a0000',
+                                border: '1px solid #ff000044',
+                                borderRadius: 8,
+                                color: '#ff6b6b',
+                                fontSize: 11,
+                                lineHeight: 1.5,
+                                whiteSpace: 'pre-wrap',
+                                wordBreak: 'break-word',
+                                maxHeight: 400,
+                                overflowY: 'auto',
+                                textAlign: 'left',
+                            }}>
+{String(this.state.error?.name || 'Error')}: {String(this.state.error?.message || this.state.error)}
+{'\n\n'}
+{String(this.state.error?.stack || '(no stack)')}
+                            </pre>
+                        </details>
                     )}
                 </div>
             );
