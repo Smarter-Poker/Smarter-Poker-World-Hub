@@ -357,6 +357,8 @@ function ReelViewer({ reels, startIndex, onClose }) {
     const containerRef = useRef(null);
     const overlayTimerRef = useRef(null);
     const touchStartRef = useRef({ x: 0, y: 0 });
+    const swipeStartRef = useRef(null);
+    const swipeDeltaRef = useRef(0);
     const likeDebounceRef = useRef(false);
     const lastTapRef = useRef(0);
     const progressRAF = useRef(null);
@@ -510,6 +512,22 @@ function ReelViewer({ reels, startIndex, onClose }) {
         setCurrentIndex(prev => prev > 0 ? prev - 1 : prev);
     };
 
+    // Reset video state on every reel change
+    useEffect(() => {
+        setPaused(true);
+        setYtReady(false);
+        setYtError(null);
+        setMuted(true); // Start muted for autoplay compliance; first tap unmutes
+        setShowComments(false);
+        setShowMoreMenu(false);
+        setShowReactionPicker(false);
+        setShowShareModal(false);
+        setCaptionExpanded(false);
+        // 3s fallback: if YouTube never fires onStateChange, show play button
+        const ytFallback = setTimeout(() => setYtReady(true), 3000);
+        return () => clearTimeout(ytFallback);
+    }, [currentIndex]);
+
     // Auto-hide overlay after 2.5 seconds — but NOT when video is paused
     // BUG FIX: Previously this useEffect unconditionally restarted the auto-hide timer
     // whenever showOverlay became true, overriding the timer cancellation in handleTap
@@ -522,34 +540,57 @@ function ReelViewer({ reels, startIndex, onClose }) {
         return () => { if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current); };
     }, [showOverlay, paused]);
 
-    // Swipe gesture support
+    // Lock body scroll while ReelViewer is mounted
     useEffect(() => {
-        const el = containerRef.current;
-        if (!el) return;
-        const handleTouchStart = (e) => {
-            touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-        };
-        const handleTouchEnd = (e) => {
-            const dx = e.changedTouches[0].clientX - touchStartRef.current.x;
-            const dy = e.changedTouches[0].clientY - touchStartRef.current.y;
-            if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 50) {
-                try { navigator?.vibrate?.(10); } catch (e) { console.warn('[ReelsFeedCarousel] Handled exception:', e); }
-                if (dy < 0) goNext();  // Swipe up = next
-                else goPrev();         // Swipe down = prev
-            }
-            if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
-                try { navigator?.vibrate?.(10); } catch (e) { console.warn('[ReelsFeedCarousel] Handled exception:', e); }
-                if (dx < 0) goNext();  // Swipe left = next
-                else goPrev();         // Swipe right = prev
-            }
-        };
-        el.addEventListener('touchstart', handleTouchStart, { passive: true });
-        el.addEventListener('touchend', handleTouchEnd, { passive: true });
+        const origOverflow = document.body.style.overflow;
+        const origPosition = document.body.style.position;
+        const origTouchAction = document.body.style.touchAction;
+        document.body.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.width = '100%';
+        document.body.style.touchAction = 'none';
+        document.documentElement.style.overflow = 'hidden';
         return () => {
-            el.removeEventListener('touchstart', handleTouchStart);
-            el.removeEventListener('touchend', handleTouchEnd);
+            document.body.style.overflow = origOverflow;
+            document.body.style.position = origPosition;
+            document.body.style.width = '';
+            document.body.style.touchAction = origTouchAction;
+            document.documentElement.style.overflow = '';
         };
-    }, [currentIndex, reels.length]);
+    }, []);
+
+    // YouTube postMessage listener — auto-unmute on play, auto-advance on end
+    useEffect(() => {
+        const YOUTUBE_ORIGINS = ['https://www.youtube-nocookie.com', 'https://www.youtube.com'];
+        const handleYTMessage = (e) => {
+            if (!YOUTUBE_ORIGINS.some(o => e.origin === o)) return;
+            try {
+                const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+                if (data?.event === 'onStateChange') {
+                    if (data.info === 0) goNext(); // Video ended
+                    if (data.info === 1) { // Playing
+                        setYtReady(true);
+                        setPaused(false);
+                        setYtError(null);
+                        // Auto-unmute after playback confirmed
+                        const iframe = containerRef.current?.querySelector('iframe[src*="youtube"]');
+                        if (iframe?.contentWindow) {
+                            iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
+                            iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
+                            iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
+                        }
+                        setMuted(false);
+                    }
+                    if (data.info === 2) { setPaused(true); setYtReady(true); }
+                }
+                if (data?.event === 'onError') {
+                    setYtError({ code: data.info });
+                }
+            } catch (_) {}
+        };
+        window.addEventListener('message', handleYTMessage);
+        return () => window.removeEventListener('message', handleYTMessage);
+    }, [currentIndex]);
 
     const handleLike = async () => {
         if (!currentReel) return;
@@ -1234,13 +1275,43 @@ function ReelViewer({ reels, startIndex, onClose }) {
     if (!currentReel) return null;
 
     // Double-tap to like + single-tap overlay
-    const handleTap = () => {
+    // Helper: send YouTube postMessage command
+    const sendYTCommand = (cmd, args = []) => {
+        const iframe = containerRef.current?.querySelector('iframe[src*="youtube"]');
+        if (iframe?.contentWindow) {
+            iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
+            iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: cmd, args }), '*');
+        }
+    };
+
+    const handleTap = (e) => {
         const now = Date.now();
         const DOUBLE_TAP_WINDOW = 300;
+        const isYT = isYouTubeUrl(currentReel?.video_url);
+
+        // First tap EVER: force play + unmute (iOS requires user gesture)
+        if ((paused || muted) && isYT) {
+            sendYTCommand('playVideo');
+            sendYTCommand('unMute');
+            sendYTCommand('setVolume', [100]);
+            setPaused(false);
+            setMuted(false);
+            setYtReady(true);
+            lastTapRef.current = now;
+            setShowOverlay(true);
+            if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+            overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
+            return;
+        }
+
+        // LEFT 30% = previous
+        if (e?.clientX && e.clientX < window.innerWidth * 0.3) { goPrev(); return; }
+        // RIGHT 30% = next
+        if (e?.clientX && e.clientX > window.innerWidth * 0.7) { goNext(); return; }
+
         if (now - lastTapRef.current < DOUBLE_TAP_WINDOW) {
             // Double-tap = toggle play/pause
             haptic(15);
-            const isYT = isYouTubeUrl(currentReel?.video_url);
             if (!isYT && videoRef.current) {
                 if (videoRef.current.paused) {
                     const playPromise = videoRef.current.play();
@@ -1252,18 +1323,13 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
                 }
             } else if (isYT) {
-                const iframe = containerRef.current?.querySelector('iframe');
-                if (iframe?.contentWindow) {
-                    if (paused) {
-                        iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
-                        iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
-                        setPaused(false);
-                    } else {
-                        iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
-                        iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }), '*');
-                        setPaused(true);
-                        if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
-                    }
+                if (paused) {
+                    sendYTCommand('playVideo');
+                    setPaused(false);
+                } else {
+                    sendYTCommand('pauseVideo');
+                    setPaused(true);
+                    if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
                 }
             }
             lastTapRef.current = 0;
@@ -1300,15 +1366,38 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 background: 'rgba(0,0,0,0.95)', zIndex: 10000,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
-            onClick={handleTap}
-            onTouchStart={handleLongPressTouchStart}
-            onTouchEnd={cancelLongPress}
-            onTouchMove={cancelLongPress}
-            onMouseDown={handleLongPressTouchStart}
-            onMouseUp={cancelLongPress}
-            onMouseMove={cancelLongPress}
-            onContextMenu={(e) => { e.preventDefault(); setShowContextMenu(true); }}
         >
+            {/* FULL-SCREEN TOUCH OVERLAY — handles taps + swipes ABOVE the iframe */}
+            <div
+                onTouchStart={(e) => {
+                    swipeStartRef.current = { y: e.touches[0].clientY, x: e.touches[0].clientX, t: Date.now() };
+                    swipeDeltaRef.current = 0;
+                    handleLongPressTouchStart();
+                }}
+                onTouchMove={(e) => {
+                    if (!swipeStartRef.current) return;
+                    swipeDeltaRef.current = e.touches[0].clientY - swipeStartRef.current.y;
+                    cancelLongPress();
+                    e.preventDefault();
+                }}
+                onTouchEnd={() => {
+                    cancelLongPress();
+                    const delta = swipeDeltaRef.current;
+                    swipeStartRef.current = null;
+                    if (Math.abs(delta) > 50) {
+                        try { navigator?.vibrate?.(10); } catch(_) {}
+                        if (delta < 0) goNext();
+                        else goPrev();
+                        return;
+                    }
+                }}
+                onClick={handleTap}
+                onContextMenu={(e) => { e.preventDefault(); setShowContextMenu(true); }}
+                style={{
+                    position: 'absolute', inset: 0, zIndex: 5,
+                    touchAction: 'none', cursor: 'pointer',
+                }}
+            />
             {/* Close button - always touchable; fades when overlay hidden but stays accessible */}
             <button
                 onClick={(e) => { e.stopPropagation(); onClose(); }}
