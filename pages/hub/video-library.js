@@ -203,6 +203,14 @@ export default function VideoLibraryPage() {
     // BUG-K FIX: store unmute timer IDs so we can clear them if modal closes before 1200ms
     const iframeUnmuteTimers = useRef([]);
 
+    // Touch device detection — set after mount to avoid SSR hydration mismatch.
+    // This MUST be state (not a direct typeof window check) because SSR renders
+    // with window=undefined, and React won't re-evaluate inline conditions on hydration.
+    const [isTouchDevice, setIsTouchDevice] = useState(false);
+    useEffect(() => {
+        setIsTouchDevice('ontouchstart' in window || navigator.maxTouchPoints > 0);
+    }, []);
+
     // Swipe / TikTok navigation state
     const swipeTouchStart = useRef(null);
     const swipeTouchStartY = useRef(null);
@@ -1671,7 +1679,7 @@ export default function VideoLibraryPage() {
                     {/* Fullscreen & sound are handled by YouTube's native controls at bottom of iframe */}
 
                     {/* Prev / Next navigation arrows — desktop only (JS detection, no CSS tricks) */}
-                    {typeof window !== 'undefined' && !('ontouchstart' in window) && (
+                    {!isTouchDevice && (
                       <>
                         <button
                             onClick={handlePrevVideo}
@@ -1736,10 +1744,9 @@ export default function VideoLibraryPage() {
                         position: 'relative',
                         overflow: 'hidden',
                     }}>
-                        {/* Edge swipe strips — thin vertical zones on left/right edges
-                            that capture swipe gestures without blocking the center video area.
-                            The center 70% of the iframe remains fully interactive for YouTube controls. */}
-                        {typeof window !== 'undefined' && 'ontouchstart' in window && (
+                        {/* Edge swipe strips — thin vertical zones on left/right edges.
+                            Center 70% remains fully interactive for YouTube controls/playback. */}
+                        {isTouchDevice && (
                           <>
                             {/* Left edge swipe zone (15% width) */}
                             <div
@@ -1805,10 +1812,10 @@ export default function VideoLibraryPage() {
                                 gap: 20,
                                 alignItems: 'center',
                                 // On touch devices: always visible. On desktop: toggle on hover/click.
-                                opacity: (typeof window !== 'undefined' && 'ontouchstart' in window) ? 1 : (vlHudVisible ? 1 : 0),
-                                transform: (typeof window !== 'undefined' && 'ontouchstart' in window) ? 'translateX(0)' : (vlHudVisible ? 'translateX(0)' : 'translateX(60px)'),
+                                opacity: isTouchDevice ? 1 : (vlHudVisible ? 1 : 0),
+                                transform: isTouchDevice ? 'translateX(0)' : (vlHudVisible ? 'translateX(0)' : 'translateX(60px)'),
                                 transition: 'opacity 0.3s ease, transform 0.3s ease',
-                                pointerEvents: (typeof window !== 'undefined' && 'ontouchstart' in window) ? 'auto' : (vlHudVisible ? 'auto' : 'none'),
+                                pointerEvents: isTouchDevice ? 'auto' : (vlHudVisible ? 'auto' : 'none'),
                             }}
                         >
                             {/* Heart / Like */}
@@ -1931,7 +1938,7 @@ export default function VideoLibraryPage() {
                         <iframe
                             key={iframeKey}
                             id="youtube-player"
-                            src={`https://www.youtube.com/embed/${selectedVideo.videoId}?autoplay=1&mute=1&rel=0&modestbranding=1&fs=1&iv_load_policy=3&showinfo=0&enablejsapi=1&playsinline=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}`}
+                            src={`https://www.youtube.com/embed/${selectedVideo.videoId}?autoplay=1&mute=${isTouchDevice ? 0 : 1}&rel=0&modestbranding=1&fs=1&iv_load_policy=3&showinfo=0&enablejsapi=1&playsinline=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}`}
                             title={selectedVideo.title}
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
                             allowFullScreen
@@ -1945,18 +1952,16 @@ export default function VideoLibraryPage() {
                                     const win = e.target.contentWindow;
                                     win.postMessage(JSON.stringify({ event: 'listening' }), '*');
 
-                                    // Auto-unmute after a delay. The user tapped a video card
-                                    // (valid gesture), so browsers allow unmute.
-                                    // Mobile: single attempt at 1200ms (multiple rapid calls overwhelm iOS).
-                                    // Desktop: 3-stage for reliability.
-                                    const isMobileDevice = typeof window !== 'undefined' && ('ontouchstart' in window || window.innerWidth < 1024);
-                                    const delays = isMobileDevice ? [1200] : [200, 600, 1200];
-                                    iframeUnmuteTimers.current = delays.map(d => setTimeout(() => {
-                                        try {
-                                            win.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
-                                            win.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
-                                        } catch { /* best-effort */ }
-                                    }, d));
+                                    // Autoplay: mobile uses mute=0 (user gesture from card tap allows it).
+                                    // Desktop uses mute=1 + postMessage unmute.
+                                    if (!isTouchDevice) {
+                                        iframeUnmuteTimers.current = [200, 600, 1200].map(d => setTimeout(() => {
+                                            try {
+                                                win.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
+                                                win.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
+                                            } catch { /* best-effort */ }
+                                        }, d));
+                                    }
                                 } catch { /* best-effort */ }
                             }}
                             style={{
