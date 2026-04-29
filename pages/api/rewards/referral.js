@@ -98,13 +98,32 @@ export default async function handler(req, res) {
           }
 
           // Award diamonds
-          await getSupabase().rpc('add_diamonds_to_balance', {
+          const { error: rpcError } = await getSupabase().rpc('add_diamonds_to_balance', {
               p_user_id: referrerId,
               p_amount: REFERRAL_REWARD,
               p_type: 'referral',
               p_description: `Referral reward — ${REFERRAL_REWARD}diamonds (bypasses daily cap)`,
               p_reference_id: referredUserId
           });
+
+          if (rpcError) {
+              // Roll back the idempotency claim row so the user can retry.
+              // Same bug shape as daily-login (commit 8d9ce5c9f1). Note: this
+              // claim is keyed by (referrerId, reward_type, claim_date) — the
+              // referredUserId lives in metadata, not the unique constraint.
+              try {
+                  await getSupabase()
+                      .from('diamond_reward_claims')
+                      .delete()
+                      .eq('user_id', referrerId)
+                      .eq('reward_type', 'referral')
+                      .eq('claim_date', today);
+              } catch (rollbackErr) {
+                  console.warn('[ReferralReward] Rollback delete failed:', rollbackErr?.message || rollbackErr);
+              }
+              console.warn('[ReferralReward] RPC error (claim rolled back so user can retry):', rpcError);
+              return res.status(500).json({ success: false, error: 'Failed to credit diamonds — please retry' });
+          }
 
           return res.status(200).json({
               success: true,

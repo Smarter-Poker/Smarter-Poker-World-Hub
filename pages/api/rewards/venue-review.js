@@ -214,7 +214,22 @@ export default async function handler(req, res) {
           });
 
           if (rpcError) {
-              console.warn('[VenueReview] RPC error:', rpcError);
+              // Roll back the idempotency claim row so the user can retry.
+              // Same bug shape as daily-login (commit 8d9ce5c9f1) — without
+              // this the user gets "already claimed" forever and never sees
+              // their diamonds.
+              try {
+                  await supabase
+                      .from('diamond_reward_claims')
+                      .delete()
+                      .eq('user_id', userId)
+                      .eq('reward_type', 'venue_review')
+                      .eq('claim_date', today);
+              } catch (rollbackErr) {
+                  console.warn('[VenueReview] Rollback delete failed:', rollbackErr?.message || rollbackErr);
+              }
+              console.warn('[VenueReview] RPC error (claim rolled back so user can retry):', rpcError);
+              return res.status(500).json({ error: 'Failed to credit diamonds — please retry' });
           }
 
           return res.status(200).json({

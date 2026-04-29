@@ -120,13 +120,31 @@ export default async function handler(req, res) {
         }
 
         // Award diamonds
-        await getSupabase().rpc('add_diamonds_to_balance', {
+        const { error: rpcError } = await getSupabase().rpc('add_diamonds_to_balance', {
             p_user_id: userId,
             p_amount: BIRTHDAY_DIAMONDS,
             p_type: 'birthday_reward',
             p_description: `Happy Birthday! 🎂 ${BIRTHDAY_DIAMONDS}diamonds awarded`,
             p_reference_id: null
         });
+
+        if (rpcError) {
+            // Roll back the idempotency claim row so the user can retry next year
+            // (or today, if it was a transient RPC failure). Same bug shape as
+            // daily-login (commit 8d9ce5c9f1).
+            try {
+                await getSupabase()
+                    .from('diamond_reward_claims')
+                    .delete()
+                    .eq('user_id', userId)
+                    .eq('reward_type', claimKey)
+                    .eq('claim_date', today);
+            } catch (rollbackErr) {
+                console.warn('[BirthdayReward] Rollback delete failed:', rollbackErr?.message || rollbackErr);
+            }
+            console.warn('[BirthdayReward] RPC error (claim rolled back so user can retry):', rpcError);
+            return res.status(500).json({ success: false, error: 'Failed to credit diamonds — please retry' });
+        }
 
         return res.status(200).json({
             success: true,

@@ -1,6 +1,20 @@
 /**
- * BACKGROUND VIDEO UPLOAD MANAGER v3.1
+ * BACKGROUND VIDEO UPLOAD MANAGER v3.3
  * src/lib/backgroundVideoUpload.js
+ *
+ * v3.3 (2026-04-29): Web Locks contention fix.
+ * Root cause traced via live console: Supabase JS SDK uses navigator.locks
+ * ('lock:smarter-poker-auth') to serialize session reads. When a video
+ * upload kicks off concurrently with realtime feed subscribers, prefetch
+ * navigation, and the social composer's own session reads, the SDK lock
+ * gets stolen mid-getSession, and the call throws:
+ *     "Lock 'lock:smarter-poker-auth' was released because another request stole it"
+ * Previous _ensureBearer caught that and fell through to a raw localStorage
+ * read — which can return a stale token from a partially-completed refresh,
+ * which Storage rejects as "Invalid Compact JWS".
+ * Fix: on lock contention, back off and retry the SDK up to 3x (100/200/300ms)
+ * BEFORE falling through to localStorage. Storage still gets a real, current
+ * JWT minted by the SDK rather than a half-written localStorage string.
  *
  * v3.1 (2026-04-29): empty-Bearer JWS race fix — _ensureBearer falls back
  * to supabase.auth.refreshSession() when getAccessToken() returns null;
@@ -60,23 +74,42 @@ const _isJWT = (t) => typeof t === 'string' && JWT_SHAPE.test(t);
 
 async function _ensureBearer() {
     // 1. PRIMARY: SDK getSession — single source of truth; auto-refreshes if expired.
-    try {
-        const { supabase } = await import('./supabase');
-        const { data: { session } = {} } = await supabase.auth.getSession();
-        const tok = session?.access_token;
-        if (_isJWT(tok)) return tok;
-        if (tok) console.warn('[bgUpload] SDK getSession returned non-JWT-shaped token, forcing refresh', { tokenType: typeof tok, prefix: String(tok).slice(0, 20) });
+    //    Retry up to 3x on Web Locks contention (the SDK serializes session reads
+    //    via navigator.locks; when another tab/component is also reading, the lock
+    //    can be stolen mid-call and getSession throws). Backing off and retrying
+    //    almost always succeeds — the lock is released within a few hundred ms.
+    let lastErr = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+            const { supabase } = await import('./supabase');
+            const { data: { session } = {} } = await supabase.auth.getSession();
+            const tok = session?.access_token;
+            if (_isJWT(tok)) return tok;
+            if (tok) console.warn('[bgUpload] SDK getSession returned non-JWT-shaped token, forcing refresh', { tokenType: typeof tok, prefix: String(tok).slice(0, 20) });
 
-        // 2. Force explicit refresh.
-        const { data: ref } = await supabase.auth.refreshSession();
-        const refTok = ref?.session?.access_token;
-        if (_isJWT(refTok)) return refTok;
-        if (refTok) console.warn('[bgUpload] refreshSession returned non-JWT-shaped token', { tokenType: typeof refTok, prefix: String(refTok).slice(0, 20) });
-    } catch (e) {
-        console.warn('[bgUpload] SDK auth path threw, falling through to localStorage:', e?.message || e);
+            // 2. Force explicit refresh.
+            const { data: ref } = await supabase.auth.refreshSession();
+            const refTok = ref?.session?.access_token;
+            if (_isJWT(refTok)) return refTok;
+            if (refTok) console.warn('[bgUpload] refreshSession returned non-JWT-shaped token', { tokenType: typeof refTok, prefix: String(refTok).slice(0, 20) });
+            // SDK returned cleanly but with no usable token — break out, no point retrying.
+            break;
+        } catch (e) {
+            lastErr = e;
+            const msg = e?.message || String(e);
+            // Lock-stolen errors are transient — retry. Anything else, also retry once
+            // (cheap), but stop early on the last attempt so we don't burn time.
+            console.warn(`[bgUpload] SDK auth attempt ${attempt + 1}/3 threw:`, msg);
+            if (attempt < 2) {
+                await new Promise(r => setTimeout(r, 100 * (attempt + 1)));
+            }
+        }
     }
 
-    // 3. LAST RESORT: localStorage shape-checked.
+    // 3. LAST RESORT: localStorage shape-checked. Reached only after 3 SDK retries
+    //    all threw — at that point the SDK is genuinely broken and a stale token is
+    //    better than no upload attempt at all.
+    if (lastErr) console.warn('[bgUpload] All 3 SDK retries failed, falling through to localStorage. Last error:', lastErr?.message || lastErr);
     const local = getAccessToken();
     if (_isJWT(local)) return local;
     if (local) console.warn('[bgUpload] getAccessToken returned non-JWT-shaped value (corrupt localStorage)', { tokenType: typeof local, prefix: String(local).slice(0, 20) });

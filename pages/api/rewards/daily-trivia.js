@@ -130,7 +130,22 @@ export default async function handler(req, res) {
           });
 
           if (rpcError) {
-              console.warn('[DailyTrivia] RPC error:', rpcError);
+              // Roll back the idempotency claim row so the user can retry.
+              // Without this, the unique-constraint check at line 117 returns
+              // "already claimed today" forever and the user never receives
+              // their diamonds. Same bug shape as daily-login (commit 8d9ce5c9f1).
+              try {
+                  await supabase
+                      .from('diamond_reward_claims')
+                      .delete()
+                      .eq('user_id', userId)
+                      .eq('reward_type', 'daily_trivia')
+                      .eq('claim_date', today);
+              } catch (rollbackErr) {
+                  console.warn('[DailyTrivia] Rollback delete failed:', rollbackErr?.message || rollbackErr);
+              }
+              console.warn('[DailyTrivia] RPC error (claim rolled back so user can retry):', rpcError);
+              return res.status(500).json({ error: 'Failed to credit diamonds — please retry' });
           }
 
           return res.status(200).json({
