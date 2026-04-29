@@ -179,30 +179,74 @@ export default async function handler(req, res) {
                 }
 
                 // Create referral record
-                await supabase.from('referrals').insert({
+                const { error: insertErr } = await supabase.from('referrals').insert({
                     referrer_id: referrer.id,
                     referee_id: user.id,
                     referral_code_used: code.trim().toUpperCase(),
                     status: 'completed',
                 });
 
+                if (insertErr) {
+                    console.warn('[Referral] Insert error:', insertErr);
+                    return res.status(500).json({ error: 'Failed to record referral' });
+                }
+
+                // Helper: roll back the referrals row so the user can retry.
+                // Without this, the duplicate-referral check at line 174 (one
+                // referee_id per row) would block re-application forever.
+                const rollbackReferral = async (label) => {
+                    try {
+                        await supabase
+                            .from('referrals')
+                            .delete()
+                            .eq('referee_id', user.id)
+                            .eq('referrer_id', referrer.id);
+                    } catch (rbErr) {
+                        console.warn(`[Referral] Rollback delete failed (${label}):`, rbErr?.message || rbErr);
+                    }
+                };
+
                 // Award diamonds to referrer
-                await supabase.rpc('add_diamonds_to_balance', {
+                const { error: referrerErr } = await supabase.rpc('add_diamonds_to_balance', {
                     p_user_id: referrer.id,
                     p_amount: REFERRAL_BONUS_REFERRER,
                     p_type: 'referral_bonus',
                     p_description: `Referral Bonus — New Player Joined`,
                     p_reference_id: user.id,
-                }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+                });
+                if (referrerErr) {
+                    await rollbackReferral('referrer credit failed');
+                    console.warn('[Referral] Referrer credit RPC failed (rolled back so user can retry):', referrerErr);
+                    return res.status(500).json({ error: 'Failed to credit referrer — please retry' });
+                }
 
                 // Award diamonds to referee
-                await supabase.rpc('add_diamonds_to_balance', {
+                const { error: refereeErr } = await supabase.rpc('add_diamonds_to_balance', {
                     p_user_id: user.id,
                     p_amount: REFERRAL_BONUS_REFEREE,
                     p_type: 'referral_bonus',
                     p_description: `Welcome Bonus — Referred By ${referrer.username || 'A Friend'}`,
                     p_reference_id: referrer.id,
-                }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+                });
+                if (refereeErr) {
+                    // Compensate the referrer credit we just made, then roll back the referral
+                    // record. Without this, the referrer keeps their bonus AND the referee can
+                    // retry — paying the referrer twice.
+                    try {
+                        await supabase.rpc('add_diamonds_to_balance', {
+                            p_user_id: referrer.id,
+                            p_amount: -REFERRAL_BONUS_REFERRER,
+                            p_type: 'referral_bonus_reversal',
+                            p_description: `Referral bonus reversal — referee credit failed`,
+                            p_reference_id: user.id,
+                        });
+                    } catch (compErr) {
+                        console.warn('[Referral] Referrer compensation reversal failed:', compErr?.message || compErr);
+                    }
+                    await rollbackReferral('referee credit failed');
+                    console.warn('[Referral] Referee credit RPC failed (rolled back so user can retry):', refereeErr);
+                    return res.status(500).json({ error: 'Failed to credit welcome bonus — please retry' });
+                }
 
                 return res.status(200).json({
                     success: true,
