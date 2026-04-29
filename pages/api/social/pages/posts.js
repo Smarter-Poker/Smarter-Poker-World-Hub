@@ -120,7 +120,7 @@ export default async function handler(req, res) {
           const authUser = await requireAuth(req, res);
           if (!authUser) return;
 
-          const { page_id, content, content_type, media_urls,
+          const { page_id, content, content_type, media_urls, thumbnail_url,
               link_preview, visibility, is_pinned, post_type, metadata } = req.body;
           const author_id = authUser.id;
 
@@ -178,8 +178,11 @@ export default async function handler(req, res) {
 
           if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
 
-          // Mirror to social_posts for global feed visibility (non-blocking)
-          // Only mirror approved, public posts
+          // Mirror to social_posts for global feed visibility (non-blocking).
+          // Only mirror approved, public posts.
+          // Sweep-4 audit fix (2026-04-29): include thumbnail_url so videos
+          // posted to home groups show their preview frame in the global feed
+          // (was being silently dropped — videos appeared as black squares).
           if (data && data.is_approved && (data.visibility === 'public' || !data.visibility)) {
               try {
                   await getSupabase()
@@ -189,6 +192,7 @@ export default async function handler(req, res) {
                           content: data.content,
                           content_type: data.content_type || 'text',
                           media_urls: data.media_urls || [],
+                          thumbnail_url: thumbnail_url || data.thumbnail_url || null,
                           visibility: 'public',
                           // Copy link preview data to flat columns for global feed rendering
                           ...(data.link_preview ? {
