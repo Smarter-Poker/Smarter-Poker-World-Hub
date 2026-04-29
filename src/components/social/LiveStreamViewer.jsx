@@ -1,24 +1,33 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   LIVE STREAM VIEWER — Full-screen viewing experience for live streams
-   TikTok/SmarterPoker Live style immersive viewer with chat overlay
+   LIVE STREAM VIEWER v2 — Full-screen viewing experience for live streams
+   TikTok/SmarterPoker Live style • reactions • diamond gifts • viewer list
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { liveStreamService } from '../../services/LiveStreamService';
+import { LiveReactions } from './LiveReactions';
+import { LiveViewerList } from './LiveViewerList';
+import { LiveDiamondGift } from './LiveDiamondGift';
 import { supabase } from '../../lib/supabase';
 import { busEmit } from '../../engine/EventBus';
 
 const C = {
     red: '#FA383E',
+    blue: '#0066FF',
 };
 
 export function LiveStreamViewer({ stream, userId, user, onClose }) {
     const [remoteStream, setRemoteStream] = useState(null);
     const [viewerCount, setViewerCount] = useState(stream?.viewer_count || 0);
     const [isConnecting, setIsConnecting] = useState(true);
+    const [isReconnecting, setIsReconnecting] = useState(false);
     const [error, setError] = useState('');
     const [comments, setComments] = useState([]);
     const [commentInput, setCommentInput] = useState('');
+    const [showViewerList, setShowViewerList] = useState(false);
+    const [showGifts, setShowGifts] = useState(false);
+    const [userDiamondBalance, setUserDiamondBalance] = useState(0);
+    const [giftFlash, setGiftFlash] = useState('');
 
     const videoRef = useRef(null);
     const commentsEndRef = useRef(null);
@@ -31,16 +40,14 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
             try {
                 setIsConnecting(true);
 
-                // Set up stream ended callback
+                // Set up callbacks
                 liveStreamService.onStreamEnded = () => {
                     setError('Stream has ended');
                     setTimeout(onClose, 2000);
                 };
-
-                // Set up viewer count callback
-                liveStreamService.onViewerCountChange = (count) => {
-                    setViewerCount(count);
-                };
+                liveStreamService.onViewerCountChange = (count) => setViewerCount(count);
+                liveStreamService.onReconnecting = () => setIsReconnecting(true);
+                liveStreamService.onReconnected = () => setIsReconnecting(false);
 
                 // Join the stream
                 await liveStreamService.joinStream(stream.id, userId, (remoteMediaStream) => {
@@ -51,7 +58,12 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                     setIsConnecting(false);
                 });
 
-                // Notify other components that we joined a stream
+                // Load diamond balance for gift panel
+                if (userId) {
+                    supabase.from('diamond_balances').select('balance').eq('user_id', userId).maybeSingle()
+                        .then(({ data }) => { if (data) setUserDiamondBalance(data.balance || 0); });
+                }
+
                 busEmit.dataMutated?.('live_streams');
 
             } catch (err) {
@@ -65,7 +77,6 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
 
         // Subscribe to live comments realtime
         if (stream?.id) {
-            // Load existing comments
             supabase.from('live_comments').select('*').eq('stream_id', stream.id)
                 .order('created_at', { ascending: true }).limit(50)
                 .then(({ data }) => { if (data) setComments(data); });
@@ -82,6 +93,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
             if (commentChannelRef.current) supabase.removeChannel(commentChannelRef.current);
         };
     }, [stream?.id, userId]);
+
 
     // Update video element when remote stream changes
     useEffect(() => {
@@ -219,7 +231,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                     ✕
                 </button>
 
-                {/* Live Badge + Viewer Count */}
+                {/* Live Badge + Viewer Count (tappable to open viewer list) */}
                 <div style={{ display: 'flex', gap: 8 }}>
                     <div
                         style={{
@@ -236,7 +248,8 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                     >
                         🔴 LIVE
                     </div>
-                    <div
+                    <button
+                        onClick={() => setShowViewerList(true)}
                         style={{
                             background: 'rgba(0, 0, 0, 0.6)',
                             color: 'white',
@@ -247,10 +260,12 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                             display: 'flex',
                             alignItems: 'center',
                             gap: 6,
+                            border: 'none',
+                            cursor: 'pointer',
                         }}
                     >
                         👁️ {viewerCount}
-                    </div>
+                    </button>
                 </div>
             </div>
 
@@ -301,7 +316,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                 <div ref={commentsEndRef} />
             </div>
 
-            {/* COMMENT INPUT */}
+            {/* COMMENT INPUT + gift button */}
             <div style={{ position:'absolute', bottom:24, left:12, right:12, zIndex:10, display:'flex', gap:8 }}>
                 <input
                     value={commentInput}
@@ -310,19 +325,70 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                     placeholder="Say something..."
                     style={{ flex:1, padding:'9px 14px', borderRadius:22, border:'1.5px solid rgba(255,255,255,.3)', background:'rgba(0,0,0,.5)', color:'white', fontSize:14, outline:'none' }}
                 />
+                {/* Diamond gift button */}
+                {stream?.broadcaster_id && stream.broadcaster_id !== userId && (
+                    <button
+                        onClick={() => setShowGifts(true)}
+                        style={{ padding:'9px 12px', borderRadius:22, border:'none', background:'rgba(255,215,0,0.85)', color:'#000', fontSize:16, fontWeight:700, cursor:'pointer' }}
+                        title="Send diamond gift"
+                    >
+                        💎
+                    </button>
+                )}
                 <button
                     onClick={handleSendComment}
                     style={{ padding:'9px 16px', borderRadius:22, border:'none', background:'rgba(0,120,255,.85)', color:'white', fontSize:14, fontWeight:700, cursor:'pointer' }}
                 >Send</button>
             </div>
 
-            {/* Pulse animation */}
+            {/* Emoji reactions */}
+            <LiveReactions streamId={stream?.id} userId={userId} />
+
+            {/* Gift panel */}
+            {showGifts && (
+                <LiveDiamondGift
+                    streamId={stream?.id}
+                    receiverId={stream?.broadcaster_id}
+                    userId={userId}
+                    userBalance={userDiamondBalance}
+                    onGiftSent={(amount, newBalance) => {
+                        setUserDiamondBalance(newBalance);
+                        setGiftFlash(`💎 ${amount} diamonds sent!`);
+                        setTimeout(() => setGiftFlash(''), 3000);
+                    }}
+                    onClose={() => setShowGifts(false)}
+                />
+            )}
+
+            {/* Viewer list */}
+            <LiveViewerList
+                streamId={stream?.id}
+                viewerCount={viewerCount}
+                isOpen={showViewerList}
+                onClose={() => setShowViewerList(false)}
+            />
+
+            {/* Gift flash notification */}
+            {giftFlash && (
+                <div style={{ position:'absolute', top:80, left:'50%', transform:'translateX(-50%)', background:'rgba(255,215,0,0.9)', color:'#000', padding:'8px 20px', borderRadius:20, fontSize:14, fontWeight:700, zIndex:40 }}>
+                    {giftFlash}
+                </div>
+            )}
+
+            {/* Reconnect overlay */}
+            {isReconnecting && (
+                <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.7)', zIndex:30, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center' }}>
+                    <div style={{ width:48, height:48, borderRadius:'50%', border:'4px solid rgba(255,255,255,0.2)', borderTopColor:'#0066FF', animation:'spin 0.8s linear infinite', marginBottom:16 }} />
+                    <div style={{ color:'white', fontSize:16, fontWeight:700 }}>Reconnecting...</div>
+                </div>
+            )}
+
+            {/* Animations */}
             <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
-        }
-      `}</style>
+                @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+                @keyframes spin { to { transform: rotate(360deg); } }
+                @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-200px) scale(1.4); opacity: 0; } }
+            `}</style>
         </div>
     );
 }

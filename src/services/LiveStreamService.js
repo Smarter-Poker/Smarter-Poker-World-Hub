@@ -1,85 +1,91 @@
 /**
  * ╔═══════════════════════════════════════════════════════════════════════════╗
- * ║  🚨 PROTECTED FILE - DO NOT MODIFY WITHOUT TESTING 🚨                     ║
+ * ║  LIVE STREAM SERVICE v2 — LiveKit SFU Architecture                        ║
  * ╠═══════════════════════════════════════════════════════════════════════════╣
- * ║  WORKFLOW: /social-feed-protection                                       ║
- * ║  REGISTRY: .agent/PROTECTED_FILES.md                                     ║
- * ╠═══════════════════════════════════════════════════════════════════════════╣
- * ║  LIVE STREAM SERVICE — WebRTC Peer-to-Peer Streaming                     ║
- * ║  Handles broadcaster and viewer connections with Supabase signaling       ║
- * ║                                                                           ║
- * ║  CRITICAL FUNCTIONALITY:                                                  ║
- * ║  - startBroadcast() → Creates stream, subscribes to signaling            ║
- * ║  - endBroadcast() → Ends stream, closes peer connections                 ║
- * ║  - joinStream() → Viewer joins, creates WebRTC offer                     ║
- * ║  - leaveStream() → Viewer leaves, cleanup                                ║
- * ║  - WebRTC signaling via Supabase realtime                                ║
- * ║                                                                           ║
- * ║  DO NOT BREAK:                                                            ║
- * ║  - ICE_SERVERS configuration                                             ║
- * ║  - peerConnections Map                                                   ║
- * ║  - signaling channel subscription                                         ║
- * ║  - Stream status updates (live → ended)                                  ║
+ * ║  CRITICAL UPGRADE: Replaced peer-to-peer WebRTC with LiveKit SFU.         ║
+ * ║  Old architecture: broadcaster → N direct connections to N viewers         ║
+ * ║  New architecture: broadcaster → LiveKit SFU → N viewers (CDN scale)       ║
+ * ║                                                                            ║
+ * ║  LiveKit Cloud: wss://smarter-poker-lovt9xq0.livekit.cloud                ║
+ * ║  Token API: /api/live/token                                                ║
+ * ║                                                                            ║
+ * ║  KEY METHODS:                                                              ║
+ * ║  - startBroadcast() → Creates LK room, publishes camera+mic               ║
+ * ║  - endBroadcast()  → Disconnects room, updates DB                         ║
+ * ║  - joinStream()    → Viewer connects to LK room, subscribes               ║
+ * ║  - leaveStream()   → Viewer disconnects                                    ║
+ * ║  - flipCamera()    → Toggle front/back camera                              ║
+ * ║  - setSlowMode()   → Toggle slow mode for comments                         ║
  * ╚═══════════════════════════════════════════════════════════════════════════╝
  */
 
+import { Room, RoomEvent, LocalParticipant, RemoteTrackPublication, Track, createLocalTracks, VideoPresets } from 'livekit-client';
 import { supabase } from '../lib/supabase';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// HARDENING CONSTANTS
-// ═══════════════════════════════════════════════════════════════════════════
-const CONNECTION_TIMEOUT_MS = 30000; // 30 seconds max for WebRTC connection
-const SIGNALING_RETRY_ATTEMPTS = 3;
-const SIGNALING_RETRY_DELAY_MS = 1000;
-const ICE_GATHERING_TIMEOUT_MS = 10000; // 10 seconds for ICE gathering
+const logError = (ctx, err) => console.warn(`[LiveStream:${ctx}]`, err?.message || err);
 
-// STUN/TURN servers for NAT traversal (with fallbacks)
-const ICE_SERVERS = [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun2.l.google.com:19302' },
-    { urls: 'stun:stun3.l.google.com:19302' },
-    { urls: 'stun:stun4.l.google.com:19302' },
-];
+// Reconnect settings
+const MAX_RECONNECT_ATTEMPTS = 5;
+const RECONNECT_DELAY_MS = 2000;
 
 /**
- * Log errors with context for debugging
- */
-const logError = (context, error) => {
-    console.warn(`[LiveStream:${context}]`, error?.message || error);
-    // Could integrate with error tracking service here
-};
-
-/**
- * LiveStreamService — Manages WebRTC connections for live streaming
+ * LiveStreamService v2 — LiveKit SFU
  */
 class LiveStreamService {
     constructor() {
-        this.localStream = null;
-        this.peerConnections = new Map(); // viewerId -> RTCPeerConnection
+        this.room = null;
+        this.localStream = null;       // Raw MediaStream (for recording)
         this.currentStreamId = null;
         this.currentUserId = null;
-        this.signalingChannel = null;
+        this.cameraMode = 'user';      // 'user' (front) | 'environment' (back)
+        this.isBroadcaster = false;
+        this.reconnectAttempts = 0;
+        this.isReconnecting = false;
+
+        // Callbacks
         this.onViewerCountChange = null;
         this.onStreamEnded = null;
+        this.onReconnecting = null;
+        this.onReconnected = null;
+        this.onParticipantListChange = null;
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // BROADCASTER METHODS
-    // ═══════════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════
+    // TOKEN
+    // ═══════════════════════════════════════════════════
+
+    async _getToken(streamId, broadcaster) {
+        const resp = await fetch('/api/live/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                room: streamId,
+                identity: this.currentUserId,
+                broadcaster,
+            }),
+        });
+        if (!resp.ok) throw new Error(`Token fetch failed: ${resp.status}`);
+        return resp.json(); // { token, url }
+    }
+
+    // ═══════════════════════════════════════════════════
+    // BROADCASTER
+    // ═══════════════════════════════════════════════════
 
     /**
-     * Start broadcasting a live stream
-     * @param {string} userId - Broadcaster's user ID
-     * @param {string} title - Stream title
-     * @param {MediaStream} mediaStream - Camera/mic stream
-     * @returns {Promise<{streamId: string, stream: object}>}
+     * Start broadcasting
+     * @param {string} userId
+     * @param {string} title
+     * @param {MediaStream} mediaStream - Pre-acquired camera+mic stream
+     * @param {string|null} thumbnailUrl
      */
     async startBroadcast(userId, title, mediaStream, thumbnailUrl) {
         this.currentUserId = userId;
         this.localStream = mediaStream;
+        this.isBroadcaster = true;
 
-        // Create stream record in database
+        // 1. Create stream record in Supabase
         const insertPayload = {
             broadcaster_id: userId,
             title: title || 'Live Stream',
@@ -93,43 +99,179 @@ class LiveStreamService {
             .select()
             .maybeSingle();
 
-        if (error || !stream) throw new Error(`Failed to create stream: ${error?.message || 'Stream data not returned'}`);
+        if (error || !stream) throw new Error(`Failed to create stream: ${error?.message}`);
 
         this.currentStreamId = stream.id;
 
-        // Subscribe to signaling channel for incoming viewer connections
-        await this.subscribeToSignaling(stream.id, true);
+        // 2. Update record with LiveKit room name (= stream id)
+        await supabase.from('live_streams')
+            .update({ livekit_room: stream.id })
+            .eq('id', stream.id);
 
-        // Subscribe to viewer count changes
-        this.subscribeToViewers(stream.id);
+        // 3. Get LiveKit token and connect
+        const { token, url } = await this._getToken(stream.id, true);
+        await this._connectRoom(url, token, true, mediaStream);
 
-        // Notify followers via server-side API (bypasses notification RLS)
-        this.notifyFollowers(userId, title || 'Live Stream', stream.id);
+        // 4. Subscribe to viewer count changes
+        this._subscribeToViewers(stream.id);
 
-        console.debug('🔴 Broadcast started:', stream.id);
+        // 5. Notify followers
+        this._notifyFollowers(userId, title || 'Live Stream', stream.id);
+
+        console.debug('🔴 LiveKit broadcast started:', stream.id);
         return { streamId: stream.id, stream };
     }
 
     /**
-     * Notify followers when broadcaster goes live
-     * @param {string} userId - Broadcaster's user ID
-     * @param {string} title - Stream title
-     * @param {string} streamId - Stream ID
+     * Connect to a LiveKit room
      */
-    async notifyFollowers(userId, title, streamId) {
+    async _connectRoom(url, token, isBroadcaster, mediaStream) {
+        this.room = new Room({
+            adaptiveStream: true,
+            dynacast: true,             // Automatically adjust quality
+            publishDefaults: {
+                simulcast: true,        // Publish multiple quality layers
+                videoSimulcastLayers: [VideoPresets.h180, VideoPresets.h360, VideoPresets.h720],
+            },
+        });
+
+        // Room event handlers
+        this.room.on(RoomEvent.Disconnected, (reason) => {
+            console.warn('[LiveKit] Disconnected:', reason);
+            if (!this.isManualDisconnect) {
+                this._handleUnexpectedDisconnect();
+            }
+        });
+
+        this.room.on(RoomEvent.Reconnecting, () => {
+            console.debug('[LiveKit] Reconnecting...');
+            this.onReconnecting?.();
+        });
+
+        this.room.on(RoomEvent.Reconnected, () => {
+            console.debug('[LiveKit] Reconnected!');
+            this.reconnectAttempts = 0;
+            this.isReconnecting = false;
+            this.onReconnected?.();
+        });
+
+        this.room.on(RoomEvent.ParticipantConnected, () => {
+            this._updateViewerCount();
+            this.onParticipantListChange?.(this._getParticipants());
+        });
+
+        this.room.on(RoomEvent.ParticipantDisconnected, () => {
+            this._updateViewerCount();
+            this.onParticipantListChange?.(this._getParticipants());
+        });
+
+        // Track subscriptions (for viewers)
+        this.room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
+            if (track.kind === Track.Kind.Video && this.onRemoteStream) {
+                this.onRemoteStream(track.mediaStream || this._trackToStream(track));
+            }
+        });
+
+        await this.room.connect(url, token, {
+            autoSubscribe: !isBroadcaster,
+        });
+
+        // Publish local tracks if broadcaster
+        if (isBroadcaster && mediaStream) {
+            const audioTrack = mediaStream.getAudioTracks()[0];
+            const videoTrack = mediaStream.getVideoTracks()[0];
+
+            if (videoTrack) {
+                const lvVideo = await import('livekit-client').then(m =>
+                    m.LocalVideoTrack ? new m.LocalVideoTrack(videoTrack) : null
+                );
+                if (lvVideo) await this.room.localParticipant.publishTrack(lvVideo);
+                else await this.room.localParticipant.publishTrack(videoTrack);
+            }
+            if (audioTrack) {
+                const lvAudio = await import('livekit-client').then(m =>
+                    m.LocalAudioTrack ? new m.LocalAudioTrack(audioTrack) : null
+                );
+                if (lvAudio) await this.room.localParticipant.publishTrack(lvAudio);
+                else await this.room.localParticipant.publishTrack(audioTrack);
+            }
+        }
+    }
+
+    /**
+     * Handle unexpected disconnection with auto-reconnect
+     */
+    async _handleUnexpectedDisconnect() {
+        if (this.isReconnecting || this.isManualDisconnect) return;
+        if (this.reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+            console.warn('[LiveKit] Max reconnect attempts reached');
+            this.onStreamEnded?.();
+            return;
+        }
+
+        this.isReconnecting = true;
+        this.reconnectAttempts++;
+        this.onReconnecting?.();
+
+        console.debug(`[LiveKit] Reconnect attempt ${this.reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}...`);
+
+        await new Promise(r => setTimeout(r, RECONNECT_DELAY_MS * this.reconnectAttempts));
+
         try {
-            // Route through API so service-role can bypass notification RLS
-            // Also respects each follower's settings.live_notifications preference
-            const resp = await fetch('/api/notifications/live-notify', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ streamId, title }),
-                credentials: 'same-origin',
-            });
-            const data = await resp.json().catch(() => ({}));
-            console.debug(`📣 Notified ${data.notified ?? '?'} followers about live stream`);
+            const { token, url } = await this._getToken(this.currentStreamId, this.isBroadcaster);
+            await this._connectRoom(url, token, this.isBroadcaster, this.localStream);
+            this.isReconnecting = false;
+            this.reconnectAttempts = 0;
+            this.onReconnected?.();
         } catch (err) {
-            logError('notifyFollowers', err);
+            logError('reconnect', err);
+            this._handleUnexpectedDisconnect(); // Try again
+        }
+    }
+
+    /**
+     * Flip camera between front and back
+     */
+    async flipCamera() {
+        if (!this.room || !this.isBroadcaster) return;
+
+        this.cameraMode = this.cameraMode === 'user' ? 'environment' : 'user';
+
+        try {
+            // Get new stream with opposite camera
+            const newStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: this.cameraMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+                audio: false,
+            });
+
+            const newVideoTrack = newStream.getVideoTracks()[0];
+
+            // Replace the published video track in LiveKit
+            const localParticipant = this.room.localParticipant;
+            const videoPublications = [...localParticipant.trackPublications.values()]
+                .filter(pub => pub.track?.kind === Track.Kind.Video);
+
+            for (const pub of videoPublications) {
+                if (pub.track) {
+                    await pub.track.replaceTrack(newVideoTrack);
+                }
+            }
+
+            // Update local stream reference for recording
+            if (this.localStream) {
+                const oldVideo = this.localStream.getVideoTracks()[0];
+                if (oldVideo) {
+                    this.localStream.removeTrack(oldVideo);
+                    oldVideo.stop();
+                }
+                this.localStream.addTrack(newVideoTrack);
+            }
+
+            return newStream;
+        } catch (err) {
+            logError('flipCamera', err);
+            this.cameraMode = this.cameraMode === 'user' ? 'environment' : 'user'; // Revert
+            throw err;
         }
     }
 
@@ -138,94 +280,47 @@ class LiveStreamService {
      */
     async endBroadcast() {
         if (!this.currentStreamId) return;
+        this.isManualDisconnect = true;
 
-        // Update stream status
+        // Update Supabase stream status
         await supabase
             .from('live_streams')
             .update({ status: 'ended', ended_at: new Date().toISOString() })
             .eq('id', this.currentStreamId);
 
-        // Close all peer connections
-        this.peerConnections.forEach((pc) => pc.close());
-        this.peerConnections.clear();
+        // Disconnect LiveKit room
+        if (this.room) {
+            await this.room.disconnect();
+            this.room = null;
+        }
 
-        // Stop local media tracks
+        // Stop local tracks
         if (this.localStream) {
-            this.localStream.getTracks().forEach((track) => track.stop());
+            this.localStream.getTracks().forEach(t => t.stop());
             this.localStream = null;
         }
 
-        // Unsubscribe from signaling
-        if (this.signalingChannel) {
-            supabase.removeChannel(this.signalingChannel);
-            this.signalingChannel = null;
-        }
-
         console.debug('⬛ Broadcast ended:', this.currentStreamId);
+        const endedId = this.currentStreamId;
         this.currentStreamId = null;
+        return endedId;
     }
 
-    /**
-     * Handle incoming viewer connection request
-     * @param {string} viewerId - Viewer's user ID
-     * @param {object} offer - WebRTC offer from viewer
-     */
-    async handleViewerOffer(viewerId, offer) {
-        console.debug('📥 Received offer from viewer:', viewerId);
-
-        // Create peer connection for this viewer
-        const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
-        this.peerConnections.set(viewerId, pc);
-
-        // Add local stream tracks to connection
-        if (this.localStream) {
-            this.localStream.getTracks().forEach((track) => {
-                pc.addTrack(track, this.localStream);
-            });
-        }
-
-        // Send ICE candidates to viewer
-        pc.onicecandidate = async (event) => {
-            if (event.candidate) {
-                await this.sendSignal(viewerId, 'ice-candidate', event.candidate);
-            }
-        };
-
-        pc.onconnectionstatechange = () => {
-            console.debug(`Viewer ${viewerId} connection state:`, pc.connectionState);
-            if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
-                this.peerConnections.delete(viewerId);
-                pc.close();
-            }
-        };
-
-        // Set remote description (viewer's offer)
-        await pc.setRemoteDescription(new RTCSessionDescription(offer));
-
-        // Create and send answer
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-        await this.sendSignal(viewerId, 'answer', answer);
-
-        console.debug('📤 Sent answer to viewer:', viewerId);
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // VIEWER METHODS
-    // ═══════════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════
+    // VIEWER
+    // ═══════════════════════════════════════════════════
 
     /**
      * Join a live stream as a viewer
-     * @param {string} streamId - Stream to join
-     * @param {string} userId - Viewer's user ID
-     * @param {function} onRemoteStream - Callback when stream is received
-     * @returns {Promise<void>}
      */
     async joinStream(streamId, userId, onRemoteStream) {
         this.currentStreamId = streamId;
         this.currentUserId = userId;
+        this.isBroadcaster = false;
+        this.onRemoteStream = onRemoteStream;
+        this.isManualDisconnect = false;
 
-        // Get stream info
+        // Fetch stream
         const { data: stream, error } = await supabase
             .from('live_streams')
             .select('*, profiles!broadcaster_id(username, avatar_url)')
@@ -235,47 +330,32 @@ class LiveStreamService {
         if (error || !stream) throw new Error('Stream not found');
         if (stream.status !== 'live') throw new Error('Stream has ended');
 
-        // Register as viewer
-        await supabase.from('live_viewers').upsert({
-            stream_id: streamId,
-            viewer_id: userId,
-        });
+        // Register viewer
+        await supabase.from('live_viewers').upsert({ stream_id: streamId, viewer_id: userId });
 
-        // Create peer connection
-        const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
-        this.peerConnections.set(stream.broadcaster_id, pc);
+        // Update peak_viewers if needed
+        supabase.rpc('fn_update_peak_viewers', { p_stream_id: streamId }).catch(() => {});
 
-        // Handle incoming stream
-        pc.ontrack = (event) => {
-            console.debug('📺 Received remote stream');
-            if (onRemoteStream && event.streams[0]) {
-                onRemoteStream(event.streams[0]);
+        // Get token and connect
+        const { token, url } = await this._getToken(streamId, false);
+        await this._connectRoom(url, token, false, null);
+
+        // Handle already-published tracks
+        for (const [, participant] of this.room.remoteParticipants) {
+            for (const [, publication] of participant.trackPublications) {
+                if (publication.isSubscribed && publication.track) {
+                    if (publication.track.kind === Track.Kind.Video) {
+                        const ms = this._trackToStream(publication.track);
+                        if (ms) onRemoteStream?.(ms);
+                    }
+                }
             }
-        };
+        }
 
-        // Send ICE candidates to broadcaster
-        pc.onicecandidate = async (event) => {
-            if (event.candidate) {
-                await this.sendSignal(stream.broadcaster_id, 'ice-candidate', event.candidate);
-            }
-        };
+        // Subscribe to viewer count
+        this._subscribeToViewers(streamId);
 
-        pc.onconnectionstatechange = () => {
-            console.debug('Connection state:', pc.connectionState);
-            if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
-                if (this.onStreamEnded) this.onStreamEnded();
-            }
-        };
-
-        // Subscribe to signaling for answers and ICE candidates
-        await this.subscribeToSignaling(streamId, false);
-
-        // Create and send offer to broadcaster
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        await this.sendSignal(stream.broadcaster_id, 'offer', offer);
-
-        console.debug('📤 Sent offer to broadcaster');
+        console.debug('📺 Joined stream:', streamId);
         return stream;
     }
 
@@ -284,172 +364,158 @@ class LiveStreamService {
      */
     async leaveStream() {
         if (!this.currentStreamId || !this.currentUserId) return;
+        this.isManualDisconnect = true;
 
-        // Remove viewer record
-        await supabase
-            .from('live_viewers')
+        await supabase.from('live_viewers')
             .delete()
             .eq('stream_id', this.currentStreamId)
             .eq('viewer_id', this.currentUserId);
 
-        // Close peer connections
-        this.peerConnections.forEach((pc) => pc.close());
-        this.peerConnections.clear();
-
-        // Unsubscribe from signaling
-        if (this.signalingChannel) {
-            supabase.removeChannel(this.signalingChannel);
-            this.signalingChannel = null;
+        if (this.room) {
+            await this.room.disconnect();
+            this.room = null;
         }
 
         console.debug('👋 Left stream:', this.currentStreamId);
         this.currentStreamId = null;
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // SIGNALING METHODS
-    // ═══════════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════
+    // MODERATION
+    // ═══════════════════════════════════════════════════
 
     /**
-     * Subscribe to signaling channel for WebRTC messages
-     * @param {string} streamId - Stream ID
-     * @param {boolean} isBroadcaster - Whether user is the broadcaster
+     * Toggle slow mode for a stream
      */
-    async subscribeToSignaling(streamId, isBroadcaster) {
-        const channelName = `live-signaling-${streamId}`;
-
-        this.signalingChannel = supabase
-            .channel(channelName)
-            .on(
-                'postgres_changes',
-                {
-                    event: 'INSERT',
-                    schema: 'public',
-                    table: 'live_signaling',
-                    filter: `to_user_id=eq.${this.currentUserId}`,
-                },
-                async (payload) => {
-                    const { message_type, payload: signalPayload, from_user_id } = payload.new;
-
-                    if (message_type === 'offer' && isBroadcaster) {
-                        await this.handleViewerOffer(from_user_id, signalPayload);
-                    } else if (message_type === 'answer' && !isBroadcaster) {
-                        const pc = this.peerConnections.values().next().value;
-                        if (pc) {
-                            await pc.setRemoteDescription(new RTCSessionDescription(signalPayload));
-                            console.debug('📥 Set remote description (answer)');
-                        }
-                    } else if (message_type === 'ice-candidate') {
-                        const pc = this.peerConnections.get(from_user_id) ||
-                            this.peerConnections.values().next().value;
-                        if (pc && signalPayload) {
-                            await pc.addIceCandidate(new RTCIceCandidate(signalPayload));
-                        }
-                    }
-                }
-            )
-            .subscribe();
-
-        console.debug('🔔 Subscribed to signaling channel:', channelName);
+    async setSlowMode(streamId, enabled) {
+        await supabase.from('live_streams')
+            .update({ slow_mode: enabled })
+            .eq('id', streamId);
     }
 
     /**
-     * Send signaling message to another user with retry logic
-     * @param {string} toUserId - Recipient user ID
-     * @param {string} messageType - offer, answer, or ice-candidate
-     * @param {object} payload - WebRTC data
+     * Ban a user from commenting
      */
-    async sendSignal(toUserId, messageType, payload) {
-        let lastError = null;
-
-        for (let attempt = 1; attempt <= SIGNALING_RETRY_ATTEMPTS; attempt++) {
-            try {
-                const { error } = await supabase.from('live_signaling').insert({
-                    stream_id: this.currentStreamId,
-                    from_user_id: this.currentUserId,
-                    to_user_id: toUserId,
-                    message_type: messageType,
-                    payload: payload,
-                });
-
-                if (error) throw error;
-                return; // Success
-            } catch (err) {
-                lastError = err;
-                logError(`sendSignal:${messageType}:attempt${attempt}`, err);
-
-                if (attempt < SIGNALING_RETRY_ATTEMPTS) {
-                    // Wait before retry with exponential backoff
-                    await new Promise(r => setTimeout(r, SIGNALING_RETRY_DELAY_MS * attempt));
-                }
-            }
-        }
-
-        // All retries failed
-        logError('sendSignal:failed', `Failed after ${SIGNALING_RETRY_ATTEMPTS} attempts: ${lastError?.message}`);
-        throw lastError;
+    async banUser(streamId, bannedUserId) {
+        await supabase.from('live_bans').upsert({
+            stream_id: streamId,
+            banned_user_id: bannedUserId,
+            banned_by: this.currentUserId,
+        });
     }
 
     /**
-     * Subscribe to viewer count updates
-     * @param {string} streamId - Stream ID
+     * Delete a comment
      */
-    subscribeToViewers(streamId) {
+    async deleteComment(commentId) {
+        await supabase.from('live_comments').delete().eq('id', commentId);
+    }
+
+    /**
+     * Pin a comment
+     */
+    async pinComment(streamId, commentId) {
+        await supabase.from('live_pins').upsert({
+            stream_id: streamId,
+            comment_id: commentId,
+            pinned_by: this.currentUserId,
+        });
+    }
+
+    // ═══════════════════════════════════════════════════
+    // INTERNAL HELPERS
+    // ═══════════════════════════════════════════════════
+
+    _trackToStream(track) {
+        try {
+            if (!track?.mediaStreamTrack) return null;
+            return new MediaStream([track.mediaStreamTrack]);
+        } catch { return null; }
+    }
+
+    _getParticipants() {
+        if (!this.room) return [];
+        return [...this.room.remoteParticipants.values()].map(p => ({
+            identity: p.identity,
+            name: p.name,
+            sid: p.sid,
+        }));
+    }
+
+    async _updateViewerCount() {
+        if (!this.currentStreamId || !this.room) return;
+        const count = this.room.remoteParticipants.size;
+        await supabase.from('live_streams')
+            .update({
+                viewer_count: count,
+                peak_viewers: supabase.raw?.('GREATEST(peak_viewers, ?)', [count]) || undefined,
+            })
+            .eq('id', this.currentStreamId);
+        this.onViewerCountChange?.(count);
+    }
+
+    _subscribeToViewers(streamId) {
         supabase
             .channel(`live-viewers-${streamId}`)
-            .on(
-                'postgres_changes',
-                {
-                    event: '*',
-                    schema: 'public',
-                    table: 'live_streams',
-                    filter: `id=eq.${streamId}`,
-                },
-                (payload) => {
-                    if (this.onViewerCountChange && payload.new) {
-                        this.onViewerCountChange(payload.new.viewer_count);
+            .on('postgres_changes', {
+                event: '*', schema: 'public', table: 'live_streams',
+                filter: `id=eq.${streamId}`,
+            }, (payload) => {
+                if (payload.new) {
+                    this.onViewerCountChange?.(payload.new.viewer_count);
+                    if (payload.new.status === 'ended' && !this.isBroadcaster) {
+                        this.onStreamEnded?.();
                     }
                 }
-            )
+            })
             .subscribe();
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // STATIC METHODS
-    // ═══════════════════════════════════════════════════════════════════════════
+    async _notifyFollowers(userId, title, streamId) {
+        try {
+            await fetch('/api/notifications/live-notify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ streamId, title }),
+                credentials: 'same-origin',
+            });
+        } catch (err) { logError('notifyFollowers', err); }
+    }
 
-    /**
-     * Get all active live streams
-     * @returns {Promise<Array>}
-     */
+    // ═══════════════════════════════════════════════════
+    // STATIC
+    // ═══════════════════════════════════════════════════
+
     static async getLiveStreams() {
         const { data, error } = await supabase
             .from('live_streams')
             .select('*, profiles!broadcaster_id(username, avatar_url)')
             .eq('status', 'live')
             .order('started_at', { ascending: false });
-
         if (error) throw error;
         return data || [];
     }
 
-    /**
-     * Get stream by ID
-     * @param {string} streamId - Stream ID
-     * @returns {Promise<object>}
-     */
     static async getStream(streamId) {
         const { data, error } = await supabase
             .from('live_streams')
             .select('*, profiles!broadcaster_id(username, avatar_url)')
             .eq('id', streamId)
             .maybeSingle();
-
         if (error) throw error;
+        return data || null;
+    }
+
+    static async getStreamAnalytics(streamId) {
+        const { data } = await supabase
+            .from('live_stream_analytics')
+            .select('*')
+            .eq('id', streamId)
+            .maybeSingle();
         return data || null;
     }
 }
 
-// Singleton instance
+// Singleton
 export const liveStreamService = new LiveStreamService();
 export default LiveStreamService;

@@ -1,17 +1,21 @@
 /**
- * GO LIVE MODAL — SmarterPoker Live Streaming
- * Features: thumbnail upload → 5s countdown → live with tap-to-show controls + comments
+ * GO LIVE MODAL — SmarterPoker Live Streaming v2
+ * Features: LiveKit SFU • camera flip • share • reactions • analytics • schedule
  * Stages: setup → preview → countdown → live → ended
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { liveStreamService } from '../../services/LiveStreamService';
 import { EndStreamModal } from './EndStreamModal';
+import { LiveAnalyticsCard } from './LiveAnalyticsCard';
+import { LiveReactions } from './LiveReactions';
+import { ScheduleLiveModal } from './ScheduleLiveModal';
 import { supabase } from '../../lib/supabase';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505',
     textSec: '#65676B', border: '#DADDE1', red: '#FA383E',
+    blue: '#0066FF',
 };
 
 export function GoLiveModal({ isOpen, onClose, user }) {
@@ -26,6 +30,12 @@ export function GoLiveModal({ isOpen, onClose, user }) {
     const [comments, setComments] = useState([]);
     const [commentInput, setCommentInput] = useState('');
     const [controlsTimer, setControlsTimer] = useState(null);
+    // New v2 state
+    const [isReconnecting, setIsReconnecting] = useState(false);
+    const [showAnalytics, setShowAnalytics] = useState(false);
+    const [showSchedule, setShowSchedule] = useState(false);
+    const [slowMode, setSlowMode] = useState(false);
+    const [isCameraFlipping, setIsCameraFlipping] = useState(false);
 
     // Thumbnail state
     const [thumbnailFile, setThumbnailFile] = useState(null);
@@ -176,6 +186,10 @@ export function GoLiveModal({ isOpen, onClose, user }) {
     const startBroadcast = async (thumbUrl) => {
         try {
             liveStreamService.onViewerCountChange = (c) => setViewerCount(c);
+            // Wire reconnect handlers
+            liveStreamService.onReconnecting = () => setIsReconnecting(true);
+            liveStreamService.onReconnected = () => setIsReconnecting(false);
+
             const { streamId: newId } = await liveStreamService.startBroadcast(
                 user.id,
                 title || `${user.name || user.full_name || 'Live'}'s Live`,
@@ -205,9 +219,48 @@ export function GoLiveModal({ isOpen, onClose, user }) {
             await liveStreamService.endBroadcast();
             if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
             setStage('ended');
+            // Show analytics BEFORE end stream modal
+            setShowAnalytics(true);
         } catch (err) {
             setError(err.message);
         }
+    };
+
+    const handleFlipCamera = async () => {
+        if (isCameraFlipping) return;
+        setIsCameraFlipping(true);
+        try {
+            const newStream = await liveStreamService.flipCamera();
+            if (newStream && videoRef.current) {
+                // Update preview video
+                videoRef.current.srcObject = newStream;
+                streamRef.current = newStream;
+            }
+        } catch (err) {
+            setError('Camera flip failed: ' + err.message);
+        } finally {
+            setIsCameraFlipping(false);
+        }
+    };
+
+    const handleShare = async () => {
+        const url = `${window.location.origin}/hub/social-media?stream=${streamId}`;
+        try {
+            if (navigator.share) {
+                await navigator.share({ title: title || 'Live Stream', url });
+            } else {
+                await navigator.clipboard.writeText(url);
+                setError('Link copied to clipboard!'); // Reuse error for brief flash
+                setTimeout(() => setError(''), 2500);
+            }
+        } catch { /* ignore user cancel */ }
+    };
+
+    const handleToggleSlowMode = async () => {
+        if (!streamId) return;
+        const newMode = !slowMode;
+        setSlowMode(newMode);
+        await liveStreamService.setSlowMode(streamId, newMode);
     };
 
     const handleSendComment = async () => {
@@ -245,6 +298,16 @@ export function GoLiveModal({ isOpen, onClose, user }) {
 
     if (!isOpen) return null;
 
+    // Analytics card shows first after stream ends, then EndStreamModal
+    if (stage === 'ended' && showAnalytics) {
+        return (
+            <LiveAnalyticsCard
+                streamId={streamId}
+                onContinue={() => setShowAnalytics(false)}
+            />
+        );
+    }
+
     if (stage === 'ended') {
         return (
             <EndStreamModal
@@ -268,6 +331,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                 @keyframes livePulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.7;transform:scale(.96)} }
                 @keyframes cdPop { 0%{transform:scale(.5);opacity:0} 60%{transform:scale(1.15)} 100%{transform:scale(1);opacity:1} }
                 @keyframes slideUp { from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
+                @keyframes spin { to { transform: rotate(360deg); } }
             `}</style>
 
             <div style={{
@@ -285,7 +349,15 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                     <div>
                         <div style={{ padding:'16px 20px', borderBottom:`1px solid ${C.border}`, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
                             <h2 style={{ margin:0, fontSize:20, fontWeight:700, color:C.text }}>Go Live</h2>
-                            <button onClick={onClose} style={{ background:'none', border:'none', fontSize:24, cursor:'pointer', color:C.textSec }}>✕</button>
+                            <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+                                <button
+                                    onClick={() => setShowSchedule(true)}
+                                    style={{ background:'none', border:`1px solid ${C.border}`, borderRadius:8, padding:'6px 12px', fontSize:13, color:C.textSec, cursor:'pointer' }}
+                                >
+                                    Schedule
+                                </button>
+                                <button onClick={onClose} style={{ background:'none', border:'none', fontSize:24, cursor:'pointer', color:C.textSec }}>✕</button>
+                            </div>
                         </div>
 
                         {/* Camera preview */}
@@ -367,6 +439,15 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                         {/* Video feed */}
                         <video ref={videoRef} autoPlay muted playsInline style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', transform:'scaleX(-1)' }} />
 
+                        {/* Reconnect overlay */}
+                        {isReconnecting && (
+                            <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.7)', zIndex:30, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center' }}>
+                                <div style={{ width:48, height:48, borderRadius:'50%', border:'4px solid rgba(255,255,255,0.2)', borderTopColor:'#0066FF', animation:'spin 0.8s linear infinite', marginBottom:16 }} />
+                                <div style={{ color:'white', fontSize:16, fontWeight:700 }}>Reconnecting...</div>
+                                <div style={{ color:'rgba(255,255,255,0.5)', fontSize:13, marginTop:6 }}>Please wait</div>
+                            </div>
+                        )}
+
                         {/* TOP-LEFT: LIVE badge + REC */}
                         <div style={{ position:'absolute', top:20, left:16, display:'flex', gap:10, alignItems:'center', zIndex:10 }}>
                             <div style={{ background:C.red, color:'white', padding:'6px 14px', borderRadius:8, fontSize:15, fontWeight:800, animation:'livePulse 1.5s infinite', display:'flex', alignItems:'center', gap:6 }}>
@@ -376,6 +457,11 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                             <div style={{ background:'rgba(255,0,0,.75)', color:'white', padding:'5px 10px', borderRadius:7, fontSize:12, fontWeight:700 }}>
                                 REC
                             </div>
+                            {slowMode && (
+                                <div style={{ background:'rgba(255,165,0,0.85)', color:'white', padding:'5px 10px', borderRadius:7, fontSize:11, fontWeight:700 }}>
+                                    SLOW
+                                </div>
+                            )}
                         </div>
 
                         {/* TOP-RIGHT: viewer count */}
@@ -389,6 +475,9 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                             {formatTime(elapsedTime)}
                         </div>
 
+                        {/* Emoji reactions */}
+                        <LiveReactions streamId={streamId} userId={user?.id} isBroadcaster />
+
                         {/* COMMENTS OVERLAY — left side, scrollable */}
                         <div style={{ position:'absolute', bottom:110, left:0, width:'min(320px, 60vw)', maxHeight:200, overflowY:'auto', zIndex:10, padding:'0 12px', scrollbarWidth:'none' }}>
                             {comments.map(c => (
@@ -401,7 +490,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                         </div>
 
                         {/* COMMENT INPUT */}
-                        <div style={{ position:'absolute', bottom:50, left:12, right:12, zIndex:10, display:'flex', gap:8 }}>
+                        <div style={{ position:'absolute', bottom:50, left:12, right:56, zIndex:10, display:'flex', gap:8 }}>
                             <input
                                 value={commentInput}
                                 onChange={e => setCommentInput(e.target.value)}
@@ -416,6 +505,46 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                             >Send</button>
                         </div>
 
+                        {/* FLOATING ACTION BUTTONS — camera flip, share, slow mode */}
+                        <div style={{ position:'absolute', bottom:110, right:16, display:'flex', flexDirection:'column', gap:8, zIndex:15 }}>
+                            {/* Camera flip */}
+                            <button
+                                onClick={e => { e.stopPropagation(); handleFlipCamera(); }}
+                                disabled={isCameraFlipping}
+                                title="Flip camera"
+                                style={{
+                                    width:44, height:44, borderRadius:'50%', border:'none',
+                                    background:'rgba(0,0,0,0.6)', backdropFilter:'blur(8px)',
+                                    color:'white', fontSize:20, cursor:'pointer', display:'flex',
+                                    alignItems:'center', justifyContent:'center',
+                                    opacity: isCameraFlipping ? 0.5 : 1,
+                                }}
+                            >🔄</button>
+                            {/* Share */}
+                            <button
+                                onClick={e => { e.stopPropagation(); handleShare(); }}
+                                title="Share stream link"
+                                style={{
+                                    width:44, height:44, borderRadius:'50%', border:'none',
+                                    background:'rgba(0,0,0,0.6)', backdropFilter:'blur(8px)',
+                                    color:'white', fontSize:20, cursor:'pointer', display:'flex',
+                                    alignItems:'center', justifyContent:'center',
+                                }}
+                            >🔗</button>
+                            {/* Slow mode */}
+                            <button
+                                onClick={e => { e.stopPropagation(); handleToggleSlowMode(); }}
+                                title={slowMode ? 'Disable slow mode' : 'Enable slow mode'}
+                                style={{
+                                    width:44, height:44, borderRadius:'50%', border:'none',
+                                    background: slowMode ? 'rgba(255,165,0,0.7)' : 'rgba(0,0,0,0.6)',
+                                    backdropFilter:'blur(8px)',
+                                    color:'white', fontSize:18, cursor:'pointer', display:'flex',
+                                    alignItems:'center', justifyContent:'center',
+                                }}
+                            >🐢</button>
+                        </div>
+
                         {/* TAP-TO-REVEAL: End Stream — only visible when showControls */}
                         {showControls && (
                             <div style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', zIndex:20, animation:'slideUp .2s ease-out' }}>
@@ -426,6 +555,13 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                                     End Stream
                                 </button>
                                 <div style={{ textAlign:'center', marginTop:10, color:'rgba(255,255,255,.6)', fontSize:12 }}>Tap anywhere to hide</div>
+                            </div>
+                        )}
+
+                        {/* Link copied flash */}
+                        {error && error.includes('clipboard') && (
+                            <div style={{ position:'absolute', top:70, left:'50%', transform:'translateX(-50%)', background:'rgba(0,200,100,0.9)', color:'white', padding:'8px 20px', borderRadius:20, fontSize:13, fontWeight:600, zIndex:30 }}>
+                                {error}
                             </div>
                         )}
                     </div>
@@ -445,6 +581,17 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                 )}
             </div>
         </div>
+
+        {/* Schedule Modal */}
+        {showSchedule && (
+            <ScheduleLiveModal
+                isOpen={showSchedule}
+                onClose={(scheduled) => {
+                    setShowSchedule(false);
+                }}
+                user={user}
+            />
+        )}
     );
 }
 
