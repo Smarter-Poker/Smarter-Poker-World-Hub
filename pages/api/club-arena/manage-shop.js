@@ -8,6 +8,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
 
 let _supabase = null;
 function getSupabase() {
@@ -25,6 +26,11 @@ export default async function handler(req, res) {
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
+
+  // Idempotency guard — prevents duplicate mutations from laggy mobile networks
+  if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
+    if (checkIdempotency(req, res)) return;
+  }
 
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ success: false, error: 'No auth token' });

@@ -288,6 +288,7 @@ async function createTournament(cfg, clubId) {
   const startTime = new Date();
   startTime.setHours(cfg.hour, 0, 0, 0);
   // If the start time is in the past, set it to 2 minutes from now
+const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
   if (startTime.getTime() < Date.now()) {
     startTime.setTime(Date.now() + 2 * 60 * 1000);
   }
@@ -378,6 +379,11 @@ async function seatHorseAtTable(tableId, horseId, maxPlayers, bigBlind) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export default async function handler(req, res) {
+  // Idempotency guard — prevents duplicate mutations from laggy mobile networks
+  if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
+    if (checkIdempotency(req, res)) return;
+  }
+
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
   // Auth: must be platform owner

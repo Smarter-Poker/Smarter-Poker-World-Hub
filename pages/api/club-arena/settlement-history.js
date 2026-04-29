@@ -17,6 +17,7 @@ const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 const { isUUID } = require('../../../src/lib/club-arena/validate');
 import { reportApiError } from '../../../src/lib/sentryWrap';
+const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
 
 let _supabase = null;
 function getSupabase() {
@@ -30,6 +31,11 @@ function getSupabase() {
 }
 
 export default async function handler(req, res) {
+  // Idempotency guard — prevents duplicate mutations from laggy mobile networks
+  if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
+    if (checkIdempotency(req, res)) return;
+  }
+
   const supabaseAdmin = getSupabase(); // FIX: was undefined — alias to getSupabase() for settlement-lock, audit, velocity, notify
   try {
       if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });

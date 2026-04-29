@@ -3,6 +3,7 @@ const { sanitizeNote } = require('../../../src/lib/club-arena/sanitize');
 const { isUUID } = require('../../../src/lib/club-arena/validate');
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
 
 let _supabase = null;
 function getSupabase() {
@@ -44,6 +45,11 @@ function isDuplicateChatPost(userId, clubId, message) {
  * GET:  load last 50 messages for a table (auth required, membership verified)
  */
 export default async function handler(req, res) {
+  // Idempotency guard — prevents duplicate mutations from laggy mobile networks
+  if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
+    if (checkIdempotency(req, res)) return;
+  }
+
   if (!applyRateLimit(req, res, LIMITS.write)) return;
   try {
     // ─── Auth: required for ALL methods ────────────────────────

@@ -19,6 +19,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 const { applyCors } = require('../../../src/lib/cors');
 import { reportApiError } from '../../../src/lib/sentryWrap';
+const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
 
 let _supabase = null;
 function getSupabase() {
@@ -56,6 +57,11 @@ try {
     if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
+
+  // Idempotency guard — prevents duplicate mutations from laggy mobile networks
+  if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
+    if (checkIdempotency(req, res)) return;
+  }
     if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
     // ── Idempotency Check: dedup mutation requests ──

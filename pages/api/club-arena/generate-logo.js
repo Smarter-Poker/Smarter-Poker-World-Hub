@@ -1,4 +1,5 @@
 import { reportApiError } from '../../../src/lib/sentryWrap';
+const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
@@ -24,6 +25,11 @@ export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
+
+  // Idempotency guard — prevents duplicate mutations from laggy mobile networks
+  if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
+    if (checkIdempotency(req, res)) return;
+  }
 
     if (!XAI_API_KEY) {
         return res.status(500).json({ success: false, error: 'AI image generation not configured on server.' });

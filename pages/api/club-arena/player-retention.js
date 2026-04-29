@@ -37,7 +37,13 @@ const RETENTION_DEFAULTS = {
 };
 
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
+const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
 export default async function handler(req, res) {
+  // Idempotency guard — prevents duplicate mutations from laggy mobile networks
+  if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
+    if (checkIdempotency(req, res)) return;
+  }
+
   const supabaseAdmin = getSupabase(); // FIX: was undefined — alias to getSupabase() for settlement-lock, audit, velocity, notify
   try {
       // Rate limit

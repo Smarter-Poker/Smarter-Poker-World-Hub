@@ -14,6 +14,7 @@ import { createClient } from '@supabase/supabase-js';
 import { sanitizeNote } from '../../../src/lib/club-arena/sanitize';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
 
 let _supabase = null;
 function getSupabase() {
@@ -27,6 +28,11 @@ function getSupabase() {
 }
 
 export default async function handler(req, res) {
+  // Idempotency guard — prevents duplicate mutations from laggy mobile networks
+  if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
+    if (checkIdempotency(req, res)) return;
+  }
+
   try {
       if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 

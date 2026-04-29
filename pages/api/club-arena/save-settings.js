@@ -7,6 +7,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 const { sanitizeNote, sanitizeClubName, sanitizeTheme, safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
 import { reportApiError } from '../../../src/lib/sentryWrap';
+const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
 
 let _supabase = null;
 function getSupabase() {
@@ -24,6 +25,11 @@ export default async function handler(req, res) {
       if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
           if (!applyRateLimit(req, res, LIMITS.write)) return;
       }
+
+  // Idempotency guard — prevents duplicate mutations from laggy mobile networks
+  if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
+    if (checkIdempotency(req, res)) return;
+  }
 
       if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 

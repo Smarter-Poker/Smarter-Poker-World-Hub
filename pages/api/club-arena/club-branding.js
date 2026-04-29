@@ -38,7 +38,13 @@ const DEFAULT_THEME = {
 };
 
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
+const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
 export default async function handler(req, res) {
+  // Idempotency guard — prevents duplicate mutations from laggy mobile networks
+  if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
+    if (checkIdempotency(req, res)) return;
+  }
+
   try {
       // Rate limit
       if (!applyRateLimit(req, res, 'club-arena/club-branding')) return;
