@@ -1242,7 +1242,7 @@ export default function VideoLibraryPage() {
                                     <div style={{
                                         width: 72,
                                         textAlign: 'center',
-                                        fontSize: 9.5,
+                                        fontSize: 12,
                                         fontWeight: isActive ? 700 : 500,
                                         color: isActive ? '#FF7575' : 'rgba(185,200,220,0.6)',
                                         letterSpacing: '0.15px',
