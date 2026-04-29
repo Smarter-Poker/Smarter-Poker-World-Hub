@@ -1056,7 +1056,7 @@ async function runSocialInteractions(options = {}) {
         try {
             const { data: activeHorses } = await getSupabase()
                 .from('content_authors')
-                .select('profile_id')
+                .select('profile_id, name')
                 .eq('is_active', true)
                 .not('profile_id', 'is', null);
 
@@ -1064,7 +1064,7 @@ async function runSocialInteractions(options = {}) {
                 const horseProfileIds = activeHorses.map(h => h.profile_id);
                 const now = new Date().toISOString();
 
-                // Batch update in chunks of 50 to avoid query size limits
+                // Update alias profiles (content_authors.profile_id)
                 for (let i = 0; i < horseProfileIds.length; i += 50) {
                     const chunk = horseProfileIds.slice(i, i + 50);
                     await getSupabase()
@@ -1072,7 +1072,21 @@ async function runSocialInteractions(options = {}) {
                         .update({ last_active: now })
                         .in('id', chunk);
                 }
-                console.debug(`   ✅ Updated last_active for ${horseProfileIds.length} horse profiles`);
+
+                // Also update real-name profiles (matched by full_name)
+                // Horses often have a second profile with their real name as username
+                const horseNames = [...new Set(activeHorses.map(h => h.name).filter(Boolean))];
+                if (horseNames.length > 0) {
+                    for (let i = 0; i < horseNames.length; i += 50) {
+                        const chunk = horseNames.slice(i, i + 50);
+                        await getSupabase()
+                            .from('profiles')
+                            .update({ last_active: now })
+                            .in('full_name', chunk);
+                    }
+                }
+
+                console.debug(`   ✅ Updated last_active for ${horseProfileIds.length} horse profiles (alias + real-name)`);
             }
         } catch (e) {
             console.warn('Failed to update horse last_active:', e?.message || e);
