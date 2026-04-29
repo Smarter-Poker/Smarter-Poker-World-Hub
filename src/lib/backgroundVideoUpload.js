@@ -281,9 +281,24 @@ async function _uploadWithTus(file, meta, mimeType) {
         console.warn('[bgUpload] _uploadWithTus refusing to start — no valid JWT available');
         throw new Error('Session expired. Please refresh the page and try again.');
     }
-    // Diagnostic log so the failure mode is visible in the user's console
-    // if anything still goes wrong downstream.
-    console.debug('[bgUpload] starting TUS upload with valid JWT (length=' + userToken.length + ')');
+    // Diagnostic log (console.log = "Default" level, visible without changing
+    // DevTools filter). When this DOES log but the server still rejects with
+    // "Invalid Compact JWS", the cached session token is stale-against-current-
+    // signing-key and the user needs to log out + log in fresh.
+    try {
+        const _parts = userToken.split('.');
+        const _payload = JSON.parse(atob(_parts[1].replace(/-/g,'+').replace(/_/g,'/') + '==='.slice((_parts[1].length + 3) % 4)));
+        console.log('[bgUpload] starting TUS upload', {
+            jwtLength: userToken.length,
+            jwtParts: _parts.length,
+            iss: _payload.iss,
+            aud: _payload.aud,
+            sub: _payload.sub?.slice(0, 8) + '…',
+            expIn: Math.round((_payload.exp * 1000 - Date.now()) / 1000) + 's',
+        });
+    } catch (_) {
+        console.log('[bgUpload] starting TUS upload (could not decode JWT payload)', { jwtLength: userToken.length });
+    }
 
     return new Promise((resolve, reject) => {
         _uploadStartTime = Date.now();
@@ -357,6 +372,20 @@ async function _uploadWithTus(file, meta, mimeType) {
                 if (msg.toLowerCase().includes('abort') || msg.toLowerCase().includes('cancel')) {
                     reject(new Error('Upload cancelled'));
                 } else {
+                    // Surface JWS rejections at error level so the diagnostic
+                    // trail is always visible. If the JWT was shape-valid but
+                    // server still rejects, the session is stale-against-
+                    // current-signing-key (log out + log in fixes it).
+                    if (msg.toLowerCase().includes('compact jws') || msg.toLowerCase().includes('access denied') || msg.toLowerCase().includes('unauthorized')) {
+                        console.error('[bgUpload] STORAGE REJECTED AUTH', {
+                            error: msg.slice(0, 300),
+                            tokenSentLength: userToken?.length,
+                            tokenSentParts: userToken?.split('.').length,
+                            tokenPrefix: userToken?.slice(0, 20),
+                            hasXSignature: !!meta.token,
+                            hint: 'If JWT looks structurally valid but server says "Invalid Compact JWS", your cached session token is stale-against-current-signing-key. Log out and log in fresh.',
+                        });
+                    }
                     reject(new Error(`Upload failed: ${msg.slice(0, 300)} — please try again.`));
                 }
             },
