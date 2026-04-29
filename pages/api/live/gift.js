@@ -81,8 +81,15 @@ export default async function handler(req, res) {
         }).select().maybeSingle();
 
         // Broadcast gift event to all viewers via Supabase Realtime
+        // FIX: wait for SUBSCRIBED status before sending — otherwise send() silently drops
         const channel = supabase.channel(`live-gifts-${stream_id}`);
-        await channel.subscribe();
+        await new Promise((resolve) => {
+            channel.subscribe((status) => {
+                if (status === 'SUBSCRIBED') resolve();
+            });
+            // Safety timeout: don't block the response if subscription takes too long
+            setTimeout(resolve, 3000);
+        });
         await channel.send({
             type: 'broadcast',
             event: 'gift',
@@ -95,7 +102,7 @@ export default async function handler(req, res) {
                 message: message || null,
                 gift_id: gift?.id,
             },
-        });
+        }).catch(() => {}); // Non-fatal if broadcast fails
         supabase.removeChannel(channel);
 
         // Notify broadcaster (non-fatal)

@@ -92,7 +92,7 @@ export default function LivesPage() {
 
     useEffect(() => {
         fetchStreams();
-    }, [fetchStreams, categoryFilter]);
+    }, [fetchStreams]);
 
     // Handle ?id= deep link — jump to specific stream after load
     useEffect(() => {

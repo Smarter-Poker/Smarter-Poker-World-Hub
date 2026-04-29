@@ -192,7 +192,7 @@ class LiveStreamService {
             // FIX: track.mediaStream does not exist in livekit-client v2.
             // Use _trackToStream() which wraps track.mediaStreamTrack correctly.
             // Also guard against double-fire if manual participant loop already delivered the stream.
-            if (track.kind === Track.Kind.Video) {
+            if (track.kind === Track.Kind.Video && !this._remoteStreamDelivered) {
                 const ms = this._trackToStream(track);
                 if (ms) {
                     this._remoteStreamDelivered = true;
@@ -436,7 +436,19 @@ class LiveStreamService {
             supabase.removeChannel(this._viewerChannel);
             this._viewerChannel = null;
         }
-        console.debug('👋 Left stream:', this.currentStreamId);
+        // Clean up debounce timer (viewers also trigger this via ParticipantConnected)
+        if (this._viewerCountDebounceTimer) {
+            clearTimeout(this._viewerCountDebounceTimer);
+            this._viewerCountDebounceTimer = null;
+        }
+        // Clean up gift channel if viewer had one
+        if (this._giftChannel) {
+            supabase.removeChannel(this._giftChannel);
+            this._giftChannel = null;
+        }
+        // Reset remote stream guard for next join
+        this._remoteStreamDelivered = false;
+        console.debug('[LiveKit] Left stream:', this.currentStreamId);
         this.currentStreamId = null;
     }
 

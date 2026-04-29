@@ -291,7 +291,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
     };
 
     const handleShare = async () => {
-        const url = `${window.location.origin}/hub/social-media?stream=${streamId}`;
+        const url = `${window.location.origin}/hub/lives?id=${streamId}`;
         try {
             if (navigator.share) {
                 await navigator.share({ title: title || 'Live Stream', url });
@@ -325,7 +325,11 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                 p_text: text,
                 p_author_name: authorName,
             });
-            if (data && !data.success) {
+            if (error) {
+                setComments(prev => prev.filter(c => c.id !== newComment.id));
+                setError(error.message || 'Comment failed');
+                setTimeout(() => setError(''), 3000);
+            } else if (data && !data.success) {
                 // Remove optimistic comment and show error
                 setComments(prev => prev.filter(c => c.id !== newComment.id));
                 setError(data.error);

@@ -190,7 +190,10 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                 p_text: text,
                 p_author_name: authorName,
             });
-            if (data && !data.success) {
+            if (error) {
+                setCommentError(error.message || 'Comment failed');
+                setTimeout(() => setCommentError(''), 3000);
+            } else if (data && !data.success) {
                 setCommentError(data.error);
                 setTimeout(() => setCommentError(''), 3000);
             }
