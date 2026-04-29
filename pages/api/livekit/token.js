@@ -1,10 +1,14 @@
 /**
- * LiveKit Token Generation API
+ * LiveKit Token Generation API — Messenger 1:1 Video Calls
  *
  * Generates access tokens for users to join LiveKit video rooms.
  * Used for seamless 1:1 video calling in the Messenger.
+ *
+ * NOTE: livekit-server-sdk v2 is ESM-only. Static import WILL FAIL in Next.js
+ * CJS API routes. AccessToken is dynamically imported inside the handler.
+ * Same pattern used in /api/live/token.js for Go Live broadcasting.
+ * Both features share the same LiveKit project (LIVEKIT_API_KEY / LIVEKIT_API_SECRET).
  */
-import { AccessToken } from 'livekit-server-sdk';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/sentryWrap';
@@ -46,26 +50,26 @@ export default async function handler(req, res) {
       // LiveKit credentials from environment (trim to remove any newlines)
       const apiKey = (process.env.LIVEKIT_API_KEY || '').trim();
       const apiSecret = (process.env.LIVEKIT_API_SECRET || '').trim();
-      const wsUrl = (process.env.NEXT_PUBLIC_LIVEKIT_URL || 'wss://smarter-poker-lovt9xq0.livekit.cloud').trim();
+      const wsUrl = (process.env.NEXT_PUBLIC_LIVEKIT_URL || '').trim();
 
-      if (!apiKey || !apiSecret) {
+      if (!apiKey || !apiSecret || !wsUrl) {
           console.warn('LiveKit API credentials not configured');
           return res.status(500).json({
-              error: 'Video calling not configured. Please set LIVEKIT_API_KEY and LIVEKIT_API_SECRET.'
+              error: 'Video calling not configured. Please set LIVEKIT_API_KEY, LIVEKIT_API_SECRET, and NEXT_PUBLIC_LIVEKIT_URL.'
           });
       }
 
       try {
+          // FIX: livekit-server-sdk v2 is ESM-only — dynamic import required in Next.js CJS routes
+          const { AccessToken } = await import('livekit-server-sdk');
+
           // BUG #263 FIX: Always use authenticated user's ID as the participant identity.
-          // Previously accepted client-supplied participantId, allowing impersonation.
           const token = new AccessToken(apiKey, apiSecret, {
               identity: _authUser.id,
               name: participantName,
-              // Token expires in 1 hour
               ttl: '1h',
           });
 
-          // Grant permissions for the room
           token.addGrant({
               roomJoin: true,
               room: roomName,
@@ -74,6 +78,7 @@ export default async function handler(req, res) {
               canPublishData: true,
           });
 
+          // FIX: toJwt() is async in livekit-server-sdk v2
           const jwt = await token.toJwt();
 
           return res.status(200).json({
