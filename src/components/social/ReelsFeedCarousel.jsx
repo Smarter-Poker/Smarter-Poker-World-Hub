@@ -359,6 +359,8 @@ function ReelViewer({ reels, startIndex, onClose }) {
     const touchStartRef = useRef({ x: 0, y: 0 });
     const swipeStartRef = useRef(null);
     const swipeDeltaRef = useRef(0);
+    const userInteractedRef = useRef(false); // Tracks if user has touched/swiped at least once
+    const userWantsSoundRef = useRef(true);  // User preference — persists across reel changes
     const likeDebounceRef = useRef(false);
     const lastTapRef = useRef(0);
     const progressRAF = useRef(null);
@@ -517,7 +519,9 @@ function ReelViewer({ reels, startIndex, onClose }) {
         setPaused(true);
         setYtReady(false);
         setYtError(null);
-        setMuted(true); // Start muted for autoplay compliance; first tap unmutes
+        // DO NOT reset muted here — we preserve the user's sound preference
+        // across reel changes. Once they unmute (via first tap or auto-unmute),
+        // all subsequent reels stay unmuted.
         setShowComments(false);
         setShowMoreMenu(false);
         setShowReactionPicker(false);
@@ -1288,6 +1292,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
         const now = Date.now();
         const DOUBLE_TAP_WINDOW = 300;
         const isYT = isYouTubeUrl(currentReel?.video_url);
+        userInteractedRef.current = true; // Mark user as having interacted
 
         // First tap EVER: force play + unmute (iOS requires user gesture)
         if ((paused || muted) && isYT) {
@@ -1297,6 +1302,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
             setPaused(false);
             setMuted(false);
             setYtReady(true);
+            userWantsSoundRef.current = true;
             lastTapRef.current = now;
             setShowOverlay(true);
             if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
@@ -1372,6 +1378,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 onTouchStart={(e) => {
                     swipeStartRef.current = { y: e.touches[0].clientY, x: e.touches[0].clientX, t: Date.now() };
                     swipeDeltaRef.current = 0;
+                    userInteractedRef.current = true; // Mark user as having interacted
                     handleLongPressTouchStart();
                 }}
                 onTouchMove={(e) => {
@@ -1432,16 +1439,26 @@ function ReelViewer({ reels, startIndex, onClose }) {
                             allowFullScreen
                             onLoad={(e) => {
                                 // Force play via YouTube postMessage API
-                                // CRITICAL: Do NOT send unMute here — on mobile Safari, unmuting
-                                // before playback starts causes autoplay to fail.
                                 const iframeWindow = e.target.contentWindow;
                                 try {
                                     iframeWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
                                     iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
+                                    // If user has already interacted, send unMute immediately
+                                    // (the swipe/tap that navigated here counts as a user gesture)
+                                    if (userInteractedRef.current && userWantsSoundRef.current) {
+                                        iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
+                                        iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
+                                        setMuted(false);
+                                    }
                                     [300, 800, 1500, 3000].forEach(delay => setTimeout(() => {
                                         try {
                                             iframeWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
                                             iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
+                                            if (userInteractedRef.current && userWantsSoundRef.current) {
+                                                iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
+                                                iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
+                                                setMuted(false);
+                                            }
                                         } catch (e) { console.warn('[ReelsFeedCarousel] Handled exception:', e); }
                                     }, delay));
                                 } catch (e) { console.warn('[ReelsFeedCarousel] Handled exception:', e); }
@@ -1475,27 +1492,26 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     />
                 )}
 
-                {/* Preload next video - hidden iframe for YouTube, link preload for native */}
-                {reels[currentIndex + 1]?.video_url && (() => {
-                    const nextUrl = reels[currentIndex + 1].video_url;
+                {/* Preload next 5 videos — thumbnails + hidden iframes for YouTube, link preload for native */}
+                {Array.from({ length: 5 }, (_, offset) => offset + 1).map(offset => {
+                    const nextReel = reels[currentIndex + offset];
+                    if (!nextReel?.video_url) return null;
+                    const nextUrl = nextReel.video_url;
                     if (isYouTubeUrl(nextUrl)) {
                         const nextVid = getYouTubeVideoId(nextUrl);
-                        return nextVid ? (
-                            <>
-                                <img src={`https://img.youtube.com/vi/${nextVid}/hqdefault.jpg`} style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }} alt="" />
-                                <iframe
-                                    src={`https://www.youtube-nocookie.com/embed/${nextVid}?autoplay=0&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`}
-                                    title="Preload"
-                                    style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
-                                    tabIndex={-1}
-                                    aria-hidden="true"
-                                />
-                            </>
-                        ) : null;
+                        if (!nextVid) return null;
+                        return (
+                            <img
+                                key={`preload-${nextReel.id}`}
+                                src={`https://img.youtube.com/vi/${nextVid}/hqdefault.jpg`}
+                                style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
+                                alt=""
+                            />
+                        );
                     } else {
-                        return <link rel="preload" href={nextUrl} as="video" />;
+                        return <link key={`preload-${nextReel.id}`} rel="preload" href={nextUrl} as="video" />;
                     }
-                })()}
+                })}
 
                 {/* Play Button Overlay - visible when explicitly paused (ytReady suppresses it during autoplay startup) */}
                 {paused && ytReady && !ytError && (

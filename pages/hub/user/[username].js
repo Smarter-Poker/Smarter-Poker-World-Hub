@@ -22,6 +22,7 @@ import toast from '../../../src/stores/toastStore';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ArticleCard from '../../../src/components/social/ArticleCard';
+import { VideoPostWrapper } from '../../../src/components/social/SharedVideoComponents';
 import ArticleReaderModal from '../../../src/components/social/ArticleReaderModal';
 import ProfileSkeleton from '../../../src/components/skeletons/ProfileSkeleton';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
@@ -194,6 +195,7 @@ function PokerResumeBadge({ hendonData, isOwnProfile = false, onOpenResume }) {
 
 // Post Card Component
 function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, currentUserId, horseProfileIds = new Set() }) {
+    const router = useRouter();
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
@@ -471,7 +473,18 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
                 <div>
                     {post.media_urls.length === 1 ? (
                         post.content_type === 'video' ? (
-                            <video src={post.media_urls[0]} controls style={{ width: '100%', maxHeight: 400, objectFit: 'cover' }} />
+                            <VideoPostWrapper
+                                url={post.media_urls[0]}
+                                onValidVideoClick={() => router.push(`/hub/reels?id=${post.id}`)}
+                            >
+                                <video
+                                    src={post.media_urls[0]}
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    muted
+                                    playsInline
+                                    preload="metadata"
+                                />
+                            </VideoPostWrapper>
                         ) : (
                             <img src={post.media_urls[0]} alt="" style={{ maxWidth: '100%', display: 'block', margin: '0 auto', cursor: 'pointer' }} loading="lazy"
                              onClick={() => { setLightboxIndex(0); setLightboxOpen(true); }} />
@@ -1768,9 +1781,9 @@ export default function UserProfilePage() {
 
                 {/* PROFILE HEADER - SmarterPoker Style */}
                 <div style={{ padding: '0 16px', marginTop: -50, position: 'relative', zIndex: 10 }}>
-                    <div style={{ display: 'flex', gap: 16 }}>
+                    <div className="sp-profile-header-row">
                         {/* Avatar */}
-                        <div style={{ position: 'relative', display: 'inline-block' }}>
+                        <div style={{ position: 'relative', display: 'inline-block', flexShrink: 0 }}>
                             <Avatar src={profile.avatar_url} name={displayName} size={120} />
                             {(() => { const hid = socialIdRef.current || profile.id; return horseProfileIds.has(hid) && isHorseOnlineNow(hid); })() && (
                                 <span style={{ position: 'absolute', bottom: 4, right: 4, width: 18, height: 18, background: '#31a24c', border: `3px solid ${C.bg}`, borderRadius: '50%', zIndex: 5 }} />
@@ -1803,7 +1816,7 @@ export default function UserProfilePage() {
                         </div>
 
                         {/* Name & Stats */}
-                        <div style={{ flex: 1, paddingTop: 51, paddingBottom: 8 }}>
+                        <div className="sp-profile-name-stats">
                             <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0, color: C.text, lineHeight: 1 }}>{displayName}</h1>
                             {pokerAlias && (
                                 <div style={{ fontSize: 13, color: C.blue, fontWeight: 600, marginTop: 3, letterSpacing: 0.2 }}>@{pokerAlias}</div>
@@ -1824,7 +1837,7 @@ export default function UserProfilePage() {
                                 </div>
                             )}
 
-                            <div style={{ display: 'flex', gap: 8, fontSize: 14, color: C.textSec, marginTop: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                            <div className="sp-profile-stats-row">
                                 {[
                                     { val: animatedStats.friends, label: 'Friends', tab: 'friends' },
                                     { val: animatedStats.followers, label: 'Followers', tab: 'followers' },
@@ -1832,29 +1845,29 @@ export default function UserProfilePage() {
                                     { val: animatedStats.posts, label: 'Posts', tab: null },
                                 ].map((s, i) => (
                                     <React.Fragment key={s.label}>
-                                        {i > 0 && <span>·</span>}
+                                        {i > 0 && <span className="sp-stat-dot">·</span>}
                                         {s.tab ? (
-                                            <Link href={`/hub/friends?tab=${s.tab}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                                            <Link href={`/hub/friends?tab=${s.tab}`} style={{ textDecoration: 'none', color: 'inherit', whiteSpace: 'nowrap' }}>
                                                 <span style={{ cursor: 'pointer', transition: 'color 0.15s' }}
                                                     onMouseEnter={e => e.currentTarget.style.color = C.blue}
                                                     onMouseLeave={e => e.currentTarget.style.color = ''}>
-                                                    <strong style={{ display: 'inline-block', minWidth: 12, textAlign: 'center', transition: 'transform 0.3s ease, opacity 0.3s ease' }}>{s.val}</strong> {s.label}
+                                                    <strong style={{ display: 'inline-block', minWidth: 12, textAlign: 'center' }}>{s.val}</strong> {s.label}
                                                 </span>
                                             </Link>
                                         ) : (
-                                            <span><strong style={{ display: 'inline-block', minWidth: 12, textAlign: 'center', transition: 'transform 0.3s ease, opacity 0.3s ease' }}>{s.val}</strong> {s.label}</span>
+                                            <span style={{ whiteSpace: 'nowrap' }}><strong style={{ display: 'inline-block', minWidth: 12, textAlign: 'center' }}>{s.val}</strong> {s.label}</span>
                                         )}
                                     </React.Fragment>
                                 ))}
                                 {checkinStreak.currentStreak >= 2 && (
                                     <>
-                                        <span>·</span>
+                                        <span className="sp-stat-dot">·</span>
                                         <span style={{
                                             display: 'inline-flex', alignItems: 'center', gap: 3,
                                             background: 'linear-gradient(135deg, rgba(245,158,11,0.15), rgba(239,68,68,0.15))',
                                             border: '1px solid rgba(245,158,11,0.3)',
                                             borderRadius: 12, padding: '2px 8px', fontSize: 12, fontWeight: 700,
-                                            color: '#f59e0b'
+                                            color: '#f59e0b', whiteSpace: 'nowrap'
                                         }}>
                                             <svg width="12" height="12" viewBox="0 0 24 24" fill="#f59e0b" stroke="none"><path d="M12 23c-3.5-2.4-6-5.3-7.5-8.5C3 11 3.5 7.5 5.5 5.5S10 2 12 2s4.5 1.5 6.5 3.5S21 11 19.5 14.5C18 17.7 15.5 20.6 12 23z"/></svg>
                                             {checkinStreak.currentStreak}-Day Streak
@@ -1869,6 +1882,53 @@ export default function UserProfilePage() {
                             </div>
                         </div>
                     </div>
+                    {/* Mobile-responsive profile header styles */}
+                    <style>{`
+                        .sp-profile-header-row {
+                            display: flex;
+                            gap: 16px;
+                            align-items: flex-start;
+                        }
+                        .sp-profile-name-stats {
+                            flex: 1;
+                            padding-top: 51px;
+                            padding-bottom: 8px;
+                            min-width: 0;
+                        }
+                        .sp-profile-stats-row {
+                            display: flex;
+                            gap: 8px;
+                            font-size: 14px;
+                            color: #65676B;
+                            margin-top: 6px;
+                            flex-wrap: nowrap;
+                            align-items: center;
+                            white-space: nowrap;
+                        }
+                        /* Mobile portrait: stack avatar above name+stats for more horizontal room */
+                        @media (max-width: 480px) {
+                            .sp-profile-header-row {
+                                flex-direction: column;
+                                align-items: flex-start;
+                                gap: 0;
+                            }
+                            .sp-profile-name-stats {
+                                padding-top: 8px;
+                                width: 100%;
+                            }
+                            .sp-profile-stats-row {
+                                flex-wrap: wrap;
+                                font-size: 14px;
+                            }
+                        }
+                        /* Landscape / tablets: keep side-by-side but allow wrapping if needed */
+                        @media (min-width: 481px) and (max-width: 768px) {
+                            .sp-profile-stats-row {
+                                font-size: 13px;
+                                gap: 6px;
+                            }
+                        }
+                    `}</style>
 
                     {/* Intro Bar - Work, Social */}
                     {(profile.occupation || profile.instagram) && (
