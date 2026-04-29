@@ -244,6 +244,23 @@ ALL_CRONS = [
     ('/api/cron/live-cleanup',                    dict(minute='*/5')),       # every 5 min
     ('/api/cron/live-reminders',                  dict(minute='*/5')),       # every 5 min
 
+    # ══ WAVE 5 — Club Arena platform crons (Round 9 + X7.4, 2026-04-29) ═════
+    # Wired in Round 23 of the relaunch sweep. All 7 handlers existed in
+    # smarter-poker-workers/src/routes and were route-registered in workers
+    # index.ts, but never scheduled by Open Claw — meaning manual curl
+    # worked but the auto-fire path was dead.
+    #
+    # rakeback-period-settle is the relaunch-blocker of this batch — it
+    # runs 30 min after the auto-settlement-distribute Mon-10:10 fire, to
+    # close all pending rakeback periods for clubs that just settled.
+    ('/api/cron/bbj-detect',                       dict(minute='*/5')),       # every 5 min — promptly detect BBJ hits
+    ('/api/cron/tournament-bounty-detect',         dict(minute='*/10')),      # every 10 min during MTT runs
+    ('/api/cron/player-stats-refresh',             dict(minute=15)),          # hourly @ :15 — leaderboard refresh
+    ('/api/cron/rakeback-period-settle',           dict(day_of_week='mon', hour=10, minute=30)),
+    ('/api/cron/anti-cheat-multi-account',         dict(hour='*/6', minute=20)),  # every 6h
+    ('/api/cron/anti-cheat-bot-timing',            dict(hour='*/12', minute=40)), # 2x daily
+    ('/api/cron/anti-cheat-chip-dump',             dict(hour='*/12', minute=50)), # 2x daily, staggered
+
     # ══ INTERNAL — Phase 2A monitoring/alerting (closes plan line 285 gate) ═══
     # No HTTP egress; runs in-process. SMS-alerts via Twilio on workers outage.
     ('_internal/workers-healthcheck',             dict(minute='*/5')),      # every 5 min
@@ -411,6 +428,20 @@ WORKERS_PREFERRED = {
     # cron exception — pages/api/cron/ is now empty.
     '/api/cron/generate-trivia-questions':     '/cron/generate-trivia-questions',
     '/api/cron/deploy-error-poll':             '/cron/deploy-error-poll',
+    # ─── WAVE 5 — Club Arena platform crons (Round 23, 2026-04-29) ──────────
+    # Workers repo has src/routes/{bbj-detect,tournament-bounty-detect,
+    # player-stats-refresh,rakeback-period-settle,anti-cheat-*}.ts. All 7
+    # were route-registered in workers index.ts but never scheduled by
+    # Open Claw — manual curl worked, auto-fire path was dead. Wired in
+    # both ALL_CRONS (above) AND here so secondary-role dispatcher routes
+    # them to the workers VM via WORKERS_BASE_URL instead of Vercel.
+    '/api/cron/bbj-detect':                    '/cron/bbj-detect',
+    '/api/cron/tournament-bounty-detect':      '/cron/tournament-bounty-detect',
+    '/api/cron/player-stats-refresh':          '/cron/player-stats-refresh',
+    '/api/cron/rakeback-period-settle':        '/cron/rakeback-period-settle',
+    '/api/cron/anti-cheat-multi-account':      '/cron/anti-cheat-multi-account',
+    '/api/cron/anti-cheat-bot-timing':         '/cron/anti-cheat-bot-timing',
+    '/api/cron/anti-cheat-chip-dump':          '/cron/anti-cheat-chip-dump',
 }
 
 
