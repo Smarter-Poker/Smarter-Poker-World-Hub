@@ -298,11 +298,11 @@ export const FULL_VIDEOS = [
 export const SOURCES = [
     { id: 'ALL', name: 'All Sources', logo: null },
     // Major Live Streams
-    { id: 'HCL', name: 'Hustler Casino Live', logo: '/images/video-sources/hcl.jpg' },
-    { id: 'LODGE', name: 'The Lodge', logo: '/images/video-sources/lodge.jpg' },
-    { id: 'TRITON', name: 'Triton Poker', logo: '/images/video-sources/triton.png' },
+    { id: 'HCL', name: 'Hustler Casino Live', logo: '/images/video-sources/hcl.png' },
+    { id: 'LODGE', name: 'The Lodge', logo: '/images/video-sources/lodge.png' },
+    { id: 'TRITON', name: 'Triton Poker', logo: '/images/video-sources/triton.jpg' },
     { id: 'LATB', name: 'Bally Poker Live', logo: '/images/video-sources/latb.jpg' },
-    { id: 'TCH', name: 'TCH Live', logo: '/images/video-sources/tch.jpg' },
+    { id: 'TCH', name: 'TCH Live', logo: '/images/video-sources/tch.png' },
     { id: 'POKERGO', name: 'PokerGO', logo: '/images/video-sources/pokergo.jpg' },
     // Major Tours
     { id: 'WSOP', name: 'WSOP', logo: '/images/video-sources/wsop.png' },

@@ -1217,7 +1217,7 @@ export default function VideoLibraryPage() {
                                                         width: '100%',
                                                         height: '100%',
                                                         objectFit: 'cover',
-                                                        borderRadius: 0,
+                                                        borderRadius: 15,
                                                         filter: isActive
                                                             ? 'brightness(1.1) drop-shadow(0 0 8px rgba(255,80,80,0.7))'
                                                             : 'brightness(1) saturate(1)',
