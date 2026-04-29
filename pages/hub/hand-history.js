@@ -141,7 +141,7 @@ export default function HandHistoryPage() {
       };
 
       const sbClient = getSupabase();
-      await sbClient.from('hand_histories').insert({
+      await sbClient.from('hand_history').insert({
         user_id: userIdRef.current,
         player_ids: [userIdRef.current],
         table_id: 'AI-Scan',
@@ -176,7 +176,7 @@ export default function HandHistoryPage() {
         if (!user) { setLoading(false); return; }
         userIdRef.current = user.id;
       }
-      let query = sb.from('hand_histories')
+      let query = sb.from('hand_history')
         .select('id,table_id,club_id,hand_number,variant,small_blind,big_blind,player_ids,hand_data,pot_total,winner_ids,started_at,completed_at,created_at')
         .contains('player_ids', [userIdRef.current])
         .order('created_at', { ascending: false })

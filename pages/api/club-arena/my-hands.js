@@ -57,7 +57,7 @@ export default async function handler(req, res) {
           // The JSONB contains path `hand_data->'players'` which is an array of objects.
           // We use the JSONB containment operator `@>`
           const { data: hands, count, error } = await getSupabase()
-              .from('hand_histories')
+              .from('hand_history')
               .select('id, hand_id, hand_number, table_id, pot_total, created_at', { count: 'exact' })
               .eq('club_id', clubId)
               // JSONB filter: look for the user.id inside the players array

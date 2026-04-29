@@ -97,7 +97,7 @@ export default async function handler(req, res) {
     // 3b. BLOCK IF SEATED AT TABLE — Chips locked in escrow would be lost
     // ═══════════════════════════════════════════════════════════════
     const { data: activeEscrow } = await supabaseAdmin
-      .from('chip_escrow')
+      .from('chip_escrow_holds')
       .select('id, table_id, amount')
       .eq('player_id', user.id)
       .eq('status', 'locked')

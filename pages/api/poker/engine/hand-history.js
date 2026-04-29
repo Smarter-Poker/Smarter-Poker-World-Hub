@@ -33,7 +33,7 @@ export default async function handler(req, res) {
       const { tableId, hand } = req.body || {};
       if (!tableId || !hand) return res.status(400).json({ error: 'tableId and hand required' });
       try {
-        await getSupabase().from('hand_histories').upsert({
+        await getSupabase().from('hand_history').upsert({
           hand_id: hand.handId || `${tableId}-${Date.now()}`,
           table_id: tableId,
           user_id: user.id,
@@ -61,7 +61,7 @@ export default async function handler(req, res) {
 
     try {
       const { data, error, count } = await getSupabase()
-        .from('hand_histories')
+        .from('hand_history')
         .select('*', { count: 'exact' })
         .eq('table_id', tableId)
         .order('created_at', { ascending: false })

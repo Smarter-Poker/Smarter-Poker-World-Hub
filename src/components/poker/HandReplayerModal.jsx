@@ -174,7 +174,7 @@ function HandHistorySidebar({ supabase, tableId, clubId, currentHandId, onSelect
     if (!supabase || (!tableId && !clubId)) { setLoading(false); return; }
     
     let q = supabase
-      .from('hand_histories')
+      .from('hand_history')
       .select('id, hand_number, winner_ids, pot_total, rake, started_at, hand_data')
       .order('started_at', { ascending: false })
       .limit(50);
@@ -407,7 +407,7 @@ export default function HandReplayerModal({ handId: initialHandId, supabase, cur
     const fetchHistory = async () => {
       try {
         const { data, error: fetchErr } = await supabase
-          .from('hand_histories')
+          .from('hand_history')
           .select('hand_data, rake')
           .eq('id', activeHandId)
           .maybeSingle();

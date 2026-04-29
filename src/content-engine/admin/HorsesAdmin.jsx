@@ -302,7 +302,7 @@ function HorsesDashboard({ user, onLogout }) {
         setReportedLoading(true);
         try {
             const { data, error } = await supabase
-                .from('hand_histories')
+                .from('hand_history')
                 .select('id, hand_number, table_id, club_id, pot_total, started_at, reported_at, hand_data')
                 .eq('reported', true)
                 .order('reported_at', { ascending: false })
@@ -314,7 +314,7 @@ function HorsesDashboard({ user, onLogout }) {
 
     const dismissReport = async (handId) => {
         try {
-            await supabase.from('hand_histories').update({ reported: false }).eq('id', handId);
+            await supabase.from('hand_history').update({ reported: false }).eq('id', handId);
             setReportedHands(reportedHands.filter(h => h.id !== handId));
             showNotification('Report dismissed', 'success');
         } catch { showNotification('Error dismissing report', 'error'); }

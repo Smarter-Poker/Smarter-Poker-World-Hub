@@ -232,7 +232,7 @@ class HandHistoryRecorder {
       if (this.supabase) {
         const { error } = await resilientMutation(this.supabase, () =>
           this.supabase
-            .from('hand_histories')
+            .from('hand_history')
             .insert({
               id: handId,
               table_id: handRecord.tableId,
@@ -300,7 +300,7 @@ class HandHistoryQuery {
    */
   async getPlayerHands(playerId, options = {}) {
     let query = this.supabase
-      .from('hand_histories')
+      .from('hand_history')
       .select('*')
       .contains('player_ids', [playerId])
       .order('completed_at', { ascending: false });
@@ -326,7 +326,7 @@ class HandHistoryQuery {
     // Phase 48f: resilient query
     const { data, error } = await resilientQuery(this.supabase, () =>
       this.supabase
-        .from('hand_histories')
+        .from('hand_history')
         .select('*')
         .eq('table_id', tableId)
         .order('completed_at', { ascending: false })
@@ -346,7 +346,7 @@ class HandHistoryQuery {
     // Phase 48f: resilient query
     const { data, error } = await resilientQuery(this.supabase, () =>
       this.supabase
-        .from('hand_histories')
+        .from('hand_history')
         .select('*')
         .eq('id', handId)
         .maybeSingle()
@@ -364,7 +364,7 @@ class HandHistoryQuery {
    */
   async getPlayerStats(playerId, options = {}) {
     let query = this.supabase
-      .from('hand_histories')
+      .from('hand_history')
       .select('hand_data, rake, pot_total, winner_ids, variant, completed_at')
       .contains('player_ids', [playerId]);
     

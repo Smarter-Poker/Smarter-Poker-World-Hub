@@ -83,7 +83,7 @@ async function lockChips(clubId, userId, tableId, amount) {
     });
 
     // Track in chip_escrow for cold-start recovery (non-blocking, Phase 48f: resilient)
-    resilientMutation(sb, () => sb.from('chip_escrow').insert({
+    resilientMutation(sb, () => sb.from('chip_escrow_holds').insert({
       club_id: clubId,
       player_id: userId,
       table_id: tableId,
@@ -142,7 +142,7 @@ async function unlockChips(clubId, userId, tableId, cashoutAmount) {
     _activeLocks.delete(key);
 
     // Clear chip_escrow record (non-blocking, Phase 48f: resilient)
-    resilientMutation(sb, () => sb.from('chip_escrow')
+    resilientMutation(sb, () => sb.from('chip_escrow_holds')
       .update({ status: 'unlocked', unlocked_at: new Date().toISOString() })
       .eq('player_id', userId)
       .eq('table_id', tableId)
@@ -325,7 +325,7 @@ async function checkLockExists(tableId, userId) {
     const sb = getSupabase();
     // Phase 48f: resilient query
     const { data } = await resilientQuery(sb, () => sb
-      .from('chip_escrow')
+      .from('chip_escrow_holds')
       .select('id')
       .eq('table_id', tableId)
       .eq('player_id', userId)

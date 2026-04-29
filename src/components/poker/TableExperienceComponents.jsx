@@ -680,7 +680,7 @@ export function ReportHandButton({ supabase, handId }) {
     setReporting(true);
     try {
       await supabase
-        .from('hand_histories')
+        .from('hand_history')
         .update({ reported: true, reported_at: new Date().toISOString() })
         .eq('id', handId);
       setReported(true);

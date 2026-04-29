@@ -196,7 +196,7 @@ async function getPlayerStats(supabase, userId) {
     } else {
       // Try to compute from live hand history
       const { data: hands } = await getSupabase()
-        .from('hand_histories')
+        .from('hand_history')
         .select('*')
         .eq('user_id', userId)
         .order('played_at', { ascending: false })
@@ -676,7 +676,7 @@ async function linkHandExamplesToLeak(supabase, userId, leakId, leakType) {
   try {
     // Get recent hands that might show this leak
     const { data: hands } = await getSupabase()
-      .from('hand_histories')
+      .from('hand_history')
       .select('id, actions, hero_cards, board, pot_size, created_at')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
