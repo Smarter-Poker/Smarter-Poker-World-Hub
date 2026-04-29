@@ -42,10 +42,12 @@ jobs:
 
       - name: Install dependencies
         env:
-          # Primary: built-in GITHUB_TOKEN. It has read:packages on org-owned
-          # packages by default IF the package's repo-access settings grant
-          # this repo. If 401, fall back to NPM_AUTH_TOKEN secret (see handoff 4d).
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # @smarter-poker/commander-shared is a user-scoped private package.
+          # GITHUB_TOKEN only has read:packages for the current repo's packages,
+          # not packages owned by the user account. NPM_AUTH_TOKEN is a PAT with
+          # write:packages scope belonging to the Smarter-Poker user, which can
+          # read all their private packages.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
         run: |
           npm ci --ignore-scripts 2>/dev/null || {
             echo "::warning::npm ci failed (lockfile sync issue) — falling back to npm install"
