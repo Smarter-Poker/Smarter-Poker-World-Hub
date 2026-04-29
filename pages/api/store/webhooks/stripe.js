@@ -145,7 +145,7 @@ async function handleCheckoutCompleted(session) {
             if (purchase) {
                 // Add diamonds to user balance
                 const totalDiamonds = purchase.diamonds_amount + (purchase.bonus_diamonds || 0);
-                await getSupabase().rpc('add_diamonds_to_balance', {
+                const { error: creditErr } = await getSupabase().rpc('add_diamonds_to_balance', {
                     p_user_id: metadata.user_id,
                     p_amount: totalDiamonds,
                     p_type: 'purchase',
@@ -153,6 +153,23 @@ async function handleCheckoutCompleted(session) {
                     p_reference_id: metadata.purchase_id
                 });
 
+                if (creditErr) {
+                    // CRITICAL: user paid real money but the diamond credit RPC failed.
+                    // Roll back the status='completed' lock so the next Stripe webhook
+                    // retry can re-process. Then throw to return 500 — Stripe retries
+                    // failed webhooks for ~3 days with exponential backoff, so the
+                    // credit will eventually succeed instead of being silently lost.
+                    try {
+                        await getSupabase()
+                            .from('diamond_purchases')
+                            .update({ status: 'pending', completed_at: null })
+                            .eq('id', metadata.purchase_id);
+                    } catch (rollbackErr) {
+                        console.warn('[stripe-webhook] Rollback to pending failed for purchase', metadata.purchase_id, rollbackErr?.message || rollbackErr);
+                    }
+                    console.warn('[stripe-webhook] add_diamonds_to_balance failed for purchase', metadata.purchase_id, '— rolled back, Stripe will retry:', creditErr);
+                    throw creditErr;
+                }
             }
         } else if (metadata.type === 'merchandise' && metadata.order_id) {
             // Update merchandise order
@@ -317,6 +334,11 @@ async function handleRefund(charge) {
         .maybeSingle();
 
     if (purchase) {
+        // Capture the prior status so we can roll back if the deduct RPC fails.
+        // Without this, a status='refunded' lock + a failed deduct = user keeps
+        // diamonds AND gets refunded by Stripe (silent money loss for the company).
+        const priorStatus = purchase.status;
+
         await getSupabase()
             .from('diamond_purchases')
             .update({
@@ -327,7 +349,7 @@ async function handleRefund(charge) {
 
         // Deduct diamonds from user balance
         const totalDiamonds = purchase.diamonds_amount + (purchase.bonus_diamonds || 0);
-        await getSupabase().rpc('add_diamonds_to_balance', {
+        const { error: deductErr } = await getSupabase().rpc('add_diamonds_to_balance', {
             p_user_id: purchase.user_id,
             p_amount: -totalDiamonds,
             p_type: 'refund',
@@ -335,6 +357,20 @@ async function handleRefund(charge) {
             p_reference_id: `refund_${purchase.id}`
         });
 
+        if (deductErr) {
+            // Roll back the status='refunded' lock so the next Stripe webhook
+            // retry can re-process. Throw to bubble up a 500 — Stripe retries.
+            try {
+                await getSupabase()
+                    .from('diamond_purchases')
+                    .update({ status: priorStatus, refunded_at: null })
+                    .eq('id', purchase.id);
+            } catch (rollbackErr) {
+                console.warn('[stripe-webhook] Refund rollback failed for purchase', purchase.id, rollbackErr?.message || rollbackErr);
+            }
+            console.warn('[stripe-webhook] refund deduct RPC failed for purchase', purchase.id, '— rolled back, Stripe will retry:', deductErr);
+            throw deductErr;
+        }
     }
 }
 
