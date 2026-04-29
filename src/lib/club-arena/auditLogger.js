@@ -61,8 +61,17 @@ async function logAudit(supabaseAdmin, {
     ip = 'unknown',
     details = {},
 }) {
+    // Phase X7 (2026-04-28) — dual-write: legacy `action_audit_logs` for the
+    // existing `audit-trail.js` read endpoint + Commander dashboards, plus the
+    // canonical `audit_trail` table from migration 20260428000001 used by the
+    // new idempotency middleware, anti-cheat review queue, and admin
+    // disposition flow. Either write failing alone never blocks; only a double
+    // failure surfaces.
+    let legacyOk = true;
+    let trailOk = true;
+
     try {
-        await supabaseAdmin.from('action_audit_logs').insert({
+        const { error } = await supabaseAdmin.from('action_audit_logs').insert({
             action_type: actionType,
             user_id: userId,
             target_user_id: targetUserId,
@@ -71,8 +80,49 @@ async function logAudit(supabaseAdmin, {
             ip_address: ip,
             details,
         });
+        if (error) {
+            legacyOk = false;
+            console.warn('[AuditLogger] action_audit_logs write failed:', error.message);
+        }
     } catch (err) {
-        console.warn('[AuditLogger] Insert failed:', err?.message || err);
+        legacyOk = false;
+        console.warn('[AuditLogger] action_audit_logs exception:', err?.message || err);
+    }
+
+    // Mirror to canonical audit_trail.
+    try {
+        const { error } = await supabaseAdmin.from('audit_trail').insert({
+            actor_id: userId,
+            actor_role: details?.actor_role || 'platform_admin',
+            action: String(actionType),
+            target_type: details?.target_type || null,
+            // audit_trail.target_id is UUID-typed; only insert when valid UUID.
+            target_id:
+                typeof targetUserId === 'string' && /^[0-9a-f-]{36}$/i.test(targetUserId)
+                    ? targetUserId
+                    : null,
+            club_id: clubId,
+            agent_id: details?.agent_id || null,
+            amount: typeof amount === 'number' ? amount : null,
+            currency: details?.currency || 'CHIPS',
+            before_state: details?.before || null,
+            after_state: details?.after || null,
+            reason: details?.reason || null,
+            ip_address: ip && ip !== 'unknown' ? ip : null,
+            user_agent: details?.user_agent || null,
+            request_id: details?.idempotency_key || details?.request_id || null,
+        });
+        if (error) {
+            trailOk = false;
+            console.warn('[AuditLogger] audit_trail mirror failed:', error.message);
+        }
+    } catch (err) {
+        trailOk = false;
+        console.warn('[AuditLogger] audit_trail exception:', err?.message || err);
+    }
+
+    if (!legacyOk && !trailOk) {
+        console.error('[AuditLogger] BOTH audit writes failed for', actionType);
     }
 }
 
