@@ -1,6 +1,26 @@
 /**
- * BACKGROUND VIDEO UPLOAD MANAGER v3.3
+ * BACKGROUND VIDEO UPLOAD MANAGER v3.4
  * src/lib/backgroundVideoUpload.js
+ *
+ * v3.4 (2026-04-29): TRUE ROOT CAUSE FIX for "Invalid Compact JWS".
+ *
+ * After deploying v3.3 the upload still failed. Drove an end-to-end test on
+ * Dan's browser via computer-use and traced the actual difference between
+ * a working direct fetch and the failing tus.Upload — they had the same
+ * URL, same headers, same body. Difference: bgUpload's tus.Upload had an
+ * `onBeforeRequest` hook that called `req.setHeader('Authorization', ...)`.
+ *
+ * tus-js-client v4.3.1's `req.setHeader` APPENDS to existing header values
+ * rather than replacing them. The constructor's `headers` option already
+ * set Authorization, so when onBeforeRequest re-set it the actual header on
+ * the wire became `Authorization: Bearer <jwt>, Bearer <jwt>` — which
+ * Storage rejects as a JWS validation failure ("Invalid Compact JWS").
+ * Reproduced in isolation: a tus.Upload with the SAME headers but no
+ * onBeforeRequest returns 201; same upload with the hook returns 400.
+ *
+ * Fix: remove the onBeforeRequest hook entirely. The constructor headers
+ * are honored for every chunk. Token refresh during long uploads is a
+ * follow-up — has to use abort+restart with the new token, not setHeader.
  *
  * v3.3 (2026-04-29): mid-write race fix for the empty/stale-bearer crash.
  *
@@ -481,17 +501,29 @@ async function _uploadWithTus(file, meta, mimeType) {
                     reject(new Error(`Upload failed: ${msg.slice(0, 300)} — please try again.`));
                 }
             },
-            // Refresh Authorization on every chunk PATCH so multi-minute uploads
-            // survive token rotation. _ensureBearer validates JWT shape and
-            // refreshes via SDK if needed.
-            onBeforeRequest: async (req) => {
-                const fresh = await _ensureBearer();
-                if (_isJWT(fresh)) {
-                    req.setHeader('Authorization', `Bearer ${fresh}`);
-                }
-                req.setHeader('apikey', SUPABASE_ANON_KEY);
-                if (meta.token) req.setHeader('x-signature', meta.token);
-            },
+            // NOTE: an `onBeforeRequest` hook USED to live here — it called
+            // `req.setHeader('Authorization', ...)` on every chunk to refresh
+            // the bearer for multi-minute uploads. That hook was the actual
+            // root cause of every "Invalid Compact JWS" rejection on
+            // production: tus-js-client v4.3.1's `req.setHeader` APPENDS to
+            // an existing header value (it does not replace), so re-setting
+            // Authorization produced a malformed header on the wire of the
+            // shape `Authorization: Bearer <jwt>, Bearer <jwt>` — which
+            // Supabase Storage rejects as a JWS validation failure.
+            //
+            // Reproduced empirically on 2026-04-29 via computer-use against
+            // Dan's browser. With identical headers and identical signed
+            // upload tokens, an `tus.Upload` configured with this hook
+            // returns 400/Invalid Compact JWS on every attempt; remove the
+            // hook (and rely on the constructor `headers` only) and the
+            // same upload returns 201.
+            //
+            // For long uploads we currently rely on a fresh Authorization
+            // header set at upload-start time. Token refresh during a single
+            // upload is now a follow-up: it has to be implemented WITHOUT
+            // setHeader-based re-binding (e.g., abort + re-create the upload
+            // with the new token, or upgrade tus-js-client to a version with
+            // proper header replacement semantics).
         });
 
         _activeXhr = upload;
