@@ -184,26 +184,35 @@ export default async function handler(req, res) {
                   }
 
                   // Charge entry fee
+                  // Note: Supabase RPC returns {data, error} and does NOT throw, so the
+                  // previous try/catch never caught RPC failures — a silent deduct
+                  // failure would let the user register for free below.
+                  let chargedFee = false;
                   if (tournament.entry_fee_diamonds > 0) {
-                      try {
-                          const { data: balance } = await supabase.rpc('get_diamond_balance', { p_user_id: userId });
-
-                          if ((balance || 0) < tournament.entry_fee_diamonds) {
-                              return res.status(400).json({ success: false, error: 'Insufficient diamonds' });
-                          }
-
-                          // BUG #258 FIX: Include userId in reference_id for per-user uniqueness
-                          await supabase.rpc('add_diamonds_to_balance', {
-                              p_user_id: userId,
-                              p_amount: -tournament.entry_fee_diamonds,
-                              p_type: 'arcade_entry',
-                              p_description: `Tournament entry fee — ${tournament.entry_fee_diamonds}diamonds`,
-                              p_reference_id: `tourney_entry_${tournamentId}_${userId}`
-                          });
-                      } catch (rpcErr) {
-                          console.warn('[Tournaments] Diamond RPC failed:', rpcErr.message);
+                      const { data: balance, error: balErr } = await supabase.rpc('get_diamond_balance', { p_user_id: userId });
+                      if (balErr) {
+                          console.warn('[Tournaments] balance check RPC failed:', balErr);
                           return res.status(500).json({ success: false, error: 'Payment processing failed' });
                       }
+
+                      if ((balance || 0) < tournament.entry_fee_diamonds) {
+                          return res.status(400).json({ success: false, error: 'Insufficient diamonds' });
+                      }
+
+                      // BUG #258 FIX: Include userId in reference_id for per-user uniqueness
+                      const { error: chargeErr } = await supabase.rpc('add_diamonds_to_balance', {
+                          p_user_id: userId,
+                          p_amount: -tournament.entry_fee_diamonds,
+                          p_type: 'arcade_entry',
+                          p_description: `Tournament entry fee — ${tournament.entry_fee_diamonds}diamonds`,
+                          p_reference_id: `tourney_entry_${tournamentId}_${userId}`
+                      });
+
+                      if (chargeErr) {
+                          console.warn('[Tournaments] Entry-fee RPC failed:', chargeErr);
+                          return res.status(500).json({ success: false, error: 'Payment processing failed' });
+                      }
+                      chargedFee = true;
                   }
 
                   // BUG #258 FIX: Use upsert with onConflict to prevent double-registration race
@@ -217,8 +226,22 @@ export default async function handler(req, res) {
                       .select('id');
 
                   if (regErr) {
-                      // Registration failed — if we charged diamonds, they'll be rolled back
-                      // by the reference_id uniqueness (same ref won't be inserted twice)
+                      // Registration failed AFTER we charged. The reference_id uniqueness
+                      // would prevent a duplicate retry-charge, but it does NOT refund the
+                      // current one. Compensate explicitly so the user isn't left short.
+                      if (chargedFee) {
+                          try {
+                              await supabase.rpc('add_diamonds_to_balance', {
+                                  p_user_id: userId,
+                                  p_amount: tournament.entry_fee_diamonds,
+                                  p_type: 'arcade_entry_refund',
+                                  p_description: `Tournament entry refund — registration failed`,
+                                  p_reference_id: `tourney_entry_refund_${tournamentId}_${userId}_${Date.now()}`,
+                              });
+                          } catch (refundErr) {
+                              console.warn('[Tournaments] Refund after reg failure failed:', refundErr?.message || refundErr);
+                          }
+                      }
                       return res.status(500).json({ success: false, error: 'Registration failed' });
                   }
 
