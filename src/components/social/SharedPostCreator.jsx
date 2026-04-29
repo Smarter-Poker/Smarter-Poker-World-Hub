@@ -1041,25 +1041,24 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                                             </div>
                                         </div>
                                     ) : (
-                                        // No thumbnail yet — show "Generating thumbnail…" so the
-                                        // user knows the 30s decode wait isn't a hang. Tap still
-                                        // works to start preview from the raw blob URL.
+                                        // No thumbnail yet — show clock + "Generating thumbnail…"
+                                        // so the user knows the HEVC decode wait (~30s on iPhone)
+                                        // isn't a hang. Tap still works to start preview from the
+                                        // raw blob URL.
                                         <div
-                                            style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, #1a1a2e, #16213e)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', gap: 8 }}
+                                            style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, #1a1a2e, #16213e)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', gap: 10 }}
                                             onClick={() => setMedia(prev => prev.map((item, idx) => idx === i ? { ...item, _previewing: true } : item))}
                                         >
                                             <div style={{
-                                                width: 44, height: 44, borderRadius: '50%',
-                                                background: 'rgba(255,255,255,0.15)',
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                animation: 'thumbPulse 1.5s ease-in-out infinite',
-                                            }}>
-                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="rgba(255,255,255,0.7)"><path d="M8 5v14l11-7z"/></svg>
-                                            </div>
-                                            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.65)', fontWeight: 500, letterSpacing: 0.3 }}>
+                                                width: 36, height: 36, borderRadius: '50%',
+                                                border: '3px solid rgba(255,255,255,0.18)',
+                                                borderTopColor: '#fff',
+                                                animation: 'spThumbSpin 0.9s linear infinite',
+                                            }} />
+                                            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', fontWeight: 600, letterSpacing: 0.3 }}>
                                                 Generating thumbnail…
                                             </span>
-                                            <style>{`@keyframes thumbPulse { 0%,100%{opacity:0.6;transform:scale(1)} 50%{opacity:1;transform:scale(1.06)} }`}</style>
+                                            <style>{`@keyframes spThumbSpin { to { transform: rotate(360deg) } }`}</style>
                                         </div>
                                     )
                                 ) : (
@@ -1364,19 +1363,27 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                 </div>
             )}
 
-            {/* ── Preparing Media Indicator (iOS transcoding) ── */}
+            {/* ── Preparing Media Indicator (iOS transcoding) ──
+                MUST include @keyframes inline because no global stylesheet
+                defines `spin` — without these, the "spinner" was a static
+                un-animated ring, hence Dan's "zero clock spinner" report. */}
             {preparingMedia && (
                 <div style={{
-                    padding: '12px 16px', background: 'linear-gradient(135deg, #E8F4FD, #D4E9F7)',
-                    borderTop: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 10
+                    position: 'sticky', top: 0, zIndex: 50,
+                    padding: '14px 16px',
+                    background: 'linear-gradient(135deg, #1877F2, #2D88FF)',
+                    color: '#fff', display: 'flex', alignItems: 'center', gap: 12,
+                    boxShadow: '0 2px 8px rgba(24,119,242,0.35)',
                 }}>
                     <div style={{
-                        width: 20, height: 20, border: '3px solid #1877F2', borderTopColor: 'transparent',
-                        borderRadius: '50%', animation: 'spin 0.8s linear infinite'
+                        width: 22, height: 22, border: '3px solid rgba(255,255,255,0.35)',
+                        borderTopColor: '#fff', borderRadius: '50%',
+                        animation: 'spPrepSpin 0.8s linear infinite',
                     }} />
-                    <span style={{ fontSize: 14, fontWeight: 600, color: '#1877F2' }}>
-                        Preparing Your Video — This May Take A Moment For Longer Videos...
+                    <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: 0.2, flex: 1 }}>
+                        Preparing your video — this may take a moment for longer clips…
                     </span>
+                    <style>{`@keyframes spPrepSpin { to { transform: rotate(360deg) } }`}</style>
                 </div>
             )}
             <div style={{ borderTop: `1px solid ${C.border}` }}>

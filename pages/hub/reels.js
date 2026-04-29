@@ -1787,6 +1787,7 @@ export default function ReelsPage() {
                         />
                     ) : currentReel?.video_url ? (
                         /* Native video (mp4/webm/mov) - user-uploaded content */
+                        <>
                         <video
                             ref={videoRef}
                             key={currentReel.id}
@@ -1802,6 +1803,20 @@ export default function ReelsPage() {
                                 const v = e.currentTarget;
                                 if (v.duration) setVideoProgress((v.currentTime / v.duration) * 100);
                             }}
+                            // Surface decode failures (most commonly HEVC on Chrome
+                            // desktop — Chrome doesn't license H.265). Without this,
+                            // users see a black box with the play button forever.
+                            onError={(e) => {
+                                const err = e.currentTarget?.error;
+                                console.warn('[Reels] video decode failed', {
+                                    code: err?.code, message: err?.message,
+                                    src: currentReel.video_url,
+                                    suggestion: 'Likely H.265/HEVC — needs server-side transcode to H.264'
+                                });
+                                if (typeof window !== 'undefined') {
+                                    window.__reelDecodeError = (window.__reelDecodeError || 0) + 1;
+                                }
+                            }}
                             style={{
                                 position: 'absolute',
                                 top: '50%',
@@ -1813,6 +1828,7 @@ export default function ReelsPage() {
                                 pointerEvents: 'none',
                             }}
                         />
+                        </>
                     ) : null}
                 </div>
 

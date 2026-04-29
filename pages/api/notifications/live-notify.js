@@ -25,7 +25,7 @@ export default async function handler(req, res) {
         // Get broadcaster display name
         const { data: profile } = await supabaseAdmin
             .from('profiles')
-            .select('username, full_name')
+            .select('username, full_name, avatar_url')
             .eq('id', user.id)
             .maybeSingle();
 
@@ -63,9 +63,10 @@ export default async function handler(req, res) {
             type: 'live',
             title: 'Live Now',
             message: `${displayName} is live: ${title || 'Live Stream'}`,
-            link: `/hub/lives?id=${streamId}`,
+            link: `/hub/social-media?stream=${streamId}`,
             actor_id: user.id,
             read: false,
+            data: { stream_id: streamId, actor_avatar: profile?.avatar_url || null },
         }));
 
         const CHUNK = 50;

@@ -4813,13 +4813,8 @@ function SocialMediaPage() {
             const streamId = router.query.stream;
             (async () => {
                 try {
-                    const { data: streamData } = await supabase
-                        .from('live_streams')
-                        .select('*, profiles!broadcaster_id(username, avatar_url)')
-                        .eq('id', streamId)
-                        .eq('status', 'live')
-                        .maybeSingle();
-                    if (streamData) {
+                    const streamData = await LiveStreamService.getStream(streamId);
+                    if (streamData && streamData.status === 'live') {
                         setWatchingStream(streamData);
                     }
                 } catch (e) { console.warn('[stream param] failed:', e); }
@@ -5272,7 +5267,24 @@ function SocialMediaPage() {
             // Scroll to top of feed so user sees their new post immediately (SmarterPoker behavior)
             window.scrollTo({ top: 0, behavior: 'smooth' });
 
-            // Show success toast
+            // Show success toast + audio chirp (Dan request 2026-04-29)
+            // Lightweight WebAudio "ding" — no asset dependency, no preload step.
+            try {
+                if (typeof window !== 'undefined' && window.AudioContext) {
+                    const ac = new (window.AudioContext || window.webkitAudioContext)();
+                    const o = ac.createOscillator(); const g = ac.createGain();
+                    o.connect(g); g.connect(ac.destination);
+                    o.type = 'sine';
+                    o.frequency.setValueAtTime(880, ac.currentTime);   // A5
+                    o.frequency.exponentialRampToValueAtTime(1320, ac.currentTime + 0.12); // E6 — bright "chirp up"
+                    g.gain.setValueAtTime(0.0001, ac.currentTime);
+                    g.gain.exponentialRampToValueAtTime(0.18, ac.currentTime + 0.02);
+                    g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + 0.18);
+                    o.start();
+                    o.stop(ac.currentTime + 0.2);
+                    setTimeout(() => { try { ac.close(); } catch(_){} }, 400);
+                }
+            } catch (_) { /* audio is a nice-to-have, never block the post */ }
             toast.success('Posted Successfully!', 2000);
             busEmit.dataMutated('social');
             busEmit.socialPostCreated(data.id, user.id);
@@ -6280,12 +6292,32 @@ function SocialMediaPage() {
                                                     setShowNotifications(false);
                                                     // BUG-09 FIX: was always navigating to actor profile.
                                                     // Like/comment/mention → deep-link to the specific post.
+                                                    // Live → open the stream viewer directly.
                                                     // Friend request / other → actor profile.
-                                                    const postId = n.data?.post_id;
-                                                    if ((n.type === 'like' || n.type === 'comment' || n.type === 'mention') && postId) {
-                                                        router.push(`/hub/social-media?post=${postId}`);
-                                                    } else if (n.actor_username) {
-                                                        router.push(`/hub/user/${n.actor_username}`);
+                                                    if (n.type === 'live') {
+                                                        // Try to open stream viewer directly
+                                                        const streamId = n.data?.stream_id || n.link?.split('stream=')[1];
+                                                        if (streamId) {
+                                                            (async () => {
+                                                                try {
+                                                                    const stream = await LiveStreamService.getStream(streamId);
+                                                                    if (stream && stream.status === 'live') {
+                                                                        setWatchingStream(stream);
+                                                                    } else {
+                                                                        toast.info('This stream has ended');
+                                                                    }
+                                                                } catch (_) {
+                                                                    toast.info('This stream is no longer available');
+                                                                }
+                                                            })();
+                                                        }
+                                                    } else {
+                                                        const postId = n.data?.post_id;
+                                                        if ((n.type === 'like' || n.type === 'comment' || n.type === 'mention') && postId) {
+                                                            router.push(`/hub/social-media?post=${postId}`);
+                                                        } else if (n.actor_username) {
+                                                            router.push(`/hub/user/${n.actor_username}`);
+                                                        }
                                                     }
                                                 }}
                                                 style={{

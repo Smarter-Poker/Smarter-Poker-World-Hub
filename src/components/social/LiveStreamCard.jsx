@@ -99,9 +99,10 @@ export function LiveStreamCard({ stream, onClick }) {
             <div style={{ padding: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <img
-                        src={stream.profiles?.avatar_url || '/default-avatar.png'}
-                        alt={stream.profiles?.username}
-                        style={{ width: 36, height: 36, borderRadius: '50%' }}
+                        src={stream.broadcaster?.avatar_url || stream.profiles?.avatar_url || '/default-avatar.png'}
+                        alt={stream.broadcaster?.username || stream.profiles?.username}
+                        style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }}
+                        onError={(e) => { e.target.src = '/default-avatar.png'; }}
                     />
                     <div style={{ flex: 1, minWidth: 0 }}>
                         <div
@@ -117,7 +118,7 @@ export function LiveStreamCard({ stream, onClick }) {
                             {stream.title || 'Live Stream'}
                         </div>
                         <div style={{ color: C.textSec, fontSize: 13 }}>
-                            {stream.profiles?.username || 'Anonymous'}
+                            {stream.broadcaster?.username || stream.profiles?.username || 'Streamer'}
                         </div>
                     </div>
                 </div>

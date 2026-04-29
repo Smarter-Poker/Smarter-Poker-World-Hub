@@ -1962,6 +1962,12 @@ export default function VideoLibraryPage() {
                                             } catch { /* best-effort */ }
                                         }, d));
                                     }
+                                    iframeUnmuteTimers.current = [200, 600, 1200].map(d => setTimeout(() => {
+                                        try {
+                                            win.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
+                                            win.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
+                                        } catch { /* best-effort */ }
+                                    }, d));
                                 } catch { /* best-effort */ }
                             }}
                             style={{

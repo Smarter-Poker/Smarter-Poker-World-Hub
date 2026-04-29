@@ -364,6 +364,8 @@ function ReelViewer({ reels, startIndex, onClose }) {
     const likeDebounceRef = useRef(false);
     const lastTapRef = useRef(0);
     const progressRAF = useRef(null);
+    const ytIframeRef = useRef(null);         // Persistent YouTube iframe ref — never remounted
+    const ytIframeReadyRef = useRef(false);   // True after first onLoad of persistent iframe
     const handleLikeRef = useRef(null);
     const handleSaveRef = useRef(null);
     const handleCommentsRef = useRef(null);
@@ -506,30 +508,60 @@ function ReelViewer({ reels, startIndex, onClose }) {
         });
     }, [reels]);
 
-    const goNext = () => {
-        setCurrentIndex(prev => prev < reels.length - 1 ? prev + 1 : prev);
-    };
+    // Helper: send YouTube postMessage command to persistent iframe
+    const sendYTCmd = useCallback((cmd, args = []) => {
+        const iframe = ytIframeRef.current;
+        if (iframe?.contentWindow) {
+            iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
+            iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: cmd, args }), '*');
+        }
+    }, []);
 
-    const goPrev = () => {
+    const goNext = useCallback(() => {
+        setCurrentIndex(prev => {
+            if (prev >= reels.length - 1) return prev;
+            return prev + 1;
+        });
+    }, [reels.length]);
+
+    const goPrev = useCallback(() => {
         setCurrentIndex(prev => prev > 0 ? prev - 1 : prev);
-    };
+    }, []);
 
-    // Reset video state on every reel change
+    // Switch video on index change using loadVideoById (NO iframe remount!)
     useEffect(() => {
+        const reel = reels[currentIndex];
+        if (!reel) return;
+
         setPaused(true);
         setYtReady(false);
         setYtError(null);
-        // DO NOT reset muted here — we preserve the user's sound preference
-        // across reel changes. Once they unmute (via first tap or auto-unmute),
-        // all subsequent reels stay unmuted.
         setShowComments(false);
         setShowMoreMenu(false);
         setShowReactionPicker(false);
         setShowShareModal(false);
         setCaptionExpanded(false);
-        // 3s fallback: if YouTube never fires onStateChange, show play button
-        const ytFallback = setTimeout(() => setYtReady(true), 3000);
+
+        if (isYouTubeUrl(reel.video_url) && ytIframeReadyRef.current) {
+            const videoId = getYouTubeVideoId(reel.video_url);
+            if (videoId) {
+                // Use loadVideoById — switches video without reloading the player
+                sendYTCmd('loadVideoById', [videoId]);
+                // Unmute if user has interacted
+                if (userInteractedRef.current && userWantsSoundRef.current) {
+                    setTimeout(() => {
+                        sendYTCmd('unMute');
+                        sendYTCmd('setVolume', [100]);
+                        setMuted(false);
+                    }, 100);
+                }
+            }
+        }
+
+        // 5s fallback: if YouTube never fires onStateChange, show play button
+        const ytFallback = setTimeout(() => setYtReady(true), 5000);
         return () => clearTimeout(ytFallback);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentIndex]);
 
     // Auto-hide overlay after 2.5 seconds — but NOT when video is paused
@@ -577,12 +609,8 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         setPaused(false);
                         setYtError(null);
                         // Auto-unmute after playback confirmed
-                        const iframe = containerRef.current?.querySelector('iframe[src*="youtube"]');
-                        if (iframe?.contentWindow) {
-                            iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
-                            iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
-                            iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
-                        }
+                        sendYTCmd('unMute');
+                        sendYTCmd('setVolume', [100]);
                         setMuted(false);
                     }
                     if (data.info === 2) { setPaused(true); setYtReady(true); }
@@ -1279,14 +1307,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
     if (!currentReel) return null;
 
     // Double-tap to like + single-tap overlay
-    // Helper: send YouTube postMessage command
-    const sendYTCommand = (cmd, args = []) => {
-        const iframe = containerRef.current?.querySelector('iframe[src*="youtube"]');
-        if (iframe?.contentWindow) {
-            iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
-            iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: cmd, args }), '*');
-        }
-    };
+    // sendYTCommand is now sendYTCmd (defined above, uses persistent iframe ref)
 
     const handleTap = (e) => {
         const now = Date.now();
@@ -1296,9 +1317,9 @@ function ReelViewer({ reels, startIndex, onClose }) {
 
         // First tap EVER: force play + unmute (iOS requires user gesture)
         if ((paused || muted) && isYT) {
-            sendYTCommand('playVideo');
-            sendYTCommand('unMute');
-            sendYTCommand('setVolume', [100]);
+            sendYTCmd('playVideo');
+            sendYTCmd('unMute');
+            sendYTCmd('setVolume', [100]);
             setPaused(false);
             setMuted(false);
             setYtReady(true);
@@ -1330,10 +1351,10 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 }
             } else if (isYT) {
                 if (paused) {
-                    sendYTCommand('playVideo');
+                    sendYTCmd('playVideo');
                     setPaused(false);
                 } else {
-                    sendYTCommand('pauseVideo');
+                    sendYTCmd('pauseVideo');
                     setPaused(true);
                     if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
                 }
@@ -1429,39 +1450,48 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
                 background: '#000',
             }}>
+                {/* YouTube thumbnail — instant visual feedback while iframe loads */}
+                {isYouTubeUrl(currentReel.video_url) && (
+                    <img
+                        src={`https://img.youtube.com/vi/${getYouTubeVideoId(currentReel.video_url)}/maxresdefault.jpg`}
+                        style={{
+                            position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                            objectFit: 'cover', zIndex: 0,
+                        }}
+                        alt=""
+                        onError={(e) => {
+                            // maxresdefault may not exist; fall back to hqdefault
+                            e.target.src = `https://img.youtube.com/vi/${getYouTubeVideoId(currentReel.video_url)}/hqdefault.jpg`;
+                        }}
+                    />
+                )}
+
                 {isYouTubeUrl(currentReel.video_url) ? (
                     <div style={{ position: 'relative', width: '100%', height: '100%', pointerEvents: 'none' }}>
+                        {/* PERSISTENT YouTube iframe — never remounted. Uses loadVideoById to switch videos. */}
                         <iframe
-                            key={currentReel.id}
-                            src={`https://www.youtube-nocookie.com/embed/${getYouTubeVideoId(currentReel.video_url)}?autoplay=1&mute=1&rel=0&modestbranding=1&playsinline=1&controls=0&showinfo=0&iv_load_policy=3&fs=0&disablekb=1&cc_load_policy=0&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
-                            style={{ width: '100%', height: '100%', border: 'none', pointerEvents: 'none' }}
+                            ref={ytIframeRef}
+                            src={`https://www.youtube-nocookie.com/embed/${getYouTubeVideoId(reels[startIndex]?.video_url || currentReel.video_url)}?autoplay=1&mute=1&rel=0&modestbranding=1&playsinline=1&controls=0&showinfo=0&iv_load_policy=3&fs=0&disablekb=1&cc_load_policy=0&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
+                            style={{ width: '100%', height: '100%', border: 'none', pointerEvents: 'none', position: 'relative', zIndex: 1 }}
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             allowFullScreen
-                            onLoad={(e) => {
-                                // Force play via YouTube postMessage API
-                                const iframeWindow = e.target.contentWindow;
-                                try {
-                                    iframeWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
-                                    iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
-                                    // If user has already interacted, send unMute immediately
-                                    // (the swipe/tap that navigated here counts as a user gesture)
+                            onLoad={() => {
+                                ytIframeReadyRef.current = true;
+                                // Force play + unmute via postMessage
+                                sendYTCmd('playVideo');
+                                if (userInteractedRef.current && userWantsSoundRef.current) {
+                                    sendYTCmd('unMute');
+                                    sendYTCmd('setVolume', [100]);
+                                    setMuted(false);
+                                }
+                                // Retry loop for slow YouTube API init
+                                [300, 800, 1500].forEach(delay => setTimeout(() => {
+                                    sendYTCmd('playVideo');
                                     if (userInteractedRef.current && userWantsSoundRef.current) {
-                                        iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
-                                        iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
-                                        setMuted(false);
+                                        sendYTCmd('unMute');
+                                        sendYTCmd('setVolume', [100]);
                                     }
-                                    [300, 800, 1500, 3000].forEach(delay => setTimeout(() => {
-                                        try {
-                                            iframeWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
-                                            iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
-                                            if (userInteractedRef.current && userWantsSoundRef.current) {
-                                                iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
-                                                iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
-                                                setMuted(false);
-                                            }
-                                        } catch (e) { console.warn('[ReelsFeedCarousel] Handled exception:', e); }
-                                    }, delay));
-                                } catch (e) { console.warn('[ReelsFeedCarousel] Handled exception:', e); }
+                                }, delay));
                             }}
                         />
                     </div>
@@ -1486,14 +1516,13 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         onEnded={() => {
                             if (progressRAF.current) cancelAnimationFrame(progressRAF.current);
                             setProgress(0);
-                            // goNext() already guards bounds internally via functional setter
                             goNext();
                         }}
                     />
                 )}
 
-                {/* Preload next 5 videos — thumbnails + hidden iframes for YouTube, link preload for native */}
-                {Array.from({ length: 5 }, (_, offset) => offset + 1).map(offset => {
+                {/* Preload next 10 YouTube thumbnails for instant visual feedback */}
+                {Array.from({ length: 10 }, (_, offset) => offset + 1).map(offset => {
                     const nextReel = reels[currentIndex + offset];
                     if (!nextReel?.video_url) return null;
                     const nextUrl = nextReel.video_url;
@@ -1737,7 +1766,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                                 boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
                                 animation: 'fadeInScale 0.2s ease',
                             }}>
-                                <button onClick={() => { setMuted(prev => { const next = !prev; const iframe = containerRef.current?.querySelector('iframe'); if (iframe?.contentWindow) { iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*'); iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: next ? 'mute' : 'unMute', args: [] }), '*'); if (!next) iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*'); } return next; }); setShowMoreMenu(false); }} style={{
+                                <button onClick={() => { setMuted(prev => { const next = !prev; sendYTCmd(next ? 'mute' : 'unMute'); if (!next) sendYTCmd('setVolume', [100]); userWantsSoundRef.current = !next; return next; }); setShowMoreMenu(false); }} style={{
                                     display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '10px 16px',
                                     background: 'none', border: 'none', color: 'white', fontSize: 14, cursor: 'pointer', textAlign: 'left',
                                 }}>
