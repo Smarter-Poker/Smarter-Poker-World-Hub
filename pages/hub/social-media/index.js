@@ -4184,6 +4184,19 @@ function SocialMediaPage() {
         };
     }, []);
 
+    // Realtime: auto-refresh Live Now section when any stream goes live or ends
+    useEffect(() => {
+        const ch = supabase
+            .channel('social-live-monitor')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'live_streams' }, () => {
+                LiveStreamService.getLiveStreams()
+                    .then(streams => setLiveStreams(streams || []))
+                    .catch(() => {});
+            })
+            .subscribe();
+        return () => { supabase.removeChannel(ch); };
+    }, []);
+
     //  INTRO VIDEO STATE - Video plays while page loads in background
     // Only show once per session (not on every reload)
     // SSR-safe: always start false on server, check sessionStorage on client mount
