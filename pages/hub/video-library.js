@@ -1749,17 +1749,19 @@ export default function VideoLibraryPage() {
                         width: '100%',
                         minHeight: 0,
                         position: 'relative',
+                        overflow: 'hidden',
                     }}>
-                        {/* Transparent tap zone — left 80% of iframe to reveal HUD without blocking YT controls.
-                            Uses both onClick (desktop) and onTouchEnd (iOS Safari — iframe captures touch layers). */}
+                        {/* Transparent tap zone — LEFT STRIP ONLY to reveal HUD.
+                            Deliberately narrow (15%) to avoid blocking YouTube's central play button on mobile.
+                            Desktop users can also click anywhere on the video since YouTube passes clicks through. */}
                         <div
                             onClick={vlRevealHud}
                             onTouchEnd={(e) => { e.preventDefault(); vlRevealHud(); }}
                             style={{
                                 position: 'absolute',
                                 top: 0, left: 0,
-                                width: '80%',
-                                height: '75%', // stop above YT's bottom control bar
+                                width: '15%',
+                                height: '60%',
                                 zIndex: 5,
                                 cursor: 'pointer',
                                 WebkitTapHighlightColor: 'transparent',
@@ -1978,8 +1980,9 @@ export default function VideoLibraryPage() {
                     <div style={{
                         background: 'rgba(0,0,0,0.95)',
                         flexShrink: 0,
-                        maxHeight: '35vh',
+                        maxHeight: 'min(25vh, 180px)',
                         overflowY: 'auto',
+                        overflowX: 'hidden',
                         scrollbarWidth: 'thin',
                     }}>
                         {/* Info Row */}
