@@ -277,11 +277,13 @@ export function GoLiveModal({ isOpen, onClose, user }) {
         if (isCameraFlipping) return;
         setIsCameraFlipping(true);
         try {
-            const newStream = await liveStreamService.flipCamera();
-            if (newStream && videoRef.current) {
-                // Update preview video
-                videoRef.current.srcObject = newStream;
-                streamRef.current = newStream;
+            await liveStreamService.flipCamera();
+            // FIX: use service's localStream which has both new video + original audio.
+            // The returned newStream is video-only and would break recording audio.
+            const fullStream = liveStreamService.localStream;
+            if (fullStream && videoRef.current) {
+                videoRef.current.srcObject = fullStream;
+                streamRef.current = fullStream;
             }
         } catch (err) {
             setError('Camera flip failed: ' + err.message);

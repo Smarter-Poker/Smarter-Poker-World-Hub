@@ -255,12 +255,15 @@ class LiveStreamService {
                 try { await this.room.disconnect(); } catch (_) {}
                 this.room = null;
             }
+            // FIX: reset stream guard so TrackSubscribed can deliver the new remote stream
+            this._remoteStreamDelivered = false;
             await this._connectRoom(url, token, this.isBroadcaster, this.localStream);
             this.isReconnecting = false;
             this.reconnectAttempts = 0;
             this.onReconnected?.();
         } catch (err) {
             logError('reconnect', err);
+            this.isReconnecting = false; // FIX: reset so recursive call isn't blocked by guard
             this._handleUnexpectedDisconnect(); // Try again
         }
     }

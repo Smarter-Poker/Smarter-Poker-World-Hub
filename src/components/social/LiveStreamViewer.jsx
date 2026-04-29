@@ -115,7 +115,8 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
 
         // Subscribe to gift broadcast events for animations
         if (stream?.id) {
-            const giftCh = supabase.channel(`live-gifts-viewer-${stream.id}`, {
+            // FIX: channel name must match what gift.js API broadcasts to
+            const giftCh = supabase.channel(`live-gifts-${stream.id}`, {
                 config: { broadcast: { self: false } },
             });
             giftCh.on('broadcast', { event: 'gift' }, ({ payload }) => {
