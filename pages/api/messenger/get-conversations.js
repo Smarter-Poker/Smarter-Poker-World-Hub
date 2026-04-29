@@ -81,15 +81,36 @@ export default async function handler(req, res) {
                 console.warn('[get-conversations] RPC returned non-array:', typeof rpcData);
                 return res.status(500).json({ success: false, error: 'Unexpected RPC response shape' });
             }
-            const conversations = rpcData.map((c) => ({
-                id: c.conversation_id || c.id,
-                last_message_at: c.last_message_at,
-                last_message_preview: c.last_message_preview,
-                is_group: c.is_group || false,
-                otherUser: c.other_user || c.otherUser || null,
-                unreadCount: c.unread_count ?? c.unreadCount ?? 0,
-                last_read_at: c.last_read_at,
-            }));
+            // The RPC returns FLAT columns (verified via pg_get_function_result):
+            //   conversation_id, title, is_group, last_message_at, unread_count,
+            //   other_user_id, other_user_username, other_user_avatar
+            // The previous mapping looked for `c.other_user` (a nested object)
+            // which never existed — so otherUser was ALWAYS null and every
+            // conversation rendered as "Unknown" with a `?` avatar in the UI.
+            // Reshape the flat fields into the otherUser object the client expects.
+            const conversations = rpcData.map((c) => {
+                const otherUserId = c.other_user_id || null;
+                const otherUser = otherUserId
+                    ? {
+                          id: otherUserId,
+                          username: c.other_user_username || null,
+                          display_name: c.other_user_username || null,
+                          full_name: c.other_user_username || null,
+                          avatar_url: c.other_user_avatar || null,
+                      }
+                    : null;
+                return {
+                    id: c.conversation_id || c.id,
+                    title: c.title || null,
+                    last_message_at: c.last_message_at,
+                    // RPC doesn't return last_message_preview today; pass through if it ever does.
+                    last_message_preview: c.last_message_preview ?? null,
+                    is_group: c.is_group || false,
+                    otherUser,
+                    unreadCount: Number(c.unread_count ?? c.unreadCount ?? 0),
+                    last_read_at: c.last_read_at ?? null,
+                };
+            });
             return res.status(200).json({ success: true, conversations });
         }
 
