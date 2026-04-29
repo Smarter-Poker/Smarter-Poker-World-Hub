@@ -43,6 +43,7 @@ export default function LivesPage() {
     const [showDrafts, setShowDrafts] = useState(false);
     const [publishingDraft, setPublishingDraft] = useState(null);
     const [publishToast, setPublishToast] = useState(null);  // #5: success feedback
+    const [scheduledLives, setScheduledLives] = useState([]); // #20: upcoming scheduled streams
     const containerRef = useRef(null);
     const videoRefs = useRef({});
 
@@ -124,6 +125,25 @@ export default function LivesPage() {
     useEffect(() => {
         fetchMyDrafts();
     }, [fetchMyDrafts]);
+
+    // #20: Fetch upcoming scheduled lives
+    const fetchScheduledLives = useCallback(async () => {
+        try {
+            const { data } = await supabase
+                .from('scheduled_lives')
+                .select('*, profiles:broadcaster_id(username, avatar_url, full_name)')
+                .gte('scheduled_at', new Date().toISOString())
+                .order('scheduled_at', { ascending: true })
+                .limit(5);
+            setScheduledLives(data || []);
+        } catch (e) {
+            console.warn('fetchScheduledLives error:', e);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchScheduledLives();
+    }, [fetchScheduledLives]);
 
     // Publish a draft stream to the feed + social posts
     const publishDraft = async (draft) => {
@@ -459,6 +479,53 @@ export default function LivesPage() {
                         )}
                     </div>
 
+                    {/* #20: Upcoming Scheduled Lives */}
+                    {scheduledLives.length > 0 && (
+                        <div style={{
+                            position: 'absolute', top: 90, left: 0, right: 0, zIndex: 7,
+                            display: 'flex', gap: 10, padding: '0 16px', overflowX: 'auto',
+                            scrollbarWidth: 'none',
+                        }}>
+                            {scheduledLives.map(sl => {
+                                const scheduledDate = new Date(sl.scheduled_at);
+                                const now = new Date();
+                                const diffMs = scheduledDate - now;
+                                const hours = Math.floor(diffMs / 3600000);
+                                const mins = Math.floor((diffMs % 3600000) / 60000);
+                                const countdown = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+                                return (
+                                    <div key={sl.id} style={{
+                                        minWidth: 160,
+                                        background: 'rgba(0,0,0,0.7)',
+                                        backdropFilter: 'blur(10px)',
+                                        borderRadius: 12,
+                                        padding: '10px 14px',
+                                        border: '1px solid rgba(255,100,100,0.3)',
+                                        flexShrink: 0,
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                                            <img
+                                                src={sl.profiles?.avatar_url || '/avatars/default.png'}
+                                                alt={sl.profiles?.username}
+                                                style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }}
+                                                loading="lazy"
+                                            />
+                                            <span style={{ color: 'white', fontSize: 12, fontWeight: 600 }}>
+                                                @{sl.profiles?.username || 'user'}
+                                            </span>
+                                        </div>
+                                        <div style={{ color: 'white', fontSize: 13, fontWeight: 700, marginBottom: 4, lineHeight: 1.3 }}>
+                                            {sl.title || 'Scheduled Stream'}
+                                        </div>
+                                        <div style={{ color: '#FF6B6B', fontSize: 12, fontWeight: 700 }}>
+                                            Starts in {countdown}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+
                     {/* Loading State — Shimmer Skeleton */}
                     {loading && (
                         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', padding: '80px 20px 20px' }}>
@@ -612,8 +679,16 @@ export default function LivesPage() {
                                     fontSize: 14,
                                     fontWeight: 700,
                                     animation: 'pulse 1.5s infinite',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 8,
                                 }}>
                                     LIVE
+                                    {(stream.viewer_count > 0) && (
+                                        <span style={{ background: 'rgba(0,0,0,0.3)', padding: '2px 8px', borderRadius: 4, fontSize: 12 }}>
+                                            {stream.viewer_count} watching
+                                        </span>
+                                    )}
                                 </div>
                                 <button
                                     onClick={(e) => {

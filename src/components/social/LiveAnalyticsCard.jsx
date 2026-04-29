@@ -53,7 +53,7 @@ export function LiveAnalyticsCard({ streamId, onContinue }) {
         <div style={{
             position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)',
             zIndex: 10001, display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
-            overflowY: 'auto', padding: '40px 24px',
+            overflowY: 'auto', padding: 'max(40px, env(safe-area-inset-top, 40px)) 24px max(40px, env(safe-area-inset-bottom, 40px))',
         }}>
             <div style={{
                 background: 'linear-gradient(135deg, #0A0A1A 0%, #1A0A2E 100%)',

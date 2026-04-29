@@ -187,7 +187,7 @@ export function EndStreamModal({
                 alignItems: 'flex-start',
                 justifyContent: 'center',
                 overflowY: 'auto',
-                padding: '20px 0',
+                padding: 'max(20px, env(safe-area-inset-top, 20px)) 0 max(20px, env(safe-area-inset-bottom, 20px))',
             }}
         >
             <div

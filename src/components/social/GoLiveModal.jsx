@@ -41,6 +41,9 @@ export function GoLiveModal({ isOpen, onClose, user }) {
     const [giftFlash, setGiftFlash] = useState(null);
     const [isStarting, setIsStarting] = useState(false);       // #3/#11: prevents double-tap on Go Live
     const [recordingFailed, setRecordingFailed] = useState(false); // #12: warns when recording unavailable
+    const [description, setDescription] = useState(''); // #9: stream description
+    const [pinnedComment, setPinnedComment] = useState(null); // #18: pinned comment
+    const [commentMenu, setCommentMenu] = useState(null); // #19: comment action menu
 
     // Thumbnail state
     const [thumbnailFile, setThumbnailFile] = useState(null);
@@ -265,7 +268,8 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                 title || `${user.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'Live'}'s Live`,
                 streamRef.current,
                 thumbUrl,
-                category
+                category,
+                description
             );
             setStreamId(newId);
             setStage('live');
@@ -419,7 +423,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
     return (
         <>
         <div
-            style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.88)', zIndex:10000, display:'flex', alignItems:(stage === 'live' || stage === 'countdown') ? 'center' : 'flex-start', justifyContent:'center', overflowY: (stage === 'live' || stage === 'countdown') ? 'hidden' : 'auto', padding: (stage === 'live' || stage === 'countdown') ? 0 : '20px 0' }}
+            style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.88)', zIndex:10000, display:'flex', alignItems:(stage === 'live' || stage === 'countdown') ? 'center' : 'flex-start', justifyContent:'center', overflowY: (stage === 'live' || stage === 'countdown') ? 'hidden' : 'auto', padding: (stage === 'live' || stage === 'countdown') ? 0 : 'max(20px, env(safe-area-inset-top, 20px)) 0 max(20px, env(safe-area-inset-bottom, 20px))' }}
             onClick={(e) => { if (e.target === e.currentTarget && stage !== 'live') onClose(); }}
         >
             <style>{`
@@ -495,6 +499,17 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                                 onChange={(e) => setTitle(e.target.value)}
                                 placeholder={`${user?.full_name || user?.user_metadata?.full_name || 'Your'}'s Live Stream`}
                                 style={{ width:'100%', padding:'11px 14px', borderRadius:8, border:`1px solid ${C.border}`, fontSize:15, outline:'none', boxSizing:'border-box', color:C.text }}
+                            />
+
+                            {/* #9: Description field */}
+                            <label style={{ display:'block', marginTop:14, marginBottom:8, fontWeight:700, fontSize:14, color:C.text }}>Description</label>
+                            <textarea
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                                placeholder="What will you be playing or talking about?"
+                                rows={2}
+                                maxLength={200}
+                                style={{ width:'100%', padding:'11px 14px', borderRadius:8, border:`1px solid ${C.border}`, fontSize:14, outline:'none', boxSizing:'border-box', color:C.text, resize:'none', fontFamily:'inherit' }}
                             />
 
                             {/* Category selector */}
@@ -575,7 +590,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                         )}
 
                         {/* TOP-LEFT: LIVE badge + REC + connection quality */}
-                        <div style={{ position:'absolute', top:20, left:16, display:'flex', gap:10, alignItems:'center', zIndex:10 }}>
+                        <div style={{ position:'absolute', top: 'max(20px, env(safe-area-inset-top, 20px))', left:16, display:'flex', gap:10, alignItems:'center', zIndex:10 }}>
                             <div style={{ background:C.red, color:'white', padding:'6px 14px', borderRadius:8, fontSize:15, fontWeight:800, animation:'livePulse 1.5s infinite', display:'flex', alignItems:'center', gap:6 }}>
                                 <span style={{ width:8, height:8, borderRadius:'50%', background:'white', display:'inline-block' }} />
                                 LIVE
@@ -609,7 +624,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                         </div>
 
                         {/* TOP-RIGHT: viewer count */}
-                        <div style={{ position:'absolute', top:20, right:16, background:'rgba(0,0,0,.55)', color:'white', padding:'6px 14px', borderRadius:8, fontSize:14, fontWeight:600, zIndex:10, display:'flex', alignItems:'center', gap:6 }}>
+                        <div style={{ position:'absolute', top: 'max(20px, env(safe-area-inset-top, 20px))', right:16, background:'rgba(0,0,0,.55)', color:'white', padding:'6px 14px', borderRadius:8, fontSize:14, fontWeight:600, zIndex:10, display:'flex', alignItems:'center', gap:6 }}>
                             <svg width="14" height="14" fill="white" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
                             {viewerCount} {viewerCount === 1 ? 'viewer' : 'viewers'}
                         </div>
@@ -622,19 +637,57 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                         {/* Emoji reactions */}
                         <LiveReactions streamId={streamId} userId={user?.id} isBroadcaster />
 
+                        {/* #18: PINNED COMMENT */}
+                        {pinnedComment && (
+                            <div style={{ position:'absolute', bottom:320, left:12, right:80, zIndex:10, background:'rgba(0,0,0,0.7)', borderRadius:10, padding:'8px 12px', border:'1px solid rgba(255,215,0,0.3)' }}>
+                                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4 }}>
+                                    <span style={{ color:'#FFD700', fontSize:11, fontWeight:700 }}>PINNED</span>
+                                    <button onClick={() => setPinnedComment(null)} style={{ background:'none', border:'none', color:'rgba(255,255,255,0.5)', fontSize:14, cursor:'pointer', padding:0 }}>✕</button>
+                                </div>
+                                <span style={{ color:'#00CFFF', fontWeight:700, fontSize:12, marginRight:6 }}>{pinnedComment.author_name}</span>
+                                <span style={{ color:'white', fontSize:12 }}>{pinnedComment.text}</span>
+                            </div>
+                        )}
+
                         {/* COMMENTS OVERLAY — left side, scrollable */}
                         <div style={{ position:'absolute', bottom:110, left:0, width:'min(320px, 60vw)', maxHeight:200, overflowY:'auto', zIndex:10, padding:'0 12px', scrollbarWidth:'none' }}>
                             {comments.map(c => (
-                                <div key={c.id} style={{ animation:'slideUp .25s ease-out', marginBottom:6, display:'flex', alignItems:'flex-start', gap:6 }}>
+                                <div
+                                    key={c.id}
+                                    style={{ animation:'slideUp .25s ease-out', marginBottom:6, display:'flex', alignItems:'flex-start', gap:6, position:'relative' }}
+                                    onClick={(e) => { e.stopPropagation(); setCommentMenu(commentMenu === c.id ? null : c.id); }}
+                                >
                                     <span style={{ color:'#00CFFF', fontWeight:700, fontSize:13, whiteSpace:'nowrap' }}>{c.author_name}</span>
-                                    <span style={{ color:'white', fontSize:13, lineHeight:1.4 }}>{c.text}</span>
+                                    <span style={{ color:'white', fontSize:13, lineHeight:1.4, flex:1 }}>{c.text}</span>
+                                    {/* #18/#19: Comment actions (broadcaster only) */}
+                                    {commentMenu === c.id && (
+                                        <div style={{ display:'flex', gap:4, flexShrink:0, alignItems:'center' }}>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setPinnedComment(c); setCommentMenu(null); liveStreamService.pinComment(streamId, c.id).catch(() => {}); }}
+                                                title="Pin comment"
+                                                style={{ background:'rgba(255,215,0,0.3)', border:'none', color:'#FFD700', fontSize:11, padding:'3px 7px', borderRadius:6, cursor:'pointer', fontWeight:700 }}
+                                            >Pin</button>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setComments(prev => prev.filter(x => x.id !== c.id)); setCommentMenu(null); liveStreamService.deleteComment(c.id).catch(() => {}); }}
+                                                title="Delete comment"
+                                                style={{ background:'rgba(250,56,62,0.3)', border:'none', color:'#FA383E', fontSize:11, padding:'3px 7px', borderRadius:6, cursor:'pointer', fontWeight:700 }}
+                                            >Del</button>
+                                            {c.user_id !== user?.id && (
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); liveStreamService.banUser(streamId, c.user_id).catch(() => {}); setCommentMenu(null); setComments(prev => prev.filter(x => x.user_id !== c.user_id)); }}
+                                                    title="Ban user"
+                                                    style={{ background:'rgba(250,56,62,0.5)', border:'none', color:'white', fontSize:11, padding:'3px 7px', borderRadius:6, cursor:'pointer', fontWeight:700 }}
+                                                >Ban</button>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                             <div ref={commentsEndRef} />
                         </div>
 
                         {/* COMMENT INPUT */}
-                        <div style={{ position:'absolute', bottom:50, left:12, right:56, zIndex:10, display:'flex', gap:8 }}>
+                        <div style={{ position:'absolute', bottom: 'max(50px, calc(env(safe-area-inset-bottom, 0px) + 50px))', left:12, right:56, zIndex:10, display:'flex', gap:8 }}>
                             <input
                                 ref={commentInputRef}
                                 value={commentInput}

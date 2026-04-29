@@ -93,8 +93,9 @@ class LiveStreamService {
      * @param {MediaStream} mediaStream - Pre-acquired camera+mic stream
      * @param {string|null} thumbnailUrl
      * @param {string} category - Stream category tag
+     * @param {string} description - Optional stream description
      */
-    async startBroadcast(userId, title, mediaStream, thumbnailUrl, category) {
+    async startBroadcast(userId, title, mediaStream, thumbnailUrl, category, description) {
         this.currentUserId = userId;
         this.localStream = mediaStream;
         this.isBroadcaster = true;
@@ -109,6 +110,7 @@ class LiveStreamService {
             category: category || 'general',
         };
         if (thumbnailUrl) insertPayload.thumbnail_url = thumbnailUrl;
+        if (description) insertPayload.description = description;
 
         const { data: stream, error } = await supabase
             .from('live_streams')

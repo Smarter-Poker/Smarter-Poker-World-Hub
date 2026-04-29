@@ -37,6 +37,8 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     const [giftFlash, setGiftFlash] = useState(null);
     const [hasMoreComments, setHasMoreComments] = useState(false);
     const [loadingMoreComments, setLoadingMoreComments] = useState(false);
+    const [isFollowing, setIsFollowing] = useState(false); // #7: follow broadcaster
+    const [followLoading, setFollowLoading] = useState(false);
 
     const videoRef = useRef(null);
     const commentsEndRef = useRef(null);
@@ -89,6 +91,16 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
         };
 
         connect();
+
+        // #7: Check follow status
+        if (userId && stream?.broadcaster_id && userId !== stream.broadcaster_id) {
+            supabase.from('social_follows')
+                .select('id')
+                .eq('follower_id', userId)
+                .eq('following_id', stream.broadcaster_id)
+                .maybeSingle()
+                .then(({ data }) => setIsFollowing(!!data));
+        }
 
         // Subscribe to live comments realtime
         if (stream?.id) {
@@ -299,7 +311,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                     top: 0,
                     left: 0,
                     right: 0,
-                    padding: '16px 20px',
+                    padding: 'max(16px, env(safe-area-inset-top, 16px)) 20px 16px',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'flex-start',
@@ -383,7 +395,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                     bottom: 0,
                     left: 0,
                     right: 0,
-                    padding: '60px 20px 24px',
+                    padding: '60px 20px max(24px, calc(env(safe-area-inset-bottom, 0px) + 80px))',
                     background: 'linear-gradient(0deg, rgba(0,0,0,0.8) 0%, transparent 100%)',
                 }}
             >
@@ -404,6 +416,42 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                                 : 'Smarter.Poker'}
                         </div>
                     </div>
+                    {/* #7: Follow button */}
+                    {userId && stream?.broadcaster_id && userId !== stream.broadcaster_id && (
+                        <button
+                            onClick={async () => {
+                                if (followLoading) return;
+                                setFollowLoading(true);
+                                try {
+                                    if (isFollowing) {
+                                        await supabase.from('social_follows')
+                                            .delete()
+                                            .eq('follower_id', userId)
+                                            .eq('following_id', stream.broadcaster_id);
+                                        setIsFollowing(false);
+                                    } else {
+                                        await supabase.from('social_follows')
+                                            .insert({ follower_id: userId, following_id: stream.broadcaster_id });
+                                        setIsFollowing(true);
+                                    }
+                                } catch (e) { console.warn('Follow error:', e); }
+                                setFollowLoading(false);
+                            }}
+                            style={{
+                                padding: '6px 16px',
+                                borderRadius: 20,
+                                border: isFollowing ? '1px solid rgba(255,255,255,0.4)' : 'none',
+                                background: isFollowing ? 'transparent' : C.red,
+                                color: 'white',
+                                fontSize: 13,
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                flexShrink: 0,
+                            }}
+                        >
+                            {followLoading ? '...' : isFollowing ? 'Following' : 'Follow'}
+                        </button>
+                    )}
                 </div>
 
                 {/* Stream Title */}
@@ -451,7 +499,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
             )}
 
             {/* COMMENT INPUT + gift button */}
-            <div style={{ position:'absolute', bottom:24, left:12, right:12, zIndex:10, display:'flex', gap:8 }}>
+            <div style={{ position:'absolute', bottom: 'max(24px, calc(env(safe-area-inset-bottom, 0px) + 24px))', left:12, right:12, zIndex:10, display:'flex', gap:8 }}>
                 <input
                     ref={commentInputRef}
                     value={commentInput}
