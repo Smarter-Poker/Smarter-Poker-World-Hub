@@ -101,7 +101,8 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                 .eq('follower_id', userId)
                 .eq('following_id', stream.broadcaster_id)
                 .maybeSingle()
-                .then(({ data }) => setIsFollowing(!!data));
+                .then(({ data }) => setIsFollowing(!!data))
+                .catch(() => {});
         }
 
         // Subscribe to live comments realtime

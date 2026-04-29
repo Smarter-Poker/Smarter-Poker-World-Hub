@@ -481,7 +481,7 @@ class LiveStreamService {
             stream_id: streamId,
             banned_user_id: bannedUserId,
             banned_by: this.currentUserId,
-        });
+        }, { onConflict: 'stream_id,banned_user_id' });
     }
 
     /**
@@ -492,14 +492,14 @@ class LiveStreamService {
     }
 
     /**
-     * Pin a comment
+     * Pin a comment (replaces existing pin for the stream)
      */
     async pinComment(streamId, commentId) {
         await supabase.from('live_pins').upsert({
             stream_id: streamId,
             comment_id: commentId,
             pinned_by: this.currentUserId,
-        });
+        }, { onConflict: 'stream_id' });
     }
 
     // ═══════════════════════════════════════════════════

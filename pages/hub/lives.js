@@ -490,9 +490,9 @@ export default function LivesPage() {
                                 const scheduledDate = new Date(sl.scheduled_at);
                                 const now = new Date();
                                 const diffMs = scheduledDate - now;
-                                const hours = Math.floor(diffMs / 3600000);
-                                const mins = Math.floor((diffMs % 3600000) / 60000);
-                                const countdown = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+                                const hours = Math.floor(Math.max(0, diffMs) / 3600000);
+                                const mins = Math.floor((Math.max(0, diffMs) % 3600000) / 60000);
+                                const countdown = diffMs <= 0 ? 'Starting soon' : hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
                                 return (
                                     <div key={sl.id} style={{
                                         minWidth: 160,
