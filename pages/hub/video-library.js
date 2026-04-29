@@ -242,9 +242,7 @@ export default function VideoLibraryPage() {
         return scores;
     }, [allVideos]); // ← stable dep: only recomputes when the video list changes
 
-    // ── Stage 2/3 Feature State ──────────────────────────────────────────────
-    // Duration filter: 'ALL' | 'SHORT' (<15 min) | 'MEDIUM' (15-30) | 'LONG' (>30)
-    const [selectedDuration, setSelectedDuration] = useState('ALL');
+
     // Share toast (copy-to-clipboard feedback)
     const [shareToast, setShareToast] = useState(null); // { message, videoId }
     const [ttsOverlay, setTtsOverlay] = useState(null); // Train This Spot in-place overlay { ctx, games }
@@ -316,7 +314,7 @@ export default function VideoLibraryPage() {
     useEffect(() => {
         setDisplayedCount(30);
     // BUG-18 FIX: sortMode added — switching Trending/Top-Rated/Latest now resets pagination
-    }, [selectedSource, selectedType, selectedDuration, searchQuery, sortMode]);
+    }, [selectedSource, selectedType, searchQuery, sortMode]);
 
     const timeTrackingInterval = useRef(null); // keep for watch-time ticking
 
@@ -519,12 +517,6 @@ export default function VideoLibraryPage() {
         handleOpenVideo(prev);
     }, [selectedVideo, videos, handleOpenVideo]);
 
-    // Play a random video from the current filtered list
-    const handlePlayRandom = useCallback(() => {
-        if (videos.length === 0) return;
-        const rand = videos[Math.floor(Math.random() * videos.length)];
-        handleOpenVideo(rand);
-    }, [videos, handleOpenVideo]);
 
     // Native fullscreen — puts the entire overlay element into browser fullscreen
     const handleFullscreen = useCallback(() => {
@@ -671,16 +663,7 @@ export default function VideoLibraryPage() {
         if (selectedSource !== 'ALL') {
             filtered = filtered.filter(v => v.source === selectedSource);
         }
-        // Duration filter
-        if (selectedDuration !== 'ALL') {
-            filtered = filtered.filter(v => {
-                const secs = parseDuration(v.duration);
-                if (selectedDuration === 'SHORT')  return secs > 0 && secs < 15 * 60;
-                if (selectedDuration === 'MEDIUM') return secs >= 15 * 60 && secs <= 30 * 60;
-                if (selectedDuration === 'LONG')   return secs > 30 * 60;
-                return true;
-            });
-        }
+
         if (searchQuery) {
             const q = searchQuery.toLowerCase();
             filtered = filtered.filter(v =>
@@ -706,7 +689,7 @@ export default function VideoLibraryPage() {
             });
         }
         setVideos(filtered);
-    }, [selectedSource, selectedType, selectedDuration, searchQuery, watchedVideos, allVideos, sortMode, trendingScores]);
+    }, [selectedSource, selectedType, searchQuery, watchedVideos, allVideos, sortMode, trendingScores]);
 
 
     // Keyboard navigation in modal
@@ -1786,7 +1769,7 @@ export default function VideoLibraryPage() {
                                 position: 'absolute',
                                 top: 0, left: 0,
                                 width: '100%',
-                                height: '100%',
+                                height: '85%', // leave bottom 15% open for YouTube's play/seek/volume bar
                                 zIndex: 5,
                                 cursor: 'pointer',
                                 WebkitTapHighlightColor: 'transparent',
@@ -1874,7 +1857,7 @@ export default function VideoLibraryPage() {
                                     setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 400); }, 2000);
                                     vlRevealHud();
                                 }}
-                                title="Comment on YouTube"
+                                title="Comment"
                                 style={{
                                     background: 'none', border: 'none', cursor: 'pointer',
                                     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
@@ -2244,6 +2227,18 @@ export default function VideoLibraryPage() {
 
                 /* Desktop: arrows + info bar + no swipe overlay */
                 @media (min-width: 768px) and (hover: hover) and (pointer: fine) {
+                    .vl-nav-arrow {
+                        display: flex;
+                    }
+                    .vl-info-bar {
+                        max-height: min(25vh, 200px);
+                    }
+                    .vl-swipe-overlay {
+                        display: none !important;
+                    }
+                }
+                /* Fallback for touchscreen laptops: if screen is wide enough, show desktop UI */
+                @media (min-width: 1025px) {
                     .vl-nav-arrow {
                         display: flex;
                     }
