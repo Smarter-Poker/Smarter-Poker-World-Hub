@@ -133,9 +133,10 @@ export function LiveReactions({ streamId, userId, isBroadcaster }) {
                         }}
                         onMouseDown={e => { e.currentTarget.style.transform = 'scale(1.3)'; }}
                         onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; }}
-                        onTouchStart={e => { e.preventDefault(); e.currentTarget.style.transform = 'scale(1.3)'; }}
+                        onTouchStart={e => { e.currentTarget.style.transform = 'scale(1.3)'; }}
                         onTouchEnd={e => {
-                            e.preventDefault(); // FIX: stops onClick double-fire on mobile
+                            // FIX: Don't preventDefault here — let the synthetic click fire
+                            // so sendReaction works on both mobile and desktop via onClick.
                             e.currentTarget.style.transform = 'scale(1)';
                         }}
                         aria-label={`React with ${emoji}`}

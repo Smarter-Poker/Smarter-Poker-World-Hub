@@ -62,8 +62,17 @@ export function GoLiveModal({ isOpen, onClose, user }) {
             if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current?.stop();
             if (hideControlsRef.current) clearTimeout(hideControlsRef.current);
             if (commentChannelRef.current) supabase.removeChannel(commentChannelRef.current);
+            // FIX: countdown interval cleanup was AFTER the return — unreachable dead code
+            if (timerRef._cdInterval) { clearInterval(timerRef._cdInterval); timerRef._cdInterval = null; }
+            // FIX: if modal is force-closed during live broadcast, end the broadcast to prevent zombie room
+            if (liveStreamService.room && liveStreamService.isBroadcaster) {
+                liveStreamService.endBroadcast().catch(() => {});
+            }
+            // FIX: null stale singleton callbacks
+            liveStreamService.onViewerCountChange = null;
+            liveStreamService.onReconnecting = null;
+            liveStreamService.onReconnected = null;
         };
-        if (timerRef._cdInterval) { clearInterval(timerRef._cdInterval); timerRef._cdInterval = null; }
     }, [isOpen]);
 
     // Subscribe to viewer comments when stream goes live

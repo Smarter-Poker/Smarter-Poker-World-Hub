@@ -30,6 +30,8 @@ const BUCKET = 'social-media';
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 const ALLOWED_TYPES = [
     'image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml',
+    // iPhone Photos default formats — added 2026-04-29 to match upload-url.js
+    'image/heic', 'image/heif',
     'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo',
     'video/x-m4v', 'video/3gpp', 'video/3gpp2', 'video/hevc', 'video/x-matroska',
 ];
@@ -42,6 +44,7 @@ const EXT_MIME_MAP = {
     hevc: 'video/hevc', mkv: 'video/x-matroska',
     jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
     gif: 'image/gif', webp: 'image/webp',
+    heic: 'image/heic', heif: 'image/heif',  // iPhone Photos
 };
 function sniffMime(file) {
     let mime = (file.mimetype || file.type || '').split(';')[0].trim();
@@ -129,12 +132,14 @@ export default async function handler(req, res) {
           // Read file buffer
           const fileBuffer = fs.readFileSync(file.filepath);
 
-          // Upload to Supabase Storage using service role (bypasses RLS)
+          // Upload to Supabase Storage using service role (bypasses RLS).
+          // upsert: true matches upload-url.js — protects against retries to the
+          // same timestamped path (rare but possible on flaky networks).
           const { data, error: uploadError } = await getSupabase().storage
               .from(BUCKET)
               .upload(storagePath, fileBuffer, {
                   contentType: mimeType,
-                  upsert: false,
+                  upsert: true,
               });
 
           // Clean up temp file

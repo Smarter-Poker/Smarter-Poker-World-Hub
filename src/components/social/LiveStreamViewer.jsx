@@ -104,6 +104,11 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                 liveStreamService.leaveStream();
             }
             if (commentChannelRef.current) supabase.removeChannel(commentChannelRef.current);
+            // FIX: null stale singleton callbacks to prevent setState on unmounted component
+            liveStreamService.onStreamEnded = null;
+            liveStreamService.onViewerCountChange = null;
+            liveStreamService.onReconnecting = null;
+            liveStreamService.onReconnected = null;
         };
     }, [stream?.id, userId]);
 

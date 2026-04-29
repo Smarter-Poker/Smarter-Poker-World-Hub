@@ -19,7 +19,7 @@
  * ╚═══════════════════════════════════════════════════════════════════════════╝
  */
 
-import { Room, RoomEvent, Track, VideoPresets, createLocalTracks } from 'livekit-client';
+import { Room, RoomEvent, Track, VideoPresets } from 'livekit-client';
 import { supabase } from '../lib/supabase';
 
 const logError = (ctx, err) => console.warn(`[LiveStream:${ctx}]`, err?.message || err);
