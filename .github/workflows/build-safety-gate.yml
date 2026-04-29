@@ -31,44 +31,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        env:
-          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-        with:
-          node-version: '20.x'
-          cache: 'npm'
-          registry-url: 'https://npm.pkg.github.com'
-          scope: '@smarter-poker'
-          always-auth: true
-
-      - name: Install dependencies
-        env:
-          # @smarter-poker/commander-shared is a user-scoped private package.
-          # GITHUB_TOKEN only has read:packages for the current repo's packages,
-          # not packages owned by the user account. NPM_AUTH_TOKEN is a PAT with
-          # write:packages scope belonging to the Smarter-Poker user, which can
-          # read all their private packages.
-          #
-          # NODE_AUTH_TOKEN → used by actions/setup-node's generated .npmrc
-          # NPM_TOKEN      → used by the project's .npmrc (${NPM_TOKEN})
-          # Both must be set because npm reads both .npmrc files and the
-          # project .npmrc takes precedence for the @smarter-poker scope.
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
-        run: |
-          echo "🔍 Validating NPM authentication..."
-          npm whoami --registry=https://npm.pkg.github.com || {
-            echo "::error::FATAL: NPM_AUTH_TOKEN is invalid, expired, or missing read:packages scope."
-            echo "::error::Fix: Create a new PAT and update the NPM_AUTH_TOKEN secret in GitHub repository settings."
-            exit 1
-          }
-          
-          npm ci --ignore-scripts 2>/dev/null || {
-            echo "::warning::npm ci failed (lockfile sync issue) — falling back to npm install"
-            npm install --ignore-scripts
-          }
-
       - name: Record Start Time
         id: timer
         run: echo "start=$(date +%s)" >> $GITHUB_OUTPUT
@@ -164,23 +126,6 @@ jobs:
             exit 1
           fi
           echo "✓ No merge conflict markers found"
-
-      # ═══════════════════════════════════════════════════════════════
-      # CHECK 5: TypeScript compilation (advisory — does not block deploy)
-      # Hub has pre-existing Supabase type gaps (tables typed as 'never').
-      # ═══════════════════════════════════════════════════════════════
-      - name: "CHECK 5: TypeScript compilation (advisory)"
-        continue-on-error: true
-        run: |
-          echo "Running TypeScript check (advisory — does not block deploy)..."
-          npx tsc --noEmit 2>&1 | grep "error TS" > /tmp/ts-errors.txt || true
-          TS_ERRORS=$(wc -l < /tmp/ts-errors.txt | tr -d ' ')
-          if [ "$TS_ERRORS" -gt 0 ]; then
-            echo "::warning::TypeScript found $TS_ERRORS type error(s) — review recommended"
-            head -20 /tmp/ts-errors.txt
-          else
-            echo "✓ TypeScript compilation passed — zero errors"
-          fi
 
       # ═══════════════════════════════════════════════════════════════
       # CHECK 6: Cron governance — enforce CLAUDE.md section 11
@@ -373,3 +318,47 @@ jobs:
                 labels: ['ci-failure']
               });
             }
+
+  # ═══════════════════════════════════════════════════════════════════
+  # TYPESCRIPT VALIDATION (Parallel Job)
+  # ═══════════════════════════════════════════════════════════════════
+  type-check:
+    name: TypeScript Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@smarter-poker'
+          always-auth: true
+
+      - name: Install dependencies
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+        run: |
+          npm ci --ignore-scripts 2>/dev/null || {
+            npm install --ignore-scripts
+          }
+
+      - name: "CHECK: TypeScript compilation (advisory)"
+        continue-on-error: true
+        run: |
+          echo "Running TypeScript check (advisory — does not block deploy)..."
+          npx tsc --noEmit 2>&1 | grep "error TS" > /tmp/ts-errors.txt || true
+          TS_ERRORS=$(wc -l < /tmp/ts-errors.txt | tr -d ' ')
+          if [ "$TS_ERRORS" -gt 0 ]; then
+            echo "::warning::TypeScript found $TS_ERRORS type error(s) — review recommended"
+            head -20 /tmp/ts-errors.txt
+          else
+            echo "✓ TypeScript compilation passed — zero errors"
+          fi

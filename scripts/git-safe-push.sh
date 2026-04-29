@@ -539,9 +539,15 @@ fi
 if [ "$BUILD_CHECK" = true ]; then
   echo ""
   echo "🔨 Phase 2.5: Build gate check..."
-  BUILD_START=$(date +%s)
   
-  # Capture output to check for node_modules corruption
+  # Intelligent skip for docs/scripts changes only
+  APP_FILES_CHANGED=$(git diff HEAD~1 HEAD --name-only 2>/dev/null | grep -vE '\.(md|sh|yml|txt|csv)$|^scripts/|^\.github/' || true)
+  if [ -z "$APP_FILES_CHANGED" ] && [ -n "$(git log -1 --oneline 2>/dev/null)" ]; then
+    echo "⚡ Skipping build check — only documentation, scripts, or config files changed."
+  else
+    BUILD_START=$(date +%s)
+    
+    # Capture output to check for node_modules corruption
   BUILD_OUTPUT=$(NODE_OPTIONS='--max-old-space-size=4096' npx next build 2>&1)
   BUILD_STATUS=$?
   
@@ -551,7 +557,7 @@ if [ "$BUILD_CHECK" = true ]; then
     echo "✅ Build passed ($(( BUILD_END - BUILD_START ))s)"
   else
     # Check if failure was due to broken node_modules
-    if echo "$BUILD_OUTPUT" | grep -qE 'MODULE_NOT_FOUND|Cannot find module'; then
+    if echo "$BUILD_OUTPUT" | grep -iqE 'MODULE_NOT_FOUND|Cannot find module|command not found'; then
       echo "⚠️  Build failed due to corrupted node_modules. Auto-healing..."
       npm install --no-audit --no-fund --prefer-offline 2>/dev/null
       
@@ -579,6 +585,7 @@ if [ "$BUILD_CHECK" = true ]; then
       echo "REASON:build_failed"
       exit 2
     fi
+  fi
   fi
 fi
 
