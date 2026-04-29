@@ -301,7 +301,7 @@ export const SOURCES = [
     { id: 'HCL', name: 'Hustler Casino Live', logo: '/images/video-sources/hcl.png' },
     { id: 'LODGE', name: 'The Lodge', logo: '/images/video-sources/lodge.png' },
     { id: 'TRITON', name: 'Triton Poker', logo: '/images/video-sources/triton.jpg' },
-    { id: 'LATB', name: 'Bally Poker Live', logo: '/images/video-sources/latb.jpg' },
+    { id: 'LATB', name: 'Bally Poker Live', logo: '/images/video-sources/latb.png' },
     { id: 'TCH', name: 'TCH Live', logo: '/images/video-sources/tch.png' },
     { id: 'POKERGO', name: 'PokerGO', logo: '/images/video-sources/pokergo.jpg' },
     // Major Tours

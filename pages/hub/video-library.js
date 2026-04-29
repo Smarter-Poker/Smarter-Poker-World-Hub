@@ -72,7 +72,7 @@ const C = {
     text: '#FFFFFF',
     textSec: 'rgba(255,255,255,0.6)',
     border: '#333',
-    accent: '#FF4444',
+    accent: '#00D4FF',
     blue: '#0A84FF',
 };
 
@@ -942,10 +942,10 @@ export default function VideoLibraryPage() {
                                     style={{
                                         padding: '9px 22px',
                                         background: isActive
-                                            ? 'linear-gradient(135deg, #FF3333 0%, #FF6B6B 100%)'
+                                            ? 'linear-gradient(135deg, #00B4D8 0%, #00D4FF 100%)'
                                             : 'linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)',
                                         border: isActive
-                                            ? '1.5px solid rgba(255,100,100,0.7)'
+                                            ? '1.5px solid rgba(0,212,255,0.7)'
                                             : '1.5px solid rgba(255,255,255,0.12)',
                                         borderRadius: 10,
                                         color: isActive ? '#fff' : 'rgba(255,255,255,0.75)',
@@ -956,11 +956,11 @@ export default function VideoLibraryPage() {
                                         transition: 'all 0.2s ease',
                                         transform: isActive ? 'translateY(-1px)' : 'none',
                                         boxShadow: isActive
-                                            ? '0 0 16px rgba(255,60,60,0.35), 0 4px 12px rgba(0,0,0,0.4)'
+                                            ? '0 0 16px rgba(0,212,255,0.35), 0 4px 12px rgba(0,0,0,0.4)'
                                             : '0 2px 8px rgba(0,0,0,0.3)',
                                         whiteSpace: 'nowrap',
                                     }}
-                                    onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.transform = 'translateY(-1px)'; } }}
+                                    onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = 'rgba(0,212,255,0.1)'; e.currentTarget.style.transform = 'translateY(-1px)'; } }}
                                     onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)'; e.currentTarget.style.transform = 'none'; } }}
                                 >
                                     {type.name}
@@ -982,19 +982,19 @@ export default function VideoLibraryPage() {
                                     style={{
                                         padding: '9px 18px',
                                         background: isActive
-                                            ? 'linear-gradient(135deg, rgba(255,165,0,0.25) 0%, rgba(255,80,0,0.25) 100%)'
+                                            ? 'linear-gradient(135deg, rgba(0,212,255,0.25) 0%, rgba(0,180,216,0.25) 100%)'
                                             : 'rgba(255,255,255,0.04)',
                                         border: isActive
-                                            ? '1.5px solid rgba(255,140,0,0.7)'
+                                            ? '1.5px solid rgba(0,212,255,0.7)'
                                             : '1.5px solid rgba(255,255,255,0.1)',
                                         borderRadius: 10,
-                                        color: isActive ? '#FFA500' : 'rgba(255,255,255,0.6)',
+                                        color: isActive ? '#00D4FF' : 'rgba(255,255,255,0.6)',
                                         fontSize: 13,
                                         fontWeight: isActive ? 700 : 500,
                                         cursor: 'pointer',
                                         transition: 'all 0.2s ease',
                                         whiteSpace: 'nowrap',
-                                        boxShadow: isActive ? '0 0 12px rgba(255,140,0,0.2)' : 'none',
+                                        boxShadow: isActive ? '0 0 12px rgba(0,212,255,0.2)' : 'none',
                                     }}
                                 >
                                     {s.label}
@@ -1008,10 +1008,10 @@ export default function VideoLibraryPage() {
                             onClick={() => setShowReelsModal(true)}
                             style={{
                                 padding: '9px 22px',
-                                background: 'linear-gradient(135deg, rgba(255,45,85,0.18) 0%, rgba(120,0,255,0.18) 100%)',
-                                border: '1.5px solid rgba(255,45,85,0.45)',
+                                background: 'linear-gradient(135deg, rgba(0,212,255,0.18) 0%, rgba(0,180,216,0.18) 100%)',
+                                border: '1.5px solid rgba(0,212,255,0.45)',
                                 borderRadius: 10,
-                                color: '#FF2D55',
+                                color: '#00D4FF',
                                 fontSize: 13,
                                 fontWeight: 700,
                                 cursor: 'pointer',
@@ -1021,41 +1021,12 @@ export default function VideoLibraryPage() {
                                 alignItems: 'center',
                                 gap: 6,
                                 whiteSpace: 'nowrap',
-                                boxShadow: '0 0 12px rgba(255,45,85,0.2), 0 2px 8px rgba(0,0,0,0.3)',
+                                boxShadow: '0 0 12px rgba(0,212,255,0.2), 0 2px 8px rgba(0,0,0,0.3)',
                             }}
-                            onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255,45,85,0.32) 0%, rgba(120,0,255,0.28) 100%)'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 0 20px rgba(255,45,85,0.4), 0 4px 12px rgba(0,0,0,0.4)'; }}
-                            onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255,45,85,0.18) 0%, rgba(120,0,255,0.18) 100%)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 0 12px rgba(255,45,85,0.2), 0 2px 8px rgba(0,0,0,0.3)'; }}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0,212,255,0.32) 0%, rgba(0,180,216,0.28) 100%)'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 0 20px rgba(0,212,255,0.4), 0 4px 12px rgba(0,0,0,0.4)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0,212,255,0.18) 0%, rgba(0,180,216,0.18) 100%)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 0 12px rgba(0,212,255,0.2), 0 2px 8px rgba(0,0,0,0.3)'; }}
                         >
                             <span style={{ fontSize: 15 }}>▶</span> Reels
-                        </button>
-
-                        {/* Play Random Button */}
-                        <button
-                            id="vl-play-random-btn"
-                            onClick={handlePlayRandom}
-                            className="metal-frame-sm"
-                            style={{
-                                padding: '10px 20px',
-                                background: 'linear-gradient(135deg, rgba(255,180,0,0.2), rgba(255,120,0,0.2))',
-                                border: '1px solid rgba(255,160,0,0.5)',
-                                color: '#FFA500',
-                                fontSize: 14,
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 8,
-                                borderRadius: 10,
-                                transition: 'all 0.2s',
-                                letterSpacing: '0.3px',
-                            }}
-                            onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255,180,0,0.4), rgba(255,120,0,0.4))'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                            onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255,180,0,0.2), rgba(255,120,0,0.2))'; e.currentTarget.style.transform = 'none'; }}
-                        >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/>
-                            </svg>
-                            Play Random
                         </button>
 
                         {/* Search Input */}
@@ -1109,7 +1080,7 @@ export default function VideoLibraryPage() {
                             {videos.length} result{videos.length !== 1 ? 's' : ''} for <span style={{ color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>&ldquo;{searchQuery}&rdquo;</span>
                             {videos.length === 0 && (
                                 <button
-                                    onClick={() => { setSearchQuery(''); setSelectedSource('ALL'); setSelectedType('ALL'); setSelectedDuration('ALL'); }}
+                                    onClick={() => { setSearchQuery(''); setSelectedSource('ALL'); setSelectedType('ALL'); }}
                                     style={{ marginLeft: 10, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, color: 'rgba(255,255,255,0.7)', fontSize: 12, padding: '3px 10px', cursor: 'pointer' }}
                                 >
                                     Clear Filters
@@ -1117,35 +1088,7 @@ export default function VideoLibraryPage() {
                             )}
                         </div>
                     )}
-                    <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-                        <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, fontWeight: 600, marginRight: 4, letterSpacing: '0.5px' }}>DURATION</span>
-                        {[
-                            { id: 'ALL',    name: 'Any Length' },
-                            { id: 'SHORT',  name: '< 15 min' },
-                            { id: 'MEDIUM', name: '15-30 min' },
-                            { id: 'LONG',   name: '30+ min' },
-                        ].map(dur => {
-                            const isActive = selectedDuration === dur.id;
-                            return (
-                                <button
-                                    key={dur.id}
-                                    onClick={() => setSelectedDuration(dur.id)}
-                                    style={{
-                                        padding: '7px 16px',
-                                        background: isActive ? 'rgba(10,132,255,0.25)' : 'rgba(255,255,255,0.04)',
-                                        border: isActive ? '1.5px solid rgba(10,132,255,0.7)' : '1.5px solid rgba(255,255,255,0.1)',
-                                        borderRadius: 8,
-                                        color: isActive ? '#4DA8FF' : 'rgba(255,255,255,0.6)',
-                                        fontSize: 12,
-                                        fontWeight: isActive ? 700 : 500,
-                                        cursor: 'pointer',
-                                        transition: 'all 0.18s',
-                                        whiteSpace: 'nowrap',
-                                    }}
-                                >{dur.name}</button>
-                            );
-                        })}
-                    </div>
+
 
                     {/* Premium Creator Cards */}
                     <div className="vl-source-pills" style={{
@@ -1180,17 +1123,17 @@ export default function VideoLibraryPage() {
                                     onMouseLeave={e => { if (!isActive) e.currentTarget.style.transform = 'none'; }}
                                     title={source.name}
                                 >
-                                    {/* Logo ring — glows red when active */}
+                                    {/* Logo ring — glows cyan when active */}
                                     <div style={{
                                         width: 70,
                                         height: 70,
                                         borderRadius: 18,
                                         padding: 2.5,
                                         background: isActive
-                                            ? 'linear-gradient(135deg, #FF2222 0%, #FF8C00 50%, #FF2222 100%)'
+                                            ? 'linear-gradient(135deg, #00B4D8 0%, #00D4FF 50%, #00B4D8 100%)'
                                             : 'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(100,115,135,0.3) 100%)',
                                         boxShadow: isActive
-                                            ? '0 0 24px rgba(255,50,50,0.6), 0 0 10px rgba(255,50,50,0.3), 0 8px 24px rgba(0,0,0,0.7)'
+                                            ? '0 0 24px rgba(0,212,255,0.6), 0 0 10px rgba(0,212,255,0.3), 0 8px 24px rgba(0,0,0,0.7)'
                                             : '0 4px 18px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1)',
                                         transition: 'all 0.25s ease',
                                     }}>
@@ -1199,7 +1142,7 @@ export default function VideoLibraryPage() {
                                             height: '100%',
                                             borderRadius: 15,
                                             background: isActive
-                                                ? 'linear-gradient(160deg, #1c0808 0%, #2e0a0a 100%)'
+                                                ? 'linear-gradient(160deg, #081c1c 0%, #0a2e2e 100%)'
                                                 : 'linear-gradient(160deg, #0c1018 0%, #141c28 100%)',
                                             display: 'flex',
                                             alignItems: 'center',
@@ -1219,7 +1162,7 @@ export default function VideoLibraryPage() {
                                                         objectFit: 'cover',
                                                         borderRadius: 15,
                                                         filter: isActive
-                                                            ? 'brightness(1.1) drop-shadow(0 0 8px rgba(255,80,80,0.7))'
+                                                            ? 'brightness(1.1) drop-shadow(0 0 8px rgba(0,212,255,0.7))'
                                                             : 'brightness(1) saturate(1)',
                                                         transition: 'filter 0.25s',
                                                     }}
@@ -1229,10 +1172,10 @@ export default function VideoLibraryPage() {
                                                 <span style={{
                                                     fontSize: 17,
                                                     fontWeight: 800,
-                                                    color: isActive ? '#FF6060' : 'rgba(190,205,225,0.7)',
+                                                    color: isActive ? '#00D4FF' : 'rgba(190,205,225,0.7)',
                                                     letterSpacing: '-0.5px',
                                                     fontFamily: "'Inter', system-ui, sans-serif",
-                                                    textShadow: isActive ? '0 0 14px rgba(255,80,80,0.9)' : 'none',
+                                                    textShadow: isActive ? '0 0 14px rgba(0,212,255,0.9)' : 'none',
                                                     transition: 'all 0.25s',
                                                 }}>{initials}</span>
                                             )}
@@ -1244,10 +1187,10 @@ export default function VideoLibraryPage() {
                                         textAlign: 'center',
                                         fontSize: 12,
                                         fontWeight: isActive ? 700 : 500,
-                                        color: isActive ? '#FF7575' : 'rgba(185,200,220,0.6)',
+                                        color: isActive ? '#00D4FF' : 'rgba(185,200,220,0.6)',
                                         letterSpacing: '0.15px',
                                         lineHeight: 1.3,
-                                        textShadow: isActive ? '0 0 10px rgba(255,80,80,0.6)' : 'none',
+                                        textShadow: isActive ? '0 0 10px rgba(0,212,255,0.6)' : 'none',
                                         transition: 'all 0.25s',
                                         wordBreak: 'break-word',
                                     }}>
@@ -1259,8 +1202,8 @@ export default function VideoLibraryPage() {
                                             width: 5,
                                             height: 5,
                                             borderRadius: '50%',
-                                            background: '#FF4444',
-                                            boxShadow: '0 0 8px rgba(255,68,68,0.9)',
+                                            background: '#00D4FF',
+                                            boxShadow: '0 0 8px rgba(0,212,255,0.9)',
                                             marginTop: -4,
                                         }} />
                                     )}
@@ -1287,7 +1230,7 @@ export default function VideoLibraryPage() {
                             alignItems: 'center',
                             gap: 8,
                         }}>
-                            <span style={{ color: '#FF4444' }}>▶</span> Continue Watching
+                            <span style={{ color: '#00D4FF' }}>▶</span> Continue Watching
                         </h2>
                         <div className="vl-cw-scroll" style={{
                             display: 'flex',
@@ -1324,7 +1267,7 @@ export default function VideoLibraryPage() {
                                                 transform: 'translate(-50%, -50%)',
                                                 width: 48,
                                                 height: 48,
-                                                background: 'rgba(255,68,68,0.95)',
+                                                background: 'rgba(0,212,255,0.95)',
                                                 borderRadius: '50%',
                                                 display: 'flex',
                                                 alignItems: 'center',
@@ -1344,7 +1287,7 @@ export default function VideoLibraryPage() {
                                                 <div style={{
                                                     width: `${progress}%`,
                                                     height: '100%',
-                                                    background: '#FF4444',
+                                                    background: '#00D4FF',
                                                 }} />
                                             </div>
                                         </div>
@@ -1379,7 +1322,7 @@ export default function VideoLibraryPage() {
                     <div style={{ maxWidth: 1400, margin: '0 auto 28px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                             <h2 style={{ color: '#fff', fontSize: 18, fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <span style={{ color: '#FF4444', fontSize: 14, background: 'rgba(255,68,68,0.2)', border: '1px solid rgba(255,68,68,0.4)', borderRadius: 6, padding: '2px 8px', fontWeight: 700, letterSpacing: '0.5px' }}>NEW</span>
+                                <span style={{ color: '#00D4FF', fontSize: 14, background: 'rgba(0,212,255,0.2)', border: '1px solid rgba(0,212,255,0.4)', borderRadius: 6, padding: '2px 8px', fontWeight: 700, letterSpacing: '0.5px' }}>NEW</span>
                                 New This Week
                             </h2>
                             <button onClick={() => setNewThisWeekDismissed(true)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', fontSize: 12, cursor: 'pointer', padding: 4 }}>Dismiss</button>
@@ -1395,7 +1338,7 @@ export default function VideoLibraryPage() {
                                 >
                                     <div style={{ position: 'relative', aspectRatio: '16/9', background: '#111' }}>
                                         <img src={getThumbnail(video.videoId)} alt={video.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
-                                        <div style={{ position: 'absolute', top: 6, left: 6, background: '#FF4444', color: '#fff', fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 4, letterSpacing: '0.5px' }}>NEW</div>
+                                        <div style={{ position: 'absolute', top: 6, left: 6, background: '#00D4FF', color: '#fff', fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 4, letterSpacing: '0.5px' }}>NEW</div>
                                         {video.duration && (
                                             <div style={{ position: 'absolute', bottom: 6, right: 6, background: 'rgba(0,0,0,0.8)', color: '#fff', fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 4 }}>{video.duration}</div>
                                         )}
@@ -1518,7 +1461,7 @@ export default function VideoLibraryPage() {
                                         <div style={{
                                             width: `${getProgressPercent(video.id, video.duration)}%`,
                                             height: '100%',
-                                            background: '#FF4444',
+                                            background: '#00D4FF',
                                             transition: 'width 0.3s ease',
                                         }} />
                                     </div>
@@ -1531,7 +1474,7 @@ export default function VideoLibraryPage() {
                                     transform: 'translate(-50%, -50%)',
                                     width: 64,
                                     height: 64,
-                                    background: 'rgba(255,68,68,0.9)',
+                                    background: 'rgba(0,212,255,0.9)',
                                     borderRadius: '50%',
                                     display: 'flex',
                                     alignItems: 'center',
@@ -1571,7 +1514,7 @@ export default function VideoLibraryPage() {
                                         color: C.accent,
                                         fontSize: 12,
                                         fontWeight: 600,
-                                        background: 'rgba(255,68,68,0.15)',
+                                        background: 'rgba(0,212,255,0.15)',
                                         padding: '6px 12px',
                                         borderRadius: 12,
                                         display: 'flex',
@@ -1650,13 +1593,13 @@ export default function VideoLibraryPage() {
                             {searchQuery ? `No results for "${searchQuery}"` : 'Try Adjusting Your Filters'}
                         </p>
                         <button
-                            onClick={() => { setSearchQuery(''); setSelectedSource('ALL'); setSelectedType('ALL'); setSelectedDuration('ALL'); }}
+                            onClick={() => { setSearchQuery(''); setSelectedSource('ALL'); setSelectedType('ALL'); }}
                             style={{
                                 padding: '10px 24px',
-                                background: 'rgba(255,68,68,0.15)',
-                                border: '1px solid rgba(255,68,68,0.4)',
+                                background: 'rgba(0,212,255,0.15)',
+                                border: '1px solid rgba(0,212,255,0.4)',
                                 borderRadius: 10,
-                                color: '#FF6060',
+                                color: '#00D4FF',
                                 fontSize: 14,
                                 fontWeight: 600,
                                 cursor: 'pointer',
@@ -1873,11 +1816,11 @@ export default function VideoLibraryPage() {
                                     background: 'rgba(0,0,0,0.6)',
                                     backdropFilter: 'blur(10px)',
                                     border: favorites.has(selectedVideo?.id || selectedVideo?.videoId)
-                                        ? '1.5px solid #FF4444' : '1.5px solid rgba(255,255,255,0.25)',
+                                        ? '1.5px solid #00D4FF' : '1.5px solid rgba(255,255,255,0.25)',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     transition: 'all 0.2s',
                                 }}>
-                                    <svg width="26" height="26" viewBox="0 0 24 24" fill={favorites.has(selectedVideo?.id || selectedVideo?.videoId) ? '#FF4444' : 'none'} stroke={favorites.has(selectedVideo?.id || selectedVideo?.videoId) ? '#FF4444' : 'white'} strokeWidth="2">
+                                    <svg width="26" height="26" viewBox="0 0 24 24" fill={favorites.has(selectedVideo?.id || selectedVideo?.videoId) ? '#00D4FF' : 'none'} stroke={favorites.has(selectedVideo?.id || selectedVideo?.videoId) ? '#00D4FF' : 'white'} strokeWidth="2">
                                         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                                     </svg>
                                 </div>
@@ -2004,7 +1947,6 @@ export default function VideoLibraryPage() {
                                     const win = e.target.contentWindow;
                                     win.postMessage(JSON.stringify({ event: 'listening' }), '*');
 
-
                                     iframeUnmuteTimers.current = [200, 600, 1200].map(d => setTimeout(() => {
                                         try {
                                             win.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
@@ -2057,7 +1999,7 @@ export default function VideoLibraryPage() {
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                                 <span style={{
                                     color: C.accent, fontSize: 12, fontWeight: 600,
-                                    background: 'rgba(255,68,68,0.2)', padding: '4px 10px',
+                                    background: 'rgba(0,212,255,0.2)', padding: '4px 10px',
                                     borderRadius: 10, display: 'flex', alignItems: 'center', gap: 6,
                                 }}>
                                     {SOURCES.find(s => s.id === selectedVideo.source)?.logo && (
@@ -2412,8 +2354,8 @@ export default function VideoLibraryPage() {
                             </div>
                             <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.35, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{ttsOverlay.ctx.title || 'Poker Video'}</div>
-                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 4, background: 'rgba(255,68,68,0.1)', border: '1px solid rgba(255,68,68,0.2)', borderRadius: 6, padding: '2px 7px' }}>
-                                    <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#FF4444' }} />
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 4, background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.2)', borderRadius: 6, padding: '2px 7px' }}>
+                                    <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#00D4FF' }} />
                                     <span style={{ fontSize: 9, fontWeight: 700, color: '#FF8888' }}>{(ttsOverlay.ctx.source || '').replace(/_/g, ' ')}</span>
                                 </div>
                             </div>
