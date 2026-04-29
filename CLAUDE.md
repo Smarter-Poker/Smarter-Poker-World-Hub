@@ -1,11 +1,32 @@
 # Smarter-Poker-World-Hub -- Agent Instructions
 
 ALL agents (Claude, AntiGravity, Cowork, any AI) MUST read this file at session start.
-This is the single source of truth for **this repo**. Updated 2026-04-28.
+This is the single source of truth for **this repo**. Updated 2026-04-29.
 
 **Also read `.agent/CLAUDE_AGENT_RULES.md` at session start** — that's the
 canonical, version-controlled rule book all agents share. Audit records go
-under `.agent/audits/`. (`.memory/` is gitignored by design — local-only.)
+under `.agent/audits/`. Open handoffs go under `.agent/handoffs/`.
+(`.memory/` is gitignored by design — local-only.)
+
+## RULE 0 (BINDING): No manual human work
+
+If you need something done that you cannot physically do yourself (token
+scope missing, dashboard-only setting, requires a different platform, etc.)
+you do NOT ask the human to do it manually. You write a self-contained
+**Antigravity handoff prompt** to `.agent/handoffs/YYYY-MM-DD-<slug>.md`
+that another agent (running with the right credentials/scope) can execute
+end-to-end. The full rule + handoff template is in
+`.memory/decisions/2026-04-29-no-manual-human-work.md` (which is local-only
+because `.memory/` is gitignored — copy the salient parts into the handoff
+itself so the receiving agent doesn't depend on `.memory/`).
+
+Exceptions — things only a human can legitimately do:
+- Approve `request_access` on a new application (consent)
+- Provide credentials the agent has no path to obtain
+- Make a financial/legal decision
+- Settings that genuinely require interactive 2FA or biometric
+
+Everything else gets a handoff, not a "please do this".
 
 **Platform-level plan** (World Hub + Club Arena + Club Engine + Supabase + Hetzner):
 `./CLUB-ARENA-OFFICIAL-UPGRADE-INTEGRATION.md`
