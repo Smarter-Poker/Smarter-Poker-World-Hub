@@ -239,6 +239,7 @@ export default function SettingsPage() {
         try {
             // Clear profile cache so next user doesn't see stale alias
             try { localStorage.removeItem('sp-social-user'); } catch (_) {}
+            try { localStorage.removeItem('sp-vip-status'); } catch (_) {}
             await supabase.auth.signOut();
             // Force hard redirect to clear all cached state
             window.location.href = '/';

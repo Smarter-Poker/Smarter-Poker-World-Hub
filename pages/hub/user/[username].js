@@ -1095,13 +1095,13 @@ export default function UserProfilePage() {
                 // Friendship status checks (only if logged in)
                 if (user) {
                     batch1Promises.push(
-                        supabase.from('friendships').select('status').eq('user_id', user.id).eq('friend_id', data.id),
-                        supabase.from('friendships').select('status').eq('user_id', data.id).eq('friend_id', user.id),
+                        supabase.from('friendships').select('status').eq('user_id', user.id).eq('friend_id', socialId),
+                        supabase.from('friendships').select('status').eq('user_id', socialId).eq('friend_id', user.id),
                         // Current user's friend IDs (two-direction)
                         supabase.from('friendships').select('friend_id').eq('user_id', user.id).eq('status', 'accepted'),
                         supabase.from('friendships').select('user_id').eq('friend_id', user.id).eq('status', 'accepted'),
                         // Follow check
-                        supabase.from('social_follows').select('id').eq('follower_id', user.id).eq('following_id', data.id).maybeSingle()
+                        supabase.from('social_follows').select('id').eq('follower_id', user.id).eq('following_id', socialId).maybeSingle()
                     );
                 }
 
@@ -1182,16 +1182,16 @@ export default function UserProfilePage() {
                 // PARALLEL BATCH 2: Content (posts, photos, videos, reels, poker activity) — all independent
                 // ═══════════════════════════════════════════════════════════
                 const contentPromises = [
-                    // Posts
-                    supabase.from('social_posts').select('*').eq('author_id', data.id).order('created_at', { ascending: false }).limit(20),
+                    // Posts (use socialId for horse-aware lookup)
+                    supabase.from('social_posts').select('*').eq('author_id', socialId).order('created_at', { ascending: false }).limit(20),
                     // Photos (posts with media)
-                    supabase.from('social_posts').select('id, media_urls, content, created_at, content_type').eq('author_id', data.id).not('media_urls', 'is', null).order('created_at', { ascending: false }).limit(50),
+                    supabase.from('social_posts').select('id, media_urls, content, created_at, content_type').eq('author_id', socialId).not('media_urls', 'is', null).order('created_at', { ascending: false }).limit(50),
                     // Videos
-                    supabase.from('social_posts').select('id, media_urls, content, created_at, content_type').eq('author_id', data.id).eq('content_type', 'video').not('media_urls', 'is', null).order('created_at', { ascending: false }).limit(30),
+                    supabase.from('social_posts').select('id, media_urls, content, created_at, content_type').eq('author_id', socialId).eq('content_type', 'video').not('media_urls', 'is', null).order('created_at', { ascending: false }).limit(30),
                     // Reels
-                    supabase.from('social_reels').select('id, video_url, caption, thumbnail_url, view_count, created_at').eq('author_id', data.id).order('created_at', { ascending: false }).limit(30),
+                    supabase.from('social_reels').select('id, video_url, caption, thumbnail_url, view_count, created_at').eq('author_id', socialId).order('created_at', { ascending: false }).limit(30),
                     // Past Lives (posted recordings only)
-                    supabase.from('live_streams').select('id, title, video_url, thumbnail_url, viewer_count, created_at').eq('broadcaster_id', data.id).eq('status', 'ended').eq('is_posted', true).not('video_url', 'is', null).order('created_at', { ascending: false }).limit(20),
+                    supabase.from('live_streams').select('id, title, video_url, thumbnail_url, viewer_count, created_at').eq('broadcaster_id', socialId).eq('status', 'ended').eq('is_posted', true).not('video_url', 'is', null).order('created_at', { ascending: false }).limit(20),
                 ];
 
                 const [postsData, photosData, videosData, reelsData, livesData] = await Promise.all(contentPromises);

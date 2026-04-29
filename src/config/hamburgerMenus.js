@@ -44,11 +44,12 @@ const signOutAction = () => {
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
         { auth: { storageKey: 'smarter-poker-auth' } }
     );
-    // Clear profile cache so next user doesn't see stale data
-    try { localStorage.removeItem('sp-social-user'); } catch (_) {}
-    try { localStorage.removeItem('sp-vip-status'); } catch (_) {}
-    try { localStorage.removeItem('smarter-poker-auth'); } catch (_) {}
+    // signOut() must run FIRST so it can read the session token to revoke server-side.
+    // localStorage cleanup runs in .finally() AFTER the server request completes.
     supabase.auth.signOut().finally(() => {
+        try { localStorage.removeItem('sp-social-user'); } catch (_) {}
+        try { localStorage.removeItem('sp-vip-status'); } catch (_) {}
+        try { localStorage.removeItem('smarter-poker-auth'); } catch (_) {}
         window.location.href = '/';
     });
 };

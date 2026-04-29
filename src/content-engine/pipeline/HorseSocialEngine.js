@@ -1047,6 +1047,37 @@ async function runSocialInteractions(options = {}) {
         console.debug(`   Comment Reactions: ${results.commentReactions || 0}`);
         console.debug('\n🎉 Horses are socializing!');
 
+        // ═══════════════════════════════════════════════════════════
+        // UPDATE last_active FOR ALL ACTIVE HORSES
+        // ═══════════════════════════════════════════════════════════
+        // Horses don't authenticate via the normal auth flow, so their
+        // profiles.last_active never gets updated. Update it here so
+        // profile pages show accurate "Last Active" timestamps.
+        try {
+            const { data: activeHorses } = await getSupabase()
+                .from('content_authors')
+                .select('profile_id')
+                .eq('is_active', true)
+                .not('profile_id', 'is', null);
+
+            if (activeHorses?.length > 0) {
+                const horseProfileIds = activeHorses.map(h => h.profile_id);
+                const now = new Date().toISOString();
+
+                // Batch update in chunks of 50 to avoid query size limits
+                for (let i = 0; i < horseProfileIds.length; i += 50) {
+                    const chunk = horseProfileIds.slice(i, i + 50);
+                    await getSupabase()
+                        .from('profiles')
+                        .update({ last_active: now })
+                        .in('id', chunk);
+                }
+                console.debug(`   ✅ Updated last_active for ${horseProfileIds.length} horse profiles`);
+            }
+        } catch (e) {
+            console.warn('Failed to update horse last_active:', e?.message || e);
+        }
+
         return results;
 
     } catch (error) {
