@@ -4,10 +4,20 @@
  * POST /api/poker/player-notes 
  */
 
-import { createClient as supabaseServerClient } from '../../../src/lib/supabaseServerClient';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { LIMITS, applyRateLimit, rateLimit } from '../../../src/lib/apiRateLimit';
 import { checkFeatureAccess } from '../../../src/lib/gates/premiumFeatureGate';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   // [Phase 6.1.15] Rate limit — prevents enumeration + drain attacks.
@@ -22,8 +32,10 @@ export default async function handler(req, res) {
     if (!applyRateLimit(req, res, LIMITS.read)) return;
   }
 
-    const supabase = supabaseServerClient(req);
-    const { data: authData, error: authError } = await supabase.auth["getUser"]();
+    // ── Auth: verify JWT identity ──
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'Not authenticated' });
+    const { data: authData, error: authError } = await getSupabase().auth.getUser(token);
     const user = authData?.user;
     
     if (authError || !user) {
@@ -44,7 +56,7 @@ export default async function handler(req, res) {
         if (!targetPlayerId) return res.status(400).json({ error: 'targetPlayerId is required' });
 
         try {
-            const { data, error } = await supabase
+            const { data, error } = await getSupabase()
                 .from('player_notes')
                 .select('*')
                 .eq('user_id', user.id)
@@ -68,7 +80,7 @@ export default async function handler(req, res) {
         try {
             // Delete if content is completely empty
             if (!noteContent || noteContent.trim() === '') {
-                await supabase
+                await getSupabase()
                     .from('player_notes')
                     .delete()
                     .eq('user_id', user.id)
@@ -78,7 +90,7 @@ export default async function handler(req, res) {
             }
 
             // Upsert
-            const { data, error } = await supabase
+            const { data, error } = await getSupabase()
                 .from('player_notes')
                 .upsert({
                     user_id: user.id,
