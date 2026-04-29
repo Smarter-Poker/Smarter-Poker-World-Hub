@@ -16,9 +16,11 @@ concurrency:
   cancel-in-progress: true
 
 # Permissions needed for safety checks + failure notification (issue creation)
+# + packages: read for @smarter-poker/commander-shared from GitHub Packages
 permissions:
   contents: read
   issues: write
+  packages: read
 
 jobs:
   safety-checks:
@@ -34,8 +36,16 @@ jobs:
         with:
           node-version: '20.x'
           cache: 'npm'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@smarter-poker'
+          always-auth: true
 
       - name: Install dependencies
+        env:
+          # Primary: built-in GITHUB_TOKEN. It has read:packages on org-owned
+          # packages by default IF the package's repo-access settings grant
+          # this repo. If 401, fall back to NPM_AUTH_TOKEN secret (see handoff 4d).
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           npm ci --ignore-scripts 2>/dev/null || {
             echo "::warning::npm ci failed (lockfile sync issue) — falling back to npm install"
@@ -121,9 +131,14 @@ jobs:
       - name: "CHECK 4: No merge conflict markers"
         run: |
           echo "Scanning for git merge conflict markers..."
-          HITS=$(grep -rn "^<<<<<<< " \
+          # NOTE: match ANYWHERE on a line — stash pop can produce markers
+          # indented inside JSDoc comments, not just at column 0.
+          # deploy-autofix.js is excluded because it legitimately references
+          # these strings for its own conflict detection logic.
+          HITS=$(grep -rn '<<<<<<< \|>>>>>>>' \
             --include='*.js' --include='*.jsx' --include='*.ts' --include='*.tsx' --include='*.json' \
             --exclude-dir=node_modules --exclude-dir=.next \
+            --exclude='deploy-autofix.js' \
             src/ pages/ data/ 2>/dev/null || true)
 
           if [ -n "$HITS" ]; then
