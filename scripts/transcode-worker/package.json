@@ -1,0 +1,14 @@
+{
+  "name": "sp-transcode-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Smarter Poker HEVC→H.264 video transcode worker for Hetzner",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0"
+  }
+}

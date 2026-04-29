@@ -1,0 +1,27 @@
+# /etc/systemd/system/sp-transcode.service
+# Smarter Poker Video Transcode Worker
+# Polls for HEVC uploads and converts to H.264 MP4
+
+[Unit]
+Description=Smarter Poker Video Transcode Worker
+After=network.target
+Documentation=https://github.com/Smarter-Poker/Smarter-Poker-World-Hub
+
+[Service]
+Type=simple
+User=openclaw
+WorkingDirectory=/opt/smarter-poker/transcode-worker
+EnvironmentFile=/etc/sp-transcode.env
+ExecStart=/usr/bin/node index.js
+Restart=on-failure
+RestartSec=15
+# Limit restarts to prevent runaway crash loops
+StartLimitBurst=5
+StartLimitIntervalSec=300
+# Clean environment
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=sp-transcode
+
+[Install]
+WantedBy=multi-user.target
