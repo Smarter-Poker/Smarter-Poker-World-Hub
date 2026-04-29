@@ -28,6 +28,13 @@ Exceptions — things only a human can legitimately do:
 
 Everything else gets a handoff, not a "please do this".
 
+**Handoff delivery:** every handoff is BOTH (a) committed to
+`.agent/handoffs/YYYY-MM-DD-<slug>.md` AND (b) pasted into the same chat
+as a copy-pasteable Markdown block. Dan's standing preference is "always
+send handoffs inside this chat" — the on-disk file is the durable
+backup, the chat paste is the active delivery. Skipping (b) is a rule
+violation.
+
 **Platform-level plan** (World Hub + Club Arena + Club Engine + Supabase + Hetzner):
 `./CLUB-ARENA-OFFICIAL-UPGRADE-INTEGRATION.md`
 
