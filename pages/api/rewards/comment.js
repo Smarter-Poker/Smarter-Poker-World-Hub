@@ -64,6 +64,16 @@ export default async function handler(req, res) {
           return res.status(400).json({ success: false, error: 'userId required' });
       }
 
+      // commentId is the natural idempotency key for this reward — it's also
+      // what the quality-bar check needs. Required so the rest of the flow
+      // (rollback retry safety, deduped RPC reference_id, quality verification)
+      // can rely on a stable non-null value. Previously this could be null,
+      // which (a) skipped the quality check entirely and (b) opened a
+      // double-credit window on rollback retry.
+      if (!commentId || typeof commentId !== 'string') {
+          return res.status(400).json({ success: false, error: 'commentId required' });
+      }
+
       const now = new Date();
       const cstDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
       const today = `${cstDate.getFullYear()}-${String(cstDate.getMonth() + 1).padStart(2, '0')}-${String(cstDate.getDate()).padStart(2, '0')}`;
@@ -87,7 +97,7 @@ export default async function handler(req, res) {
           }
 
           // ── SAFEGUARD 2: Verify comment exists and meets quality bar ──
-          if (commentId) {
+          {
               const { data: comment } = await supabase
                   .from('social_comments')
                   .select('content')
@@ -170,7 +180,7 @@ export default async function handler(req, res) {
               reward_type: 'strategy_comment',
               diamonds_awarded: COMMENT_REWARD,
               claim_date: today,
-              metadata: { comment_id: commentId || null }
+              metadata: { comment_id: commentId }
           });
 
           if (claimErr) {
@@ -185,7 +195,7 @@ export default async function handler(req, res) {
               p_amount: COMMENT_REWARD,
               p_type: 'strategy_comment',
               p_description: `Strategy comment reward — ${COMMENT_REWARD}diamonds`,
-              p_reference_id: commentId || null
+              p_reference_id: `comment_reward_${commentId}`
           });
 
           if (rpcError) {

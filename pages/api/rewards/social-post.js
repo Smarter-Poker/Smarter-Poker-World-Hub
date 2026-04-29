@@ -63,6 +63,14 @@ export default async function handler(req, res) {
           return res.status(400).json({ success: false, error: 'userId required' });
       }
 
+      // postId is required so that (a) the quality-bar check actually runs
+      // and (b) the RPC can use a stable reference_id for retry idempotency.
+      // Previously postId could be null, which silently bypassed the
+      // quality bar and opened a double-credit window on rollback retry.
+      if (!postId || typeof postId !== 'string') {
+          return res.status(400).json({ success: false, error: 'postId required' });
+      }
+
       const now = new Date();
       const cstDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
       const today = `${cstDate.getFullYear()}-${String(cstDate.getMonth() + 1).padStart(2, '0')}-${String(cstDate.getDate()).padStart(2, '0')}`;
@@ -86,7 +94,7 @@ export default async function handler(req, res) {
           }
 
           // ── SAFEGUARD 2: Verify post actually exists and meets quality bar ──
-          if (postId) {
+          {
               const { data: post } = await supabase
                   .from('social_posts')
                   .select('content')
@@ -169,7 +177,7 @@ export default async function handler(req, res) {
               reward_type: 'social_post',
               diamonds_awarded: POST_REWARD,
               claim_date: today,
-              metadata: { post_id: postId || null }
+              metadata: { post_id: postId }
           });
 
           if (claimErr) {
@@ -179,12 +187,14 @@ export default async function handler(req, res) {
               throw claimErr;
           }
 
+          // Stable reference_id closes the retry-double-credit window. postId is
+          // the natural key (now required at the input gate above).
           const { error: rpcError } = await getSupabase().rpc('add_diamonds_to_balance', {
               p_user_id: userId,
               p_amount: POST_REWARD,
               p_type: 'social_post',
               p_description: `Social post reward — ${POST_REWARD}diamonds`,
-              p_reference_id: postId || null
+              p_reference_id: `social_post_reward_${postId}`
           });
 
           if (rpcError) {

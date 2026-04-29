@@ -115,12 +115,16 @@ export default async function handler(req, res) {
               throw claimErr;
           }
 
+          // Stable reference_id closes the retry-double-credit window. share is
+          // a one-per-day reward, so a (user, day) key is the right idempotency
+          // anchor — contentId varies per share invocation and would let a
+          // rollback retry double-credit by passing a different reference_id.
           const { error: rpcError } = await getSupabase().rpc('add_diamonds_to_balance', {
               p_user_id: userId,
               p_amount: SHARE_REWARD,
               p_type: 'share',
               p_description: `Share reward — ${SHARE_REWARD}diamonds`,
-              p_reference_id: contentId || null
+              p_reference_id: `share_reward_${userId}_${today}`
           });
 
           if (rpcError) {
