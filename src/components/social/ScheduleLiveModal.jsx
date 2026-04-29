@@ -5,6 +5,7 @@
  */
 import { useState, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
+import { getAccessToken } from '../../lib/authUtils';
 
 const C = {
     bg: '#0A0A1A',
@@ -56,9 +57,13 @@ export function ScheduleLiveModal({ isOpen, onClose, user }) {
         setSaving(true);
         setError('');
         try {
+            const token = getAccessToken();
             const resp = await fetch('/api/live/schedule', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
                 credentials: 'same-origin',
                 body: JSON.stringify({ title, description, thumbnail_url: thumbnailUrl, scheduled_at }),
             });

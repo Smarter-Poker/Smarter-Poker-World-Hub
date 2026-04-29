@@ -3,6 +3,7 @@
  * Viewers send diamonds to broadcasters with animated confirmation.
  */
 import { useState } from 'react';
+import { getAccessToken } from '../../lib/authUtils';
 
 const GIFT_AMOUNTS = [
     { amount: 5,   label: '5',   emoji: '💎' },
@@ -27,9 +28,13 @@ export function LiveDiamondGift({ streamId, receiverId, userId, userBalance, onG
         setSending(true);
         setError('');
         try {
+            const token = getAccessToken();
             const resp = await fetch('/api/live/gift', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
                 credentials: 'same-origin',
                 body: JSON.stringify({ stream_id: streamId, receiver_id: receiverId, amount: selected }),
             });
