@@ -2,24 +2,31 @@
  * BACKGROUND VIDEO UPLOAD MANAGER v3.3
  * src/lib/backgroundVideoUpload.js
  *
- * v3.3 (2026-04-29): Web Locks contention fix.
- * Root cause traced via live console: Supabase JS SDK uses navigator.locks
- * ('lock:smarter-poker-auth') to serialize session reads. When a video
- * upload kicks off concurrently with realtime feed subscribers, prefetch
- * navigation, and the social composer's own session reads, the SDK lock
- * gets stolen mid-getSession, and the call throws:
- *     "Lock 'lock:smarter-poker-auth' was released because another request stole it"
- * Previous _ensureBearer caught that and fell through to a raw localStorage
- * read — which can return a stale token from a partially-completed refresh,
- * which Storage rejects as "Invalid Compact JWS".
- * Fix: on lock contention, back off and retry the SDK up to 3x (100/200/300ms)
- * BEFORE falling through to localStorage. Storage still gets a real, current
- * JWT minted by the SDK rather than a half-written localStorage string.
+ * v3.3 (2026-04-29): mid-write race fix for the empty/stale-bearer crash.
  *
- * v3.1 (2026-04-29): empty-Bearer JWS race fix — _ensureBearer falls back
- * to supabase.auth.refreshSession() when getAccessToken() returns null;
- * applied to both initial TUS POST headers and per-chunk onBeforeRequest.
- * Cache-bust comment to force Vercel to rebuild this module's chunk.
+ * Root cause traced via live console on Dan's browser:
+ *     "[bgUpload] SDK auth path threw, falling through to localStorage:
+ *      Lock 'lock:smarter-poker-auth' was released because another request stole it"
+ *
+ * The Supabase JS SDK serializes session reads via navigator.locks. When a
+ * video upload kicks off concurrently with realtime feed subscribers, prefetch
+ * navigation, and the composer's own session reads, the SDK is mid-write of
+ * the auth blob to localStorage when our reader fires. The previous
+ * _ensureBearer caught the SDK throw and fell through to a one-shot
+ * localStorage read — which can return a stale or just-expired token. Storage
+ * then rejects the bytes as "Invalid Compact JWS" / 401.
+ *
+ * Codebase policy (.husky/pre-commit) BANS direct SDK auth getter calls —
+ * the SDK is exactly what causes the lock contention. The supported path is
+ * authUtils.getAccessToken() which reads localStorage directly.
+ *
+ * Fix: read localStorage in a retry loop with backoff, validating BOTH JWT
+ * shape AND that the exp claim is at least 30 seconds in the future. If a
+ * read lands on a just-expired or partial token, we wait 100/200/400ms and
+ * re-read — the SDK's background refresh has flushed the new token by then.
+ * After all attempts we still ship the most-recently-shape-valid token (so
+ * an upload can at least try) and emit detailed diagnostics so future
+ * debugging sessions can read the truth from the console.
  *
  * Production-grade singleton with:
  *   1. URL PREFETCHING — signed URL is fetched when user selects a file,
@@ -54,67 +61,95 @@ import toast, { useToastStore } from '../stores/toastStore';
 import * as tus from 'tus-js-client';
 
 // ─── Auth resilience helper ──────────────────────────────────────────────────
-// getAccessToken() is a one-shot localStorage read that:
-//   1. races with Supabase SDK token refresh (returns null mid-write)
-//   2. fails in PWA standalone mode (separate localStorage scope from Safari)
-//   3. returns null under iOS memory pressure on background tabs
-//   4. can return a TRUTHY-but-malformed string from a legacy SDK shape or
-//      a corrupted JSON.parse fallback (e.g. literal "undefined", "null",
-//      or "[object Object]")
-// In ALL of those cases, building `Bearer ${tok}` and shipping it makes
-// Supabase Storage reject with "Invalid Compact JWS" before x-signature is
-// even read. This helper:
-//   (a) prefers SDK getSession() — auto-refreshes if expired
-//   (b) validates JWT shape (3 base64url parts) at every step
-//   (c) emits a console.warn with the failure mode so future debugging
-//       sessions can read the truth from the browser console without me
-//       having to guess
+// getAccessToken() is a one-shot localStorage read of the SDK's persisted
+// session blob. It can hand back a stale or partial value when the SDK is
+// mid-write (the SDK serializes its writes through navigator.locks, but our
+// reader doesn't honor that lock — going through the SDK is banned by the
+// pre-commit hook because SDK calls themselves cause the lock contention).
+//
+// Failure modes we have to defend against:
+//   1. Mid-write: localStorage holds the OLD blob (or is briefly clobbered).
+//   2. Just-expired: token is shape-valid but exp is in the past.
+//   3. Corrupt: literal "undefined"/"null"/"[object Object]" from legacy SDK
+//      writes.
+//   4. PWA standalone scope (different localStorage from Safari): null.
+//   5. iOS memory-pressure on backgrounded tabs: null.
+//
+// In all of those, shipping `Bearer ${tok}` to Storage produces 401 / Invalid
+// Compact JWS. This helper:
+//   (a) reads getAccessToken() in a retry loop (4 attempts, 100/200/400/0ms)
+//   (b) validates JWT shape (3 base64url parts) and parses the payload's exp
+//       claim — a token that expires in <30s is treated as too stale to use
+//       and retried; another component's refresh almost always lands within
+//       a few hundred ms.
+//   (c) on final failure returns the most-recently-shape-valid token rather
+//       than null, so the upload at least gets a chance — and emits a clear
+//       console.warn so future debugging sees the actual failure mode.
 const JWT_SHAPE = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 const _isJWT = (t) => typeof t === 'string' && JWT_SHAPE.test(t);
 
-async function _ensureBearer() {
-    // 1. PRIMARY: SDK getSession — single source of truth; auto-refreshes if expired.
-    //    Retry up to 3x on Web Locks contention (the SDK serializes session reads
-    //    via navigator.locks; when another tab/component is also reading, the lock
-    //    can be stolen mid-call and getSession throws). Backing off and retrying
-    //    almost always succeeds — the lock is released within a few hundred ms.
-    let lastErr = null;
-    for (let attempt = 0; attempt < 3; attempt++) {
-        try {
-            const { supabase } = await import('./supabase');
-            const { data: { session } = {} } = await supabase.auth.getSession();
-            const tok = session?.access_token;
-            if (_isJWT(tok)) return tok;
-            if (tok) console.warn('[bgUpload] SDK getSession returned non-JWT-shaped token, forcing refresh', { tokenType: typeof tok, prefix: String(tok).slice(0, 20) });
+// Decode the middle JWT part to read the exp claim. Pure-text — no crypto.
+// Returns { exp: <number> } or null if unparseable.
+function _readJwtPayload(tok) {
+    try {
+        const parts = tok.split('.');
+        if (parts.length !== 3) return null;
+        // base64url -> base64
+        const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        const pad = b64.length % 4 ? '='.repeat(4 - (b64.length % 4)) : '';
+        const json = typeof atob === 'function'
+            ? atob(b64 + pad)
+            : Buffer.from(b64 + pad, 'base64').toString('utf-8');
+        return JSON.parse(json);
+    } catch (_e) {
+        return null;
+    }
+}
 
-            // 2. Force explicit refresh.
-            const { data: ref } = await supabase.auth.refreshSession();
-            const refTok = ref?.session?.access_token;
-            if (_isJWT(refTok)) return refTok;
-            if (refTok) console.warn('[bgUpload] refreshSession returned non-JWT-shaped token', { tokenType: typeof refTok, prefix: String(refTok).slice(0, 20) });
-            // SDK returned cleanly but with no usable token — break out, no point retrying.
-            break;
-        } catch (e) {
-            lastErr = e;
-            const msg = e?.message || String(e);
-            // Lock-stolen errors are transient — retry. Anything else, also retry once
-            // (cheap), but stop early on the last attempt so we don't burn time.
-            console.warn(`[bgUpload] SDK auth attempt ${attempt + 1}/3 threw:`, msg);
-            if (attempt < 2) {
-                await new Promise(r => setTimeout(r, 100 * (attempt + 1)));
-            }
+// Returns true if tok is JWT-shaped AND its exp is at least <skewSec> in the future.
+function _isFreshJWT(tok, skewSec = 30) {
+    if (!_isJWT(tok)) return false;
+    const payload = _readJwtPayload(tok);
+    if (!payload || typeof payload.exp !== 'number') return false;
+    const nowSec = Math.floor(Date.now() / 1000);
+    return payload.exp > nowSec + skewSec;
+}
+
+async function _ensureBearer() {
+    // Retry localStorage reads — the SDK's background token refresh lands within
+    // a few hundred ms. If the first read is stale/expired or comes back as a
+    // null/corrupt value, wait and retry; by attempt 3 the new token has been
+    // flushed.
+    let lastShapeValid = null;       // best-we've-seen, even if stale
+    let lastDiagnostic = null;       // reason the last attempt failed
+    const delays = [0, 100, 200, 400]; // ms between attempts
+
+    for (let attempt = 0; attempt < delays.length; attempt++) {
+        if (delays[attempt] > 0) {
+            await new Promise(r => setTimeout(r, delays[attempt]));
         }
+        const tok = getAccessToken();
+        if (!tok) { lastDiagnostic = `attempt ${attempt + 1}: getAccessToken returned null`; continue; }
+        if (!_isJWT(tok)) {
+            lastDiagnostic = `attempt ${attempt + 1}: non-JWT-shaped value (prefix=${String(tok).slice(0, 20)})`;
+            continue;
+        }
+        // Shape is valid — keep it as a fallback even if exp is bad.
+        lastShapeValid = tok;
+        if (_isFreshJWT(tok, 30)) return tok;
+        const payload = _readJwtPayload(tok);
+        const nowSec = Math.floor(Date.now() / 1000);
+        const remaining = payload?.exp ? (payload.exp - nowSec) : 'unknown';
+        lastDiagnostic = `attempt ${attempt + 1}: token exp in ${remaining}s (need >30s) — likely mid-refresh`;
     }
 
-    // 3. LAST RESORT: localStorage shape-checked. Reached only after 3 SDK retries
-    //    all threw — at that point the SDK is genuinely broken and a stale token is
-    //    better than no upload attempt at all.
-    if (lastErr) console.warn('[bgUpload] All 3 SDK retries failed, falling through to localStorage. Last error:', lastErr?.message || lastErr);
-    const local = getAccessToken();
-    if (_isJWT(local)) return local;
-    if (local) console.warn('[bgUpload] getAccessToken returned non-JWT-shaped value (corrupt localStorage)', { tokenType: typeof local, prefix: String(local).slice(0, 20) });
-
-    console.warn('[bgUpload] _ensureBearer returning null — every auth path failed. User will see "Session expired".');
+    if (lastShapeValid) {
+        // Best-effort: ship the freshest shape-valid token we saw, even if its
+        // exp is close. Storage may still accept it on the wire.
+        console.warn('[bgUpload] _ensureBearer using stale-but-shape-valid token after retries:', lastDiagnostic);
+        return lastShapeValid;
+    }
+    console.warn('[bgUpload] _ensureBearer returning null — every read failed:', lastDiagnostic);
     return null;
 }
 
