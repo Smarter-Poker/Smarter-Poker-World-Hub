@@ -180,6 +180,10 @@ export default async function handler(req, res) {
               // Note: Supabase RPC returns {data, error} and does NOT throw — the previous
               // try/catch never caught RPC failures, so a failed credit silently told the
               // user "+150diamonds claimed!" while no diamonds landed in their balance.
+              // Stable reference_id closes the retry-double-credit window: if the
+              // RPC commits but the response delivery fails (network drop / 502),
+              // the rollback path lets the user retry — without a stable
+              // reference_id the second call would have no dedup and double-credit.
               const { error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
                   p_user_id: userId,
                   p_amount: totalBonus,
@@ -187,7 +191,7 @@ export default async function handler(req, res) {
                   p_description: streakBonus > 0
                       ? `Daily bonus (${BASE_DAILY_BONUS}diamonds) + ${currentStreak}-day streak bonus (${streakBonus}diamonds)`
                       : `Daily training bonus — ${totalBonus}diamonds`,
-                  p_reference_id: null
+                  p_reference_id: `daily_bonus_${userId}_${today}`
               });
 
               if (rpcErr) {

@@ -120,12 +120,16 @@ export default async function handler(req, res) {
         }
 
         // Award diamonds
+        // Stable reference_id (`claimKey` already encodes year) closes the
+        // retry-double-credit window: if the RPC commits but response delivery
+        // fails, the rollback path lets the user retry — without a stable
+        // reference_id the retry would have no dedup and double-credit.
         const { error: rpcError } = await getSupabase().rpc('add_diamonds_to_balance', {
             p_user_id: userId,
             p_amount: BIRTHDAY_DIAMONDS,
             p_type: 'birthday_reward',
             p_description: `Happy Birthday! 🎂 ${BIRTHDAY_DIAMONDS}diamonds awarded`,
-            p_reference_id: null
+            p_reference_id: `${claimKey}_${userId}`
         });
 
         if (rpcError) {

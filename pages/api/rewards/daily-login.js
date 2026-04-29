@@ -173,6 +173,10 @@ export default async function handler(req, res) {
           }
 
           // ── Award diamonds ──
+          // Stable reference_id closes the retry-double-credit window: if the RPC
+          // commits but response delivery fails (network drop / 502), the rollback
+          // path lets the user retry — without a stable reference_id the retry
+          // would have no dedup and double-credit.
           const { error: rpcError } = await getSupabase().rpc('add_diamonds_to_balance', {
               p_user_id: userId,
               p_amount: diamondsAwarded,
@@ -180,7 +184,7 @@ export default async function handler(req, res) {
               p_description: streak > 1
                   ? `Daily login reward (${streak}-day streak) — ${diamondsAwarded}diamonds`
                   : `Daily login reward — ${diamondsAwarded}diamonds`,
-              p_reference_id: null
+              p_reference_id: `daily_login_${userId}_${today}`
           });
 
           if (rpcError) {
