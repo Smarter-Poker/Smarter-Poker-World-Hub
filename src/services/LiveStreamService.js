@@ -21,6 +21,7 @@
 
 import { Room, RoomEvent, Track, VideoPresets } from 'livekit-client';
 import { supabase } from '../lib/supabase';
+import { getAccessToken } from '../lib/authUtils';
 
 const logError = (ctx, err) => console.warn(`[LiveStream:${ctx}]`, err?.message || err);
 
@@ -59,9 +60,13 @@ class LiveStreamService {
     // ═══════════════════════════════════════════════════
 
     async _getToken(streamId, broadcaster) {
+        const token = getAccessToken();
         const resp = await fetch('/api/live/token', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
             credentials: 'same-origin',
             body: JSON.stringify({
                 room: streamId,
