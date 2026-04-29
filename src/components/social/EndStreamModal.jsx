@@ -301,6 +301,13 @@ export function EndStreamModal({
                     </div>
                 )}
 
+                {/* #13: No recording warning */}
+                {!videoBlob && (
+                    <div style={{ padding: '0 16px 16px', color: '#FFA500', fontSize: 13, fontWeight: 600 }}>
+                        Recording not available — this stream was live-only and cannot be saved or posted.
+                    </div>
+                )}
+
                 {/* Action Buttons */}
                 <div style={{
                     padding: 16,
@@ -312,7 +319,7 @@ export function EndStreamModal({
                     {/* Post Now - Primary */}
                     <button
                         onClick={handlePostNow}
-                        disabled={isUploading}
+                        disabled={isUploading || !videoBlob}
                         style={{
                             width: '100%',
                             padding: '14px 24px',
@@ -322,8 +329,8 @@ export function EndStreamModal({
                             color: 'white',
                             fontSize: 16,
                             fontWeight: 600,
-                            cursor: isUploading ? 'not-allowed' : 'pointer',
-                            opacity: isUploading ? 0.6 : 1,
+                            cursor: (isUploading || !videoBlob) ? 'not-allowed' : 'pointer',
+                            opacity: (isUploading || !videoBlob) ? 0.4 : 1,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -336,7 +343,7 @@ export function EndStreamModal({
                     {/* Save to Lives - Secondary */}
                     <button
                         onClick={handleSaveToLives}
-                        disabled={isUploading}
+                        disabled={isUploading || !videoBlob}
                         style={{
                             width: '100%',
                             padding: '14px 24px',
@@ -346,8 +353,8 @@ export function EndStreamModal({
                             color: C.text,
                             fontSize: 16,
                             fontWeight: 600,
-                            cursor: isUploading ? 'not-allowed' : 'pointer',
-                            opacity: isUploading ? 0.6 : 1,
+                            cursor: (isUploading || !videoBlob) ? 'not-allowed' : 'pointer',
+                            opacity: (isUploading || !videoBlob) ? 0.4 : 1,
                         }}
                     >
                         Save to Lives

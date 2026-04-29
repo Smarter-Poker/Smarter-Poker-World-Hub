@@ -42,6 +42,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     const commentsEndRef = useRef(null);
     const commentChannelRef = useRef(null);
     const giftChannelRef = useRef(null);
+    const commentInputRef = useRef(null); // #10: blur after send to dismiss keyboard
 
     useEffect(() => {
         if (!stream?.id || !userId) return;
@@ -183,6 +184,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
         if (!text || !stream?.id || !userId) return;
         setCommentInput('');
         setCommentError('');
+        commentInputRef.current?.blur(); // #10: dismiss mobile keyboard
         const authorName = user?.full_name || user?.user_metadata?.full_name || user?.username || user?.email?.split('@')[0] || 'Viewer';
         try {
             const { data, error } = await supabase.rpc('insert_live_comment_with_slowmode', {
@@ -451,6 +453,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
             {/* COMMENT INPUT + gift button */}
             <div style={{ position:'absolute', bottom:24, left:12, right:12, zIndex:10, display:'flex', gap:8 }}>
                 <input
+                    ref={commentInputRef}
                     value={commentInput}
                     onChange={e => setCommentInput(e.target.value)}
                     onKeyDown={e => { if(e.key==='Enter') handleSendComment(); }}

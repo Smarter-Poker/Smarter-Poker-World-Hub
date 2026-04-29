@@ -42,6 +42,7 @@ export default function LivesPage() {
     const [myDrafts, setMyDrafts] = useState([]);
     const [showDrafts, setShowDrafts] = useState(false);
     const [publishingDraft, setPublishingDraft] = useState(null);
+    const [publishToast, setPublishToast] = useState(null);  // #5: success feedback
     const containerRef = useRef(null);
     const videoRefs = useRef({});
 
@@ -141,6 +142,9 @@ export default function LivesPage() {
             });
             const data = await resp.json();
             if (!resp.ok) throw new Error(data.error || 'Publish failed');
+            // #5: Success toast
+            setPublishToast('Stream Published to Feed!');
+            setTimeout(() => setPublishToast(null), 3000);
             await Promise.all([fetchStreams(), fetchMyDrafts()]);
         } catch (err) {
             console.warn('Publish draft error:', err);
@@ -496,6 +500,26 @@ export default function LivesPage() {
                             <p style={{ color: C.textSec, margin: '0 0 24px' }}>
                                 Be the first to go live and share with the community!
                             </p>
+                            {/* #4: Show draft count when user has saved streams */}
+                            {myDrafts.length > 0 && (
+                                <button
+                                    onClick={() => setShowDrafts(true)}
+                                    style={{
+                                        display: 'block',
+                                        margin: '0 auto 16px',
+                                        padding: '10px 22px',
+                                        background: 'rgba(255, 215, 0, 0.15)',
+                                        border: '1px solid rgba(255, 215, 0, 0.4)',
+                                        borderRadius: 8,
+                                        color: '#FFD700',
+                                        fontSize: 14,
+                                        fontWeight: 600,
+                                        cursor: 'pointer',
+                                    }}
+                                >
+                                    You have {myDrafts.length} saved {myDrafts.length === 1 ? 'stream' : 'streams'} ready to publish
+                                </button>
+                            )}
                             <Link href="/hub/social-media" style={{
                                 display: 'inline-block',
                                 padding: '14px 28px',
@@ -936,6 +960,27 @@ export default function LivesPage() {
                             fetchStreams();
                         }}
                     />
+                )}
+
+                {/* #5: Publish success toast */}
+                {publishToast && (
+                    <div style={{
+                        position: 'fixed',
+                        top: 80,
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        background: 'rgba(0, 200, 100, 0.95)',
+                        color: 'white',
+                        padding: '12px 28px',
+                        borderRadius: 12,
+                        fontSize: 15,
+                        fontWeight: 700,
+                        zIndex: 10001,
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+                        animation: 'slideUp 0.3s ease-out',
+                    }}>
+                        {publishToast}
+                    </div>
                 )}
 
             {UpgradePopup}

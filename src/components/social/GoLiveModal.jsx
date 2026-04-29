@@ -39,6 +39,8 @@ export function GoLiveModal({ isOpen, onClose, user }) {
     const [category, setCategory] = useState('general');
     const [connectionQuality, setConnectionQuality] = useState('excellent');
     const [giftFlash, setGiftFlash] = useState(null);
+    const [isStarting, setIsStarting] = useState(false);       // #3/#11: prevents double-tap on Go Live
+    const [recordingFailed, setRecordingFailed] = useState(false); // #12: warns when recording unavailable
 
     // Thumbnail state
     const [thumbnailFile, setThumbnailFile] = useState(null);
@@ -54,6 +56,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
     const recordedChunksRef = useRef([]);
     const commentsEndRef = useRef(null);
     const thumbnailInputRef = useRef(null);
+    const commentInputRef = useRef(null); // #10: blur after send to dismiss keyboard
     const hideControlsRef = useRef(null);
     const commentChannelRef = useRef(null);
 
@@ -78,6 +81,19 @@ export function GoLiveModal({ isOpen, onClose, user }) {
             liveStreamService.onConnectionQualityChange = null;
         };
     }, [isOpen]);
+
+    // #14: beforeunload — end broadcast if user closes tab/navigates away while live
+    useEffect(() => {
+        if (stage !== 'live' || !streamId) return;
+        const handleBeforeUnload = (e) => {
+            // Fire-and-forget — navigator.sendBeacon can't do POST with JSON,
+            // so we use the sync LiveKit disconnect + DB update
+            liveStreamService.endBroadcast().catch(() => {});
+            e.returnValue = 'Your live stream is still running. Are you sure you want to leave?';
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [stage, streamId]);
 
     // Subscribe to viewer comments when stream goes live
     useEffect(() => {
@@ -179,7 +195,12 @@ export function GoLiveModal({ isOpen, onClose, user }) {
         recordedChunksRef.current = [];
         const types = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4'];
         const mime = types.find(t => MediaRecorder.isTypeSupported(t)) || '';
-        if (!mime) return;
+        if (!mime) {
+            // #12: No supported codec — recording is impossible (e.g. some Safari versions)
+            setRecordingFailed(true);
+            return;
+        }
+        setRecordingFailed(false);
         const mr = new MediaRecorder(streamRef.current, { mimeType: mime, videoBitsPerSecond: 2500000 });
         mr.ondataavailable = (e) => { if (e.data.size > 0) recordedChunksRef.current.push(e.data); };
         mr.onstop = () => setRecordedBlob(new Blob(recordedChunksRef.current, { type: mime }));
@@ -188,7 +209,10 @@ export function GoLiveModal({ isOpen, onClose, user }) {
     };
 
     const handleGoLive = async () => {
+        // #3/#11: Prevent double-tap / double-broadcast on slow networks
+        if (isStarting) return;
         if (!streamRef.current || !user?.id) { setError('Unable to start stream.'); return; }
+        setIsStarting(true);
         setError('');
         setStage('countdown');
         setCountdown(5);
@@ -261,10 +285,13 @@ export function GoLiveModal({ isOpen, onClose, user }) {
     }, []);
 
     const handleEndStream = async () => {
+        // #1: Confirm before ending — prevents accidental stream kills
+        if (!confirm('End your live stream? This will stop broadcasting to all viewers.')) return;
         try {
             if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current?.stop();
             await liveStreamService.endBroadcast();
             if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+            setIsStarting(false); // Reset for next session
             setStage('ended');
             // Show analytics BEFORE end stream modal
             setShowAnalytics(true);
@@ -316,6 +343,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
         if (!commentInput.trim() || !streamId || !user?.id) return;
         const text = commentInput.trim();
         setCommentInput('');
+        commentInputRef.current?.blur(); // #10: dismiss mobile keyboard
         const authorName = user.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'Viewer';
         const newComment = { id: Date.now(), user_id: user.id, author_name: authorName, text, created_at: new Date().toISOString() };
         setComments(prev => [...prev, newComment]);
@@ -490,9 +518,10 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                                 <button onClick={onClose} style={{ flex:1, padding:'13px 20px', borderRadius:8, border:`1px solid ${C.border}`, background:'white', color:C.text, fontSize:15, fontWeight:600, cursor:'pointer' }}>Cancel</button>
                                 <button
                                     onClick={handleGoLive}
-                                    style={{ flex:1, padding:'13px 20px', borderRadius:8, border:'none', background:C.red, color:'white', fontSize:15, fontWeight:700, cursor:'pointer' }}
+                                    disabled={isStarting}
+                                    style={{ flex:1, padding:'13px 20px', borderRadius:8, border:'none', background:C.red, color:'white', fontSize:15, fontWeight:700, cursor: isStarting ? 'not-allowed' : 'pointer', opacity: isStarting ? 0.6 : 1 }}
                                 >
-                                    Go Live
+                                    {isStarting ? 'Starting...' : 'Go Live'}
                                 </button>
                             </div>
                         </div>
@@ -559,6 +588,12 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                                     SLOW
                                 </div>
                             )}
+                            {/* #12: Recording failed warning badge */}
+                            {recordingFailed && (
+                                <div style={{ background:'rgba(255,165,0,0.85)', color:'white', padding:'5px 10px', borderRadius:7, fontSize:11, fontWeight:700 }}>
+                                    NO REC
+                                </div>
+                            )}
                             {/* Connection quality indicator */}
                             <div
                                 title={`Connection: ${connectionQuality}`}
@@ -601,6 +636,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                         {/* COMMENT INPUT */}
                         <div style={{ position:'absolute', bottom:50, left:12, right:56, zIndex:10, display:'flex', gap:8 }}>
                             <input
+                                ref={commentInputRef}
                                 value={commentInput}
                                 onChange={e => setCommentInput(e.target.value)}
                                 onKeyDown={e => { e.stopPropagation(); if(e.key==='Enter') handleSendComment(); }}
