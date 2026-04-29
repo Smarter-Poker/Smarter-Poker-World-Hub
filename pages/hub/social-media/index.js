@@ -6020,6 +6020,8 @@ function SocialMediaPage() {
                     <button onClick={() => {
                         setSidebarOpen(false);
                         try { localStorage.removeItem('sp-social-user'); } catch (_) {}
+                        try { localStorage.removeItem('sp-vip-status'); } catch (_) {}
+                        try { localStorage.removeItem('smarter-poker-auth'); } catch (_) {}
                         supabase.auth.signOut().finally(() => { window.location.href = '/'; });
                     }} style={{
                         padding: '12px 0', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',

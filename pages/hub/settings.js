@@ -250,7 +250,7 @@ export default function SettingsPage() {
     };
 
     // Menu config
-    const menuConfig = getMenuConfig('settings', user, {}, { onSignOut: handleLogout });
+    const menuConfig = getMenuConfig('settings', user, {}, { onSignOut: () => handleLogout() });
 
     //  BULLETPROOF: Read user from localStorage immediately (same as UniversalHeader)
     useEffect(() => {

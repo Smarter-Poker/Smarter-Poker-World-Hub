@@ -56,7 +56,7 @@ export default function ReelsPage() {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState(false);
-    const [muted, setMuted] = useState(true); // Start MUTED for mobile autoplay compliance — unmute after playback confirmed
+    const [muted, setMuted] = useState(false); // Start unmuted — mute=1 removed from YT URL since user has already interacted with page
     const [userWantsSound, setUserWantsSound] = useState(true); // User preference — auto-unmute after YT confirms playing
     // Auto-play immediately - videos start muted per browser policy, unmute after onStateChange confirms playing
     const [liked, setLiked] = useState({});
@@ -89,6 +89,7 @@ export default function ReelsPage() {
     userWantsSoundRef.current = userWantsSound; // Keep in sync on every render
     const [ytReady, setYtReady] = useState(false); // True once YouTube fires first onStateChange — suppresses phantom play button during autoplay startup
     const touchStartY = useRef(0);
+    const touchStartX = useRef(0);
     const lastTapRef = useRef(0);
     const likeDebounceRef = useRef(false);
     const slideDebounceRef = useRef(false);
@@ -954,8 +955,9 @@ export default function ReelsPage() {
             // DB trigger handles comment_count increment atomically
             setCommentCounts(prev => ({ ...prev, [currentReel.id]: (prev[currentReel.id] || 0) + 1 }));
         } catch (err) {
-            console.error('[CommentInsert] Failed:', err);
+            console.error('[CommentInsert] Failed:', err?.message, err?.details, err?.hint);
             setComments(prev => prev.filter(c => c.id !== tempId));
+            showErrorToast('Comment failed — ' + (err?.message || 'try again'));
         }
         setSubmittingComment(false);
     };
@@ -1324,9 +1326,20 @@ export default function ReelsPage() {
     useEffect(() => {
         const handleTouchStart = (e) => {
             touchStartY.current = e.touches[0].clientY;
+            touchStartX.current = e.touches[0].clientX;
             // Track pull-to-refresh start when at first reel
             if (currentIndexRef.current === 0) {
                 pullStartY.current = e.touches[0].clientY;
+            }
+        };
+
+        // CRITICAL: Block default scroll during vertical swipe so our handler works
+        const handleTouchMove = (e) => {
+            const dy = Math.abs(e.touches[0].clientY - touchStartY.current);
+            const dx = Math.abs(e.touches[0].clientX - (touchStartX.current || 0));
+            // Only prevent default for vertical swipes (not horizontal)
+            if (dy > 10 && dy > dx) {
+                e.preventDefault();
             }
         };
 
@@ -1345,9 +1358,6 @@ export default function ReelsPage() {
             pullStartY.current = null;
 
             if (Math.abs(diff) > threshold) {
-                e.preventDefault();
-                e.stopPropagation();
-
                 try { navigator?.vibrate?.(10); } catch (e) { console.warn('[App] Handled exception:', e); }
                 if (diff > 0) {
                     slideToNextRef.current();
@@ -1422,11 +1432,13 @@ export default function ReelsPage() {
         };
 
         document.addEventListener('touchstart', handleTouchStart, { passive: true, capture: true });
-        document.addEventListener('touchend', handleTouchEnd, { passive: false, capture: true });
+        document.addEventListener('touchmove', handleTouchMove, { passive: false, capture: true });
+        document.addEventListener('touchend', handleTouchEnd, { passive: true, capture: true });
         window.addEventListener('wheel', handleWheel, { passive: true });
         window.addEventListener('message', handleYTMessage);
         return () => {
             document.removeEventListener('touchstart', handleTouchStart, { capture: true });
+            document.removeEventListener('touchmove', handleTouchMove, { capture: true });
             document.removeEventListener('touchend', handleTouchEnd, { capture: true });
             window.removeEventListener('wheel', handleWheel);
             window.removeEventListener('message', handleYTMessage);
@@ -1698,7 +1710,7 @@ export default function ReelsPage() {
                         <iframe
                             ref={iframeRef}
                             key={currentReel?.id}
-                            src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}&iv_load_policy=3&disablekb=1&fs=0&cc_load_policy=0`}
+                            src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}&iv_load_policy=3&disablekb=1&fs=0&cc_load_policy=0`}
                             title="Poker Reel"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                             allowFullScreen

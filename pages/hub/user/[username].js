@@ -1036,17 +1036,60 @@ export default function UserProfilePage() {
                 loadedUsernameRef.current = username;
 
                 // ═══════════════════════════════════════════════════════════
+                // HORSE SOCIAL IDENTITY RESOLUTION
+                // ═══════════════════════════════════════════════════════════
+                // Horses have TWO profiles: a "real name" profile (e.g. daphne.winterfield)
+                // and an "alias" profile (e.g. Prairiegal) stored in content_authors.profile_id.
+                // Posts, friendships, and follows are all tied to the alias profile_id.
+                // We need to detect this and use the correct ID for social queries.
+                let socialId = data.id; // Default: use the loaded profile's ID
+                try {
+                    // Check 1: Is this profile directly referenced by content_authors?
+                    const { data: caDirectMatch } = await supabase
+                        .from('content_authors')
+                        .select('profile_id')
+                        .eq('profile_id', data.id)
+                        .eq('is_active', true)
+                        .limit(1)
+                        .maybeSingle();
+
+                    if (!caDirectMatch) {
+                        // Check 2: Does content_authors have a horse whose full_name matches this profile?
+                        // This catches the case where the user navigates to the "real name" profile
+                        // but the horse's social data lives under a different profile_id (the alias profile).
+                        const profileName = data.full_name || data.username || '';
+                        if (profileName) {
+                            const { data: caNameMatch } = await supabase
+                                .from('content_authors')
+                                .select('profile_id')
+                                .eq('is_active', true)
+                                .not('profile_id', 'is', null)
+                                .ilike('name', profileName)
+                                .limit(1)
+                                .maybeSingle();
+
+                            if (caNameMatch && caNameMatch.profile_id && caNameMatch.profile_id !== data.id) {
+                                socialId = caNameMatch.profile_id;
+                            }
+                        }
+                    }
+                } catch (e) {
+                    // Non-fatal: fall back to data.id
+                    console.warn('[Profile] Horse social ID resolution failed:', e?.message || e);
+                }
+
+                // ═══════════════════════════════════════════════════════════
                 // PARALLEL BATCH 1: Friendship + Stats (all independent)
                 // ═══════════════════════════════════════════════════════════
                 const batch1Promises = [
                     // FRIEND COUNT: Two-direction queries (matches Friends API pattern exactly)
                     // Query 1: friendships where profile is the sender
-                    supabase.from('friendships').select('friend_id').eq('user_id', data.id).eq('status', 'accepted'),
+                    supabase.from('friendships').select('friend_id').eq('user_id', socialId).eq('status', 'accepted'),
                     // Query 2: friendships where profile is the receiver
-                    supabase.from('friendships').select('user_id').eq('friend_id', data.id).eq('status', 'accepted'),
-                    supabase.from('social_follows').select('*', { count: 'exact', head: true }).eq('follower_id', data.id),
-                    supabase.from('social_follows').select('*', { count: 'exact', head: true }).eq('following_id', data.id),
-                    supabase.from('social_posts').select('*', { count: 'exact', head: true }).eq('author_id', data.id),
+                    supabase.from('friendships').select('user_id').eq('friend_id', socialId).eq('status', 'accepted'),
+                    supabase.from('social_follows').select('*', { count: 'exact', head: true }).eq('follower_id', socialId),
+                    supabase.from('social_follows').select('*', { count: 'exact', head: true }).eq('following_id', socialId),
+                    supabase.from('social_posts').select('*', { count: 'exact', head: true }).eq('author_id', socialId),
                 ];
 
                 // Friendship status checks (only if logged in)

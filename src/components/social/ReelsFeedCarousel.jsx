@@ -125,9 +125,8 @@ function ReelCard({ reel, onClick }) {
                     style={{
                         width: '100%',
                         height: '100%',
-                        objectFit: 'contain',
-                        objectPosition: 'center',
-                        background: '#000',
+                        objectFit: 'cover',
+                        objectPosition: 'center top',
                     }}
                 />
             ) : (

@@ -41,10 +41,13 @@ export const copyReferralLink = async (user) => {
 const signOutAction = () => {
     const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+        { auth: { storageKey: 'smarter-poker-auth' } }
     );
     // Clear profile cache so next user doesn't see stale data
     try { localStorage.removeItem('sp-social-user'); } catch (_) {}
+    try { localStorage.removeItem('sp-vip-status'); } catch (_) {}
+    try { localStorage.removeItem('smarter-poker-auth'); } catch (_) {}
     supabase.auth.signOut().finally(() => {
         window.location.href = '/';
     });
