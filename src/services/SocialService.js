@@ -160,7 +160,15 @@ export class SocialService {
                 p_achievement_data: achievementData
             });
 
-            if (!rpcError && rpcData) {
+            // BUG FIX (sweep 3 audit): fn_create_social_post wraps its body
+            // in EXCEPTION WHEN OTHERS and returns {success:false, error:SQLERRM}
+            // on internal failures (RLS, constraint, disk full, etc.). Previously
+            // the check was just `if (!rpcError && rpcData)` — but rpcData is
+            // truthy even when {success:false}, so a failed insert was silently
+            // treated as a success and we returned a malformed post with
+            // postId=undefined. Now we explicitly require both success:true AND
+            // a returned id; otherwise we drop into the direct-insert fallback.
+            if (!rpcError && rpcData?.success === true && rpcData?.id) {
                 console.debug('✅ Post created via RPC:', rpcData.id);
                 postId = rpcData.id;
                 postResult = createPost({
@@ -177,7 +185,9 @@ export class SocialService {
                     is_liked: false
                 });
             } else if (rpcError) {
-                console.warn('RPC create failed, falling back to direct insert', rpcError);
+                console.warn('RPC create failed (Supabase error), falling back to direct insert', rpcError);
+            } else if (rpcData && rpcData.success === false) {
+                console.warn('RPC create returned success:false, falling back to direct insert. SQL error:', rpcData.error);
             }
 
             // Fallback (Legacy) - only if RPC failed
