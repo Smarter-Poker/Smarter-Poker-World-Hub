@@ -41,6 +41,8 @@ export default async function handler(req, res) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
 
+
+      const supabase = getSupabase();
       if (req.method !== 'POST') {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }

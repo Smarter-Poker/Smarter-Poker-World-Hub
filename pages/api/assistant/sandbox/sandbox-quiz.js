@@ -27,6 +27,8 @@ export default async function handler(req, res) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
+
+      const supabase = getSupabase();
   try {
       if (!supabaseUrl || !supabaseServiceKey) {
           return res.status(500).json({ error: 'Server configuration error' });

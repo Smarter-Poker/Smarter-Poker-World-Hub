@@ -19,6 +19,8 @@ function generateShortId(length = 6) {
 
 export default async function handler(req, res) {
   try {
+      const supabase = getSupabase();
+
       if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
 
       try {

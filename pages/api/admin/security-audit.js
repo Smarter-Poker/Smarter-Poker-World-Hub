@@ -26,6 +26,8 @@ function getSupabase() {
 
 export default async function handler(req, res) {
   try {
+      const supabase = getSupabase();
+
       if (req.method !== 'GET') {
           return res.status(405).json({ error: 'Method not allowed' });
       }

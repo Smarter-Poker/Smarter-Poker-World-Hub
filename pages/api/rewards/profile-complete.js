@@ -36,6 +36,8 @@ export default async function handler(req, res) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
 
+
+      const supabase = getSupabase();
       if (req.method !== 'POST') {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
@@ -116,12 +118,14 @@ export default async function handler(req, res) {
               throw claimInsertErr;
           }
 
+          // Stable reference_id closes the retry-double-credit window. profile_complete
+          // is a one-time-per-user reward so user-keyed dedup is enough.
           const { error: rpcError } = await getSupabase().rpc('add_diamonds_to_balance', {
               p_user_id: userId,
               p_amount: COMPLETION_REWARD,
               p_type: 'profile_complete',
               p_description: `Profile completion reward — ${COMPLETION_REWARD}diamonds`,
-              p_reference_id: null
+              p_reference_id: `profile_complete_${userId}`
           });
 
           if (rpcError) {

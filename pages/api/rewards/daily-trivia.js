@@ -38,6 +38,8 @@ export default async function handler(req, res) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
 
+
+      const supabase = getSupabase();
       if (req.method !== 'POST') {
           return res.status(405).json({ error: 'Method not allowed' });
       }
@@ -121,12 +123,15 @@ export default async function handler(req, res) {
           }
 
           // ── CREDIT DIAMONDS (atomic: balance + transaction in one RPC) ──
+          // Stable reference_id closes the retry-double-credit window: if the RPC
+          // commits but response delivery fails, the rollback path lets the user
+          // retry — without a stable reference_id the retry would have no dedup.
           const { error: rpcError } = await getSupabase().rpc('add_diamonds_to_balance', {
               p_user_id: userId,
               p_amount: diamonds,
               p_type: 'daily_trivia',
               p_description: `Daily Trivia Challenge reward — ${diamonds}diamonds`,
-              p_reference_id: null
+              p_reference_id: `daily_trivia_${userId}_${today}`
           });
 
           if (rpcError) {
