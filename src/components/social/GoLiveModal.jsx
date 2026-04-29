@@ -279,6 +279,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
         } catch (err) {
             setError(err.message || 'Failed to start broadcast.');
             setStage('preview');
+            setIsStarting(false); // BUG FIX: reset so user can retry
         }
     };
 
@@ -385,6 +386,12 @@ export function GoLiveModal({ isOpen, onClose, user }) {
         setStreamId(null);
         setElapsedTime(0);
         setComments([]);
+        // BUG FIX: reset all state added by improvement items
+        setIsStarting(false);
+        setRecordingFailed(false);
+        setDescription('');
+        setPinnedComment(null);
+        setCommentMenu(null);
         onClose(action);
     };
 

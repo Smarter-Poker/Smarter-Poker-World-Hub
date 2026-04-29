@@ -463,7 +463,10 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                                         setIsFollowing(false);
                                     } else {
                                         await supabase.from('social_follows')
-                                            .insert({ follower_id: userId, following_id: stream.broadcaster_id });
+                                            .upsert(
+                                                { follower_id: userId, following_id: stream.broadcaster_id },
+                                                { onConflict: 'follower_id,following_id' }
+                                            );
                                         setIsFollowing(true);
                                     }
                                 } catch (e) { console.warn('Follow error:', e); }
