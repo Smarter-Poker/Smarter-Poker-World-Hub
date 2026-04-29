@@ -608,15 +608,31 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         setYtReady(true);
                         setPaused(false);
                         setYtError(null);
-                        // Auto-unmute after playback confirmed
-                        sendYTCmd('unMute');
-                        sendYTCmd('setVolume', [100]);
-                        setMuted(false);
+                        // Show overlay briefly on play
+                        setShowOverlay(true);
+                        clearTimeout(overlayTimerRef.current);
+                        overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
+                        // Auto-unmute ONLY if user wants sound
+                        if (userWantsSoundRef.current) {
+                            sendYTCmd('unMute');
+                            sendYTCmd('setVolume', [100]);
+                            setMuted(false);
+                        }
                     }
-                    if (data.info === 2) { setPaused(true); setYtReady(true); }
+                    if (data.info === 2) { // Paused
+                        setPaused(true);
+                        setYtReady(true);
+                        setShowOverlay(true);
+                        if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+                    }
                 }
                 if (data?.event === 'onError') {
                     setYtError({ code: data.info });
+                    // Report to server + Sentry (best-effort)
+                    try {
+                        const vid = getYouTubeVideoId(reels[currentIndex]?.video_url);
+                        if (vid) { reportFailureToServer(vid, data.info, 'ReelsFeedCarousel'); reportToSentry(vid, data.info, 'ReelsFeedCarousel'); }
+                    } catch { /* best-effort */ }
                 }
             } catch (_) {}
         };
@@ -790,6 +806,24 @@ function ReelViewer({ reels, startIndex, onClose }) {
             parent_id: parentId,
         }]);
         try {
+            // Proxy post creation for reels: if the reel comes from social_reels,
+            // create a proxy record in social_posts so the FK on social_comments works.
+            if (currentReel.source === 'reels') {
+                const { data: existing } = await supabase
+                    .from('social_posts')
+                    .select('id')
+                    .eq('id', currentReel.id)
+                    .maybeSingle();
+                if (!existing) {
+                    await supabase.from('social_posts').insert({
+                        id: currentReel.id,
+                        user_id: currentReel.author_id || authUser.id,
+                        content: currentReel.caption || '',
+                        media_url: currentReel.video_url || null,
+                        media_type: 'video',
+                    }).catch(e => console.warn('[ReelsFeedCarousel] Proxy post creation failed:', e?.message));
+                }
+            }
             const payload = { post_id: currentReel.id, author_id: authUser.id, content: text || '' };
             if (mediaUrl) { payload.media_url = mediaUrl; payload.media_type = mediaType; }
             if (parentId) { payload.parent_id = parentId; }
@@ -896,13 +930,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
         setPlaybackSpeed(newSpeed);
         // Use videoRef instead of document.querySelector to avoid grabbing wrong element
         if (videoRef.current) videoRef.current.playbackRate = newSpeed;
-        const iframe = containerRef.current?.querySelector('iframe[src*="youtube"]');
-        if (iframe) {
-            iframe.contentWindow?.postMessage(JSON.stringify({ event: 'listening' }), '*');
-            iframe.contentWindow?.postMessage(JSON.stringify({
-                event: 'command', func: 'setPlaybackRate', args: [newSpeed]
-            }), '*');
-        }
+        sendYTCmd('setPlaybackRate', [newSpeed]);
     };
 
     // Handle image upload for reel comments
@@ -1051,45 +1079,8 @@ function ReelViewer({ reels, startIndex, onClose }) {
         }
     };
 
-    // YouTube auto-advance: listen for onStateChange postMessage (state 0 = ended)
-    useEffect(() => {
-        const YOUTUBE_ORIGINS = ['https://www.youtube-nocookie.com', 'https://www.youtube.com', 'https://youtube.com'];
-        const handleYTMessage = (event) => {
-            if (!YOUTUBE_ORIGINS.includes(event.origin)) return;
-            try {
-                const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-                if (data?.event === 'onStateChange') {
-                    if (data.info === 0 && currentIndex < reels.length - 1) goNext(); // Ended
-                    if (data.info === 1) { // Playing
-                        setYtReady(true); // YouTube confirmed playback — safe to show play button now
-                        setPaused(false);
-                        setShowOverlay(true);
-                        clearTimeout(overlayTimerRef.current);
-                        overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
-                    }
-                    if (data.info === 2) { // Paused
-                        setYtReady(true); // YouTube confirmed it knows about the video
-                        setPaused(true);
-                        setShowOverlay(true);
-                        if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
-                    }
-                }
-                // YouTube error detection: 150=age-restricted, 100=not found, 101=embed disabled
-                if (data?.event === 'onError' && data?.info) {
-                    const errCode = Number(data.info);
-                    setYtError(errCode);
-                    // Report to server + Sentry (best-effort)
-                    try {
-                        const iframe = containerRef.current?.querySelector('iframe');
-                        const vid = iframe?.src ? getYouTubeVideoId(iframe.src) : null;
-                        if (vid) { reportFailureToServer(vid, errCode, 'ReelsFeedCarousel'); reportToSentry(vid, errCode, 'ReelsFeedCarousel'); }
-                    } catch { /* best-effort */ }
-                }
-            } catch { /* not a YouTube message */ }
-        };
-        window.addEventListener('message', handleYTMessage);
-        return () => window.removeEventListener('message', handleYTMessage);
-    }, [currentIndex, reels.length]);
+    // (Duplicate YouTube auto-advance listener removed — merged into the single
+    //  handleYTMessage listener at lines ~598-635 to prevent double goNext() calls)
 
     const handleFollow = async () => {
         const authorId = currentReel?.author_id || currentReel?.profiles?.id;
@@ -1260,38 +1251,19 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         videoRef.current.pause();
                     }
                 } else {
-                    // YouTube — use setPaused callback to read fresh state
-                    const iframe = containerRef.current?.querySelector('iframe');
-                    if (iframe?.contentWindow) {
-                        setPaused(prev => {
-                            const cmd = prev ? 'playVideo' : 'pauseVideo';
-                            iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
-                            iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: cmd, args: [] }), '*');
-                            return !prev;
-                        });
-                    }
+                    // YouTube — use sendYTCmd with persistent iframe ref
+                    setPaused(prev => {
+                        sendYTCmd(prev ? 'playVideo' : 'pauseVideo');
+                        return !prev;
+                    });
                 }
             }
             if (e.key === 'm' || e.key === 'M') {
                 setMuted(prev => {
                     const next = !prev;
-                    // Send YouTube command via postMessage
-                    const iframe = containerRef.current?.querySelector('iframe');
-                    if (iframe?.contentWindow) {
-                        iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
-                        iframe.contentWindow.postMessage(JSON.stringify({
-                            event: 'command',
-                            func: next ? 'mute' : 'unMute',
-                            args: []
-                        }), '*');
-                        if (!next) {
-                            iframe.contentWindow.postMessage(JSON.stringify({
-                                event: 'command',
-                                func: 'setVolume',
-                                args: [100]
-                            }), '*');
-                        }
-                    }
+                    sendYTCmd(next ? 'mute' : 'unMute');
+                    if (!next) sendYTCmd('setVolume', [100]);
+                    userWantsSoundRef.current = !next;
                     return next;
                 });
             }

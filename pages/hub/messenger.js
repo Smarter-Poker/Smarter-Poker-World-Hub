@@ -1343,6 +1343,10 @@ AudioMessage.displayName = 'AudioMessage';
 
 
 function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInGroup, onRetry, onReact, onDelete, onEdit, onForward, onCallBack, onReply, onUnsend, currentUserId }) {
+    // Defensive: a null entry in the messages array would crash the entire
+    // messenger here (TypeError: Cannot read properties of null reading
+    // 'status'). Bail out cleanly so the rest of the conversation still renders.
+    if (!message) return null;
     const senderIsVip = sender?.is_vip || false;
     const [showReactions, setShowReactions] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
@@ -2849,6 +2853,7 @@ function MessengerPage() {
             }, (payload) => {
                 const updatedMsg = payload.new;
                 setMessages(prev => prev.map(m => {
+                    if (!m) return m;
                     if (m.id !== updatedMsg.id) return m;
                     // Detect real edit: content changed AND message not deleted
                     const wasEdited = m.is_edited || (updatedMsg.content !== m.content && !updatedMsg.is_deleted);
@@ -2880,7 +2885,7 @@ function MessengerPage() {
                 // Other user read our messages — update ✓✓ checkmarks in real-time
                 if (payload.payload.readerId !== user.id) {
                     setMessages(prev => prev.map(m =>
-                        m.sender_id === user.id ? { ...m, is_read: true, status: 'read' } : m
+                        m && m.sender_id === user.id ? { ...m, is_read: true, status: 'read' } : m
                     ));
                 }
             })
@@ -2889,6 +2894,7 @@ function MessengerPage() {
                 if (payload.payload.receiverId !== user.id) {
                     const deliveredId = payload.payload.messageId;
                     setMessages(prev => prev.map(m => {
+                        if (!m) return m;
                         // Only upgrade from 'sent' to 'delivered', don't downgrade from 'read'
                         if (m.id === deliveredId && m.sender_id === user.id && m.status !== 'read' && !m.is_read) {
                             return { ...m, status: 'delivered' };
@@ -5820,11 +5826,14 @@ function MessengerPage() {
                                         const _today = new Date();
                                         const _yesterday = new Date(_today);
                                         _yesterday.setDate(_today.getDate() - 1);
+                                        // Defensive: drop any null/undefined entries so a single bad
+                                        // realtime payload can't crash the entire conversation view.
+                                        const _validMessages = (messages || []).filter(Boolean);
                                         return (
-                                        messages.map((msg, i) => {
+                                        _validMessages.map((msg, i) => {
                                             const isOwn = msg.sender_id === user.id;
-                                            const prevMsg = messages[i - 1];
-                                            const nextMsg = messages[i + 1];
+                                            const prevMsg = _validMessages[i - 1];
+                                            const nextMsg = _validMessages[i + 1];
                                             const showAvatar = !prevMsg || prevMsg.sender_id !== msg.sender_id;
                                             const isLastInGroup = !nextMsg || nextMsg.sender_id !== msg.sender_id;
 

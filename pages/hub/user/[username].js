@@ -22,7 +22,6 @@ import toast from '../../../src/stores/toastStore';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ArticleCard from '../../../src/components/social/ArticleCard';
-import { VideoPostWrapper } from '../../../src/components/social/SharedVideoComponents';
 import ArticleReaderModal from '../../../src/components/social/ArticleReaderModal';
 import ProfileSkeleton from '../../../src/components/skeletons/ProfileSkeleton';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
@@ -189,6 +188,89 @@ function PokerResumeBadge({ hendonData, isOwnProfile = false, onOpenResume }) {
                     View Full Resume on HendonMob →
                 </button>
             )}
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SELF-CONTAINED VIDEO CARD — Handles YouTube embed URLs and direct video files
+// Renders a thumbnail + play button overlay; click navigates to Reels viewer
+// ═══════════════════════════════════════════════════════════════════════════
+function ProfileVideoCard({ url, postId, style = {} }) {
+    const router = useRouter();
+    const [thumbError, setThumbError] = useState(false);
+
+    // Extract YouTube video ID from watch, embed, shorts, or youtu.be URLs
+    const getYtId = (u) => {
+        if (!u) return null;
+        const m = u.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]+)/);
+        return m ? m[1] : null;
+    };
+
+    const ytId = getYtId(url);
+    const isYouTube = !!ytId;
+    const thumbnailUrl = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null;
+
+    const handleClick = () => {
+        if (postId) router.push(`/hub/reels?id=${postId}`);
+    };
+
+    return (
+        <div
+            onClick={handleClick}
+            style={{
+                position: 'relative', cursor: 'pointer',
+                aspectRatio: '16/9', maxHeight: 400,
+                background: '#000', overflow: 'hidden',
+                ...style,
+            }}
+        >
+            {/* YouTube: show thumbnail image */}
+            {isYouTube && !thumbError && (
+                <img
+                    src={thumbnailUrl}
+                    alt="Video thumbnail"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                    loading="lazy"
+                    onError={() => setThumbError(true)}
+                />
+            )}
+
+            {/* Direct video file: show preloaded video frame */}
+            {!isYouTube && (
+                <video
+                    src={url}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    muted playsInline preload="metadata"
+                />
+            )}
+
+            {/* YouTube fallback when thumbnail fails */}
+            {isYouTube && thumbError && (
+                <div style={{
+                    width: '100%', height: '100%',
+                    background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    color: 'white',
+                }}>
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                    <span style={{ fontSize: 13, opacity: 0.7, marginTop: 8 }}>Video</span>
+                </div>
+            )}
+
+            {/* Play button overlay */}
+            <div style={{
+                position: 'absolute', top: '50%', left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: 64, height: 64, borderRadius: '50%',
+                background: 'rgba(255, 255, 255, 0.9)',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                pointerEvents: 'none',
+                transition: 'transform 0.15s',
+            }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="#333"><polygon points="8,5 19,12 8,19"/></svg>
+            </div>
         </div>
     );
 }
@@ -473,18 +555,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
                 <div>
                     {post.media_urls.length === 1 ? (
                         post.content_type === 'video' ? (
-                            <VideoPostWrapper
-                                url={post.media_urls[0]}
-                                onValidVideoClick={() => router.push(`/hub/reels?id=${post.id}`)}
-                            >
-                                <video
-                                    src={post.media_urls[0]}
-                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                    muted
-                                    playsInline
-                                    preload="metadata"
-                                />
-                            </VideoPostWrapper>
+                            <ProfileVideoCard url={post.media_urls[0]} postId={post.id} />
                         ) : (
                             <img src={post.media_urls[0]} alt="" style={{ maxWidth: '100%', display: 'block', margin: '0 auto', cursor: 'pointer' }} loading="lazy"
                              onClick={() => { setLightboxIndex(0); setLightboxOpen(true); }} />
@@ -2822,18 +2893,7 @@ export default function UserProfilePage() {
                                     {videos.map(video => (
                                         video.media_urls?.map((url, i) => (
                                             <div key={`${video.id}-${i}`} style={{ overflow: 'hidden', borderRadius: 8, background: '#000' }}>
-                                                <VideoPostWrapper
-                                                    url={url}
-                                                    onValidVideoClick={() => router.push(`/hub/reels?id=${video.id}`)}
-                                                >
-                                                    <video
-                                                        src={url}
-                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                        muted
-                                                        playsInline
-                                                        preload="metadata"
-                                                    />
-                                                </VideoPostWrapper>
+                                                <ProfileVideoCard url={url} postId={video.id} />
                                             </div>
                                         ))
                                     ))}
