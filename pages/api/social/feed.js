@@ -53,7 +53,7 @@ export default async function handler(req, res) {
 
         // ── 1. Fetch posts (no embedded join — separate parallel queries are faster) ──
         const postsParams = new URLSearchParams({
-            select: 'id,content,content_type,media_urls,like_count,comment_count,share_count,created_at,author_id,link_url,link_title,link_description,link_image,link_site_name,metadata',
+            select: 'id,content,content_type,media_urls,thumbnail_url,like_count,comment_count,share_count,created_at,author_id,link_url,link_title,link_description,link_image,link_site_name,metadata',
             or: '(visibility.eq.public,visibility.is.null)',
             order: 'created_at.desc',
             offset: String(offset),
@@ -118,6 +118,8 @@ export default async function handler(req, res) {
                 content: p.content,
                 contentType: p.content_type,
                 mediaUrls: p.media_urls || [],
+                thumbnailUrl: p.thumbnail_url || null,
+                thumbnail_url: p.thumbnail_url || null,
                 likeCount: p.like_count || 0,  // Now accurate thanks to DB trigger
                 commentCount: p.comment_count || 0,
                 shareCount: p.share_count || 0,

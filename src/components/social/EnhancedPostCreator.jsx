@@ -332,12 +332,12 @@ export const EnhancedPostCreator = ({
     setMediaFiles(prev => [...prev, ...filesToAdd]);
     setError(null);
 
-    // ⚡ INSTANT FEEDBACK: toast the moment a video is selected
+    // POPUP CLEANUP (2026-04-29 per Dan): keep exactly one upload toast
+    // (the "Upload running in background" one in bgUpload). The other
+    // toasts ("Video selected (XMB)…", "Large video…", "Your video will
+    // be optimized…") fired in addition to that and stacked 3+ popups
+    // on every video upload. Removed.
     const videoFiles = filesToAdd.filter(f => sniffMimeType(f).startsWith('video/'));
-    if (videoFiles.length > 0) {
-      const sizeMB = Math.round(videoFiles.reduce((sum, f) => sum + (f.size || 0), 0) / (1024 * 1024));
-      toast.info(`Video selected (${sizeMB}MB) — preparing upload…`, 3000);
-    }
 
     // 🚀 PREFETCH + BACKGROUND PROCESSING
     if (user?.id) {
@@ -348,10 +348,9 @@ export const EnhancedPostCreator = ({
         if (!mime.startsWith('video/')) continue;
         const fk = _fileKey(file);
 
-        // Large file warning
+        // Hard validation only — soft warnings deliberately not toasted.
         const validation = validateVideoFile(file);
-        if (validation.warning) toast.info(validation.warning, 5000);
-        if (validation.formatWarning) toast.info(validation.formatWarning, 4000);
+        if (!validation.valid) { setError(validation.error); continue; }
 
         // Auto-thumbnail generation — store the PROMISE so submit can await
         // it. The previous code only saved the resolved value, which meant

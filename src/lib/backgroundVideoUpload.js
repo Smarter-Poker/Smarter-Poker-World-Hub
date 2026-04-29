@@ -874,11 +874,11 @@ const bgUpload = {
                 progress: _progress,
             });
 
-            // Show brief "uploading in background" toast — auto-dismisses after 4s
-            // The ghost post card in the feed shows live upload progress, so persistent
-            // toast is unnecessary and annoying.
+            // ONE upload toast (per Dan 2026-04-29). The two pre-upload
+            // "Video selected" / "Large video" / "Format optimization" toasts
+            // were removed from the composers; this is the keeper.
             _bgToastId = toast.action(
-                'Upload Is Running In The Background — Do Not Close This App Until Upload Is Completed',
+                'Your video is uploading in the background. You can keep using the app.',
                 null,    // no click action
                 'info',  // toast type
                 4000,    // auto-dismiss after 4 seconds

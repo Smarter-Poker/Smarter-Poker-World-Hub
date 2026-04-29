@@ -258,18 +258,18 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
             const isVideo = mimeType.startsWith('video/');
 
             // ── CLIENT-SIDE SIZE VALIDATION (instant, before any processing) ──
+            // POPUP CLEANUP (2026-04-29 per Dan): only show ONE upload toast
+            // ("Upload running in background"). The validation warnings
+            // ("Large video", "Your video will be optimized…") fired in
+            // ADDITION to the background toast and made the user see 3 stacked
+            // popups for every video. Removed; keep only the hard-error path.
             if (isVideo) {
                 const validation = validateVideoFile(file);
                 if (!validation.valid) {
                     setError(validation.error);
                     continue; // skip this file, try the rest
                 }
-                if (validation.warning) {
-                    toast.info(validation.warning, 5000);
-                }
-                if (validation.formatWarning) {
-                    toast.info(validation.formatWarning, 4000);
-                }
+                // Soft warnings deliberately not shown — single bg toast is enough.
             }
 
             const localUrl = URL.createObjectURL(file);
@@ -284,12 +284,11 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         if (!staged.length) return;
         setMedia(prev => [...prev, ...staged]);
 
-        // ⚡ INSTANT FEEDBACK: toast the moment a video is selected (before any processing)
-        const videoCount = staged.filter(s => s.type === 'video').length;
-        if (videoCount > 0) {
-            const sizeMB = Math.round(staged.filter(s => s.type === 'video').reduce((sum, s) => sum + (s.file?.size || 0), 0) / (1024 * 1024));
-            toast.info(`Video selected (${sizeMB}MB) — preparing upload…`, 3000);
-        }
+        // ⚡ INSTANT FEEDBACK is now handled by the inline "Preparing Your Video"
+        // banner at the top of the composer + the "Generating thumbnail…"
+        // pulse on the preview tile. No toast here — Dan asked to keep
+        // exactly one popup (the background-running one), and that fires
+        // on Post-tap, not on file-select.
 
         // ── BACKGROUND PROCESSING (runs while user types caption) ────────────
         for (const item of staged) {
@@ -347,6 +346,22 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
 
         // Reset file input so the same file can be re-selected
         if (fileRef.current) fileRef.current.value = '';
+
+        // Clear the "Preparing Your Video" spinner once the first thumbnail
+        // resolves OR after a 30s ceiling (whichever comes first). The
+        // per-tile "Generating thumbnail…" pulse takes over from there.
+        // Without this, mobile users saw a 20-30 second blank UI between
+        // picking the file and any feedback.
+        const firstVideoStaged = staged.find(s => s.type === 'video');
+        if (firstVideoStaged) {
+            const promise = thumbnailPromiseRef.current[firstVideoStaged.url];
+            const ceiling = new Promise(r => setTimeout(r, 30_000));
+            Promise.race([promise || Promise.resolve(null), ceiling]).finally(() => {
+                if (mountedRef.current) setPreparingMedia(false);
+            });
+        } else {
+            setPreparingMedia(false);
+        }
     };
 
     // Handle @mention detection AND auto URL detection (SmarterPoker-style)

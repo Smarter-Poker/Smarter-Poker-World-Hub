@@ -484,7 +484,7 @@ export const SPPostCard = ({
                                             {isVideo ? (
                                                 <>
                                                     <img
-                                                        src={media.thumbnail || post.thumbnail_url || `https://img.youtube.com/vi/${mediaUrl?.match(/(?:youtube\.com\/(?:shorts\/|watch\?v=)|youtu\.be\/)([a-zA-Z0-9_-]+)/)?.[1]}/hqdefault.jpg`}
+                                                        src={media.thumbnail || post.thumbnailUrl || post.thumbnail_url || `https://img.youtube.com/vi/${mediaUrl?.match(/(?:youtube\.com\/(?:shorts\/|watch\?v=)|youtu\.be\/)([a-zA-Z0-9_-]+)/)?.[1]}/hqdefault.jpg`}
                                                         alt={`Video ${idx + 1}`}
                                                         loading="lazy"
                                                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}

@@ -5154,6 +5154,10 @@ function SocialMediaPage() {
                 setPosts(prev => [{
                     id: json.data?.id || Date.now(), authorId: user.id, content, contentType: type,
                     mediaUrls: urls, likeCount: 0, commentCount: 0, shareCount: 0,
+                    // RACE FIX (2026-04-29): propagate thumbnail_url so the
+                    // freshly-posted video shows a thumbnail immediately
+                    thumbnailUrl: thumbnailUrl || null,
+                    thumbnail_url: thumbnailUrl || null,
                     reactions: [],
                     timeAgo: 'Just now', isLiked: false, isBookmarked: false, justPosted: true,
                     // Link metadata for ArticleCard rendering
@@ -5247,6 +5251,13 @@ function SocialMediaPage() {
             setPosts(prev => [{
                 id: data.id, authorId: user.id, content, contentType: type,
                 mediaUrls: urls, likeCount: 0, commentCount: 0, shareCount: 0,
+                // RACE FIX (2026-04-29): include thumbnailUrl in BOTH camelCase and
+                // snake_case so the SmarterPokerStyleCard's `post.thumbnail_url`
+                // lookup hits on the just-posted video. Without this, the freshly
+                // posted video shows as a black box with a play button until the
+                // feed reloads from /api/social/feed.
+                thumbnailUrl: thumbnailUrl || null,
+                thumbnail_url: thumbnailUrl || null,
                 reactions: [],
                 timeAgo: 'Just now', isLiked: false, isBookmarked: false, justPosted: true, // Mark as just posted for highlight
                 // Link metadata for ArticleCard rendering (parity with club page posts + loadFeed)
