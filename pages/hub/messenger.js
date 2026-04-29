@@ -934,49 +934,83 @@ function EmptyConversationState() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 // P4 FIX: Reuse cached favicon image to prevent DOM/memory leak
+// CRASH FIX: This used to throw InvalidStateError when the favicon failed to
+// load (network blip, extension blocking, 404 during deploy churn). The throw
+// propagated all the way to HubErrorBoundary and rendered "Messenger
+// Temporarily Unavailable" — the entire messenger page died because the
+// favicon couldn't be drawn. Now: we never call drawImage on a broken image,
+// we attach onerror to recover, and we wrap the whole thing in try/catch so a
+// favicon failure can never take down the page.
 let _faviconImg = null;
 function updateFaviconBadge(count) {
     if (typeof document === 'undefined') return;
-    const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
-    link.type = 'image/x-icon';
-    link.rel = 'shortcut icon';
-    
-    if (count <= 0) {
-        link.href = '/favicon.ico';
-        document.head.appendChild(link);
-        return;
+    try {
+        const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
+        link.type = 'image/x-icon';
+        link.rel = 'shortcut icon';
+
+        if (count <= 0) {
+            link.href = '/favicon.ico';
+            if (!link.parentNode) document.head.appendChild(link);
+            return;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 32; canvas.height = 32;
+        const ctx = canvas.getContext('2d');
+
+        // Reuse cached image to avoid repeated Image() allocations.
+        // If a previous load errored we reset to null so this call retries.
+        if (!_faviconImg) {
+            _faviconImg = new window.Image();
+            _faviconImg.onerror = () => { _faviconImg = null; };
+            _faviconImg.src = '/favicon.ico';
+        }
+
+        const draw = () => {
+            try {
+                // `complete` is true for BOTH successful loads AND failed loads
+                // (404, broken state). naturalWidth>0 is the actual liveness check.
+                if (!_faviconImg || !_faviconImg.naturalWidth) {
+                    // Image is broken — render a solid-color badge with no base
+                    // so we still get the unread-count signal in the tab.
+                    ctx.fillStyle = '#0a0a15';
+                    ctx.fillRect(0, 0, 32, 32);
+                } else {
+                    ctx.drawImage(_faviconImg, 0, 0, 32, 32);
+                }
+                ctx.beginPath();
+                ctx.arc(24, 8, 9, 0, 2 * Math.PI);
+                ctx.fillStyle = '#E41E3F';
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 11px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(count > 9 ? '9+' : String(count), 24, 8.5);
+                link.href = canvas.toDataURL('image/png');
+                if (!link.parentNode) document.head.appendChild(link);
+            } catch (drawErr) {
+                // Never let favicon drawing crash the page.
+                console.warn('[messenger] favicon draw failed (non-fatal):', drawErr?.message || drawErr);
+                _faviconImg = null;
+            }
+        };
+
+        if (_faviconImg.complete) {
+            // complete=true for both load and error — draw() handles both branches.
+            draw();
+        } else {
+            _faviconImg.onload = draw;
+            // onerror was set above; on error _faviconImg is reset and we skip drawing.
+        }
+    } catch (outerErr) {
+        // Defensive — DOM access can fail during tab close, page transition, etc.
+        console.warn('[messenger] favicon update failed (non-fatal):', outerErr?.message || outerErr);
     }
-    
-    const canvas = document.createElement('canvas');
-    canvas.width = 32; canvas.height = 32;
-    const ctx = canvas.getContext('2d');
-    
-    // Reuse cached image to avoid repeated Image() allocations
-    if (!_faviconImg) {
-        _faviconImg = new window.Image();
-        _faviconImg.src = '/favicon.ico';
-    }
-    
-    const draw = () => {
-        ctx.drawImage(_faviconImg, 0, 0, 32, 32);
-        ctx.beginPath();
-        ctx.arc(24, 8, 9, 0, 2 * Math.PI);
-        ctx.fillStyle = '#E41E3F';
-        ctx.fill();
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 11px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(count > 9 ? '9+' : String(count), 24, 8.5);
-        link.href = canvas.toDataURL('image/png');
-        document.head.appendChild(link);
-    };
-    
-    if (_faviconImg.complete) draw();
-    else _faviconImg.onload = draw;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
