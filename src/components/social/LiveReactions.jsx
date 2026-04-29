@@ -102,8 +102,8 @@ export function LiveReactions({ streamId, userId, isBroadcaster }) {
                 {floaters.map(f => <FloatingEmoji key={f.id} emoji={f.emoji} id={f.id} left={f.left} duration={f.duration} />)}
             </div>
 
-            {/* Reaction buttons */}
-            <div style={{
+            {/* Reaction buttons — hidden for broadcaster (they have FABs in same position) */}
+            {!isBroadcaster && <div style={{
                 position: 'absolute',
                 bottom: 76,
                 right: 0,
@@ -144,7 +144,7 @@ export function LiveReactions({ streamId, userId, isBroadcaster }) {
                         {emoji}
                     </button>
                 ))}
-            </div>
+            </div>}
         </>
     );
 }

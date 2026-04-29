@@ -144,11 +144,11 @@ function FriendRequestCard({ request, onAccept, onDecline }) {
             transition: 'all 0.3s ease'
         }}>
             <Link href={`/hub/user/${user?.username || user?.id}`} style={{ flexShrink: 0 }}>
-                <Avatar src={user?.avatar_url} name={user?.username || user?.full_name} size={70} />
+                <Avatar src={user?.avatar_url} name={user?.full_name || user?.username} size={70} />
             </Link>
             <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 700, fontSize: 17, color: C.text, marginBottom: 4 }}>
-                    {user?.username || user?.full_name || 'Poker Player'}
+                    {user?.full_name || user?.username || 'Poker Player'}
                 </div>
                 <span style={{ fontSize: 14, color: C.blue }}>Friend Request Pending</span>
             </div>
@@ -220,12 +220,12 @@ function UserCard({
             border: `1px solid ${C.border}`,
         }}>
             <Link href={`/hub/user/${user.username || user.id}`} style={{ flexShrink: 0 }}>
-                <Avatar src={user.avatar_url} name={user.username || user.full_name} size={70} />
+                <Avatar src={user.avatar_url} name={user.full_name || user.username} size={70} />
             </Link>
             <div style={{ flex: 1, minWidth: 0 }}>
                 <Link href={`/hub/user/${user.username || user.id}`} style={{ textDecoration: 'none' }}>
                     <div style={{ fontWeight: 700, fontSize: 16, color: C.text, marginBottom: 4 }}>
-                        {user.username || user.full_name || 'Poker Player'}
+                        {user.full_name || user.username || 'Poker Player'}
                     </div>
                 </Link>
                 {mutualCount > 0 && (

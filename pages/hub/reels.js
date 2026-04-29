@@ -56,7 +56,7 @@ export default function ReelsPage() {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState(false);
-    const [muted, setMuted] = useState(false); // Start unmuted — mute=1 removed from YT URL since user has already interacted with page
+    const [muted, setMuted] = useState(true); // Start MUTED — required for mobile autoplay (mute=1 in URL)
     const [userWantsSound, setUserWantsSound] = useState(true); // User preference — auto-unmute after YT confirms playing
     // Auto-play immediately - videos start muted per browser policy, unmute after onStateChange confirms playing
     const [liked, setLiked] = useState({});
@@ -307,6 +307,23 @@ export default function ReelsPage() {
     useEffect(() => {
         if (!router.isReady) return;
         loadReels();
+        // Lock body scroll so swipe gestures don't scroll the page behind the reels container
+        const origOverflow = document.body.style.overflow;
+        const origPosition = document.body.style.position;
+        const origTouchAction = document.body.style.touchAction;
+        document.body.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.width = '100%';
+        document.body.style.touchAction = 'none';
+        // Also lock <html> element for iOS Safari
+        document.documentElement.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = origOverflow;
+            document.body.style.position = origPosition;
+            document.body.style.width = '';
+            document.body.style.touchAction = origTouchAction;
+            document.documentElement.style.overflow = '';
+        };
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [router.isReady]);
 
@@ -949,6 +966,27 @@ export default function ReelsPage() {
             const payload = { post_id: currentReel.id, author_id: user.id, content: text || '' };
             if (mediaUrl) { payload.media_url = mediaUrl; payload.media_type = mediaType; }
             if (parentId) { payload.parent_id = parentId; }
+            // social_comments.post_id FK may reference social_posts only.
+            // For social_reels items, first check if a matching social_posts row exists.
+            // If not, create a lightweight proxy post so the comment FK is satisfied.
+            if (currentReel.source === 'reels') {
+                const { data: existing } = await supabase.from('social_posts').select('id').eq('id', currentReel.id).maybeSingle();
+                if (!existing) {
+                    // Create a proxy social_posts row for this reel so comments can FK to it
+                    const { error: proxyErr } = await supabase.from('social_posts').insert({
+                        id: currentReel.id,
+                        author_id: currentReel.author_id,
+                        content: currentReel.caption || '',
+                        content_type: 'video',
+                        media_urls: [currentReel.video_url],
+                        visibility: 'public',
+                    });
+                    if (proxyErr) {
+                        console.warn('[CommentInsert] Proxy post creation failed (may already exist):', proxyErr.message);
+                        // Continue anyway — the FK might work if another process created it
+                    }
+                }
+            }
             const { error } = await supabase.from('social_comments').insert(payload);
             if (error) throw error;
             busEmit.socialCommentAdded(currentReel.id, user.id);
@@ -1710,7 +1748,7 @@ export default function ReelsPage() {
                         <iframe
                             ref={iframeRef}
                             key={currentReel?.id}
-                            src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}&iv_load_policy=3&disablekb=1&fs=0&cc_load_policy=0`}
+                            src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}&iv_load_policy=3&disablekb=1&fs=0&cc_load_policy=0`}
                             title="Poker Reel"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                             allowFullScreen
@@ -2252,8 +2290,8 @@ export default function ReelsPage() {
                         alignItems: 'center',
                         justifyContent: 'center',
                         transition: 'all 0.2s ease',
-                        opacity: showOverlay ? 1 : 0,
-                        pointerEvents: showOverlay ? 'auto' : 'none',
+                        opacity: (muted || showOverlay) ? 1 : 0,
+                        pointerEvents: (muted || showOverlay) ? 'auto' : 'none',
                     }}
                 >
                     {muted ? (

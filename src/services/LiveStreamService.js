@@ -423,8 +423,9 @@ class LiveStreamService {
         // Register viewer
         await supabase.from('live_viewers').upsert({ stream_id: streamId, viewer_id: userId });
 
-        // Update peak_viewers if needed
-        supabase.rpc('update_live_peak_viewers', { p_stream_id: streamId, p_count: 1 }).catch(() => {});
+        // Update peak_viewers if needed — wrapped in try/catch because supabase.rpc()
+        // returns a thenable without .catch() on some iOS Safari builds
+        try { await supabase.rpc('update_live_peak_viewers', { p_stream_id: streamId, p_count: 1 }); } catch (_) {}
 
         // Get token and connect
         const { token, url } = await this._getToken(streamId, false);
@@ -569,16 +570,20 @@ class LiveStreamService {
             .update({ viewer_count: count })
             .eq('id', this.currentStreamId);
 
-        await supabase.rpc('update_live_peak_viewers', {
-            p_stream_id: this.currentStreamId,
-            p_count: count,
-        }).catch(() => {
-            supabase.from('live_streams')
-                .update({ peak_viewers: count })
-                .eq('id', this.currentStreamId)
-                .lt('peak_viewers', count)
-                .catch(() => {});
-        });
+        try {
+            await supabase.rpc('update_live_peak_viewers', {
+                p_stream_id: this.currentStreamId,
+                p_count: count,
+            });
+        } catch (_) {
+            // Fallback: direct update if RPC doesn't exist
+            try {
+                await supabase.from('live_streams')
+                    .update({ peak_viewers: count })
+                    .eq('id', this.currentStreamId)
+                    .lt('peak_viewers', count);
+            } catch (_2) {}
+        }
         this.onViewerCountChange?.(count);
     }
 

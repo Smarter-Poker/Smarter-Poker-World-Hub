@@ -52,10 +52,10 @@ export default async function handler(req, res) {
         }
 
         if (action === 'post') {
-            // Update stream record
+            // Update stream record — also keep as draft so it appears in live history
             await supabase.from('live_streams').update({
                 is_posted: true,
-                is_draft: false,
+                is_draft: true,
             }).eq('id', stream_id);
 
             // Create social post via service role (bypasses RLS reliably)

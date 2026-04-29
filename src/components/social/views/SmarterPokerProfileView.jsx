@@ -583,7 +583,7 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
 
     // Construct Profile User Object — merge real auth data with defaults
     const user = {
-        name: authProfile?.username || authUser?.email || 'Unknown User',
+        name: authProfile?.full_name || authProfile?.username || authUser?.email || 'Unknown User',
         avatar: authProfile?.avatar_url || null,
         coverPhoto: authProfile?.cover_url || null,
         coverPosition: authProfile?.cover_photo_position || '50% 50%',

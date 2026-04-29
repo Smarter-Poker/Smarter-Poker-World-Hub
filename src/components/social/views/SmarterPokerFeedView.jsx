@@ -261,7 +261,7 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
     // Construct currentUser object for UI
     const currentUser = authUser ? {
         id: authUser.id,
-        name: authProfile?.username || authUser.email,
+        name: authProfile?.full_name || authProfile?.username || authUser.email,
         avatar: authProfile?.avatar_url || null,
         online: true
     } : null;
