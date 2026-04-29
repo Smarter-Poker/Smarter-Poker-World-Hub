@@ -64,7 +64,7 @@ export default async function handler(req, res) {
 
       try {
           // SAFEGUARD 1: Verify watch time >= 5 min
-          const { data: watchRecord } = await supabase
+          const { data: watchRecord } = await getSupabase()
               .from('video_watch_history')
               .select('watch_duration_seconds')
               .eq('user_id', userId)
@@ -76,7 +76,7 @@ export default async function handler(req, res) {
           }
 
           // SAFEGUARD 2: Already claimed for this video (lifetime)
-          const { data: videoClaim } = await supabase
+          const { data: videoClaim } = await getSupabase()
               .from('diamond_reward_claims')
               .select('id')
               .eq('user_id', userId)
@@ -89,7 +89,7 @@ export default async function handler(req, res) {
           }
 
           // SAFEGUARD 3: Daily limit
-          const { count } = await supabase
+          const { count } = await getSupabase()
               .from('diamond_reward_claims')
               .select('*', { count: 'exact', head: true })
               .eq('user_id', userId)
@@ -101,7 +101,7 @@ export default async function handler(req, res) {
           }
 
           // SAFEGUARD 4: Daily cap
-          const { data: todayClaims } = await supabase
+          const { data: todayClaims } = await getSupabase()
               .from('diamond_reward_claims')
               .select('diamonds_awarded')
               .eq('user_id', userId)
