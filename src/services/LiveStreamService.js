@@ -98,6 +98,8 @@ class LiveStreamService {
         this.currentUserId = userId;
         this.localStream = mediaStream;
         this.isBroadcaster = true;
+        this.isManualDisconnect = false; // FIX: reset so reconnect works for new broadcast
+        this.reconnectAttempts = 0;
 
         // 1. Create stream record in Supabase
         const insertPayload = {

@@ -262,7 +262,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
 
     const handleEndStream = async () => {
         try {
-            if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current.stop();
+            if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current?.stop();
             await liveStreamService.endBroadcast();
             if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
             setStage('ended');

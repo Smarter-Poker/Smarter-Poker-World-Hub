@@ -98,6 +98,7 @@ export function EndStreamModal({
             // 1. Upload video to storage
             setUploadProgress(30);
             const videoUrl = await uploadVideo();
+            if (!videoUrl) throw new Error('No recording available to upload');
             setUploadProgress(60);
 
             // 2. Update stream record with video URL (client-side, owns the row)
@@ -133,6 +134,7 @@ export function EndStreamModal({
             // 1. Upload video
             setUploadProgress(30);
             const videoUrl = await uploadVideo();
+            if (!videoUrl) throw new Error('No recording available to upload');
             setUploadProgress(70);
 
             // 2. Update stream record with video URL
