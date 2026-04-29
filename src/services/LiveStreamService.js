@@ -43,6 +43,7 @@ class LiveStreamService {
         this.isReconnecting = false;
         this.isManualDisconnect = false; // FIX: was undefined, causing spurious reconnect
         this.onRemoteStream = null;
+        this._viewerChannel = null; // FIX: viewer subscription channel ref for cleanup
 
         // Callbacks
         this.onViewerCountChange = null;
@@ -169,8 +170,11 @@ class LiveStreamService {
 
         // Track subscriptions (for viewers)
         this.room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
-            if (track.kind === Track.Kind.Video && this.onRemoteStream) {
-                this.onRemoteStream(track.mediaStream || this._trackToStream(track));
+            // FIX: track.mediaStream does not exist in livekit-client v2.
+            // Use _trackToStream() which wraps track.mediaStreamTrack correctly.
+            if (track.kind === Track.Kind.Video) {
+                const ms = this._trackToStream(track);
+                if (ms) this.onRemoteStream?.(ms);
             }
         });
 
@@ -179,27 +183,22 @@ class LiveStreamService {
         });
 
         // Publish local tracks if broadcaster
-        // FIX: LocalVideoTrack/LocalAudioTrack constructors don't exist in livekit-client v2.
-        // Use createLocalTracks() which is the correct API.
+        // FIX: createLocalTracks() opens a SECOND camera session — wasteful and causes
+        // permission prompts on some browsers. Publish the existing raw MediaStreamTracks
+        // directly via localParticipant.publishTrack(), which livekit-client v2 supports.
         if (isBroadcaster && mediaStream) {
             try {
                 const videoTrack = mediaStream.getVideoTracks()[0];
                 const audioTrack = mediaStream.getAudioTracks()[0];
                 if (videoTrack) {
-                    const localTracks = await createLocalTracks({ video: true, audio: false });
-                    const localVT = localTracks.find(t => t.kind === Track.Kind.Video);
-                    if (localVT) {
-                        await localVT.replaceTrack(videoTrack);
-                        await this.room.localParticipant.publishTrack(localVT);
-                    }
+                    await this.room.localParticipant.publishTrack(videoTrack, {
+                        name: 'camera',
+                        simulcast: true,
+                        videoSimulcastLayers: [VideoPresets.h180, VideoPresets.h360, VideoPresets.h720],
+                    });
                 }
                 if (audioTrack) {
-                    const localTracks = await createLocalTracks({ video: false, audio: true });
-                    const localAT = localTracks.find(t => t.kind === Track.Kind.Audio);
-                    if (localAT) {
-                        await localAT.replaceTrack(audioTrack);
-                        await this.room.localParticipant.publishTrack(localAT);
-                    }
+                    await this.room.localParticipant.publishTrack(audioTrack, { name: 'mic' });
                 }
             } catch (pubErr) {
                 console.warn('[LiveKit] Track publish error:', pubErr.message);
@@ -228,6 +227,11 @@ class LiveStreamService {
 
         try {
             const { token, url } = await this._getToken(this.currentStreamId, this.isBroadcaster);
+            // FIX: disconnect the old Room before creating a new one to prevent room leak
+            if (this.room) {
+                try { await this.room.disconnect(); } catch (_) {}
+                this.room = null;
+            }
             await this._connectRoom(url, token, this.isBroadcaster, this.localStream);
             this.isReconnecting = false;
             this.reconnectAttempts = 0;
@@ -309,6 +313,11 @@ class LiveStreamService {
             this.localStream = null;
         }
 
+        // Clean up viewer subscription channel
+        if (this._viewerChannel) {
+            supabase.removeChannel(this._viewerChannel);
+            this._viewerChannel = null;
+        }
         console.debug('⬛ Broadcast ended:', this.currentStreamId);
         const endedId = this.currentStreamId;
         this.currentStreamId = null;
@@ -343,7 +352,7 @@ class LiveStreamService {
         await supabase.from('live_viewers').upsert({ stream_id: streamId, viewer_id: userId });
 
         // Update peak_viewers if needed
-        supabase.rpc('fn_update_peak_viewers', { p_stream_id: streamId }).catch(() => {});
+        supabase.rpc('update_live_peak_viewers', { p_stream_id: streamId, p_count: 1 }).catch(() => {});
 
         // Get token and connect
         const { token, url } = await this._getToken(streamId, false);
@@ -385,6 +394,11 @@ class LiveStreamService {
             this.room = null;
         }
 
+        // Clean up viewer subscription channel
+        if (this._viewerChannel) {
+            supabase.removeChannel(this._viewerChannel);
+            this._viewerChannel = null;
+        }
         console.debug('👋 Left stream:', this.currentStreamId);
         this.currentStreamId = null;
     }
@@ -473,7 +487,11 @@ class LiveStreamService {
     }
 
     _subscribeToViewers(streamId) {
-        supabase
+        // FIX: store channel ref so endBroadcast/leaveStream can unsubscribe
+        if (this._viewerChannel) {
+            supabase.removeChannel(this._viewerChannel);
+        }
+        this._viewerChannel = supabase
             .channel(`live-viewers-${streamId}`)
             .on('postgres_changes', {
                 event: '*', schema: 'public', table: 'live_streams',

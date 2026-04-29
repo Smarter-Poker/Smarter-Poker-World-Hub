@@ -20,7 +20,7 @@ export default async function handler(req, res) {
         const { broadcaster_id } = req.query;
         const { data, error } = await supabase
             .from('scheduled_lives')
-            .select('*, profiles!broadcaster_id(username, avatar_url)')
+            .select('*, broadcaster:profiles(id, username, full_name, avatar_url)')
             .eq('broadcaster_id', broadcaster_id || user.id)
             .gte('scheduled_at', new Date().toISOString())
             .order('scheduled_at', { ascending: true });

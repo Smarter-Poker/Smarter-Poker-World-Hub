@@ -63,6 +63,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
             if (hideControlsRef.current) clearTimeout(hideControlsRef.current);
             if (commentChannelRef.current) supabase.removeChannel(commentChannelRef.current);
         };
+        if (timerRef._cdInterval) { clearInterval(timerRef._cdInterval); timerRef._cdInterval = null; }
     }, [isOpen]);
 
     // Subscribe to viewer comments when stream goes live
@@ -173,14 +174,17 @@ export function GoLiveModal({ isOpen, onClose, user }) {
 
         // 5-second countdown
         let count = 5;
+        // FIX: store interval so cleanup useEffect can cancel it if modal closes mid-countdown
         const cdInterval = setInterval(async () => {
             count--;
             setCountdown(count);
             if (count <= 0) {
                 clearInterval(cdInterval);
+                timerRef._cdInterval = null;
                 await startBroadcast(thumbUrl);
             }
         }, 1000);
+        timerRef._cdInterval = cdInterval;
     };
 
     const startBroadcast = async (thumbUrl) => {
@@ -398,7 +402,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                             <input
                                 value={title}
                                 onChange={(e) => setTitle(e.target.value)}
-                                placeholder={`${user?.name || 'Your'}'s Live Stream`}
+                                placeholder={`${user?.full_name || user?.user_metadata?.full_name || 'Your'}'s Live Stream`}
                                 style={{ width:'100%', padding:'11px 14px', borderRadius:8, border:`1px solid ${C.border}`, fontSize:15, outline:'none', boxSizing:'border-box', color:C.text }}
                             />
 

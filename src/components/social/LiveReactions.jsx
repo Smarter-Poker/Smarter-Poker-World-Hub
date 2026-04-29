@@ -8,12 +8,10 @@ import { supabase } from '../../lib/supabase';
 
 const REACTION_EMOJIS = ['❤️', '🔥', '♠️', '🃏', '💎', '🤑', '👏', '😮'];
 
-function FloatingEmoji({ emoji, id }) {
-    const left = 15 + Math.random() * 50; // random left 15-65%
-    const duration = 2.5 + Math.random() * 1.5; // 2.5–4s
+function FloatingEmoji({ emoji, id, left, duration }) {
+    // FIX: left and duration pre-computed by parent — stable across re-renders
     return (
         <div
-            key={id}
             style={{
                 position: 'absolute',
                 bottom: 0,
@@ -37,11 +35,13 @@ export function LiveReactions({ streamId, userId, isBroadcaster }) {
 
     const addFloater = useCallback((emoji) => {
         const id = ++floaterIdRef.current;
-        setFloaters(prev => [...prev, { emoji, id }]);
-        // Remove after animation completes
+        // FIX: compute random values here (stable per floater, not per render)
+        const left = 15 + Math.random() * 50;
+        const duration = 2.5 + Math.random() * 1.5;
+        setFloaters(prev => [...prev, { emoji, id, left, duration }]);
         setTimeout(() => {
             setFloaters(prev => prev.filter(f => f.id !== id));
-        }, 4500);
+        }, Math.round(duration * 1000) + 100);
     }, []);
 
     useEffect(() => {
@@ -99,7 +99,7 @@ export function LiveReactions({ streamId, userId, isBroadcaster }) {
                 overflow: 'visible',
                 zIndex: 20,
             }}>
-                {floaters.map(f => <FloatingEmoji key={f.id} emoji={f.emoji} id={f.id} />)}
+                {floaters.map(f => <FloatingEmoji key={f.id} emoji={f.emoji} id={f.id} left={f.left} duration={f.duration} />)}
             </div>
 
             {/* Reaction buttons */}

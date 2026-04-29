@@ -11,12 +11,13 @@
 # 2. Module-scope browser API usage without window guards (SSG bombs)
 # 3. No .single() calls (must use .maybeSingle())
 # 4. No raw @supabase/supabase-js imports in API routes
-# 5. Real syntax validation via node -c
+# 5. Syntax validation: node -c for .js, Babel for .jsx/.tsx
 # 6. Auth route canonicalization (/auth/login not /auth/signin)
 # 7. Pages with /api/ fetch calls must import auth (getAccessToken/authedFetch)
 # 8. Broken imports — all import paths resolve to existing files
 # 9. Catch-block corruption — detects collapsed try/catch with orphaned code
 #    (the April 21, 2026 incident: 17 failed deploys from automated refactoring)
+# 10. TypeScript type checking via tsc --noEmit (only NEW errors block the push)
 #
 # INSTALL: Run `bash scripts/install-hooks.sh` from the project root
 # ═══════════════════════════════════════════════════════════════════════════
@@ -382,6 +383,71 @@ done
 
 if [ -z "$BROKEN_IMPORT_HITS" ]; then
     echo -e "${GREEN}  ✓ All local imports resolve to existing files.${NC}"
+fi
+
+echo ""
+echo "═══════════════════════════════════════════════════════"
+
+# ─── CHECK 10: TypeScript type checking ─────────────────────────────────
+# Only runs when TypeScript files are being pushed.
+# Strategy: compare tsc output BEFORE and AFTER the push — only NEW errors block.
+# Pre-existing type errors in unrelated files are ignored.
+echo ""
+echo "CHECK 10: TypeScript type checking (tsc --noEmit)..."
+
+TS_FILES=$(echo "$JS_FILES" | grep -E '\.(ts|tsx)$')
+
+if [ -n "$TS_FILES" ]; then
+    TSC_BIN="$(dirname "$0")/../node_modules/.bin/tsc"
+    [ -f "$TSC_BIN" ] || TSC_BIN="$(pwd)/node_modules/.bin/tsc"
+
+    if [ ! -f "$TSC_BIN" ]; then
+        echo -e "${YELLOW}  ⚠ tsc not found. Skipping TypeScript check.${NC}"
+    else
+        echo "  Running tsc --noEmit --skipLibCheck (this takes ~15s)..."
+
+        # Get the baseline error count from the remote HEAD (pre-push state)
+        # by stashing the working state and checking out the remote HEAD
+        REMOTE_HEAD=$(git rev-parse "@{u}" 2>/dev/null || git rev-parse HEAD~1 2>/dev/null)
+
+        # Run tsc on the CURRENT state (with our changes)
+        CURRENT_ERRORS=$("$TSC_BIN" --noEmit --skipLibCheck 2>&1 | grep '^src/' | sort)
+        CURRENT_COUNT=$(echo "$CURRENT_ERRORS" | grep -c 'error TS' 2>/dev/null || echo 0)
+
+        # Run tsc on the REMOTE HEAD state (before our changes)
+        if [ -n "$REMOTE_HEAD" ]; then
+            BASELINE_ERRORS=$(git stash --quiet 2>/dev/null && \
+                "$TSC_BIN" --noEmit --skipLibCheck 2>&1 | grep '^src/' | sort; \
+                git stash pop --quiet 2>/dev/null)
+            BASELINE_COUNT=$(echo "$BASELINE_ERRORS" | grep -c 'error TS' 2>/dev/null || echo 0)
+        else
+            BASELINE_COUNT=0
+            BASELINE_ERRORS=""
+        fi
+
+        # Find errors that are NEW (in current but not in baseline)
+        NEW_ERRORS=$(comm -23 \
+            <(echo "$CURRENT_ERRORS" | grep 'error TS' | sort) \
+            <(echo "$BASELINE_ERRORS" | grep 'error TS' | sort) 2>/dev/null)
+        NEW_COUNT=$(echo "$NEW_ERRORS" | grep -c 'error TS' 2>/dev/null || echo 0)
+
+        if [ "$NEW_COUNT" -gt 0 ] 2>/dev/null && [ -n "$NEW_ERRORS" ]; then
+            echo -e "${RED}  ✗ TYPESCRIPT: ${NEW_COUNT} NEW type error(s) introduced by this push:${NC}"
+            echo "$NEW_ERRORS" | head -10 | while IFS= read -r line; do
+                echo "    $line"
+            done
+            [ "$NEW_COUNT" -gt 10 ] && echo "    ... and $((NEW_COUNT - 10)) more."
+            echo ""
+            echo "    Fix the type errors above before pushing."
+            echo "    (${CURRENT_COUNT} total errors exist; only NEW ones block the push)"
+            echo ""
+            ERRORS=$((ERRORS + 1))
+        else
+            echo -e "${GREEN}  ✓ No NEW TypeScript errors introduced (${CURRENT_COUNT} pre-existing, unchanged).${NC}"
+        fi
+    fi
+else
+    echo -e "${GREEN}  ✓ No .ts/.tsx files changed. Skipping TypeScript check.${NC}"
 fi
 
 echo ""
