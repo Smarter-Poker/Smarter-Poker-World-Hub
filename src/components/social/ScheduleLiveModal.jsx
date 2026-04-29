@@ -84,8 +84,8 @@ export function ScheduleLiveModal({ isOpen, onClose, user }) {
     return (
         <div style={{
             position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)',
-            zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: 16,
+            zIndex: 10000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+            overflowY: 'auto', padding: '20px 16px',
         }}>
             <div style={{
                 background: C.card,

@@ -184,8 +184,10 @@ export function EndStreamModal({
                 background: 'rgba(0, 0, 0, 0.85)',
                 zIndex: 10000,
                 display: 'flex',
-                alignItems: 'center',
+                alignItems: 'flex-start',
                 justifyContent: 'center',
+                overflowY: 'auto',
+                padding: '20px 0',
             }}
         >
             <div
@@ -194,7 +196,8 @@ export function EndStreamModal({
                     borderRadius: 12,
                     width: 'min(500px, 90vw)',
                     maxHeight: '90vh',
-                    overflow: 'hidden',
+                    overflow: 'auto',
+                    WebkitOverflowScrolling: 'touch',
                 }}
             >
                 {/* Header */}
