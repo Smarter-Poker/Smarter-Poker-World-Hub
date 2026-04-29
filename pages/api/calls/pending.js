@@ -1,0 +1,78 @@
+// API to get pending calls for a user
+// GET /api/calls/pending?userId=xxx
+
+import { createClient } from '../../../src/lib/supabaseServerClient';
+import { reportApiError } from '../../../src/lib/sentryWrap';
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
+
+export default async function handler(req, res) {
+  try {
+      if (req.method !== 'GET') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
+
+      // ── Auth: verify JWT identity ──
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
+      const { data: authData, error: authErr } = await getSupabase().auth.getUser(token);
+      const authUser = authData?.user;
+      if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+
+      const userId = authUser.id; // From JWT, NOT query param
+
+      try {
+          // Clean up expired calls first
+          await getSupabase()
+              .from('pending_calls')
+              .delete()
+              .lt('expires_at', new Date().toISOString());
+
+          // Get pending calls for this user
+          const { data: calls, error } = await getSupabase()
+              .from('pending_calls')
+              .select('*')
+              .eq('callee_id', userId)
+              .gt('expires_at', new Date().toISOString())
+              .order('created_at', { ascending: false })
+              .limit(1);
+
+          if (error) {
+              console.warn('[calls/pending] Error:', error);
+              return res.status(500).json({ success: false, error: 'Internal server error' });
+          }
+
+          // Return the most recent pending call
+          const pendingCall = calls?.[0] || null;
+
+          return res.json({
+              success: true,
+              pendingCall: pendingCall ? {
+                  id: pendingCall.id,
+                  callerId: pendingCall.caller_id,
+                  callerName: pendingCall.caller_name,
+                  callerAvatar: pendingCall.caller_avatar,
+                  callType: pendingCall.call_type,
+                  roomName: pendingCall.room_name,
+                  createdAt: pendingCall.created_at,
+              } : null
+          });
+      } catch (e) {
+          console.warn('[calls/pending] Exception:', e);
+          return res.status(500).json({ success: false, error: 'Internal server error' });
+      }
+
+  } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+    console.warn('[API Error]', err);
+    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
