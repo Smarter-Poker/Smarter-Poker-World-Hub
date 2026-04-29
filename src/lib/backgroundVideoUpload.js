@@ -40,22 +40,49 @@ import toast, { useToastStore } from '../stores/toastStore';
 import * as tus from 'tus-js-client';
 
 // ─── Auth resilience helper ──────────────────────────────────────────────────
-// getAccessToken() is a one-shot localStorage read that races with Supabase SDK
-// token refresh, fails in PWA standalone mode (separate localStorage scope from
-// Safari), and returns null under iOS memory pressure. When that happens, the
-// TUS Authorization header becomes "Bearer " (empty) and Supabase Storage
-// rejects the request with "Invalid Compact JWS" before ever reading
-// x-signature. This helper falls back to an active SDK refresh when localStorage
-// is empty so the bearer header is never blank.
+// getAccessToken() is a one-shot localStorage read that:
+//   1. races with Supabase SDK token refresh (returns null mid-write)
+//   2. fails in PWA standalone mode (separate localStorage scope from Safari)
+//   3. returns null under iOS memory pressure on background tabs
+//   4. can return a TRUTHY-but-malformed string from a legacy SDK shape or
+//      a corrupted JSON.parse fallback (e.g. literal "undefined", "null",
+//      or "[object Object]")
+// In ALL of those cases, building `Bearer ${tok}` and shipping it makes
+// Supabase Storage reject with "Invalid Compact JWS" before x-signature is
+// even read. This helper:
+//   (a) prefers SDK getSession() — auto-refreshes if expired
+//   (b) validates JWT shape (3 base64url parts) at every step
+//   (c) emits a console.warn with the failure mode so future debugging
+//       sessions can read the truth from the browser console without me
+//       having to guess
+const JWT_SHAPE = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
+const _isJWT = (t) => typeof t === 'string' && JWT_SHAPE.test(t);
+
 async function _ensureBearer() {
-    let token = getAccessToken();
-    if (token) return token;
+    // 1. PRIMARY: SDK getSession — single source of truth; auto-refreshes if expired.
     try {
         const { supabase } = await import('./supabase');
-        const { data } = await supabase.auth.refreshSession();
-        token = data?.session?.access_token || null;
-    } catch (_) { /* refresh failed; caller will reject with a clear error */ }
-    return token;
+        const { data: { session } = {} } = await supabase.auth.getSession();
+        const tok = session?.access_token;
+        if (_isJWT(tok)) return tok;
+        if (tok) console.warn('[bgUpload] SDK getSession returned non-JWT-shaped token, forcing refresh', { tokenType: typeof tok, prefix: String(tok).slice(0, 20) });
+
+        // 2. Force explicit refresh.
+        const { data: ref } = await supabase.auth.refreshSession();
+        const refTok = ref?.session?.access_token;
+        if (_isJWT(refTok)) return refTok;
+        if (refTok) console.warn('[bgUpload] refreshSession returned non-JWT-shaped token', { tokenType: typeof refTok, prefix: String(refTok).slice(0, 20) });
+    } catch (e) {
+        console.warn('[bgUpload] SDK auth path threw, falling through to localStorage:', e?.message || e);
+    }
+
+    // 3. LAST RESORT: localStorage shape-checked.
+    const local = getAccessToken();
+    if (_isJWT(local)) return local;
+    if (local) console.warn('[bgUpload] getAccessToken returned non-JWT-shaped value (corrupt localStorage)', { tokenType: typeof local, prefix: String(local).slice(0, 20) });
+
+    console.warn('[bgUpload] _ensureBearer returning null — every auth path failed. User will see "Session expired".');
+    return null;
 }
 
 // ─── Module-level singletons ──────────────────────────────────────────────────
@@ -244,13 +271,19 @@ async function _uploadWithTus(file, meta, mimeType) {
     // ── Auth resolution (must happen BEFORE the TUS upload is constructed) ──
     // Supabase Storage validates Authorization: Bearer <user-jwt> as a JWS
     // FIRST. If it's empty or malformed, the request fails with "Invalid
-    // Compact JWS" no matter how valid x-signature is. Resolve a guaranteed
-    // non-empty bearer token now; if we can't, fail loudly with a user-readable
-    // error rather than shipping "Bearer " on the wire.
+    // Compact JWS" no matter how valid x-signature is. _ensureBearer goes
+    // through SDK getSession (auto-refresh) and validates JWT shape; only
+    // returns a guaranteed-shape-valid token or null.
     const userToken = await _ensureBearer();
-    if (!userToken) {
+    if (!_isJWT(userToken)) {
+        // Belt-and-suspenders: even if _ensureBearer somehow returned a
+        // non-JWT, this final check stops it from reaching the wire.
+        console.warn('[bgUpload] _uploadWithTus refusing to start — no valid JWT available');
         throw new Error('Session expired. Please refresh the page and try again.');
     }
+    // Diagnostic log so the failure mode is visible in the user's console
+    // if anything still goes wrong downstream.
+    console.debug('[bgUpload] starting TUS upload with valid JWT (length=' + userToken.length + ')');
 
     return new Promise((resolve, reject) => {
         _uploadStartTime = Date.now();
@@ -328,12 +361,13 @@ async function _uploadWithTus(file, meta, mimeType) {
                 }
             },
             // Refresh Authorization on every chunk PATCH so multi-minute uploads
-            // survive token rotation. _ensureBearer falls back to an active SDK
-            // refresh when localStorage is stale; tus-js-client v4 awaits the
-            // returned Promise, so an async callback is safe here.
+            // survive token rotation. _ensureBearer validates JWT shape and
+            // refreshes via SDK if needed.
             onBeforeRequest: async (req) => {
                 const fresh = await _ensureBearer();
-                if (fresh) req.setHeader('Authorization', `Bearer ${fresh}`);
+                if (_isJWT(fresh)) {
+                    req.setHeader('Authorization', `Bearer ${fresh}`);
+                }
                 req.setHeader('apikey', SUPABASE_ANON_KEY);
                 if (meta.token) req.setHeader('x-signature', meta.token);
             },
