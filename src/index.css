@@ -45,6 +45,8 @@ html {
   -webkit-text-size-adjust: 100%;
   overflow-x: hidden;
   overflow-y: auto;
+  /* Prevent Safari/iPadOS native pull-to-refresh gesture */
+  overscroll-behavior-y: none;
 }
 
 body {
@@ -55,6 +57,8 @@ body {
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  /* Prevent Safari/iPadOS native pull-to-refresh gesture */
+  overscroll-behavior-y: none;
 }
 
 /* Next.js root container */

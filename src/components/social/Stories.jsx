@@ -49,6 +49,14 @@ function StoryRing({ hasUnviewed, isLive, children, size = 64, onClick }) {
     const ringBackground = isLive ? liveGradient : hasUnviewed ? unviewedGradient : defaultBorder;
 
     return (
+        <>
+        {/* Inject keyframe once — CSS deduplicates identical <style> blocks */}
+        {isLive && <style>{`
+            @keyframes liveGlow {
+                0%, 100% { box-shadow: 0 0 12px rgba(0, 120, 255, 0.6), 0 0 24px rgba(0, 180, 255, 0.25); }
+                50% { box-shadow: 0 0 22px rgba(0, 120, 255, 0.9), 0 0 45px rgba(0, 180, 255, 0.5); }
+            }
+        `}</style>}
         <div
             onClick={onClick}
             style={{
