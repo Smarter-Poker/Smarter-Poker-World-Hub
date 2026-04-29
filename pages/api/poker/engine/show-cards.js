@@ -5,10 +5,21 @@
  *
  * Allows a player to opt-in or opt-out of showing their hole cards
  * at showdown in the Live Table Mini-View broadcast.
+ *
+ * SECURITY: Authentication + per-seat ownership check.
+ *
+ * Previously this endpoint accepted (tableId, seatIndex, show) from any
+ * anonymous client and immediately wrote to lobby._showCardsConsent —
+ * which means anyone with a valid (tableId, seatIndex) pair could force
+ * any opponent's cards to be revealed mid-hand. Closed by:
+ *   1. Bearer JWT required (authenticatePlayer).
+ *   2. JWT user.id must match the player seated at tableId:seatIndex.
  */
 
 import { reportApiError } from '../../../../src/lib/sentryWrap';
 import { getController } from '../../../../src/lib/poker-engine/GameController';
+const { applyRateLimit } = require('../../../../src/lib/poker-engine/RateLimiter');
+const { authenticatePlayer } = require('../../../../src/lib/poker-engine/authMiddleware');
 
 // NOTE: This handler imports GameController (→ HealthWatchdog → process.memoryUsage)
 // and uses req.body, res.status() — all incompatible with Edge Runtime. Keep as Node.js runtime.
@@ -17,6 +28,14 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'POST only' });
   }
+
+  // Rate limit (per-IP) to blunt brute-force scanning of (tableId, seatIndex) pairs.
+  if (!applyRateLimit(req, res, 'poker/show-cards')) return;
+
+  // Auth: verify Bearer JWT identity. Don't require a body playerId — we
+  // use the JWT identity for ownership check below.
+  const auth = await authenticatePlayer(req, res, { requirePlayerId: false });
+  if (!auth) return; // 401/403 already sent
 
   const { tableId, seatIndex, show } = req.body || {};
 
@@ -37,8 +56,26 @@ export default async function handler(req, res) {
       return res.status(503).json({ error: 'Lobby not available' });
     }
 
+    // Ownership check: the JWT user must own the seat they're consenting on.
+    const entry = lobby.getTable(tableId);
+    if (!entry || !entry.table) {
+      return res.status(404).json({ error: 'Table not found' });
+    }
+
+    const seat = entry.table.seats?.[seatIndex];
+    const seatPlayerId = seat?.player?.id || null;
+
+    if (!seatPlayerId) {
+      return res.status(404).json({ error: 'Seat is empty' });
+    }
+
+    if (seatPlayerId !== auth.userId) {
+      // Don't tell the caller why — could be used to enumerate seat ownership.
+      return res.status(403).json({ error: 'Not allowed' });
+    }
+
     const key = `${tableId}:${seatIndex}`;
-    
+
     if (show === true) {
       lobby._showCardsConsent.set(key, true);
     } else {

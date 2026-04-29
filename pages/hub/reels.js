@@ -56,9 +56,9 @@ export default function ReelsPage() {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState(false);
-    const [muted, setMuted] = useState(false); // Always start with sound ON
-    const [userWantsSound, setUserWantsSound] = useState(true); // Sound always on by default
-    // Auto-play immediately - no tap required since videos are muted (browser policy compliant)
+    const [muted, setMuted] = useState(true); // Start MUTED for mobile autoplay compliance — unmute after playback confirmed
+    const [userWantsSound, setUserWantsSound] = useState(true); // User preference — auto-unmute after YT confirms playing
+    // Auto-play immediately - videos start muted per browser policy, unmute after onStateChange confirms playing
     const [liked, setLiked] = useState({});
     const [disliked, setDisliked] = useState({});
     const [likeCounts, setLikeCounts] = useState({});
@@ -85,6 +85,8 @@ export default function ReelsPage() {
     const [isPaused, setIsPaused] = useState(true); // Start true — autoplay may fail, first tap should always send playVideo
     const isPausedRef = useRef(true); // Sync ref for stale-closure-safe keyboard handler (matches initial isPaused=true)
     isPausedRef.current = isPaused; // Keep in sync on every render
+    const userWantsSoundRef = useRef(true); // Sync ref for stale-closure-safe YT message handler
+    userWantsSoundRef.current = userWantsSound; // Keep in sync on every render
     const [ytReady, setYtReady] = useState(false); // True once YouTube fires first onStateChange — suppresses phantom play button during autoplay startup
     const touchStartY = useRef(0);
     const lastTapRef = useRef(0);
@@ -262,19 +264,15 @@ export default function ReelsPage() {
         }
     };
 
-    // Auto-play AND auto-unmute on every reel - sound must ALWAYS be on
+    // Auto-play retry on every reel change — send playVideo commands
+    // CRITICAL: Do NOT send unMute here. On mobile Safari, unmuting before playback
+    // starts causes autoplay to fail (violates browser policy). Unmuting happens
+    // in the onStateChange(1) handler AFTER YouTube confirms playing.
     useEffect(() => {
         if (!loading && reels.length > 0) {
-            // Aggressive unmute retry loop: 300ms, 800ms, 1500ms, 3000ms
-            // YouTube iframe starts muted for autoplay compliance, we unmute immediately after
             const delays = [300, 800, 1500, 3000];
             const timers = delays.map(delay => setTimeout(() => {
                 sendYouTubeCommand('playVideo');
-                if (userWantsSound) {
-                    sendYouTubeCommand('unMute');
-                    sendYouTubeCommand('setVolume', [100]);
-                    setMuted(false);
-                }
             }, delay));
             return () => timers.forEach(t => clearTimeout(t));
         }
@@ -1092,8 +1090,12 @@ export default function ReelsPage() {
             const caption = currentReel.caption || 'Check out this reel!';
             const reelLink = window.location.origin + '/hub/reels?id=' + currentReel.id;
             // #5 Duplicate guard - check if already shared
-            const { data: existing } = await supabase.from('social_posts')
+            const { data: existing, error: checkError } = await supabase.from('social_posts')
                 .select('id').eq('author_id', user.id).eq('link_url', reelLink).limit(1);
+            if (checkError) {
+                console.warn('[ShareToFeed] Duplicate check failed:', checkError.message);
+                // Continue anyway — better to share a duplicate than silently fail
+            }
             if (existing && existing.length > 0) {
                 setSharedToFeed(true);
                 setSharingToFeed(false);
@@ -1101,23 +1103,29 @@ export default function ReelsPage() {
                 return;
             }
             const postContent = caption + '\n\n' + reelLink;
-            const { error } = await supabase.from('social_posts').insert({
+            const { data: insertData, error } = await supabase.from('social_posts').insert({
                 author_id: user.id,
                 content: postContent,
                 content_type: videoUrl ? 'video' : 'text',
                 media_urls: videoUrl ? [videoUrl] : [],
                 visibility: 'public',
                 link_url: reelLink,
-            });
-            if (error) throw error;
+            }).select('id').maybeSingle();
+            if (error) {
+                console.error('[ShareToFeed] Insert error:', error.message, error.details, error.hint);
+                throw error;
+            }
+            console.log('[ShareToFeed] Success — created post:', insertData?.id);
             incrementMetric(currentReel, 'share_count', 1);
             busEmit.socialPostShared(currentReel.id, user.id);
             busEmit.dataMutated('social');
             setSharedToFeed(true);
             setTimeout(() => { setSharedToFeed(false); }, 3000);
         } catch (err) {
-            console.warn('Share to feed failed:', err.message);
-            showErrorToast('Share failed - try again');
+            console.error('[ShareToFeed] Failed:', err?.message || err);
+            setSharingToFeed(false);
+            showErrorToast('Share failed — ' + (err?.message || 'try again'));
+            return; // Don't clear sharingToFeed below — already cleared
         }
         setSharingToFeed(false);
     };
@@ -1135,10 +1143,13 @@ export default function ReelsPage() {
         setReportSubmitted(false);
         setShareToast(false);
         setShowShareModal(false);
-        // DON'T set isPaused=true here — the iframe has autoplay=1&mute=1 which
-        // should start playing immediately on mobile. Setting isPaused=true on every
-        // reel change caused the play button to appear and block autoplay.
-        // Let the YouTube onStateChange event drive isPaused state.
+        // Reset isPaused to true — the play button overlay is guarded by (isPaused && ytReady)
+        // and ytReady starts false, so the play button won't show during autoplay startup.
+        // If autoplay succeeds, YT fires onStateChange(1) → sets isPaused=false before ytReady=true.
+        // If autoplay fails, ytReady=true after 3s fallback → play button correctly appears.
+        // Without this reset, isPaused holds STALE state from the previous reel, making the
+        // tap-to-play/pause logic inverted on the new video.
+        setIsPaused(true);
         setYtReady(false); // Reset — suppress play button until YT fires onStateChange for new video
         setYtError(null); // Clear YouTube error state on reel change
 
@@ -1285,7 +1296,7 @@ export default function ReelsPage() {
                 setCurrentIndex(prev => prev + 1);
                 setSlideDirection(null);
                 slideDebounceRef.current = false;
-            }, 250);
+            }, 120);
         }
     };
     const slideToPrev = () => {
@@ -1297,7 +1308,7 @@ export default function ReelsPage() {
                 setCurrentIndex(prev => prev - 1);
                 setSlideDirection(null);
                 slideDebounceRef.current = false;
-            }, 250);
+            }, 120);
         }
     };
 
@@ -1374,6 +1385,13 @@ export default function ReelsPage() {
                         setYtReady(true); // YouTube confirmed playback — safe to show play button now
                         setIsPaused(false);
                         setYtError(null); // Clear any previous error on successful play
+                        // Auto-unmute after playback confirmed — this is the ONLY safe place
+                        // to unmute on mobile. Doing it earlier breaks autoplay.
+                        if (userWantsSoundRef.current) {
+                            sendYouTubeCommand('unMute');
+                            sendYouTubeCommand('setVolume', [100]);
+                            setMuted(false);
+                        }
                         setShowOverlay(true);
                         clearTimeout(hudTimerRef.current);
                         hudTimerRef.current = setTimeout(() => setShowOverlay(false), 5000);
@@ -1669,7 +1687,7 @@ export default function ReelsPage() {
                     background: '#000',
                     zIndex: 1,
                     pointerEvents: 'none',
-                    transition: slideDirection ? 'transform 0.25s ease-out, opacity 0.2s ease-out' : 'none',
+                    transition: slideDirection ? 'transform 0.12s ease-out, opacity 0.1s ease-out' : 'none',
                     transform: slideDirection === 'up' ? 'translateY(-100%)' : slideDirection === 'down' ? 'translateY(100%)' : 'translateY(0)',
                     opacity: slideDirection ? 0.3 : 1,
                 }}>
@@ -1693,15 +1711,13 @@ export default function ReelsPage() {
                                     iframeWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
                                     iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
                                     // Aggressive retry loop: YouTube API inside iframe needs time to initialize
-                                    // On mobile, autoplay=1&mute=1 should work, but we reinforce with playVideo commands
+                                    // CRITICAL: Do NOT send unMute here — on mobile Safari, unmuting before
+                                    // playback starts causes autoplay to fail. Unmute only after
+                                    // onStateChange confirms Playing (info === 1).
                                     [300, 800, 1500, 3000].forEach(delay => setTimeout(() => {
                                         try {
                                             iframeWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
                                             iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
-                                            if (userWantsSound) {
-                                                iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
-                                                iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
-                                            }
                                         } catch (err) { console.warn('[Reels] YT command retry failed:', err); }
                                     }, delay));
                                 } catch (err) { console.warn('[Reels] YT onLoad init failed:', err); }
@@ -1795,37 +1811,28 @@ export default function ReelsPage() {
                     onClick={() => {
                         const now = Date.now();
                         if (now - lastTapRef.current < 300) {
-                            // Double tap = like (TikTok behavior: always show heart, only toggle if not liked)
-                            setShowHeart(true);
-                            setTimeout(() => setShowHeart(false), 800);
+                            // Double tap = toggle play/pause
                             haptic(15);
-                            if (!liked[currentReel?.id]) {
-                                handleLike();
-                            }
-                        } else {
-                            // Single tap = reveal overlay + toggle play/pause
-                            revealOverlay();
                             if (videoId) {
-                                // YouTube: toggle via postMessage
                                 if (isPaused) {
                                     sendYouTubeCommand('playVideo');
                                     setIsPaused(false);
                                 } else {
                                     sendYouTubeCommand('pauseVideo');
                                     setIsPaused(true);
-                                    // Paused = anchor HUD (don't auto-hide)
                                     clearTimeout(hudTimerRef.current);
                                 }
                             } else if (videoRef.current) {
-                                // Native video: toggle via DOM API
                                 if (videoRef.current.paused) {
                                     videoRef.current.play().catch(e => console.warn('[Reels] play() failed:', e?.message));
                                 } else {
                                     videoRef.current.pause();
-                                    // Paused = anchor HUD (don't auto-hide)
                                     clearTimeout(hudTimerRef.current);
                                 }
                             }
+                        } else {
+                            // Single tap = show/hide overlay ONLY (no play/pause)
+                            revealOverlay();
                         }
                         lastTapRef.current = now;
                     }}

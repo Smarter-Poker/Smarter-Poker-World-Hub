@@ -125,7 +125,9 @@ function ReelCard({ reel, onClick }) {
                     style={{
                         width: '100%',
                         height: '100%',
-                        objectFit: 'cover',
+                        objectFit: 'contain',
+                        objectPosition: 'center',
+                        background: '#000',
                     }}
                 />
             ) : (
@@ -1353,19 +1355,17 @@ function ReelViewer({ reels, startIndex, onClose }) {
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             allowFullScreen
                             onLoad={(e) => {
-                                // Force play + unmute via YouTube postMessage API
+                                // Force play via YouTube postMessage API
+                                // CRITICAL: Do NOT send unMute here — on mobile Safari, unmuting
+                                // before playback starts causes autoplay to fail.
                                 const iframeWindow = e.target.contentWindow;
                                 try {
-                                    iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
                                     iframeWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
-                                    // Aggressive unmute retry loop: 300ms, 800ms, 1500ms, 3000ms
+                                    iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
                                     [300, 800, 1500, 3000].forEach(delay => setTimeout(() => {
                                         try {
+                                            iframeWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
                                             iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
-                                            if (!muted) {
-                                                iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
-                                                iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
-                                            }
                                         } catch (e) { console.warn('[ReelsFeedCarousel] Handled exception:', e); }
                                     }, delay));
                                 } catch (e) { console.warn('[ReelsFeedCarousel] Handled exception:', e); }
