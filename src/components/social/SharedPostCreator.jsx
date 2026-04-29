@@ -222,9 +222,17 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
      *   5. Signed URL prefetch for first video
      */
     const handleFiles = async (e) => {
-        // Clear the iOS preparing indicator — file is now ready (or user cancelled)
-        setPreparingMedia(false);
+        // The picker is closed but the heavy work (HEVC thumbnail decode, sign-URL
+        // prefetch, optional compression) is JUST starting. Keep the spinner visible
+        // until the staging phase actually finishes — clearing it only when ALL
+        // queued thumbnail promises resolve (or after a 30s ceiling).
+        // Without this, mobile users saw a 20–30 second blank UI between picking a
+        // video and any visible feedback. Per Dan: "should not take 20-30+ seconds
+        // to stage a video from the photo album to smarter.poker".
         _pickerOpenRef.current = false;
+        // intentionally do NOT setPreparingMedia(false) here — it gets cleared at
+        // the bottom of this function once staging work has been kicked off + the
+        // first thumbnail resolves (whichever finishes first ≤ 30s).
 
         const files = Array.from(e.target.files);
         if (!files.length) return;

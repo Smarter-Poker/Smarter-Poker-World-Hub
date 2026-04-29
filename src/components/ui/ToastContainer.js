@@ -39,7 +39,7 @@ export default function ToastContainer() {
             position: 'fixed',
             top: 20,
             right: 20,
-            zIndex: 9999,
+            zIndex: 100000, // Must exceed all modal z-indexes (10000)
             display: 'flex',
             flexDirection: 'column',
             gap: 12,
