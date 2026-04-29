@@ -1,5 +1,5 @@
 /**
- * 🖼️ THUMBNAIL UPLOAD UTILITY
+ * THUMBNAIL UPLOAD UTILITY
  * src/lib/thumbnailUploader.js
  *
  * Converts a canvas-generated data URL thumbnail to a Blob and uploads
@@ -8,9 +8,31 @@
  * Used by SharedPostCreator and UploadReelModal after generateThumbnail()
  * produces a local data URL — this persists it to the cloud so feed rendering
  * doesn't require loading the full video for a preview frame.
+ *
+ * Auth policy: localStorage-only via authUtils.getAccessToken(). Direct
+ * supabase.auth SDK calls are banned by .husky/pre-commit because the SDK's
+ * navigator.locks contention is what triggered the original Invalid Compact
+ * JWS bug. The shape check below catches the same corrupt-but-truthy values
+ * that bgUpload guards against.
  */
 
 import { getAccessToken } from './authUtils';
+
+// JWT shape: 3 dot-separated base64url parts. Reject anything else (null,
+// empty, malformed legacy SDK shape, "[object Object]", literal "undefined").
+const _isJWT = (t) => typeof t === 'string'
+    && /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(t);
+
+/**
+ * Resolve a guaranteed-shape-valid bearer token from localStorage.
+ * Returns null if the local token is missing or corrupt — caller should treat
+ * thumbnail upload as best-effort and continue without one.
+ */
+function _ensureBearer() {
+    const local = getAccessToken();
+    if (_isJWT(local)) return local;
+    return null;
+}
 
 /**
  * Upload a thumbnail data URL to Supabase Storage.
@@ -38,8 +60,9 @@ export async function uploadThumbnail(dataUrl, userId, folder = 'thumbnails') {
         const timestamp = Date.now();
         const fileName = `thumb_${timestamp}.jpg`;
 
-        // Get signed upload URL
-        const token = getAccessToken();
+        // Get a shape-valid bearer from localStorage. If unavailable, bail —
+        // thumbnails are best-effort and the post will still render without one.
+        const token = _ensureBearer();
         if (!token) return null;
 
         const metaRes = await fetch('/api/social/upload-url', {
