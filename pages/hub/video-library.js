@@ -1857,13 +1857,21 @@ export default function VideoLibraryPage() {
                                 </span>
                             </button>
 
-                            {/* Comment — opens YouTube for native comments */}
+                            {/* Comment — show coming soon toast (in-app comments planned) */}
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    if (selectedVideo?.videoId) {
-                                        window.open(`https://www.youtube.com/watch?v=${selectedVideo.videoId}`, '_blank', 'noopener');
-                                    }
+                                    // In-app commenting — show toast notification
+                                    const toast = document.createElement('div');
+                                    toast.textContent = 'Comments Coming Soon!';
+                                    Object.assign(toast.style, {
+                                        position: 'fixed', bottom: '80px', left: '50%', transform: 'translateX(-50%)',
+                                        background: 'rgba(0,212,255,0.95)', color: '#000', padding: '10px 24px',
+                                        borderRadius: '20px', fontSize: '14px', fontWeight: '700', zIndex: '9999',
+                                        boxShadow: '0 4px 20px rgba(0,0,0,0.4)', transition: 'opacity 0.3s',
+                                    });
+                                    document.body.appendChild(toast);
+                                    setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 400); }, 2000);
                                     vlRevealHud();
                                 }}
                                 title="Comment on YouTube"
@@ -1975,17 +1983,17 @@ export default function VideoLibraryPage() {
                                     const win = e.target.contentWindow;
                                     win.postMessage(JSON.stringify({ event: 'listening' }), '*');
 
-                                    // Only auto-unmute on desktop — on mobile, auto-unmute can
-                                    // cause iOS/Android to PAUSE the video entirely.
-                                    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-                                    if (!isMobile) {
-                                        iframeUnmuteTimers.current = [200, 600, 1200].map(d => setTimeout(() => {
-                                            try {
-                                                win.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
-                                                win.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
-                                            } catch { /* best-effort */ }
-                                        }, d));
-                                    }
+                                    // Auto-unmute after a slight delay. The user tapped a video
+                                    // card which counts as a user gesture, so iOS allows unmute.
+                                    // Use slightly longer delays on mobile to let autoplay stabilize.
+                                    const isMobileDevice = typeof window !== 'undefined' && ('ontouchstart' in window || window.innerWidth < 1024);
+                                    const delays = isMobileDevice ? [800, 1500, 2500] : [200, 600, 1200];
+                                    iframeUnmuteTimers.current = delays.map(d => setTimeout(() => {
+                                        try {
+                                            win.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
+                                            win.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
+                                        } catch { /* best-effort */ }
+                                    }, d));
                                 } catch { /* best-effort */ }
                             }}
                             style={{
@@ -2197,36 +2205,51 @@ export default function VideoLibraryPage() {
                     }
                 }
 
-                /* Hide nav arrows on mobile — swipe up/down handles navigation */
-                @media (max-width: 767px) {
+                /* Mobile + Tablet: swipe navigation, no arrows */
+                @media (max-width: 1024px) and (hover: none) and (pointer: coarse) {
                     .vl-nav-arrow {
                         display: none !important;
                     }
-                    /* On mobile: info bar becomes absolute overlay at bottom */
                     .vl-info-bar {
                         position: absolute !important;
                         bottom: 0 !important;
                         left: 0 !important;
                         right: 0 !important;
-                        max-height: 100px !important;
+                        max-height: 140px !important;
                         pointer-events: auto;
                         z-index: 6;
                     }
-                    /* Hide Up Next rail on mobile */
+                    .vl-up-next-rail {
+                        display: none !important;
+                    }
+                }
+                /* Fallback: also hide arrows on narrow screens regardless of pointer */
+                @media (max-width: 767px) {
+                    .vl-nav-arrow {
+                        display: none !important;
+                    }
+                    .vl-info-bar {
+                        position: absolute !important;
+                        bottom: 0 !important;
+                        left: 0 !important;
+                        right: 0 !important;
+                        max-height: 140px !important;
+                        pointer-events: auto;
+                        z-index: 6;
+                    }
                     .vl-up-next-rail {
                         display: none !important;
                     }
                 }
 
-                /* Desktop: nav arrows and info bar */
-                @media (min-width: 768px) {
+                /* Desktop: arrows + info bar + no swipe overlay */
+                @media (min-width: 768px) and (hover: hover) and (pointer: fine) {
                     .vl-nav-arrow {
                         display: flex;
                     }
                     .vl-info-bar {
                         max-height: min(25vh, 200px);
                     }
-                    /* Desktop: hide swipe overlay so iframe is interactive */
                     .vl-swipe-overlay {
                         display: none !important;
                     }
