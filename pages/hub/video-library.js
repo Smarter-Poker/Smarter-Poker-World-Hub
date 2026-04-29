@@ -681,7 +681,7 @@ export default function VideoLibraryPage() {
             filtered = [...filtered].sort((a, b) => parseViews(b.views) - parseViews(a.views));
         } else {
             // Default: watched videos sink to bottom
-            filtered = filtered.sort((a, b) => {
+            filtered = [...filtered].sort((a, b) => {
                 const aWatched = watchedVideos.has(a.id);
                 const bWatched = watchedVideos.has(b.id);
                 if (aWatched === bWatched) return 0;
