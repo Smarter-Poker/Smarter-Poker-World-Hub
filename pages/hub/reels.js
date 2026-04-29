@@ -90,6 +90,8 @@ export default function ReelsPage() {
     const [ytReady, setYtReady] = useState(false); // True once YouTube fires first onStateChange — suppresses phantom play button during autoplay startup
     const touchStartY = useRef(0);
     const touchStartX = useRef(0);
+    const swipeStartRef = useRef(null); // { y, x, t } for inline touch overlay
+    const swipeDeltaRef = useRef(0);   // accumulated vertical delta during swipe
     const lastTapRef = useRef(0);
     const likeDebounceRef = useRef(false);
     const slideDebounceRef = useRef(false);
@@ -1835,31 +1837,76 @@ export default function ReelsPage() {
                     }} />
                 </div>
 
-                {/* INVISIBLE TAP ZONES - for navigation */}
-                {/* LEFT ZONE - tap for previous */}
+                {/* FULL-SCREEN TOUCH OVERLAY — captures ALL touch events over the iframe */}
+                {/* This is the ONLY reliable way to handle touches on iOS Safari over YouTube embeds */}
                 <div
-                    onClick={goPrev}
-                    style={{
-                        position: 'absolute',
-                        top: 80,
-                        left: 0,
-                        width: '30%',
-                        height: 'calc(100% - 200px)',
-                        zIndex: 50,
-                        cursor: 'pointer',
+                    onTouchStart={(e) => {
+                        // Record swipe start position
+                        swipeStartRef.current = { y: e.touches[0].clientY, x: e.touches[0].clientX, t: Date.now() };
+                        swipeDeltaRef.current = 0;
+                        handleLongPressTouchStart();
                     }}
-                />
-                {/* CENTER ZONE - tap to toggle overlay, double-tap to like, long-press to context menu */}
-                <div
-                    onTouchStart={handleLongPressTouchStart}
-                    onTouchEnd={cancelLongPress}
-                    onTouchMove={cancelLongPress}
-                    onMouseDown={handleLongPressTouchStart}
-                    onMouseUp={cancelLongPress}
-                    onMouseMove={cancelLongPress}
+                    onTouchMove={(e) => {
+                        if (!swipeStartRef.current) return;
+                        const dy = e.touches[0].clientY - swipeStartRef.current.y;
+                        swipeDeltaRef.current = dy;
+                        cancelLongPress();
+                        // Block page scroll
+                        e.preventDefault();
+                    }}
+                    onTouchEnd={(e) => {
+                        cancelLongPress();
+                        const delta = swipeDeltaRef.current;
+                        const elapsed = Date.now() - (swipeStartRef.current?.t || Date.now());
+                        swipeStartRef.current = null;
+
+                        // Swipe gesture (more than 50px vertical)
+                        if (Math.abs(delta) > 50) {
+                            try { navigator?.vibrate?.(10); } catch(_) {}
+                            if (delta < 0) {
+                                // Swiped UP = next video
+                                slideToNextRef.current();
+                            } else {
+                                // Swiped DOWN = previous video
+                                slideToPrevRef.current();
+                            }
+                            return;
+                        }
+
+                        // Tap gesture (small delta, short duration)
+                        // For taps: handled via onClick
+                    }}
                     onContextMenu={(e) => { e.preventDefault(); setShowContextMenu(true); }}
-                    onClick={() => {
+                    onClick={(e) => {
                         const now = Date.now();
+                        const tapX = e.clientX;
+                        const screenW = window.innerWidth;
+
+                        // First tap EVER on this reel: auto-unmute + force play (iOS requires user gesture)
+                        if (isPaused || muted) {
+                            sendYouTubeCommand('playVideo');
+                            sendYouTubeCommand('unMute');
+                            sendYouTubeCommand('setVolume', [100]);
+                            setIsPaused(false);
+                            setMuted(false);
+                            setYtReady(true);
+                            lastTapRef.current = now;
+                            revealOverlay();
+                            return;
+                        }
+
+                        // LEFT 30% = previous
+                        if (tapX < screenW * 0.3) {
+                            slideToPrevRef.current();
+                            return;
+                        }
+                        // RIGHT 30% = next
+                        if (tapX > screenW * 0.7) {
+                            slideToNextRef.current();
+                            return;
+                        }
+
+                        // CENTER 40%: double-tap / single-tap
                         if (now - lastTapRef.current < 300) {
                             // Double tap = toggle play/pause
                             haptic(15);
@@ -1880,33 +1927,22 @@ export default function ReelsPage() {
                                     clearTimeout(hudTimerRef.current);
                                 }
                             }
+                            lastTapRef.current = 0;
                         } else {
-                            // Single tap = show/hide overlay ONLY (no play/pause)
+                            // Single tap = show/hide overlay ONLY
                             revealOverlay();
+                            lastTapRef.current = now;
                         }
-                        lastTapRef.current = now;
                     }}
                     style={{
                         position: 'absolute',
-                        top: 80,
-                        left: '30%',
-                        width: '40%',
-                        height: 'calc(100% - 200px)',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
                         zIndex: 50,
                         cursor: 'pointer',
-                    }}
-                />
-                {/* RIGHT ZONE - tap for next */}
-                <div
-                    onClick={goNext}
-                    style={{
-                        position: 'absolute',
-                        top: 80,
-                        right: 0,
-                        width: '30%',
-                        height: 'calc(100% - 200px)',
-                        zIndex: 50,
-                        cursor: 'pointer',
+                        touchAction: 'none', // Prevent browser handling of all touch gestures
                     }}
                 />
 

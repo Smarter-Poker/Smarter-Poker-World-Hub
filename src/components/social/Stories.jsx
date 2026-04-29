@@ -329,6 +329,7 @@ export function StoriesBar({ userId, userAvatar, onCreateStory, onOpenLive }) {
                         story={ownStory || { author_avatar: userAvatar || '/default-avatar.png' }}
                         isOwn={true}
                         hasStory={!!ownStory}
+                        isLive={liveUsers.has(userId)}
                         onClick={() => ownStory ? handleViewStory(ownStory) : setShowCreate(true)}
                         onCreateStory={() => setShowCreate(true)}
                     />

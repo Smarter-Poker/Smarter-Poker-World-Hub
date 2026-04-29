@@ -236,7 +236,13 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                     const blob = await res.blob();
                     const autoFile = new File([blob], 'auto-thumb.jpg', { type: 'image/jpeg' });
                     thumbUrl = await uploadThumbnail(autoFile);
-                } catch (_) { thumbUrl = null; /* non-fatal — stream continues without thumb */ }
+                    if (!thumbUrl) console.warn('[GoLive] auto-thumbnail upload returned null');
+                } catch (thumbErr) {
+                    console.warn('[GoLive] auto-thumbnail failed:', thumbErr?.message || thumbErr);
+                    thumbUrl = null;
+                }
+            } else {
+                console.warn('[GoLive] captureThumbnail returned null — videoWidth:', videoRef.current?.videoWidth);
             }
         }
         setThumbnailUrl(thumbUrl);

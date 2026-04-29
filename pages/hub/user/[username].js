@@ -748,6 +748,7 @@ export default function UserProfilePage() {
     // Refs
     const profileMenuRef = useRef(null);
     const loadedUsernameRef = useRef(null);
+    const socialIdRef = useRef(null); // Resolved horse social identity (may differ from profile.id)
 
     // Tab state — persisted
     const [activeTab, setActiveTab] = usePersistedState('sp-filters-user-profile', 'all');
@@ -869,9 +870,10 @@ export default function UserProfilePage() {
         const cleanupSocial = listenBroadcast('smarter_poker_social_sync', (msg) => {
             if (msg?.tabId === BROADCAST_TAB_ID) return;
             if (!profile?.id) return;
+            const sid = socialIdRef.current || profile.id;
             // Re-fetch post count
             supabase.from('social_posts').select('*', { count: 'exact', head: true })
-                .eq('author_id', profile.id)
+                .eq('author_id', sid)
                 .then(({ count }) => {
                     if (count != null) setStats(prev => ({ ...prev, posts: count }));
                 });
@@ -882,13 +884,14 @@ export default function UserProfilePage() {
             if (msg?.tabId === BROADCAST_TAB_ID) return;
             if (!profile?.id) return;
             const uid = currentUser?.id;
+            const sid = socialIdRef.current || profile.id;
             // Two-direction queries (matches Friends API pattern) — refresh count AND button state
             Promise.all([
-                supabase.from('friendships').select('friend_id').eq('user_id', profile.id).eq('status', 'accepted'),
-                supabase.from('friendships').select('user_id').eq('friend_id', profile.id).eq('status', 'accepted'),
+                supabase.from('friendships').select('friend_id').eq('user_id', sid).eq('status', 'accepted'),
+                supabase.from('friendships').select('user_id').eq('friend_id', sid).eq('status', 'accepted'),
                 ...(uid ? [
-                    supabase.from('friendships').select('status').eq('user_id', uid).eq('friend_id', profile.id).maybeSingle(),
-                    supabase.from('friendships').select('status').eq('user_id', profile.id).eq('friend_id', uid).maybeSingle(),
+                    supabase.from('friendships').select('status').eq('user_id', uid).eq('friend_id', sid).maybeSingle(),
+                    supabase.from('friendships').select('status').eq('user_id', sid).eq('friend_id', uid).maybeSingle(),
                 ] : []),
             ]).then(([sentRes, receivedRes, f1, f2]) => {
                 const friendSet = new Set();
@@ -972,6 +975,7 @@ export default function UserProfilePage() {
         setBioExpanded(false);
         setStatsAnimated(false);
         setAnimatedStats({ friends: 0, following: 0, followers: 0, posts: 0 });
+        socialIdRef.current = null; // Reset horse social identity for new profile
 
         // Only show loading skeleton if we're loading a DIFFERENT profile.
         // If same profile is already loaded (e.g. back-navigation), keep it visible
@@ -1070,6 +1074,7 @@ export default function UserProfilePage() {
 
                             if (caNameMatch && caNameMatch.profile_id && caNameMatch.profile_id !== data.id) {
                                 socialId = caNameMatch.profile_id;
+                                socialIdRef.current = socialId;
                             }
                         }
                     }
@@ -1294,14 +1299,15 @@ export default function UserProfilePage() {
             // Fetch fresh profile data inline (lightweight re-fetch of posts/follows only)
             const refreshContent = async () => {
                 try {
+                    const sid = socialIdRef.current || profile.id; // Use horse social ID if resolved
                     const [postsData, postsCountRes, followingRes, followersRes, sentFriendsRes, receivedFriendsRes] = await Promise.all([
-                        supabase.from('social_posts').select('*').eq('author_id', profile.id).order('created_at', { ascending: false }).limit(20),
-                        supabase.from('social_posts').select('*', { count: 'exact', head: true }).eq('author_id', profile.id),
-                        supabase.from('social_follows').select('*', { count: 'exact', head: true }).eq('follower_id', profile.id),
-                        supabase.from('social_follows').select('*', { count: 'exact', head: true }).eq('following_id', profile.id),
+                        supabase.from('social_posts').select('*').eq('author_id', sid).order('created_at', { ascending: false }).limit(20),
+                        supabase.from('social_posts').select('*', { count: 'exact', head: true }).eq('author_id', sid),
+                        supabase.from('social_follows').select('*', { count: 'exact', head: true }).eq('follower_id', sid),
+                        supabase.from('social_follows').select('*', { count: 'exact', head: true }).eq('following_id', sid),
                         // Two-direction friend count (matches Friends API)
-                        supabase.from('friendships').select('friend_id').eq('user_id', profile.id).eq('status', 'accepted'),
-                        supabase.from('friendships').select('user_id').eq('friend_id', profile.id).eq('status', 'accepted'),
+                        supabase.from('friendships').select('friend_id').eq('user_id', sid).eq('status', 'accepted'),
+                        supabase.from('friendships').select('user_id').eq('friend_id', sid).eq('status', 'accepted'),
                     ]);
                     if (postsData.data) setPosts(postsData.data);
                     
@@ -1323,9 +1329,10 @@ export default function UserProfilePage() {
             refreshContent();
             // Also re-query friendship status (button state can go stale on accept/remove)
             if (currentUser?.id && profile?.id) {
+                const sid2 = socialIdRef.current || profile.id;
                 const [f1, f2] = await Promise.all([
-                    supabase.from('friendships').select('status').eq('user_id', currentUser.id).eq('friend_id', profile.id).maybeSingle(),
-                    supabase.from('friendships').select('status').eq('user_id', profile.id).eq('friend_id', currentUser.id).maybeSingle(),
+                    supabase.from('friendships').select('status').eq('user_id', currentUser.id).eq('friend_id', sid2).maybeSingle(),
+                    supabase.from('friendships').select('status').eq('user_id', sid2).eq('friend_id', currentUser.id).maybeSingle(),
                 ]);
                 const allF = [f1.data, f2.data].filter(Boolean);
                 if (allF.some(f => f.status === 'accepted')) {
@@ -1341,12 +1348,13 @@ export default function UserProfilePage() {
         // Get current user ID for filtering own events (prevents optimistic + realtime double-count)
         const myUserId = currentUser?.id;
 
+        const realtimeId = socialIdRef.current || profile.id;
         const _ch = supabase
             .channel(`user-profile:${profile.id}`)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_posts', filter: `author_id=eq.${profile.id}` }, handleRealtimeUpdate)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_posts', filter: `author_id=eq.${realtimeId}` }, handleRealtimeUpdate)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'social_follows' }, handleRealtimeUpdate)
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'friendships', filter: `friend_id=eq.${profile.id}` }, handleRealtimeUpdate)
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'friendships', filter: `user_id=eq.${profile.id}` }, handleRealtimeUpdate)
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'friendships', filter: `friend_id=eq.${realtimeId}` }, handleRealtimeUpdate)
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'friendships', filter: `user_id=eq.${realtimeId}` }, handleRealtimeUpdate)
             .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'friendships' }, handleRealtimeUpdate)
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_likes' }, (payload) => {
                 // Skip own likes — already handled by optimistic UI in handleLike
@@ -1415,17 +1423,18 @@ export default function UserProfilePage() {
 
     const handleAddFriend = async () => {
         if (!currentUser || !profile || friendRequestSent || isFriend) return;
+        const targetId = socialIdRef.current || profile.id;
         // Optimistic update
         setFriendRequestSent(true);
         try {
             const { error } = await supabase.from('friendships').insert({
                 user_id: currentUser.id,
-                friend_id: profile.id,
+                friend_id: targetId,
                 status: 'pending'
             });
             if (error) throw error;
             invalidateProfileCache();
-            busEmit.friendRequestSent(profile.id);
+            busEmit.friendRequestSent(targetId);
             notifyFriendsSync();
         } catch (e) {
             // Rollback optimistic update on failure
@@ -1436,13 +1445,14 @@ export default function UserProfilePage() {
 
     const handleCancelFriendRequest = async () => {
         if (!currentUser || !profile || !friendRequestSent) return;
+        const targetId = socialIdRef.current || profile.id;
         // Optimistic update
         setFriendRequestSent(false);
         try {
             const { error } = await supabase.from('friendships')
                 .delete()
                 .eq('user_id', currentUser.id)
-                .eq('friend_id', profile.id)
+                .eq('friend_id', targetId)
                 .eq('status', 'pending');
             if (error) throw error;
             invalidateProfileCache();
@@ -1461,15 +1471,16 @@ export default function UserProfilePage() {
             followers: wasFollowing ? Math.max(0, prev.followers - 1) : prev.followers + 1
         }));
         try {
+            const targetId = socialIdRef.current || profile.id;
             if (wasFollowing) {
                 const { error } = await supabase.from('social_follows').delete()
                     .eq('follower_id', currentUser.id)
-                    .eq('following_id', profile.id);
+                    .eq('following_id', targetId);
                 if (error) throw error;
             } else {
                 const { error } = await supabase.from('social_follows').insert({
                     follower_id: currentUser.id,
-                    following_id: profile.id
+                    following_id: targetId
                 });
                 if (error) throw error;
                 // Create follow notification via server-side API (bypasses RLS)
@@ -1478,7 +1489,7 @@ export default function UserProfilePage() {
                     fetch('/api/notifications/follow', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                        body: JSON.stringify({ followingUserId: profile.id })
+                        body: JSON.stringify({ followingUserId: targetId })
                     }).then(() => {
                         busEmit.dataMutated('notifications');
                     }).catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
@@ -1505,6 +1516,7 @@ export default function UserProfilePage() {
 
     const handleRemoveFriend = async () => {
         if (!currentUser || !profile) return;
+        const targetId = socialIdRef.current || profile.id;
         // Optimistic update
         const wasFriend = isFriend;
         const prevStats = { ...stats };
@@ -1517,9 +1529,9 @@ export default function UserProfilePage() {
             const [res1, res2] = await Promise.all([
                 supabase.from('friendships').delete()
                     .eq('user_id', currentUser.id)
-                    .eq('friend_id', profile.id),
+                    .eq('friend_id', targetId),
                 supabase.from('friendships').delete()
-                    .eq('user_id', profile.id)
+                    .eq('user_id', targetId)
                     .eq('friend_id', currentUser.id),
             ]);
             if (res1.error || res2.error) throw res1.error || res2.error; // Either failed — rollback
@@ -1760,7 +1772,7 @@ export default function UserProfilePage() {
                         {/* Avatar */}
                         <div style={{ position: 'relative', display: 'inline-block' }}>
                             <Avatar src={profile.avatar_url} name={displayName} size={120} />
-                            {horseProfileIds.has(profile.id) && isHorseOnlineNow(profile.id) && (
+                            {(() => { const hid = socialIdRef.current || profile.id; return horseProfileIds.has(hid) && isHorseOnlineNow(hid); })() && (
                                 <span style={{ position: 'absolute', bottom: 4, right: 4, width: 18, height: 18, background: '#31a24c', border: `3px solid ${C.bg}`, borderRadius: '50%', zIndex: 5 }} />
                             )}
                             {isOwnProfile && (
