@@ -187,6 +187,11 @@ export const EnhancedPostCreator = ({
   const mountedRef = useRef(true);      // unmount guard for background upload callbacks
   const compressionRef = useRef({});    // { [fileKey]: { controller, promise, result } }
   const thumbnailRef = useRef({});      // { [fileKey]: dataUrl }
+  // RACE FIX (2026-04-29): mirror SharedPostCreator — track in-flight
+  // generateThumbnail promises so submit can await before deciding to skip
+  // the thumbnail. iPhone HEVC decode takes 30+ seconds so virtually every
+  // upload was being shipped with thumbnail_url=NULL.
+  const thumbnailPromiseRef = useRef({}); // { [fileKey]: Promise<dataUrl|null> }
   const _pickerOpenRef = useRef(false);  // tracks if iOS file picker is open
   const [thumbnails, setThumbnails] = useState({});
 
@@ -348,15 +353,27 @@ export const EnhancedPostCreator = ({
         if (validation.warning) toast.info(validation.warning, 5000);
         if (validation.formatWarning) toast.info(validation.formatWarning, 4000);
 
-        // Auto-thumbnail generation — also write to thumbnailRef so upload can persist it
-        generateThumbnail(file).then(thumb => {
-          if (!mountedRef.current || !thumb) return;
-          setThumbnails(prev => ({ ...prev, [fk]: thumb }));
-          // Only set in ref if user hasn't already picked a custom one
-          if (!thumbnailRef.current[fk]) {
-            thumbnailRef.current[fk] = thumb;
-          }
-        });
+        // Auto-thumbnail generation — store the PROMISE so submit can await
+        // it. The previous code only saved the resolved value, which meant
+        // any submit fired before HEVC decode finished (every iPhone upload)
+        // shipped with thumbnail_url=NULL.
+        const thumbPromise = generateThumbnail(file)
+          .then(thumb => {
+            if (!mountedRef.current) return null;
+            if (thumb) {
+              setThumbnails(prev => ({ ...prev, [fk]: thumb }));
+              // Only set in ref if user hasn't already picked a custom one
+              if (!thumbnailRef.current[fk]) {
+                thumbnailRef.current[fk] = thumb;
+              }
+            }
+            return thumb || null;
+          })
+          .catch(err => {
+            console.warn('[EnhancedPostCreator] generateThumbnail failed:', err?.message || err);
+            return null;
+          });
+        thumbnailPromiseRef.current[fk] = thumbPromise;
 
         // Background compression for large videos
         const controller = new AbortController();
@@ -624,14 +641,46 @@ export const EnhancedPostCreator = ({
           : 'text';
 
       // Upload thumbnail data URL to Storage before persisting — avoids storing large base64 in DB
-      const rawThumb = uploadedMedia.find(m => m.type === 'video')?.thumbnail || null;
+      // RACE FIX (2026-04-29): rawThumb may be null because generateThumbnail
+      // hadn't completed when uploadedMedia was assembled (iPhone HEVC decode
+      // takes 30+s). Await the stored promise (with 60s ceiling) before
+      // deciding to skip — fixes the "every video post has NULL thumbnail_url"
+      // bug confirmed via SQL audit.
+      let rawThumb = uploadedMedia.find(m => m.type === 'video')?.thumbnail || null;
+      if (!rawThumb && mediaFiles.length > 0) {
+        // Pull from any in-flight thumbnail promise for the first video file.
+        const firstVideoFile = mediaFiles.find(f => sniffMimeType(f).startsWith('video/'));
+        if (firstVideoFile) {
+          const fk = _fileKey(firstVideoFile);
+          const pendingPromise = thumbnailPromiseRef.current[fk];
+          if (pendingPromise) {
+            try {
+              rawThumb = await Promise.race([
+                pendingPromise,
+                new Promise(r => setTimeout(() => r(null), 60_000)),
+              ]);
+            } catch (e) {
+              console.warn('[EnhancedPostCreator] await thumbnail promise threw:', e?.message || e);
+            }
+          }
+        }
+      }
       let persistedThumbnailUrl = null;
-      if (rawThumb && rawThumb.startsWith('data:') && user?.id) {
-        // Best-effort: failure here means no thumbnail but post still goes through
-        persistedThumbnailUrl = await uploadThumbnail(rawThumb, user.id, 'thumbnails').catch(() => null);
-      } else if (rawThumb && rawThumb.startsWith('http')) {
+      if (rawThumb && typeof rawThumb === 'string' && rawThumb.startsWith('data:') && user?.id) {
+        // Best-effort: failure here means no thumbnail but post still goes through.
+        // thumbnailUploader logs HTTP details on failure now.
+        persistedThumbnailUrl = await uploadThumbnail(rawThumb, user.id, 'thumbnails').catch(err => {
+          console.warn('[EnhancedPostCreator] uploadThumbnail threw:', err?.message || err);
+          return null;
+        });
+        if (!persistedThumbnailUrl) {
+          console.warn('[EnhancedPostCreator] uploadThumbnail returned null — post will save without thumbnail_url');
+        }
+      } else if (rawThumb && typeof rawThumb === 'string' && rawThumb.startsWith('http')) {
         // Already a real URL (e.g. from a previous upload or YouTube)
         persistedThumbnailUrl = rawThumb;
+      } else {
+        console.warn('[EnhancedPostCreator] no thumbnail dataUrl after wait — post saving without thumbnail_url');
       }
 
       // Create post with rich media objects

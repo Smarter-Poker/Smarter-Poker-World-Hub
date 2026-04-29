@@ -50,6 +50,12 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
     const _submittingRef = useRef(false); // local double-submit guard
     const mountedRef = useRef(true); // guards setState after unmount
     const compressionRef = useRef({}); // { [blobUrl]: { controller, promise, result } }
+    // RACE FIX (2026-04-29): track in-flight thumbnail promises so handlePost
+    // can await them. Without this, every upload where the user taps Post
+    // before generateThumbnail finishes (which is virtually all iPhone uploads
+    // because HEVC decode is slow) ships with thumbnail_url=NULL. SQL audit
+    // confirmed ZERO thumbnails ever uploaded for ANY user before this fix.
+    const thumbnailPromiseRef = useRef({}); // { [blobUrl]: Promise<dataUrl|null> }
     const _pickerOpenRef = useRef(false); // tracks if iOS file picker is open
 
     // Identity switching
@@ -281,13 +287,26 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         for (const item of staged) {
             if (item.type !== 'video') continue;
 
-            // 1. Auto-thumbnail: extract frame at ~2s via canvas
-            generateThumbnail(item.file).then(thumb => {
-                if (!mountedRef.current || !thumb) return;
-                setMedia(prev => prev.map(m =>
-                    m.url === item.url ? { ...m, thumbnail: thumb } : m
-                ));
-            });
+            // 1. Auto-thumbnail: extract frame at ~2s via canvas.
+            // Store the PROMISE in a ref so handlePost can await it. Without this
+            // the captured `staged` array in handlePost has thumbnail=null forever
+            // because React state updates don't mutate captured references —
+            // every iPhone upload was shipping with thumbnail_url=NULL because
+            // HEVC decode (~30s) never finished before user tapped Post.
+            const thumbPromise = generateThumbnail(item.file)
+                .then(thumb => {
+                    if (mountedRef.current && thumb) {
+                        setMedia(prev => prev.map(m =>
+                            m.url === item.url ? { ...m, thumbnail: thumb } : m
+                        ));
+                    }
+                    return thumb || null;
+                })
+                .catch(err => {
+                    console.warn('[SharedPostCreator] generateThumbnail failed:', err?.message || err);
+                    return null;
+                });
+            thumbnailPromiseRef.current[item.url] = thumbPromise;
 
             // 2. Background compression for large videos (> 50MB, < 2min)
             const controller = new AbortController();
@@ -526,15 +545,41 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         delete compressionRef.current[staged.url];
                         uploadedMedia.push({ type: 'video', url: videoUrl });
 
-                        // Persist thumbnail to cloud storage (best-effort, awaited so URL is included in post)
-                        if (staged.thumbnail) {
+                        // Persist thumbnail to cloud storage. RACE FIX
+                        // (2026-04-29): the thumbnail data URL may not be on
+                        // staged yet — generateThumbnail runs in the background
+                        // since file-select. If user tapped Post before it
+                        // finished (every iPhone HEVC upload), staged.thumbnail
+                        // is null. AWAIT the stored promise (with 60s ceiling
+                        // for slow iPhone HEVC decode) before deciding to skip.
+                        let thumbDataUrl = staged.thumbnail;
+                        const pendingThumbPromise = thumbnailPromiseRef.current[staged.url];
+                        if (!thumbDataUrl && pendingThumbPromise) {
                             try {
-                                const thumbUrl = await uploadThumbnail(staged.thumbnail, user.id);
+                                thumbDataUrl = await Promise.race([
+                                    pendingThumbPromise,
+                                    new Promise(r => setTimeout(() => r(null), 60_000)),
+                                ]);
+                            } catch (e) {
+                                console.warn('[SharedPostCreator] await thumbnail promise threw:', e?.message || e);
+                            }
+                        }
+                        if (thumbDataUrl) {
+                            try {
+                                const thumbUrl = await uploadThumbnail(thumbDataUrl, user.id);
                                 if (thumbUrl) {
                                     uploadedMedia.push({ type: 'thumbnail', url: thumbUrl });
+                                } else {
+                                    console.warn('[SharedPostCreator] uploadThumbnail returned null — see thumbnailUploader logs for HTTP details');
                                 }
-                            } catch (_) { /* thumbnail upload is best-effort */ }
+                            } catch (e) {
+                                console.warn('[SharedPostCreator] uploadThumbnail threw:', e?.message || e);
+                            }
+                        } else {
+                            console.warn('[SharedPostCreator] no thumbnail dataUrl after wait — post will save without thumbnail_url');
                         }
+                        // Cleanup: free the promise ref so we don't leak memory
+                        delete thumbnailPromiseRef.current[staged.url];
                     } else {
                         // Compress image before upload
                         const compressedFile = await compressImage(staged.file);
@@ -973,17 +1018,25 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                                             </div>
                                         </div>
                                     ) : (
+                                        // No thumbnail yet — show "Generating thumbnail…" so the
+                                        // user knows the 30s decode wait isn't a hang. Tap still
+                                        // works to start preview from the raw blob URL.
                                         <div
-                                            style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, #1a1a2e, #16213e)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                            style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, #1a1a2e, #16213e)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', gap: 8 }}
                                             onClick={() => setMedia(prev => prev.map((item, idx) => idx === i ? { ...item, _previewing: true } : item))}
                                         >
                                             <div style={{
                                                 width: 44, height: 44, borderRadius: '50%',
                                                 background: 'rgba(255,255,255,0.15)',
                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                animation: 'thumbPulse 1.5s ease-in-out infinite',
                                             }}>
                                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="rgba(255,255,255,0.7)"><path d="M8 5v14l11-7z"/></svg>
                                             </div>
+                                            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.65)', fontWeight: 500, letterSpacing: 0.3 }}>
+                                                Generating thumbnail…
+                                            </span>
+                                            <style>{`@keyframes thumbPulse { 0%,100%{opacity:0.6;transform:scale(1)} 50%{opacity:1;transform:scale(1.06)} }`}</style>
                                         </div>
                                     )
                                 ) : (

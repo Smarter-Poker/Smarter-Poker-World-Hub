@@ -80,22 +80,33 @@ export async function uploadThumbnail(dataUrl, userId, folder = 'thumbnails') {
             }),
         });
 
-        if (!metaRes.ok) return null;
+        if (!metaRes.ok) {
+            const t = await metaRes.text().catch(() => '');
+            console.warn('[ThumbnailUploader] /api/social/upload-url returned', metaRes.status, t.slice(0, 200));
+            return null;
+        }
         const meta = await metaRes.json();
-        if (!meta.success || !meta.signedUrl) return null;
+        if (!meta.success || !meta.signedUrl) {
+            console.warn('[ThumbnailUploader] upload-url response missing signedUrl:', { success: meta.success, has_url: !!meta.signedUrl, error: meta.error });
+            return null;
+        }
 
-        // Upload the blob
+        // Upload the blob to the signed URL
         const uploadRes = await fetch(meta.signedUrl, {
             method: 'PUT',
             headers: { 'Content-Type': 'image/jpeg' },
             body: blob,
         });
 
-        if (!uploadRes.ok) return null;
+        if (!uploadRes.ok) {
+            const t = await uploadRes.text().catch(() => '');
+            console.warn('[ThumbnailUploader] PUT to signed URL failed:', uploadRes.status, uploadRes.statusText, t.slice(0, 200));
+            return null;
+        }
 
         return meta.publicUrl;
     } catch (err) {
-        console.warn('[ThumbnailUploader] Upload failed (non-fatal):', err.message);
+        console.warn('[ThumbnailUploader] Upload failed (non-fatal):', err?.message || err);
         return null;
     }
 }
