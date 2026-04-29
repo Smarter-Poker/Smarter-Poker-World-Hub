@@ -43,7 +43,8 @@ That's it. **Do NOT run individual git commands.** The script handles everything
 5. **ALWAYS** use a descriptive commit message as the first argument
 6. **NEVER** ask the user to resolve git issues — the script handles everything
 7. If the script exits with code 2 (failed after 5 retries), wait 30 seconds and run it again
-8. If `--build-check` fails, **FIX THE BUILD ERROR BEFORE RETRYING** — do NOT remove the flag blindly
+8. If `--build-check` fails, **FIX THE BUILD ERROR BEFORE RETRYING** — do NOT remove the flag blindly.
+   - **IMPORTANT:** If the build fails because `node_modules` is broken (e.g., `MODULE_NOT_FOUND` for next or eslint), you MUST run `npm install` to fix your local environment, then re-run the build check. **NEVER** bypass the build check with `--skip-build` or `--no-verify` just because your local env is broken. Doing so allows Temporal Dead Zone (TDZ) bugs and SSG crashes to reach Vercel and break production.
 
 > [!CAUTION]
 > **On 3/25/2026, a broken import (`C` instead of `SOCIAL_COLORS as C`) blocked ALL deployments for 2 days because no agent ran `next build` locally before pushing.** The `--build-check` flag prevents this. NEVER skip it.

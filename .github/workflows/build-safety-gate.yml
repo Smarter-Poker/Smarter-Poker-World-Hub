@@ -33,6 +33,8 @@ jobs:
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
         with:
           node-version: '20.x'
           cache: 'npm'
@@ -55,6 +57,13 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
         run: |
+          echo "🔍 Validating NPM authentication..."
+          npm whoami --registry=https://npm.pkg.github.com || {
+            echo "::error::FATAL: NPM_AUTH_TOKEN is invalid, expired, or missing read:packages scope."
+            echo "::error::Fix: Create a new PAT and update the NPM_AUTH_TOKEN secret in GitHub repository settings."
+            exit 1
+          }
+          
           npm ci --ignore-scripts 2>/dev/null || {
             echo "::warning::npm ci failed (lockfile sync issue) — falling back to npm install"
             npm install --ignore-scripts

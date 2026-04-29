@@ -236,6 +236,23 @@ if [ -f "vercel.json" ]; then
 fi
 echo "✅ Vercel cron lockout passed"
 
+# ── 0d. DUPLICATE WORKFLOW GATE ──
+# Prevent duplicate GitHub Action workflows with the same "name:" field.
+# This avoids double-triggering CI pipelines that confusingly succeed/fail simultaneously.
+if [ -d ".github/workflows" ]; then
+    DUPLICATE_WORKFLOWS=$(grep -h "^name:" .github/workflows/*.yml 2>/dev/null | sort | uniq -d | sed 's/^name: //')
+    if [ -n "$DUPLICATE_WORKFLOWS" ]; then
+        echo "❌ FATAL: DUPLICATE WORKFLOW NAMES DETECTED"
+        echo "   The following workflow names are used in multiple .yml files:"
+        echo "$DUPLICATE_WORKFLOWS" | sed 's/^/      - /'
+        echo "   This causes double CI runs. Ensure each workflow file has a unique 'name:'."
+        echo "PUSH_OK:false"
+        echo "REASON:duplicate_workflows"
+        exit 2
+    fi
+fi
+echo "✅ Workflow uniqueness check passed"
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # PHASE 0.5: DESTRUCTIVE CHANGE DETECTION
 # Prevents AI agents from accidentally wiping mobile CSS, @media rules,
@@ -523,15 +540,45 @@ if [ "$BUILD_CHECK" = true ]; then
   echo ""
   echo "🔨 Phase 2.5: Build gate check..."
   BUILD_START=$(date +%s)
-  if NODE_OPTIONS='--max-old-space-size=4096' npx next build 2>&1 | tail -20; then
+  
+  # Capture output to check for node_modules corruption
+  BUILD_OUTPUT=$(NODE_OPTIONS='--max-old-space-size=4096' npx next build 2>&1)
+  BUILD_STATUS=$?
+  
+  if [ $BUILD_STATUS -eq 0 ]; then
     BUILD_END=$(date +%s)
+    echo "$BUILD_OUTPUT" | tail -10
     echo "✅ Build passed ($(( BUILD_END - BUILD_START ))s)"
   else
-    BUILD_END=$(date +%s)
-    echo "❌ BUILD FAILED ($(( BUILD_END - BUILD_START ))s) — Aborting push."
-    echo "PUSH_OK:false"
-    echo "REASON:build_failed"
-    exit 2
+    # Check if failure was due to broken node_modules
+    if echo "$BUILD_OUTPUT" | grep -qE 'MODULE_NOT_FOUND|Cannot find module'; then
+      echo "⚠️  Build failed due to corrupted node_modules. Auto-healing..."
+      npm install --no-audit --no-fund --prefer-offline 2>/dev/null
+      
+      echo "🔨 Retrying build after environment heal..."
+      BUILD_OUTPUT=$(NODE_OPTIONS='--max-old-space-size=4096' npx next build 2>&1)
+      BUILD_STATUS=$?
+      
+      if [ $BUILD_STATUS -eq 0 ]; then
+        BUILD_END=$(date +%s)
+        echo "$BUILD_OUTPUT" | tail -10
+        echo "✅ Build passed after auto-heal ($(( BUILD_END - BUILD_START ))s)"
+      else
+        BUILD_END=$(date +%s)
+        echo "$BUILD_OUTPUT" | tail -20
+        echo "❌ BUILD FAILED ($(( BUILD_END - BUILD_START ))s) — Aborting push."
+        echo "PUSH_OK:false"
+        echo "REASON:build_failed_after_heal"
+        exit 2
+      fi
+    else
+      BUILD_END=$(date +%s)
+      echo "$BUILD_OUTPUT" | tail -20
+      echo "❌ BUILD FAILED ($(( BUILD_END - BUILD_START ))s) — Aborting push."
+      echo "PUSH_OK:false"
+      echo "REASON:build_failed"
+      exit 2
+    fi
   fi
 fi
 
@@ -634,7 +681,7 @@ while [ $attempt -lt $MAX_RETRIES ]; do
     # Extract owner/repo from URL
     REPO_PATH=$(echo "$PUSH_URL" | sed 's|.*github.com[:/]||' | sed 's|\.git$||')
     AUTH_URL="https://x-access-token:${GH_TOKEN}@github.com/${REPO_PATH}.git"
-    if git push $NO_VERIFY_FLAG "$AUTH_URL" "${BRANCH}" 2>&1; then
+    if git push $NO_VERIFY_FLAG --set-upstream "$AUTH_URL" "${BRANCH}" 2>&1; then
     PHASE3_END=$(date +%s)
     TOTAL_END=$(date +%s)
     COMMIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "N/A")
@@ -697,7 +744,7 @@ while [ $attempt -lt $MAX_RETRIES ]; do
    fi
   else
     # Fallback: no gh token or not a GitHub repo — use standard push
-    if git push $NO_VERIFY_FLAG "${REMOTE}" "${BRANCH}" 2>&1; then
+    if git push $NO_VERIFY_FLAG --set-upstream "${REMOTE}" "${BRANCH}" 2>&1; then
       PHASE3_END=$(date +%s)
       TOTAL_END=$(date +%s)
       COMMIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "N/A")
