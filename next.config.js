@@ -8,7 +8,7 @@ const withPWA = require('@ducanh2912/next-pwa').default({
   // NOTE: fallbacks removed — next-pwa@5.6.0 crashes with 'precacheFallback' TypeError
   // when injecting fallback handlers into runtimeCaching entries. All PWA caching remains intact.
   cacheOnFrontEndNav: false, // Don't cache client-side navigations — prevents stale page renders
-  reloadOnOnline: true,      // Force reload when coming back online to bust stale cache
+  reloadOnOnline: false,     // DISABLED — mobile devices constantly toggle online/offline causing unwanted auto-refresh loops
   runtimeCaching: [
     // ─── CRITICAL: Override next-pwa defaults that cause stale pages on mobile ───
     // next-pwa defaults use CacheFirst for /_next/static JS, which means mobile

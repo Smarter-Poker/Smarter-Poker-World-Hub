@@ -84,6 +84,7 @@ function StoryRing({ hasUnviewed, isLive, children, size = 64, onClick }) {
                 {children}
             </div>
         </div>
+        </>
     );
 }
 
