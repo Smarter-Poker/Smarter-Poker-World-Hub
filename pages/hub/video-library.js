@@ -1736,7 +1736,61 @@ export default function VideoLibraryPage() {
                         position: 'relative',
                         overflow: 'hidden',
                     }}>
-                        {/* No overlay — YouTube iframe gets ALL touch events directly for playback */}
+                        {/* Edge swipe strips — thin vertical zones on left/right edges
+                            that capture swipe gestures without blocking the center video area.
+                            The center 70% of the iframe remains fully interactive for YouTube controls. */}
+                        {typeof window !== 'undefined' && 'ontouchstart' in window && (
+                          <>
+                            {/* Left edge swipe zone (15% width) */}
+                            <div
+                                onTouchStart={e => {
+                                    swipeTouchStart.current = e.touches[0].clientX;
+                                    swipeTouchStartY.current = e.touches[0].clientY;
+                                }}
+                                onTouchEnd={e => {
+                                    const dy = e.changedTouches[0].clientY - (swipeTouchStartY.current || 0);
+                                    swipeTouchStart.current = null;
+                                    swipeTouchStartY.current = null;
+                                    if (Math.abs(dy) > 50) {
+                                        if (dy < 0) handleNextVideo(); else handlePrevVideo();
+                                    }
+                                }}
+                                style={{
+                                    position: 'absolute',
+                                    top: 0, left: 0,
+                                    width: '15%',
+                                    height: '100%',
+                                    zIndex: 5,
+                                    background: 'transparent',
+                                    WebkitTapHighlightColor: 'transparent',
+                                }}
+                            />
+                            {/* Right edge swipe zone (15% width) */}
+                            <div
+                                onTouchStart={e => {
+                                    swipeTouchStart.current = e.touches[0].clientX;
+                                    swipeTouchStartY.current = e.touches[0].clientY;
+                                }}
+                                onTouchEnd={e => {
+                                    const dy = e.changedTouches[0].clientY - (swipeTouchStartY.current || 0);
+                                    swipeTouchStart.current = null;
+                                    swipeTouchStartY.current = null;
+                                    if (Math.abs(dy) > 50) {
+                                        if (dy < 0) handleNextVideo(); else handlePrevVideo();
+                                    }
+                                }}
+                                style={{
+                                    position: 'absolute',
+                                    top: 0, right: 0,
+                                    width: '15%',
+                                    height: '100%',
+                                    zIndex: 5,
+                                    background: 'transparent',
+                                    WebkitTapHighlightColor: 'transparent',
+                                }}
+                            />
+                          </>
+                        )}
 
                         {/* Right-side HUD — Heart / Share / Save */}
                         <div
@@ -1750,10 +1804,11 @@ export default function VideoLibraryPage() {
                                 flexDirection: 'column',
                                 gap: 20,
                                 alignItems: 'center',
-                                opacity: vlHudVisible ? 1 : 0,
-                                transform: vlHudVisible ? 'translateX(0)' : 'translateX(60px)',
+                                // On touch devices: always visible. On desktop: toggle on hover/click.
+                                opacity: (typeof window !== 'undefined' && 'ontouchstart' in window) ? 1 : (vlHudVisible ? 1 : 0),
+                                transform: (typeof window !== 'undefined' && 'ontouchstart' in window) ? 'translateX(0)' : (vlHudVisible ? 'translateX(0)' : 'translateX(60px)'),
                                 transition: 'opacity 0.3s ease, transform 0.3s ease',
-                                pointerEvents: vlHudVisible ? 'auto' : 'none',
+                                pointerEvents: (typeof window !== 'undefined' && 'ontouchstart' in window) ? 'auto' : (vlHudVisible ? 'auto' : 'none'),
                             }}
                         >
                             {/* Heart / Like */}
@@ -1892,15 +1947,17 @@ export default function VideoLibraryPage() {
 
                                     // Auto-unmute after a slight delay. The user tapped a video
                                     // card which counts as a user gesture, so iOS allows unmute.
-                                    // Use slightly longer delays on mobile to let autoplay stabilize.
+                                    // On mobile: SKIP unmute — it causes iOS to PAUSE the video.
+                                    // User can unmute via YouTube's native volume button.
                                     const isMobileDevice = typeof window !== 'undefined' && ('ontouchstart' in window || window.innerWidth < 1024);
-                                    const delays = isMobileDevice ? [800, 1500, 2500] : [200, 600, 1200];
-                                    iframeUnmuteTimers.current = delays.map(d => setTimeout(() => {
-                                        try {
-                                            win.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
-                                            win.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
-                                        } catch { /* best-effort */ }
-                                    }, d));
+                                    if (!isMobileDevice) {
+                                        iframeUnmuteTimers.current = [200, 600, 1200].map(d => setTimeout(() => {
+                                            try {
+                                                win.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
+                                                win.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
+                                            } catch { /* best-effort */ }
+                                        }, d));
+                                    }
                                 } catch { /* best-effort */ }
                             }}
                             style={{
