@@ -456,6 +456,11 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
     const handlePost = async () => {
         if (isPosting || _submittingRef.current) return; // Double-submit guard
         _submittingRef.current = true;
+        // BUG-10 FIX (2026-04-29): wrap entire body in try/finally so that any
+        // uncaught throw (network error in onPost, validateYouTubeVideo,
+        // /api/social/pages/posts, etc.) doesn't leave _submittingRef stuck at
+        // true and freeze the Post button until full page reload.
+        try {
         if (!content.trim() && !media.length && !linkPreview && !checkInVenue) { _submittingRef.current = false; return; }
         setError('');
 
@@ -707,7 +712,18 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
             try { localStorage.removeItem('sp-post-draft'); } catch (e) { console.warn('[App] Handled exception:', e); }
         }
         else if (mountedRef.current) setError('Unable to post at this time. Please try again later.');
-        _submittingRef.current = false;
+        } catch (postErr) {
+            console.warn('[SharedPostCreator] Post creation error:', postErr);
+            if (mountedRef.current) {
+                setError('Unable to post: ' + (postErr?.message || 'unknown error'));
+                setUploading(false);
+                setUploadProgress(null);
+            }
+        } finally {
+            // ALWAYS reset the submit guard, even on uncaught throw, so user
+            // isn't permanently locked out of posting.
+            _submittingRef.current = false;
+        }
     };
 
     // Determine display identity:
