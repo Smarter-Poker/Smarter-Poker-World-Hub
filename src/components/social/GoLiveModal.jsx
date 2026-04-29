@@ -323,6 +323,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
     }
 
     return (
+        <>
         <div
             style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.88)', zIndex:10000, display:'flex', alignItems:'center', justifyContent:'center' }}
             onClick={(e) => { if (e.target === e.currentTarget && stage !== 'live') onClose(); }}
@@ -592,6 +593,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                 user={user}
             />
         )}
+        </>
     );
 }
 
