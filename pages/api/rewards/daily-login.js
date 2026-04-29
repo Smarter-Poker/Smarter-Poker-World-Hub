@@ -184,7 +184,22 @@ export default async function handler(req, res) {
           });
 
           if (rpcError) {
-              console.warn('[DailyLogin] RPC error:', rpcError);
+              // Roll back the idempotency claim row so the user can retry.
+              // Without this, the unique-constraint check at line 164 would
+              // return "already claimed today" forever and the user would
+              // never receive their diamonds. Production bug observed twice
+              // in 7 days (2026-04-22 17:57, 2026-04-29 05:20).
+              try {
+                  await supabase
+                      .from('diamond_reward_claims')
+                      .delete()
+                      .eq('user_id', userId)
+                      .eq('reward_type', 'daily_login')
+                      .eq('claim_date', today);
+              } catch (rollbackErr) {
+                  console.warn('[DailyLogin] Rollback delete failed:', rollbackErr?.message || rollbackErr);
+              }
+              console.warn('[DailyLogin] RPC error (claim rolled back so user can retry):', rpcError);
               throw rpcError;
           }
 
