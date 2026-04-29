@@ -437,18 +437,31 @@ export default async function handler(req, res) {
               }
 
               // Award diamonds via logging RPC
+              // Note: Supabase RPC returns {data, error} and does NOT throw, so the
+              // previous try/catch never caught RPC failures. A failed credit would
+              // leave claimed=true with no diamonds awarded, locking the user out.
               const reward = progress.training_challenge_definitions?.diamond_reward || 0;
               if (reward > 0) {
-                  try {
-                      await supabase.rpc('add_diamonds_to_balance', {
-                          p_user_id: userId,
-                          p_amount: reward,
-                          p_type: 'challenge',
-                          p_description: `${progress.training_challenge_definitions?.name || 'Challenge'} completed — ${reward}diamonds`,
-                          p_reference_id: `challenge_${challengeId}_${periodKey}`
-                      });
-                  } catch (rpcErr) {
-                      console.warn('[Challenges] Diamond RPC failed (non-blocking):', rpcErr.message);
+                  const { error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
+                      p_user_id: userId,
+                      p_amount: reward,
+                      p_type: 'challenge',
+                      p_description: `${progress.training_challenge_definitions?.name || 'Challenge'} completed — ${reward}diamonds`,
+                      p_reference_id: `challenge_${challengeId}_${periodKey}`
+                  });
+
+                  if (rpcErr) {
+                      // Roll back the claimed flag so the user can retry.
+                      try {
+                          await supabase
+                              .from('training_user_challenges')
+                              .update({ claimed: false, claimed_at: null })
+                              .eq('id', progress.id);
+                      } catch (rbErr) {
+                          console.warn('[Challenges] Rollback claimed=false failed:', rbErr?.message || rbErr);
+                      }
+                      console.warn('[Challenges] Diamond RPC failed (rolled back so user can retry):', rpcErr);
+                      return res.status(500).json({ success: false, error: 'Failed to credit diamonds — please retry' });
                   }
               }
 

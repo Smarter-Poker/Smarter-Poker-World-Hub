@@ -280,13 +280,33 @@ export default async function handler(req, res) {
               }
 
               // Award diamonds via logging RPC
-              await supabase.rpc('add_diamonds_to_balance', {
+              // Note: Supabase RPC returns {data, error} and does NOT throw on RPC errors.
+              // Capture the error explicitly and roll back the milestone claim so the user
+              // can retry instead of being locked out with no diamonds.
+              const { error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
                   p_user_id: userId,
                   p_amount: milestone.diamonds,
                   p_type: 'streak_reward',
                   p_description: `${milestone.name} — ${milestone.diamonds}diamonds reward`,
                   p_reference_id: `streak_${userId}_${milestoneDays}`
               });
+
+              if (rpcErr) {
+                  // Roll back the milestone claim by removing milestoneDays from the array.
+                  // Without this, the optimistic-lock check above would forever say
+                  // "already claimed" and the user would never get their diamonds.
+                  try {
+                      const rolledBack = (newClaimed || []).filter(d => d !== milestoneDays);
+                      await supabase
+                          .from('training_streaks')
+                          .update({ milestones_claimed: rolledBack })
+                          .eq('user_id', userId);
+                  } catch (rbErr) {
+                      console.warn('[Streak] Rollback of milestone claim failed:', rbErr?.message || rbErr);
+                  }
+                  console.warn('[Streak] Diamond RPC failed (rolled back so user can retry):', rpcErr);
+                  return res.status(500).json({ success: false, error: 'Failed to credit diamonds — please retry' });
+              }
 
               return res.status(200).json({
                   success: true,

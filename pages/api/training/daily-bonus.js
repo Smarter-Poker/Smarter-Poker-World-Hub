@@ -177,18 +177,33 @@ export default async function handler(req, res) {
               }
 
               // Award diamonds via logging RPC
-              try {
-                  await supabase.rpc('add_diamonds_to_balance', {
-                      p_user_id: userId,
-                      p_amount: totalBonus,
-                      p_type: 'daily_bonus',
-                      p_description: streakBonus > 0
-                          ? `Daily bonus (${BASE_DAILY_BONUS}diamonds) + ${currentStreak}-day streak bonus (${streakBonus}diamonds)`
-                          : `Daily training bonus — ${totalBonus}diamonds`,
-                      p_reference_id: null
-                  });
-              } catch (rpcErr) {
-                  console.warn('[DailyBonus] Diamond RPC failed (non-blocking):', rpcErr.message);
+              // Note: Supabase RPC returns {data, error} and does NOT throw — the previous
+              // try/catch never caught RPC failures, so a failed credit silently told the
+              // user "+150diamonds claimed!" while no diamonds landed in their balance.
+              const { error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
+                  p_user_id: userId,
+                  p_amount: totalBonus,
+                  p_type: 'daily_bonus',
+                  p_description: streakBonus > 0
+                      ? `Daily bonus (${BASE_DAILY_BONUS}diamonds) + ${currentStreak}-day streak bonus (${streakBonus}diamonds)`
+                      : `Daily training bonus — ${totalBonus}diamonds`,
+                  p_reference_id: null
+              });
+
+              if (rpcErr) {
+                  // Roll back the daily-bonus claim row so the user can retry. The unique
+                  // constraint on (user_id, bonus_date) would otherwise lock them out.
+                  try {
+                      await supabase
+                          .from('training_daily_bonus')
+                          .delete()
+                          .eq('user_id', userId)
+                          .eq('bonus_date', today);
+                  } catch (rbErr) {
+                      console.warn('[DailyBonus] Rollback delete failed:', rbErr?.message || rbErr);
+                  }
+                  console.warn('[DailyBonus] Diamond RPC failed (rolled back so user can retry):', rpcErr);
+                  return res.status(500).json({ success: false, error: 'Failed to credit daily bonus — please retry' });
               }
 
               // Send push notification if not called during session

@@ -185,19 +185,39 @@ export default async function handler(req, res) {
                           }, { onConflict: 'user_id,achievement_id', ignoreDuplicates: true });
 
                       // Award diamonds via logging RPC
+                      // Note: Supabase RPC returns {data, error} and does NOT throw, so the
+                      // previous try/catch never caught RPC failures. A failed credit
+                      // would mark the achievement as unlocked (upsert above) without
+                      // paying the diamond reward — and the upsert's unique constraint
+                      // would prevent any retry.
+                      let diamondCreditFailed = false;
                       if (def.diamond_reward > 0) {
-                          try {
-                              await supabase.rpc('add_diamonds_to_balance', {
-                                  p_user_id: userId,
-                                  p_amount: def.diamond_reward,
-                                  p_type: 'achievement',
-                                  p_description: `${def.name} achievement — ${def.diamond_reward}diamonds`,
-                                  p_reference_id: def.id
-                              });
-                          } catch (rpcErr) {
-                              console.warn('[Achievements] Diamond RPC failed (non-blocking):', rpcErr.message);
+                          const { error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
+                              p_user_id: userId,
+                              p_amount: def.diamond_reward,
+                              p_type: 'achievement',
+                              p_description: `${def.name} achievement — ${def.diamond_reward}diamonds`,
+                              p_reference_id: def.id
+                          });
+
+                          if (rpcErr) {
+                              // Roll back the achievement upsert so the user can retry.
+                              try {
+                                  await supabase
+                                      .from('training_user_achievements')
+                                      .delete()
+                                      .eq('user_id', userId)
+                                      .eq('achievement_id', def.id);
+                              } catch (rbErr) {
+                                  console.warn('[Achievements] Rollback delete failed:', rbErr?.message || rbErr);
+                              }
+                              console.warn('[Achievements] Diamond RPC failed (rolled back so user can retry):', rpcErr);
+                              diamondCreditFailed = true;
                           }
                       }
+
+                      // Skip notification + newlyUnlocked if credit failed and rolled back
+                      if (diamondCreditFailed) continue;
 
                       // Send push notification
                       await notifyAchievementUnlock(userId, {
