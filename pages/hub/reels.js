@@ -1135,8 +1135,12 @@ export default function ReelsPage() {
         setReportSubmitted(false);
         setShareToast(false);
         setShowShareModal(false);
-        setIsPaused(true); // New reel starts as paused — autoplay may fail, first tap should send playVideo
+        // DON'T set isPaused=true here — the iframe has autoplay=1&mute=1 which
+        // should start playing immediately on mobile. Setting isPaused=true on every
+        // reel change caused the play button to appear and block autoplay.
+        // Let the YouTube onStateChange event drive isPaused state.
         setYtReady(false); // Reset — suppress play button until YT fires onStateChange for new video
+        setYtError(null); // Clear YouTube error state on reel change
 
         // Mobile fallback: iOS Safari may never fire onStateChange via postMessage.
         // If ytReady is still false after 3s, force it true so the play button appears
@@ -1651,22 +1655,7 @@ export default function ReelsPage() {
                     Reels
                 </div>
 
-                {/* Engagement Stats Pill - view count removed (private to poster only) */}
-                <div style={{
-                    position: 'absolute', top: 20, right: 16, zIndex: 100,
-                    display: 'flex', gap: 12, padding: '6px 14px', borderRadius: 20,
-                    background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)',
-                    WebkitBackdropFilter: 'blur(8px)',
-                }}>
-                    <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: 11, display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="#ef4444" stroke="#ef4444" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-                        {likeCounts[currentReel?.id] ?? (currentReel?.like_count || 0)}
-                    </span>
-                    <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: 11, display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-                        {commentCounts[currentReel?.id] || 0}
-                    </span>
-                </div>
+                {/* Engagement Stats Pill REMOVED - duplicated the sidebar heart/comment buttons */}
 
                 {/* VIDEO WRAPPER with slide animation */}
                 <div style={{
@@ -1691,7 +1680,7 @@ export default function ReelsPage() {
                         <iframe
                             ref={iframeRef}
                             key={currentReel?.id}
-                            src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&origin=https://smarter.poker&iv_load_policy=3&disablekb=1&fs=0&cc_load_policy=0`}
+                            src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}&iv_load_policy=3&disablekb=1&fs=0&cc_load_policy=0`}
                             title="Poker Reel"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                             allowFullScreen
@@ -1703,13 +1692,13 @@ export default function ReelsPage() {
                                 try {
                                     iframeWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
                                     iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
-                                    // Don't set isPaused=false here — autoplay may fail
-                                    // Let the YouTube state change event or user tap handle it
                                     // Aggressive retry loop: YouTube API inside iframe needs time to initialize
+                                    // On mobile, autoplay=1&mute=1 should work, but we reinforce with playVideo commands
                                     [300, 800, 1500, 3000].forEach(delay => setTimeout(() => {
                                         try {
+                                            iframeWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
                                             iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
-                                            if (!muted) {
+                                            if (userWantsSound) {
                                                 iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
                                                 iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
                                             }
@@ -1722,13 +1711,10 @@ export default function ReelsPage() {
                                 top: '50%',
                                 left: '50%',
                                 transform: 'translate(-50%, -50%)',
-                                width: '110%',
-                                height: '110%',
-                                minWidth: '100vw',
-                                minHeight: '100vh',
+                                width: '100%',
+                                height: '100%',
                                 border: 'none',
                                 pointerEvents: 'none',
-                                objectFit: 'cover',
                             }}
                         />
                     ) : currentReel?.video_url ? (
