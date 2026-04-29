@@ -50,18 +50,31 @@ const signOutAction = () => {
     });
 };
 
-const signOutBottomLink = {
-    label: 'Sign Out',
-    action: true,
-    onClick: signOutAction,
-    icon: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
-            <polyline points="16 17 21 12 16 7" />
-            <line x1="21" y1="12" x2="9" y2="12" />
-        </svg>
-    ),
-};
+// Round 33 fix: Lazy-built sign-out link to dodge a Next.js SSG TDZ that
+// kept reproducing as `ReferenceError: Cannot access 'tW' before initialization`
+// in the prerender of /hub/settings (every Vercel build since commit
+// 551de7a2). The original code declared this object as a module-scope
+// `const` whose `icon` JSX is evaluated during module load. Even though
+// `signOutAction` is declared above on line 41, Next.js page-level static
+// optimization can re-order or split chunks across the module boundary in
+// ways that expose the TDZ window during SSR. Wrapping the definition in
+// a function ensures the JSX + closure binding only evaluate at the call
+// site (which always runs INSIDE a MENU_CONFIGS callback, after both
+// signOutAction and the JSX runtime are resolved).
+function getSignOutBottomLink() {
+    return {
+        label: 'Sign Out',
+        action: true,
+        onClick: signOutAction,
+        icon: (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+        ),
+    };
+}
 
 // Helper function to create menu items
 export const createMenuItem = {
@@ -229,7 +242,7 @@ export const MENU_CONFIGS = {
         bottomLinks: [
             { label: 'Help and Support', href: '/hub/help', icon: MenuIcons.help },
             { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings },
-            signOutBottomLink
+            getSignOutBottomLink()
         ]
     }),
 
@@ -758,7 +771,7 @@ export const MENU_CONFIGS = {
         ],
         bottomLinks: [
             { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings },
-            signOutBottomLink
+            getSignOutBottomLink()
         ]
     }),
 
@@ -989,7 +1002,7 @@ export const MENU_CONFIGS = {
         bottomLinks: [
             { label: 'Help & Rules', href: '/hub/help', icon: MenuIcons.help },
             { label: 'Home', href: '/hub', icon: MenuIcons.home },
-            signOutBottomLink
+            getSignOutBottomLink()
         ]
     }),
 
