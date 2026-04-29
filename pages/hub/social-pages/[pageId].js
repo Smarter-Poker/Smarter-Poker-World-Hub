@@ -3491,9 +3491,13 @@ export default function SocialPageDetail() {
             {/* Phase 9: GoLive Modal */}
             <GoLiveModal
                 isOpen={showGoLiveModal}
-                onClose={() => {
+                onClose={(action) => {
                     setShowGoLiveModal(false);
                     LiveStreamService.getLiveStreams().then(setLiveStreams).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+                    // Show success toast for stream actions
+                    if (action === 'posted') toast.success('Stream replay posted to your feed!');
+                    else if (action === 'saved') toast.success('Stream saved as draft');
+                    else if (action === 'deleted') toast.success('Stream recording deleted');
                 }}
                 user={user}
             />

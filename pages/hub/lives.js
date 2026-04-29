@@ -44,6 +44,7 @@ export default function LivesPage() {
     const [publishingDraft, setPublishingDraft] = useState(null);
     const [publishToast, setPublishToast] = useState(null);  // #5: success feedback
     const [scheduledLives, setScheduledLives] = useState([]); // #20: upcoming scheduled streams
+    const [streamActionToast, setStreamActionToast] = useState(null); // toast after end-stream post/save/delete
     const containerRef = useRef(null);
     const videoRefs = useRef({});
 
@@ -709,12 +710,13 @@ export default function LivesPage() {
                                         padding: '16px 32px',
                                         fontSize: 18,
                                         fontWeight: 700,
-                                        cursor: 'pointer',
+                                        cursor: watchingStream ? 'wait' : 'pointer',
+                                        opacity: watchingStream ? 0.6 : 1,
                                         boxShadow: '0 4px 24px rgba(250, 56, 62, 0.4)',
                                         zIndex: 10,
                                     }}
                                 >
-                                    Watch Live
+                                    {watchingStream === stream ? 'Connecting...' : 'Watch Live'}
                                 </button>
                                 </>
                             )}
@@ -1030,7 +1032,7 @@ export default function LivesPage() {
                         stream={watchingStream}
                         userId={userId}
                         user={user}
-                        onClose={() => {
+                        onClose={(action) => {
                             setWatchingStream(null);
                             fetchStreams();
                         }}
@@ -1055,6 +1057,27 @@ export default function LivesPage() {
                         animation: 'slideUp 0.3s ease-out',
                     }}>
                         {publishToast}
+                    </div>
+                )}
+
+                {/* Stream action toast (after end-stream post/save/delete) */}
+                {streamActionToast && (
+                    <div style={{
+                        position: 'fixed',
+                        top: 80,
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        background: 'rgba(0, 200, 100, 0.95)',
+                        color: 'white',
+                        padding: '12px 28px',
+                        borderRadius: 12,
+                        fontSize: 15,
+                        fontWeight: 700,
+                        zIndex: 10001,
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+                        animation: 'slideUp 0.3s ease-out',
+                    }}>
+                        {streamActionToast}
                     </div>
                 )}
 

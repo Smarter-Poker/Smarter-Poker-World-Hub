@@ -44,6 +44,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
     const [description, setDescription] = useState(''); // #9: stream description
     const [pinnedComment, setPinnedComment] = useState(null); // #18: pinned comment
     const [commentMenu, setCommentMenu] = useState(null); // #19: comment action menu
+    const [isMuted, setIsMuted] = useState(false); // #6: mic mute toggle
 
     // Thumbnail state
     const [thumbnailFile, setThumbnailFile] = useState(null);
@@ -337,6 +338,15 @@ export function GoLiveModal({ isOpen, onClose, user }) {
         } catch { /* ignore user cancel */ }
     };
 
+    const handleToggleMute = async () => {
+        try {
+            const newMuted = await liveStreamService.toggleMute();
+            setIsMuted(newMuted);
+        } catch (err) {
+            console.warn('[GoLive] mute toggle failed:', err);
+        }
+    };
+
     const handleToggleSlowMode = async () => {
         if (!streamId) return;
         const newMode = !slowMode;
@@ -392,6 +402,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
         setDescription('');
         setPinnedComment(null);
         setCommentMenu(null);
+        setIsMuted(false);
         onClose(action);
     };
 
@@ -634,12 +645,20 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                         <div style={{ position:'absolute', top: 'max(20px, env(safe-area-inset-top, 20px))', right:16, background:'rgba(0,0,0,.55)', color:'white', padding:'6px 14px', borderRadius:8, fontSize:14, fontWeight:600, zIndex:10, display:'flex', alignItems:'center', gap:6 }}>
                             <svg width="14" height="14" fill="white" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
                             {viewerCount} {viewerCount === 1 ? 'viewer' : 'viewers'}
+                            {isMuted && <span style={{ marginLeft:6, opacity:0.7 }}>🔇</span>}
                         </div>
 
                         {/* BOTTOM-RIGHT: elapsed timer */}
                         <div style={{ position:'absolute', bottom:110, right:16, background:'rgba(0,0,0,.55)', color:'white', padding:'6px 12px', borderRadius:8, fontSize:14, fontWeight:700, zIndex:10, fontVariantNumeric:'tabular-nums' }}>
                             {formatTime(elapsedTime)}
                         </div>
+
+                        {/* Stream description (visible to broadcaster) */}
+                        {description && (
+                            <div style={{ position:'absolute', top: 'max(56px, calc(env(safe-area-inset-top, 20px) + 36px))', left:16, right:80, zIndex:8, background:'rgba(0,0,0,0.45)', borderRadius:8, padding:'6px 12px', maxWidth:'60vw' }}>
+                                <div style={{ color:'rgba(255,255,255,0.7)', fontSize:11, lineHeight:1.4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{description}</div>
+                            </div>
+                        )}
 
                         {/* Emoji reactions */}
                         <LiveReactions streamId={streamId} userId={user?.id} isBroadcaster />
@@ -694,7 +713,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                         </div>
 
                         {/* COMMENT INPUT */}
-                        <div style={{ position:'absolute', bottom: 'max(50px, calc(env(safe-area-inset-bottom, 0px) + 50px))', left:12, right:56, zIndex:10, display:'flex', gap:8 }}>
+                        <div style={{ position:'absolute', bottom: 'max(16px, calc(env(safe-area-inset-bottom, 0px) + 16px))', left:12, right:56, zIndex:10, display:'flex', gap:8 }}>
                             <input
                                 ref={commentInputRef}
                                 value={commentInput}
@@ -748,6 +767,18 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                                     alignItems:'center', justifyContent:'center',
                                 }}
                             >🐢</button>
+                            {/* Mic mute/unmute */}
+                            <button
+                                onClick={e => { e.stopPropagation(); handleToggleMute(); }}
+                                title={isMuted ? 'Unmute mic' : 'Mute mic'}
+                                style={{
+                                    width:44, height:44, borderRadius:'50%', border:'none',
+                                    background: isMuted ? 'rgba(250,56,62,0.7)' : 'rgba(0,0,0,0.6)',
+                                    backdropFilter:'blur(8px)',
+                                    color:'white', fontSize:18, cursor:'pointer', display:'flex',
+                                    alignItems:'center', justifyContent:'center',
+                                }}
+                            >{isMuted ? '🔇' : '🎙️'}</button>
                         </div>
 
                         {/* TAP-TO-REVEAL: End Stream — only visible when showControls */}

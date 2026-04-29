@@ -234,6 +234,21 @@ export default function SettingsPage() {
     //  Use context user or localStorage fallback
     const user = contextUser || localUser;
 
+    // Hoisted above menuConfig to avoid TDZ — menuConfig passes this as onSignOut
+    const handleLogout = async () => {
+        try {
+            // Clear profile cache so next user doesn't see stale alias
+            try { localStorage.removeItem('sp-social-user'); } catch (_) {}
+            await supabase.auth.signOut();
+            // Force hard redirect to clear all cached state
+            window.location.href = '/';
+        } catch (error) {
+            console.warn('Logout error:', error);
+            // Even if there's an error, redirect anyway
+            window.location.href = '/';
+        }
+    };
+
     // Menu config
     const menuConfig = getMenuConfig('settings', user, {}, { onSignOut: handleLogout });
 
@@ -623,20 +638,6 @@ export default function SettingsPage() {
         setTimeout(() => setSaved(false), 2000);
     };
 
-
-    const handleLogout = async () => {
-        try {
-            // Clear profile cache so next user doesn't see stale alias
-            try { localStorage.removeItem('sp-social-user'); } catch (_) {}
-            await supabase.auth.signOut();
-            // Force hard redirect to clear all cached state
-            window.location.href = '/';
-        } catch (error) {
-            console.warn('Logout error:', error);
-            // Even if there's an error, redirect anyway
-            window.location.href = '/';
-        }
-    };
 
     const exportData = async () => {
         if (!user?.id) {

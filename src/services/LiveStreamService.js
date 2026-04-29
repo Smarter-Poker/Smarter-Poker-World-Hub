@@ -319,6 +319,37 @@ class LiveStreamService {
     }
 
     /**
+     * Toggle microphone mute/unmute
+     * @returns {boolean} new muted state
+     */
+    async toggleMute() {
+        if (!this.room) throw new Error('No active room');
+        const localParticipant = this.room.localParticipant;
+        const audioPublications = [...localParticipant.trackPublications.values()]
+            .filter(pub => pub.track?.kind === Track.Kind.Audio);
+
+        const currentlyMuted = audioPublications[0]?.isMuted ?? false;
+        const newMuted = !currentlyMuted;
+
+        for (const pub of audioPublications) {
+            if (pub.track) {
+                if (newMuted) {
+                    await pub.track.mute();
+                } else {
+                    await pub.track.unmute();
+                }
+            }
+        }
+
+        // Also mute the local stream audio tracks (affects recording)
+        if (this.localStream) {
+            this.localStream.getAudioTracks().forEach(t => { t.enabled = !newMuted; });
+        }
+
+        return newMuted;
+    }
+
+    /**
      * End the current broadcast
      */
     async endBroadcast() {
