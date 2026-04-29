@@ -37,6 +37,32 @@ export const copyReferralLink = async (user) => {
     }
 };
 
+// Self-contained sign out action — works without requiring handlers
+const signOutAction = () => {
+    const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    );
+    // Clear profile cache so next user doesn't see stale data
+    try { localStorage.removeItem('sp-social-user'); } catch (_) {}
+    supabase.auth.signOut().finally(() => {
+        window.location.href = '/';
+    });
+};
+
+const signOutBottomLink = {
+    label: 'Sign Out',
+    action: true,
+    onClick: signOutAction,
+    icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+        </svg>
+    ),
+};
+
 // Helper function to create menu items
 export const createMenuItem = {
     navigation: (label, href, icon = null, badge = null, onClick = null) => ({
@@ -202,7 +228,8 @@ export const MENU_CONFIGS = {
         ],
         bottomLinks: [
             { label: 'Help and Support', href: '/hub/help', icon: MenuIcons.help },
-            { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings }
+            { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings },
+            signOutBottomLink
         ]
     }),
 
@@ -730,7 +757,8 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('📲 Install App', '/hub/install')
         ],
         bottomLinks: [
-            { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings }
+            { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings },
+            signOutBottomLink
         ]
     }),
 
@@ -960,7 +988,8 @@ export const MENU_CONFIGS = {
         ],
         bottomLinks: [
             { label: 'Help & Rules', href: '/hub/help', icon: MenuIcons.help },
-            { label: 'Home', href: '/hub', icon: MenuIcons.home }
+            { label: 'Home', href: '/hub', icon: MenuIcons.home },
+            signOutBottomLink
         ]
     }),
 

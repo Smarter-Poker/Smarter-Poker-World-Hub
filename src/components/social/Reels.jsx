@@ -79,7 +79,7 @@ export function ReelsViewer({ onClose }) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState(false);
-    const [muted, setMuted] = useState(false); // Always start with sound ON
+    const [muted, setMuted] = useState(true); // Start MUTED for mobile autoplay compliance — unmute after playback confirmed
     const [paused, setPaused] = useState(true); // Start true — autoplay may fail, first tap should send playVideo
     const [ytReady, setYtReady] = useState(false); // True once YouTube fires first onStateChange — suppresses phantom play button during autoplay startup
     const [ytError, setYtError] = useState(null); // YouTube embed error code (150=age-restricted, 100=not found)
@@ -1272,52 +1272,41 @@ export function ReelsViewer({ onClose }) {
         const now = Date.now();
         const DOUBLE_TAP_WINDOW = 300;
         if (now - lastTapRef.current < DOUBLE_TAP_WINDOW) {
-            // Double-tap = like (TikTok behavior: always show heart, only toggle if not liked)
-            setShowHeart(true);
-            setTimeout(() => setShowHeart(false), 800);
+            // Double-tap = toggle play/pause
             haptic(15);
-            if (!liked[currentReel?.id] && currentUserId) {
-                handleLike();
+            const isYT = isYouTubeUrl(currentReel?.video_url);
+            if (!isYT && videoRef.current) {
+                if (videoRef.current.paused) {
+                    const playPromise = videoRef.current.play();
+                    if (playPromise !== undefined) playPromise.catch(e => console.warn('Play intercepted:', e));
+                    setPaused(false);
+                } else {
+                    videoRef.current.pause();
+                    setPaused(true);
+                    if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+                }
+            } else if (isYT) {
+                const iframe = containerRef.current?.querySelector('iframe');
+                if (iframe?.contentWindow) {
+                    if (paused) {
+                        iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
+                        iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
+                        setPaused(false);
+                    } else {
+                        iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
+                        iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }), '*');
+                        setPaused(true);
+                        if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+                    }
+                }
             }
             lastTapRef.current = 0;
             return;
         }
         lastTapRef.current = now;
         
-        // Single tap = reveal overlay + toggle play/pause simultaneously
-        // BUG FIX: Previously first tap only showed overlay (no play/pause toggle),
-        // requiring a second tap to actually play/pause the video.
+        // Single tap = show overlay ONLY (no play/pause)
         revealOverlay();
-        const isYT = isYouTubeUrl(currentReel?.video_url);
-        if (!isYT && videoRef.current) {
-            if (videoRef.current.paused) {
-                const playPromise = videoRef.current.play();
-                if (playPromise !== undefined) {
-                    playPromise.catch(e => console.warn('Play intercepted:', e));
-                }
-                setPaused(false);
-            } else {
-                videoRef.current.pause();
-                setPaused(true);
-                // Paused = Anchor HUD (don't auto-hide)
-                if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
-            }
-        } else if (isYT) {
-            // YouTube: play/pause via postMessage
-            const iframe = containerRef.current?.querySelector('iframe');
-            if (iframe?.contentWindow) {
-                if (paused) {
-                    iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
-                    iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
-                    setPaused(false);
-                } else {
-                    iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
-                    iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }), '*');
-                    setPaused(true);
-                    if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
-                }
-            }
-        }
     };
 
     // Progress bar update loop - stored in ref to prevent stale closure in RAF

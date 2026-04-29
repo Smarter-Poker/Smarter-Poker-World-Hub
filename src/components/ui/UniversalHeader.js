@@ -773,8 +773,8 @@ export default function UniversalHeader({
                 
                 .orb-badge {
                     position: absolute;
-                    top: -2px;
-                    right: -2px;
+                    top: 0;
+                    right: 0;
                     background: #e41e3f;
                     color: white;
                     border-radius: 10px;
@@ -913,8 +913,8 @@ export default function UniversalHeader({
                     }
                     
                     .orb-badge {
-                        top: -3px;
-                        right: -3px;
+                        top: 1px;
+                        right: 1px;
                         padding: 0 3px;
                         font-size: 7px;
                         min-width: 10px;

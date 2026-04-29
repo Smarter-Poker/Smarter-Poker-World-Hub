@@ -6017,6 +6017,21 @@ function SocialMediaPage() {
                         <span style={{ flex: 1, fontSize: 15 }}>Settings</span>
                         <span style={{ color: C.textSec }}>›</span>
                     </Link>
+                    <button onClick={() => {
+                        setSidebarOpen(false);
+                        try { localStorage.removeItem('sp-social-user'); } catch (_) {}
+                        supabase.auth.signOut().finally(() => { window.location.href = '/'; });
+                    }} style={{
+                        padding: '12px 0', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
+                        background: 'none', border: 'none', width: '100%', textAlign: 'left', color: 'inherit', fontFamily: 'inherit'
+                    }}>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#65676b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+                            <polyline points="16 17 21 12 16 7" />
+                            <line x1="21" y1="12" x2="9" y2="12" />
+                        </svg>
+                        <span style={{ flex: 1, fontSize: 15 }}>Sign Out</span>
+                    </button>
                 </div>
             </div>
 

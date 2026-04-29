@@ -116,7 +116,18 @@ export default function SettingsPage() {
         } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         return null;
     });
-    const [localUser, setLocalUser] = useState(null); //  Fallback from localStorage
+    const [localUser, setLocalUser] = useState(() => {
+        //  BULLETPROOF: Read from localStorage immediately to prevent "Not Logged In" flash
+        if (typeof window === 'undefined') return null;
+        try {
+            const explicitAuth = localStorage.getItem('smarter-poker-auth');
+            if (explicitAuth) {
+                const tokenData = JSON.parse(explicitAuth);
+                if (tokenData?.user) return tokenData.user;
+            }
+        } catch (_) {}
+        return null;
+    });
     const [activeSection, setActiveSection] = usePersistedState('sp-settings-active-section', 'account');
     const [saved, setSaved] = useState(false);
     const [showAvatarBuilder, setShowAvatarBuilder] = useState(false);
@@ -224,7 +235,7 @@ export default function SettingsPage() {
     const user = contextUser || localUser;
 
     // Menu config
-    const menuConfig = getMenuConfig('settings', user, {}, {});
+    const menuConfig = getMenuConfig('settings', user, {}, { onSignOut: handleLogout });
 
     //  BULLETPROOF: Read user from localStorage immediately (same as UniversalHeader)
     useEffect(() => {
