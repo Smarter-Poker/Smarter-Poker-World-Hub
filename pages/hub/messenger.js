@@ -2814,8 +2814,8 @@ function MessengerPage() {
                 }
 
                 setMessages(prev => {
-                    // Check for duplicates
-                    if (prev.some(m => m.id === newMsg.id)) return prev;
+                    // Check for duplicates (defensive against null entries)
+                    if (prev.some(m => m && m.id === newMsg.id)) return prev;
                     return [...prev, { ...newMsg, profiles: profile || null }];
                 });
 
