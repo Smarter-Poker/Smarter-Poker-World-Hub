@@ -523,9 +523,13 @@ class LiveStreamService {
 
     async _notifyFollowers(userId, title, streamId) {
         try {
+            const token = getAccessToken();
             await fetch('/api/notifications/live-notify', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
                 body: JSON.stringify({ streamId, title }),
                 credentials: 'same-origin',
             });
