@@ -1670,59 +1670,63 @@ export default function VideoLibraryPage() {
 
                     {/* Fullscreen & sound are handled by YouTube's native controls at bottom of iframe */}
 
-                    {/* Prev / Next navigation arrows */}
-                    <button
-                        onClick={handlePrevVideo}
-                        title="Previous video (←)"
-                        className="vl-nav-arrow"
-                        style={{
-                            position: 'absolute',
-                            left: 16,
-                            top: '50%',
-                            transform: 'translateY(-50%)',
-                            width: 52,
-                            height: 52,
-                            background: 'rgba(255,255,255,0.15)',
-                            border: 'none',
-                            borderRadius: '50%',
-                            color: 'white',
-                            fontSize: 26,
-                            cursor: 'pointer',
-                            zIndex: 1001,
-                            backdropFilter: 'blur(10px)',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            transition: 'background 0.2s',
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.3)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
-                    >‹</button>
-                    <button
-                        onClick={handleNextVideo}
-                        title="Next video (→)"
-                        className="vl-nav-arrow"
-                        style={{
-                            position: 'absolute',
-                            right: 16,
-                            top: '50%',
-                            transform: 'translateY(-50%)',
-                            width: 52,
-                            height: 52,
-                            background: 'rgba(255,255,255,0.15)',
-                            border: 'none',
-                            borderRadius: '50%',
-                            color: 'white',
-                            fontSize: 26,
-                            cursor: 'pointer',
-                            zIndex: 1001,
-                            backdropFilter: 'blur(10px)',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            transition: 'background 0.2s',
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.3)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
-                    >›</button>
+                    {/* Prev / Next navigation arrows — desktop only (JS detection, no CSS tricks) */}
+                    {typeof window !== 'undefined' && !('ontouchstart' in window) && (
+                      <>
+                        <button
+                            onClick={handlePrevVideo}
+                            title="Previous video (←)"
+                            style={{
+                                position: 'absolute',
+                                left: 16,
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                width: 52,
+                                height: 52,
+                                background: 'rgba(255,255,255,0.15)',
+                                border: 'none',
+                                borderRadius: '50%',
+                                color: 'white',
+                                fontSize: 26,
+                                cursor: 'pointer',
+                                zIndex: 1001,
+                                backdropFilter: 'blur(10px)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                transition: 'background 0.2s',
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.3)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
+                        >‹</button>
+                        <button
+                            onClick={handleNextVideo}
+                            title="Next video (→)"
+                            style={{
+                                position: 'absolute',
+                                right: 16,
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                width: 52,
+                                height: 52,
+                                background: 'rgba(255,255,255,0.15)',
+                                border: 'none',
+                                borderRadius: '50%',
+                                color: 'white',
+                                fontSize: 26,
+                                cursor: 'pointer',
+                                zIndex: 1001,
+                                backdropFilter: 'blur(10px)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                transition: 'background 0.2s',
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.3)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
+                        >›</button>
+                      </>
+                    )}
 
                     {/* YouTube embed — takes FULL viewport on mobile */}
                     <div style={{
@@ -1732,50 +1736,7 @@ export default function VideoLibraryPage() {
                         position: 'relative',
                         overflow: 'hidden',
                     }}>
-                        {/* Mobile swipe overlay — sits ON TOP of iframe to capture swipe gestures.
-                            The iframe is cross-origin, so touch events don't bubble to the parent.
-                            Single taps pass through via pointer-events toggling. */}
-                        <div
-                            className="vl-swipe-overlay"
-                            onTouchStart={e => {
-                                swipeTouchStart.current = e.touches[0].clientX;
-                                swipeTouchStartY.current = e.touches[0].clientY;
-                                // Record time to distinguish tap vs swipe
-                                swipeTouchStart.current_time = Date.now();
-                            }}
-                            onTouchEnd={e => {
-                                const dx = e.changedTouches[0].clientX - (swipeTouchStart.current || 0);
-                                const dy = e.changedTouches[0].clientY - (swipeTouchStartY.current || 0);
-                                const elapsed = Date.now() - (swipeTouchStart.current_time || 0);
-                                swipeTouchStart.current = null;
-                                swipeTouchStartY.current = null;
-                                // Vertical swipe (TikTok-style): up = next, down = prev
-                                if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 50) {
-                                    e.preventDefault();
-                                    if (dy < 0) handleNextVideo(); else handlePrevVideo();
-                                }
-                                // Horizontal swipe
-                                else if (Math.abs(dx) > 50) {
-                                    e.preventDefault();
-                                    if (dx < 0) handleNextVideo(); else handlePrevVideo();
-                                }
-                                // Short tap — reveal HUD
-                                else if (elapsed < 300 && Math.abs(dx) < 10 && Math.abs(dy) < 10) {
-                                    vlRevealHud();
-                                }
-                            }}
-                            onClick={vlRevealHud}
-                            style={{
-                                position: 'absolute',
-                                top: 0, left: 0,
-                                width: '100%',
-                                height: '85%', // leave bottom 15% open for YouTube's play/seek/volume bar
-                                zIndex: 5,
-                                cursor: 'pointer',
-                                WebkitTapHighlightColor: 'transparent',
-                                background: 'transparent',
-                            }}
-                        />
+                        {/* No overlay — YouTube iframe gets ALL touch events directly for playback */}
 
                         {/* Right-side HUD — Heart / Share / Save */}
                         <div
@@ -1840,43 +1801,6 @@ export default function VideoLibraryPage() {
                                 </span>
                             </button>
 
-                            {/* Comment — show coming soon toast (in-app comments planned) */}
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    // In-app commenting — show toast notification
-                                    const toast = document.createElement('div');
-                                    toast.textContent = 'Comments Coming Soon!';
-                                    Object.assign(toast.style, {
-                                        position: 'fixed', bottom: '80px', left: '50%', transform: 'translateX(-50%)',
-                                        background: 'rgba(0,212,255,0.95)', color: '#000', padding: '10px 24px',
-                                        borderRadius: '20px', fontSize: '14px', fontWeight: '700', zIndex: '9999',
-                                        boxShadow: '0 4px 20px rgba(0,0,0,0.4)', transition: 'opacity 0.3s',
-                                    });
-                                    document.body.appendChild(toast);
-                                    setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 400); }, 2000);
-                                    vlRevealHud();
-                                }}
-                                title="Comment"
-                                style={{
-                                    background: 'none', border: 'none', cursor: 'pointer',
-                                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                                    padding: 0,
-                                }}
-                            >
-                                <div style={{
-                                    width: 52, height: 52, borderRadius: '50%',
-                                    background: 'rgba(0,0,0,0.6)',
-                                    backdropFilter: 'blur(10px)',
-                                    border: '1.5px solid rgba(255,255,255,0.25)',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                }}>
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                                    </svg>
-                                </div>
-                                <span style={{ color: 'white', fontSize: 11, fontWeight: 600, textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>Comment</span>
-                            </button>
 
                             {/* Share */}
                             <button
@@ -2188,11 +2112,8 @@ export default function VideoLibraryPage() {
                     }
                 }
 
-                /* Mobile + Tablet: swipe navigation, no arrows */
+                /* Mobile + Tablet: absolute info bar, hide Up Next */
                 @media (max-width: 1024px) and (hover: none) and (pointer: coarse) {
-                    .vl-nav-arrow {
-                        display: none !important;
-                    }
                     .vl-info-bar {
                         position: absolute !important;
                         bottom: 0 !important;
@@ -2206,11 +2127,8 @@ export default function VideoLibraryPage() {
                         display: none !important;
                     }
                 }
-                /* Fallback: also hide arrows on narrow screens regardless of pointer */
+                /* Narrow screen fallback */
                 @media (max-width: 767px) {
-                    .vl-nav-arrow {
-                        display: none !important;
-                    }
                     .vl-info-bar {
                         position: absolute !important;
                         bottom: 0 !important;
@@ -2224,29 +2142,15 @@ export default function VideoLibraryPage() {
                         display: none !important;
                     }
                 }
-
-                /* Desktop: arrows + info bar + no swipe overlay */
+                /* Desktop: info bar caps */
                 @media (min-width: 768px) and (hover: hover) and (pointer: fine) {
-                    .vl-nav-arrow {
-                        display: flex;
-                    }
                     .vl-info-bar {
                         max-height: min(25vh, 200px);
-                    }
-                    .vl-swipe-overlay {
-                        display: none !important;
                     }
                 }
-                /* Fallback for touchscreen laptops: if screen is wide enough, show desktop UI */
                 @media (min-width: 1025px) {
-                    .vl-nav-arrow {
-                        display: flex;
-                    }
                     .vl-info-bar {
                         max-height: min(25vh, 200px);
-                    }
-                    .vl-swipe-overlay {
-                        display: none !important;
                     }
                 }
 
