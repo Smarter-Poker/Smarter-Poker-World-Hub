@@ -225,19 +225,50 @@ if [ -z "$UNAUTH_HITS" ]; then
 fi
 echo ""
 
-# ─── CHECK 5: Real syntax validation via node -c ────────────────────────
+# ─── CHECK 5: Syntax validation (node -c for .js, Babel for .jsx/.tsx) ──
 echo "CHECK 5: Syntax validation (node -c)..."
 
 if command -v node &> /dev/null; then
     SYNTAX_ERRORS=0
+    # Locate Babel parser from the project (always available since Next.js requires it)
+    BABEL_PARSER="$(node -e "try{require.resolve('@babel/parser');console.log(require.resolve('@babel/parser'))}catch(e){console.log('')}" 2>/dev/null)"
+
     for file in $JS_FILES; do
         [ -f "$file" ] || continue
-        # Skip TypeScript/JSX files (node -c can't parse them, webpack handles it)
-        echo "$file" | grep -qE '\.(tsx?|jsx)$' && continue
         # Skip files with import assertions (assert { type: 'json' }) — valid in webpack
         grep -q 'assert {' "$file" 2>/dev/null && continue
 
-        # Real syntax check — this catches the exact errors webpack would catch
+        # For .jsx and .tsx — use Babel parser if available (catches JSX errors node -c misses)
+        if echo "$file" | grep -qE '\.(jsx|tsx)$'; then
+            if [ -n "$BABEL_PARSER" ]; then
+                PARSE_OUTPUT=$(node -e "
+const fs=require('fs');
+const {parse}=require('$BABEL_PARSER');
+try{
+  parse(fs.readFileSync('$file','utf8'),{
+    sourceType:'module',
+    plugins:['jsx','typescript','decorators-legacy','classProperties','optionalChaining','nullishCoalescingOperator']
+  });
+  process.exit(0);
+}catch(e){
+  console.error(e.message+' (line '+e.loc?.line+')');
+  process.exit(1);
+}" 2>&1)
+                if [ $? -ne 0 ]; then
+                    echo -e "${RED}  ✗ JSX SYNTAX ERROR: ${file}${NC}"
+                    echo "    $PARSE_OUTPUT" | head -3
+                    echo ""
+                    SYNTAX_ERRORS=$((SYNTAX_ERRORS + 1))
+                    ERRORS=$((ERRORS + 1))
+                fi
+            fi
+            continue
+        fi
+
+        # For .ts — skip (TypeScript type errors need tsc, not node -c)
+        echo "$file" | grep -qE '\.tsx?$' && continue
+
+        # Plain .js — use node -c (fast, reliable)
         PARSE_OUTPUT=$(node -c "$file" 2>&1)
         if [ $? -ne 0 ]; then
             echo -e "${RED}  ✗ SYNTAX ERROR: ${file}${NC}"
