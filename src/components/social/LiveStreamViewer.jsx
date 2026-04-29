@@ -1,6 +1,9 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   LIVE STREAM VIEWER v2 — Full-screen viewing experience for live streams
+   LIVE STREAM VIEWER v3 — Full-screen viewing experience for live streams
    TikTok/SmarterPoker Live style • reactions • diamond gifts • viewer list
+   
+   v3: slow-mode RPC, gift animations, connection quality, comment pagination,
+       real-time diamond balance updates
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
@@ -16,26 +19,33 @@ const C = {
     blue: '#0066FF',
 };
 
+const COMMENTS_PER_PAGE = 50;
+
 export function LiveStreamViewer({ stream, userId, user, onClose }) {
     const [remoteStream, setRemoteStream] = useState(null);
     const [viewerCount, setViewerCount] = useState(stream?.viewer_count || 0);
     const [isConnecting, setIsConnecting] = useState(true);
     const [isReconnecting, setIsReconnecting] = useState(false);
+    const [connectionQuality, setConnectionQuality] = useState('excellent');
     const [error, setError] = useState('');
+    const [commentError, setCommentError] = useState('');
     const [comments, setComments] = useState([]);
     const [commentInput, setCommentInput] = useState('');
     const [showViewerList, setShowViewerList] = useState(false);
     const [showGifts, setShowGifts] = useState(false);
     const [userDiamondBalance, setUserDiamondBalance] = useState(0);
-    const [giftFlash, setGiftFlash] = useState('');
+    const [giftFlash, setGiftFlash] = useState(null);
+    const [hasMoreComments, setHasMoreComments] = useState(false);
+    const [loadingMoreComments, setLoadingMoreComments] = useState(false);
 
     const videoRef = useRef(null);
     const commentsEndRef = useRef(null);
     const commentChannelRef = useRef(null);
+    const giftChannelRef = useRef(null);
 
     useEffect(() => {
         if (!stream?.id || !userId) return;
-        let hasLeft = false; // FIX: prevent double leaveStream on unmount after handleLeave
+        let hasLeft = false;
 
         const connect = async () => {
             try {
@@ -49,6 +59,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                 liveStreamService.onViewerCountChange = (count) => setViewerCount(count);
                 liveStreamService.onReconnecting = () => setIsReconnecting(true);
                 liveStreamService.onReconnected = () => setIsReconnecting(false);
+                liveStreamService.onConnectionQualityChange = (q) => setConnectionQuality(q);
 
                 // Join the stream
                 await liveStreamService.joinStream(stream.id, userId, (remoteMediaStream) => {
@@ -59,7 +70,6 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                     setIsConnecting(false);
                 });
 
-                // FIX: joinStream resolved but track may not have fired yet — stop spinner now
                 setIsConnecting(false);
 
                 // Load diamond balance for gift panel
@@ -82,10 +92,16 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
         // Subscribe to live comments realtime
         if (stream?.id) {
             supabase.from('live_comments').select('*').eq('stream_id', stream.id)
-                .order('created_at', { ascending: true }).limit(50)
-                .then(({ data }) => { if (data) setComments(data); });
+                .order('created_at', { ascending: false }).limit(COMMENTS_PER_PAGE)
+                .then(({ data }) => {
+                    if (data) {
+                        const reversed = data.reverse();
+                        setComments(reversed);
+                        setHasMoreComments(data.length === COMMENTS_PER_PAGE);
+                    }
+                });
 
-            // FIX: remove any existing channel before creating new one (React Strict Mode double-mount)
+            // Remove any existing channel before creating new one
             if (commentChannelRef.current) {
                 supabase.removeChannel(commentChannelRef.current);
                 commentChannelRef.current = null;
@@ -97,18 +113,32 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
             commentChannelRef.current = ch;
         }
 
+        // Subscribe to gift broadcast events for animations
+        if (stream?.id) {
+            const giftCh = supabase.channel(`live-gifts-viewer-${stream.id}`, {
+                config: { broadcast: { self: false } },
+            });
+            giftCh.on('broadcast', { event: 'gift' }, ({ payload }) => {
+                if (payload?.sender_name && payload?.amount) {
+                    setGiftFlash({ name: payload.sender_name, amount: payload.amount, avatar: payload.sender_avatar });
+                    setTimeout(() => setGiftFlash(null), 4000);
+                }
+            }).subscribe();
+            giftChannelRef.current = giftCh;
+        }
+
         return () => {
-            // FIX: only leaveStream once — handleLeave already called it if user pressed close
             if (!hasLeft) {
                 hasLeft = true;
                 liveStreamService.leaveStream();
             }
             if (commentChannelRef.current) supabase.removeChannel(commentChannelRef.current);
-            // FIX: null stale singleton callbacks to prevent setState on unmounted component
+            if (giftChannelRef.current) supabase.removeChannel(giftChannelRef.current);
             liveStreamService.onStreamEnded = null;
             liveStreamService.onViewerCountChange = null;
             liveStreamService.onReconnecting = null;
             liveStreamService.onReconnected = null;
+            liveStreamService.onConnectionQualityChange = null;
         };
     }, [stream?.id, userId]);
 
@@ -125,27 +155,57 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
         commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [comments]);
 
+    /** Load earlier comments (pagination) */
+    const loadMoreComments = async () => {
+        if (!stream?.id || loadingMoreComments || !hasMoreComments) return;
+        setLoadingMoreComments(true);
+        try {
+            const oldest = comments[0];
+            const { data } = await supabase.from('live_comments')
+                .select('*')
+                .eq('stream_id', stream.id)
+                .lt('created_at', oldest?.created_at || new Date().toISOString())
+                .order('created_at', { ascending: false })
+                .limit(COMMENTS_PER_PAGE);
+            if (data) {
+                const reversed = data.reverse();
+                setComments(prev => [...reversed, ...prev]);
+                setHasMoreComments(data.length === COMMENTS_PER_PAGE);
+            }
+        } catch (err) { console.warn('[Viewer] loadMore comments error:', err); }
+        setLoadingMoreComments(false);
+    };
+
+    /** Send comment via slow-mode RPC */
     const handleSendComment = async () => {
         const text = commentInput.trim();
         if (!text || !stream?.id || !userId) return;
         setCommentInput('');
+        setCommentError('');
+        const authorName = user?.full_name || user?.user_metadata?.full_name || user?.username || user?.email?.split('@')[0] || 'Viewer';
         try {
-            await supabase.from('live_comments').insert({
-                stream_id: stream.id,
-                user_id: userId,
-                text,
-                author_name: user?.full_name || user?.user_metadata?.full_name || user?.username || user?.email?.split('@')[0] || 'Viewer',
+            const { data, error } = await supabase.rpc('insert_live_comment_with_slowmode', {
+                p_stream_id: stream.id,
+                p_user_id: userId,
+                p_text: text,
+                p_author_name: authorName,
             });
+            if (data && !data.success) {
+                setCommentError(data.error);
+                setTimeout(() => setCommentError(''), 3000);
+            }
         } catch (err) { console.warn('[LiveStreamViewer] comment failed:', err); }
     };
 
     const handleLeave = async () => {
-        // FIX: prevent double leaveStream on unmount
         liveStreamService.isManualDisconnect = true;
         await liveStreamService.leaveStream();
         busEmit.dataMutated?.('live_streams');
         onClose();
     };
+
+    const qualityColor = connectionQuality === 'excellent' || connectionQuality === 'good'
+        ? '#42B72A' : connectionQuality === 'poor' ? '#FFA500' : '#FA383E';
 
     return (
         <div
@@ -188,9 +248,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                         color: 'white',
                     }}
                 >
-                    <div style={{ fontSize: 40, marginBottom: 16, animation: 'pulse 1.5s infinite' }}>
-                        📡
-                    </div>
+                    <div style={{ width:48, height:48, borderRadius:'50%', border:'4px solid rgba(255,255,255,0.2)', borderTopColor:'#0066FF', animation:'spin 0.8s linear infinite', marginBottom:16, marginLeft:'auto', marginRight:'auto' }} />
                     <div style={{ fontSize: 18, fontWeight: 500 }}>Connecting To Stream...</div>
                 </div>
             )}
@@ -210,8 +268,21 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                         borderRadius: 12,
                     }}
                 >
-                    <div style={{ fontSize: 40, marginBottom: 16 }}>⚠️</div>
                     <div style={{ fontSize: 18, fontWeight: 500 }}>{error}</div>
+                </div>
+            )}
+
+            {/* Gift flash animation — visible to ALL viewers */}
+            {giftFlash && (
+                <div style={{
+                    position:'absolute', top:'30%', left:'50%', transform:'translate(-50%,-50%)',
+                    zIndex:45, animation:'giftPop 0.5s ease-out',
+                    textAlign:'center', pointerEvents:'none',
+                }}>
+                    <div style={{ fontSize:56, marginBottom:8 }}>💎</div>
+                    <div style={{ color:'white', fontSize:22, fontWeight:800, textShadow:'0 2px 16px rgba(0,0,0,.9)' }}>
+                        {giftFlash.name} sent {giftFlash.amount} diamonds!
+                    </div>
                 </div>
             )}
 
@@ -250,8 +321,8 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                     ✕
                 </button>
 
-                {/* Live Badge + Viewer Count (tappable to open viewer list) */}
-                <div style={{ display: 'flex', gap: 8 }}>
+                {/* Live Badge + Connection Quality + Viewer Count */}
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                     <div
                         style={{
                             background: C.red,
@@ -265,8 +336,18 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                             gap: 6,
                         }}
                     >
-                        🔴 LIVE
+                        <span style={{ width:8, height:8, borderRadius:'50%', background:'white', display:'inline-block' }} />
+                        LIVE
                     </div>
+                    {/* Connection quality dot */}
+                    <div
+                        title={`Connection: ${connectionQuality}`}
+                        style={{
+                            width:12, height:12, borderRadius:'50%',
+                            background: qualityColor,
+                            boxShadow: `0 0 6px ${qualityColor}`,
+                        }}
+                    />
                     <button
                         onClick={() => setShowViewerList(true)}
                         style={{
@@ -283,7 +364,8 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                             cursor: 'pointer',
                         }}
                     >
-                        👁️ {viewerCount}
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        {viewerCount}
                     </button>
                 </div>
             </div>
@@ -311,7 +393,9 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                             {stream?.broadcaster?.username || stream?.profiles?.username || 'Anonymous'}
                         </div>
                         <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>
-                            Smarter.Poker
+                            {stream?.category && stream.category !== 'general'
+                                ? stream.category.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+                                : 'Smarter.Poker'}
                         </div>
                     </div>
                 </div>
@@ -326,6 +410,20 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
 
             {/* COMMENTS OVERLAY */}
             <div style={{ position:'absolute', bottom:80, left:0, width:'min(320px,60vw)', maxHeight:200, overflowY:'auto', padding:'0 12px', scrollbarWidth:'none', zIndex:5 }}>
+                {/* Load more comments button */}
+                {hasMoreComments && (
+                    <button
+                        onClick={loadMoreComments}
+                        disabled={loadingMoreComments}
+                        style={{
+                            display:'block', width:'100%', padding:'6px', marginBottom:8,
+                            background:'rgba(255,255,255,0.1)', border:'none', borderRadius:8,
+                            color:'rgba(255,255,255,0.6)', fontSize:12, cursor:'pointer',
+                        }}
+                    >
+                        {loadingMoreComments ? 'Loading...' : 'Load Earlier Comments'}
+                    </button>
+                )}
                 {comments.map((c, i) => (
                     <div key={c.id || i} style={{ marginBottom:6, display:'flex', alignItems:'flex-start', gap:6 }}>
                         <span style={{ color:'#00CFFF', fontWeight:700, fontSize:13, whiteSpace:'nowrap' }}>{c.author_name || 'User'}</span>
@@ -334,6 +432,17 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                 ))}
                 <div ref={commentsEndRef} />
             </div>
+
+            {/* Slow mode / ban error */}
+            {commentError && (
+                <div style={{
+                    position:'absolute', bottom:65, left:12, right:12,
+                    background:'rgba(250,56,62,0.9)', color:'white',
+                    padding:'6px 14px', borderRadius:8, fontSize:13, fontWeight:600, zIndex:15,
+                }}>
+                    {commentError}
+                </div>
+            )}
 
             {/* COMMENT INPUT + gift button */}
             <div style={{ position:'absolute', bottom:24, left:12, right:12, zIndex:10, display:'flex', gap:8 }}>
@@ -351,7 +460,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                         style={{ padding:'9px 12px', borderRadius:22, border:'none', background:'rgba(255,215,0,0.85)', color:'#000', fontSize:16, fontWeight:700, cursor:'pointer' }}
                         title="Send diamond gift"
                     >
-                        💎
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="#000"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
                     </button>
                 )}
                 <button
@@ -372,8 +481,9 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                     userBalance={userDiamondBalance}
                     onGiftSent={(amount, newBalance) => {
                         setUserDiamondBalance(newBalance);
-                        setGiftFlash(`💎 ${amount} diamonds sent!`);
-                        setTimeout(() => setGiftFlash(''), 3000);
+                        // Local gift flash for sender
+                        setGiftFlash({ name: 'You', amount });
+                        setTimeout(() => setGiftFlash(null), 3000);
                     }}
                     onClose={() => setShowGifts(false)}
                 />
@@ -387,13 +497,6 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                 onClose={() => setShowViewerList(false)}
             />
 
-            {/* Gift flash notification */}
-            {giftFlash && (
-                <div style={{ position:'absolute', top:80, left:'50%', transform:'translateX(-50%)', background:'rgba(255,215,0,0.9)', color:'#000', padding:'8px 20px', borderRadius:20, fontSize:14, fontWeight:700, zIndex:40 }}>
-                    {giftFlash}
-                </div>
-            )}
-
             {/* Reconnect overlay */}
             {isReconnecting && (
                 <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.7)', zIndex:30, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center' }}>
@@ -406,7 +509,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
             <style>{`
                 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
                 @keyframes spin { to { transform: rotate(360deg); } }
-                @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-200px) scale(1.4); opacity: 0; } }
+                @keyframes giftPop { 0% { transform: translate(-50%,-50%) scale(0.5); opacity: 0; } 60% { transform: translate(-50%,-50%) scale(1.15); } 100% { transform: translate(-50%,-50%) scale(1); opacity: 1; } }
             `}</style>
         </div>
     );

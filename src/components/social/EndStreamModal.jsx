@@ -1,10 +1,13 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    END STREAM MODAL — Post Now, Save to Lives, or Delete after streaming
    Shows after user ends live broadcast with video preview and options
+   
+   v2: Uses server-side /api/live/end-stream for reliable social_posts insert
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useRef, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
+import { getAccessToken } from '../../lib/authUtils';
 
 const C = {
     bg: '#F0F2F5',
@@ -69,39 +72,47 @@ export function EndStreamModal({
         return urlData.publicUrl;
     };
 
+    /** Call the server-side endpoint for post/save/delete */
+    const callEndStream = async (action) => {
+        const token = getAccessToken();
+        const resp = await fetch('/api/live/end-stream', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ stream_id: streamId, action, caption: caption || undefined }),
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || `${action} failed`);
+        return data;
+    };
+
     const handlePostNow = async () => {
         setIsUploading(true);
         setError('');
         setUploadProgress(10);
 
         try {
-            // Upload video
+            // 1. Upload video to storage
             setUploadProgress(30);
             const videoUrl = await uploadVideo();
             setUploadProgress(60);
 
-            // Update stream record with video URL
+            // 2. Update stream record with video URL (client-side, owns the row)
             await supabase
                 .from('live_streams')
                 .update({
                     video_url: videoUrl,
                     thumbnail_url: thumbnailUrl,
-                    is_posted: true,
-                    is_draft: false
                 })
                 .eq('id', streamId);
 
-            setUploadProgress(80);
+            setUploadProgress(75);
 
-            // Create social post
-            await supabase.from('social_posts').insert({
-                author_id: user.id,
-                content: caption || '🔴 Live replay',
-                content_type: 'video',
-                media_urls: [videoUrl],
-                thumbnail_url: thumbnailUrl || null,
-                visibility: 'public'
-            });
+            // 3. Server-side: mark as posted + create social_posts entry (service role)
+            await callEndStream('post');
 
             setUploadProgress(100);
             onClose('posted');
@@ -119,21 +130,22 @@ export function EndStreamModal({
         setUploadProgress(10);
 
         try {
-            // Upload video
+            // 1. Upload video
             setUploadProgress(30);
             const videoUrl = await uploadVideo();
-            setUploadProgress(80);
+            setUploadProgress(70);
 
-            // Update stream record - save as draft
+            // 2. Update stream record with video URL
             await supabase
                 .from('live_streams')
                 .update({
                     video_url: videoUrl,
                     thumbnail_url: thumbnailUrl,
-                    is_posted: false,
-                    is_draft: true
                 })
                 .eq('id', streamId);
+
+            // 3. Server-side: mark as draft
+            await callEndStream('save');
 
             setUploadProgress(100);
             onClose('saved');
@@ -149,12 +161,7 @@ export function EndStreamModal({
         if (!confirm('Delete this recording? This cannot be undone.')) return;
 
         try {
-            // Delete stream record
-            await supabase
-                .from('live_streams')
-                .delete()
-                .eq('id', streamId);
-
+            await callEndStream('delete');
             onClose('deleted');
         } catch (err) {
             console.warn('Delete error:', err);
@@ -199,7 +206,7 @@ export function EndStreamModal({
                     }}
                 >
                     <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: C.text }}>
-                        🎬 Stream Ended
+                        Stream Ended
                     </h2>
                     <div style={{ color: C.textSec, fontSize: 14 }}>
                         Duration: {formatDuration(duration || 0)}
@@ -285,7 +292,7 @@ export function EndStreamModal({
                 {/* Error Message */}
                 {error && (
                     <div style={{ padding: '0 16px 16px', color: C.red, fontSize: 14 }}>
-                        ⚠️ {error}
+                        {error}
                     </div>
                 )}
 
@@ -318,7 +325,7 @@ export function EndStreamModal({
                             gap: 8,
                         }}
                     >
-                        📤 Post Now
+                        Post Now
                     </button>
 
                     {/* Save to Lives - Secondary */}
@@ -338,7 +345,7 @@ export function EndStreamModal({
                             opacity: isUploading ? 0.6 : 1,
                         }}
                     >
-                        💾 Save to Lives
+                        Save to Lives
                     </button>
 
                     {/* Delete - Destructive */}
@@ -358,7 +365,7 @@ export function EndStreamModal({
                             opacity: isUploading ? 0.6 : 1,
                         }}
                     >
-                        🗑️ Delete Recording
+                        Delete Recording
                     </button>
                 </div>
             </div>

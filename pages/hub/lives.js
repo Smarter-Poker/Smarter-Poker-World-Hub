@@ -35,6 +35,7 @@ export default function LivesPage() {
     const [likeBusy, setLikeBusy] = useState(false);
     const [shareBusy, setShareBusy] = useState(false);
     const [userId, setUserId] = useState(null);
+    const [categoryFilter, setCategoryFilter] = useState('all');
     const containerRef = useRef(null);
     const videoRefs = useRef({});
 
@@ -72,21 +73,26 @@ export default function LivesPage() {
                 .limit(50);
 
             // Combine: active lives first, then recorded
-            const allStreams = [
+            let allStreams = [
                 ...(liveStreams || []).map(s => ({ ...s, isLive: true })),
                 ...(recordedStreams || []).map(s => ({ ...s, isLive: false }))
             ];
+
+            // Apply category filter if set
+            if (categoryFilter !== 'all') {
+                allStreams = allStreams.filter(s => s.category === categoryFilter);
+            }
 
             setStreams(allStreams);
         } catch (e) {
             console.warn('fetchStreams error:', e);
         }
         setLoading(false);
-    }, []);
+    }, [categoryFilter]);
 
     useEffect(() => {
         fetchStreams();
-    }, [fetchStreams]);
+    }, [fetchStreams, categoryFilter]);
 
     // Handle ?id= deep link — jump to specific stream after load
     useEffect(() => {
@@ -311,6 +317,36 @@ export default function LivesPage() {
                         <div style={{ width: 32 }} />
                     </div>
 
+                    {/* Category Filter Bar */}
+                    <div style={{
+                        position: 'absolute', top: 50, left: 0, right: 0, zIndex: 8,
+                        display: 'flex', gap: 8, padding: '8px 16px', overflowX: 'auto',
+                        scrollbarWidth: 'none',
+                    }}>
+                        {[
+                            { value: 'all', label: 'All' },
+                            { value: 'cash_game', label: 'Cash Game' },
+                            { value: 'tournament', label: 'Tournament' },
+                            { value: 'strategy', label: 'Strategy' },
+                            { value: 'hand_review', label: 'Hand Review' },
+                            { value: 'just_chatting', label: 'Chatting' },
+                        ].map(cat => (
+                            <button
+                                key={cat.value}
+                                onClick={() => { setCategoryFilter(cat.value); setCurrentIndex(0); }}
+                                style={{
+                                    padding: '6px 14px', borderRadius: 20, border: 'none',
+                                    background: categoryFilter === cat.value ? C.red : 'rgba(255,255,255,0.15)',
+                                    color: 'white', fontSize: 13, fontWeight: 600,
+                                    cursor: 'pointer', whiteSpace: 'nowrap',
+                                    transition: 'background 0.2s',
+                                }}
+                            >
+                                {cat.label}
+                            </button>
+                        ))}
+                    </div>
+
                     {/* Loading State — Shimmer Skeleton */}
                     {loading && (
                         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', padding: '80px 20px 20px' }}>
@@ -387,7 +423,8 @@ export default function LivesPage() {
                                     ref={el => videoRefs.current[idx] = el}
                                     src={stream.video_url}
                                     poster={stream.thumbnail_url}
-                                    loop
+                                    loop={stream.isLive}
+                                    controls={!stream.isLive}
                                     muted
                                     playsInline
                                     style={{

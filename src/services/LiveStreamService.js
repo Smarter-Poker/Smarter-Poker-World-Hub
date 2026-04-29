@@ -53,6 +53,10 @@ class LiveStreamService {
         this.onReconnecting = null;
         this.onReconnected = null;
         this.onParticipantListChange = null;
+        this.onConnectionQualityChange = null;
+        this.onGiftReceived = null;
+        this._viewerCountDebounceTimer = null;
+        this._giftChannel = null;
     }
 
     // ═══════════════════════════════════════════════════
@@ -88,8 +92,9 @@ class LiveStreamService {
      * @param {string} title
      * @param {MediaStream} mediaStream - Pre-acquired camera+mic stream
      * @param {string|null} thumbnailUrl
+     * @param {string} category - Stream category tag
      */
-    async startBroadcast(userId, title, mediaStream, thumbnailUrl) {
+    async startBroadcast(userId, title, mediaStream, thumbnailUrl, category) {
         this.currentUserId = userId;
         this.localStream = mediaStream;
         this.isBroadcaster = true;
@@ -99,6 +104,7 @@ class LiveStreamService {
             broadcaster_id: userId,
             title: title || 'Live Stream',
             status: 'live',
+            category: category || 'general',
         };
         if (thumbnailUrl) insertPayload.thumbnail_url = thumbnailUrl;
 
@@ -165,13 +171,20 @@ class LiveStreamService {
         });
 
         this.room.on(RoomEvent.ParticipantConnected, () => {
-            this._updateViewerCount();
+            this._debouncedUpdateViewerCount();
             this.onParticipantListChange?.(this._getParticipants());
         });
 
         this.room.on(RoomEvent.ParticipantDisconnected, () => {
-            this._updateViewerCount();
+            this._debouncedUpdateViewerCount();
             this.onParticipantListChange?.(this._getParticipants());
+        });
+
+        // Connection quality tracking
+        this.room.on(RoomEvent.ConnectionQualityChanged, (quality, participant) => {
+            if (participant.isLocal) {
+                this.onConnectionQualityChange?.(quality);
+            }
         });
 
         // Track subscriptions (for viewers)
@@ -328,7 +341,17 @@ class LiveStreamService {
             supabase.removeChannel(this._viewerChannel);
             this._viewerChannel = null;
         }
-        console.debug('⬛ Broadcast ended:', this.currentStreamId);
+        // Clean up debounce timer
+        if (this._viewerCountDebounceTimer) {
+            clearTimeout(this._viewerCountDebounceTimer);
+            this._viewerCountDebounceTimer = null;
+        }
+        // Clean up gift channel
+        if (this._giftChannel) {
+            supabase.removeChannel(this._giftChannel);
+            this._giftChannel = null;
+        }
+        console.debug('[LiveKit] Broadcast ended:', this.currentStreamId);
         const endedId = this.currentStreamId;
         this.currentStreamId = null;
         return endedId;
@@ -479,6 +502,15 @@ class LiveStreamService {
         }));
     }
 
+    /** Debounce viewer count updates — prevents write storms with 100+ viewers */
+    _debouncedUpdateViewerCount() {
+        if (this._viewerCountDebounceTimer) clearTimeout(this._viewerCountDebounceTimer);
+        // Immediately update the local callback for instant UI
+        if (this.room) this.onViewerCountChange?.(this.room.remoteParticipants.size);
+        // Debounce the DB write to once per 5 seconds
+        this._viewerCountDebounceTimer = setTimeout(() => this._updateViewerCount(), 5000);
+    }
+
     async _updateViewerCount() {
         if (!this.currentStreamId || !this.room) return;
         const count = this.room.remoteParticipants.size;
@@ -486,7 +518,6 @@ class LiveStreamService {
             .update({ viewer_count: count })
             .eq('id', this.currentStreamId);
 
-        // FIX: supabase.raw() doesn't exist in Supabase JS v2 — use RPC
         await supabase.rpc('update_live_peak_viewers', {
             p_stream_id: this.currentStreamId,
             p_count: count,

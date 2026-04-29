@@ -36,6 +36,9 @@ export function GoLiveModal({ isOpen, onClose, user }) {
     const [showSchedule, setShowSchedule] = useState(false);
     const [slowMode, setSlowMode] = useState(false);
     const [isCameraFlipping, setIsCameraFlipping] = useState(false);
+    const [category, setCategory] = useState('general');
+    const [connectionQuality, setConnectionQuality] = useState('excellent');
+    const [giftFlash, setGiftFlash] = useState(null);
 
     // Thumbnail state
     const [thumbnailFile, setThumbnailFile] = useState(null);
@@ -72,6 +75,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
             liveStreamService.onViewerCountChange = null;
             liveStreamService.onReconnecting = null;
             liveStreamService.onReconnected = null;
+            liveStreamService.onConnectionQualityChange = null;
         };
     }, [isOpen]);
 
@@ -90,6 +94,21 @@ export function GoLiveModal({ isOpen, onClose, user }) {
         commentChannelRef.current = ch;
         return () => { supabase.removeChannel(ch); };
     }, [streamId, user?.id]);
+
+    // Subscribe to gift events for gift animations
+    useEffect(() => {
+        if (!streamId) return;
+        const giftCh = supabase.channel(`live-gifts-${streamId}`, {
+            config: { broadcast: { self: false } },
+        });
+        giftCh.on('broadcast', { event: 'gift' }, ({ payload }) => {
+            if (payload?.sender_name && payload?.amount) {
+                setGiftFlash({ name: payload.sender_name, amount: payload.amount });
+                setTimeout(() => setGiftFlash(null), 4000);
+            }
+        }).subscribe();
+        return () => { supabase.removeChannel(giftCh); };
+    }, [streamId]);
 
     useEffect(() => {
         if (streamRef.current && videoRef.current) {
@@ -215,12 +234,14 @@ export function GoLiveModal({ isOpen, onClose, user }) {
             // Wire reconnect handlers
             liveStreamService.onReconnecting = () => setIsReconnecting(true);
             liveStreamService.onReconnected = () => setIsReconnecting(false);
+            liveStreamService.onConnectionQualityChange = (q) => setConnectionQuality(q);
 
             const { streamId: newId } = await liveStreamService.startBroadcast(
                 user.id,
                 title || `${user.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'Live'}'s Live`,
                 streamRef.current,
-                thumbUrl
+                thumbUrl,
+                category
             );
             setStreamId(newId);
             setStage('live');
@@ -293,12 +314,23 @@ export function GoLiveModal({ isOpen, onClose, user }) {
         if (!commentInput.trim() || !streamId || !user?.id) return;
         const text = commentInput.trim();
         setCommentInput('');
-        const newComment = { id: Date.now(), user_id: user.id, author_name: user.full_name || user.user_metadata?.full_name || 'You', text, created_at: new Date().toISOString() };
+        const authorName = user.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'Viewer';
+        const newComment = { id: Date.now(), user_id: user.id, author_name: authorName, text, created_at: new Date().toISOString() };
         setComments(prev => [...prev, newComment]);
         try {
-            await supabase.from('live_comments').insert({
-                stream_id: streamId, user_id: user.id, text, author_name: user.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'Viewer',
+            // Use slow-mode enforcing RPC
+            const { data, error } = await supabase.rpc('insert_live_comment_with_slowmode', {
+                p_stream_id: streamId,
+                p_user_id: user.id,
+                p_text: text,
+                p_author_name: authorName,
             });
+            if (data && !data.success) {
+                // Remove optimistic comment and show error
+                setComments(prev => prev.filter(c => c.id !== newComment.id));
+                setError(data.error);
+                setTimeout(() => setError(''), 3000);
+            }
         } catch (err) { console.warn('[GoLive] comment failed:', err); }
     };
 
@@ -430,7 +462,22 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                                 style={{ width:'100%', padding:'11px 14px', borderRadius:8, border:`1px solid ${C.border}`, fontSize:15, outline:'none', boxSizing:'border-box', color:C.text }}
                             />
 
-                            {error && <div style={{ color:C.red, marginTop:10, fontSize:14 }}>⚠️ {error}</div>}
+                            {/* Category selector */}
+                            <label style={{ display:'block', marginTop:14, marginBottom:8, fontWeight:700, fontSize:14, color:C.text }}>Category</label>
+                            <select
+                                value={category}
+                                onChange={(e) => setCategory(e.target.value)}
+                                style={{ width:'100%', padding:'11px 14px', borderRadius:8, border:`1px solid ${C.border}`, fontSize:15, outline:'none', boxSizing:'border-box', color:C.text, background:'white', appearance:'auto' }}
+                            >
+                                <option value="general">General</option>
+                                <option value="cash_game">Cash Game</option>
+                                <option value="tournament">Tournament</option>
+                                <option value="strategy">Strategy Talk</option>
+                                <option value="hand_review">Hand Review</option>
+                                <option value="just_chatting">Just Chatting</option>
+                            </select>
+
+                            {error && <div style={{ color:C.red, marginTop:10, fontSize:14 }}>{error}</div>}
 
                             <div style={{ display:'flex', gap:12, marginTop:18 }}>
                                 <button onClick={onClose} style={{ flex:1, padding:'13px 20px', borderRadius:8, border:`1px solid ${C.border}`, background:'white', color:C.text, fontSize:15, fontWeight:600, cursor:'pointer' }}>Cancel</button>
@@ -477,7 +524,21 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                             </div>
                         )}
 
-                        {/* TOP-LEFT: LIVE badge + REC */}
+                        {/* Gift flash animation */}
+                        {giftFlash && (
+                            <div style={{
+                                position:'absolute', top:'35%', left:'50%', transform:'translate(-50%,-50%)',
+                                zIndex:25, animation:'cdPop 0.5s ease-out',
+                                textAlign:'center', pointerEvents:'none',
+                            }}>
+                                <div style={{ fontSize:48, marginBottom:8 }}>💎</div>
+                                <div style={{ color:'white', fontSize:20, fontWeight:800, textShadow:'0 2px 12px rgba(0,0,0,.8)' }}>
+                                    {giftFlash.name} sent {giftFlash.amount} diamonds!
+                                </div>
+                            </div>
+                        )}
+
+                        {/* TOP-LEFT: LIVE badge + REC + connection quality */}
                         <div style={{ position:'absolute', top:20, left:16, display:'flex', gap:10, alignItems:'center', zIndex:10 }}>
                             <div style={{ background:C.red, color:'white', padding:'6px 14px', borderRadius:8, fontSize:15, fontWeight:800, animation:'livePulse 1.5s infinite', display:'flex', alignItems:'center', gap:6 }}>
                                 <span style={{ width:8, height:8, borderRadius:'50%', background:'white', display:'inline-block' }} />
@@ -491,6 +552,18 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                                     SLOW
                                 </div>
                             )}
+                            {/* Connection quality indicator */}
+                            <div
+                                title={`Connection: ${connectionQuality}`}
+                                style={{
+                                    width:12, height:12, borderRadius:'50%',
+                                    background: connectionQuality === 'excellent' ? '#42B72A'
+                                        : connectionQuality === 'good' ? '#42B72A'
+                                        : connectionQuality === 'poor' ? '#FFA500'
+                                        : '#FA383E',
+                                    boxShadow: `0 0 6px ${connectionQuality === 'excellent' || connectionQuality === 'good' ? '#42B72A' : connectionQuality === 'poor' ? '#FFA500' : '#FA383E'}`,
+                                }}
+                            />
                         </div>
 
                         {/* TOP-RIGHT: viewer count */}

@@ -2,10 +2,10 @@
  * POST /api/live/gift
  * Send a diamond gift to a live broadcaster.
  *
- * BUG FIXED: Was using non-existent `diamond_balances` table.
- * Platform uses profiles.diamonds (authoritative) with RPCs:
- *   - deduct_diamonds(p_user_id, p_amount, p_description, p_transaction_type)
- *   - add_diamonds_to_balance(p_user_id, p_amount, p_type, p_description, p_reference_id)
+ * Flow: atomic deduct from sender → atomic credit to receiver → record gift → broadcast to viewers → notify
+ *
+ * Uses deduct_diamonds (now with FOR UPDATE row lock) and add_diamonds_to_balance RPCs
+ * for fully atomic balance operations.
  */
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -25,40 +25,48 @@ export default async function handler(req, res) {
     if (!stream_id || !receiver_id || !amount || amount < 1) {
         return res.status(400).json({ error: 'stream_id, receiver_id, and amount required' });
     }
+    if (amount > 10000) {
+        return res.status(400).json({ error: 'Maximum gift is 10,000 diamonds' });
+    }
     if (receiver_id === user.id) {
         return res.status(400).json({ error: 'Cannot gift yourself' });
     }
 
     try {
-        // Check balance from profiles.diamonds (authoritative source)
+        // Get sender info
         const { data: senderProfile } = await supabase
             .from('profiles')
-            .select('diamonds, username, full_name')
+            .select('username, full_name, avatar_url')
             .eq('id', user.id)
             .maybeSingle();
 
-        const currentBalance = senderProfile?.diamonds || 0;
         const senderName = senderProfile?.username || senderProfile?.full_name || 'A fan';
 
-        if (currentBalance < amount) {
-            return res.status(400).json({ error: 'Insufficient diamonds', balance: currentBalance });
-        }
-
-        // Atomically deduct from sender
-        const { error: deductErr } = await supabase.rpc('deduct_diamonds', {
+        // ATOMIC deduct from sender (uses FOR UPDATE row lock to prevent overdraft)
+        const { data: deductResult, error: deductErr } = await supabase.rpc('deduct_diamonds', {
             p_user_id: user.id,
             p_amount: amount,
             p_description: `Live gift to broadcaster`,
             p_transaction_type: 'live_gift_sent',
         });
-        if (deductErr) throw new Error(`Deduction failed: ${deductErr.message}`);
 
-        // Credit to receiver
-        const { error: creditErr } = await supabase.rpc('add_diamonds_to_balance', {
+        // deduct_diamonds returns jsonb with success field
+        if (deductErr) throw new Error(`Deduction failed: ${deductErr.message}`);
+        if (deductResult && !deductResult.success) {
+            return res.status(400).json({
+                error: deductResult.error || 'Insufficient diamonds',
+                balance: deductResult.balance,
+            });
+        }
+
+        const senderNewBalance = deductResult?.balance ?? 0;
+
+        // ATOMIC credit to receiver
+        const { data: creditResult, error: creditErr } = await supabase.rpc('add_diamonds_to_balance', {
             p_user_id: receiver_id,
             p_amount: amount,
             p_type: 'live_gift_received',
-            p_description: `${senderName} sent ${amount} 💎 during your live`,
+            p_description: `${senderName} sent ${amount} diamonds during your live`,
             p_reference_id: stream_id,
         });
         if (creditErr) throw new Error(`Credit failed: ${creditErr.message}`);
@@ -72,28 +80,39 @@ export default async function handler(req, res) {
             message: message || null,
         }).select().maybeSingle();
 
-        // Get updated sender balance
-        const { data: updatedProfile } = await supabase
-            .from('profiles')
-            .select('diamonds')
-            .eq('id', user.id)
-            .maybeSingle();
+        // Broadcast gift event to all viewers via Supabase Realtime
+        const channel = supabase.channel(`live-gifts-${stream_id}`);
+        await channel.subscribe();
+        await channel.send({
+            type: 'broadcast',
+            event: 'gift',
+            payload: {
+                sender_id: user.id,
+                sender_name: senderName,
+                sender_avatar: senderProfile?.avatar_url || null,
+                receiver_id,
+                amount,
+                message: message || null,
+                gift_id: gift?.id,
+            },
+        });
+        supabase.removeChannel(channel);
 
         // Notify broadcaster (non-fatal)
         await supabase.from('notifications').insert({
             user_id: receiver_id,
             type: 'live_gift',
             title: 'Diamond Gift Received',
-            message: `${senderName} sent you ${amount} 💎 during your live stream!`,
+            message: `${senderName} sent you ${amount} diamonds during your live stream!`,
             actor_id: user.id,
-            link: `/hub/social-media?stream=${stream_id}`,
+            link: `/hub/lives?id=${stream_id}`,
             read: false,
         }).catch(() => {});
 
         return res.json({
             success: true,
             gift,
-            newBalance: updatedProfile?.diamonds ?? (currentBalance - amount),
+            newBalance: senderNewBalance,
         });
     } catch (err) {
         console.warn('[live/gift] error:', err.message);
