@@ -7,6 +7,7 @@
  * Uses deduct_diamonds (now with FOR UPDATE row lock) and add_diamonds_to_balance RPCs
  * for fully atomic balance operations.
  */
+import { randomUUID } from 'crypto';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
@@ -31,6 +32,14 @@ export default async function handler(req, res) {
     if (receiver_id === user.id) {
         return res.status(400).json({ error: 'Cannot gift yourself' });
     }
+
+    // Per-gift UUID generated up front. Used as the reference_id for both the
+    // credit and (if needed) the compensating refund. Previously this used
+    // stream_id as reference_id, which collided across multiple gifts to the
+    // same stream — the second add_diamonds_to_balance call hit the unique
+    // index, returned {success:false, duplicate:true}, and the receiver got
+    // NO diamonds while the sender stayed deducted.
+    const giftId = randomUUID();
 
     try {
         // Get sender info
@@ -61,18 +70,55 @@ export default async function handler(req, res) {
 
         const senderNewBalance = deductResult?.balance ?? 0;
 
-        // ATOMIC credit to receiver
+        // Compensating refund helper — runs when the deduct already committed
+        // but a downstream step fails. Without this, the sender's diamonds
+        // simply disappear. Uses a stable refund-reference_id so a retry
+        // doesn't double-refund.
+        const refundSender = async (reason) => {
+            try {
+                const { error: refundErr } = await supabase.rpc('add_diamonds_to_balance', {
+                    p_user_id: user.id,
+                    p_amount: amount,
+                    p_type: 'live_gift_refund',
+                    p_description: `Live gift refund — ${reason}`,
+                    p_reference_id: `live_gift_refund_${giftId}`,
+                });
+                if (refundErr) {
+                    console.warn('[live/gift] Refund RPC failed:', refundErr?.message || refundErr);
+                }
+            } catch (rfErr) {
+                console.warn('[live/gift] Refund threw:', rfErr?.message || rfErr);
+            }
+        };
+
+        // ATOMIC credit to receiver. Use the per-gift UUID as reference_id so
+        // multiple gifts to the same stream don't collide on dedup.
         const { data: creditResult, error: creditErr } = await supabase.rpc('add_diamonds_to_balance', {
             p_user_id: receiver_id,
             p_amount: amount,
             p_type: 'live_gift_received',
             p_description: `${senderName} sent ${amount} diamonds during your live`,
-            p_reference_id: stream_id,
+            p_reference_id: `live_gift_${giftId}`,
         });
-        if (creditErr) throw new Error(`Credit failed: ${creditErr.message}`);
+        if (creditErr) {
+            // Compensate the sender — we already deducted. Without this the
+            // sender's money simply disappears.
+            await refundSender('credit RPC failed');
+            console.warn('[live/gift] Credit RPC failed (refunded sender):', creditErr?.message || creditErr);
+            return res.status(500).json({ error: 'Gift failed — your diamonds have been refunded. Please try again.' });
+        }
+        // The RPC may also return data.success=false (e.g. duplicate
+        // reference_id) without setting `error`. With a per-gift UUID this
+        // shouldn't happen on the first attempt, but be defensive.
+        if (creditResult && creditResult.success === false) {
+            await refundSender(`credit returned ${creditResult.error || 'success:false'}`);
+            console.warn('[live/gift] Credit returned success:false (refunded sender):', creditResult);
+            return res.status(500).json({ error: 'Gift failed — your diamonds have been refunded. Please try again.' });
+        }
 
         // Record the gift
         const { data: gift } = await supabase.from('live_gifts').insert({
+            id: giftId,
             stream_id,
             sender_id: user.id,
             receiver_id,
