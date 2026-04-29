@@ -572,11 +572,18 @@ export function ReelsViewer({ onClose }) {
             while (lIdx < libReels.length) interleaved.push(libReels[lIdx++]);
             while (pIdx < postsAsReels.length) interleaved.push(postsAsReels[pIdx++]);
 
-            // Deduplicate by id
+            // Deduplicate by id AND video_url. Same physical video can land in
+            // BOTH social_reels (auto-mirror via source_post_id) AND social_posts
+            // — different table IDs, same video. id-only dedup let the same clip
+            // render twice. (Bug reported 2026-04-29: V12 upload showed twice in
+            // the feed Reels carousel.)
             const idSet = new Set();
+            const urlSet = new Set();
             const merged = interleaved.filter(r => {
-                if (idSet.has(r.id)) return false;
-                idSet.add(r.id);
+                if (r.id && idSet.has(r.id)) return false;
+                if (r.video_url && urlSet.has(r.video_url)) return false;
+                if (r.id) idSet.add(r.id);
+                if (r.video_url) urlSet.add(r.video_url);
                 return true;
             });
 

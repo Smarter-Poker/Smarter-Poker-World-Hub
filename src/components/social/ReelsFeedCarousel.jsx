@@ -2258,27 +2258,36 @@ export function ReelsFeedCarousel() {
                     .in('id', authorIds);
                 const pm = {};
                 (profiles || []).forEach(p => { pm[p.id] = p; });
+                // Dedup by id AND video_url. social_reels rows mirror social_posts
+                // rows (auto-bridge via source_post_id) — same physical video, two
+                // different table IDs. Old dedup checked only `id` and let the
+                // same clip render twice in the carousel. (Bug 2026-04-29:
+                // V12 upload showed up as two side-by-side reels.)
                 const existingIds = new Set(allReels.map(r => r.id));
+                const existingUrls = new Set(allReels.map(r => r.video_url).filter(Boolean));
                 ytPosts.forEach(p => {
                     const videoUrl = p.media_urls?.[0];
                     // Guard: skip posts where the resolved URL is falsy
                     // (content_type='video' posts can pass the filter even with empty media_urls)
-                    if (!existingIds.has(p.id) && videoUrl) {
-                        allReels.push({
-                            // CRITICAL: source flag tells incrementMetric which table to update
-                            source: 'posts',
-                            id: p.id,
-                            author_id: p.author_id,
-                            video_url: videoUrl,
-                            thumbnail_url: p.thumbnail_url,
-                            caption: p.content,
-                            like_count: p.like_count || 0,
-                            comment_count: p.comment_count || 0,
-                            view_count: 0,
-                            created_at: p.created_at,
-                            profiles: pm[p.author_id] || { username: 'Anonymous' },
-                        });
-                    }
+                    if (!videoUrl) return;
+                    if (existingIds.has(p.id)) return;
+                    if (existingUrls.has(videoUrl)) return; // already represented as a social_reels mirror
+                    existingIds.add(p.id);
+                    existingUrls.add(videoUrl);
+                    allReels.push({
+                        // CRITICAL: source flag tells incrementMetric which table to update
+                        source: 'posts',
+                        id: p.id,
+                        author_id: p.author_id,
+                        video_url: videoUrl,
+                        thumbnail_url: p.thumbnail_url,
+                        caption: p.content,
+                        like_count: p.like_count || 0,
+                        comment_count: p.comment_count || 0,
+                        view_count: 0,
+                        created_at: p.created_at,
+                        profiles: pm[p.author_id] || { username: 'Anonymous' },
+                    });
                 });
             }
 

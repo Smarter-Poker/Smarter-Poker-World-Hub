@@ -2821,12 +2821,19 @@ export default function UserProfilePage() {
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
                                     {videos.map(video => (
                                         video.media_urls?.map((url, i) => (
-                                            <div key={`${video.id}-${i}`} style={{ aspectRatio: '16/9', overflow: 'hidden', borderRadius: 8, background: '#000' }}>
-                                                <video
-                                                    src={url}
-                                                    controls
-                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                />
+                                            <div key={`${video.id}-${i}`} style={{ overflow: 'hidden', borderRadius: 8, background: '#000' }}>
+                                                <VideoPostWrapper
+                                                    url={url}
+                                                    onValidVideoClick={() => router.push(`/hub/reels?id=${video.id}`)}
+                                                >
+                                                    <video
+                                                        src={url}
+                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                        muted
+                                                        playsInline
+                                                        preload="metadata"
+                                                    />
+                                                </VideoPostWrapper>
                                             </div>
                                         ))
                                     ))}
