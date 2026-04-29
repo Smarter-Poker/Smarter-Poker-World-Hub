@@ -112,6 +112,21 @@ export default async function handler(req, res) {
               description: promo.description
           };
 
+          // Helper: roll back the redemption row so the user can retry.
+          // Without this, the unique constraint on (promo_code_id, user_id)
+          // would block retries forever after a transient failure.
+          const rollbackRedemption = async (label) => {
+              try {
+                  await getSupabase()
+                      .from('promo_code_redemptions')
+                      .delete()
+                      .eq('promo_code_id', promo.id)
+                      .eq('user_id', user.id);
+              } catch (rbErr) {
+                  console.warn(`[Promo] Rollback delete failed (${label}):`, rbErr?.message || rbErr);
+              }
+          };
+
           if (promo.reward_type === 'diamonds') {
               // BUG #264 FIX: Use atomic RPC instead of read-modify-write
               const { error: diamondErr } = await getSupabase().rpc('add_diamonds_to_balance', {
@@ -123,14 +138,14 @@ export default async function handler(req, res) {
               });
 
               if (diamondErr) {
-                  // Fallback: use add_diamonds_to_balance RPC
-                  await getSupabase().rpc('add_diamonds_to_balance', {
-                      p_user_id: user.id,
-                      p_amount: promo.reward_value,
-                      p_type: 'promo_code',
-                      p_description: `Promo code: ${promo.code} — ${promo.description || 'Bonus'} (fallback)`,
-                      p_reference_id: `promo_${promo.id}_${user.id}`,
-                  }).catch(e => console.warn('[Promo] Fallback RPC also failed:', e.message));
+                  // The previous "fallback" was a retry of the SAME RPC, which is
+                  // essentially never useful — if the first call failed for a real
+                  // reason (RLS, deadlock), the second will too. Roll back the
+                  // redemption row so the user can retry instead of being locked
+                  // out by the unique constraint.
+                  await rollbackRedemption('diamond credit failed');
+                  console.warn('[Promo] Diamond RPC failed (rolled back so user can retry):', diamondErr);
+                  return res.status(500).json({ success: false, error: 'Failed to credit diamonds — please retry' });
               }
 
               reward.message = `${promo.reward_value} diamonds added to your account!`;
@@ -147,7 +162,7 @@ export default async function handler(req, res) {
               const startDate = currentExpiry > now ? currentExpiry : now;
               const newExpiry = new Date(startDate.getTime() + promo.reward_value * 24 * 60 * 60 * 1000);
 
-              await getSupabase()
+              const { error: vipErr } = await getSupabase()
                   .from('profiles')
                   .update({
                       is_vip: true,
@@ -155,13 +170,19 @@ export default async function handler(req, res) {
                   })
                   .eq('id', user.id);
 
+              if (vipErr) {
+                  await rollbackRedemption('vip_days update failed');
+                  console.warn('[Promo] vip_days update failed (rolled back so user can retry):', vipErr);
+                  return res.status(500).json({ success: false, error: 'Failed to activate VIP — please retry' });
+              }
+
               reward.message = `${promo.reward_value} days of VIP access activated!`;
           } else if (promo.reward_type === 'free_trial') {
               // Grant free trial days
               const now = new Date();
               const trialEnd = new Date(now.getTime() + promo.reward_value * 24 * 60 * 60 * 1000);
 
-              await getSupabase()
+              const { error: trialErr } = await getSupabase()
                   .from('profiles')
                   .update({
                       is_vip: true,
@@ -169,9 +190,15 @@ export default async function handler(req, res) {
                   })
                   .eq('id', user.id);
 
+              if (trialErr) {
+                  await rollbackRedemption('free_trial update failed');
+                  console.warn('[Promo] free_trial update failed (rolled back so user can retry):', trialErr);
+                  return res.status(500).json({ success: false, error: 'Failed to activate trial — please retry' });
+              }
+
               reward.message = `${promo.reward_value}-day free trial activated!`;
           } else if (promo.reward_type === 'commander_discount') {
-              // Store the discount for Commander billing
+              // Stateless — discount is consumed at Commander billing time
               reward.message = `${promo.reward_value}% Commander discount applied!`;
           }
 

@@ -103,11 +103,25 @@ export default async function handler(req, res) {
           // 3. Apply the bonus based on reward_type
           let bonusApplied = '';
 
+          // Helper: roll back the redemption row so the user can retry. Without
+          // this, the unique constraint on (promo_code_id, user_id) blocks
+          // retries forever after a transient failure.
+          const rollbackRedemption = async (label) => {
+              try {
+                  await getSupabase()
+                      .from('promo_code_redemptions')
+                      .delete()
+                      .eq('promo_code_id', promo.id)
+                      .eq('user_id', userId);
+              } catch (rbErr) {
+                  console.warn(`[redeem-promo] Rollback delete failed (${label}):`, rbErr?.message || rbErr);
+              }
+          };
+
           switch (promo.reward_type) {
               case 'signup_bonus':
               case 'diamonds': {
                   // BUG #262 FIX: Use add_diamonds_to_balance RPC for atomic balance update.
-                  // Previous code did read-modify-write which races under concurrent requests.
                   const { error: diamondErr } = await getSupabase().rpc('add_diamonds_to_balance', {
                       p_user_id: userId,
                       p_amount: promo.reward_value,
@@ -117,18 +131,12 @@ export default async function handler(req, res) {
                   });
 
                   if (diamondErr) {
-                      console.warn('[redeem-promo] Diamond credit RPC failed:', diamondErr.message);
-                      // Fallback to add_diamonds_to_balance RPC with different params
-                      const { error: fallbackErr } = await getSupabase().rpc('add_diamonds_to_balance', {
-                          p_user_id: userId,
-                          p_amount: promo.reward_value,
-                          p_type: 'promo_code',
-                          p_description: `Promo code: ${promo.code} — ${promo.description || 'Bonus diamonds'} (fallback)`,
-                          p_reference_id: `promo_${promo.id}_${userId}`,
-                      });
-                      if (fallbackErr) {
-                          console.warn('[redeem-promo] Fallback diamond credit also failed:', fallbackErr.message);
-                      }
+                      // The previous "fallback" was a retry of the SAME RPC, which
+                      // is essentially never useful. Roll back the redemption so the
+                      // user can retry instead of being permanently locked out.
+                      await rollbackRedemption('diamond credit failed');
+                      console.warn('[redeem-promo] Diamond credit RPC failed (rolled back so user can retry):', diamondErr);
+                      return res.status(500).json({ success: false, error: 'Failed to credit diamonds — please retry' });
                   }
 
                   bonusApplied = `${promo.reward_value} diamonds added`;
@@ -141,7 +149,7 @@ export default async function handler(req, res) {
                   const trialEnd = new Date();
                   trialEnd.setDate(trialEnd.getDate() + promo.reward_value);
 
-                  await getSupabase()
+                  const { error: vipErr } = await getSupabase()
                       .from('profiles')
                       .update({
                           is_vip: true,
@@ -149,19 +157,31 @@ export default async function handler(req, res) {
                       })
                       .eq('id', userId);
 
+                  if (vipErr) {
+                      await rollbackRedemption('vip_trial/vip_days update failed');
+                      console.warn('[redeem-promo] vip_days update failed (rolled back so user can retry):', vipErr);
+                      return res.status(500).json({ success: false, error: 'Failed to activate VIP — please retry' });
+                  }
+
                   bonusApplied = `${promo.reward_value}-day VIP trial activated`;
                   break;
               }
 
               case 'lifetime_commander_club_vip': {
                   // Grant lifetime VIP status
-                  await getSupabase()
+                  const { error: lifeErr } = await getSupabase()
                       .from('profiles')
                       .update({
                           is_vip: true,
                           vip_expires_at: null, // null = no expiration = lifetime
                       })
                       .eq('id', userId);
+
+                  if (lifeErr) {
+                      await rollbackRedemption('lifetime_commander_club_vip update failed');
+                      console.warn('[redeem-promo] lifetime VIP update failed (rolled back so user can retry):', lifeErr);
+                      return res.status(500).json({ success: false, error: 'Failed to activate lifetime VIP — please retry' });
+                  }
 
                   bonusApplied = 'Lifetime VIP Card + Club Commander Club Level activated';
                   break;
