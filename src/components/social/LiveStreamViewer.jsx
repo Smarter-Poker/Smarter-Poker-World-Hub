@@ -58,10 +58,13 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                     setIsConnecting(false);
                 });
 
+                // FIX: joinStream resolved but track may not have fired yet — stop spinner now
+                setIsConnecting(false);
+
                 // Load diamond balance for gift panel
                 if (userId) {
-                    supabase.from('diamond_balances').select('balance').eq('user_id', userId).maybeSingle()
-                        .then(({ data }) => { if (data) setUserDiamondBalance(data.balance || 0); });
+                    supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle()
+                        .then(({ data }) => { if (data) setUserDiamondBalance(data.diamonds || 0); });
                 }
 
                 busEmit.dataMutated?.('live_streams');
@@ -283,13 +286,13 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                 {/* Broadcaster */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
                     <img
-                        src={stream?.profiles?.avatar_url || '/default-avatar.png'}
-                        alt={stream?.profiles?.username}
+                        src={stream?.broadcaster?.avatar_url || stream?.profiles?.avatar_url || '/default-avatar.png'}
+                        alt={stream?.broadcaster?.username || stream?.profiles?.username}
                         style={{ width: 48, height: 48, borderRadius: '50%', border: '2px solid white' }}
                     />
                     <div>
                         <div style={{ color: 'white', fontWeight: 600, fontSize: 16 }}>
-                            {stream?.profiles?.username || 'Anonymous'}
+                            {stream?.broadcaster?.username || stream?.profiles?.username || 'Anonymous'}
                         </div>
                         <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>
                             Smarter.Poker

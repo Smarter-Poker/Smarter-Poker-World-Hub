@@ -1,11 +1,14 @@
 /**
  * POST /api/live/token
  * Generates a LiveKit access token for broadcaster or viewer.
- * 
- * Body: { room: string, identity: string, name: string, broadcaster: boolean }
+ *
+ * BUG FIXED (v2): livekit-server-sdk v2 is ESM-only with no CJS dist.
+ * Static import 'AccessToken' doesn't work — must use dynamic import().
+ * Also: v2's toJwt() is async, must be awaited.
+ *
+ * Body: { room: string, identity: string, name?: string, broadcaster?: boolean }
  * Returns: { token: string, url: string }
  */
-import { AccessToken } from 'livekit-server-sdk';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
@@ -22,7 +25,9 @@ export default async function handler(req, res) {
     const livekitUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL?.trim();
 
     if (!apiKey || !apiSecret || !livekitUrl) {
-        return res.status(503).json({ error: 'LiveKit not configured' });
+        return res.status(503).json({
+            error: 'LiveKit not configured — set LIVEKIT_API_KEY, LIVEKIT_API_SECRET, NEXT_PUBLIC_LIVEKIT_URL',
+        });
     }
 
     try {
@@ -32,7 +37,7 @@ export default async function handler(req, res) {
         const { room, identity, name, broadcaster = false } = req.body;
         if (!room || !identity) return res.status(400).json({ error: 'room and identity required' });
 
-        // Get display name from profile if not provided
+        // Get display name from profile
         let displayName = name;
         if (!displayName) {
             const { data: profile } = await supabase
@@ -43,27 +48,30 @@ export default async function handler(req, res) {
             displayName = profile?.username || profile?.full_name || identity;
         }
 
+        // Dynamic import REQUIRED — livekit-server-sdk v2 is ESM-only, no CJS build
+        const { AccessToken } = await import('livekit-server-sdk');
+
         const at = new AccessToken(apiKey, apiSecret, {
-            identity,
-            name: displayName,
-            ttl: 3600, // 1 hour
+            identity: String(identity),
+            name: String(displayName),
+            ttl: 3600,
         });
 
         at.addGrant({
             roomJoin: true,
-            room,
-            canPublish: broadcaster,         // Only broadcaster can publish video/audio
-            canSubscribe: true,               // Everyone can receive
-            canPublishData: true,             // Everyone can send data (reactions)
-            roomCreate: broadcaster,          // Broadcaster creates the room
+            room: String(room),
+            canPublish: Boolean(broadcaster),
+            canSubscribe: true,
+            canPublishData: true,
+            roomCreate: Boolean(broadcaster),
         });
 
-        return res.json({
-            token: at.toJwt(),
-            url: livekitUrl,
-        });
+        // v2 SDK: toJwt() returns a Promise — must await
+        const token = await at.toJwt();
+
+        return res.json({ token, url: livekitUrl });
     } catch (err) {
-        console.warn('[live/token] error:', err.message);
+        console.error('[live/token] error:', err.message);
         return res.status(500).json({ error: err.message });
     }
 }

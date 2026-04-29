@@ -1,7 +1,11 @@
 /**
  * POST /api/live/gift
  * Send a diamond gift to a live broadcaster.
- * Deducts from sender, credits to receiver, records transaction.
+ *
+ * BUG FIXED: Was using non-existent `diamond_balances` table.
+ * Platform uses profiles.diamonds (authoritative) with RPCs:
+ *   - deduct_diamonds(p_user_id, p_amount, p_description, p_transaction_type)
+ *   - add_diamonds_to_balance(p_user_id, p_amount, p_type, p_description, p_reference_id)
  */
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -26,35 +30,38 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Check sender balance
-        const { data: senderBalance } = await supabase
-            .from('diamond_balances')
-            .select('balance')
-            .eq('user_id', user.id)
+        // Check balance from profiles.diamonds (authoritative source)
+        const { data: senderProfile } = await supabase
+            .from('profiles')
+            .select('diamonds, username, full_name')
+            .eq('id', user.id)
             .maybeSingle();
 
-        const currentBalance = senderBalance?.balance || 0;
+        const currentBalance = senderProfile?.diamonds || 0;
+        const senderName = senderProfile?.username || senderProfile?.full_name || 'A fan';
+
         if (currentBalance < amount) {
             return res.status(400).json({ error: 'Insufficient diamonds', balance: currentBalance });
         }
 
-        // Deduct from sender
-        await supabase.from('diamond_balances').upsert({
-            user_id: user.id,
-            balance: currentBalance - amount,
+        // Atomically deduct from sender
+        const { error: deductErr } = await supabase.rpc('deduct_diamonds', {
+            p_user_id: user.id,
+            p_amount: amount,
+            p_description: `Live gift to broadcaster`,
+            p_transaction_type: 'live_gift_sent',
         });
+        if (deductErr) throw new Error(`Deduction failed: ${deductErr.message}`);
 
         // Credit to receiver
-        const { data: receiverBalance } = await supabase
-            .from('diamond_balances')
-            .select('balance')
-            .eq('user_id', receiver_id)
-            .maybeSingle();
-
-        await supabase.from('diamond_balances').upsert({
-            user_id: receiver_id,
-            balance: (receiverBalance?.balance || 0) + amount,
+        const { error: creditErr } = await supabase.rpc('add_diamonds_to_balance', {
+            p_user_id: receiver_id,
+            p_amount: amount,
+            p_type: 'live_gift_received',
+            p_description: `${senderName} sent ${amount} 💎 during your live`,
+            p_reference_id: stream_id,
         });
+        if (creditErr) throw new Error(`Credit failed: ${creditErr.message}`);
 
         // Record the gift
         const { data: gift } = await supabase.from('live_gifts').insert({
@@ -62,40 +69,17 @@ export default async function handler(req, res) {
             sender_id: user.id,
             receiver_id,
             amount,
-            message,
+            message: message || null,
         }).select().maybeSingle();
 
-        // Record transactions for both parties
-        const { data: senderProfile } = await supabase
+        // Get updated sender balance
+        const { data: updatedProfile } = await supabase
             .from('profiles')
-            .select('username, full_name')
+            .select('diamonds')
             .eq('id', user.id)
             .maybeSingle();
 
-        const senderName = senderProfile?.username || senderProfile?.full_name || 'A fan';
-
-        await supabase.from('diamond_transactions').insert([
-            {
-                user_id: user.id,
-                type: 'spend',
-                transaction_type: 'live_gift_sent',
-                amount: -amount,
-                balance_after: currentBalance - amount,
-                description: `Live gift to broadcaster`,
-                reference_id: stream_id,
-            },
-            {
-                user_id: receiver_id,
-                type: 'earn',
-                transaction_type: 'live_gift_received',
-                amount,
-                balance_after: (receiverBalance?.balance || 0) + amount,
-                description: `${senderName} sent ${amount} 💎 during your live`,
-                reference_id: stream_id,
-            },
-        ]);
-
-        // Send notification to broadcaster
+        // Notify broadcaster (non-fatal)
         await supabase.from('notifications').insert({
             user_id: receiver_id,
             type: 'live_gift',
@@ -104,9 +88,13 @@ export default async function handler(req, res) {
             actor_id: user.id,
             link: `/hub/social-media?stream=${stream_id}`,
             read: false,
-        });
+        }).catch(() => {});
 
-        return res.json({ success: true, gift, newBalance: currentBalance - amount });
+        return res.json({
+            success: true,
+            gift,
+            newBalance: updatedProfile?.diamonds ?? (currentBalance - amount),
+        });
     } catch (err) {
         console.warn('[live/gift] error:', err.message);
         return res.status(500).json({ error: err.message });

@@ -7,7 +7,7 @@ import { supabase } from '../../lib/supabase';
 
 const STAT_ITEMS = [
     { key: 'peak_viewers', label: 'Peak Viewers', icon: '👁️', color: '#0066FF' },
-    { key: 'duration', label: 'Duration', icon: '⏱️', color: '#8B5CF6', format: 'duration' },
+    { key: 'duration_seconds', label: 'Duration', icon: '⏱️', color: '#8B5CF6', format: 'duration' },
     { key: 'comment_count', label: 'Comments', icon: '💬', color: '#10B981' },
     { key: 'reaction_count', label: 'Reactions', icon: '❤️', color: '#FA383E' },
     { key: 'total_gifts_received', label: 'Diamonds Received', icon: '💎', color: '#F59E0B' },

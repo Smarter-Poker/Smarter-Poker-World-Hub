@@ -74,11 +74,8 @@ export function LiveReactions({ streamId, userId, isBroadcaster }) {
             event: 'reaction',
             payload: { emoji, userId },
         });
-        // Update total count in DB (fire-and-forget)
-        supabase.from('live_streams')
-            .update({ reaction_count: supabase.raw?.('reaction_count + 1') || undefined })
-            .eq('id', streamId)
-            .catch(() => {});
+        // FIX: supabase.raw() doesn't exist — use increment RPC
+        supabase.rpc('increment_live_reaction_count', { p_stream_id: streamId }).catch(() => {});
     };
 
     return (
@@ -136,8 +133,11 @@ export function LiveReactions({ streamId, userId, isBroadcaster }) {
                         }}
                         onMouseDown={e => { e.currentTarget.style.transform = 'scale(1.3)'; }}
                         onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; }}
-                        onTouchStart={e => { e.currentTarget.style.transform = 'scale(1.3)'; }}
-                        onTouchEnd={e => { e.currentTarget.style.transform = 'scale(1)'; sendReaction(emoji); }}
+                        onTouchStart={e => { e.preventDefault(); e.currentTarget.style.transform = 'scale(1.3)'; }}
+                        onTouchEnd={e => {
+                            e.preventDefault(); // FIX: stops onClick double-fire on mobile
+                            e.currentTarget.style.transform = 'scale(1)';
+                        }}
                         aria-label={`React with ${emoji}`}
                     >
                         {emoji}

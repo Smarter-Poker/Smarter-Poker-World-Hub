@@ -19,7 +19,7 @@
  * ╚═══════════════════════════════════════════════════════════════════════════╝
  */
 
-import { Room, RoomEvent, LocalParticipant, RemoteTrackPublication, Track, createLocalTracks, VideoPresets } from 'livekit-client';
+import { Room, RoomEvent, Track, VideoPresets, createLocalTracks } from 'livekit-client';
 import { supabase } from '../lib/supabase';
 
 const logError = (ctx, err) => console.warn(`[LiveStream:${ctx}]`, err?.message || err);
@@ -41,6 +41,8 @@ class LiveStreamService {
         this.isBroadcaster = false;
         this.reconnectAttempts = 0;
         this.isReconnecting = false;
+        this.isManualDisconnect = false; // FIX: was undefined, causing spurious reconnect
+        this.onRemoteStream = null;
 
         // Callbacks
         this.onViewerCountChange = null;
@@ -177,23 +179,30 @@ class LiveStreamService {
         });
 
         // Publish local tracks if broadcaster
+        // FIX: LocalVideoTrack/LocalAudioTrack constructors don't exist in livekit-client v2.
+        // Use createLocalTracks() which is the correct API.
         if (isBroadcaster && mediaStream) {
-            const audioTrack = mediaStream.getAudioTracks()[0];
-            const videoTrack = mediaStream.getVideoTracks()[0];
-
-            if (videoTrack) {
-                const lvVideo = await import('livekit-client').then(m =>
-                    m.LocalVideoTrack ? new m.LocalVideoTrack(videoTrack) : null
-                );
-                if (lvVideo) await this.room.localParticipant.publishTrack(lvVideo);
-                else await this.room.localParticipant.publishTrack(videoTrack);
-            }
-            if (audioTrack) {
-                const lvAudio = await import('livekit-client').then(m =>
-                    m.LocalAudioTrack ? new m.LocalAudioTrack(audioTrack) : null
-                );
-                if (lvAudio) await this.room.localParticipant.publishTrack(lvAudio);
-                else await this.room.localParticipant.publishTrack(audioTrack);
+            try {
+                const videoTrack = mediaStream.getVideoTracks()[0];
+                const audioTrack = mediaStream.getAudioTracks()[0];
+                if (videoTrack) {
+                    const localTracks = await createLocalTracks({ video: true, audio: false });
+                    const localVT = localTracks.find(t => t.kind === Track.Kind.Video);
+                    if (localVT) {
+                        await localVT.replaceTrack(videoTrack);
+                        await this.room.localParticipant.publishTrack(localVT);
+                    }
+                }
+                if (audioTrack) {
+                    const localTracks = await createLocalTracks({ video: false, audio: true });
+                    const localAT = localTracks.find(t => t.kind === Track.Kind.Audio);
+                    if (localAT) {
+                        await localAT.replaceTrack(audioTrack);
+                        await this.room.localParticipant.publishTrack(localAT);
+                    }
+                }
+            } catch (pubErr) {
+                console.warn('[LiveKit] Track publish error:', pubErr.message);
             }
         }
     }
@@ -323,7 +332,7 @@ class LiveStreamService {
         // Fetch stream
         const { data: stream, error } = await supabase
             .from('live_streams')
-            .select('*, profiles!broadcaster_id(username, avatar_url)')
+            .select('*, broadcaster:profiles(id, username, full_name, avatar_url)')
             .eq('id', streamId)
             .maybeSingle();
 
@@ -446,11 +455,20 @@ class LiveStreamService {
         if (!this.currentStreamId || !this.room) return;
         const count = this.room.remoteParticipants.size;
         await supabase.from('live_streams')
-            .update({
-                viewer_count: count,
-                peak_viewers: supabase.raw?.('GREATEST(peak_viewers, ?)', [count]) || undefined,
-            })
+            .update({ viewer_count: count })
             .eq('id', this.currentStreamId);
+
+        // FIX: supabase.raw() doesn't exist in Supabase JS v2 — use RPC
+        await supabase.rpc('update_live_peak_viewers', {
+            p_stream_id: this.currentStreamId,
+            p_count: count,
+        }).catch(() => {
+            supabase.from('live_streams')
+                .update({ peak_viewers: count })
+                .eq('id', this.currentStreamId)
+                .lt('peak_viewers', count)
+                .catch(() => {});
+        });
         this.onViewerCountChange?.(count);
     }
 
@@ -489,7 +507,7 @@ class LiveStreamService {
     static async getLiveStreams() {
         const { data, error } = await supabase
             .from('live_streams')
-            .select('*, profiles!broadcaster_id(username, avatar_url)')
+            .select('*, broadcaster:profiles(id, username, full_name, avatar_url)')
             .eq('status', 'live')
             .order('started_at', { ascending: false });
         if (error) throw error;
@@ -499,7 +517,7 @@ class LiveStreamService {
     static async getStream(streamId) {
         const { data, error } = await supabase
             .from('live_streams')
-            .select('*, profiles!broadcaster_id(username, avatar_url)')
+            .select('*, broadcaster:profiles(id, username, full_name, avatar_url)')
             .eq('id', streamId)
             .maybeSingle();
         if (error) throw error;

@@ -192,7 +192,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
 
             const { streamId: newId } = await liveStreamService.startBroadcast(
                 user.id,
-                title || `${user.name || user.full_name || 'Live'}'s Live`,
+                title || `${user.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'Live'}'s Live`,
                 streamRef.current,
                 thumbUrl
             );
@@ -267,11 +267,11 @@ export function GoLiveModal({ isOpen, onClose, user }) {
         if (!commentInput.trim() || !streamId || !user?.id) return;
         const text = commentInput.trim();
         setCommentInput('');
-        const newComment = { id: Date.now(), user_id: user.id, author_name: user.name || 'You', text, created_at: new Date().toISOString() };
+        const newComment = { id: Date.now(), user_id: user.id, author_name: user.full_name || user.user_metadata?.full_name || 'You', text, created_at: new Date().toISOString() };
         setComments(prev => [...prev, newComment]);
         try {
             await supabase.from('live_comments').insert({
-                stream_id: streamId, user_id: user.id, text, author_name: user.name || user.full_name,
+                stream_id: streamId, user_id: user.id, text, author_name: user.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'Viewer',
             });
         } catch (err) { console.warn('[GoLive] comment failed:', err); }
     };

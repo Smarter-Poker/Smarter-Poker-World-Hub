@@ -47,10 +47,14 @@ export function ScheduleLiveModal({ isOpen, onClose, user }) {
             setError('Please fill in title, date, and time');
             return;
         }
+        const scheduled_at = new Date(`${scheduledDate}T${scheduledTime}`).toISOString();
+        if (new Date(scheduled_at) < new Date(Date.now() + 5 * 60 * 1000)) {
+            setError('Scheduled time must be at least 5 minutes from now');
+            return;
+        }
         setSaving(true);
         setError('');
         try {
-            const scheduled_at = new Date(`${scheduledDate}T${scheduledTime}`).toISOString();
             const resp = await fetch('/api/live/schedule', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

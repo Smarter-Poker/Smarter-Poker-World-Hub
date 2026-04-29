@@ -12,13 +12,20 @@ export function LiveViewerList({ streamId, viewerCount, isOpen, onClose }) {
     useEffect(() => {
         if (!isOpen || !streamId) return;
         setLoading(true);
+        // FIX: profiles!viewer_id FK hint unreliable — do 2-step query
         supabase
             .from('live_viewers')
-            .select('viewer_id, profiles!viewer_id(id, username, full_name, avatar_url)')
+            .select('viewer_id')
             .eq('stream_id', streamId)
             .limit(50)
-            .then(({ data }) => {
-                setViewers(data?.map(v => v.profiles).filter(Boolean) || []);
+            .then(async ({ data: rows }) => {
+                if (!rows?.length) { setViewers([]); setLoading(false); return; }
+                const ids = rows.map(r => r.viewer_id);
+                const { data: profiles } = await supabase
+                    .from('profiles')
+                    .select('id, username, full_name, avatar_url')
+                    .in('id', ids);
+                setViewers(profiles || []);
                 setLoading(false);
             });
     }, [isOpen, streamId]);
