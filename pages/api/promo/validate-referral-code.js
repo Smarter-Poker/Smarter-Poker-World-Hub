@@ -1,0 +1,68 @@
+// Validate a referral code (player number) — returns referrer info
+import { createClient } from '../../../src/lib/supabaseServerClient';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { reportApiError } from '../../../src/lib/sentryWrap';
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
+
+export default async function handler(req, res) {
+  try {
+    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
+
+      if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+      const { code } = req.body;
+      if (!code) {
+          return res.status(400).json({ error: 'Referral code is required' });
+      }
+
+      const playerNumber = parseInt(code, 10);
+      if (isNaN(playerNumber) || playerNumber <= 0) {
+          return res.status(400).json({ valid: false, error: 'Invalid referral code' });
+      }
+
+      try {
+          const { data, error } = await getSupabase()
+              .from('profiles')
+              .select('id, display_name, username, player_number')
+              .eq('player_number', playerNumber)
+              .maybeSingle();
+
+          if (error || !data) {
+              return res.status(404).json({ valid: false, error: 'No player found with that referral code' });
+          }
+
+          // Mask the name for privacy (show first name + last initial)
+          const displayName = data.display_name || data.username || 'A Player';
+          const parts = displayName.split(' ');
+          const maskedName = parts.length > 1
+              ? `${parts[0]} ${parts[parts.length - 1][0]}.`
+              : parts[0];
+
+          return res.status(200).json({
+              valid: true,
+              referrerId: data.id,
+              playerNumber: data.player_number,
+              referrerName: maskedName,
+          });
+      } catch (err) {
+          console.warn('Validate referral code error:', err);
+          return res.status(500).json({ error: 'Server error' });
+      }
+
+  } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+    console.warn('[API Error]', err);
+    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}

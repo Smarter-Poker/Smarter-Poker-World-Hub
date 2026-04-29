@@ -1,0 +1,487 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   GEEVES API v2.0 — Smart Caching + Grok-powered poker strategy expert
+   - First checks cache for existing answers
+   - Falls back to Grok for new questions
+   - Stores all new answers in cache for future use
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+import { getGrokClient } from '../../../src/lib/grokClient';
+import { createClient } from '../../../src/lib/supabaseServerClient';
+import crypto from 'crypto';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { lookupKnowledgeBase } from '../../../src/lib/geevesKnowledgeBase';
+import { reportApiError } from '../../../src/lib/sentryWrap';
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GEEVES SYSTEM PROMPT — Comprehensive poker knowledge
+// ═══════════════════════════════════════════════════════════════════════════
+const GEEVES_SYSTEM_PROMPT = `You are Geeves, a world-class poker strategy expert and AI assistant. You are the poker knowledge companion to Jarvis, who handles platform questions.
+
+YOUR EXPERTISE:
+• Game Theory Optimal (GTO) poker strategy
+• Tournament poker (ICM, bubble play, final tables)
+• Cash game strategy (all stakes, all formats)
+• Hand reading and range construction
+• Poker mathematics (pot odds, equity, EV, variance)
+• Player psychology and exploitative play
+• All poker variants (Hold'em, PLO, Stud, etc.)
+• Training and study methodology
+
+YOUR PERSONALITY:
+• Professional and sophisticated (like a British butler)
+• Patient and educational
+• Precise with poker terminology
+• Encouraging and supportive
+• Never condescending
+
+YOUR RESPONSE STYLE:
+1. Assess the question clearly
+2. Provide the GTO baseline answer
+3. Discuss exploitative adjustments when relevant
+4. Explain the reasoning and theory
+5. Give practical, actionable advice
+6. Use examples when helpful
+
+FORMAT YOUR RESPONSES:
+- Use **bold** for key concepts
+- Use bullet points for lists
+- Use code blocks for ranges (e.g., \`AA, KK, QQ, AKs\`)
+- Keep paragraphs concise
+- Use headers (##) for sections when appropriate
+
+POKER KNOWLEDGE BASE:
+
+GTO FUNDAMENTALS:
+- Opening ranges: UTG (15%), MP (18%), CO (25%), BTN (45%), SB (35%)
+- 3-bet ranges: Polarized vs linear, position-dependent
+- C-bet frequencies: ~60-70% on most flops, board texture dependent
+- Check-raise: ~10-15% frequency, polarized range
+- River betting: Bet 1/3 pot with bluffs, 2/3-pot with value
+
+TOURNAMENT STRATEGY:
+- ICM: Independent Chip Model, tournament equity vs chip equity
+- Bubble: Tighten up with medium stacks, pressure with big stacks
+- Final table: ICM pressure increases, adjust ranges significantly
+- Short stack: Push/fold charts, 10-15BB is critical zone
+
+CASH GAME STRATEGY:
+- Position is paramount: play tighter early, wider late
+- Bet sizing: 1/3, 1/2, 2/3, pot-sized based on goals
+- SPR (Stack-to-Pot Ratio): Affects playability and commitment
+- Exploitative play: Adjust to opponent tendencies
+
+HAND READING:
+- Start with preflop range
+- Narrow on each street based on actions
+- Consider blockers and removal effects
+- Calculate equity distributions
+
+POKER MATH:
+- Pot odds: Compare bet size to pot size
+- Equity: Your hand's winning percentage
+- EV (Expected Value): (Win% × Win$) - (Lose% × Lose$)
+- Minimum Defense Frequency: Pot / (Pot + Bet)
+
+Remember: You are Geeves, the poker expert. Be sophisticated, knowledgeable, and helpful!`;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CACHE UTILITIES
+// ═══════════════════════════════════════════════════════════════════════════
+
+function normalizeQuestion(question) {
+    return question
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9\s]/g, '')
+        .replace(/\s+/g, ' ');
+}
+
+function hashQuestion(question) {
+    const normalized = normalizeQuestion(question);
+    return crypto.createHash('md5').update(normalized).digest('hex');
+}
+
+function detectQuestionType(question) {
+    const q = question.toLowerCase();
+
+    if (q.includes('gto') || q.includes('optimal') || q.includes('theory')) return 'gto';
+    if (q.includes('tournament') || q.includes('icm') || q.includes('bubble')) return 'tournament';
+    if (q.includes('cash') || q.includes('cash game')) return 'cash_game';
+    if (q.includes('hand') || q.includes('analyze') || q.includes('should i')) return 'hand_analysis';
+    if (q.includes('range') || q.includes('3-bet') || q.includes('3bet') || q.includes('open')) return 'ranges';
+    if (q.includes('equity') || q.includes('odds') || q.includes('math') || q.includes('ev')) return 'math';
+    if (q.includes('study') || q.includes('learn') || q.includes('improve')) return 'learning';
+
+    return 'general';
+}
+
+function extractTags(question) {
+    const tags = [];
+    const q = question.toLowerCase();
+
+    // Position tags
+    if (q.includes('button') || q.includes('btn')) tags.push('button');
+    if (q.includes('cutoff') || q.includes('co')) tags.push('cutoff');
+    if (q.includes('utg') || q.includes('Under-the-Gun')) tags.push('utg');
+    if (q.includes('blind') || q.includes('sb') || q.includes('bb')) tags.push('blinds');
+
+    // Game type tags
+    if (q.includes('holdem') || q.includes('hold\'em') || q.includes('nlhe')) tags.push('holdem');
+    if (q.includes('plo') || q.includes('omaha')) tags.push('plo');
+    if (q.includes('tournament') || q.includes('mtt')) tags.push('tournament');
+    if (q.includes('cash')) tags.push('cash');
+
+    // Concept tags
+    if (q.includes('bluff')) tags.push('bluffing');
+    if (q.includes('value')) tags.push('value');
+    if (q.includes('fold')) tags.push('folding');
+    if (q.includes('raise') || q.includes('bet')) tags.push('betting');
+    if (q.includes('call')) tags.push('calling');
+
+    return tags;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CACHE LOOKUP
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function checkExactCache(questionHash) {
+    const { data, error } = await getSupabase()
+        .from('geeves_knowledge_cache')
+        .select('*')
+        .eq('question_hash', questionHash)
+        .maybeSingle();
+
+    if (error || !data) return null;
+    return data;
+}
+
+async function checkSimilarCache(question) {
+    // Use PostgreSQL full-text search for similar questions
+    const { data, error } = await getSupabase()
+        .rpc('find_similar_questions', {
+            search_query: question,
+            similarity_threshold: 0.3,
+            max_results: 1
+        });
+
+    if (error || !data || data.length === 0) return null;
+
+    // Only return if similarity is high enough
+    if (data[0].similarity >= 0.5) {
+        return data[0];
+    }
+
+    return null;
+}
+
+async function incrementCacheServed(cacheId) {
+    await getSupabase().rpc('increment_cache_served', { cache_uuid: cacheId });
+}
+
+async function saveToCache(question, answer, questionType, userId) {
+    const { data, error } = await getSupabase()
+        .from('geeves_knowledge_cache')
+        .insert({
+            question_normalized: normalizeQuestion(question),
+            question_hash: hashQuestion(question),
+            question_original: question,
+            answer: answer,
+            answer_tokens: answer.split(/\s+/).length,
+            question_type: questionType,
+            tags: extractTags(question),
+            created_by: userId,
+            times_served: 1,
+            last_served_at: new Date().toISOString()
+        })
+        .select()
+        .maybeSingle();
+
+    if (error) {
+        console.warn('[Geeves Cache] Failed to save:', error);
+        return null;
+    }
+
+    return data;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MAIN HANDLER
+// ═══════════════════════════════════════════════════════════════════════════
+
+export default async function handler(req, res) {
+  try {
+      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+          if (!applyRateLimit(req, res, LIMITS.write)) return;
+      }
+
+      if (req.method !== 'POST') {
+          return res.status(405).json({ error: 'Method not allowed' });
+      }
+
+      try {
+          const { question, conversationId, conversationHistory, currentPage } = req.body;
+
+          if (!question) {
+              return res.status(400).json({ error: 'Question is required' });
+          }
+
+          // ═══════════════════════════════════════════════════════════════════
+          // STEP 0: Check Local Knowledge Base (FREE, instant, no auth needed)
+          // ═══════════════════════════════════════════════════════════════════
+          const kbResult = lookupKnowledgeBase(question, currentPage);
+
+          if (kbResult && kbResult.confidence >= 45) {
+              // Try to save to conversation if user is authenticated
+              if (conversationId) {
+                  try {
+                      const authHeader = req.headers.authorization;
+                      if (authHeader?.startsWith('Bearer ')) {
+                          const token = authHeader.replace('Bearer ', '');
+                          const { data: authData } = await getSupabase().auth.getUser(token);
+                          const user = authData?.user;
+                          if (user) {
+                              await saveConversationMessages(conversationId, question, kbResult.answer, null, false);
+                          }
+                      }
+                  } catch { /* non-critical — don't block the response */ }
+              }
+
+              return res.status(200).json({
+                  answer: kbResult.answer,
+                  questionType: kbResult.category,
+                  fromLocalKB: true,
+                  followUps: kbResult.followUps || [],
+                  confidence: kbResult.confidence,
+                  entryId: kbResult.entryId,
+              });
+          }
+
+          // ── Auth required for cache + Grok tiers ──
+          const authHeader = req.headers.authorization;
+          if (!authHeader?.startsWith('Bearer ')) {
+              // Guest users only get KB answers
+              if (kbResult && kbResult.confidence >= 30) {
+                  return res.status(200).json({
+                      answer: kbResult.answer,
+                      questionType: kbResult.category,
+                      fromLocalKB: true,
+                      followUps: kbResult.followUps || [],
+                      confidence: kbResult.confidence,
+                      guestMode: true,
+                  });
+              }
+              return res.status(401).json({ error: 'Sign in for AI-powered answers to this question' });
+          }
+
+          const token = authHeader.replace('Bearer ', '');
+          const { data: authData, error: authError } = await getSupabase().auth.getUser(token);
+          const user = authData?.user;
+
+          if (authError || !user) {
+              return res.status(401).json({ error: 'Invalid token' });
+          }
+
+          const questionHash = hashQuestion(question);
+          const questionType = detectQuestionType(question);
+
+
+          // ═══════════════════════════════════════════════════════════════════
+          // STEP 1: Check exact cache match
+          // ═══════════════════════════════════════════════════════════════════
+          let cachedAnswer = await checkExactCache(questionHash);
+
+          if (cachedAnswer) {
+
+              await incrementCacheServed(cachedAnswer.id);
+
+              // Save to conversation if ID provided
+              if (conversationId) {
+                  await saveConversationMessages(conversationId, question, cachedAnswer.answer, cachedAnswer.id, true);
+              }
+
+              // Track analytics
+              await trackAnalytics(user.id, questionType, question, cachedAnswer.answer.length, true);
+
+              return res.status(200).json({
+                  answer: cachedAnswer.answer,
+                  questionType,
+                  fromCache: true,
+                  cacheId: cachedAnswer.id,
+                  timesServed: cachedAnswer.times_served + 1,
+                  avgRating: cachedAnswer.avg_rating
+              });
+          }
+
+          // ═══════════════════════════════════════════════════════════════════
+          // STEP 2: Check similar questions (fuzzy match)
+          // ═══════════════════════════════════════════════════════════════════
+          const similarAnswer = await checkSimilarCache(question);
+
+          if (similarAnswer) {
+
+              await incrementCacheServed(similarAnswer.id);
+
+              if (conversationId) {
+                  await saveConversationMessages(conversationId, question, similarAnswer.answer, similarAnswer.id, true);
+              }
+
+              await trackAnalytics(user.id, questionType, question, similarAnswer.answer.length, true);
+
+              return res.status(200).json({
+                  answer: similarAnswer.answer,
+                  questionType,
+                  fromCache: true,
+                  cacheId: similarAnswer.id,
+                  timesServed: similarAnswer.times_served + 1,
+                  avgRating: similarAnswer.avg_rating,
+                  similarTo: similarAnswer.question_original
+              });
+          }
+
+          // ═══════════════════════════════════════════════════════════════════
+          // STEP 3: No cache hit — call Grok
+          // ═══════════════════════════════════════════════════════════════════
+
+          const grok = getGrokClient();
+
+          // Build messages array with conversation history
+          const messages = [
+              { role: 'system', content: GEEVES_SYSTEM_PROMPT }
+          ];
+
+          // Add conversation history if provided (for context)
+          if (conversationHistory && conversationHistory.length > 0) {
+              // Only include last 6 messages for context
+              const recentHistory = conversationHistory.slice(-6);
+              recentHistory.forEach(msg => {
+                  messages.push({
+                      role: msg.isUser ? 'user' : 'assistant',
+                      content: msg.content
+                  });
+              });
+          }
+
+          messages.push({ role: 'user', content: question });
+
+          const response = await grok.chat.completions.create({
+              model: 'grok-beta',
+              messages,
+              temperature: 0.7,
+              max_tokens: 2000,
+              stream: false
+          });
+
+          const answer = response.choices[0].message.content;
+
+          // ═══════════════════════════════════════════════════════════════════
+          // STEP 4: Save to cache for future use
+          // ═══════════════════════════════════════════════════════════════════
+          const cacheEntry = await saveToCache(question, answer, questionType, user.id);
+
+          // Auto-Learning Loop — log missed question to Supabase
+          try {
+              await getSupabase().rpc('geeves_upsert_missed_question', {
+                  p_question: question,
+                  p_hash: questionHash,
+                  p_page: currentPage || null,
+                  p_grok_answer: answer,
+              });
+          } catch (err) {
+              console.warn('[Geeves Ask] Failed to log missed question:', err.message);
+          }
+
+          // Save to conversation
+          if (conversationId) {
+              await saveConversationMessages(conversationId, question, answer, cacheEntry?.id, false);
+          }
+
+          // Track analytics
+          await trackAnalytics(user.id, questionType, question, answer.length, false);
+
+          return res.status(200).json({
+              answer,
+              questionType,
+              fromCache: false,
+              cacheId: cacheEntry?.id,
+              timesServed: 1,
+              missedQuestion: true
+          });
+
+      } catch (error) {
+          console.warn('[Geeves] Error:', error);
+          return res.status(500).json({
+              error: 'Failed to process question',
+              details: error.message
+          });
+      }
+
+  } catch (err) {
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+    console.warn('[API Error]', err);
+    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HELPER FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function saveConversationMessages(conversationId, question, answer, cacheId, fromCache) {
+    // Save user message
+    await getSupabase().from('geeves_messages').insert({
+        conversation_id: conversationId,
+        content: question,
+        is_user: true
+    });
+
+    // Save Geeves response
+    await getSupabase().from('geeves_messages').insert({
+        conversation_id: conversationId,
+        content: answer,
+        is_user: false,
+        cache_id: cacheId,
+        from_cache: fromCache
+    });
+
+    // Auto-generate title from first question (replace default title)
+    const { data: conv } = await getSupabase()
+        .from('geeves_conversations')
+        .select('title')
+        .eq('id', conversationId)
+        .maybeSingle();
+
+    const isDefaultTitle = !conv?.title || conv.title === 'New Poker Conversation';
+    const newTitle = isDefaultTitle
+        ? question.substring(0, 80) + (question.length > 80 ? '...' : '')
+        : conv.title;
+
+    // Update conversation timestamp (and title if still default)
+    await getSupabase()
+        .from('geeves_conversations')
+        .update({
+            updated_at: new Date().toISOString(),
+            ...(isDefaultTitle ? { title: newTitle } : {})
+        })
+        .eq('id', conversationId);
+}
+
+async function trackAnalytics(userId, questionType, question, responseLength, fromCache) {
+    await getSupabase().from('geeves_analytics').insert({
+        user_id: userId,
+        question_type: questionType,
+        question: question.substring(0, 500),
+        response_length: responseLength,
+        metadata: { from_cache: fromCache }
+    });
+}
