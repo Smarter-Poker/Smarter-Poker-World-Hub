@@ -55,10 +55,31 @@
  *   const { publicUrl, wasBackground } = await bgUpload.start({ file, userId, folder });
  */
 
-import { getAccessToken, SUPABASE_ANON_KEY } from './authUtils';
+import { getAccessToken } from './authUtils';
 import { sniffMimeType } from './socialHelpers';
 import toast, { useToastStore } from '../stores/toastStore';
 import * as tus from 'tus-js-client';
+
+// ─── apikey for Supabase Storage TUS requests ────────────────────────────────
+// CRITICAL: this used to be `import { SUPABASE_ANON_KEY } from './authUtils'`,
+// but authUtils never exported that symbol, so SUPABASE_ANON_KEY was UNDEFINED
+// at runtime. tus-js-client called `setRequestHeader('apikey', undefined)`
+// on every TUS POST, which the browser turns into the literal string
+// "undefined" on the wire. Storage validates the apikey against the project
+// signing key and, finding garbage, rejects the entire request as
+// "Invalid Compact JWS" / 403. Verified empirically on 2026-04-29 via
+// computer-use spy on Dan's browser:
+//   - request_headerKeys: [..., "apikey", ...] (key present)
+//   - request_headerValues['apikey'] = undefined (value missing)
+//   - response: 400 / "Invalid Compact JWS"
+//   - same Bearer + x-signature via plain fetch with literal anon key: 201
+// Fix: read NEXT_PUBLIC_SUPABASE_ANON_KEY directly from process.env at
+// module load time, with a hardcoded fallback so the value is NEVER undefined
+// (the fallback matches supabaseServer.ts which already does this server-side).
+const SUPABASE_ANON_KEY = (
+    (typeof process !== 'undefined' && process.env && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo'
+).trim();
 
 // ─── Auth resilience helper ──────────────────────────────────────────────────
 // getAccessToken() is a one-shot localStorage read of the SDK's persisted
@@ -380,6 +401,9 @@ async function _uploadWithTus(file, meta, mimeType) {
         //   3. x-upsert: true                    — allow path overwrite on retry
         // Optional (extra path-binding when server creates a presigned token):
         //   4. x-signature: <token>              — only validated AFTER Authorization passes
+        if (!SUPABASE_ANON_KEY || typeof SUPABASE_ANON_KEY !== 'string' || SUPABASE_ANON_KEY.length < 50) {
+            console.error('[bgUpload] SUPABASE_ANON_KEY is missing/invalid at runtime — TUS would send apikey=undefined and Storage would reject as Invalid Compact JWS', { type: typeof SUPABASE_ANON_KEY, len: SUPABASE_ANON_KEY?.length });
+        }
         const tusHeaders = {
             Authorization: `Bearer ${userToken}`,
             apikey: SUPABASE_ANON_KEY,
