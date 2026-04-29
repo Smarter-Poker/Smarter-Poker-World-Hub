@@ -181,6 +181,25 @@ export default function LivesPage() {
         setShowChat(prev => !prev);
         if (!showChat && chatMessages.length === 0) {
             try {
+                // For recorded streams: load live_comments as chat replay
+                if (!currentStream.isLive && currentStream.id) {
+                    const { data: liveComments } = await supabase
+                        .from('live_comments')
+                        .select('*')
+                        .eq('stream_id', currentStream.id)
+                        .order('created_at', { ascending: true })
+                        .limit(100);
+                    if (liveComments?.length) {
+                        setChatMessages(liveComments.map(c => ({
+                            id: c.id,
+                            text: c.text,
+                            author_name: c.author_name,
+                            created_at: c.created_at,
+                        })));
+                        return;
+                    }
+                }
+                // Fallback: load social interactions comments
                 const res = await fetch('/api/social/interactions?post_id=' + currentStream.id + '&type=comment');
                 if (!res.ok) throw new Error(`Request failed (${res.status})`);
                 const json = await res.json();

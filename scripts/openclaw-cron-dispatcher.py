@@ -238,6 +238,12 @@ ALL_CRONS = [
     ('/api/cron/vip-diamond-stipend',             dict(day=1, hour=0, minute=5)),  # monthly, 1st @ 00:05 UTC
     ('/api/cron/collusion-scan',                  dict(hour=3, minute=30)),
 
+    # ══ WAVE 4 — Live Streaming Infrastructure (2026-04-28) ═══════════════════
+    # Zombie cleanup: marks stale live streams (>6h) as ended, cleans viewers.
+    # Reminders: notifies followers 15 minutes before a scheduled live starts.
+    ('/api/cron/live-cleanup',                    dict(minute='*/5')),       # every 5 min
+    ('/api/cron/live-reminders',                  dict(minute='*/5')),       # every 5 min
+
     # ══ INTERNAL — Phase 2A monitoring/alerting (closes plan line 285 gate) ═══
     # No HTTP egress; runs in-process. SMS-alerts via Twilio on workers outage.
     ('_internal/workers-healthcheck',             dict(minute='*/5')),      # every 5 min
