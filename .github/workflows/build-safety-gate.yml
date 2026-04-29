@@ -36,6 +36,122 @@ jobs:
         run: echo "start=$(date +%s)" >> $GITHUB_OUTPUT
 
       # ═══════════════════════════════════════════════════════════════
+      # CHECK 7: Storage bucket file_size_limit guard (RUNS FIRST)
+      # Positioned before npm install so it runs even if install fails.
+      # The social-media bucket file_size_limit was silently set to NULL on
+      # 2026-04-22 with a wrong comment claiming it meant "unlimited". NULL
+      # falls back to the project-level cap (50MB by default), and every
+      # video upload >50MB was rejected with HTTP 413. Project-level cap
+      # was raised to 50GB on 2026-04-29 and all video buckets set to 50GB.
+      # This check guards against silent revert by anyone clicking the
+      # dashboard, by `supabase db reset` replaying migrations out of order,
+      # or by a future PR that re-NULLs the value.
+      #
+      # Guards all 7 video-capable buckets (50GB tier) + catch-all NULL
+      # guard across every bucket in the project.
+      #
+      # Requires GitHub Actions secret SUPABASE_SERVICE_ROLE_KEY. If the
+      # secret is not set the check warns but does not block — add the
+      # secret in repo Settings → Secrets and variables → Actions to
+      # activate enforcement.
+      # ═══════════════════════════════════════════════════════════════
+      - name: "CHECK 7: Storage bucket file_size_limit guard (50GB minimum)"
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::warning::SUPABASE_SERVICE_ROLE_KEY secret not set — storage bucket cap is NOT enforced."
+            echo "::warning::Add the secret in repo Settings -> Secrets and variables -> Actions to activate."
+            exit 0
+          fi
+
+          MIN_LIMIT=53687091200    # 50GB in bytes
+          PROJECT_REF="kuklfnapbkmacvwxktbh"
+          # All 7 video-capable buckets from the 50GB tier
+          BUCKETS="social-media live-recordings messenger_media user-media stories social-videos public-transfer"
+          FAIL=0
+
+          for BUCKET in $BUCKETS; do
+            echo ""
+            echo "Querying ${BUCKET} bucket configuration..."
+
+            # Retry up to 3 times with backoff for Supabase API flakiness
+            STATUS="000"
+            for ATTEMPT in 1 2 3; do
+              RESP=$(curl -sS -w "\n%{http_code}" --max-time 10 \
+                -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+                -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
+                "https://${PROJECT_REF}.supabase.co/storage/v1/bucket/${BUCKET}")
+              BODY=$(echo "$RESP" | head -n -1)
+              STATUS=$(echo "$RESP" | tail -n 1)
+              [ "$STATUS" = "200" ] && break
+              echo "  Attempt $ATTEMPT failed (HTTP $STATUS), retrying in 5s..."
+              sleep 5
+            done
+
+            if [ "$STATUS" != "200" ]; then
+              echo "::error::FATAL: Could not fetch ${BUCKET} bucket config after 3 attempts. HTTP $STATUS"
+              echo "$BODY"
+              FAIL=1
+              continue
+            fi
+
+            LIMIT=$(echo "$BODY" | node -e "
+              let s='';process.stdin.on('data',c=>s+=c);
+              process.stdin.on('end',()=>{
+                try { const j=JSON.parse(s); console.log(j.file_size_limit ?? 'null'); }
+                catch(e){ console.log('parse_err'); }
+              });")
+
+            echo "Bucket '${BUCKET}' file_size_limit = ${LIMIT}"
+
+            if [ "$LIMIT" = "null" ] || [ "$LIMIT" = "parse_err" ]; then
+              echo "::error::FATAL: ${BUCKET} bucket file_size_limit is NULL — silently falls back to project-level cap."
+              echo "::error::Fix: UPDATE storage.buckets SET file_size_limit = 53687091200 WHERE id = '${BUCKET}';"
+              FAIL=1
+              continue
+            fi
+
+            if [ "$LIMIT" -lt "$MIN_LIMIT" ]; then
+              HUMAN_GB=$(( LIMIT / 1024 / 1024 / 1024 ))
+              echo "::error::FATAL: ${BUCKET} bucket file_size_limit is ${HUMAN_GB}GB — below the 50GB minimum."
+              echo "::error::Fix: UPDATE storage.buckets SET file_size_limit = 53687091200 WHERE id = '${BUCKET}';"
+              FAIL=1
+              continue
+            fi
+
+            echo "✓ ${BUCKET} bucket file_size_limit is at or above 50GB"
+          done
+
+          # Catch-all: no bucket in the project should EVER have NULL file_size_limit
+          echo ""
+          echo "Running catch-all NULL guard across all buckets..."
+          ALL_RESP=$(curl -sS --max-time 10 \
+            -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+            -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
+            "https://${PROJECT_REF}.supabase.co/storage/v1/bucket")
+
+          NULL_BUCKETS=$(echo "$ALL_RESP" | node -e "
+            let s='';process.stdin.on('data',c=>s+=c);
+            process.stdin.on('end',()=>{
+              try {
+                const buckets=JSON.parse(s);
+                const nulls=buckets.filter(b=>b.file_size_limit==null).map(b=>b.id);
+                if(nulls.length) console.log(nulls.join(', '));
+              } catch(e){ console.log('parse_err'); }
+            });")
+
+          if [ -n "$NULL_BUCKETS" ]; then
+            echo "::error::FATAL: Buckets with NULL file_size_limit: ${NULL_BUCKETS}"
+            echo "::error::NULL silently falls back to project-level cap. Set an explicit limit on each bucket."
+            FAIL=1
+          else
+            echo "✓ No buckets have NULL file_size_limit"
+          fi
+
+          [ "$FAIL" -eq 0 ] || exit 1
+
+      # ═══════════════════════════════════════════════════════════════
       # CHECK 1: No .single() calls (must use .maybeSingle())
       # .single() throws PGRST116 when 0 rows returned = crash
       # ═══════════════════════════════════════════════════════════════
@@ -192,85 +308,6 @@ jobs:
           [ "$FAIL" -eq 0 ] || exit 1
           echo "✓ Cron governance check passed"
 
-      # ═══════════════════════════════════════════════════════════════
-      # CHECK 7: Storage bucket file_size_limit guard
-      # The social-media bucket file_size_limit was silently set to NULL on
-      # 2026-04-22 with a wrong comment claiming it meant "unlimited". NULL
-      # falls back to the project-level cap (50MB by default), and every
-      # video upload >50MB was rejected with HTTP 413. Project-level cap
-      # was raised to 50GB on 2026-04-29 and both buckets were set to 50GB.
-      # This check guards against silent revert by anyone clicking the
-      # dashboard, by `supabase db reset` replaying migrations out of order,
-      # or by a future PR that re-NULLs the value. Fails the build if
-      # social-media OR live-recordings drops below 50GB or disappears.
-      #
-      # Requires GitHub Actions secret SUPABASE_SERVICE_ROLE_KEY. If the
-      # secret is not set the check warns but does not block — add the
-      # secret in repo Settings → Secrets and variables → Actions to
-      # activate enforcement.
-      # ═══════════════════════════════════════════════════════════════
-      - name: "CHECK 7: Storage bucket file_size_limit guard (50GB minimum)"
-        env:
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: |
-          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
-            echo "::warning::SUPABASE_SERVICE_ROLE_KEY secret not set — storage bucket cap is NOT enforced."
-            echo "::warning::Add the secret in repo Settings -> Secrets and variables -> Actions to activate."
-            exit 0
-          fi
-
-          MIN_LIMIT=53687091200    # 50GB in bytes
-          PROJECT_REF="kuklfnapbkmacvwxktbh"
-          BUCKETS="social-media live-recordings"
-          FAIL=0
-
-          for BUCKET in $BUCKETS; do
-            echo ""
-            echo "Querying ${BUCKET} bucket configuration..."
-            RESP=$(curl -sS -w "\n%{http_code}" \
-              -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
-              -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
-              "https://${PROJECT_REF}.supabase.co/storage/v1/bucket/${BUCKET}")
-
-            BODY=$(echo "$RESP" | head -n -1)
-            STATUS=$(echo "$RESP" | tail -n 1)
-
-            if [ "$STATUS" != "200" ]; then
-              echo "::error::FATAL: Could not fetch ${BUCKET} bucket config. HTTP $STATUS"
-              echo "$BODY"
-              FAIL=1
-              continue
-            fi
-
-            LIMIT=$(echo "$BODY" | node -e "
-              let s='';process.stdin.on('data',c=>s+=c);
-              process.stdin.on('end',()=>{
-                try { const j=JSON.parse(s); console.log(j.file_size_limit ?? 'null'); }
-                catch(e){ console.log('parse_err'); }
-              });")
-
-            echo "Bucket '${BUCKET}' file_size_limit = ${LIMIT}"
-
-            if [ "$LIMIT" = "null" ] || [ "$LIMIT" = "parse_err" ]; then
-              echo "::error::FATAL: ${BUCKET} bucket file_size_limit is NULL — silently falls back to project-level cap."
-              echo "::error::Fix: re-apply supabase/migrations/20260429_bump_social_media_and_live_recordings_to_50gb.sql"
-              echo "::error::      AND verify the project-level cap at https://supabase.com/dashboard/project/${PROJECT_REF}/settings/storage"
-              FAIL=1
-              continue
-            fi
-
-            if [ "$LIMIT" -lt "$MIN_LIMIT" ]; then
-              HUMAN_GB=$(( LIMIT / 1024 / 1024 / 1024 ))
-              echo "::error::FATAL: ${BUCKET} bucket file_size_limit is ${HUMAN_GB}GB — below the 50GB minimum."
-              echo "::error::Fix: UPDATE storage.buckets SET file_size_limit = 53687091200 WHERE id = '${BUCKET}';"
-              FAIL=1
-              continue
-            fi
-
-            echo "✓ ${BUCKET} bucket file_size_limit is at or above 50GB"
-          done
-
-          [ "$FAIL" -eq 0 ] || exit 1
 
       - name: Report Check Duration
         if: always()
