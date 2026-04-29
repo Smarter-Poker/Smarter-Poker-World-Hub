@@ -3,8 +3,9 @@
 ALL agents (Claude, AntiGravity, Cowork, any AI) MUST read this file at session start.
 This is the single source of truth for **this repo**. Updated 2026-04-28.
 
-**Also read `.memory/SUMMARY.md` at session start** — it contains the cross-session
-rule index, problem history, and architectural decisions. Append to it at session end.
+**Also read `.agent/CLAUDE_AGENT_RULES.md` at session start** — that's the
+canonical, version-controlled rule book all agents share. Audit records go
+under `.agent/audits/`. (`.memory/` is gitignored by design — local-only.)
 
 **Platform-level plan** (World Hub + Club Arena + Club Engine + Supabase + Hetzner):
 `./CLUB-ARENA-OFFICIAL-UPGRADE-INTEGRATION.md`
@@ -30,15 +31,18 @@ There is exactly ONE deployment path. No exceptions. No alternatives.
 The `smarter-poker` Vercel project (`prj_FNUaJmcjRnwCSh1JzblIUYuOXDGK`) is a DEAD DUPLICATE.
 Its git integration is disconnected. Its deploy hooks are deleted. Do not touch it.
 
-### 1.2 Mandatory End-of-Session Push (RULE-001 in `.memory/`)
+### 1.2 Mandatory End-of-Session Push
 
-Every agent MUST do ALL THREE of the following at the end of every session,
-no exceptions:
+Canonical rules live in `.agent/CLAUDE_AGENT_RULES.md` — RULE 1 (push), RULE 2
+(SQL), RULE 3 (identity). Read that file at session start.
+
+Summary, every agent MUST do ALL THREE at the end of every session, no
+exceptions:
 
 1. **Push code.** Run `git-safe-push.sh` until it exits 0 with
-   `DEPLOY_VERIFIED:true` and `SHA_MATCHED:true`. Auditing without shipping is
-   forbidden. If a fix is identified, ship it in the same session — even if
-   other audit items remain — then open follow-up work for the rest.
+   `DEPLOY_VERIFIED:true` and `SHA_MATCHED:true`. Auditing without shipping
+   is forbidden. If a fix is identified, ship it in the same session — even
+   if other audit items remain — then open follow-up work for the rest.
 
 2. **Write and apply SQL.** If the work touched data, schema, RLS, RPCs, or
    anything in Supabase, save migrations under
@@ -47,11 +51,10 @@ no exceptions:
    `list_migrations` that the migration appears. Never apply schema changes
    via raw `execute_sql` — migrations only, so the change is auditable.
 
-3. **Update operating memory.** If a new rule, decision, or pattern was
-   learned, append it to `.memory/SUMMARY.md` with a detail file under the
-   appropriate subdirectory (`rules/`, `decisions/`, `patterns/`,
-   `problems/`). Update this file (`CLAUDE.md`) if other agents need to see
-   it at session start.
+3. **Document substantive audits/incidents** under `.agent/audits/<YYYY-MM-DD>-<slug>.md`
+   so future agents can read what was investigated, what was fixed, and what
+   was deferred. Update `.agent/CLAUDE_AGENT_RULES.md` if a new operating rule
+   was learned.
 
 NEVER claim "the fix is documented" as success. Only "production
 `/api/health` serves SHA `<hash>` containing the new code" counts.
