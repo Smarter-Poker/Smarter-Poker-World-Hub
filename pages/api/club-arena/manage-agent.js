@@ -718,11 +718,35 @@ export default async function handler(req, res) {
             console.warn('[manage-agent] Remove debit failed (possible race):', debitErr.message);
             // Don't credit treasury — chips weren't debited
           } else {
-            await getSupabase().rpc('fn_credit_treasury', {
+            // CRITICAL: capture credit error. The previous code ignored
+            // fn_credit_treasury's return — if the credit failed, the
+            // chips were already debited from the member but never
+            // credited to treasury, vanishing into thin air. Now: log
+            // loudly and try to undo the debit so a retry is clean.
+            const { error: creditErr } = await getSupabase().rpc('fn_credit_treasury', {
               p_club_id: clubId,
               p_amount: balance,
             });
-            await getSupabase().from('chip_transactions').insert({
+            if (creditErr) {
+              console.warn('[manage-agent] CRITICAL: treasury credit of', balance, 'chips for removed member', targetUserId, 'in club', clubId, 'FAILED after debit succeeded:', creditErr?.message || creditErr);
+              // Compensating refund: re-credit the member's wallet so the
+              // chips aren't lost to the void. Member can then be removed
+              // again once treasury is healthy.
+              try {
+                const { error: refundErr } = await getSupabase().rpc('fn_credit_chips', {
+                  p_club_id: clubId,
+                  p_user_id: targetUserId,
+                  p_amount: balance,
+                });
+                if (refundErr) {
+                  console.warn('[manage-agent] Member refund ALSO failed — chips lost:', refundErr?.message || refundErr);
+                }
+              } catch (rfErr) {
+                console.warn('[manage-agent] Member refund threw:', rfErr?.message || rfErr);
+              }
+              return res.status(500).json({ success: false, error: 'Treasury credit failed — chips refunded, please retry' });
+            }
+            const { error: txErr } = await getSupabase().from('chip_transactions').insert({
               club_id: clubId,
               from_user_id: targetUserId,
               to_user_id: null,
@@ -730,6 +754,9 @@ export default async function handler(req, res) {
               transaction_type: 'withdrawal',
               notes: `Member removed — ${balance.toLocaleString()} chips returned to club treasury`,
             });
+            if (txErr) {
+              console.warn('[manage-agent] chip_transactions insert failed (debit/credit succeeded):', txErr?.message || txErr);
+            }
           }
         }
 

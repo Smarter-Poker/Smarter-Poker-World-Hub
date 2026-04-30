@@ -424,25 +424,42 @@ export default async function handler(req, res) {
             return res.status(400).json({ success: false, error: 'Cannot unregister from running tournament' });
           }
 
-          // Refund by unlocking chips (registration used lock_chips_for_table)
-          await getSupabase().rpc('unlock_chips_from_table', {
+          // Refund by unlocking chips (registration used lock_chips_for_table).
+          // CRITICAL: capture the error. Previously the call ignored the RPC
+          // result — if unlock_chips_from_table failed, the registration was
+          // STILL marked 'unregistered' below and the counter decremented,
+          // leaving the player permanently short their buy-in with no record
+          // they ever paid it.
+          const { error: unlockErr } = await getSupabase().rpc('unlock_chips_from_table', {
             p_user_id: user.id,
             p_club_id: tourn.club_id,
             p_table_id: tournamentId,
             p_amount: reg.buy_in_amount,
           });
+          if (unlockErr) {
+            console.warn('[tournaments/unregister] unlock_chips_from_table failed (refund NOT issued):', unlockErr?.message || unlockErr);
+            return res.status(500).json({ success: false, error: 'Refund failed — please retry' });
+          }
 
           // Update registration
-          await getSupabase()
+          const { error: regUpdErr } = await getSupabase()
             .from('tournament_registrations')
             .update({ status: 'unregistered' })
             .eq('id', reg.id);
+          if (regUpdErr) {
+            console.warn('[tournaments/unregister] registration status update failed (refund already issued):', regUpdErr?.message || regUpdErr);
+            // Do NOT re-debit — chips were unlocked. Player can re-register
+            // and the unique constraint will catch the dupe.
+          }
 
-          // Update count atomically
-          await getSupabase().rpc('fn_tournament_unregister_counter', {
+          // Update count atomically (cosmetic — counter only)
+          const { error: ctrErr } = await getSupabase().rpc('fn_tournament_unregister_counter', {
             p_tournament_id: tournamentId,
             p_buy_in: reg.buy_in_amount,
           });
+          if (ctrErr) {
+            console.warn('[tournaments/unregister] counter update failed (non-fatal):', ctrErr?.message || ctrErr);
+          }
 
           return res.json({ success: true });
         }

@@ -134,19 +134,31 @@ export default async function handler(req, res) {
 
                           for (const reg of (regsToRefund || [])) {
                               try {
-                                  // Refund chips
-                                  await getSupabase().rpc('unlock_chips_from_table', {
+                                  // Refund chips. CRITICAL: capture the error
+                                  // — if the unlock fails, do NOT mark the row
+                                  // as 'refunded' below. The previous code
+                                  // marked it refunded regardless, so any
+                                  // unlock failure permanently lost the
+                                  // player's buy-in with no record.
+                                  const { error: unlockErr } = await getSupabase().rpc('unlock_chips_from_table', {
                                       p_user_id: reg.user_id,
                                       p_club_id: tourn.club_id,
                                       p_table_id: tourn.id,
                                       p_amount: reg.buy_in_amount,
                                   });
+                                  if (unlockErr) {
+                                      console.warn('[TournCron] unlock failed for', reg.user_id, 'in tournament', tourn.id, '(skipping mark-refunded so a future cron run retries):', unlockErr?.message || unlockErr);
+                                      continue; // Try next registration; this one stays 'registered' for retry.
+                                  }
 
-                                  // Mark refunded
-                                  await getSupabase()
+                                  // Mark refunded only after a successful unlock.
+                                  const { error: markErr } = await getSupabase()
                                       .from('tournament_registrations')
                                       .update({ status: 'refunded' })
                                       .eq('id', reg.id);
+                                  if (markErr) {
+                                      console.warn('[TournCron] mark-refunded failed (refund already issued, will idempotently re-attempt next run if registered): ', markErr?.message || markErr);
+                                  }
 
                                   // Notify player
                                   await notifyUser(supabase, {
