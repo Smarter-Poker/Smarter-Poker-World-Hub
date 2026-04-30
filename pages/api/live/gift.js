@@ -158,7 +158,7 @@ export default async function handler(req, res) {
             title: 'Diamond Gift Received',
             message: `${senderName} sent you ${amount} diamonds during your live stream!`,
             actor_id: user.id,
-            link: `/hub/lives?id=${stream_id}`,
+            link: `/hub/social-media?stream=${stream_id}`,
             read: false,
         }).catch(() => {});
 

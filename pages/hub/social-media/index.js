@@ -6357,7 +6357,7 @@ function SocialMediaPage() {
                                                 </div>
                                                 <div style={{ flex: 1 }}>
                                                     <div style={{ fontSize: 15, color: C.text, lineHeight: 1.4 }}>
-                                                        <span style={{ fontWeight: 700 }}>{n.actor_name || n.metadata?.actor_name || n.title}</span>
+                                                        <span style={{ fontWeight: 700 }}>{n.actor_name || n.data?.actor_name || n.title}</span>
                                                         {' '}{n.message}
                                                     </div>
                                                     <div style={{ fontSize: 12, color: n.read ? C.textSec : C.blue, marginTop: 4, fontWeight: n.read ? 400 : 600 }}>
