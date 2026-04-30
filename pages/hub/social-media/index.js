@@ -4251,14 +4251,35 @@ function SocialMediaPage() {
     }, []);
     const introVideoRef = useRef(null);
 
-    // Mark intro as seen when it ends
+    // BUG FIX (2026-04-30 per Dan): on iOS Safari, simply unmounting the
+    // <video> element does NOT free a queued audio buffer that the browser
+    // had been waiting to play. The next user gesture (e.g. tapping
+    // Photo/Video) unlocks the audio context and the queued buffer plays
+    // 10–20 seconds later — sounds like the intro audio "randomly" appears
+    // long after the user clicked Skip. Fix: pause + mute + clear src
+    // before unmount, AND track skipped state in a ref so any late-firing
+    // onPlay event doesn't re-unmute.
+    const introSkippedRef = useRef(false);
     const handleIntroEnd = useCallback(() => {
+        introSkippedRef.current = true;
         sessionStorage.setItem('social-intro-seen', 'true');
+        const v = introVideoRef.current;
+        if (v) {
+            try {
+                v.pause();
+                v.muted = true;
+                v.removeAttribute('src');
+                v.load();   // forces the browser to drop the buffered audio
+            } catch (_) { /* best effort */ }
+        }
         setShowIntro(false);
     }, []);
 
-    // Attempt to unmute video after it starts playing
+    // Unmute video after first play event — but ONLY if the user hasn't
+    // already skipped. Without this guard, a buffered onPlay event fired
+    // post-skip would re-unmute and the queued audio would play.
     const handleIntroPlay = useCallback(() => {
+        if (introSkippedRef.current) return;
         if (introVideoRef.current) {
             introVideoRef.current.muted = false;
         }

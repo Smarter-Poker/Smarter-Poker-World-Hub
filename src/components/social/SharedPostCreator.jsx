@@ -186,27 +186,22 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
     //
     // CANCEL DETECTION: On iOS, tapping Cancel in the picker doesn't fire onChange.
     // We use visibilitychange as a secondary signal — when the picker dismisses,
-    // the page becomes visible. If no file was selected after 2s, clear the indicator.
-    // 120s hard safety timeout remains as ultimate backstop.
+    // visibilitychange-based clear was REMOVED 2026-04-30: iOS Safari does NOT
+    // fire visibilitychange when its file picker opens/closes, so this timer
+    // was both ineffective on iOS AND racing against the deferred clear in
+    // handleFiles. The banner now lifecycle: handleFiles raises it when a file
+    // is selected → cleared via thumbnailPromise OR 30s ceiling at the bottom
+    // of handleFiles. A 60s ultimate-backstop timer guards against stuck state
+    // if the deferred clear logic ever errors.
     useEffect(() => {
         if (!preparingMedia) return;
-        const handleVisibility = () => {
-            if (document.visibilityState === 'visible' && _pickerOpenRef.current) {
-                // Wait 2s for onChange to fire (transcoding may still be in progress)
-                setTimeout(() => {
-                    if (_pickerOpenRef.current) {
-                        setPreparingMedia(false);
-                        _pickerOpenRef.current = false;
-                    }
-                }, 2000);
+        const backstop = setTimeout(() => {
+            if (mountedRef.current) {
+                setPreparingMedia(false);
+                _pickerOpenRef.current = false;
             }
-        };
-        document.addEventListener('visibilitychange', handleVisibility);
-        const timer = setTimeout(() => { setPreparingMedia(false); _pickerOpenRef.current = false; }, 120_000);
-        return () => {
-            document.removeEventListener('visibilitychange', handleVisibility);
-            clearTimeout(timer);
-        };
+        }, 60_000);
+        return () => clearTimeout(backstop);
     }, [preparingMedia]);
 
     /**
@@ -1056,11 +1051,11 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                                                 border: '3px solid rgba(255,255,255,0.18)',
                                                 borderTopColor: '#fff',
                                                 animation: 'spThumbSpin 0.9s linear infinite',
+                                                WebkitAnimation: 'spThumbSpin 0.9s linear infinite',
                                             }} />
                                             <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', fontWeight: 600, letterSpacing: 0.3 }}>
                                                 Generating thumbnail…
                                             </span>
-                                            <style>{`@keyframes spThumbSpin { to { transform: rotate(360deg) } }`}</style>
                                         </div>
                                     )
                                 ) : (
@@ -1381,11 +1376,11 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         width: 22, height: 22, border: '3px solid rgba(255,255,255,0.35)',
                         borderTopColor: '#fff', borderRadius: '50%',
                         animation: 'spPrepSpin 0.8s linear infinite',
+                        WebkitAnimation: 'spPrepSpin 0.8s linear infinite',
                     }} />
                     <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: 0.2, flex: 1 }}>
                         Preparing your video — this may take a moment for longer clips…
                     </span>
-                    <style>{`@keyframes spPrepSpin { to { transform: rotate(360deg) } }`}</style>
                 </div>
             )}
             <div style={{ borderTop: `1px solid ${C.border}` }}>

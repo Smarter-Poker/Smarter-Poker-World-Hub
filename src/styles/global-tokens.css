@@ -126,3 +126,17 @@ body,
     border-color var(--world-transition),
     box-shadow var(--world-transition);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GLOBAL ANIMATION KEYFRAMES — added 2026-04-30
+   Inline <style>{`@keyframes ...`}</style> in React components proved
+   unreliable on iOS Safari (Dan reported "no clock animation" repeatedly
+   even when the spinner ring was visually present). Hoisted here so they
+   are loaded once at app boot and apply via animation: ... wherever needed.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@-webkit-keyframes spPrepSpin { to { -webkit-transform: rotate(360deg); transform: rotate(360deg); } }
+@keyframes spPrepSpin         { to { -webkit-transform: rotate(360deg); transform: rotate(360deg); } }
+
+@-webkit-keyframes spThumbSpin { to { -webkit-transform: rotate(360deg); transform: rotate(360deg); } }
+@keyframes spThumbSpin         { to { -webkit-transform: rotate(360deg); transform: rotate(360deg); } }
