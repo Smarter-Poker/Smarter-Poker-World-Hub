@@ -1119,38 +1119,43 @@ export function ReelsViewer({ onClose }) {
         }
     };
 
-    // Share to My Feed - creates a social_posts entry linking this reel
+    // Share to My Feed - uses API endpoint to bypass RLS/trigger issues
     const [sharingToFeed, setSharingToFeed] = useState(false);
     const [sharedToFeed, setSharedToFeed] = useState(false);
+    const [showShareDescriptionModal, setShowShareDescriptionModal] = useState(false);
+    const [shareDescription, setShareDescription] = useState('');
+
+    const openShareDescriptionModal = () => {
+        setShowShareModal(false);
+        setShareDescription('');
+        setShowShareDescriptionModal(true);
+    };
+
     const handleShareToFeed = async () => {
         if (!currentReel?.id || !currentUserId || sharingToFeed) return;
         setSharingToFeed(true);
+        setShowShareDescriptionModal(false);
         try {
-            const videoUrl = currentReel.video_url;
-            const caption = currentReel.caption || 'Check out this reel!';
-            const reelLink = window.location.origin + '/hub/reels?id=' + currentReel.id;
-            // #5 Duplicate guard
-            const { data: existing } = await supabase.from('social_posts')
-                .select('id').eq('author_id', currentUserId).eq('link_url', reelLink).limit(1);
-            if (existing && existing.length > 0) {
-                setSharedToFeed(true);
-                setSharingToFeed(false);
-                setTimeout(() => setSharedToFeed(false), 3000);
-                return;
-            }
-            const postContent = caption + '\n\n' + reelLink;
-            const { error } = await supabase.from('social_posts').insert({
-                author_id: currentUserId,
-                content: postContent,
-                content_type: videoUrl ? 'video' : 'text',
-                media_urls: videoUrl ? [videoUrl] : [],
-                visibility: 'public',
-                link_url: reelLink,
+            const token = getAccessToken();
+            const res = await fetch('/api/social/share-reel-to-feed', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                body: JSON.stringify({
+                    reel_id: currentReel.id,
+                    video_url: currentReel.video_url || null,
+                    caption: currentReel.caption || '',
+                    user_description: shareDescription.trim() || '',
+                }),
             });
-            if (error) throw error;
-            incrementMetric(currentReel, 'share_count', 1);
-            busEmit.socialPostShared(currentReel.id, currentUserId);
-            busEmit.dataMutated('social');
+            const result = await res.json();
+            if (!res.ok) throw new Error(result.error || 'Share failed');
+            if (result.already_shared) {
+                showErrorToast('Already shared this reel!');
+            } else {
+                incrementMetric(currentReel, 'share_count', 1);
+                busEmit.socialPostShared(currentReel.id, currentUserId);
+                busEmit.dataMutated('social');
+            }
             setSharedToFeed(true);
             setTimeout(() => { setSharedToFeed(false); }, 3000);
         } catch (err) {
@@ -1158,6 +1163,7 @@ export function ReelsViewer({ onClose }) {
             showErrorToast('Share failed \u2014 try again');
         }
         setSharingToFeed(false);
+        setShareDescription('');
     };
 
     // Reset comment drawer + caption + report + GIF + share on reel change
@@ -2073,8 +2079,8 @@ export function ReelsViewer({ onClose }) {
                                 <div style={{ width: 40, height: 4, background: 'rgba(255,255,255,0.2)', borderRadius: 2, margin: '0 auto 12px' }} />
                                 <div style={{ color: 'white', fontWeight: 700, fontSize: 16, marginBottom: 16 }}>Share This Reel</div>
                             </div>
-                            {/* PRIMARY: Share to My Feed */}
-                            <button onClick={handleShareToFeed} disabled={sharingToFeed || sharedToFeed} style={{
+                            {/* PRIMARY: Share to My Feed — opens description modal */}
+                            <button onClick={openShareDescriptionModal} disabled={sharingToFeed || sharedToFeed} style={{
                                 width: '100%', padding: '14px', borderRadius: 12, marginBottom: 14,
                                 background: sharedToFeed ? 'linear-gradient(135deg, #00c853, #69f0ae)' : 'linear-gradient(135deg, #0A84FF, #30D5C8)',
                                 color: 'white', fontWeight: 700, fontSize: 15, border: 'none',
@@ -2084,7 +2090,7 @@ export function ReelsViewer({ onClose }) {
                             }}>
                                 {sharedToFeed ? (
                                     <><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg> Shared to My Feed!</>
-                                ) : sharingToFeed ? 'Sharing...' : (
+                                ) : (
                                     <><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg> Share to My Feed</>
                                 )}
                             </button>
@@ -2126,6 +2132,74 @@ export function ReelsViewer({ onClose }) {
                             background: 'linear-gradient(90deg, #FF2D55, #FF6B6B)',
                             transition: 'width 0.1s linear',
                         }} />
+                    </div>
+                )}
+
+                {/* Share Description Modal */}
+                {showShareDescriptionModal && (
+                    <div
+                        onClick={() => setShowShareDescriptionModal(false)}
+                        style={{
+                            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)',
+                            zIndex: 10003, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            padding: 20,
+                        }}
+                    >
+                        <div onClick={e => e.stopPropagation()} style={{
+                            background: '#1a1a2e', borderRadius: 16, padding: '20px',
+                            width: '100%', maxWidth: 420, border: '1px solid rgba(255,255,255,0.1)',
+                        }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                                <div style={{ color: 'white', fontWeight: 700, fontSize: 17 }}>Share to My Feed</div>
+                                <button onClick={() => setShowShareDescriptionModal(false)} style={{
+                                    background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white',
+                                    width: 32, height: 32, borderRadius: '50%', cursor: 'pointer', fontSize: 16,
+                                }}>✕</button>
+                            </div>
+                            {currentReel?.caption && (
+                                <div style={{
+                                    background: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: '10px 12px',
+                                    marginBottom: 14, borderLeft: '3px solid #0A84FF',
+                                }}>
+                                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 600, marginBottom: 4 }}>SHARING REEL</div>
+                                    <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, lineHeight: 1.4 }}>
+                                        {currentReel.caption.length > 100 ? currentReel.caption.slice(0, 100) + '...' : currentReel.caption}
+                                    </div>
+                                </div>
+                            )}
+                            <textarea
+                                value={shareDescription}
+                                onChange={e => setShareDescription(e.target.value.slice(0, 500))}
+                                placeholder="Add your thoughts... (optional)"
+                                autoFocus
+                                style={{
+                                    width: '100%', minHeight: 100, padding: '12px 14px', borderRadius: 12,
+                                    background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+                                    color: 'white', fontSize: 15, resize: 'vertical', outline: 'none',
+                                    fontFamily: 'inherit', lineHeight: 1.5,
+                                }}
+                                onFocus={e => { e.target.style.borderColor = '#0A84FF'; }}
+                                onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.15)'; }}
+                            />
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, marginBottom: 16 }}>
+                                <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11 }}>{shareDescription.length}/500</span>
+                            </div>
+                            <button onClick={handleShareToFeed} disabled={sharingToFeed} style={{
+                                width: '100%', padding: '14px', borderRadius: 12,
+                                background: 'linear-gradient(135deg, #0A84FF, #30D5C8)',
+                                color: 'white', fontWeight: 700, fontSize: 15, border: 'none',
+                                cursor: sharingToFeed ? 'wait' : 'pointer', opacity: sharingToFeed ? 0.7 : 1,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                            }}>
+                                {sharingToFeed ? 'Posting...' : (
+                                    <><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg> Post to My Feed</>
+                                )}
+                            </button>
+                            <button onClick={() => { setShareDescription(''); handleShareToFeed(); }} disabled={sharingToFeed} style={{
+                                width: '100%', marginTop: 8, padding: '10px', background: 'transparent',
+                                border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 13, cursor: 'pointer', fontWeight: 500,
+                            }}>Skip Description — Share Now</button>
+                        </div>
                     </div>
                 )}
 
