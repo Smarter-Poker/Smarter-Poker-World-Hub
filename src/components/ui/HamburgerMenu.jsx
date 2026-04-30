@@ -409,7 +409,12 @@ export default function HamburgerMenu({
                     display: 'flex',
                     flexDirection: 'column',
                     overflowY: 'auto',
-                    paddingBottom: 80
+                    paddingBottom: 80,
+                    // CRITICAL: When closed, disable pointer/wheel event interception and
+                    // remove from hit-testing entirely. Without this, the off-screen fixed
+                    // drawer can still capture mouse wheel events on desktop browsers.
+                    pointerEvents: isOpen ? 'auto' : 'none',
+                    visibility: isOpen ? 'visible' : 'hidden',
                 }}>
                 {/* Close button */}
                 <div style={{ display: 'flex', justifyContent: 'flex-end', padding: 12 }}>

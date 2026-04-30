@@ -310,9 +310,6 @@ export default function ReelsPage() {
         if (!router.isReady) return;
         loadReels();
         // Lock body scroll so swipe gestures don't scroll the page behind the reels container
-        const origOverflow = document.body.style.overflow;
-        const origPosition = document.body.style.position;
-        const origTouchAction = document.body.style.touchAction;
         document.body.style.overflow = 'hidden';
         document.body.style.position = 'fixed';
         document.body.style.width = '100%';
@@ -320,10 +317,12 @@ export default function ReelsPage() {
         // Also lock <html> element for iOS Safari
         document.documentElement.style.overflow = 'hidden';
         return () => {
-            document.body.style.overflow = origOverflow;
-            document.body.style.position = origPosition;
+            // Always clear — don't restore saved values (race condition risk
+            // when multiple components compete for body scroll state)
+            document.body.style.overflow = '';
+            document.body.style.position = '';
             document.body.style.width = '';
-            document.body.style.touchAction = origTouchAction;
+            document.body.style.touchAction = '';
             document.documentElement.style.overflow = '';
         };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1435,12 +1434,17 @@ export default function ReelsPage() {
                         setYtReady(true); // YouTube confirmed playback — safe to show play button now
                         setIsPaused(false);
                         setYtError(null); // Clear any previous error on successful play
-                        // Auto-unmute after playback confirmed — this is the ONLY safe place
-                        // to unmute on mobile. Doing it earlier breaks autoplay.
+                        // Auto-unmute after playback confirmed — with retry loop
+                        // because the iframe just remounted and the API may not be fully ready
                         if (userWantsSoundRef.current) {
                             sendYouTubeCommand('unMute');
                             sendYouTubeCommand('setVolume', [100]);
                             setMuted(false);
+                            // Retry: iframe API sometimes isn't ready for unMute on first call
+                            [100, 300, 600].forEach(d => setTimeout(() => {
+                                sendYouTubeCommand('unMute');
+                                sendYouTubeCommand('setVolume', [100]);
+                            }, d));
                         }
                         setShowOverlay(true);
                         clearTimeout(hudTimerRef.current);
@@ -1717,10 +1721,13 @@ export default function ReelsPage() {
                     }}
                 >←</Link>
 
-                {/* Title */}
+                {/* Title — fades with overlay so it doesn't block video content */}
                 <div style={{
                     position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)',
                     color: 'white', fontWeight: 700, fontSize: 18, zIndex: 100,
+                    opacity: showOverlay ? 1 : 0,
+                    transition: 'opacity 0.3s ease',
+                    pointerEvents: 'none',
                 }}>
                     Reels
                 </div>

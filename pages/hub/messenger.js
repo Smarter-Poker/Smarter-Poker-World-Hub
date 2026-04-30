@@ -4543,6 +4543,12 @@ function MessengerPage() {
             return;
         }
 
+        // Block calls for message request conversations — must accept request first
+        if (activeConversation.isRequest) {
+            setToast({ type: 'error', message: 'Accept The Message Request Before Calling' });
+            return;
+        }
+
         // Block calls in group chats - only 1-on-1 calls are supported
         if (otherUser.isGroupChat) {
             setToast({ type: 'error', message: 'Calls Are Only Available In 1-on-1 Conversations' });
@@ -5751,6 +5757,9 @@ function MessengerPage() {
                                             }}
                                             title="Search Messages"
                                         ><SearchIcon size={20} /></button>
+                                        {/* Hide call buttons for message request conversations */}
+                                        {!activeConversation?.isRequest && (
+                                            <>
                                         <button
                                             onClick={() => startCall('audio')}
                                             title="Voice Call"
@@ -5767,6 +5776,8 @@ function MessengerPage() {
                                                 background: 'transparent', border: 'none', cursor: 'pointer',
                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                             }}><VideoIcon size={20} /></button>
+                                            </>
+                                        )}
                                         <button
                                             onClick={() => setShowUserInfo(!showUserInfo)}
                                             title="User Info"

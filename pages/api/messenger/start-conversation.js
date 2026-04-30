@@ -172,14 +172,31 @@ export default async function handler(req, res) {
         }
 
         if (foundId) {
-            // If existing conversation AND users became friends, clear request status
-            if (areFriends) {
-                await supabase.from('social_conversations')
-                    .update({ is_request: false })
-                    .eq('id', foundId)
-                    .eq('is_request', true);
+            // Existing conversation — check its current request status
+            const { data: convRow } = await supabase
+                .from('social_conversations')
+                .select('is_request, request_sender_id')
+                .eq('id', foundId)
+                .maybeSingle();
+
+            let isRequest = false;
+            if (convRow?.is_request) {
+                if (areFriends) {
+                    // Users became friends — auto-clear request status
+                    await supabase.from('social_conversations')
+                        .update({ is_request: false })
+                        .eq('id', foundId);
+                } else if (convRow.request_sender_id && convRow.request_sender_id !== user.id) {
+                    // Current user is the RECIPIENT and is actively messaging back — auto-accept
+                    await supabase.from('social_conversations')
+                        .update({ is_request: false })
+                        .eq('id', foundId);
+                } else {
+                    // Current user is the sender — request still pending
+                    isRequest = true;
+                }
             }
-            return res.status(200).json({ success: true, conversationId: foundId, created: false, isRequest: false });
+            return res.status(200).json({ success: true, conversationId: foundId, created: false, isRequest });
         }
 
         // Create new conversation — set is_request based on friendship status

@@ -40,6 +40,38 @@ export default async function handler(req, res) {
       }
 
       try {
+          // Defense-in-depth: Verify caller has a shared non-request conversation with callee
+          const { data: callerConvs } = await getSupabase()
+              .from('social_conversation_participants')
+              .select('conversation_id')
+              .eq('user_id', callerId)
+              .limit(200);
+          const callerConvIds = (callerConvs || []).map(c => c.conversation_id);
+
+          if (callerConvIds.length > 0) {
+              const { data: sharedConv } = await getSupabase()
+                  .from('social_conversation_participants')
+                  .select('conversation_id')
+                  .eq('user_id', calleeId)
+                  .in('conversation_id', callerConvIds)
+                  .limit(1);
+
+              if (sharedConv && sharedConv.length > 0) {
+                  // Check if the shared conversation is a pending request
+                  const { data: convRow } = await getSupabase()
+                      .from('social_conversations')
+                      .select('is_request')
+                      .eq('id', sharedConv[0].conversation_id)
+                      .maybeSingle();
+                  if (convRow?.is_request) {
+                      return res.status(403).json({ success: false, error: 'Cannot call — message request not accepted yet' });
+                  }
+              } else {
+                  return res.status(403).json({ success: false, error: 'No shared conversation with this user' });
+              }
+          } else {
+              return res.status(403).json({ success: false, error: 'No conversations found' });
+          }
           // Delete any existing pending calls from this caller to this callee
           await getSupabase()
               .from('pending_calls')

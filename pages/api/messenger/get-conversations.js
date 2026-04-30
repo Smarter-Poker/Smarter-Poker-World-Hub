@@ -271,6 +271,7 @@ export default async function handler(req, res) {
                     otherUser,
                     unreadCount: unreadCounts[conv.id] || 0,
                     last_read_at: participationMap[conv.id]?.last_read_at,
+                    isRequest: conv.is_request || false,
                 };
             })
             .filter(Boolean)

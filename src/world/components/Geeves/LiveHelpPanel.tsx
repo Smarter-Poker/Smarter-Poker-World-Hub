@@ -131,39 +131,39 @@ export function LiveHelpPanel({
 
     return (
         <div data-geeves-live-help="true" style={{ display: 'contents' }}>
-            {/* Backdrop */}
-            <div
-                onClick={onClose}
-                style={{
-                    position: 'fixed',
-                    inset: 0,
-                    background: 'rgba(0, 0, 0, 0.4)',
-                    opacity: isOpen ? 1 : 0,
-                    pointerEvents: isOpen ? 'auto' : 'none',
-                    transition: 'opacity 0.3s ease',
-                    zIndex: 200,
-                }}
-            />
+            {/* Backdrop — only rendered when panel is open */}
+            {isOpen && (
+                <div
+                    onClick={onClose}
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        background: 'rgba(0, 0, 0, 0.4)',
+                        zIndex: 200,
+                        animation: 'geevesBackdropIn 0.3s ease',
+                    }}
+                />
+            )}
 
-            {/* Panel */}
-            <div
-                style={{
-                    position: 'fixed',
-                    right: 0,
-                    top: 0,
-                    bottom: 0,
-                    width: styles.width,
-                    maxWidth: '100vw',
-                    background: colors.background,
-                    border: `1px solid ${colors.border}`,
-                    borderRight: 'none',
-                    transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
-                    transition: 'transform 0.3s ease',
-                    zIndex: 201,
-                    display: 'flex',
-                    flexDirection: 'column',
-                }}
-            >
+            {/* Panel — only rendered when open */}
+            {isOpen && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        right: 0,
+                        top: 0,
+                        bottom: 0,
+                        width: styles.width,
+                        maxWidth: '100vw',
+                        background: colors.background,
+                        border: `1px solid ${colors.border}`,
+                        borderRight: 'none',
+                        zIndex: 201,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        animation: 'geevesPanelIn 0.3s ease',
+                    }}
+                >
                 {/* Header */}
                 <div
                     style={{
@@ -351,6 +351,19 @@ export function LiveHelpPanel({
                     </div>
                 </div>
             </div>
+            )}
+
+            {/* CSS Animations for open/close */}
+            <style>{`
+                @keyframes geevesBackdropIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes geevesPanelIn {
+                    from { transform: translateX(100%); }
+                    to { transform: translateX(0); }
+                }
+            `}</style>
         </div>
     );
 }

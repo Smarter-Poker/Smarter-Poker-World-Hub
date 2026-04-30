@@ -405,6 +405,18 @@ function NavigationGuard({ children }) {
       setIsNavigating(false);
       // Scroll to the very top so the global header is always visible
       window.scrollTo(0, 0);
+      // ═══════════════════════════════════════════════════════════════════
+      // SCROLL SAFETY VALVE — Clear any stale overflow:hidden left by
+      // modals, reels, or overlays that failed to restore body scroll
+      // during their unmount cleanup. This prevents the "can't scroll"
+      // regression on desktop that occurs when components set
+      // document.body.style.overflow = 'hidden' but don't reset it.
+      // ═══════════════════════════════════════════════════════════════════
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.touchAction = '';
+      document.documentElement.style.overflow = '';
     };
 
     router.events.on('routeChangeStart', handleStart);

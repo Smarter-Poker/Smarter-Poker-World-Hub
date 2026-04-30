@@ -586,19 +586,19 @@ function ReelViewer({ reels, startIndex, onClose }) {
 
     // Lock body scroll while ReelViewer is mounted
     useEffect(() => {
-        const origOverflow = document.body.style.overflow;
-        const origPosition = document.body.style.position;
-        const origTouchAction = document.body.style.touchAction;
         document.body.style.overflow = 'hidden';
         document.body.style.position = 'fixed';
         document.body.style.width = '100%';
         document.body.style.touchAction = 'none';
         document.documentElement.style.overflow = 'hidden';
         return () => {
-            document.body.style.overflow = origOverflow;
-            document.body.style.position = origPosition;
+            // Always clear — don't try to restore "original" values because
+            // another component may have set overflow:hidden between mount
+            // and unmount, making the saved value stale.
+            document.body.style.overflow = '';
+            document.body.style.position = '';
             document.body.style.width = '';
-            document.body.style.touchAction = origTouchAction;
+            document.body.style.touchAction = '';
             document.documentElement.style.overflow = '';
         };
     }, []);

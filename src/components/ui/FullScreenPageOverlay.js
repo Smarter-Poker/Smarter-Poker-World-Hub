@@ -21,7 +21,6 @@ export default function FullScreenPageOverlay({ isOpen, onClose, url, title, onN
             return;
         }
 
-        const prev = document.body.style.overflow;
         document.body.style.overflow = 'hidden';
 
         const handleKey = (e) => {
@@ -30,7 +29,8 @@ export default function FullScreenPageOverlay({ isOpen, onClose, url, title, onN
         window.addEventListener('keydown', handleKey);
 
         return () => {
-            document.body.style.overflow = prev;
+            // Always clear — don't restore saved value (race condition risk)
+            document.body.style.overflow = '';
             window.removeEventListener('keydown', handleKey);
         };
     }, [isOpen, onClose]);

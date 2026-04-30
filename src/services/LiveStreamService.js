@@ -137,6 +137,9 @@ class LiveStreamService {
         // 5. Notify followers
         this._notifyFollowers(userId, title || 'Live Stream', stream.id);
 
+        // 6. Create feed post so the live stream appears in the news feed
+        this._createLiveFeedPost(stream.id, title || 'Live Stream');
+
         console.debug('🔴 LiveKit broadcast started:', stream.id);
         return { streamId: stream.id, stream };
     }
@@ -528,6 +531,9 @@ class LiveStreamService {
         }
         // Reset remote stream guard for next join
         this._remoteStreamDelivered = false;
+        this._remoteMediaStream = null;
+        // Clean up any LiveKit audio elements attached to body
+        document.querySelectorAll('[id^="livekit-audio-"]').forEach(el => el.remove());
         console.debug('[LiveKit] Left stream:', this.currentStreamId);
         this.currentStreamId = null;
     }
@@ -661,6 +667,21 @@ class LiveStreamService {
                 credentials: 'same-origin',
             });
         } catch (err) { logError('notifyFollowers', err); }
+    }
+
+    async _createLiveFeedPost(streamId, title) {
+        try {
+            const token = getAccessToken();
+            await fetch('/api/live/create-live-post', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                body: JSON.stringify({ stream_id: streamId, title }),
+                credentials: 'same-origin',
+            });
+        } catch (err) { logError('createLiveFeedPost', err); }
     }
 
     // ═══════════════════════════════════════════════════

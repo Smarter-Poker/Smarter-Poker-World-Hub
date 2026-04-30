@@ -908,6 +908,49 @@ const PostCard = React.memo(function PostCard({ post, currentUserId, currentUser
                     <style>{`@keyframes sp-heart-pop { 0% { opacity: 1; transform: translate(-50%, -50%) scale(0.5); } 40% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1.4); } }`}</style>
                     {post.mediaUrls.length === 1 ? (
                         // Single media - full width
+                        post.contentType === 'live' ? (
+                            // LIVE STREAM: Show prominent live card with pulsing badge
+                            <div
+                                onClick={() => {
+                                    const streamId = post.metadata?.stream_id;
+                                    if (streamId) router.push(`/hub/social-media?stream=${streamId}`);
+                                }}
+                                style={{ position: 'relative', cursor: 'pointer', background: '#000', borderRadius: 8, overflow: 'hidden', aspectRatio: '16/9' }}
+                            >
+                                {post.mediaUrls[0] && (
+                                    <img src={post.mediaUrls[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.7 }} onError={e => { e.target.style.display = 'none'; }} />
+                                )}
+                                {/* Pulsing LIVE badge */}
+                                <div style={{
+                                    position: 'absolute', top: 12, left: 12,
+                                    background: '#FF0000', color: 'white',
+                                    padding: '4px 12px', borderRadius: 6,
+                                    fontSize: 13, fontWeight: 800, letterSpacing: 1,
+                                    animation: 'sp-live-pulse 1.5s ease-in-out infinite',
+                                    display: 'flex', alignItems: 'center', gap: 6,
+                                }}>
+                                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'white', display: 'inline-block' }} />
+                                    LIVE NOW
+                                </div>
+                                {/* Watch Now CTA */}
+                                <div style={{
+                                    position: 'absolute', bottom: 0, left: 0, right: 0,
+                                    background: 'linear-gradient(transparent, rgba(0,0,0,0.85))',
+                                    padding: '32px 16px 16px',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                }}>
+                                    <div style={{
+                                        background: C.blue, color: 'white',
+                                        padding: '10px 28px', borderRadius: 24,
+                                        fontSize: 15, fontWeight: 700,
+                                        boxShadow: '0 4px 12px rgba(24,119,242,0.4)',
+                                    }}>
+                                        Watch Now
+                                    </div>
+                                </div>
+                                <style>{`@keyframes sp-live-pulse { 0%, 100% { box-shadow: 0 0 8px rgba(255,0,0,0.4); } 50% { box-shadow: 0 0 20px rgba(255,0,0,0.8); } }`}</style>
+                            </div>
+                        ) :
                         post.contentType === 'video' ? (
                             // VIDEO: Use VideoPostWrapper to handle broken video detection
                             // Click routes to immersive Reels equivalent
@@ -6883,8 +6926,8 @@ function SocialMediaPage() {
                 </div>
             )}
 
-            {/* Scroll-to-top FAB */}
-            {showScrollTop && (
+            {/* Scroll-to-top FAB — hidden during live stream viewing */}
+            {showScrollTop && !watchingStream && (
                 <button
                     onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
                     style={{
