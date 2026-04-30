@@ -2448,6 +2448,7 @@ function MessengerPage() {
     // DEEP-SWEEP FIX: callTypeRef prevents stale closure in broadcast handlers
     const callTypeRef = useRef(callType);
     useEffect(() => { callTypeRef.current = callType; }, [callType]);
+    const typingChannelRef = useRef(null);
 
     // Menu config with handlers
     const menuConfig = getMenuConfig('messenger', user, preferences, {
@@ -2908,12 +2909,13 @@ function MessengerPage() {
 
                 // FIX #9: Delivery confirmation — broadcast back to sender that we received their message
                 try {
-                    const deliveryChannel = supabase.channel(`typing:${activeConversation.id}`);
-                    deliveryChannel.send({
-                        type: 'broadcast',
-                        event: 'delivered',
-                        payload: { messageId: newMsg.id, receiverId: user.id },
-                    }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+                    if (typingChannelRef.current) {
+                        typingChannelRef.current.send({
+                            type: 'broadcast',
+                            event: 'delivered',
+                            payload: { messageId: newMsg.id, receiverId: user.id },
+                        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+                    }
                 } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
                 // Update conversation preview and re-sort to move to top
@@ -2991,8 +2993,11 @@ function MessengerPage() {
                 }
             })
             .subscribe();
+            
+        typingChannelRef.current = typingChannel;
 
         return () => {
+            typingChannelRef.current = null;
             supabase.removeChannel(typingChannel);
             // Clean up any pending typing timeout on conversation switch
             if (typingTimerRef.current) {
@@ -3254,13 +3259,13 @@ function MessengerPage() {
         const now = Date.now();
         if (now - lastTypingBroadcast.current < 2000) return; // Throttle: max once per 2s
         lastTypingBroadcast.current = now;
-        // Supabase reuses channels with the same name, so this is safe
-        const ch = supabase.channel(`typing:${activeConversation.id}`);
-        ch.send({
-            type: 'broadcast',
-            event: 'typing',
-            payload: { userId: user.id, username: user.username },
-        }).catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
+        if (typingChannelRef.current) {
+            typingChannelRef.current.send({
+                type: 'broadcast',
+                event: 'typing',
+                payload: { userId: user.id, username: user.username },
+            }).catch(e => { console.warn('[App] Handled promise rejection:', e?.message || e); });
+        }
     };
 
     const loadConversations = async (userId) => {
@@ -3484,12 +3489,13 @@ function MessengerPage() {
             // Read from ref to avoid stale closure in long-lived callback
             if (preferencesRef.current.readReceipts !== false) {
                 try {
-                    const typingCh = supabase.channel(`typing:${conversationId}`);
-                    typingCh.send({
-                        type: 'broadcast',
-                        event: 'read_receipt',
-                        payload: { readerId: user.id, conversationId },
-                    }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+                    if (typingChannelRef.current) {
+                        typingChannelRef.current.send({
+                            type: 'broadcast',
+                            event: 'read_receipt',
+                            payload: { readerId: user.id, conversationId },
+                        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+                    }
                 } catch { /* non-critical */ }
             }
 
@@ -6134,7 +6140,7 @@ function MessengerPage() {
                                     </div>
                                 )}
 
-                                <MessageInput onSend={handleSendMessage} onTyping={broadcastTyping} onMediaUpload={handleMediaUpload} onGifSend={handleGifSend} onVoiceSend={handleVoiceSend} />
+                                <MessageInput key={activeConversation.id} onSend={handleSendMessage} onTyping={broadcastTyping} onMediaUpload={handleMediaUpload} onGifSend={handleGifSend} onVoiceSend={handleVoiceSend} />
                             </>
                         ) : (
                             /* No conversation selected */
