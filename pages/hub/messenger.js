@@ -3123,6 +3123,7 @@ function MessengerPage() {
                 setShowCall(false);
                 setCallRoomName('');
                 setCallingUser(null);
+                setIncomingCall(null);
                 setToast({ type: 'info', message: 'Call Ended' });
                 // Stop any ringing (Web Audio only now)
                 if (outgoingRingToneRef.current) outgoingRingToneRef.current.stop();
@@ -4455,6 +4456,25 @@ function MessengerPage() {
         const handleUnload = () => {
             updateDbPresence(false);
             presenceChannel.untrack();
+            
+            // EDGE-CASE FIX: If user closes tab while calling/in-call, clean up pending calls
+            if (showCallRef.current || callingUserRef.current) {
+                const token = getAccessToken();
+                if (token && user?.id) {
+                    try {
+                        // keepalive: true ensures the request completes even after the tab closes
+                        fetch('/api/calls/cancel', {
+                            method: 'POST',
+                            keepalive: true,
+                            headers: {
+                                'Content-Type': 'application/json',
+                                Authorization: `Bearer ${token}`
+                            },
+                            body: JSON.stringify({ callerId: user.id, calleeId: activeConversationRef.current?.otherUser?.id || user.id })
+                        }).catch(() => {});
+                    } catch (e) { /* ignore */ }
+                }
+            }
         };
         window.addEventListener('beforeunload', handleUnload);
 
@@ -4691,8 +4711,13 @@ function MessengerPage() {
         setToast({ type: 'info', message: `Calling ${otherUser.full_name || otherUser.username}...` });
     };
 
+    const isEndingCallRef = useRef(false);
     // End call - notify the other party
     const endCall = async () => {
+        if (!showCallRef.current && !callingUserRef.current) return;
+        if (isEndingCallRef.current) return;
+        isEndingCallRef.current = true;
+
         // BUG-7 FIX: Stop ALL audio sources immediately
         if (outgoingRingToneRef.current) {
             outgoingRingToneRef.current.stop();
@@ -4785,6 +4810,11 @@ function MessengerPage() {
         setCallRoomName('');
         setCallingUser(null);
         setToast({ type: 'info', message: 'Call Ended' });
+        
+        // Reset the flag so future calls can be ended
+        setTimeout(() => {
+            isEndingCallRef.current = false;
+        }, 1000);
     };
 
     // BUG-4 FIX: Clean up ring tone AudioContext on component unmount

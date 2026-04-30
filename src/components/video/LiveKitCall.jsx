@@ -82,6 +82,17 @@ function VideoCallUI({ onLeave }) {
         ],
         { onlySubscribed: false }
     );
+    
+    // Auto-end call if the other participant leaves after joining
+    const [hasOtherJoined, setHasOtherJoined] = useState(false);
+    useEffect(() => {
+        if (participants.length > 1) {
+            setHasOtherJoined(true);
+        } else if (hasOtherJoined && participants.length === 1) {
+            // Other person left the room
+            onLeave();
+        }
+    }, [participants.length, hasOtherJoined, onLeave]);
 
     return (
         <div style={{
