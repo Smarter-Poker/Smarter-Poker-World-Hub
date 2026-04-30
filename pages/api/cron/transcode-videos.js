@@ -268,6 +268,33 @@ export default async function handler(req, res) {
             .update({ video_url: newPublicUrl })
             .eq('source_post_id', post.id);
 
+        // Back-prop to social_page_posts when this row is a club-page mirror
+        // — without this, viewers ON the club page still see the broken HEVC
+        // URL even though the global feed has the H.264 MP4. Source post ID
+        // lives in the mirror's metadata.source_post_id.
+        const sourcePostId = post.metadata?.source_post_id;
+        if (sourcePostId) {
+            try {
+                // Fetch existing social_page_posts row to compute new media_urls
+                const { data: spp } = await supa
+                    .from('social_page_posts')
+                    .select('id, media_urls')
+                    .eq('id', sourcePostId)
+                    .maybeSingle();
+                if (spp) {
+                    const sppNewUrls = Array.isArray(spp.media_urls) && spp.media_urls.length > 0
+                        ? [newPublicUrl, ...spp.media_urls.slice(1)]
+                        : [newPublicUrl];
+                    await supa.from('social_page_posts')
+                        .update({ media_urls: sppNewUrls, thumbnail_url: spp.thumbnail_url || null })
+                        .eq('id', sourcePostId);
+                }
+            } catch (e) {
+                // Don't fail the whole transcode just because back-prop failed
+                console.warn('[transcode] social_page_posts back-prop failed:', e?.message || e);
+            }
+        }
+
         return res.status(200).json({
             processed: 1,
             post_id: post.id,
