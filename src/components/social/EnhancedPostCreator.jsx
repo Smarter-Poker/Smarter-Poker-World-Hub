@@ -985,7 +985,16 @@ export const EnhancedPostCreator = ({
           }}>
             <div style={{
               width: 16, height: 16, border: '2.5px solid #1877F2', borderTopColor: 'transparent',
-              borderRadius: '50%', animation: 'spin 0.8s linear infinite'
+              borderRadius: '50%',
+              // GPU compositing parity with SharedPostCreator (audit-2 2026-04-30):
+              // generic `spin` keyframe + no transform layer was getting
+              // rate-limited by iOS Safari during HEVC decode. Use the same
+              // spPrepSpin/translateZ(0) hint the primary path now uses.
+              animation: 'spPrepSpin 0.8s linear infinite',
+              WebkitAnimation: 'spPrepSpin 0.8s linear infinite',
+              willChange: 'transform',
+              WebkitTransform: 'translateZ(0)',
+              transform: 'translateZ(0)',
             }} />
             <span style={{ fontSize: 13, fontWeight: 600, color: '#1877F2' }}>
               Preparing Your Video — This May Take A Moment...
@@ -1363,7 +1372,14 @@ export const EnhancedPostCreator = ({
           }}>
             <div style={{
               width: 16, height: 16, border: '2.5px solid #1877F2', borderTopColor: 'transparent',
-              borderRadius: '50%', animation: 'spin 0.8s linear infinite'
+              borderRadius: '50%',
+              // GPU compositing parity with SharedPostCreator (audit-2 2026-04-30) — see note on the
+              // sibling banner above for why generic `spin` was insufficient on iOS.
+              animation: 'spPrepSpin 0.8s linear infinite',
+              WebkitAnimation: 'spPrepSpin 0.8s linear infinite',
+              willChange: 'transform',
+              WebkitTransform: 'translateZ(0)',
+              transform: 'translateZ(0)',
             }} />
             <span style={{ fontSize: 13, fontWeight: 600, color: '#1877F2' }}>
               Preparing Your Video — This May Take A Moment...

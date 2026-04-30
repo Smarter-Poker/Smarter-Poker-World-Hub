@@ -112,6 +112,7 @@ export function generateThumbnail(file, timeSeconds = 2) {
 
         let resolved = false;
         let attemptedSeek = false;
+        let seekInFlight = false; // becomes true once we kick the seek-fallback so loadeddata/loadedmetadata can't re-enter captureFrame and bail
         const finish = (val) => { if (resolved) return; resolved = true; cleanup(); resolve(val); };
 
         // Hard cap: even with the first-frame fast-path, never block staging
@@ -122,6 +123,15 @@ export function generateThumbnail(file, timeSeconds = 2) {
         const timeoutId = setTimeout(() => finish(null), 8000);
 
         const captureFrame = () => {
+            // RACE FIX (2026-04-30 audit-2): if a previous captureFrame call
+            // already initiated a seek-to-2s fallback, ignore subsequent
+            // captureFrame entries from loadeddata/loadedmetadata. Without
+            // this, when both events fire with readyState>=2 within the same
+            // tick AND the first frame is blank, the second handler sees
+            // attemptedSeek=true on its blank-check and falls through to
+            // finish(null), sabotaging the seek recovery before onseeked
+            // gets a chance to fire.
+            if (resolved || seekInFlight) return;
             try {
                 const canvas = document.createElement('canvas');
                 const maxDim = 480;
@@ -155,6 +165,11 @@ export function generateThumbnail(file, timeSeconds = 2) {
                         // most security cam footage). Still bounded by the 8s
                         // hard timeout above.
                         attemptedSeek = true;
+                        seekInFlight = true; // gate further loadeddata/loadedmetadata re-entry
+                        // Detach the load-event handlers so only onseeked can
+                        // re-enter captureFrame once the seek completes.
+                        video.onloadeddata = null;
+                        video.onloadedmetadata = null;
                         const seekTo = Math.min(timeSeconds, (video.duration || 10) * 0.1 || 0.5);
                         video.currentTime = seekTo;
                         return; // will re-enter via onseeked
@@ -208,7 +223,9 @@ export function generateThumbnail(file, timeSeconds = 2) {
             }
         } catch (_) { /* play() not supported in this context — rely on preload */ }
 
-        setTimeout(() => finish(null), 8000); // 8s timeout (iOS can be slow)
+        // NOTE: the 8s hard cap is set near the top via `timeoutId`. The old
+        // version had a duplicate setTimeout here too — removed in audit-2 so
+        // a single timer governs the budget and gets cleared on success.
     });
 }
 
