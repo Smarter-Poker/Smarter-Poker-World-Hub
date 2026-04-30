@@ -157,13 +157,16 @@ const nextConfig = {
     ],
 
     // ─── Output File Tracing — INCLUDE binary deps for the transcode cron ─────
-    // ffmpeg-installer + ffprobe-installer ship platform-specific binaries that
-    // Vercel's tracer sometimes misses. Include them explicitly so the
-    // /api/cron/transcode-videos function actually has executables to spawn.
+    // ffmpeg-installer + ffprobe-installer ship platform-specific binaries.
+    // Vercel builds on linux-x64; we need that subdir + the wrapper module's
+    // index.js + the package.json. Explicit globs are safer than `**/*`
+    // because the tracer sometimes silently drops executable bits.
     outputFileTracingIncludes: {
       'pages/api/cron/transcode-videos': [
-        'node_modules/@ffmpeg-installer/**/*',
-        'node_modules/@ffprobe-installer/**/*',
+        'node_modules/@ffmpeg-installer/ffmpeg/**/*',
+        'node_modules/@ffmpeg-installer/linux-x64/**/*',
+        'node_modules/@ffprobe-installer/ffprobe/**/*',
+        'node_modules/@ffprobe-installer/linux-x64/**/*',
       ],
     },
 

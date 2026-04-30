@@ -56,8 +56,15 @@ export const config = {
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const FFMPEG_BIN = ffmpegPath?.path || ffmpegPath;
-const FFPROBE_BIN = ffprobePath?.path || ffprobePath;
+// Validate binaries are strings BEFORE we hand them to spawn(), otherwise
+// Node coerces an object to "[object Object]" and spawn fails with ENOENT.
+const _binPath = (x) => {
+    if (typeof x === 'string') return x;
+    if (x && typeof x.path === 'string') return x.path;
+    return null;
+};
+const FFMPEG_BIN = _binPath(ffmpegPath);
+const FFPROBE_BIN = _binPath(ffprobePath);
 
 // Map source URL (full public URL) to its storage path within the bucket.
 function urlToBucketPath(url) {
@@ -106,10 +113,24 @@ export default async function handler(req, res) {
     if (!SERVICE_KEY) {
         return res.status(500).json({ error: 'Server not configured (no service key)' });
     }
+    if (!FFMPEG_BIN || !FFPROBE_BIN) {
+        return res.status(500).json({ error: 'ffmpeg/ffprobe binaries missing in bundle' });
+    }
 
     const supa = createClient(SUPABASE_URL, SERVICE_KEY, {
         auth: { persistSession: false, autoRefreshToken: false },
     });
+
+    // 0. Auto-recovery: any post stuck in 'running' for >10 minutes is a
+    //    zombie (function timeout, crash, etc.). Re-queue it so this run
+    //    or a later one will retry. Without this, a single Vercel timeout
+    //    parks the post in 'running' forever.
+    try {
+        await supa.from('social_posts')
+            .update({ transcode_status: 'queued' })
+            .eq('transcode_status', 'running')
+            .lt('transcoded_at', new Date(Date.now() - 10 * 60 * 1000).toISOString());
+    } catch (_) { /* best-effort */ }
 
     // 1. Pick ONE queued post (oldest first — fairness).
     const { data: queue, error: qErr } = await supa
@@ -147,14 +168,34 @@ export default async function handler(req, res) {
     }
     const dstBucketPath = toMp4Path(srcBucketPath);
 
-    // 2. Mark running so concurrent invocations don't double-process.
-    await supa.from('social_posts').update({ transcode_status: 'running' }).eq('id', post.id);
+    // 2. Atomic queue claim — UPDATE only if STILL queued. Returns 0 rows if
+    //    the parallel Hetzner worker already grabbed it; we bail without
+    //    competing. Without this guard both workers could re-encode the same
+    //    post and waste compute (output is identical so no data loss, just
+    //    waste). This is the optimistic-concurrency win.
+    const { data: claim, error: claimErr } = await supa
+        .from('social_posts')
+        .update({ transcode_status: 'running', transcoded_at: new Date().toISOString() })
+        .eq('id', post.id)
+        .eq('transcode_status', 'queued')
+        .select('id');
+    if (claimErr || !claim || claim.length === 0) {
+        return res.status(200).json({
+            processed: 0,
+            message: 'already claimed by another worker',
+            post_id: post.id,
+        });
+    }
 
-    const work = await mkdtemp(join(tmpdir(), 'tx-'));
-    const inFile = join(work, 'in' + (srcBucketPath.match(/\.[^.]+$/)?.[0] || '.mov'));
-    const outFile = join(work, 'out.mp4');
-
+    // 3. Allocate work dir INSIDE the try so /tmp pressure (mkdtemp throw)
+    //    can't leave the post stuck in 'running' — the catch below will
+    //    revert to 'failed' with a clear error.
+    let work = null;
     try {
+        work = await mkdtemp(join(tmpdir(), 'tx-'));
+        const inFile = join(work, 'in' + (srcBucketPath.match(/\.[^.]+$/)?.[0] || '.mov'));
+        const outFile = join(work, 'out.mp4');
+
         // 3. Download source (uses public URL — no auth needed for public bucket).
         const r = await fetch(srcUrl);
         if (!r.ok) throw new Error(`download status ${r.status}`);
