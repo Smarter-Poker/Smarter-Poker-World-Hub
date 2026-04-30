@@ -177,15 +177,25 @@ export default async function handler(req, res) {
             authDeleteError = err?.message || String(err);
         }
 
-        // Stage 3 — mark completed
+        // Stage 3 — mark completed.
+        // RPC returns {data, error}; previously ignoring the error half left
+        // gdpr_request rows pending forever on RPC failure — compliance gap.
         if (authDeleted && requestId) {
             try {
-                await supabase.rpc("fn_mark_gdpr_completed", {
+                const { error: markErr } = await supabase.rpc("fn_mark_gdpr_completed", {
                     p_request_id: requestId,
                 });
+                if (markErr) {
+                    console.warn(
+                        "[GDPR admin] fn_mark_gdpr_completed RPC error — request",
+                        requestId,
+                        "stays 'pending' but auth user IS deleted:",
+                        markErr?.message || markErr
+                    );
+                }
             } catch (markErr) {
                 console.warn(
-                    "[GDPR admin] fn_mark_gdpr_completed failed:",
+                    "[GDPR admin] fn_mark_gdpr_completed threw:",
                     markErr?.message || markErr
                 );
             }
