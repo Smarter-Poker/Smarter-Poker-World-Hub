@@ -147,10 +147,15 @@ export default async function handler(req, res) {
                 return res.status(500).json({ success: false, error: 'Internal server error' });
             }
 
-            // Recalculate trust score after deletion
+            // Recalculate trust score after deletion. RPC errors don't throw —
+            // capture explicitly so a real RPC failure logs instead of leaving
+            // the venue trust_score stale.
             if (existing?.venue_id) {
                 try {
-                    await getSupabase().rpc('recalculate_venue_trust_score', { p_venue_id: String(existing.venue_id) });
+                    const { error: trustErr } = await getSupabase().rpc('recalculate_venue_trust_score', { p_venue_id: String(existing.venue_id) });
+                    if (trustErr) {
+                        console.warn('[Admin Reviews DELETE] trust_score recalc RPC error (score stale):', trustErr?.message || trustErr);
+                    }
                 } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
             }
 

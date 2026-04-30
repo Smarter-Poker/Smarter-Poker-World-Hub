@@ -233,15 +233,23 @@ export default async function handler(req, res) {
                     // record. Without this, the referrer keeps their bonus AND the referee can
                     // retry — paying the referrer twice.
                     try {
-                        await supabase.rpc('add_diamonds_to_balance', {
+                        // CRITICAL: capture RPC errors. Supabase rpc() returns
+                        // {data, error} and does NOT throw — the previous catch
+                        // only caught network exceptions, so a real reversal
+                        // failure left the referrer overpaid forever with no
+                        // log to reconcile from. Money-loss class.
+                        const { error: revErr } = await supabase.rpc('add_diamonds_to_balance', {
                             p_user_id: referrer.id,
                             p_amount: -REFERRAL_BONUS_REFERRER,
                             p_type: 'referral_bonus_reversal',
                             p_description: `Referral bonus reversal — referee credit failed`,
                             p_reference_id: user.id,
                         });
+                        if (revErr) {
+                            console.warn('[Referral] CRITICAL: reversal RPC failed — referrer', referrer.id, 'is overpaid by', REFERRAL_BONUS_REFERRER, ':', revErr?.message || revErr);
+                        }
                     } catch (compErr) {
-                        console.warn('[Referral] Referrer compensation reversal failed:', compErr?.message || compErr);
+                        console.warn('[Referral] Referrer compensation reversal threw:', compErr?.message || compErr);
                     }
                     await rollbackReferral('referee credit failed');
                     console.warn('[Referral] Referee credit RPC failed (rolled back so user can retry):', refereeErr);

@@ -165,12 +165,24 @@ export default async function handler(req, res) {
         // ─────────────────────────────────────────────────────────────
         if (authDeleted && requestId) {
             try {
-                await supabase.rpc("fn_mark_gdpr_completed", {
+                // RPC returns {data, error}; the previous code ignored the
+                // error half so a real RPC failure left the gdpr_request row
+                // in 'pending' state forever — compliance audit gap. Capture
+                // and log loudly so ops can reconcile.
+                const { error: markErr } = await supabase.rpc("fn_mark_gdpr_completed", {
                     p_request_id: requestId,
                 });
+                if (markErr) {
+                    console.warn(
+                        "[GDPR] fn_mark_gdpr_completed RPC error — request",
+                        requestId,
+                        "stays 'pending' but auth user IS deleted:",
+                        markErr?.message || markErr
+                    );
+                }
             } catch (markErr) {
                 console.warn(
-                    "[GDPR] fn_mark_gdpr_completed failed (non-fatal):",
+                    "[GDPR] fn_mark_gdpr_completed threw (non-fatal):",
                     markErr?.message || markErr
                 );
             }
