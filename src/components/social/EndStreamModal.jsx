@@ -50,26 +50,50 @@ export function EndStreamModal({
         return `${m}:${s.toString().padStart(2, '0')}`;
     };
 
-    const uploadVideo = async () => {
+    const uploadVideo = async (onProgress) => {
         if (!videoBlob || !user?.id || !streamId) return null;
 
         const filename = `${user.id}/${streamId}.webm`;
+        const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-        const { data, error } = await supabase.storage
-            .from('live-recordings')
-            .upload(filename, videoBlob, {
-                contentType: 'video/webm',
-                upsert: true
-            });
+        // Get access token for authenticated upload
+        let accessToken = SUPABASE_ANON_KEY;
+        try {
+            const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+            if (authData?.access_token) accessToken = authData.access_token;
+        } catch (_) {}
 
-        if (error) throw error;
+        // Use XHR for real upload progress instead of Supabase SDK
+        return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', `${SUPABASE_URL}/storage/v1/object/live-recordings/${filename}`);
+            xhr.setRequestHeader('Authorization', `Bearer ${accessToken}`);
+            xhr.setRequestHeader('apikey', SUPABASE_ANON_KEY);
+            xhr.setRequestHeader('Content-Type', 'video/webm');
+            xhr.setRequestHeader('x-upsert', 'true');
 
-        // Get public URL
-        const { data: urlData } = supabase.storage
-            .from('live-recordings')
-            .getPublicUrl(filename);
+            xhr.upload.onprogress = (e) => {
+                if (e.lengthComputable && onProgress) {
+                    const pct = Math.round((e.loaded / e.total) * 100);
+                    onProgress(pct);
+                }
+            };
 
-        return urlData.publicUrl;
+            xhr.onload = () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    // Build public URL
+                    const { data: urlData } = supabase.storage
+                        .from('live-recordings')
+                        .getPublicUrl(filename);
+                    resolve(urlData.publicUrl);
+                } else {
+                    reject(new Error(`Upload failed (${xhr.status}): ${xhr.responseText}`));
+                }
+            };
+            xhr.onerror = () => reject(new Error('Network error during upload'));
+            xhr.send(videoBlob);
+        });
     };
 
     /** Call the server-side endpoint for post/save/delete */
@@ -92,14 +116,16 @@ export function EndStreamModal({
     const handlePostNow = async () => {
         setIsUploading(true);
         setError('');
-        setUploadProgress(10);
+        setUploadProgress(1);
 
         try {
-            // 1. Upload video to storage
-            setUploadProgress(30);
-            const videoUrl = await uploadVideo();
+            // 1. Upload video to storage with real progress
+            const videoUrl = await uploadVideo((pct) => {
+                // Map upload progress to 1-65% range
+                setUploadProgress(Math.max(1, Math.round(pct * 0.65)));
+            });
             if (!videoUrl) throw new Error('No recording available to upload');
-            setUploadProgress(60);
+            setUploadProgress(70);
 
             // 2. Update stream record with video URL (client-side, owns the row)
             await supabase
@@ -110,7 +136,7 @@ export function EndStreamModal({
                 })
                 .eq('id', streamId);
 
-            setUploadProgress(75);
+            setUploadProgress(80);
 
             // 3. Server-side: mark as posted + create social_posts entry (service role)
             await callEndStream('post');
@@ -128,14 +154,15 @@ export function EndStreamModal({
     const handleSaveToLives = async () => {
         setIsUploading(true);
         setError('');
-        setUploadProgress(10);
+        setUploadProgress(1);
 
         try {
-            // 1. Upload video
-            setUploadProgress(30);
-            const videoUrl = await uploadVideo();
+            // 1. Upload video with real progress
+            const videoUrl = await uploadVideo((pct) => {
+                setUploadProgress(Math.max(1, Math.round(pct * 0.7)));
+            });
             if (!videoUrl) throw new Error('No recording available to upload');
-            setUploadProgress(70);
+            setUploadProgress(75);
 
             // 2. Update stream record with video URL
             await supabase

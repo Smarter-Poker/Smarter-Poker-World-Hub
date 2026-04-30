@@ -84,18 +84,39 @@ export default async function handler(req, res) {
             // The RPC returns FLAT columns (verified via pg_get_function_result):
             //   conversation_id, title, is_group, last_message_at, unread_count,
             //   other_user_id, other_user_username, other_user_avatar
-            // The previous mapping looked for `c.other_user` (a nested object)
-            // which never existed — so otherUser was ALWAYS null and every
-            // conversation rendered as "Unknown" with a `?` avatar in the UI.
+            // It does NOT return is_request or request_sender_id (pre-dates message requests).
+            // Supplement with a secondary query to get request status.
+            const rpcConvIds = rpcData.map(c => c.conversation_id || c.id).filter(Boolean);
+            let requestStatusMap = {};
+            if (rpcConvIds.length > 0) {
+                try {
+                    const { data: requestRows } = await getSupabase()
+                        .from('social_conversations')
+                        .select('id, is_request, request_sender_id')
+                        .in('id', rpcConvIds)
+                        .eq('is_request', true);
+                    if (requestRows) {
+                        requestRows.forEach(r => { requestStatusMap[r.id] = r; });
+                    }
+                } catch (reqErr) {
+                    // Non-fatal: if this fails, all conversations show (no filtering)
+                    console.warn('[get-conversations] Request status query failed:', reqErr?.message);
+                }
+            }
+
             // Reshape the flat fields into the otherUser object the client expects.
             const conversations = rpcData
                 .filter((c) => {
+                    const convId = c.conversation_id || c.id;
+                    const reqInfo = requestStatusMap[convId];
                     // Exclude message requests where current user is the RECIPIENT
                     // (requests where user is the sender still show in their inbox)
-                    if (c.is_request && c.request_sender_id && c.request_sender_id !== userId) return false;
+                    if (reqInfo?.is_request && reqInfo.request_sender_id && reqInfo.request_sender_id !== userId) return false;
                     return true;
                 })
                 .map((c) => {
+                const convId = c.conversation_id || c.id;
+                const reqInfo = requestStatusMap[convId];
                 const otherUserId = c.other_user_id || null;
                 const otherUser = otherUserId
                     ? {
@@ -107,7 +128,7 @@ export default async function handler(req, res) {
                       }
                     : null;
                 return {
-                    id: c.conversation_id || c.id,
+                    id: convId,
                     title: c.title || null,
                     last_message_at: c.last_message_at,
                     // RPC doesn't return last_message_preview today; pass through if it ever does.
@@ -116,7 +137,7 @@ export default async function handler(req, res) {
                     otherUser,
                     unreadCount: Number(c.unread_count ?? c.unreadCount ?? 0),
                     last_read_at: c.last_read_at ?? null,
-                    isRequest: c.is_request || false,
+                    isRequest: reqInfo?.is_request || false,
                 };
             });
             return res.status(200).json({ success: true, conversations });

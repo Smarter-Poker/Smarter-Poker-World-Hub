@@ -352,6 +352,30 @@ export function StoriesBar({ userId, userAvatar, onCreateStory, onOpenLive }) {
                         />
                     ))}
 
+                    {/* Live-only users: broadcasters who are live but have no stories */}
+                    {Object.entries(liveStreamMap)
+                        .filter(([broadcasterId]) => {
+                            // Skip self (already shown above) and anyone already in stories
+                            if (broadcasterId === userId) return false;
+                            return !otherStories.some(s => s.author_id === broadcasterId);
+                        })
+                        .map(([broadcasterId, stream]) => (
+                            <StoryAvatar
+                                key={`live-${broadcasterId}`}
+                                story={{
+                                    author_id: broadcasterId,
+                                    author_avatar: stream.broadcaster?.avatar_url || '/default-avatar.png',
+                                    author_fullname: stream.broadcaster?.full_name || stream.broadcaster?.username || stream.title || 'Live',
+                                    author_username: stream.broadcaster?.username,
+                                }}
+                                onClick={() => {
+                                    if (onOpenLive) onOpenLive(stream);
+                                }}
+                                isLive={true}
+                            />
+                        ))
+                    }
+
                     {loading && !stories.length && (
                         <div style={{ padding: '20px 40px', color: C.textSec }}>Loading Stories...</div>
                     )}

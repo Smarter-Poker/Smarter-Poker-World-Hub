@@ -111,7 +111,7 @@ export default function MessageRequests() {
         }
     };
 
-    const handleAccept = (requestId) => {
+    const handleAccept = async (requestId) => {
         if (!user) return;
         setProcessing(requestId);
 
@@ -119,19 +119,28 @@ export default function MessageRequests() {
         const prevRequests = requests;
         setRequests(prev => prev.filter(r => r.id !== requestId));
 
-        // Fire-and-forget DB update with rollback on failure
-        supabase.from('social_conversations')
-            .update({ is_request: false })
-            .eq('id', requestId)
-            .then(({ error }) => {
-                if (error) {
-                    // Rollback on failure
-                    setRequests(prevRequests);
-                    console.warn('Error accepting request:', error);
-                    alert('Failed to accept request');
-                }
-            })
-            .finally(() => setProcessing(null));
+        // Route through API (service role) — no UPDATE RLS policy on social_conversations
+        try {
+            const token = getAccessToken();
+            const resp = await fetch('/api/messenger/request-action', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                body: JSON.stringify({ requestId, action: 'accept' }),
+            });
+            const result = await resp.json();
+            if (!resp.ok || !result.success) {
+                setRequests(prevRequests);
+                alert('Failed to accept request');
+            }
+        } catch (e) {
+            setRequests(prevRequests);
+            console.warn('Error accepting request:', e);
+        } finally {
+            setProcessing(null);
+        }
     };
 
     const handleAcceptAndOpen = async (requestId) => {
@@ -139,13 +148,18 @@ export default function MessageRequests() {
         setProcessing(requestId);
 
         try {
-            // Accept the request
-            const { error } = await supabase.from('social_conversations')
-                .update({ is_request: false })
-                .eq('id', requestId);
+            const token = getAccessToken();
+            const resp = await fetch('/api/messenger/request-action', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                body: JSON.stringify({ requestId, action: 'accept' }),
+            });
+            const result = await resp.json();
 
-            if (error) {
-                console.warn('Error accepting request:', error);
+            if (!resp.ok || !result.success) {
                 alert('Failed to accept request');
                 return;
             }
@@ -159,7 +173,7 @@ export default function MessageRequests() {
         }
     };
 
-    const handleDecline = (requestId) => {
+    const handleDecline = async (requestId) => {
         if (!user) return;
         setProcessing(requestId);
 
@@ -167,31 +181,28 @@ export default function MessageRequests() {
         const prevRequests = requests;
         setRequests(prev => prev.filter(r => r.id !== requestId));
 
-        // Fire-and-forget: Delete the conversation and participants
-        (async () => {
-            try {
-                // Delete participants first (FK constraint)
-                await supabase.from('social_conversation_participants')
-                    .delete()
-                    .eq('conversation_id', requestId);
+        try {
+            const token = getAccessToken();
+            const resp = await fetch('/api/messenger/request-action', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                body: JSON.stringify({ requestId, action: 'decline' }),
+            });
+            const result = await resp.json();
 
-                // Delete the conversation
-                const { error } = await supabase.from('social_conversations')
-                    .delete()
-                    .eq('id', requestId);
-
-                if (error) {
-                    setRequests(prevRequests);
-                    console.warn('Error declining request:', error);
-                    alert('Failed to decline request');
-                }
-            } catch (e) {
+            if (!resp.ok || !result.success) {
                 setRequests(prevRequests);
-                console.warn('Error declining request:', e);
-            } finally {
-                setProcessing(null);
+                alert('Failed to decline request');
             }
-        })();
+        } catch (e) {
+            setRequests(prevRequests);
+            console.warn('Error declining request:', e);
+        } finally {
+            setProcessing(null);
+        }
     };
 
     const timeAgo = (dateStr) => {

@@ -95,19 +95,40 @@ export default async function handler(req, res) {
                         .eq('id', convId);
                 }
 
-                // If existing conversation AND users became friends, clear request status
-                if (!rpcResult.created && areFriends) {
-                    await supabase.from('social_conversations')
-                        .update({ is_request: false })
+                let isRequest = !areFriends && rpcResult.created === true;
+
+                if (!rpcResult.created) {
+                    // Existing conversation — check its current request status
+                    const { data: convRow } = await supabase
+                        .from('social_conversations')
+                        .select('is_request, request_sender_id')
                         .eq('id', convId)
-                        .eq('is_request', true); // Only update if it was a request
+                        .maybeSingle();
+
+                    if (convRow?.is_request) {
+                        if (areFriends) {
+                            // Users became friends — auto-clear request status
+                            await supabase.from('social_conversations')
+                                .update({ is_request: false })
+                                .eq('id', convId);
+                        } else if (convRow.request_sender_id && convRow.request_sender_id !== user.id) {
+                            // Current user is the RECIPIENT of the request and is actively messaging back
+                            // Auto-accept: they're explicitly choosing to engage
+                            await supabase.from('social_conversations')
+                                .update({ is_request: false })
+                                .eq('id', convId);
+                        } else {
+                            // Current user is the sender — request still pending
+                            isRequest = true;
+                        }
+                    }
                 }
 
                 return res.status(200).json({
                     success: true,
                     conversationId: convId,
                     created: rpcResult.created === true,
-                    isRequest: !areFriends && rpcResult.created === true,
+                    isRequest,
                 });
             }
             // RPC returned but signaled failure — surface it.
