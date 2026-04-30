@@ -232,13 +232,14 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         }
 
         const files = Array.from(e.target.files);
-        if (!files.length) return;
-        if (!user?.id) { setError('Please log in to upload media.'); return; }
+        if (!files.length) { setPreparingMedia(false); return; }
+        if (!user?.id) { setError('Please log in to upload media.'); setPreparingMedia(false); return; }
 
         // Check total media limit
         const remaining = MAX_MEDIA - media.length;
         if (remaining <= 0) {
             setError(`Maximum ${MAX_MEDIA} images/videos allowed per post`);
+            setPreparingMedia(false);
             return;
         }
         const filesToStage = files.slice(0, remaining);
@@ -278,7 +279,11 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
             });
         }
 
-        if (!staged.length) return;
+        // AUDIT-3 FIX: if all files were rejected (size cap, etc.), clear the
+        // banner here too — the bottom Promise.race only runs for the
+        // happy path. Without this, an all-rejected batch leaves the
+        // 'Preparing your video' banner up for the full 60s backstop.
+        if (!staged.length) { setPreparingMedia(false); return; }
         setMedia(prev => [...prev, ...staged]);
 
         // ⚡ INSTANT FEEDBACK is now handled by the inline "Preparing Your Video"
@@ -716,6 +721,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         if (activeHomeGroup?.social_page_id) {
             try {
                 const token = getAccessToken();
+                if (!token) throw new Error('Authentication required — please refresh and try again.');
                 const res = await fetch('/api/social/pages/posts', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -726,6 +732,21 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         content_type: urls.length > 0 ? 'media' : 'text',
                         visibility: postVisibility,
                         post_type: 'regular',
+                        // AUDIT-4 FIX (2026-04-30): include thumbnail_url and
+                        // link_preview in the home-group payload. Both fields
+                        // were silently dropped before this fix:
+                        //   • thumbnail_url=null → every home-group video
+                        //     post saved with NO preview frame, so the feed
+                        //     showed a black box until the video loaded.
+                        //   • link_preview=null → home-group link posts lost
+                        //     their card; only the URL string remained.
+                        // /api/social/pages/posts already accepts both fields
+                        // in its destructure (line 123-124) and writes them
+                        // to social_page_posts AND mirrors them to social_posts
+                        // for the global feed — the client just wasn't sending
+                        // them on this branch.
+                        ...(persistedThumbnailUrl ? { thumbnail_url: persistedThumbnailUrl } : {}),
+                        ...(linkPreview ? { link_preview: linkPreview } : {}),
                         ...(urls.length > 0 ? { media_urls: urls } : {}),
                         ...(mentions && mentions.length > 0 ? { mentions } : {}),
                     }),
@@ -734,6 +755,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                 ok = json.success;
             } catch (e) {
                 console.warn('[SharedPostCreator] Home group post error:', e);
+                if (mountedRef.current) setError(e?.message || 'Could not post to home group');
                 ok = false;
             }
         } else {

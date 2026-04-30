@@ -5206,6 +5206,15 @@ function SocialMediaPage() {
                         content_type: type,
                         media_urls: urls,
                         visibility: visibility || 'public',
+                        // AUDIT-4 FIX (2026-04-30): include thumbnail_url. The
+                        // club-page path optimistically rendered the thumbnail
+                        // in the feed (line 5232) but NEVER persisted it via
+                        // the API. /api/social/pages/posts already destructures
+                        // and writes thumbnail_url, so the field was silently
+                        // dropped on the client side. Result: every club-page
+                        // video saved with thumbnail_url=null and the next
+                        // page load showed a black box until the video decoded.
+                        ...(thumbnailUrl ? { thumbnail_url: thumbnailUrl } : {}),
                         ...(linkPreview ? {
                             link_preview: {
                                 url: linkPreview.url || urls[0],

@@ -1457,7 +1457,7 @@ export default function SocialPageDetail() {
         setFollowLoading(false);
     };
 
-    const handlePostSubmit = async (postContent, urls, type, mentions, linkPreview, visibility) => {
+    const handlePostSubmit = async (postContent, urls, type, mentions, linkPreview, visibility, thumbnailUrl = null) => {
         if ((!postContent.trim() && urls.length === 0) || !user || !page) return false;
         setPosting(true);
         try {
@@ -1469,12 +1469,20 @@ export default function SocialPageDetail() {
                     'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
-                    page_id: page.id, 
+                    page_id: page.id,
                     author_id: user.id,
-                    content: postContent.trim(), 
+                    content: postContent.trim(),
                     content_type: urls.length > 0 ? 'media' : 'text',
                     visibility: visibility,
                     post_type: 'regular',
+                    // AUDIT-4 FIX (2026-04-30): SharedPostCreator passes
+                    // thumbnailUrl as the 7th onPost arg, plus linkPreview as
+                    // the 5th. Both were silently dropped by this composer's
+                    // handlePostSubmit — only fileless URLs got through. The
+                    // /api/social/pages/posts handler accepts both fields
+                    // already, so just forward them.
+                    ...(thumbnailUrl ? { thumbnail_url: thumbnailUrl } : {}),
+                    ...(linkPreview ? { link_preview: linkPreview } : {}),
                     ...(urls.length > 0 ? { media_urls: urls } : {}),
                     ...(mentions && mentions.length > 0 ? { mentions } : {}) // Pass mentions if needed by API
                 }),
