@@ -316,10 +316,6 @@ export const EnhancedPostCreator = ({
     const remainingSlots = MAX_MEDIA_FILES - mediaFiles.length;
     if (remainingSlots <= 0) {
       setError(`Maximum ${MAX_MEDIA_FILES} media files allowed`);
-      // AUDIT-3 FIX (2026-04-30): clear the banner on early-return paths so
-      // it doesn't sit at "Preparing your video" for the full 60s backstop
-      // when the user has already maxed out their media slots.
-      setPreparingMedia(false);
       return;
     }
 
@@ -330,8 +326,6 @@ export const EnhancedPostCreator = ({
       const validation = validateFile(file);
       if (!validation.valid) {
         setError(validation.error);
-        // AUDIT-3 FIX (2026-04-30): same as above — file rejected = clear banner.
-        setPreparingMedia(false);
         return;
       }
     }

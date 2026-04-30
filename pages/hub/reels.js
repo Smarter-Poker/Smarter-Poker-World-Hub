@@ -1493,14 +1493,16 @@ export default function ReelsPage() {
   // frequent (every post, not just video posts) to trigger a full feed reload
   useEffect(() => {
     if (!user?.id) return;
+    let reloadTimer = null;
     const _ch = supabase
       .channel(`reels:${user.id}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_reels' }, () => {
-        // New native reel - prepend to feed without full reload
-        loadReels();
+        // Debounce: wait 3s before reloading so multiple rapid inserts collapse into one reload
+        clearTimeout(reloadTimer);
+        reloadTimer = setTimeout(() => { loadReels(); }, 3000);
       })
       .subscribe();
-    return () => { supabase.removeChannel(_ch); };
+    return () => { clearTimeout(reloadTimer); supabase.removeChannel(_ch); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 

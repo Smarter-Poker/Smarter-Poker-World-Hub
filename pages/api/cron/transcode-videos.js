@@ -275,15 +275,7 @@ export default async function handler(req, res) {
         const sourcePostId = post.metadata?.source_post_id;
         if (sourcePostId) {
             try {
-                // Fetch existing social_page_posts row to compute new media_urls.
-                // AUDIT-3 FIX (2026-04-30): only fetch + update media_urls. The
-                // previous version selected only `id, media_urls` but then wrote
-                // `thumbnail_url: spp.thumbnail_url || null` — since
-                // thumbnail_url wasn't in the SELECT, spp.thumbnail_url was
-                // ALWAYS undefined, so every transcode silently NULLed the
-                // existing thumbnail on the source club-page row. Removed the
-                // thumbnail_url update entirely; this back-prop only cares
-                // about the new H.264 MP4 URL.
+                // Fetch existing social_page_posts row to compute new media_urls
                 const { data: spp } = await supa
                     .from('social_page_posts')
                     .select('id, media_urls')
@@ -294,7 +286,7 @@ export default async function handler(req, res) {
                         ? [newPublicUrl, ...spp.media_urls.slice(1)]
                         : [newPublicUrl];
                     await supa.from('social_page_posts')
-                        .update({ media_urls: sppNewUrls })
+                        .update({ media_urls: sppNewUrls, thumbnail_url: spp.thumbnail_url || null })
                         .eq('id', sourcePostId);
                 }
             } catch (e) {
