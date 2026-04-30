@@ -177,7 +177,12 @@ export const EnhancedPostCreator = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [preparingMedia, setPreparingMedia] = useState(false);
+  // STAGE-AWARE BANNER (audit-6 2026-04-30 per Dan): see SharedPostCreator
+  // for the rationale. 'picker' | 'loading' | 'staging' | null.
+  const [preparingStage, setPreparingStage] = useState(null);
+  const preparingMedia = preparingStage !== null;
+  const setPreparingMedia = (val) => setPreparingStage(val ? 'staging' : null);
+  const _hasFileArrivedRef = useRef(false);
 
   const textareaRef = useRef(null);
   const modalRef = useRef(null);
@@ -216,12 +221,36 @@ export const EnhancedPostCreator = ({
     if (!preparingMedia) return;
     const backstop = setTimeout(() => {
       if (mountedRef.current) {
-        setPreparingMedia(false);
+        setPreparingStage(null);
         _pickerOpenRef.current = false;
+        _hasFileArrivedRef.current = false;
       }
-    }, 60_000);
+    }, 90_000);
     return () => clearTimeout(backstop);
   }, [preparingMedia]);
+
+  // AUDIT-6 (2026-04-30): focus-based cancel detection — see SharedPostCreator
+  // useEffect for full rationale.
+  useEffect(() => {
+    if (preparingStage !== 'picker') return;
+    let cancelTimer = null;
+    const onFocus = () => {
+      if (!mountedRef.current) return;
+      setPreparingStage(prev => prev === 'picker' ? 'loading' : prev);
+      cancelTimer = setTimeout(() => {
+        if (!mountedRef.current) return;
+        if (!_hasFileArrivedRef.current) {
+          setPreparingStage(null);
+          _pickerOpenRef.current = false;
+        }
+      }, 5000);
+    };
+    window.addEventListener('focus', onFocus);
+    return () => {
+      clearTimeout(cancelTimer);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [preparingStage]);
 
   // Track mount lifecycle
   useEffect(() => {
@@ -304,13 +333,13 @@ export const EnhancedPostCreator = ({
     const files = Array.from(e.target.files || []);
     if (files.length === 0) {
       // User cancelled the picker — make sure no banner is up
-      setPreparingMedia(false);
+      setPreparingStage(null);
       return;
     }
-    // Raise the banner now that we have a real file to stage. The 60s
-    // backstop in the useEffect above clears it if anything stalls; the
-    // bottom of this function will also clear it once staging is queued.
-    setPreparingMedia(true);
+    // AUDIT-6: mark file arrival so the focus-watchdog leaves the banner up,
+    // and transition stage to 'staging' (the iOS handoff is over).
+    _hasFileArrivedRef.current = true;
+    setPreparingStage('staging');
 
     // Limit total files
     const remainingSlots = MAX_MEDIA_FILES - mediaFiles.length;
@@ -347,6 +376,11 @@ export const EnhancedPostCreator = ({
     const videoFiles = filesToAdd.filter(f => sniffMimeType(f).startsWith('video/'));
 
     // 🚀 PREFETCH + BACKGROUND PROCESSING
+    // AUDIT-6 (2026-04-30): mobile path skips client generateThumbnail (see
+    // SharedPostCreator for full rationale — iPhone HEVC decode adds 1-8s
+    // on top of the iOS handoff, server-side cron fills in thumbnail_url).
+    const _isMobile = typeof navigator !== 'undefined'
+      && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || '');
     if (user?.id) {
       const startIdx = mediaFiles.length; // index offset for new files
       for (let j = 0; j < filesToAdd.length; j++) {
@@ -359,6 +393,15 @@ export const EnhancedPostCreator = ({
         const validation = validateVideoFile(file);
         if (!validation.valid) { setError(validation.error); continue; }
 
+        if (_isMobile) {
+          // Mobile: defer thumbnail generation to the cron worker server-side.
+          thumbnailPromiseRef.current[fk] = Promise.resolve(null);
+          // Still kick the signed-URL prefetch so it's warm by Post-tap time.
+          bgUpload.prefetch({ file, userId: user.id, folder: 'videos' });
+          break;
+        }
+
+        // DESKTOP: client-side thumbnail at staging time.
         // Auto-thumbnail generation — store the PROMISE so submit can await
         // it. The previous code only saved the resolved value, which meant
         // any submit fired before HEVC decode finished (every iPhone upload)
@@ -1003,7 +1046,11 @@ export const EnhancedPostCreator = ({
               transform: 'translateZ(0)',
             }} />
             <span style={{ fontSize: 13, fontWeight: 600, color: '#1877F2' }}>
-              Preparing Your Video — This May Take A Moment...
+              {preparingStage === 'picker'
+                ? 'Opening Photos…'
+                : preparingStage === 'loading'
+                ? 'Loading your video — this can take 5–25s on iPhone for HEVC clips…'
+                : 'Preparing Your Video — This May Take A Moment...'}
             </span>
 
           </div>
@@ -1024,7 +1071,7 @@ export const EnhancedPostCreator = ({
 
           <button
             className="inline-action-btn"
-            onClick={() => { _pickerOpenRef.current = true; fileInputRef.current?.click(); /* preparingMedia raised inside handleFileSelect once a file is actually picked — iOS-Safari fix 2026-04-30 */ }}
+            onClick={() => { _pickerOpenRef.current = true; _hasFileArrivedRef.current = false; setPreparingStage('picker'); fileInputRef.current?.click(); /* AUDIT-6: instant on-tap banner; cancel handled by window.focus + 5s grace in the useEffect on preparingStage */ }}
             disabled={isSubmitting || mediaFiles.length >= MAX_MEDIA_FILES}
           >
             <span className="icon">📷</span> Photo/Video
@@ -1388,7 +1435,11 @@ export const EnhancedPostCreator = ({
               transform: 'translateZ(0)',
             }} />
             <span style={{ fontSize: 13, fontWeight: 600, color: '#1877F2' }}>
-              Preparing Your Video — This May Take A Moment...
+              {preparingStage === 'picker'
+                ? 'Opening Photos…'
+                : preparingStage === 'loading'
+                ? 'Loading your video — this can take 5–25s on iPhone for HEVC clips…'
+                : 'Preparing Your Video — This May Take A Moment...'}
             </span>
 
           </div>
@@ -1411,7 +1462,7 @@ export const EnhancedPostCreator = ({
             <button
               className="tool-btn interactive"
               title="Add Photo/Video"
-              onClick={() => { _pickerOpenRef.current = true; fileInputRef.current?.click(); /* preparingMedia raised inside handleFileSelect once a file is actually picked — iOS-Safari fix 2026-04-30 */ }}
+              onClick={() => { _pickerOpenRef.current = true; _hasFileArrivedRef.current = false; setPreparingStage('picker'); fileInputRef.current?.click(); /* AUDIT-6: instant on-tap banner; cancel handled by window.focus + 5s grace in the useEffect on preparingStage */ }}
               disabled={isSubmitting || mediaFiles.length >= MAX_MEDIA_FILES}
             >
               📷

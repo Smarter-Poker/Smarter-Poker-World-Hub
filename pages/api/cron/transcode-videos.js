@@ -135,10 +135,11 @@ export default async function handler(req, res) {
     // 1. Pick ONE queued post (oldest first — fairness). Also pull metadata
     //    so we can back-prop the transcoded URL to social_page_posts when a
     //    post is a club-page mirror (metadata.source_post_id points to the
-    //    original social_page_posts row).
+    //    original social_page_posts row). Pull thumbnail_url too — if the
+    //    client already uploaded one (desktop path), we don't overwrite it.
     const { data: queue, error: qErr } = await supa
         .from('social_posts')
-        .select('id, author_id, media_urls, original_media_url, content_type, metadata')
+        .select('id, author_id, media_urls, original_media_url, content_type, metadata, thumbnail_url')
         .eq('transcode_status', 'queued')
         .order('created_at', { ascending: true })
         .limit(1);
@@ -231,7 +232,7 @@ export default async function handler(req, res) {
         await runFfmpeg(ffArgs);
         const outSize = (await stat(outFile)).size;
 
-        // 5. Upload to storage (POST to /storage/v1/object/<bucket>/<path>).
+        // 5. Upload transcoded MP4 to storage.
         const outBuf = await readFile(outFile);
         const uploadUrl = `${SUPABASE_URL}/storage/v1/object/social-media/${dstBucketPath}`;
         const upRes = await fetch(uploadUrl, {
@@ -251,21 +252,83 @@ export default async function handler(req, res) {
 
         const newPublicUrl = `${SUPABASE_URL}/storage/v1/object/public/social-media/${dstBucketPath}`;
 
-        // 6. Update social_posts.media_urls[0] + social_reels mirror.
+        // 5b. AUDIT-6 (2026-04-30 per Dan): extract a thumbnail server-side.
+        // Mobile clients now skip generateThumbnail entirely (the iPhone
+        // HEVC decode adds 1-8s on top of the iOS handoff and isn't worth
+        // it). The cron worker is already running ffmpeg on every iPhone
+        // upload anyway — adding a single -ss/-vframes=1 invocation costs
+        // ~50-200ms and produces a real JPEG we can persist as the
+        // canonical thumbnail. We only fill thumbnail_url if it's currently
+        // null, so we don't overwrite a user-picked thumbnail (the desktop
+        // composer's thumb-picker filmstrip).
+        let serverThumbnailUrl = null;
+        if (!post.thumbnail_url) {
+            try {
+                const thumbFile = join(work, 'thumb.jpg');
+                // Seek to 1.0s. For very short clips (<1s) ffmpeg seeks to 0
+                // automatically. -frames:v 1 captures one frame; -q:v 4
+                // gives a good JPEG quality (1=best, 31=worst). 480px wide
+                // matches the client's old generateThumbnail dimensions.
+                await runFfmpeg([
+                    '-y', '-hide_banner', '-loglevel', 'error',
+                    '-ss', '1',
+                    '-i', outFile,                       // seek INSIDE the new MP4 (always H.264 now)
+                    '-frames:v', '1',
+                    '-vf', 'scale=480:-2',
+                    '-q:v', '4',
+                    thumbFile,
+                ]);
+                const thumbBuf = await readFile(thumbFile);
+                if (thumbBuf.length > 100) {  // sanity: ffmpeg sometimes writes 0-byte files on edge cases
+                    // Storage path mirrors the client convention used by
+                    // thumbnailUploader.js: thumbnails/<userId>/<timestamp>_thumb.jpg
+                    const thumbStoragePath = `thumbnails/${post.author_id}/${Date.now()}_thumb.jpg`;
+                    const thumbUploadUrl = `${SUPABASE_URL}/storage/v1/object/social-media/${thumbStoragePath}`;
+                    const thumbUpRes = await fetch(thumbUploadUrl, {
+                        method: 'POST',
+                        headers: {
+                            Authorization: `Bearer ${SERVICE_KEY}`,
+                            apikey: SERVICE_KEY,
+                            'Content-Type': 'image/jpeg',
+                            'x-upsert': 'true',
+                        },
+                        body: thumbBuf,
+                    });
+                    if (thumbUpRes.ok) {
+                        serverThumbnailUrl = `${SUPABASE_URL}/storage/v1/object/public/social-media/${thumbStoragePath}`;
+                    } else {
+                        const txt = await thumbUpRes.text().catch(() => '');
+                        console.warn('[transcode] thumbnail upload failed (non-fatal):', thumbUpRes.status, txt.slice(0, 200));
+                    }
+                }
+            } catch (thumbErr) {
+                // Thumbnail extraction is best-effort — never fail the whole
+                // transcode for a thumbnail issue. The post still gets the
+                // transcoded MP4; thumbnail_url just stays null and the
+                // feed falls back to <video poster> behavior.
+                console.warn('[transcode] thumbnail extraction failed (non-fatal):', thumbErr?.message || thumbErr);
+            }
+        }
+
+        // 6. Update social_posts.media_urls[0] + thumbnail_url + social_reels mirror.
         const newMediaUrls = Array.isArray(post.media_urls) && post.media_urls.length > 0
             ? [newPublicUrl, ...post.media_urls.slice(1)]
             : [newPublicUrl];
 
-        await supa.from('social_posts').update({
+        const socialPostsUpdate = {
             media_urls: newMediaUrls,
             transcode_status: 'done',
             transcode_error: null,
             transcoded_at: new Date().toISOString(),
             original_media_url: srcUrl,
-        }).eq('id', post.id);
+        };
+        if (serverThumbnailUrl) socialPostsUpdate.thumbnail_url = serverThumbnailUrl;
+        await supa.from('social_posts').update(socialPostsUpdate).eq('id', post.id);
 
+        const socialReelsUpdate = { video_url: newPublicUrl };
+        if (serverThumbnailUrl) socialReelsUpdate.thumbnail_url = serverThumbnailUrl;
         await supa.from('social_reels')
-            .update({ video_url: newPublicUrl })
+            .update(socialReelsUpdate)
             .eq('source_post_id', post.id);
 
         // Back-prop to social_page_posts when this row is a club-page mirror
@@ -275,26 +338,28 @@ export default async function handler(req, res) {
         const sourcePostId = post.metadata?.source_post_id;
         if (sourcePostId) {
             try {
-                // Fetch existing social_page_posts row to compute new media_urls.
-                // AUDIT-3 FIX (2026-04-30): only fetch + update media_urls. The
-                // previous version selected only `id, media_urls` but then wrote
-                // `thumbnail_url: spp.thumbnail_url || null` — since
-                // thumbnail_url wasn't in the SELECT, spp.thumbnail_url was
-                // ALWAYS undefined, so every transcode silently NULLed the
-                // existing thumbnail on the source club-page row. Removed the
-                // thumbnail_url update entirely; this back-prop only cares
-                // about the new H.264 MP4 URL.
+                // Fetch existing social_page_posts row to compute new media_urls
+                // AND learn the existing thumbnail_url so we don't overwrite a
+                // user-set value. AUDIT-6 (2026-04-30): now also back-prop the
+                // server-generated thumbnail_url when the source row has none.
                 const { data: spp } = await supa
                     .from('social_page_posts')
-                    .select('id, media_urls')
+                    .select('id, media_urls, thumbnail_url')
                     .eq('id', sourcePostId)
                     .maybeSingle();
                 if (spp) {
                     const sppNewUrls = Array.isArray(spp.media_urls) && spp.media_urls.length > 0
                         ? [newPublicUrl, ...spp.media_urls.slice(1)]
                         : [newPublicUrl];
+                    const sppUpdate = { media_urls: sppNewUrls };
+                    // Only set thumbnail_url if (a) we generated one this run
+                    // AND (b) the source row currently has none. Never overwrite
+                    // an existing user-set thumbnail.
+                    if (serverThumbnailUrl && !spp.thumbnail_url) {
+                        sppUpdate.thumbnail_url = serverThumbnailUrl;
+                    }
                     await supa.from('social_page_posts')
-                        .update({ media_urls: sppNewUrls })
+                        .update(sppUpdate)
                         .eq('id', sourcePostId);
                 }
             } catch (e) {
@@ -312,6 +377,8 @@ export default async function handler(req, res) {
             mode: isAlreadyH264 ? 'remux' : 'reencode',
             size_in: inSize,
             size_out: outSize,
+            thumbnail_generated: !!serverThumbnailUrl,
+            thumbnail_skipped_reason: post.thumbnail_url ? 'already_set' : (serverThumbnailUrl ? null : 'extraction_failed'),
         });
     } catch (err) {
         const msg = err?.message ? String(err.message).slice(0, 500) : 'unknown error';
