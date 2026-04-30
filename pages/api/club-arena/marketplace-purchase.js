@@ -133,17 +133,39 @@ export default async function handler(req, res) {
               });
 
           if (purchaseErr) {
-              // Rollback chip deduction atomically
-              await getSupabase().rpc('fn_credit_chips', {
+              // Rollback chip deduction atomically. CRITICAL: capture the
+              // refund error — if THIS fails, the user paid for nothing and
+              // ops needs to know immediately. Previously the call swallowed
+              // the error silently, so any rollback failure left chips
+              // permanently lost with no log to reconcile from.
+              const { error: refundErr } = await getSupabase().rpc('fn_credit_chips', {
                   p_club_id: clubId,
                   p_user_id: user.id,
                   p_amount: price,
               });
+              if (refundErr) {
+                  // Loud audit log — this is real money the user lost.
+                  console.warn('[marketplace-purchase] CRITICAL: refund of', price, 'chips for user', user.id, 'in club', clubId, 'FAILED after purchase insert error:', refundErr?.message || refundErr);
+                  try {
+                      logAudit(supabaseAdmin, {
+                          actionType: 'marketplace_refund_failed',
+                          userId: user.id,
+                          clubId,
+                          amount: price,
+                          ip: extractIP(req),
+                          details: { itemId, purchaseErr: purchaseErr?.message, refundErr: refundErr?.message },
+                      });
+                  } catch (auditErr) {
+                      console.warn('[marketplace-purchase] audit log of refund failure also failed:', auditErr?.message || auditErr);
+                  }
+              }
               throw purchaseErr;
           }
 
-          // Record transaction
-          await getSupabase().from('chip_transactions').insert({
+          // Record transaction. Same defensive shape — if this fails, the
+          // user has the item and the chips moved correctly, but no audit
+          // trail. Surface the error so reconciliation tools can find it.
+          const { error: txErr } = await getSupabase().from('chip_transactions').insert({
               from_user_id: user.id,
               to_user_id: user.id,
               club_id: clubId,
@@ -151,6 +173,9 @@ export default async function handler(req, res) {
               amount: -price,
               notes: `Shop purchase: ${item.name || item.id}`,
           });
+          if (txErr) {
+              console.warn('[marketplace-purchase] chip_transactions insert failed (purchase still successful):', txErr?.message || txErr);
+          }
 
           logAudit(supabaseAdmin, { actionType: 'marketplace_purchase', userId: user.id, clubId, amount: price, ip: extractIP(req), details: { itemId, itemName: item.name, itemType: item.item_type } });
 
