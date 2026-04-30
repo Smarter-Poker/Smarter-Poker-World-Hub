@@ -1052,6 +1052,11 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                                                 borderTopColor: '#fff',
                                                 animation: 'spThumbSpin 0.9s linear infinite',
                                                 WebkitAnimation: 'spThumbSpin 0.9s linear infinite',
+                                                // GPU layer hint — same reason as the prep banner spinner:
+                                                // keeps animating under main-thread pressure on iOS.
+                                                willChange: 'transform',
+                                                WebkitTransform: 'translateZ(0)',
+                                                transform: 'translateZ(0)',
                                             }} />
                                             <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', fontWeight: 600, letterSpacing: 0.3 }}>
                                                 Generating thumbnail…
@@ -1377,6 +1382,16 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         borderTopColor: '#fff', borderRadius: '50%',
                         animation: 'spPrepSpin 0.8s linear infinite',
                         WebkitAnimation: 'spPrepSpin 0.8s linear infinite',
+                        // iOS Safari: force GPU compositing so the rotation
+                        // keeps painting even while the main thread is busy
+                        // (e.g. HEVC decode for thumbnail generation).
+                        // Without this, the ring stays static during the
+                        // staging window — exactly Dan's "no clock animation"
+                        // report. Hint the browser the element will animate
+                        // its transform so it lifts to its own GPU layer.
+                        willChange: 'transform',
+                        WebkitTransform: 'translateZ(0)',
+                        transform: 'translateZ(0)',
                     }} />
                     <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: 0.2, flex: 1 }}>
                         Preparing your video — this may take a moment for longer clips…
