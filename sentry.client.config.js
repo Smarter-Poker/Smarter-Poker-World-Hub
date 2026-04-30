@@ -57,8 +57,17 @@ if (SENTRY_DSN) {
       'r.error is not a function',
       // Next.js router invariant — same-URL push (Commander login redirects)
       'Invariant: attempted to hard navigate to the same URL',
-      // Terser minifier mangling — pre-fixed but belt-and-suspenders
+      // SWC/Terser minifier mangling — TDZ errors from variable name collisions
       'D is not defined',
+      /Cannot access '[A-Z]' before initialization/,
+      // Stale chunk errors — users with cached old JS bundles referencing
+      // functions that no longer exist after a deploy
+      'setEntries is not defined',
+      'setCustomMinutes is not defined',
+      // Next.js static props prefetch failures (transient network issues)
+      'Failed to load static props',
+      // Screen wake lock permission errors (non-critical)
+      'not granted',
     ],
 
     // Before sending, scrub sensitive data and filter noise
@@ -73,6 +82,12 @@ if (SENTRY_DSN) {
           if (msg.includes('signal is aborted') || msg.includes('aborted')) return null;
           if (msg.includes('Internal error')) return null;
           if (msg.includes('Invariant: attempted to hard navigate')) return null;
+          // SWC/Terser TDZ: "Cannot access 'X' before initialization"
+          if (/Cannot access '[A-Za-z_$]' before initialization/.test(msg)) return null;
+          // Stale-chunk errors: users on cached old JS referencing removed functions
+          if (msg.includes('is not defined') && /^(set|get|handle|on)[A-Z]/.test(msg.replace(/^.*?:\s*/, ''))) return null;
+          // Next.js static props prefetch failures
+          if (msg.includes('Failed to load static props')) return null;
         }
         // Filter extension errors
         if ('stack' in error) {

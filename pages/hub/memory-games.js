@@ -556,6 +556,9 @@ export default function MemoryGamesPage() {
 
         const passed = result.score >= MASTERY_THRESHOLD;
 
+        // Compute totalReward at function scope so it's available for analytics below
+        let totalReward = 0;
+
         if (passed) {
             // Success!
             SoundEngine.play('combo');
@@ -583,7 +586,7 @@ export default function MemoryGamesPage() {
             const accuracyBonus = Math.floor((result.score - 85) / 5) * 5;
             const perfectBonus = result.score === 100 ? 50 : 0;
             const comboBonus = Math.floor(newCombo * 2);
-            const totalReward = Math.floor((baseReward + accuracyBonus + perfectBonus + comboBonus) * multiplier);
+            totalReward = Math.floor((baseReward + accuracyBonus + perfectBonus + comboBonus) * multiplier);
 
             const newBalance = DiamondEngine.award(totalReward);
             setDiamondBalance(newBalance);
@@ -607,8 +610,8 @@ export default function MemoryGamesPage() {
         // 📊 PERSIST TO SUPABASE - Leaderboard, ELO, Daily Challenge
         // ═══════════════════════════════════════════════════════════════════════════
         if (user?.id) {
-            const gameMode = selectedGameMode || 'range';
-            const timeTaken = Math.floor((60 - timer) + (60 * (getLevelConfig(currentLevel).timeLimit / 60 - 1)));
+            const gameMode = gameType || 'range';
+            const timeTaken = Math.max(0, Math.floor((safeLevelConfig.timer || 90) - timeRemaining));
 
             // 1. Update leaderboard (only if passed)
             if (passed) {
