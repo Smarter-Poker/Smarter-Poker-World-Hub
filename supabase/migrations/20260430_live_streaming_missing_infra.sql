@@ -74,6 +74,10 @@ BEGIN
   END IF;
 END $$;
 
--- 5. Ensure live_streams has reaction_count column
+-- 5. Ensure live_streams has reaction_count and feed_post_id columns
 ALTER TABLE public.live_streams
 ADD COLUMN IF NOT EXISTS reaction_count INTEGER DEFAULT 0;
+
+-- feed_post_id: links to the social_posts entry created when going live
+ALTER TABLE public.live_streams
+ADD COLUMN IF NOT EXISTS feed_post_id UUID REFERENCES public.social_posts(id) ON DELETE SET NULL;
