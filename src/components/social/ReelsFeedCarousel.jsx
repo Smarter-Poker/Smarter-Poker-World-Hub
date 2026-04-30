@@ -532,6 +532,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
     useEffect(() => {
         const reel = reels[currentIndex];
         if (!reel) return;
+        const isYT = isYouTubeUrl(reel.video_url);
 
         setPaused(true);
         setYtReady(false);
@@ -542,7 +543,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
         setShowShareModal(false);
         setCaptionExpanded(false);
 
-        if (isYouTubeUrl(reel.video_url) && ytIframeReadyRef.current) {
+        if (isYT && ytIframeReadyRef.current) {
             const videoId = getYouTubeVideoId(reel.video_url);
             if (videoId) {
                 // Use loadVideoById — switches video without reloading the player
@@ -556,6 +557,13 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     }, 100);
                 }
             }
+            // Pause native video if it was playing (switching FROM native TO YouTube)
+            if (videoRef.current && !videoRef.current.paused) {
+                videoRef.current.pause();
+            }
+        } else if (!isYT) {
+            // Switching to native video — pause YouTube iframe to stop audio bleed
+            sendYTCmd('pauseVideo');
         }
 
         // 5s fallback: if YouTube never fires onStateChange, show play button
@@ -1101,18 +1109,15 @@ function ReelViewer({ reels, startIndex, onClose }) {
         }
     };
 
-    // Reset on reel change + track view
+    // Secondary reset on reel change: comment state, view tracking, native video play.
+    // NOTE: paused/ytReady/ytError resets are in the PRIMARY effect above (~line 531).
+    // This effect handles the remaining state and native video autoplay.
     // dep: currentIndex ONLY - do NOT add `reels` (causes double-fire + play on unloaded src)
     useEffect(() => {
-        setShowComments(false);
         setReelComments([]);
         setCommentText('');
         setShowOverlay(false);
-        setPaused(true); // New reel starts as paused — autoplay may fail, first tap should send playVideo
-        setYtReady(false); // Reset — suppress play button until YT fires onStateChange for new video
         setProgress(0);
-        setYtError(null); // Clear YouTube error state on reel change
-        setCaptionExpanded(false);
         setShowReelGifPicker(false);
         setReelCommentMediaUrl(null);
         setReelCommentMediaType(null);
@@ -1120,11 +1125,6 @@ function ReelViewer({ reels, startIndex, onClose }) {
         setReportReason('');
         setReportSubmitted(false);
         setShareToast(false);
-        setShowShareModal(false);
-
-        // Mobile fallback: iOS Safari may never fire onStateChange via postMessage.
-        // If ytReady is still false after 3s, force it true so the play button appears.
-        const ytReadyFallback = setTimeout(() => setYtReady(true), 3000);
 
         // Cancel any running RAF from the previous reel immediately
         if (progressRAF.current) {
@@ -1143,12 +1143,15 @@ function ReelViewer({ reels, startIndex, onClose }) {
             }, 2000)
             : null;
 
-        // Play via canplay event - video element may be remounting due to key change,
+        // Native video autoplay — only runs for non-YouTube reels.
+        // Play via canplay event because the video element may be remounting due to key change;
         // calling play() immediately causes AbortError on mobile Safari.
-        const video = videoRef.current;
-        if (!video) return () => { clearTimeout(ytReadyFallback); clearTimeout(viewCountTimer); };
+        const reel = reels[currentIndex];
+        const isNativeVideo = reel && !isYouTubeUrl(reel.video_url);
+        const video = isNativeVideo ? videoRef.current : null;
+        if (!video) return () => { clearTimeout(viewCountTimer); };
         // For native video, set ytReady immediately when play starts so the
-        // pause/play button is visible without waiting 3s for the fallback timer.
+        // pause/play button is visible without waiting for the 5s fallback timer.
         const onPlay = () => setYtReady(true);
         video.addEventListener('play', onPlay, { once: true });
         const onCanPlay = () => {
@@ -1162,7 +1165,6 @@ function ReelViewer({ reels, startIndex, onClose }) {
             video.addEventListener('canplay', onCanPlay, { once: true });
         }
         return () => {
-            clearTimeout(ytReadyFallback);
             clearTimeout(viewCountTimer);
             video.removeEventListener('canplay', onCanPlay);
             video.removeEventListener('play', onPlay);
@@ -1438,60 +1440,77 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     />
                 )}
 
-                {isYouTubeUrl(currentReel.video_url) ? (
-                    <div style={{ position: 'relative', width: '100%', height: '100%', pointerEvents: 'none' }}>
-                        {/* PERSISTENT YouTube iframe — never remounted. Uses loadVideoById to switch videos. */}
-                        <iframe
-                            ref={ytIframeRef}
-                            src={`https://www.youtube-nocookie.com/embed/${getYouTubeVideoId(reels[startIndex]?.video_url || currentReel.video_url)}?autoplay=1&mute=1&rel=0&modestbranding=1&playsinline=1&controls=0&showinfo=0&iv_load_policy=3&fs=0&disablekb=1&cc_load_policy=0&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
-                            style={{ width: '100%', height: '100%', border: 'none', pointerEvents: 'none', position: 'relative', zIndex: 1 }}
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                            onLoad={() => {
-                                ytIframeReadyRef.current = true;
-                                // Force play + unmute via postMessage
-                                sendYTCmd('playVideo');
-                                if (userInteractedRef.current && userWantsSoundRef.current) {
-                                    sendYTCmd('unMute');
-                                    sendYTCmd('setVolume', [100]);
-                                    setMuted(false);
-                                }
-                                // Retry loop for slow YouTube API init
-                                [300, 800, 1500].forEach(delay => setTimeout(() => {
+                {/* PERSISTENT YouTube iframe — ALWAYS rendered, hidden when viewing native video.
+                    This prevents React from destroying/recreating the iframe when switching
+                    between YouTube and direct-upload reels. */}
+                {(() => {
+                    // Find the first YouTube video in the reel list for the initial iframe src.
+                    // startIndex may point to a direct upload, so we need a valid YT ID.
+                    const firstYTReel = reels.find(r => isYouTubeUrl(r.video_url));
+                    const initialVideoId = firstYTReel ? getYouTubeVideoId(firstYTReel.video_url) : null;
+                    if (!initialVideoId) return null; // No YouTube reels at all — skip iframe entirely
+                    const isCurrentYT = isYouTubeUrl(currentReel.video_url);
+                    return (
+                        <div style={{
+                            position: 'relative', width: '100%', height: '100%', pointerEvents: 'none',
+                            display: isCurrentYT ? 'block' : 'none', // Hide but keep alive
+                        }}>
+                            <iframe
+                                ref={ytIframeRef}
+                                src={`https://www.youtube-nocookie.com/embed/${initialVideoId}?autoplay=1&mute=1&rel=0&modestbranding=1&playsinline=1&controls=0&showinfo=0&iv_load_policy=3&fs=0&disablekb=1&cc_load_policy=0&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
+                                style={{ width: '100%', height: '100%', border: 'none', pointerEvents: 'none', position: 'relative', zIndex: 1 }}
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                                onLoad={() => {
+                                    ytIframeReadyRef.current = true;
+                                    // Force play + unmute via postMessage
                                     sendYTCmd('playVideo');
                                     if (userInteractedRef.current && userWantsSoundRef.current) {
                                         sendYTCmd('unMute');
                                         sendYTCmd('setVolume', [100]);
+                                        setMuted(false);
                                     }
-                                }, delay));
-                            }}
-                        />
-                    </div>
-                ) : (
-                    <video
-                        ref={videoRef}
-                        key={currentReel.id}
-                        src={currentReel.video_url}
-                        autoPlay
-                        muted={muted}
-                        playsInline
-                        poster={currentReel.thumbnail_url || undefined}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        onPlay={() => {
-                            setPaused(false);
-                            progressRAF.current = requestAnimationFrame(updateProgress);
-                        }}
-                        onPause={() => {
-                            setPaused(true);
-                            if (progressRAF.current) cancelAnimationFrame(progressRAF.current);
-                        }}
-                        onEnded={() => {
-                            if (progressRAF.current) cancelAnimationFrame(progressRAF.current);
-                            setProgress(0);
-                            goNext();
-                        }}
-                    />
-                )}
+                                    // Retry loop for slow YouTube API init
+                                    [300, 800, 1500].forEach(delay => setTimeout(() => {
+                                        sendYTCmd('playVideo');
+                                        if (userInteractedRef.current && userWantsSoundRef.current) {
+                                            sendYTCmd('unMute');
+                                            sendYTCmd('setVolume', [100]);
+                                        }
+                                    }, delay));
+                                }}
+                            />
+                        </div>
+                    );
+                })()}
+
+                {/* Native video element — shown for direct uploads, hidden for YouTube */}
+                <video
+                    ref={videoRef}
+                    key={currentReel.id}
+                    src={!isYouTubeUrl(currentReel.video_url) ? currentReel.video_url : undefined}
+                    autoPlay={!isYouTubeUrl(currentReel.video_url)}
+                    muted={muted}
+                    playsInline
+                    poster={currentReel.thumbnail_url || undefined}
+                    style={{
+                        width: '100%', height: '100%', objectFit: 'cover',
+                        display: !isYouTubeUrl(currentReel.video_url) ? 'block' : 'none',
+                    }}
+                    onPlay={() => {
+                        setPaused(false);
+                        progressRAF.current = requestAnimationFrame(updateProgress);
+                    }}
+                    onPause={() => {
+                        setPaused(true);
+                        if (progressRAF.current) cancelAnimationFrame(progressRAF.current);
+                    }}
+                    onEnded={() => {
+                        if (progressRAF.current) cancelAnimationFrame(progressRAF.current);
+                        setProgress(0);
+                        goNext();
+                    }}
+                />
 
                 {/* Preload next 10 YouTube thumbnails for instant visual feedback */}
                 {Array.from({ length: 10 }, (_, offset) => offset + 1).map(offset => {
