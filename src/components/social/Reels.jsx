@@ -159,6 +159,9 @@ export function ReelsViewer({ onClose }) {
     const handleLikeRef = useRef(null);
     const handleSaveRef = useRef(null);
     const handleCommentsRef = useRef(null);
+    const ytIframeRef = useRef(null);          // Persistent YouTube iframe ref
+    const userInteractedRef = useRef(false);   // Tracks if user has touched/swiped at least once
+    const userWantsSoundRef = useRef(true);    // User sound preference — persists across reel changes
     // GIF + Image state for reel comments
     const [showReelGifPicker, setShowReelGifPicker] = useState(false);
     const [reelCommentMediaUrl, setReelCommentMediaUrl] = useState(null);
@@ -311,22 +314,23 @@ export function ReelsViewer({ onClose }) {
             try {
                 const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
                 if (data?.event === 'onStateChange') {
-                    if (data.info === 0) {
-                        // Ended -> auto advance
-                        setCurrentIndex(prev => {
-                            if (prev < reels.length - 1) return prev + 1;
-                            return prev;
-                        });
-                    }
+                    if (data.info === 0) goNext(); // Video ended → auto advance
                     if (data.info === 1) { // Playing
-                        setYtReady(true); // YouTube confirmed playback — safe to show play button now
+                        setYtReady(true);
                         setPaused(false);
+                        setYtError(null);
                         setShowOverlay(true);
                         clearTimeout(overlayTimerRef.current);
                         overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
+                        // Auto-unmute ONLY if user wants sound
+                        if (userWantsSoundRef.current) {
+                            sendYTCmd('unMute');
+                            sendYTCmd('setVolume', [100]);
+                            setMuted(false);
+                        }
                     }
                     if (data.info === 2) { // Paused
-                        setYtReady(true); // YouTube confirmed it knows about the video
+                        setYtReady(true);
                         setPaused(true);
                         setShowOverlay(true);
                         if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
@@ -335,10 +339,9 @@ export function ReelsViewer({ onClose }) {
                 if (data?.event === 'onError' && data?.info) {
                     const errCode = Number(data.info);
                     setYtError(errCode);
-                    // Report to server + Sentry (best-effort) — extract videoId from iframe src
+                    // Report to server + Sentry (best-effort)
                     try {
-                        const iframe = containerRef.current?.querySelector('iframe');
-                        const vid = iframe?.src ? getYouTubeVideoId(iframe.src) : null;
+                        const vid = getYouTubeVideoId(reels[currentIndex]?.video_url);
                         if (vid) { reportFailureToServer(vid, errCode, 'Reels'); reportToSentry(vid, errCode, 'Reels'); }
                     } catch { /* best-effort */ }
                 }
@@ -346,7 +349,7 @@ export function ReelsViewer({ onClose }) {
         };
         window.addEventListener('message', handleYTMessage);
         return () => window.removeEventListener('message', handleYTMessage);
-    }, [reels.length]);
+    }, [currentIndex]);
 
     // Reset paused state when changing reels + track view
     // dep: currentIndex ONLY - we do NOT add `reels` because setReels() alone
@@ -359,8 +362,8 @@ export function ReelsViewer({ onClose }) {
         setYtError(null); // Clear YouTube error state on reel change
 
         // Mobile fallback: iOS Safari may never fire onStateChange via postMessage.
-        // If ytReady is still false after 3s, force it true so the play button appears.
-        const ytReadyFallback = setTimeout(() => setYtReady(true), 3000);
+        // If ytReady is still false after 5s, force it true so the play button appears.
+        const ytReadyFallback = setTimeout(() => setYtReady(true), 5000);
 
         // Cancel any running RAF from the previous reel immediately
         if (progressRAF.current) {
@@ -368,23 +371,28 @@ export function ReelsViewer({ onClose }) {
             progressRAF.current = null;
         }
 
-        // Deduplicated view count
+        // Deduplicated view count — defer 2s so rapid swipes don't inflate counts
         const reelId = reels[currentIndex]?.id;
-        if (reelId && currentUserId && !viewedReelsRef.current.has(reelId)) {
-            viewedReelsRef.current.add(reelId);
-            setViewCounts(prev => ({ ...prev, [reelId]: (prev[reelId] || reels[currentIndex]?.view_count || 0) + 1 }));
-            incrementMetric(reels[currentIndex], 'view_count', 1);
-        }
+        const viewCountTimer = (reelId && currentUserId && !viewedReelsRef.current.has(reelId))
+            ? setTimeout(() => {
+                viewedReelsRef.current.add(reelId);
+                setViewCounts(prev => ({ ...prev, [reelId]: (prev[reelId] || reels[currentIndex]?.view_count || 0) + 1 }));
+                incrementMetric(reels[currentIndex], 'view_count', 1);
+            }, 2000)
+            : null;
 
-        // Play via canplay event - video element may be remounting due to key change,
-        // calling play() immediately on a src-less element causes AbortError on mobile.
-        const video = videoRef.current;
-        if (!video) return () => clearTimeout(ytReadyFallback);
+        // Native video autoplay — only for non-YouTube reels
+        const reel = reels[currentIndex];
+        const isNativeVideo = reel && !isYouTubeUrl(reel.video_url);
+        const video = isNativeVideo ? videoRef.current : null;
+        if (!video) return () => { clearTimeout(ytReadyFallback); clearTimeout(viewCountTimer); };
+        // For native video, set ytReady immediately when play starts
+        const onPlay = () => setYtReady(true);
+        video.addEventListener('play', onPlay, { once: true });
         const onCanPlay = () => {
             const p = video.play();
-            if (p !== undefined) p.catch(e => console.warn('[App] Handled promise rejection:', e?.message || e)); // suppress AbortError
+            if (p !== undefined) p.catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         };
-        // If already loaded (readyState >= 3), play immediately
         if (video.readyState >= 3) {
             const p = video.play();
             if (p !== undefined) p.catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
@@ -393,7 +401,9 @@ export function ReelsViewer({ onClose }) {
         }
         return () => {
             clearTimeout(ytReadyFallback);
+            clearTimeout(viewCountTimer);
             video.removeEventListener('canplay', onCanPlay);
+            video.removeEventListener('play', onPlay);
         };
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentIndex]);
@@ -489,6 +499,25 @@ export function ReelsViewer({ onClose }) {
         }
         return () => { if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current); };
     }, [showOverlay, paused]);
+
+    // Lock body scroll while ReelsViewer is mounted
+    useEffect(() => {
+        const origOverflow = document.body.style.overflow;
+        const origPosition = document.body.style.position;
+        const origTouchAction = document.body.style.touchAction;
+        document.body.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.width = '100%';
+        document.body.style.touchAction = 'none';
+        document.documentElement.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = origOverflow;
+            document.body.style.position = origPosition;
+            document.body.style.width = '';
+            document.body.style.touchAction = origTouchAction;
+            document.documentElement.style.overflow = '';
+        };
+    }, []);
 
     const loadReels = useCallback(async () => {
         setLoading(true);
@@ -594,9 +623,10 @@ export function ReelsViewer({ onClose }) {
                 cc[r.id] = r.comment_count || 0;
                 vc[r.id] = r.view_count || 0;
             });
-            setLikeCounts(lc);
-            setViewCounts(vc);
-            setCommentCounts(cc);
+            // Merge with existing counts to preserve any optimistic updates
+            setLikeCounts(prev => ({ ...lc, ...prev }));
+            setViewCounts(prev => ({ ...vc, ...prev }));
+            setCommentCounts(prev => ({ ...cc, ...prev }));
         } catch (e) {
             console.warn('Load reels error:', e);
             setLoadError(true);
@@ -621,21 +651,29 @@ export function ReelsViewer({ onClose }) {
         return () => clearTimeout(watchTimer);
     }, [currentReel?.id]);
 
-    const goNext = () => {
-        if (currentIndex < reels.length - 1) {
-            setCurrentIndex(prev => prev + 1);
+    // Helper: send YouTube postMessage command to persistent iframe ref
+    const sendYTCmd = useCallback((cmd, args = []) => {
+        const iframe = ytIframeRef.current;
+        if (iframe?.contentWindow) {
+            iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
+            iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: cmd, args }), '*');
+        }
+    }, []);
+
+    const goNext = useCallback(() => {
+        setCurrentIndex(prev => {
+            if (prev >= reels.length - 1) return prev;
             // Trigger background load when 3 reels from end
-            if (currentIndex >= reels.length - 4 && hasMore && !loadingMore) {
+            if (prev >= reels.length - 4 && hasMore && !loadingMore) {
                 loadMoreReels();
             }
-        }
-    };
+            return prev + 1;
+        });
+    }, [reels.length, hasMore, loadingMore]);
 
-    const goPrev = () => {
-        if (currentIndex > 0) {
-            setCurrentIndex(prev => prev - 1);
-        }
-    };
+    const goPrev = useCallback(() => {
+        setCurrentIndex(prev => prev > 0 ? prev - 1 : prev);
+    }, []);
 
     // Infinite scroll - load more reels when near end
     const loadMoreReels = async () => {
@@ -900,6 +938,24 @@ export function ReelsViewer({ onClose }) {
             parent_id: parentId,
         }]);
         try {
+            // Proxy post creation for reels: if the reel comes from social_reels,
+            // create a proxy record in social_posts so the FK on social_comments works.
+            if (currentReel.source === 'reels' || !currentReel.source) {
+                const { data: existing } = await supabase
+                    .from('social_posts')
+                    .select('id')
+                    .eq('id', currentReel.id)
+                    .maybeSingle();
+                if (!existing) {
+                    await supabase.from('social_posts').insert({
+                        id: currentReel.id,
+                        user_id: currentReel.author_id || currentUserId,
+                        content: currentReel.caption || '',
+                        media_url: currentReel.video_url || null,
+                        media_type: 'video',
+                    }).catch(e => console.warn('[Reels] Proxy post creation failed:', e?.message));
+                }
+            }
             const payload = { post_id: currentReel.id, author_id: currentUserId, content: text || '' };
             if (mediaUrl) { payload.media_url = mediaUrl; payload.media_type = mediaType; }
             if (parentId) { payload.parent_id = parentId; }
@@ -911,6 +967,7 @@ export function ReelsViewer({ onClose }) {
             setCommentCounts(prev => ({ ...prev, [currentReel.id]: (prev[currentReel.id] || 0) + 1 }));
         } catch {
             setReelComments(prev => prev.filter(c => c.id !== tempId));
+            showErrorToast('Comment failed — please try again');
         }
     };
 
@@ -1145,19 +1202,22 @@ export function ReelsViewer({ onClose }) {
                     }
                 } else {
                     // YouTube — use setPaused callback to read fresh state
-                    const iframe = containerRef.current?.querySelector('iframe');
-                    if (iframe?.contentWindow) {
-                        setPaused(prev => {
-                            const cmd = prev ? 'playVideo' : 'pauseVideo';
-                            iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
-                            iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: cmd, args: [] }), '*');
-                            return !prev;
-                        });
-                    }
+                    setPaused(prev => {
+                        const cmd = prev ? 'playVideo' : 'pauseVideo';
+                        sendYTCmd(cmd);
+                        return !prev;
+                    });
                 }
             }
             if (e.key === 'm' || e.key === 'M') {
-                setMuted(prev => !prev);
+                setMuted(prev => {
+                    const next = !prev;
+                    userWantsSoundRef.current = !next;
+                    if (next) { sendYTCmd('mute'); } else { sendYTCmd('unMute'); sendYTCmd('setVolume', [100]); }
+                    // Also update native video
+                    if (videoRef.current) videoRef.current.muted = next;
+                    return next;
+                });
             }
             if (e.key === 'l' || e.key === 'L') { handleLikeRef.current?.(); haptic(15); }
             if (e.key === 's' || e.key === 'S') handleSaveRef.current?.();
@@ -1278,10 +1338,26 @@ export function ReelsViewer({ onClose }) {
         if (showCommentInput) return;
         const now = Date.now();
         const DOUBLE_TAP_WINDOW = 300;
+        const isYT = isYouTubeUrl(currentReel?.video_url);
+        userInteractedRef.current = true; // Mark user as having interacted
+
+        // First tap EVER: force play + unmute (iOS requires user gesture)
+        if ((paused || muted) && isYT) {
+            sendYTCmd('playVideo');
+            sendYTCmd('unMute');
+            sendYTCmd('setVolume', [100]);
+            setPaused(false);
+            setMuted(false);
+            setYtReady(true);
+            userWantsSoundRef.current = true;
+            lastTapRef.current = now;
+            revealOverlay();
+            return;
+        }
+
         if (now - lastTapRef.current < DOUBLE_TAP_WINDOW) {
             // Double-tap = toggle play/pause
             haptic(15);
-            const isYT = isYouTubeUrl(currentReel?.video_url);
             if (!isYT && videoRef.current) {
                 if (videoRef.current.paused) {
                     const playPromise = videoRef.current.play();
@@ -1293,18 +1369,13 @@ export function ReelsViewer({ onClose }) {
                     if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
                 }
             } else if (isYT) {
-                const iframe = containerRef.current?.querySelector('iframe');
-                if (iframe?.contentWindow) {
-                    if (paused) {
-                        iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
-                        iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
-                        setPaused(false);
-                    } else {
-                        iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
-                        iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }), '*');
-                        setPaused(true);
-                        if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
-                    }
+                if (paused) {
+                    sendYTCmd('playVideo');
+                    setPaused(false);
+                } else {
+                    sendYTCmd('pauseVideo');
+                    setPaused(true);
+                    if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
                 }
             }
             lastTapRef.current = 0;
@@ -1379,6 +1450,7 @@ export function ReelsViewer({ onClose }) {
                         const embedSrc = `https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1&mute=1&loop=1&playlist=${ytId}&rel=0&modestbranding=1&playsinline=1&controls=0&showinfo=0&iv_load_policy=3&fs=0&disablekb=1&cc_load_policy=0&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker'}`;
                         return (
                             <iframe
+                                ref={ytIframeRef}
                                 key={`yt-${currentReel?.id}`}
                                 src={embedSrc}
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -1391,25 +1463,25 @@ export function ReelsViewer({ onClose }) {
                                     top: 0,
                                     left: 0,
                                     objectFit: 'cover',
-                                    // BUG FIX: pointer-events none - swipe handlers are on container
                                     pointerEvents: 'none',
                                 }}
                                 title={currentReel?.caption || 'Poker Reel'}
-                                onLoad={(e) => {
-                                    // Force play via YouTube postMessage API
-                                    // CRITICAL: Do NOT send unMute here — on mobile Safari, unmuting
-                                    // before playback starts causes autoplay to fail.
-                                    const iframeWindow = e.target.contentWindow;
-                                    try {
-                                        iframeWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
-                                        iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
-                                        [300, 800, 1500, 3000].forEach(delay => setTimeout(() => {
-                                            try {
-                                                iframeWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
-                                                iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
-                                            } catch (e) { console.warn('[Reels] Handled exception:', e); }
-                                        }, delay));
-                                    } catch (e) { console.warn('[Reels] Handled exception:', e); }
+                                onLoad={() => {
+                                    // Force play via sendYTCmd
+                                    sendYTCmd('playVideo');
+                                    if (userInteractedRef.current && userWantsSoundRef.current) {
+                                        sendYTCmd('unMute');
+                                        sendYTCmd('setVolume', [100]);
+                                        setMuted(false);
+                                    }
+                                    // Retry loop for slow YouTube API init
+                                    [300, 800, 1500].forEach(delay => setTimeout(() => {
+                                        sendYTCmd('playVideo');
+                                        if (userInteractedRef.current && userWantsSoundRef.current) {
+                                            sendYTCmd('unMute');
+                                            sendYTCmd('setVolume', [100]);
+                                        }
+                                    }, delay));
                                 }}
                             />
                         );
@@ -1674,7 +1746,7 @@ export function ReelsViewer({ onClose }) {
                                 boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
                                 animation: 'fadeInScale 0.2s ease',
                             }}>
-                                <button onClick={() => { setMuted(prev => { const next = !prev; const iframe = containerRef.current?.querySelector('iframe'); if (iframe?.contentWindow) { iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*'); iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: next ? 'mute' : 'unMute', args: [] }), '*'); if (!next) iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*'); } return next; }); setShowMoreMenu(false); }} style={{
+                                <button onClick={() => { setMuted(prev => { const next = !prev; userWantsSoundRef.current = !next; if (next) { sendYTCmd('mute'); } else { sendYTCmd('unMute'); sendYTCmd('setVolume', [100]); } if (videoRef.current) videoRef.current.muted = next; return next; }); setShowMoreMenu(false); }} style={{
                                     display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '10px 16px',
                                     background: 'none', border: 'none', color: 'white', fontSize: 14, cursor: 'pointer', textAlign: 'left',
                                 }}>
