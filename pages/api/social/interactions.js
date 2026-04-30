@@ -336,13 +336,17 @@ export default async function handler(req, res) {
 
               const atomicDecrement = async (field) => {
                   try {
-                      if (deleteSource === 'reels') {
-                          await getSupabase().rpc('decrement_reel_count', { p_reel_id: post_id, p_field: field });
-                      } else {
-                          await getSupabase().rpc('decrement_post_count', { p_post_id: post_id, p_field: field });
+                      // RPC errors do NOT throw — the prior catch only caught
+                      // network exceptions. Capture explicitly so a counter
+                      // drift logs instead of silently going stale.
+                      const { error: decErr } = deleteSource === 'reels'
+                          ? await getSupabase().rpc('decrement_reel_count', { p_reel_id: post_id, p_field: field })
+                          : await getSupabase().rpc('decrement_post_count', { p_post_id: post_id, p_field: field });
+                      if (decErr) {
+                          console.warn('[Interactions] DELETE decrement RPC error (counter may drift):', field, decErr?.message || decErr);
                       }
                   } catch (e) {
-                      console.warn('[Interactions] DELETE decrement failed:', e.message);
+                      console.warn('[Interactions] DELETE decrement threw:', e.message);
                   }
               };
 

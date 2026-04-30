@@ -365,11 +365,16 @@ try {
           return res.status(404).json({ success: false, error: 'Review not found or not owned by user' });
         }
 
-        // Recalculate trust score after deletion
+        // Recalculate trust score after deletion. RPC errors don't throw —
+        // capture explicitly so a real failure logs instead of leaving the
+        // venue trust_score stale.
         const deletedVenueId = delVenueId || data[0]?.venue_id;
         if (deletedVenueId) {
           try {
-            await getSupabase().rpc('recalculate_venue_trust_score', { p_venue_id: String(deletedVenueId) });
+            const { error: trustErr } = await getSupabase().rpc('recalculate_venue_trust_score', { p_venue_id: String(deletedVenueId) });
+            if (trustErr) {
+              console.warn('[Reviews DELETE] trust_score recalc RPC error (score stale):', trustErr?.message || trustErr);
+            }
           } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         }
 
