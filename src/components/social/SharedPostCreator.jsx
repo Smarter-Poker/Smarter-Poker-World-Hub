@@ -222,17 +222,19 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
      *   5. Signed URL prefetch for first video
      */
     const handleFiles = async (e) => {
-        // The picker is closed but the heavy work (HEVC thumbnail decode, sign-URL
-        // prefetch, optional compression) is JUST starting. Keep the spinner visible
-        // until the staging phase actually finishes — clearing it only when ALL
-        // queued thumbnail promises resolve (or after a 30s ceiling).
-        // Without this, mobile users saw a 20–30 second blank UI between picking a
-        // video and any visible feedback. Per Dan: "should not take 20-30+ seconds
-        // to stage a video from the photo album to smarter.poker".
+        // Picker has closed AND a file was actually selected (this handler only
+        // fires on a real change event with .files set; bail-on-cancel is the
+        // !files.length check below).
         _pickerOpenRef.current = false;
-        // intentionally do NOT setPreparingMedia(false) here — it gets cleared at
-        // the bottom of this function once staging work has been kicked off + the
-        // first thumbnail resolves (whichever finishes first ≤ 30s).
+
+        // Raise the banner NOW — only when we actually have a file to stage.
+        // Cleared at the bottom once the first thumbnail resolves (or 30s).
+        // Previously the banner went up on Photo/Video button click and got
+        // stuck on iOS because Safari doesn't fire visibilitychange around
+        // its file picker, so the 2s safety timer never fired.
+        if (e?.target?.files?.length > 0) {
+            setPreparingMedia(true);
+        }
 
         const files = Array.from(e.target.files);
         if (!files.length) return;
@@ -1391,7 +1393,16 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 8px 4px', gap: 4 }}>
                     <button
                     onClick={() => {
-                        setPreparingMedia(true);
+                        // BUG FIX (2026-04-30 per Dan): do NOT set preparingMedia
+                        // here. iOS Safari's file picker doesn't fire
+                        // visibilitychange when it opens/closes, so the safety
+                        // timer never gets a chance to clear the banner if the
+                        // user cancels — the result was a stuck "Preparing Your
+                        // Video" banner appearing the moment Photo/Video was
+                        // tapped, before any file was selected. The banner now
+                        // shows ONLY after handleFiles fires (real file picked),
+                        // and clears via the deferred staging promise + 30s
+                        // ceiling already wired up below.
                         _pickerOpenRef.current = true;
                         fileRef.current?.click();
                     }}

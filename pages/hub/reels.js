@@ -1181,6 +1181,10 @@ export default function ReelsPage() {
         setReportSubmitted(false);
         setShareToast(false);
         setShowShareModal(false);
+        setShowShareDescriptionModal(false);
+        setShareDescription('');
+        setSharingToFeed(false);
+        setSharedToFeed(false);
         // Reset isPaused to true — the play button overlay is guarded by (isPaused && ytReady)
         // and ytReady starts false, so the play button won't show during autoplay startup.
         // If autoplay succeeds, YT fires onStateChange(1) → sets isPaused=false before ytReady=true.

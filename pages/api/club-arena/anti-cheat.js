@@ -376,17 +376,27 @@ try {
                 });
               }
 
-              // STEP 2: Close table session (RPC — atomic on DB side)
+              // STEP 2: Close table session (RPC — atomic on DB side).
+              // CRITICAL: Supabase rpc() returns { data, error } and does NOT
+              // throw on RPC errors. The previous try/catch only caught
+              // network exceptions; a real RPC error returned silently with
+              // step still 1, leaving stale rows in table_sessions until
+              // their natural expiry. Capture the error explicitly.
               try {
-                await getSupabase().rpc('close_table_session', {
+                const { error: sessionErr } = await getSupabase().rpc('close_table_session', {
                   p_table_id: tableId,
                   p_player_id: targetPlayerId,
                   p_reason: reason || 'Anti-cheat violation: removed by admin',
                 });
-                kickOp.step = 2;
-              } catch (sessionErr) {
-                kickOp.errors.push({ step: 'close_session', error: sessionErr?.message });
-                console.warn('[AntiCheat] Session close failed (player already stood up):', sessionErr?.message);
+                if (sessionErr) {
+                  kickOp.errors.push({ step: 'close_session', error: sessionErr?.message });
+                  console.warn('[AntiCheat] Session close RPC failed (player already stood up):', sessionErr?.message || sessionErr);
+                } else {
+                  kickOp.step = 2;
+                }
+              } catch (throwErr) {
+                kickOp.errors.push({ step: 'close_session', error: throwErr?.message });
+                console.warn('[AntiCheat] Session close threw:', throwErr?.message || throwErr);
                 // Non-fatal: player is already stood up, session will expire naturally
               }
 

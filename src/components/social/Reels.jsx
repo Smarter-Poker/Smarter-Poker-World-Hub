@@ -1180,6 +1180,10 @@ export function ReelsViewer({ onClose }) {
         setReportSubmitted(false);
         setShareToast(false);
         setShowShareModal(false);
+        setShowShareDescriptionModal(false);
+        setShareDescription('');
+        setSharingToFeed(false);
+        setSharedToFeed(false);
     }, [currentIndex]);
 
     // Keep handler refs fresh for keyboard shortcuts
