@@ -1150,8 +1150,10 @@ export function ReelsViewer({ onClose }) {
         setShowShareDescriptionModal(true);
     };
 
-    const handleShareToFeed = async () => {
+    const handleShareToFeed = async (descOverride) => {
         if (!currentReel?.id || !currentUserId || sharingToFeed) return;
+        // descOverride allows the skip button to bypass stale shareDescription state
+        const descToSend = typeof descOverride === 'string' ? descOverride : shareDescription;
         setSharingToFeed(true);
         setShowShareDescriptionModal(false);
         try {
@@ -1163,7 +1165,7 @@ export function ReelsViewer({ onClose }) {
                     reel_id: currentReel.id,
                     video_url: currentReel.video_url || null,
                     caption: currentReel.caption || '',
-                    user_description: shareDescription.trim() || '',
+                    user_description: descToSend.trim() || '',
                 }),
             });
             const result = await res.json();
@@ -2218,7 +2220,7 @@ export function ReelsViewer({ onClose }) {
                                     <><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg> Post to My Feed</>
                                 )}
                             </button>
-                            <button onClick={() => { setShareDescription(''); handleShareToFeed(); }} disabled={sharingToFeed} style={{
+                            <button onClick={() => { setShareDescription(''); handleShareToFeed(''); }} disabled={sharingToFeed} style={{
                                 width: '100%', marginTop: 8, padding: '10px', background: 'transparent',
                                 border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 13, cursor: 'pointer', fontWeight: 500,
                             }}>Skip Description — Share Now</button>

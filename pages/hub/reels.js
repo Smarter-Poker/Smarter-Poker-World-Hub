@@ -1133,8 +1133,10 @@ export default function ReelsPage() {
         setShowShareDescriptionModal(true);
     };
 
-    const handleShareToFeed = async () => {
+    const handleShareToFeed = async (descOverride) => {
         if (!currentReel?.id || !user?.id || sharingToFeed) return;
+        // descOverride allows the skip button to bypass stale shareDescription state
+        const descToSend = typeof descOverride === 'string' ? descOverride : shareDescription;
         setSharingToFeed(true);
         setShowShareDescriptionModal(false);
         try {
@@ -1146,7 +1148,7 @@ export default function ReelsPage() {
                     reel_id: currentReel.id,
                     video_url: currentReel.video_url || null,
                     caption: currentReel.caption || '',
-                    user_description: shareDescription.trim() || '',
+                    user_description: descToSend.trim() || '',
                 }),
             });
             const result = await res.json();
@@ -2622,7 +2624,7 @@ export default function ReelsPage() {
 
                             {/* Skip description option */}
                             <button
-                                onClick={() => { setShareDescription(''); handleShareToFeed(); }}
+                                onClick={() => { setShareDescription(''); handleShareToFeed(''); }}
                                 disabled={sharingToFeed}
                                 style={{
                                     width: '100%', marginTop: 8, padding: '10px', background: 'transparent',
