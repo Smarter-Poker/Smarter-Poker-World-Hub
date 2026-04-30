@@ -68,7 +68,7 @@ function Avatar({ src, name, size = 120 }) {
 }
 
 // Friend Avatar for grid
-function FriendAvatar({ friend, currentUserFriends = [] }) {
+function FriendAvatar({ friend }) {
     const mutualCount = friend.mutualCount || 0;
     return (
         <Link href={`/hub/user/${friend.username}`} style={{ textDecoration: 'none', textAlign: 'center' }}>
@@ -92,6 +92,262 @@ function FriendAvatar({ friend, currentUserFriends = [] }) {
                 {mutualCount > 0 ? `${mutualCount} mutual` : ''}
             </div>
         </Link>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FRIENDS MODAL — Facebook-style "See All Friends" overlay
+// Tabs: All Friends | Mutual Friends | Suggested
+// ═══════════════════════════════════════════════════════════════════════════
+function FriendsModal({ isOpen, onClose, profileId, profileName, currentUserId, socialIdRef }) {
+    const [modalTab, setModalTab] = useState('all');
+    const [allFriends, setAllFriends] = useState([]);
+    const [mutualFriends, setMutualFriends] = useState([]);
+    const [suggestedFriends, setSuggestedFriends] = useState([]);
+    const [modalLoading, setModalLoading] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+
+    useEffect(() => {
+        if (!isOpen || !profileId) return;
+        setModalLoading(true);
+        setSearchQuery('');
+        loadFriendsData();
+    }, [isOpen, profileId]);
+
+    const loadFriendsData = async () => {
+        try {
+            const sid = socialIdRef?.current || profileId;
+
+            // 1. Get ALL of the viewed profile's friends (both directions)
+            const [sentRes, recvRes] = await Promise.all([
+                supabase.from('friendships').select('friend_id').eq('user_id', sid).eq('status', 'accepted'),
+                supabase.from('friendships').select('user_id').eq('friend_id', sid).eq('status', 'accepted'),
+            ]);
+            const profileFriendIds = new Set();
+            (sentRes.data || []).forEach(r => profileFriendIds.add(r.friend_id));
+            (recvRes.data || []).forEach(r => profileFriendIds.add(r.user_id));
+            const profileFriendArray = [...profileFriendIds];
+
+            if (profileFriendArray.length === 0) {
+                setAllFriends([]); setMutualFriends([]); setSuggestedFriends([]);
+                setModalLoading(false);
+                return;
+            }
+
+            // 2. Get profiles for all friends
+            const { data: friendProfiles } = await supabase
+                .from('profiles')
+                .select('id, username, full_name, avatar_url')
+                .in('id', profileFriendArray);
+            const profileMap = new Map((friendProfiles || []).map(p => [p.id, p]));
+
+            // 3. Get current user's friends (if logged in)
+            let myFriendSet = new Set();
+            if (currentUserId) {
+                const [mySent, myRecv] = await Promise.all([
+                    supabase.from('friendships').select('friend_id').eq('user_id', currentUserId).eq('status', 'accepted'),
+                    supabase.from('friendships').select('user_id').eq('friend_id', currentUserId).eq('status', 'accepted'),
+                ]);
+                (mySent.data || []).forEach(r => myFriendSet.add(r.friend_id));
+                (myRecv.data || []).forEach(r => myFriendSet.add(r.user_id));
+            }
+
+            // 4. For REAL per-friend mutual counts, batch-fetch friendships for all displayed friends
+            //    Then compute: for each friend X, mutualCount = |X's friends ∩ my friends|
+            const friendFriendSets = new Map(); // friendId -> Set of their friend IDs
+            if (currentUserId && profileFriendArray.length > 0) {
+                // Batch in chunks of 30 to avoid URL length limits
+                const chunks = [];
+                for (let i = 0; i < profileFriendArray.length; i += 30) {
+                    chunks.push(profileFriendArray.slice(i, i + 30));
+                }
+                const allFriendships = [];
+                for (const chunk of chunks) {
+                    const [s, r] = await Promise.all([
+                        supabase.from('friendships').select('user_id, friend_id').in('user_id', chunk).eq('status', 'accepted'),
+                        supabase.from('friendships').select('user_id, friend_id').in('friend_id', chunk).eq('status', 'accepted'),
+                    ]);
+                    if (s.data) allFriendships.push(...s.data);
+                    if (r.data) allFriendships.push(...r.data);
+                }
+                // Build per-friend friend sets
+                for (const fid of profileFriendArray) {
+                    friendFriendSets.set(fid, new Set());
+                }
+                for (const row of allFriendships) {
+                    if (friendFriendSets.has(row.user_id)) friendFriendSets.get(row.user_id).add(row.friend_id);
+                    if (friendFriendSets.has(row.friend_id)) friendFriendSets.get(row.friend_id).add(row.user_id);
+                }
+            }
+
+            // 5. Build friend objects with real mutual counts
+            const all = profileFriendArray.map(fid => {
+                const profile = profileMap.get(fid);
+                if (!profile) return null;
+                let mutualCount = 0;
+                if (currentUserId && friendFriendSets.has(fid)) {
+                    const theirFriends = friendFriendSets.get(fid);
+                    mutualCount = [...theirFriends].filter(id => myFriendSet.has(id) && id !== currentUserId).length;
+                }
+                return { ...profile, mutualCount };
+            }).filter(Boolean);
+
+            // Sort by mutual count descending, then alphabetically
+            all.sort((a, b) => b.mutualCount - a.mutualCount || (a.full_name || a.username || '').localeCompare(b.full_name || b.username || ''));
+
+            setAllFriends(all);
+
+            if (currentUserId) {
+                // Mutual = friends of this profile that ARE also my friends
+                setMutualFriends(all.filter(f => myFriendSet.has(f.id)));
+                // Suggested = friends of this profile that are NOT my friends and not me
+                setSuggestedFriends(all.filter(f => !myFriendSet.has(f.id) && f.id !== currentUserId));
+            } else {
+                setMutualFriends([]);
+                setSuggestedFriends([]);
+            }
+        } catch (e) {
+            console.warn('[FriendsModal] Load failed:', e?.message || e);
+        }
+        setModalLoading(false);
+    };
+
+    if (!isOpen) return null;
+
+    const tabs = [
+        { key: 'all', label: 'All Friends', count: allFriends.length },
+        { key: 'mutual', label: 'Mutual Friends', count: mutualFriends.length },
+        { key: 'suggested', label: 'Suggested', count: suggestedFriends.length },
+    ];
+    // Hide mutual/suggested tabs if not logged in
+    const visibleTabs = currentUserId ? tabs : [tabs[0]];
+    const activeList = modalTab === 'mutual' ? mutualFriends : modalTab === 'suggested' ? suggestedFriends : allFriends;
+    const filtered = searchQuery.trim()
+        ? activeList.filter(f => (f.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) || (f.username || '').toLowerCase().includes(searchQuery.toLowerCase()))
+        : activeList;
+
+    return (
+        <div style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 9999,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+        }} onClick={onClose}>
+            <div style={{
+                background: C.card, borderRadius: 12, width: '100%', maxWidth: 600,
+                maxHeight: '80vh', display: 'flex', flexDirection: 'column',
+                boxShadow: '0 12px 48px rgba(0,0,0,0.3)', overflow: 'hidden',
+            }} onClick={e => e.stopPropagation()}>
+
+                {/* Header */}
+                <div style={{ padding: '16px 20px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: C.text }}>
+                        {profileName ? `${profileName.split(' ')[0]}'s Friends` : 'Friends'}
+                    </h2>
+                    <button onClick={onClose} style={{
+                        width: 36, height: 36, borderRadius: '50%', border: 'none',
+                        background: C.bg, cursor: 'pointer', fontSize: 18, display: 'flex',
+                        alignItems: 'center', justifyContent: 'center', color: C.textSec,
+                    }}>✕</button>
+                </div>
+
+                {/* Tabs */}
+                <div style={{ display: 'flex', borderBottom: `1px solid ${C.border}`, padding: '0 20px' }}>
+                    {visibleTabs.map(tab => (
+                        <button key={tab.key} onClick={() => setModalTab(tab.key)} style={{
+                            padding: '12px 16px', border: 'none', background: 'none', cursor: 'pointer',
+                            fontSize: 15, fontWeight: modalTab === tab.key ? 700 : 500,
+                            color: modalTab === tab.key ? C.blue : C.textSec,
+                            borderBottom: modalTab === tab.key ? `3px solid ${C.blue}` : '3px solid transparent',
+                            transition: 'all 0.15s',
+                        }}>
+                            {tab.label} <span style={{ fontSize: 13, opacity: 0.7 }}>({tab.count})</span>
+                        </button>
+                    ))}
+                </div>
+
+                {/* Search */}
+                <div style={{ padding: '12px 20px' }}>
+                    <input
+                        type="text"
+                        placeholder="Search friends..."
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                        style={{
+                            width: '100%', padding: '10px 14px', borderRadius: 24,
+                            border: `1px solid ${C.border}`, background: C.bg,
+                            fontSize: 15, outline: 'none', boxSizing: 'border-box',
+                        }}
+                    />
+                </div>
+
+                {/* Friend List */}
+                <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 20px' }}>
+                    {modalLoading ? (
+                        <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
+                            <div style={{ fontSize: 14 }}>Loading friends...</div>
+                        </div>
+                    ) : filtered.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
+                            <div style={{ fontSize: 32, marginBottom: 8 }}>
+                                {modalTab === 'mutual' ? '🤝' : modalTab === 'suggested' ? '💡' : '👥'}
+                            </div>
+                            <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>
+                                {searchQuery ? 'No results found' : modalTab === 'mutual' ? 'No Mutual Friends' : modalTab === 'suggested' ? 'No Suggestions' : 'No Friends Yet'}
+                            </div>
+                            <div style={{ fontSize: 13 }}>
+                                {modalTab === 'suggested' ? 'You\'re already friends with everyone here!' : ''}
+                            </div>
+                        </div>
+                    ) : (
+                        filtered.map(friend => (
+                            <Link key={friend.id} href={`/hub/user/${friend.username}`} onClick={onClose} style={{
+                                display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0',
+                                borderBottom: `1px solid ${C.border}`, textDecoration: 'none', color: 'inherit',
+                                transition: 'background 0.1s',
+                            }}>
+                                <img
+                                    src={friend.avatar_url || '/default-avatar.png'}
+                                    alt={friend.username}
+                                    style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', background: '#e4e6eb', flexShrink: 0 }}
+                                    loading="lazy"
+                                />
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontSize: 16, fontWeight: 600, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        {friend.full_name || friend.username}
+                                    </div>
+                                    {friend.mutualCount > 0 && (
+                                        <div style={{ fontSize: 13, color: C.textSec }}>
+                                            {friend.mutualCount} mutual friend{friend.mutualCount !== 1 ? 's' : ''}
+                                        </div>
+                                    )}
+                                </div>
+                                {modalTab === 'suggested' && currentUserId && (
+                                    <button
+                                        onClick={async (e) => {
+                                            e.preventDefault(); e.stopPropagation();
+                                            try {
+                                                const token = getAccessToken();
+                                                await fetch('/api/social/friends', {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
+                                                    body: JSON.stringify({ action: 'request', user_id: currentUserId, friend_id: friend.id }),
+                                                });
+                                                toast.success(`Friend request sent to ${friend.full_name?.split(' ')[0] || friend.username}`);
+                                                setSuggestedFriends(prev => prev.filter(f => f.id !== friend.id));
+                                            } catch (err) { toast.error('Could not send request'); }
+                                        }}
+                                        style={{
+                                            padding: '8px 16px', borderRadius: 8, border: 'none',
+                                            background: C.blue, color: 'white', fontWeight: 600, fontSize: 13,
+                                            cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+                                        }}
+                                    >Add Friend</button>
+                                )}
+                            </Link>
+                        ))
+                    )}
+                </div>
+            </div>
+        </div>
     );
 }
 
@@ -821,6 +1077,7 @@ export default function UserProfilePage() {
     const [statsAnimated, setStatsAnimated] = useState(false);
     const [pullRefreshing, setPullRefreshing] = useState(false);
     const pullStartY = useRef(null);
+    const [showFriendsModal, setShowFriendsModal] = useState(false);
 
     // Poker Activity state
     const [pokerCheckins, setPokerCheckins] = useState([]);
@@ -1258,10 +1515,27 @@ export default function UserProfilePage() {
                         .in('id', friendIds);
 
                     if (friendProfiles) {
-                        // mutualCount = friends the current user shares with the viewed profile
+                        // REAL per-friend mutual counts: for each friend X, count |X's friends ∩ my friends|
                         const myFriendSet = new Set(myFriendIds);
+                        const friendFriendSets = new Map();
+                        if (myFriendIds.length > 0 && friendIds.length > 0) {
+                            // Batch-fetch all friendships involving displayed friends
+                            const [ffSent, ffRecv] = await Promise.all([
+                                supabase.from('friendships').select('user_id, friend_id').in('user_id', friendIds).eq('status', 'accepted'),
+                                supabase.from('friendships').select('user_id, friend_id').in('friend_id', friendIds).eq('status', 'accepted'),
+                            ]);
+                            for (const fid of friendIds) friendFriendSets.set(fid, new Set());
+                            for (const row of [...(ffSent.data || []), ...(ffRecv.data || [])]) {
+                                if (friendFriendSets.has(row.user_id)) friendFriendSets.get(row.user_id).add(row.friend_id);
+                                if (friendFriendSets.has(row.friend_id)) friendFriendSets.get(row.friend_id).add(row.user_id);
+                            }
+                        }
                         const friendsWithMutual = friendProfiles.map(friend => {
-                            const mutualCount = [...uniqueFriendIds].filter(id => myFriendSet.has(id) && id !== friend.id).length;
+                            let mutualCount = 0;
+                            if (friendFriendSets.has(friend.id)) {
+                                const theirFriends = friendFriendSets.get(friend.id);
+                                mutualCount = [...theirFriends].filter(id => myFriendSet.has(id) && id !== user?.id).length;
+                            }
                             return { ...friend, mutualCount };
                         });
                         friendsWithMutual.sort((a, b) => b.mutualCount - a.mutualCount);
@@ -2471,7 +2745,7 @@ export default function UserProfilePage() {
                                             <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C.text }}>Friends</h3>
                                             <div style={{ fontSize: 14, color: C.textSec }}>{stats.friends} friends</div>
                                         </div>
-                                        <Link href="/hub/friends" style={{ color: C.blue, fontSize: 14, fontWeight: 500, textDecoration: 'none' }}>See All</Link>
+                                        <button onClick={() => setShowFriendsModal(true)} style={{ color: C.blue, fontSize: 14, fontWeight: 500, textDecoration: 'none', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>See All</button>
                                     </div>
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
                                         {friends.length > 0
@@ -3221,6 +3495,14 @@ export default function UserProfilePage() {
                     onClose={() => setArticleReader({ open: false, url: '', title: '' })}
                 />
             )}
+              <FriendsModal
+                  isOpen={showFriendsModal}
+                  onClose={() => setShowFriendsModal(false)}
+                  profileId={profile?.id}
+                  profileName={profile?.full_name || profile?.username}
+                  currentUserId={currentUser?.id}
+                  socialIdRef={socialIdRef}
+              />
               <BottomNavBar />
     </PageTransition>
     );
