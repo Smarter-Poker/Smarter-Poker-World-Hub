@@ -1742,14 +1742,23 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                         // Check for call receipt: [CALL_RECEIPT]{"type":"video","duration":135,"status":"completed"}
                         if (content.startsWith('[CALL_RECEIPT]')) {
                             const raw = content.replace('[CALL_RECEIPT]', '');
-                            // Parse structured JSON or fall back to legacy plain text
+                            // Parse structured JSON or fall back to legacy plain text.
+                            // CRITICAL: receiptData stays null if parse throws — the
+                            // following .status / .type / .duration reads were on the
+                            // null path and crashed every conversation containing a
+                            // legacy/malformed receipt with 'Cannot read properties of
+                            // null (reading status)' → tripped HubErrorBoundary →
+                            // 'Messenger Temporarily Unavailable'.
                             let receiptData = null;
                             try {
                                 receiptData = JSON.parse(raw);
                             } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-                            const st = receiptData.status || 'completed';
-                            const tp = receiptData.type || 'voice';
-                            const dur = receiptData.duration || 0;
+                            // Safe-default to {} so the .status / .type / .duration
+                            // reads below fall through to their `||` fallbacks.
+                            const _receipt = receiptData || {};
+                            const st = _receipt.status || 'completed';
+                            const tp = _receipt.type || 'voice';
+                            const dur = _receipt.duration || 0;
                             const isVideo = tp === 'video';
                             const icon = isVideo ? '📹' : '📞';
 
@@ -1785,11 +1794,11 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                                     </div>
                                     <div style={{ flex: 1 }}>
                                         <div style={{ fontWeight: 600, fontSize: 13, color: cfg.color }}>
-                                            {receiptData.legacyText || cfg.label}
+                                            {_receipt.legacyText || cfg.label}
                                         </div>
-                                        {(cfg.sublabel || receiptData.legacyText) && (
+                                        {(cfg.sublabel || _receipt.legacyText) && (
                                             <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
-                                                {receiptData.legacyText ? '' : cfg.sublabel}
+                                                {_receipt.legacyText ? '' : cfg.sublabel}
                                             </div>
                                         )}
                                     </div>
