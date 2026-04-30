@@ -166,6 +166,11 @@ export default async function handler(req, res) {
                   content: content || '',
                   content_type: content_type || 'text',
                   media_urls: media_urls || [],
+                  // Persist thumbnail at the source so club-page-direct rendering
+                  // shows the preview frame too (column added 2026-04-30).
+                  // Without this, only the global-feed mirror got the thumbnail
+                  // and viewers ON the club page saw a black box.
+                  thumbnail_url: thumbnail_url || null,
                   link_preview,
                   visibility: visibility || 'public',
                   is_pinned: isOwner ? (is_pinned || false) : false,
