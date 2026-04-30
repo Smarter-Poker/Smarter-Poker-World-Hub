@@ -2400,9 +2400,11 @@ function MessengerPage() {
 
     // Load preferences from service (localStorage + Supabase)
     useEffect(() => {
+        let cancelled = false;
         messengerPreferences.get(user?.id).then(prefs => {
-            setPreferences(prefs);
+            if (!cancelled) setPreferences(prefs);
         });
+        return () => { cancelled = true; };
     }, [user]);
 
     // Preference update handler with Supabase sync

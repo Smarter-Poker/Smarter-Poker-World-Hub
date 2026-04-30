@@ -121,11 +121,14 @@ function FriendsModal({ isOpen, onClose, profileId, profileName, currentUserId, 
     // Escape key handler + body scroll lock
     useEffect(() => {
         if (!isOpen) return;
-        const prev = document.body.style.overflow;
         document.body.style.overflow = 'hidden';
         const onKey = (e) => { if (e.key === 'Escape') onClose(); };
         window.addEventListener('keydown', onKey);
-        return () => { document.body.style.overflow = prev; window.removeEventListener('keydown', onKey); };
+        return () => {
+            // Always clear — don't restore saved value (race condition risk)
+            document.body.style.overflow = '';
+            window.removeEventListener('keydown', onKey);
+        };
     }, [isOpen, onClose]);
 
     const loadFriendsData = async () => {
