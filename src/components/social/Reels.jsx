@@ -1132,9 +1132,17 @@ export function ReelsViewer({ onClose }) {
             }
             if (platform !== 'copy') incrementMetric(currentReel, 'share_count', 1);
             if (currentUserId) busEmit.socialPostShared(currentReel.id, currentUserId);
-        } catch {
-            setShareToast(true);
-            setTimeout(() => setShareToast(false), 2000);
+        } catch (err) {
+            // AUDIT FIX: do NOT show "Link Copied" toast on failures unrelated to clipboard.
+            // navigator.share() throws AbortError on user-cancel (not an error) and
+            // other errors on share failures. Only show the copy toast for actual copy failures.
+            if (platform === 'copy') {
+                // Clipboard copy failed — try fallback via selection
+                showErrorToast('Copy failed — try again');
+            }
+            // For native/x/facebook/whatsapp failures, the window.open already fired or
+            // navigator.share was cancelled by user; no toast needed.
+            console.warn('[Reels] Share action failed:', err?.message || err);
         }
     };
 

@@ -387,11 +387,16 @@ export default function ReelsPage() {
             while (lIdx < libReels.length) allVideos.push(libReels[lIdx++]);
             postsAsReels.forEach(p => allVideos.push(p));
 
-            // Deduplicate
+            // Deduplicate by BOTH id and video_url.
+            // The auto-mirror trigger can clone a social_post into social_reels with a
+            // different row ID but the same physical video — id-only dedup lets it render twice.
             const seenIds = new Set();
+            const seenUrls = new Set();
             const deduped = allVideos.filter(v => {
                 if (seenIds.has(v.id)) return false;
+                if (v.video_url && seenUrls.has(v.video_url)) return false;
                 seenIds.add(v.id);
+                if (v.video_url) seenUrls.add(v.video_url);
                 return true;
             });
 
@@ -475,9 +480,11 @@ export default function ReelsPage() {
                     cc[r.id] = r.comment_count || 0;
                     vc[r.id] = r.view_count || 0;
                 });
-                setLikeCounts(lc);
-                setCommentCounts(cc);
-                setViewCounts(vc);
+                // AUDIT FIX: merge prev counts so optimistic like updates aren't
+                // clobbered when a realtime insert triggers a loadReels() reload.
+                setLikeCounts(prev => ({ ...lc, ...prev }));
+                setCommentCounts(prev => ({ ...cc, ...prev }));
+                setViewCounts(prev => ({ ...vc, ...prev }));
             }
         } catch (e) {
             console.warn('Load reels error:', e);
@@ -661,9 +668,20 @@ export default function ReelsPage() {
             if (allNewVideos.length === 0) {
                 setHasMore(false);
             } else {
-                // Deduplicate against already-loaded reels
+                // AUDIT FIX: deduplicate by BOTH id AND video_url against already-loaded
+                // reels. The auto-mirror trigger creates a social_reels row for every
+                // social_post video — they share the same video_url with different IDs,
+                // so id-only dedup allowed the same clip to reappear on every load-more page.
                 const existingIds = new Set(reels.map(r => r.id));
-                const uniqueNew = allNewVideos.filter(v => !existingIds.has(v.id));
+                const existingUrls = new Set(reels.map(r => r.video_url).filter(Boolean));
+                const seenUrlsThisBatch = new Set();
+                const uniqueNew = allNewVideos.filter(v => {
+                    if (existingIds.has(v.id)) return false;
+                    if (v.video_url && existingUrls.has(v.video_url)) return false;
+                    if (v.video_url && seenUrlsThisBatch.has(v.video_url)) return false;
+                    if (v.video_url) seenUrlsThisBatch.add(v.video_url);
+                    return true;
+                });
                 if (uniqueNew.length === 0) {
                     setHasMore(false);
                 } else {
@@ -1224,10 +1242,16 @@ export default function ReelsPage() {
             }
             busEmit.socialPostBookmarked(currentReel.id, user.id, { added: !isSaved });
         } catch (err) {
-            console.warn('[App] Handled exception:', err?.message || err);
-            setSavedReels(prev => { const s = new Set(prev); s.delete(currentReel.id); return s; });
+            // AUDIT FIX: rollback to the PRE-operation state, not unconditionally delete.
+            // Old: always deleted from Set, which was wrong when save (not unsave) failed —
+            // the optimistic add was reverted by deleting, but re-adding if isSaved was never handled.
+            if (isSaved) {
+                setSavedReels(prev => new Set([...prev, currentReel.id])); // restore the saved state
+            } else {
+                setSavedReels(prev => { const s = new Set(prev); s.delete(currentReel.id); return s; }); // restore unsaved state
+            }
             showErrorToast('Save failed - try again');
-            console.warn('Save reel failed:', err);
+            console.warn('Save reel failed:', err?.message || err);
         }
     };
 

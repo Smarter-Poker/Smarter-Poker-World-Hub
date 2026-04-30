@@ -468,22 +468,23 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                         </div>
                     </div>
                     {/* #7: Follow button */}
-                    {userId && streamData?.broadcaster_id && userId !== streamData.broadcaster_id && (
+                    {userId && (streamData?.broadcaster_id || stream?.broadcaster_id) && userId !== (streamData?.broadcaster_id || stream?.broadcaster_id) && (
                         <button
                             onClick={async () => {
                                 if (followLoading) return;
                                 setFollowLoading(true);
                                 try {
+                                    const broadcasterId = streamData?.broadcaster_id || stream?.broadcaster_id;
                                     if (isFollowing) {
                                         await supabase.from('social_follows')
                                             .delete()
                                             .eq('follower_id', userId)
-                                            .eq('following_id', streamData.broadcaster_id);
+                                            .eq('following_id', broadcasterId);
                                         setIsFollowing(false);
                                     } else {
                                         await supabase.from('social_follows')
                                             .upsert(
-                                                { follower_id: userId, following_id: streamData.broadcaster_id },
+                                                { follower_id: userId, following_id: broadcasterId },
                                                 { onConflict: 'follower_id,following_id' }
                                             );
                                         setIsFollowing(true);
@@ -578,7 +579,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                     style={{ flex:1, padding:'9px 14px', borderRadius:22, border:'1.5px solid rgba(255,255,255,.3)', background:'rgba(0,0,0,.5)', color:'white', fontSize:14, outline:'none' }}
                 />
                 {/* Diamond gift button */}
-                {stream?.broadcaster_id && stream.broadcaster_id !== userId && (
+                {(streamData?.broadcaster_id || stream?.broadcaster_id) && (streamData?.broadcaster_id || stream?.broadcaster_id) !== userId && (
                     <button
                         onClick={() => setShowGifts(true)}
                         style={{ padding:'9px 12px', borderRadius:22, border:'none', background:'rgba(255,215,0,0.85)', color:'#000', fontSize:16, fontWeight:700, cursor:'pointer' }}
@@ -600,7 +601,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
             {showGifts && (
                 <LiveDiamondGift
                     streamId={stream?.id}
-                    receiverId={stream?.broadcaster_id}
+                    receiverId={streamData?.broadcaster_id || stream?.broadcaster_id}
                     userId={userId}
                     userBalance={userDiamondBalance}
                     onGiftSent={(amount, newBalance) => {

@@ -419,6 +419,8 @@ class LiveStreamService {
         console.debug('[LiveKit] Broadcast ended:', this.currentStreamId);
         const endedId = this.currentStreamId;
         this.currentStreamId = null;
+        this.isBroadcaster = false;   // FIX: reset so next session isn't tainted
+        this.currentUserId = null;    // FIX: reset identity for next session
         this._remoteStreamDelivered = false; // FIX: reset guard for next session
         return endedId;
     }
