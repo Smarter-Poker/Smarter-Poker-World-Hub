@@ -727,9 +727,28 @@ export function ReelsViewer({ onClose }) {
                 setHasMore(false);
             } else {
                 const existingIds = new Set(reels.map(r => r.id));
+                // AUDIT-5 FIX (2026-04-30): also dedupe by video_url. Same
+                // physical video can appear with two different IDs — once
+                // from social_reels (auto-mirror via source_post_id) and
+                // once from social_posts (the original post the trigger
+                // mirrored from). loadReels() at line 609-617 already does
+                // this dual dedup; loadMoreReels was only id-deduping, so
+                // the duplicate Dan reported on the initial feed re-emerged
+                // every time the user scrolled past page 1.
+                const existingUrls = new Set(reels.map(r => r.video_url).filter(Boolean));
+                const seenUrlsThisBatch = new Set();
                 // BUG FIX (Bug 29): also filter out "not interested" reels from load-more batches
                 // loadReels() filtered them, but loadMoreReels() did not - disliked reels re-appeared
-                const fresh = combined.filter(r => !existingIds.has(r.id) && !notInterestedIds.has(r.id));
+                const fresh = combined.filter(r => {
+                    if (existingIds.has(r.id)) return false;
+                    if (notInterestedIds.has(r.id)) return false;
+                    if (r.video_url) {
+                        if (existingUrls.has(r.video_url)) return false;
+                        if (seenUrlsThisBatch.has(r.video_url)) return false;
+                        seenUrlsThisBatch.add(r.video_url);
+                    }
+                    return true;
+                });
                 if (fresh.length === 0) {
                     setHasMore(false);
                 } else {
