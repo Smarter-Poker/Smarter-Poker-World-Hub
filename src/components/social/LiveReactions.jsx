@@ -74,8 +74,7 @@ export function LiveReactions({ streamId, userId, isBroadcaster }) {
             event: 'reaction',
             payload: { emoji, userId },
         });
-        // FIX: supabase.raw() doesn't exist — use increment RPC
-        supabase.rpc('increment_live_reaction_count', { p_stream_id: streamId }).catch(() => {});
+        // NOTE: reaction counts are ephemeral (broadcast only, no DB persistence)
     };
 
     return (

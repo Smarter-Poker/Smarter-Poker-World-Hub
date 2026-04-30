@@ -372,22 +372,20 @@ export function GoLiveModal({ isOpen, onClose, user }) {
         const newComment = { id: Date.now(), user_id: user.id, author_name: authorName, text, created_at: new Date().toISOString() };
         setComments(prev => [...prev, newComment]);
         try {
-            // Use slow-mode enforcing RPC
-            const { data, error } = await supabase.rpc('insert_live_comment_with_slowmode', {
-                p_stream_id: streamId,
-                p_user_id: user.id,
-                p_text: text,
-                p_author_name: authorName,
-            });
+            // Direct insert (RPC was never deployed to DB)
+            const { data, error } = await supabase.from('live_comments').insert({
+                stream_id: streamId,
+                user_id: user.id,
+                author_name: authorName,
+                text,
+            }).select().maybeSingle();
             if (error) {
                 setComments(prev => prev.filter(c => c.id !== newComment.id));
                 setError(error.message || 'Comment failed');
                 setTimeout(() => setError(''), 3000);
-            } else if (data && !data.success) {
-                // Remove optimistic comment and show error
-                setComments(prev => prev.filter(c => c.id !== newComment.id));
-                setError(data.error);
-                setTimeout(() => setError(''), 3000);
+            } else if (data) {
+                // Replace optimistic with real DB row
+                setComments(prev => prev.map(c => c.id === newComment.id ? data : c));
             }
         } catch (err) { console.warn('[GoLive] comment failed:', err); }
     };
@@ -775,7 +773,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                                     color:'white', fontSize:18, cursor:'pointer', display:'flex',
                                     alignItems:'center', justifyContent:'center',
                                 }}
-                            >🐢</button>
+                            ><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></button>
                             {/* Mic mute/unmute */}
                             <button
                                 onClick={e => { e.stopPropagation(); handleToggleMute(); }}

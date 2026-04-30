@@ -129,7 +129,11 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
             }
             const ch = supabase.channel(`live-comments-${stream.id}`)
                 .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'live_comments', filter: `stream_id=eq.${stream.id}` },
-                    (payload) => { setComments(prev => [...prev, payload.new]); }
+                    (payload) => {
+                        // Skip if this is our own comment (already added optimistically)
+                        if (payload.new.user_id === userId) return;
+                        setComments(prev => [...prev, payload.new]);
+                    }
                 ).subscribe();
             commentChannelRef.current = ch;
         }
@@ -228,7 +232,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
         setLoadingMoreComments(false);
     };
 
-    /** Send comment via slow-mode RPC */
+    /** Send comment — direct insert (RPC was never deployed) + optimistic local update */
     const handleSendComment = async () => {
         const text = commentInput.trim();
         if (!text || !stream?.id || !userId) return;
@@ -236,21 +240,30 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
         setCommentError('');
         commentInputRef.current?.blur(); // #10: dismiss mobile keyboard
         const authorName = user?.full_name || user?.user_metadata?.full_name || user?.username || user?.email?.split('@')[0] || 'Viewer';
+        // Optimistic: show comment immediately for sender
+        const optimisticId = `optimistic-${Date.now()}`;
+        const optimisticComment = { id: optimisticId, stream_id: stream.id, user_id: userId, author_name: authorName, text, created_at: new Date().toISOString() };
+        setComments(prev => [...prev, optimisticComment]);
         try {
-            const { data, error } = await supabase.rpc('insert_live_comment_with_slowmode', {
-                p_stream_id: stream.id,
-                p_user_id: userId,
-                p_text: text,
-                p_author_name: authorName,
-            });
+            const { data, error } = await supabase.from('live_comments').insert({
+                stream_id: stream.id,
+                user_id: userId,
+                author_name: authorName,
+                text,
+            }).select().maybeSingle();
             if (error) {
+                // Remove optimistic comment on failure
+                setComments(prev => prev.filter(c => c.id !== optimisticId));
                 setCommentError(error.message || 'Comment failed');
                 setTimeout(() => setCommentError(''), 3000);
-            } else if (data && !data.success) {
-                setCommentError(data.error);
-                setTimeout(() => setCommentError(''), 3000);
+            } else if (data) {
+                // Replace optimistic comment with real DB row (avoids duplicate from realtime)
+                setComments(prev => prev.map(c => c.id === optimisticId ? data : c));
             }
-        } catch (err) { console.warn('[LiveStreamViewer] comment failed:', err); }
+        } catch (err) {
+            setComments(prev => prev.filter(c => c.id !== optimisticId));
+            console.warn('[LiveStreamViewer] comment failed:', err);
+        }
     };
 
     const handleLeave = async () => {

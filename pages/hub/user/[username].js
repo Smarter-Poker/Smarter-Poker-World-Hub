@@ -201,9 +201,10 @@ function ProfileVideoCard({ url, postId, style = {} }) {
     const [thumbError, setThumbError] = useState(false);
 
     // Extract YouTube video ID from watch, embed, shorts, or youtu.be URLs
+    // Anchored to domain boundary to prevent matching non-YouTube hosts
     const getYtId = (u) => {
         if (!u) return null;
-        const m = u.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]+)/);
+        const m = u.match(/(?:^|\/{2})(?:[\w-]+\.)*(?:youtube(?:-nocookie)?\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]+)/);
         return m ? m[1] : null;
     };
 
@@ -1158,7 +1159,6 @@ export default function UserProfilePage() {
 
                             if (caNameMatch && caNameMatch.profile_id && caNameMatch.profile_id !== data.id) {
                                 socialId = caNameMatch.profile_id;
-                                socialIdRef.current = socialId;
                             }
                         }
                     }
@@ -1166,6 +1166,9 @@ export default function UserProfilePage() {
                     // Non-fatal: fall back to data.id
                     console.warn('[Profile] Horse social ID resolution failed:', e?.message || e);
                 }
+                // CRITICAL: Always sync ref AFTER resolution so realtime listeners
+                // (which depend on profile.id) read the correct social ID.
+                socialIdRef.current = socialId;
 
                 // ═══════════════════════════════════════════════════════════
                 // PARALLEL BATCH 1: Friendship + Stats (all independent)
