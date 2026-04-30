@@ -11,6 +11,7 @@ import { LiveAnalyticsCard } from './LiveAnalyticsCard';
 import { LiveReactions } from './LiveReactions';
 import { ScheduleLiveModal } from './ScheduleLiveModal';
 import { supabase } from '../../lib/supabase';
+import toast from '../../stores/toastStore';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505',
@@ -283,6 +284,8 @@ export function GoLiveModal({ isOpen, onClose, user }) {
             setElapsedTime(0);
             startRecording();
             timerRef.current = setInterval(() => setElapsedTime(p => p + 1), 1000);
+            // Success toast — let broadcaster know they're live
+            toast.success('You Are Now Live!');
         } catch (err) {
             setError(err.message || 'Failed to start broadcast.');
             setStage('preview');
@@ -332,7 +335,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
     };
 
     const handleShare = async () => {
-        const url = `${window.location.origin}/hub/lives?id=${streamId}`;
+        const url = `${window.location.origin}/hub/social-media?stream=${streamId}`;
         try {
             if (navigator.share) {
                 await navigator.share({ title: title || 'Live Stream', url });

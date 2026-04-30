@@ -66,7 +66,7 @@ export default function LivesPage() {
             // Get active live streams
             const { data: liveStreams } = await supabase
                 .from('live_streams')
-                .select('*, profiles!broadcaster_id(username, avatar_url, full_name)')
+                .select('*, broadcaster:profiles!broadcaster_id(username, avatar_url, full_name)')
                 .eq('status', 'live')
                 .order('started_at', { ascending: false })
                 .limit(50);
@@ -74,7 +74,7 @@ export default function LivesPage() {
             // Get recorded streams with video URLs (posted ones)
             const { data: recordedStreams } = await supabase
                 .from('live_streams')
-                .select('*, profiles!broadcaster_id(username, avatar_url, full_name)')
+                .select('*, broadcaster:profiles!broadcaster_id(username, avatar_url, full_name)')
                 .eq('status', 'ended')
                 .eq('is_posted', true)
                 .not('video_url', 'is', null)
@@ -732,8 +732,8 @@ export default function LivesPage() {
                                 {/* Broadcaster Info */}
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
                                     <img
-                                        src={stream.profiles?.avatar_url || '/avatars/default.png'}
-                                        alt={stream.profiles?.username}
+                                        src={stream.broadcaster?.avatar_url || stream.profiles?.avatar_url || '/avatars/default.png'}
+                                        alt={stream.broadcaster?.username || stream.profiles?.username}
                                         style={{
                                             width: 44,
                                             height: 44,
@@ -744,10 +744,10 @@ export default function LivesPage() {
                                      loading="lazy" />
                                     <div>
                                         <div style={{ fontWeight: 700, color: 'white', fontSize: 16 }}>
-                                            @{stream.profiles?.username || 'Unknown'}
+                                            @{stream.broadcaster?.username || stream.profiles?.username || 'Unknown'}
                                         </div>
                                         <div style={{ color: C.textSec, fontSize: 13 }}>
-                                            {stream.profiles?.full_name || ''}
+                                            {stream.broadcaster?.full_name || stream.profiles?.full_name || ''}
                                         </div>
                                     </div>
                                 </div>

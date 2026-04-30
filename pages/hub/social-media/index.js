@@ -4369,7 +4369,7 @@ function SocialMediaPage() {
                 const n = payload.new;
                 // Enrich with actor profile
                 let actorProfile = null;
-                const actorId = n.data?.commenter_id || n.data?.actor_id || n.data?.sender_id;
+                const actorId = n.data?.commenter_id || n.data?.actor_id || n.actor_id || n.data?.sender_id;
                 if (actorId) {
                     try {
                         const { data: prof } = await supabase.from('profiles')
@@ -4385,7 +4385,7 @@ function SocialMediaPage() {
                     if (prev.some(existing => existing.id === n.id)) return prev;
                     return [{
                         ...n,
-                        actor_avatar_url: actorProfile?.avatar_url || n.metadata?.actor_avatar || null,
+                        actor_avatar_url: actorProfile?.avatar_url || n.data?.actor_avatar || null,
                         actor_name: actorProfile?.username || actorProfile?.full_name || displayName,
                         actor_username: actorProfile?.username || null
                     }, ...prev];
@@ -4655,7 +4655,7 @@ function SocialMediaPage() {
                                 if (notifsError) { console.warn('[Social] Failed to load notifications:', notifsError); return; }
                                 if (notifs && notifs.length > 0) {
                                     const actorIds = [...new Set(notifs.map(n =>
-                                        n.data?.commenter_id || n.data?.actor_id || n.data?.sender_id
+                                        n.data?.commenter_id || n.data?.actor_id || n.actor_id || n.data?.sender_id
                                     ).filter(Boolean))];
                                     const actorNames = [...new Set(notifs.map(n => {
                                         const match = n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
@@ -4678,7 +4678,7 @@ function SocialMediaPage() {
                                     (profilesByNameRes.data || []).forEach(p => { if (p.full_name) profileByName[p.full_name.toLowerCase()] = p; });
 
                                     const enrichedNotifs = notifs.map(n => {
-                                        const actorId = n.data?.commenter_id || n.data?.actor_id || n.data?.sender_id;
+                                        const actorId = n.data?.commenter_id || n.data?.actor_id || n.actor_id || n.data?.sender_id;
                                         let profile = actorId ? profileById[actorId] : null;
                                         if (!profile) {
                                             const match = n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
@@ -4688,7 +4688,7 @@ function SocialMediaPage() {
                                         const dispName = n.data?.actor_name || n.data?.sender_name || n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/)?.[1] || n.title;
                                         return {
                                             ...n,
-                                            actor_avatar_url: profile?.avatar_url || n.metadata?.actor_avatar || null,
+                                            actor_avatar_url: profile?.avatar_url || n.data?.actor_avatar || null,
                                             actor_name: profile?.username || profile?.full_name || dispName,
                                             actor_username: profile?.username || null
                                         };
@@ -4851,7 +4851,7 @@ function SocialMediaPage() {
 
                 // Enrich with actor profiles
                 const actorIds = [...new Set(notifs.map(n =>
-                    n.data?.commenter_id || n.data?.actor_id || n.data?.sender_id
+                    n.data?.commenter_id || n.data?.actor_id || n.actor_id || n.data?.sender_id
                 ).filter(Boolean))];
                 let profileById = {};
                 if (actorIds.length > 0) {
@@ -4861,12 +4861,12 @@ function SocialMediaPage() {
                     (profiles || []).forEach(p => { profileById[p.id] = p; });
                 }
                 const enriched = notifs.map(n => {
-                    const actorId = n.data?.commenter_id || n.data?.actor_id || n.data?.sender_id;
+                    const actorId = n.data?.commenter_id || n.data?.actor_id || n.actor_id || n.data?.sender_id;
                     const profile = actorId ? profileById[actorId] : null;
                     const displayName = n.data?.actor_name || n.data?.sender_name || n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/)?.[1] || n.title;
                     return {
                         ...n,
-                        actor_avatar_url: profile?.avatar_url || n.metadata?.actor_avatar || null,
+                        actor_avatar_url: profile?.avatar_url || n.data?.actor_avatar || null,
                         actor_name: profile?.username || profile?.full_name || displayName,
                         actor_username: profile?.username || null
                     };
@@ -6344,7 +6344,7 @@ function SocialMediaPage() {
                                             >
                                                 <div style={{ position: 'relative', flexShrink: 0 }}>
                                                     <img
-                                                        src={n.actor_avatar_url || n.metadata?.actor_avatar || '/default-avatar.png'}
+                                                        src={n.actor_avatar_url || n.data?.actor_avatar || '/default-avatar.png'}
                                                         style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: '2px solid #ddd' }}
                                                     />
                                                     <div style={{
