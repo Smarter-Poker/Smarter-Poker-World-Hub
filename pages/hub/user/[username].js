@@ -1288,13 +1288,19 @@ export default function UserProfilePage() {
                 const userPosts = postsData.data || [];
                 setPosts(userPosts);
 
-                // Filter photos to image-only
-                const photoList = (photosData.data || []).filter(p =>
-                    p.content_type === 'image' ||
-                    (p.media_urls && p.media_urls.some(url =>
-                        url && (url.includes('.jpg') || url.includes('.jpeg') || url.includes('.png') || url.includes('.gif') || url.includes('.webp') || !url.includes('video'))
-                    ))
-                );
+                // Filter photos to image-only (exclude all video posts)
+                const photoList = (photosData.data || []).filter(p => {
+                    // Exclude anything explicitly marked as video
+                    if (p.content_type === 'video') return false;
+                    // Images are explicitly marked or have image-like URLs
+                    if (p.content_type === 'image') return true;
+                    // Fallback: check if URLs look like images (not YouTube/video files)
+                    return p.media_urls && p.media_urls.some(url =>
+                        url && !url.includes('youtube.com') && !url.includes('youtu.be') &&
+                        !url.match(/\.(mp4|webm|mov|avi)(\?|$)/i) &&
+                        (url.includes('.jpg') || url.includes('.jpeg') || url.includes('.png') || url.includes('.gif') || url.includes('.webp') || url.includes('/image'))
+                    );
+                });
                 setPhotos(photoList);
                 finalPhotos = photoList;
 
