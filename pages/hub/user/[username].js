@@ -106,13 +106,27 @@ function FriendsModal({ isOpen, onClose, profileId, profileName, currentUserId, 
     const [suggestedFriends, setSuggestedFriends] = useState([]);
     const [modalLoading, setModalLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [pendingRequests, setPendingRequests] = useState(new Set());
 
+    // Reset state + load on open
     useEffect(() => {
         if (!isOpen || !profileId) return;
         setModalLoading(true);
         setSearchQuery('');
+        setModalTab('all');
+        setPendingRequests(new Set());
         loadFriendsData();
     }, [isOpen, profileId]);
+
+    // Escape key handler + body scroll lock
+    useEffect(() => {
+        if (!isOpen) return;
+        const prev = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+        window.addEventListener('keydown', onKey);
+        return () => { document.body.style.overflow = prev; window.removeEventListener('keydown', onKey); };
+    }, [isOpen, onClose]);
 
     const loadFriendsData = async () => {
         try {
@@ -134,12 +148,14 @@ function FriendsModal({ isOpen, onClose, profileId, profileName, currentUserId, 
                 return;
             }
 
-            // 2. Get profiles for all friends
-            const { data: friendProfiles } = await supabase
-                .from('profiles')
-                .select('id, username, full_name, avatar_url')
-                .in('id', profileFriendArray);
-            const profileMap = new Map((friendProfiles || []).map(p => [p.id, p]));
+            // 2. Get profiles for all friends (batch in chunks of 50 for .in() safety)
+            const allProfiles = [];
+            for (let i = 0; i < profileFriendArray.length; i += 50) {
+                const chunk = profileFriendArray.slice(i, i + 50);
+                const { data } = await supabase.from('profiles').select('id, username, full_name, avatar_url').in('id', chunk);
+                if (data) allProfiles.push(...data);
+            }
+            const profileMap = new Map(allProfiles.map(p => [p.id, p]));
 
             // 3. Get current user's friends (if logged in)
             let myFriendSet = new Set();
@@ -282,8 +298,16 @@ function FriendsModal({ isOpen, onClose, profileId, profileName, currentUserId, 
                 {/* Friend List */}
                 <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 20px' }}>
                     {modalLoading ? (
-                        <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
-                            <div style={{ fontSize: 14 }}>Loading friends...</div>
+                        <div style={{ padding: '8px 0' }}>
+                            {Array.from({ length: 6 }).map((_, i) => (
+                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0' }}>
+                                    <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.5s infinite', flexShrink: 0 }} />
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ width: '60%', height: 14, borderRadius: 7, background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.5s infinite', marginBottom: 6 }} />
+                                        <div style={{ width: '35%', height: 10, borderRadius: 5, background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.5s infinite' }} />
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     ) : filtered.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
@@ -321,26 +345,31 @@ function FriendsModal({ isOpen, onClose, profileId, profileName, currentUserId, 
                                     )}
                                 </div>
                                 {modalTab === 'suggested' && currentUserId && (
-                                    <button
-                                        onClick={async (e) => {
-                                            e.preventDefault(); e.stopPropagation();
-                                            try {
-                                                const token = getAccessToken();
-                                                await fetch('/api/social/friends', {
-                                                    method: 'POST',
-                                                    headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
-                                                    body: JSON.stringify({ action: 'request', user_id: currentUserId, friend_id: friend.id }),
-                                                });
-                                                toast.success(`Friend request sent to ${friend.full_name?.split(' ')[0] || friend.username}`);
-                                                setSuggestedFriends(prev => prev.filter(f => f.id !== friend.id));
-                                            } catch (err) { toast.error('Could not send request'); }
-                                        }}
-                                        style={{
-                                            padding: '8px 16px', borderRadius: 8, border: 'none',
-                                            background: C.blue, color: 'white', fontWeight: 600, fontSize: 13,
-                                            cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
-                                        }}
-                                    >Add Friend</button>
+                                    pendingRequests.has(friend.id) ? (
+                                        <span style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, color: C.textSec, whiteSpace: 'nowrap' }}>Requested</span>
+                                    ) : (
+                                        <button
+                                            onClick={async (e) => {
+                                                e.preventDefault(); e.stopPropagation();
+                                                setPendingRequests(prev => new Set([...prev, friend.id]));
+                                                try {
+                                                    const { error } = await supabase.from('friendships').insert({
+                                                        user_id: currentUserId, friend_id: friend.id, status: 'pending'
+                                                    });
+                                                    if (error) throw error;
+                                                    toast.success(`Friend request sent to ${friend.full_name?.split(' ')[0] || friend.username}`);
+                                                } catch (err) {
+                                                    setPendingRequests(prev => { const n = new Set([...prev]); n.delete(friend.id); return n; });
+                                                    toast.error('Could not send request');
+                                                }
+                                            }}
+                                            style={{
+                                                padding: '8px 16px', borderRadius: 8, border: 'none',
+                                                background: C.blue, color: 'white', fontWeight: 600, fontSize: 13,
+                                                cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+                                            }}
+                                        >Add Friend</button>
+                                    )
                                 )}
                             </Link>
                         ))
