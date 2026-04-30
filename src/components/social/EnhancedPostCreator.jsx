@@ -205,27 +205,22 @@ export const EnhancedPostCreator = ({
   // Stable file key — survives array index shifts when files are removed
   const _fileKey = (f) => `${f.name}_${f.size}_${f.lastModified}`;
 
-  // ── iOS FILE PICKER PREPARATION DETECTION ────────────────────────────────
-  // State-driven: sets preparingMedia on button click, clears on handleFileSelect.
-  // Uses visibilitychange for smarter iOS cancel detection (~2-5s vs 120s timeout).
+  // BUG FIX (2026-04-30 per Dan): visibilitychange-based clear was REMOVED.
+  // iOS Safari does NOT fire visibilitychange when its file picker
+  // opens/closes, so the safety timer never fired and the banner stuck
+  // up the moment Photo/Video was tapped, before any file was selected.
+  // The banner now lifecycle: handleFileSelect raises it when a file is
+  // actually selected → cleared at the bottom of handleFileSelect after
+  // staging completes. A 60s ultimate-backstop guards stuck state.
   useEffect(() => {
     if (!preparingMedia) return;
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible' && _pickerOpenRef.current) {
-        setTimeout(() => {
-          if (_pickerOpenRef.current) {
-            setPreparingMedia(false);
-            _pickerOpenRef.current = false;
-          }
-        }, 2000);
+    const backstop = setTimeout(() => {
+      if (mountedRef.current) {
+        setPreparingMedia(false);
+        _pickerOpenRef.current = false;
       }
-    };
-    document.addEventListener('visibilitychange', handleVisibility);
-    const timer = setTimeout(() => { setPreparingMedia(false); _pickerOpenRef.current = false; }, 120_000);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibility);
-      clearTimeout(timer);
-    };
+    }, 60_000);
+    return () => clearTimeout(backstop);
   }, [preparingMedia]);
 
   // Track mount lifecycle
@@ -304,12 +299,18 @@ export const EnhancedPostCreator = ({
 
   // Handle file selection
   const handleFileSelect = useCallback((e) => {
-    // Clear iOS preparing indicator
-    setPreparingMedia(false);
     _pickerOpenRef.current = false;
 
     const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
+    if (files.length === 0) {
+      // User cancelled the picker — make sure no banner is up
+      setPreparingMedia(false);
+      return;
+    }
+    // Raise the banner now that we have a real file to stage. The 60s
+    // backstop in the useEffect above clears it if anything stalls; the
+    // bottom of this function will also clear it once staging is queued.
+    setPreparingMedia(true);
 
     // Limit total files
     const remainingSlots = MAX_MEDIA_FILES - mediaFiles.length;
@@ -404,6 +405,21 @@ export const EnhancedPostCreator = ({
     // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+
+    // Clear the staging banner once the first thumbnail resolves OR a 30s
+    // ceiling fires (iOS HEVC decode is slow). Per-tile pulses take over.
+    // Mirrors SharedPostCreator pattern.
+    const firstVideo = filesToAdd.find(f => sniffMimeType(f).startsWith('video/'));
+    if (firstVideo) {
+      const fk = _fileKey(firstVideo);
+      const promise = thumbnailPromiseRef.current[fk];
+      const ceiling = new Promise(r => setTimeout(r, 30_000));
+      Promise.race([promise || Promise.resolve(null), ceiling]).finally(() => {
+        if (mountedRef.current) setPreparingMedia(false);
+      });
+    } else {
+      setPreparingMedia(false);
     }
   }, [mediaFiles.length, user?.id]);
 
@@ -993,7 +1009,7 @@ export const EnhancedPostCreator = ({
 
           <button
             className="inline-action-btn"
-            onClick={() => { setPreparingMedia(true); _pickerOpenRef.current = true; fileInputRef.current?.click(); }}
+            onClick={() => { _pickerOpenRef.current = true; fileInputRef.current?.click(); /* preparingMedia raised inside handleFileSelect once a file is actually picked — iOS-Safari fix 2026-04-30 */ }}
             disabled={isSubmitting || mediaFiles.length >= MAX_MEDIA_FILES}
           >
             <span className="icon">📷</span> Photo/Video
@@ -1373,7 +1389,7 @@ export const EnhancedPostCreator = ({
             <button
               className="tool-btn interactive"
               title="Add Photo/Video"
-              onClick={() => { setPreparingMedia(true); _pickerOpenRef.current = true; fileInputRef.current?.click(); }}
+              onClick={() => { _pickerOpenRef.current = true; fileInputRef.current?.click(); /* preparingMedia raised inside handleFileSelect once a file is actually picked — iOS-Safari fix 2026-04-30 */ }}
               disabled={isSubmitting || mediaFiles.length >= MAX_MEDIA_FILES}
             >
               📷
