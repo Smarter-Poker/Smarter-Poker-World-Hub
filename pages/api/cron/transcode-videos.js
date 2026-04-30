@@ -132,10 +132,13 @@ export default async function handler(req, res) {
             .lt('transcoded_at', new Date(Date.now() - 10 * 60 * 1000).toISOString());
     } catch (_) { /* best-effort */ }
 
-    // 1. Pick ONE queued post (oldest first — fairness).
+    // 1. Pick ONE queued post (oldest first — fairness). Also pull metadata
+    //    so we can back-prop the transcoded URL to social_page_posts when a
+    //    post is a club-page mirror (metadata.source_post_id points to the
+    //    original social_page_posts row).
     const { data: queue, error: qErr } = await supa
         .from('social_posts')
-        .select('id, author_id, media_urls, original_media_url, content_type')
+        .select('id, author_id, media_urls, original_media_url, content_type, metadata')
         .eq('transcode_status', 'queued')
         .order('created_at', { ascending: true })
         .limit(1);
