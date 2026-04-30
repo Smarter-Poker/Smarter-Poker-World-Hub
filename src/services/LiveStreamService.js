@@ -193,15 +193,39 @@ class LiveStreamService {
 
         // Track subscriptions (for viewers)
         this.room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
-            // FIX: track.mediaStream does not exist in livekit-client v2.
-            // Use _trackToStream() which wraps track.mediaStreamTrack correctly.
-            // Also guard against double-fire if manual participant loop already delivered the stream.
             if (track.kind === Track.Kind.Video && !this._remoteStreamDelivered) {
                 const ms = this._trackToStream(track);
                 if (ms) {
                     this._remoteStreamDelivered = true;
+                    this._remoteMediaStream = ms; // Store reference for audio attachment
                     this.onRemoteStream?.(ms);
                 }
+            }
+            // Attach audio tracks — LiveKit requires explicit attach() for audio playback
+            if (track.kind === Track.Kind.Audio) {
+                try {
+                    // Add audio track to existing media stream if available
+                    if (this._remoteMediaStream && track.mediaStreamTrack) {
+                        this._remoteMediaStream.addTrack(track.mediaStreamTrack);
+                    }
+                    // Also use LiveKit's built-in attach for reliable cross-browser audio
+                    const audioEl = track.attach();
+                    audioEl.id = `livekit-audio-${participant.sid}`;
+                    audioEl.style.display = 'none';
+                    document.body.appendChild(audioEl);
+                } catch (audioErr) {
+                    console.warn('[LiveKit] Audio attach error:', audioErr);
+                }
+            }
+        });
+
+        // Detach audio elements when tracks are unsubscribed
+        this.room.on(RoomEvent.TrackUnsubscribed, (track, publication, participant) => {
+            if (track.kind === Track.Kind.Audio) {
+                try {
+                    const els = track.detach();
+                    els.forEach(el => el.remove());
+                } catch (_) {}
             }
         });
 
@@ -439,7 +463,23 @@ class LiveStreamService {
                 if (publication.isSubscribed && publication.track) {
                     if (publication.track.kind === Track.Kind.Video && !remoteStreamDelivered) {
                         const ms = this._trackToStream(publication.track);
-                        if (ms) { onRemoteStream?.(ms); remoteStreamDelivered = true; }
+                        if (ms) {
+                            this._remoteMediaStream = ms;
+                            onRemoteStream?.(ms);
+                            remoteStreamDelivered = true;
+                        }
+                    }
+                    // Attach pre-existing audio tracks
+                    if (publication.track.kind === Track.Kind.Audio) {
+                        try {
+                            if (this._remoteMediaStream && publication.track.mediaStreamTrack) {
+                                this._remoteMediaStream.addTrack(publication.track.mediaStreamTrack);
+                            }
+                            const audioEl = publication.track.attach();
+                            audioEl.id = `livekit-audio-${participant.sid}`;
+                            audioEl.style.display = 'none';
+                            document.body.appendChild(audioEl);
+                        } catch (_) {}
                     }
                 }
             }
