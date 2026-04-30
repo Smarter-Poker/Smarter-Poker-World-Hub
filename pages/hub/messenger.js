@@ -3314,7 +3314,9 @@ function MessengerPage() {
                                 id,
                                 last_message_at,
                                 last_message_preview,
-                                is_group
+                                is_group,
+                                is_request,
+                                request_sender_id
                             )
                         `)
                         .eq('user_id', userId)
@@ -3398,12 +3400,15 @@ function MessengerPage() {
                     otherUser,
                     unreadCount: unreadByConvo[p.conversation_id] || 0,
                     last_read_at: p.last_read_at,
+                    isRequest: p.social_conversations?.is_request || false,
                 };
             });
 
             // Sort and set - filter out conversations without other users
+            // Also filter out message requests where user is the RECIPIENT (not the sender)
             const sorted = enriched
                 .filter(c => c.otherUser)
+                .filter(c => !(c.is_request && c.request_sender_id && c.request_sender_id !== userId))
                 .sort((a, b) => {
                     const timeA = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
                     const timeB = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
