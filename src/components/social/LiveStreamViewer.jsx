@@ -22,6 +22,9 @@ const C = {
 const COMMENTS_PER_PAGE = 50;
 
 export function LiveStreamViewer({ stream, userId, user, onClose }) {
+    // streamData starts as the prop but gets replaced with full DB data from joinStream
+    // which includes the broadcaster:profiles join. The prop may be partial (e.g. from Stories.loadLiveUsers).
+    const [streamData, setStreamData] = useState(stream);
     const [remoteStream, setRemoteStream] = useState(null);
     const [viewerCount, setViewerCount] = useState(stream?.viewer_count || 0);
     const [isConnecting, setIsConnecting] = useState(true);
@@ -66,14 +69,16 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                 liveStreamService.onReconnected = () => setIsReconnecting(false);
                 liveStreamService.onConnectionQualityChange = (q) => setConnectionQuality(q);
 
-                // Join the stream
-                await liveStreamService.joinStream(stream.id, userId, (remoteMediaStream) => {
+                // Join the stream — joinStream returns the full DB row with broadcaster join
+                const freshStream = await liveStreamService.joinStream(stream.id, userId, (remoteMediaStream) => {
                     setRemoteStream(remoteMediaStream);
                     if (videoRef.current) {
                         videoRef.current.srcObject = remoteMediaStream;
                     }
                     setIsConnecting(false);
                 });
+                // Update streamData with the full DB response (includes broadcaster profile)
+                if (freshStream) setStreamData(freshStream);
 
                 setIsConnecting(false);
 
@@ -435,22 +440,22 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                 {/* Broadcaster */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
                     <img
-                        src={stream?.broadcaster?.avatar_url || stream?.profiles?.avatar_url || '/default-avatar.png'}
-                        alt={stream?.broadcaster?.username || stream?.profiles?.username}
+                        src={streamData?.broadcaster?.avatar_url || streamData?.profiles?.avatar_url || '/default-avatar.png'}
+                        alt={streamData?.broadcaster?.username || streamData?.profiles?.username}
                         style={{ width: 48, height: 48, borderRadius: '50%', border: '2px solid white' }}
                     />
                     <div>
                         <div style={{ color: 'white', fontWeight: 600, fontSize: 16 }}>
-                            {stream?.broadcaster?.username || stream?.profiles?.username || 'Anonymous'}
+                            {streamData?.broadcaster?.username || streamData?.profiles?.username || 'Anonymous'}
                         </div>
                         <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>
-                            {stream?.category && stream.category !== 'general'
-                                ? stream.category.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+                            {streamData?.category && streamData.category !== 'general'
+                                ? streamData.category.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
                                 : 'Smarter.Poker'}
                         </div>
                     </div>
                     {/* #7: Follow button */}
-                    {userId && stream?.broadcaster_id && userId !== stream.broadcaster_id && (
+                    {userId && streamData?.broadcaster_id && userId !== streamData.broadcaster_id && (
                         <button
                             onClick={async () => {
                                 if (followLoading) return;
@@ -460,12 +465,12 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                                         await supabase.from('social_follows')
                                             .delete()
                                             .eq('follower_id', userId)
-                                            .eq('following_id', stream.broadcaster_id);
+                                            .eq('following_id', streamData.broadcaster_id);
                                         setIsFollowing(false);
                                     } else {
                                         await supabase.from('social_follows')
                                             .upsert(
-                                                { follower_id: userId, following_id: stream.broadcaster_id },
+                                                { follower_id: userId, following_id: streamData.broadcaster_id },
                                                 { onConflict: 'follower_id,following_id' }
                                             );
                                         setIsFollowing(true);
@@ -491,15 +496,15 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                 </div>
 
                 {/* Stream Title */}
-                {stream?.title && (
+                {streamData?.title && (
                     <div style={{ color: 'white', fontSize: 15, lineHeight: 1.4 }}>
-                        {stream.title}
+                        {streamData.title}
                     </div>
                 )}
                 {/* #9: Stream description */}
-                {stream?.description && (
+                {streamData?.description && (
                     <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, lineHeight: 1.3, marginTop: 4 }}>
-                        {stream.description}
+                        {streamData.description}
                     </div>
                 )}
             </div>

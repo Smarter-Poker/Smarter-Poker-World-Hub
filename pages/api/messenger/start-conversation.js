@@ -5,8 +5,12 @@
  * Runs fn_get_or_create_conversation via service role — bypasses the
  * missing GRANT EXECUTE on the authenticated role.
  *
+ * NEW: If the two users are NOT friends, the conversation is marked
+ * is_request=true so it appears in the recipient's Message Requests
+ * instead of their main inbox (Facebook-style behavior).
+ *
  * Body: { otherUserId: string }
- * Returns: { success: true, conversationId: string }
+ * Returns: { success: true, conversationId: string, isRequest?: boolean }
  */
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
@@ -22,6 +26,32 @@ function getSupabase() {
     return _supabase;
 }
 
+/**
+ * Check if two users are friends (accepted friendship in either direction).
+ */
+async function checkFriendship(supabase, userId, otherUserId) {
+    try {
+        const [f1, f2] = await Promise.all([
+            supabase.from('friendships')
+                .select('status')
+                .eq('user_id', userId)
+                .eq('friend_id', otherUserId)
+                .eq('status', 'accepted')
+                .maybeSingle(),
+            supabase.from('friendships')
+                .select('status')
+                .eq('user_id', otherUserId)
+                .eq('friend_id', userId)
+                .eq('status', 'accepted')
+                .maybeSingle(),
+        ]);
+        return !!(f1.data || f2.data);
+    } catch (e) {
+        console.warn('[start-conversation] Friendship check failed:', e?.message || e);
+        return false; // Default to non-friend (safe fallback — goes to requests)
+    }
+}
+
 export default async function handler(req, res) {
     try {
         if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
@@ -35,6 +65,9 @@ export default async function handler(req, res) {
         if (otherUserId === user.id) return res.status(400).json({ success: false, error: 'Cannot start conversation with yourself' });
 
         const supabase = getSupabase();
+
+        // Check friendship status upfront — determines if this is a request or direct message
+        const areFriends = await checkFriendship(supabase, user.id, otherUserId);
 
         // Try RPC first (works with service role).
         // CRITICAL: param names are p_user_id / p_other_user_id (verified via
@@ -53,10 +86,28 @@ export default async function handler(req, res) {
             // Treating the whole jsonb as a UUID (the previous bug) gave the
             // client an object instead of an ID and broke the navigation.
             if (rpcResult && rpcResult.success && rpcResult.conversation_id) {
+                const convId = rpcResult.conversation_id;
+
+                // If newly created AND not friends, mark as message request
+                if (rpcResult.created === true && !areFriends) {
+                    await supabase.from('social_conversations')
+                        .update({ is_request: true, request_sender_id: user.id })
+                        .eq('id', convId);
+                }
+
+                // If existing conversation AND users became friends, clear request status
+                if (!rpcResult.created && areFriends) {
+                    await supabase.from('social_conversations')
+                        .update({ is_request: false })
+                        .eq('id', convId)
+                        .eq('is_request', true); // Only update if it was a request
+                }
+
                 return res.status(200).json({
                     success: true,
-                    conversationId: rpcResult.conversation_id,
+                    conversationId: convId,
                     created: rpcResult.created === true,
+                    isRequest: !areFriends && rpcResult.created === true,
                 });
             }
             // RPC returned but signaled failure — surface it.
@@ -100,13 +151,26 @@ export default async function handler(req, res) {
         }
 
         if (foundId) {
-            return res.status(200).json({ success: true, conversationId: foundId, created: false });
+            // If existing conversation AND users became friends, clear request status
+            if (areFriends) {
+                await supabase.from('social_conversations')
+                    .update({ is_request: false })
+                    .eq('id', foundId)
+                    .eq('is_request', true);
+            }
+            return res.status(200).json({ success: true, conversationId: foundId, created: false, isRequest: false });
         }
 
-        // Create new conversation
+        // Create new conversation — set is_request based on friendship status
         const { data: newConv, error: createErr } = await supabase
             .from('social_conversations')
-            .insert({ is_group: false, created_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+            .insert({
+                is_group: false,
+                is_request: !areFriends,
+                request_sender_id: !areFriends ? user.id : null,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+            })
             .select('id')
             .maybeSingle();
 
@@ -139,9 +203,15 @@ export default async function handler(req, res) {
             return res.status(500).json({ success: false, error: 'Failed to add participants' });
         }
 
-        return res.status(200).json({ success: true, conversationId: newConv.id, created: true });
+        return res.status(200).json({
+            success: true,
+            conversationId: newConv.id,
+            created: true,
+            isRequest: !areFriends,
+        });
     } catch (err) {
         console.error('[start-conversation] Error:', err.message);
         if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }
+

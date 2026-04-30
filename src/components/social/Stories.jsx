@@ -225,7 +225,7 @@ export function StoriesBar({ userId, userAvatar, onCreateStory, onOpenLive }) {
         try {
             const { data } = await supabase
                 .from('live_streams')
-                .select('id, broadcaster_id, title, thumbnail_url')
+                .select('id, broadcaster_id, title, thumbnail_url, status, viewer_count, category, description, broadcaster:profiles!broadcaster_id(id, username, full_name, avatar_url)')
                 .eq('status', 'live');
             if (data) {
                 setLiveUsers(new Set(data.map(s => s.broadcaster_id)));

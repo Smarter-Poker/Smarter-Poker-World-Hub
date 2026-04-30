@@ -1601,7 +1601,9 @@ export default function UserProfilePage() {
     };
 
     const handleMessage = () => {
-        router.push(`/hub/messenger?user=${profile.username}`);
+        // Deep-link into messenger with compose mode — auto-starts conversation with this user
+        const targetId = socialIdRef.current || profile.id;
+        router.push(`/hub/messenger?compose=${profile.username}&uid=${targetId}`);
     };
 
     const handleRemoveFriend = async () => {

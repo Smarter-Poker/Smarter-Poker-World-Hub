@@ -8,6 +8,7 @@
 import Head from 'next/head';
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import { useState, useEffect, useRef, useCallback, Fragment } from 'react';
 import Image from 'next/image';
@@ -2299,6 +2300,7 @@ function MessengerPage() {
     const [showSidebar, setShowSidebar] = useState(true);
     const [composing, setComposing] = useState(false);
     const [toast, setToast] = useState(null);
+    const [messageRequestCount, setMessageRequestCount] = useState(0);
     const [isTyping, setIsTyping] = useState(false);
     const [otherTyping, setOtherTyping] = useState(false);
     // New enhanced features
@@ -2552,6 +2554,80 @@ function MessengerPage() {
         }
         init();
     }, []);
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // DEEP-LINK COMPOSE: Auto-start conversation when arriving from profile page
+    // URL format: /hub/messenger?compose=username&uid=userId
+    // ═══════════════════════════════════════════════════════════════════════════
+    const router = useRouter();
+    const deepLinkHandled = useRef(false);
+    useEffect(() => {
+        if (deepLinkHandled.current) return;
+        if (!user?.id) return;
+        const { compose, uid } = router.query;
+        if (!compose || !uid) return;
+
+        deepLinkHandled.current = true;
+
+        // Look up the target user's profile and start a conversation
+        const openCompose = async () => {
+            try {
+                const { data: targetProfile } = await supabase
+                    .from('profiles')
+                    .select('id, username, full_name, avatar_url')
+                    .eq('id', uid)
+                    .maybeSingle();
+
+                if (targetProfile) {
+                    // Auto-start conversation with this user
+                    await handleStartConversation(targetProfile);
+                } else {
+                    console.warn('[Messenger] Deep-link target not found:', compose, uid);
+                    setToast({ type: 'error', message: 'User not found' });
+                }
+            } catch (e) {
+                console.warn('[Messenger] Deep-link compose error:', e?.message || e);
+            }
+
+            // Clean up the URL query params without navigation
+            router.replace('/hub/messenger', undefined, { shallow: true });
+        };
+
+        openCompose();
+    }, [user?.id, router.query]);
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // MESSAGE REQUEST COUNT: Fetch pending message requests for sidebar badge
+    // ═══════════════════════════════════════════════════════════════════════════
+    useEffect(() => {
+        if (!user?.id) return;
+        const fetchRequestCount = async () => {
+            try {
+                // Count conversations where current user is a participant AND is_request=true
+                // AND the request was NOT sent by the current user (they see it in their inbox)
+                const { data: participations } = await supabase
+                    .from('social_conversation_participants')
+                    .select('conversation_id')
+                    .eq('user_id', user.id)
+                    .limit(200);
+
+                if (!participations || participations.length === 0) return;
+
+                const convIds = participations.map(p => p.conversation_id);
+                const { count } = await supabase
+                    .from('social_conversations')
+                    .select('id', { count: 'exact', head: true })
+                    .in('id', convIds)
+                    .eq('is_request', true)
+                    .neq('request_sender_id', user.id);
+
+                setMessageRequestCount(count || 0);
+            } catch (e) {
+                console.warn('[Messenger] Request count error:', e?.message || e);
+            }
+        };
+        fetchRequestCount();
+    }, [user?.id, conversations]);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // PROFILE SYNC: Update local user state when profile is edited
@@ -4226,7 +4302,7 @@ function MessengerPage() {
                 const errData = await resp.json().catch(() => ({}));
                 throw new Error(errData.error || `HTTP ${resp.status}`);
             }
-            const { conversationId: convId } = await resp.json();
+            const { conversationId: convId, isRequest } = await resp.json();
 
             const newConv = {
                 id: convId,
@@ -4234,6 +4310,7 @@ function MessengerPage() {
                 last_message_preview: null,
                 last_message_at: new Date().toISOString(),
                 unreadCount: 0,
+                isRequest: isRequest || false,
             };
 
             // Add to list if not exists
@@ -4244,6 +4321,14 @@ function MessengerPage() {
             });
 
             handleSelectConversation(newConv);
+
+            // Show toast if this is a message request (non-friend)
+            if (isRequest) {
+                setToast({
+                    type: 'info',
+                    message: `${otherUser.full_name || otherUser.username} isn't your friend — your message will be sent as a request`
+                });
+            }
         } catch (e) {
             console.warn('Start conversation error:', e);
         }
@@ -5361,6 +5446,39 @@ function MessengerPage() {
                         composing={composing}
                     />
 
+
+                    {/* Message Requests Banner — Facebook-style */}
+                    {messageRequestCount > 0 && (
+                        <Link href="/hub/messenger/requests" style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            padding: '12px 16px', margin: '0 12px 8px', borderRadius: 10,
+                            background: 'linear-gradient(135deg, rgba(0, 132, 255, 0.08), rgba(0, 132, 255, 0.04))',
+                            border: `1px solid rgba(0, 132, 255, 0.15)`,
+                            cursor: 'pointer', textDecoration: 'none', transition: 'all 0.2s',
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                <div style={{
+                                    width: 36, height: 36, borderRadius: '50%',
+                                    background: 'linear-gradient(135deg, #0084FF, #0066CC)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                }}>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="white" stroke="none">
+                                        <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>Message Requests</div>
+                                    <div style={{ fontSize: 12, color: C.textSec }}>{messageRequestCount} pending {messageRequestCount === 1 ? 'request' : 'requests'}</div>
+                                </div>
+                            </div>
+                            <div style={{
+                                minWidth: 22, height: 22, borderRadius: 11,
+                                background: '#0084FF', color: 'white',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontSize: 12, fontWeight: 700, padding: '0 6px',
+                            }}>{messageRequestCount}</div>
+                        </Link>
+                    )}
 
                     {/* Conversations List - Only show actual conversations with messages */}
                     <div style={{ flex: 1, overflowY: 'auto' }}>

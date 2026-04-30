@@ -88,7 +88,14 @@ export default async function handler(req, res) {
             // which never existed — so otherUser was ALWAYS null and every
             // conversation rendered as "Unknown" with a `?` avatar in the UI.
             // Reshape the flat fields into the otherUser object the client expects.
-            const conversations = rpcData.map((c) => {
+            const conversations = rpcData
+                .filter((c) => {
+                    // Exclude message requests where current user is the RECIPIENT
+                    // (requests where user is the sender still show in their inbox)
+                    if (c.is_request && c.request_sender_id && c.request_sender_id !== userId) return false;
+                    return true;
+                })
+                .map((c) => {
                 const otherUserId = c.other_user_id || null;
                 const otherUser = otherUserId
                     ? {
@@ -109,6 +116,7 @@ export default async function handler(req, res) {
                     otherUser,
                     unreadCount: Number(c.unread_count ?? c.unreadCount ?? 0),
                     last_read_at: c.last_read_at ?? null,
+                    isRequest: c.is_request || false,
                 };
             });
             return res.status(200).json({ success: true, conversations });
@@ -154,7 +162,7 @@ export default async function handler(req, res) {
         const [convsResult, otherParticipantsResult, candidateMsgsResult] = await Promise.all([
             getSupabase()
                 .from('social_conversations')
-                .select('id, last_message_at, last_message_preview, is_group')
+                .select('id, last_message_at, last_message_preview, is_group, is_request, request_sender_id')
                 .in('id', conversationIds)
                 .order('last_message_at', { ascending: false })
                 .limit(500),
@@ -232,6 +240,8 @@ export default async function handler(req, res) {
                 const otherUserId = convToOtherUser[conv.id];
                 const otherUser = otherUserId ? profilesMap[otherUserId] : null;
                 if (!otherUser && !conv.is_group) return null;
+                // Exclude message requests where user is recipient (not sender)
+                if (conv.is_request && conv.request_sender_id && conv.request_sender_id !== userId) return null;
                 return {
                     id: conv.id,
                     last_message_at: conv.last_message_at,
