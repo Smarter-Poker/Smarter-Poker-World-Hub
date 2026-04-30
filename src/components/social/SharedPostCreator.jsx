@@ -232,13 +232,14 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         }
 
         const files = Array.from(e.target.files);
-        if (!files.length) return;
-        if (!user?.id) { setError('Please log in to upload media.'); return; }
+        if (!files.length) { setPreparingMedia(false); return; }
+        if (!user?.id) { setError('Please log in to upload media.'); setPreparingMedia(false); return; }
 
         // Check total media limit
         const remaining = MAX_MEDIA - media.length;
         if (remaining <= 0) {
             setError(`Maximum ${MAX_MEDIA} images/videos allowed per post`);
+            setPreparingMedia(false);
             return;
         }
         const filesToStage = files.slice(0, remaining);
@@ -278,7 +279,11 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
             });
         }
 
-        if (!staged.length) return;
+        // AUDIT-3 FIX: if all files were rejected (size cap, etc.), clear the
+        // banner here too — the bottom Promise.race only runs for the
+        // happy path. Without this, an all-rejected batch leaves the
+        // 'Preparing your video' banner up for the full 60s backstop.
+        if (!staged.length) { setPreparingMedia(false); return; }
         setMedia(prev => [...prev, ...staged]);
 
         // ⚡ INSTANT FEEDBACK is now handled by the inline "Preparing Your Video"
