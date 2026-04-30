@@ -947,13 +947,15 @@ export function ReelsViewer({ onClose }) {
                     .eq('id', currentReel.id)
                     .maybeSingle();
                 if (!existing) {
-                    await supabase.from('social_posts').insert({
+                    const { error: proxyErr } = await supabase.from('social_posts').insert({
                         id: currentReel.id,
-                        user_id: currentReel.author_id || currentUserId,
+                        author_id: currentUserId,  // RLS requires author_id = auth.uid()
                         content: currentReel.caption || '',
-                        media_url: currentReel.video_url || null,
-                        media_type: 'video',
-                    }).catch(e => console.warn('[Reels] Proxy post creation failed:', e?.message));
+                        content_type: 'video',
+                        media_urls: currentReel.video_url ? [currentReel.video_url] : [],
+                        visibility: 'public',
+                    });
+                    if (proxyErr) console.warn('[Reels] Proxy post creation failed:', proxyErr?.message);
                 }
             }
             const payload = { post_id: currentReel.id, author_id: currentUserId, content: text || '' };
