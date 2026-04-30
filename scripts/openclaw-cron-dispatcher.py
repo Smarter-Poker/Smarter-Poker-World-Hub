@@ -175,6 +175,13 @@ ALL_CRONS = [
     # current_time vs hard_stop_time per-venue, closes matching tables.
     # See .memory/context/cron-handler-orphans.md for full forensics.
     ('/api/cron/hard-stop',                 dict(minute='*/1')),       # every minute — enforces venue hard_stop_time
+    # ── 2026-04-29 — Auto-transcode HEVC/.mov uploads to H.264 MP4 ────────
+    # iPhone records video as H.265/HEVC in .mov containers; Chrome and
+    # Firefox desktop can't decode HEVC. The trigger fn_queue_video_transcode
+    # marks new uploads as transcode_status='queued' and this cron handler
+    # picks ONE per minute, runs ffmpeg, and updates the post + reel mirror.
+    # Idempotent: returns {processed:0} immediately when nothing is queued.
+    ('/api/cron/transcode-videos',          dict(minute='*/1')),       # every minute — drains video transcode queue
     # ── Video Library — daily fresh content from all 25 creators (SCRIPT_JOBS) ──
     ('/api/cron/video-library-scraper',     dict(hour=6, minute=0)),   # Daily 6am UTC — RSS ingest
     ('/api/cron/video-library-reels',       dict(hour=7, minute=0)),   # Daily 7am UTC — Sync reels

@@ -150,7 +150,22 @@ const nextConfig = {
       'livekit-server-sdk',
       'posthog-node',
       '@sentry/node',
+      // ffmpeg/ffprobe ship native binaries — must NOT be webpacked.
+      // Used by /api/cron/transcode-videos to convert HEVC → H.264 MP4.
+      '@ffmpeg-installer/ffmpeg',
+      '@ffprobe-installer/ffprobe',
     ],
+
+    // ─── Output File Tracing — INCLUDE binary deps for the transcode cron ─────
+    // ffmpeg-installer + ffprobe-installer ship platform-specific binaries that
+    // Vercel's tracer sometimes misses. Include them explicitly so the
+    // /api/cron/transcode-videos function actually has executables to spawn.
+    outputFileTracingIncludes: {
+      'pages/api/cron/transcode-videos': [
+        'node_modules/@ffmpeg-installer/**/*',
+        'node_modules/@ffprobe-installer/**/*',
+      ],
+    },
 
     // ─── Output File Tracing — Serverless Bundle Exclusions ───────────────────
     outputFileTracingExcludes: {
