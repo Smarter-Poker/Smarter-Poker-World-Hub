@@ -172,16 +172,29 @@ export default async function handler(req, res) {
       // Rate limit
 
       try {
-        const { data: convId } = await getSupabase().rpc('fn_get_or_create_conversation', {
-          user1_id: user.id,
-          user2_id: member.agent_id,
+        // CRITICAL: param names are p_user_id / p_other_user_id (verified
+        // via pg_get_function_result). user1_id/user2_id always returned
+        // PGRST202 → no agent ever received a cashout-request in-app
+        // message because the failure was hidden by the catch below.
+        const { data: convResult, error: convErr } = await getSupabase().rpc('fn_get_or_create_conversation', {
+          p_user_id: user.id,
+          p_other_user_id: member.agent_id,
         });
-        if (convId) {
-          await getSupabase().rpc('fn_send_message', {
-            p_conversation_id: convId,
-            p_sender_id: user.id,
-            p_content: `[CASHOUT REQUEST]\n\n${playerName} is requesting to cash out ${amount.toLocaleString()} chips.\n\nGo to your Agent Dashboard to approve or cancel.`,
-          });
+        if (convErr) {
+          console.warn('[request-cashout] fn_get_or_create_conversation error:', convErr);
+        } else {
+          // RPC returns jsonb { success, conversation_id, created } — extract the UUID.
+          const convId = convResult?.success ? convResult.conversation_id : null;
+          if (convId) {
+            const { error: sendErr } = await getSupabase().rpc('fn_send_message', {
+              p_conversation_id: convId,
+              p_sender_id: user.id,
+              p_content: `[CASHOUT REQUEST]\n\n${playerName} is requesting to cash out ${amount.toLocaleString()} chips.\n\nGo to your Agent Dashboard to approve or cancel.`,
+            });
+            if (sendErr) {
+              console.warn('[request-cashout] fn_send_message error:', sendErr);
+            }
+          }
         }
       } catch (msgErr) {
         console.warn('[request-cashout] Messenger notification failed:', msgErr.message);

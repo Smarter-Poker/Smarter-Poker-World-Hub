@@ -255,16 +255,32 @@ async function notifyPlayer(cashout, playerName, agentName, messageText, pushTex
   // Rate limit
 
   try {
-    const { data: convId } = await getSupabase().rpc('fn_get_or_create_conversation', {
-      user1_id: cashout.agent_id,
-      user2_id: cashout.player_id,
+    // CRITICAL: param names are p_user_id / p_other_user_id (verified via
+    // pg_get_function_result). The previous user1_id/user2_id call returned
+    // PGRST202 every time, so cashout approval/cancellation in-app messages
+    // silently never landed for any player (failures hidden by the catch
+    // below). Fix mirrors pages/api/messenger/start-conversation.js.
+    const { data: convResult, error: convErr } = await getSupabase().rpc('fn_get_or_create_conversation', {
+      p_user_id: cashout.agent_id,
+      p_other_user_id: cashout.player_id,
     });
+    if (convErr) {
+      console.warn('[approve-cashout] fn_get_or_create_conversation error:', convErr);
+      return;
+    }
+    // RPC returns jsonb { success, conversation_id, created } — not a UUID.
+    // Treating the whole jsonb as a UUID (the previous bug) made the
+    // fn_send_message call fail with type-coercion 500.
+    const convId = convResult?.success ? convResult.conversation_id : null;
     if (convId) {
-      await getSupabase().rpc('fn_send_message', {
+      const { error: sendErr } = await getSupabase().rpc('fn_send_message', {
         p_conversation_id: convId,
         p_sender_id: cashout.agent_id,
         p_content: messageText,
       });
+      if (sendErr) {
+        console.warn('[approve-cashout] fn_send_message error:', sendErr);
+      }
     }
   } catch (e) {
     console.warn('[approve-cashout] Message notification failed:', e.message);
