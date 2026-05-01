@@ -1382,14 +1382,10 @@ export default function ReelsPage() {
         if (currentIndexRef.current < reelsLengthRef.current - 1) {
             slideDebounceRef.current = true;
             setSlideDirection('up');
-            // Swipe = user gesture → auto-unmute the incoming video immediately
-            autoUnmute();
             setTimeout(() => {
                 setCurrentIndex(prev => prev + 1);
                 setSlideDirection(null);
                 slideDebounceRef.current = false;
-                // Retry unmute after iframe loads new video (handles slow YT API init)
-                setTimeout(() => autoUnmute(), 400);
             }, 120);
         }
     };
@@ -1398,14 +1394,10 @@ export default function ReelsPage() {
         if (currentIndexRef.current > 0) {
             slideDebounceRef.current = true;
             setSlideDirection('down');
-            // Swipe = user gesture → auto-unmute the incoming video immediately
-            autoUnmute();
             setTimeout(() => {
                 setCurrentIndex(prev => prev - 1);
                 setSlideDirection(null);
                 slideDebounceRef.current = false;
-                // Retry unmute after iframe loads new video (handles slow YT API init)
-                setTimeout(() => autoUnmute(), 400);
             }, 120);
         }
     };
@@ -1455,6 +1447,15 @@ export default function ReelsPage() {
 
             if (Math.abs(diff) > threshold) {
                 try { navigator?.vibrate?.(10); } catch (e) { console.warn('[App] Handled exception:', e); }
+                // Unmute synchronously here — this IS the user gesture context.
+                // Calling via slideToNext/Prev breaks the gesture chain (goes through
+                // setTimeout + React state) and setMuted() triggers a mid-animation re-render.
+                if (userWantsSoundRef.current) {
+                    sendYouTubeCommand('unMute');
+                    sendYouTubeCommand('setVolume', [100]);
+                    setMuted(false);
+                    setUserWantsSound(true);
+                }
                 if (diff > 0) {
                     slideToNextRef.current();
                 } else {
