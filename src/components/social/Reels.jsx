@@ -322,11 +322,9 @@ export function ReelsViewer({ onClose }) {
                         setShowOverlay(true);
                         clearTimeout(overlayTimerRef.current);
                         overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
-                        // Auto-unmute ONLY if user wants sound
+                        // Auto-unmute — swipe IS a user gesture, so unMute is always valid here
                         if (userWantsSoundRef.current) {
-                            sendYTCmd('unMute');
-                            sendYTCmd('setVolume', [100]);
-                            setMuted(false);
+                            autoUnmute();
                         }
                     }
                     if (data.info === 2) { // Paused
@@ -408,6 +406,16 @@ export function ReelsViewer({ onClose }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentIndex]);
 
+
+    // Auto-unmute helper — called from onStateChange(1), goNext, goPrev, and swipe handlers.
+    // A swipe counts as a user gesture so the browser always honours the postMessage unMute.
+    const autoUnmute = () => {
+        if (!userWantsSoundRef.current) return;
+        sendYTCmd('unMute');
+        sendYTCmd('setVolume', [100]);
+        setMuted(false);
+        userInteractedRef.current = true;
+    };
 
     // Haptic helper
     const haptic = (ms = 10) => { try { navigator?.vibrate?.(ms); } catch (e) { console.warn('Handled exception:', e); } };
@@ -669,10 +677,14 @@ export function ReelsViewer({ onClose }) {
             }
             return prev + 1;
         });
+        // Swipe up = user gesture → auto-unmute the incoming video
+        autoUnmute();
     }, [reels.length, hasMore, loadingMore]);
 
     const goPrev = useCallback(() => {
         setCurrentIndex(prev => prev > 0 ? prev - 1 : prev);
+        // Swipe down = user gesture → auto-unmute the incoming video
+        autoUnmute();
     }, []);
 
     // Infinite scroll - load more reels when near end
@@ -1508,13 +1520,8 @@ export function ReelsViewer({ onClose }) {
                                 }}
                                 title={currentReel?.caption || 'Poker Reel'}
                                 onLoad={() => {
-                                    // Force play via sendYTCmd
                                     sendYTCmd('playVideo');
-                                    if (userInteractedRef.current && userWantsSoundRef.current) {
-                                        sendYTCmd('unMute');
-                                        sendYTCmd('setVolume', [100]);
-                                        setMuted(false);
-                                    }
+                                    autoUnmute();
                                     // Retry loop for slow YouTube API init
                                     [300, 800, 1500].forEach(delay => setTimeout(() => {
                                         sendYTCmd('playVideo');

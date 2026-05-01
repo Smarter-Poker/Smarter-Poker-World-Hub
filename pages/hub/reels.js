@@ -303,6 +303,16 @@ export default function ReelsPage() {
         }
     };
 
+    // Auto-unmute helper — fires on swipe and on onStateChange(1).
+    // Swipe IS a user gesture, so the browser always honours the postMessage unMute.
+    const autoUnmute = () => {
+        if (!userWantsSoundRef.current) return;
+        sendYouTubeCommand('unMute');
+        sendYouTubeCommand('setVolume', [100]);
+        setMuted(false);
+    };
+
+
     // Wait for router.isReady so router.query.id is populated before loadReels runs.
     // Without this, ?id= deep-links arrive as undefined on first render and the
     // direct-query fallback inside loadReels never fires.
@@ -1360,10 +1370,14 @@ export default function ReelsPage() {
         if (currentIndexRef.current < reelsLengthRef.current - 1) {
             slideDebounceRef.current = true;
             setSlideDirection('up');
+            // Swipe = user gesture → auto-unmute the incoming video immediately
+            autoUnmute();
             setTimeout(() => {
                 setCurrentIndex(prev => prev + 1);
                 setSlideDirection(null);
                 slideDebounceRef.current = false;
+                // Retry unmute after iframe loads new video (handles slow YT API init)
+                setTimeout(() => autoUnmute(), 400);
             }, 120);
         }
     };
@@ -1372,10 +1386,14 @@ export default function ReelsPage() {
         if (currentIndexRef.current > 0) {
             slideDebounceRef.current = true;
             setSlideDirection('down');
+            // Swipe = user gesture → auto-unmute the incoming video immediately
+            autoUnmute();
             setTimeout(() => {
                 setCurrentIndex(prev => prev - 1);
                 setSlideDirection(null);
                 slideDebounceRef.current = false;
+                // Retry unmute after iframe loads new video (handles slow YT API init)
+                setTimeout(() => autoUnmute(), 400);
             }, 120);
         }
     };
@@ -1464,14 +1482,9 @@ export default function ReelsPage() {
                         // Auto-unmute after playback confirmed — with retry loop
                         // because the iframe just remounted and the API may not be fully ready
                         if (userWantsSoundRef.current) {
-                            sendYouTubeCommand('unMute');
-                            sendYouTubeCommand('setVolume', [100]);
-                            setMuted(false);
+                            autoUnmute();
                             // Retry: iframe API sometimes isn't ready for unMute on first call
-                            [100, 300, 600].forEach(d => setTimeout(() => {
-                                sendYouTubeCommand('unMute');
-                                sendYouTubeCommand('setVolume', [100]);
-                            }, d));
+                            [100, 300, 600].forEach(d => setTimeout(() => autoUnmute(), d));
                         }
                         setShowOverlay(true);
                         clearTimeout(hudTimerRef.current);

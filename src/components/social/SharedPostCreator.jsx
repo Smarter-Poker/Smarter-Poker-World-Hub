@@ -197,48 +197,12 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         if (!preparingMedia) return;
         const backstop = setTimeout(() => {
             if (mountedRef.current) {
-                setPreparingStage(null);
+                setPreparingMedia(false);
                 _pickerOpenRef.current = false;
-                _hasFileArrivedRef.current = false;
             }
-        }, 90_000);
+        }, 60_000);
         return () => clearTimeout(backstop);
     }, [preparingMedia]);
-
-    // AUDIT-6 (2026-04-30 per Dan): instant on-tap feedback. The moment the
-    // user taps the Photo/Video button we raise the banner in 'picker'
-    // state. iOS Safari does NOT fire visibilitychange around its file
-    // picker, but it DOES restore window focus when the picker dismisses
-    // (selection or cancel). When focus returns:
-    //   • If a change event fires within ~5s → handleFiles transitions
-    //     stage to 'staging' (the file is now in our hands).
-    //   • If no change event fires → user cancelled. Clear the banner.
-    // Without this listener, a cancelled picker would leave the banner up
-    // until the 90s ultimate backstop fired.
-    useEffect(() => {
-        if (preparingStage !== 'picker') return;
-        let cancelTimer = null;
-        const onFocus = () => {
-            if (!mountedRef.current) return;
-            // Picker just dismissed. Switch to 'loading' state — iOS is now
-            // doing its sandbox-copy / iCloud-pull work before firing change.
-            setPreparingStage(prev => prev === 'picker' ? 'loading' : prev);
-            // Watchdog: if no file arrives within 5s of focus return, the
-            // user cancelled the picker. Clear the banner.
-            cancelTimer = setTimeout(() => {
-                if (!mountedRef.current) return;
-                if (!_hasFileArrivedRef.current) {
-                    setPreparingStage(null);
-                    _pickerOpenRef.current = false;
-                }
-            }, 5000);
-        };
-        window.addEventListener('focus', onFocus);
-        return () => {
-            clearTimeout(cancelTimer);
-            window.removeEventListener('focus', onFocus);
-        };
-    }, [preparingStage]);
 
     /**
      * handleFiles — STAGE ONLY (instant, no freeze)
@@ -253,21 +217,23 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
      *   5. Signed URL prefetch for first video
      */
     const handleFiles = async (e) => {
-        // Picker closed AND a file was actually selected (no-files handled below).
+        // Picker has closed AND a file was actually selected (this handler only
+        // fires on a real change event with .files set; bail-on-cancel is the
+        // !files.length check below).
         _pickerOpenRef.current = false;
 
-        // AUDIT-6: mark that the change event fired so the focus-watchdog in
-        // the useEffect above does NOT clear the banner. Then transition to
-        // 'staging' — JS now has the File handle, the slow iOS handoff is
-        // over, we're doing our own work.
+        // Raise the banner NOW — only when we actually have a file to stage.
+        // Cleared at the bottom once the first thumbnail resolves (or 30s).
+        // Previously the banner went up on Photo/Video button click and got
+        // stuck on iOS because Safari doesn't fire visibilitychange around
+        // its file picker, so the 2s safety timer never fired.
         if (e?.target?.files?.length > 0) {
-            _hasFileArrivedRef.current = true;
-            setPreparingStage('staging');
+            setPreparingMedia(true);
         }
 
         const files = Array.from(e.target.files);
-        if (!files.length) { setPreparingStage(null); return; }
-        if (!user?.id) { setError('Please log in to upload media.'); setPreparingStage(null); return; }
+        if (!files.length) { setPreparingMedia(false); return; }
+        if (!user?.id) { setError('Please log in to upload media.'); setPreparingMedia(false); return; }
 
         // Check total media limit
         const remaining = MAX_MEDIA - media.length;
@@ -327,31 +293,9 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         // on Post-tap, not on file-select.
 
         // ── BACKGROUND PROCESSING (runs while user types caption) ────────────
-        // AUDIT-6 (2026-04-30 per Dan): on MOBILE we skip the client
-        // generateThumbnail entirely. iOS HEVC decode adds 1-8s on top of
-        // the already-painful iOS handoff (5-25s). Instead the preview tile
-        // falls back to <video preload="metadata"> which the browser
-        // auto-renders showing the first frame — zero JS work. The
-        // server-side cron transcode worker will extract a real thumbnail
-        // via ffmpeg within 1-2 minutes and persist it as thumbnail_url.
-        // Desktop: keep the client-side thumbnail (<2s, no perceptual cost).
-        const _isMobile = typeof navigator !== 'undefined'
-            && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || '');
         for (const item of staged) {
             if (item.type !== 'video') continue;
 
-            if (_isMobile) {
-                // Don't burn HEVC decode time on mobile. Leave thumbnail=null
-                // and let the cron generate it server-side.
-                thumbnailPromiseRef.current[item.url] = Promise.resolve(null);
-                // Still fire the signed-URL prefetch (network-bound, runs
-                // in parallel with iOS sandbox work — saves 200-500ms when
-                // user finally taps Post).
-                bgUpload.prefetch({ file: item.file, userId: user.id, folder: 'videos' });
-                break; // only first video gets the prefetch
-            }
-
-            // DESKTOP path — client-side thumbnail at staging time:
             // 1. Auto-thumbnail: extract frame at ~2s via canvas.
             // Store the PROMISE in a ref so handlePost can await it. Without this
             // the captured `staged` array in handlePost has thumbnail=null forever
@@ -1116,38 +1060,29 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                                             </div>
                                         </div>
                                     ) : (
-                                        // AUDIT-6 (2026-04-30): no client thumbnail (mobile path,
-                                        // or desktop where canvas decode hasn't finished yet) →
-                                        // fall back to <video preload="metadata"> which the browser
-                                        // auto-renders showing the first decoded frame as poster.
-                                        // No JS work needed; render is essentially free. Tap still
-                                        // promotes to a controlled <video> for full preview.
-                                        // The play-button overlay sits on top so it's tappable.
+                                        // No thumbnail yet — show clock + "Generating thumbnail…"
+                                        // so the user knows the HEVC decode wait (~30s on iPhone)
+                                        // isn't a hang. Tap still works to start preview from the
+                                        // raw blob URL.
                                         <div
-                                            style={{ width: '100%', height: '100%', position: 'relative', cursor: 'pointer', background: '#000' }}
+                                            style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, #1a1a2e, #16213e)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', gap: 10 }}
                                             onClick={() => setMedia(prev => prev.map((item, idx) => idx === i ? { ...item, _previewing: true } : item))}
                                         >
-                                            <video
-                                                src={m.url}
-                                                preload="metadata"
-                                                muted
-                                                playsInline
-                                                style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }}
-                                            />
-                                            {/* Play overlay */}
                                             <div style={{
-                                                position: 'absolute', inset: 0,
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                background: 'rgba(0,0,0,0.15)',
-                                            }}>
-                                                <div style={{
-                                                    width: 44, height: 44, borderRadius: '50%',
-                                                    background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
-                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                }}>
-                                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
-                                                </div>
-                                            </div>
+                                                width: 36, height: 36, borderRadius: '50%',
+                                                border: '3px solid rgba(255,255,255,0.18)',
+                                                borderTopColor: '#fff',
+                                                animation: 'spThumbSpin 0.9s linear infinite',
+                                                WebkitAnimation: 'spThumbSpin 0.9s linear infinite',
+                                                // GPU layer hint — same reason as the prep banner spinner:
+                                                // keeps animating under main-thread pressure on iOS.
+                                                willChange: 'transform',
+                                                WebkitTransform: 'translateZ(0)',
+                                                transform: 'translateZ(0)',
+                                            }} />
+                                            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', fontWeight: 600, letterSpacing: 0.3 }}>
+                                                Generating thumbnail…
+                                            </span>
                                         </div>
                                     )
                                 ) : (
@@ -1481,11 +1416,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         transform: 'translateZ(0)',
                     }} />
                     <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: 0.2, flex: 1 }}>
-                        {preparingStage === 'picker'
-                            ? 'Opening Photos…'
-                            : preparingStage === 'loading'
-                            ? 'Loading your video — this can take 5–25s on iPhone for HEVC clips…'
-                            : 'Preparing your video — this may take a moment for longer clips…'}
+                        Preparing your video — this may take a moment for longer clips…
                     </span>
                 </div>
             )}
@@ -1494,18 +1425,17 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 8px 4px', gap: 4 }}>
                     <button
                     onClick={() => {
-                        // AUDIT-6 (2026-04-30 per Dan): raise the banner the
-                        // moment the user taps Photo/Video — don't wait for
-                        // the change event, which only fires AFTER iOS hands
-                        // the file to Safari (5–25s for iPhone HEVC). The
-                        // useEffect on preparingStage handles the 'cancel'
-                        // case via window.focus + 5s grace window: if the
-                        // picker dismisses without a change event, banner
-                        // clears automatically. 90s ultimate-backstop in the
-                        // sibling useEffect is the safety net.
+                        // BUG FIX (2026-04-30 per Dan): do NOT set preparingMedia
+                        // here. iOS Safari's file picker doesn't fire
+                        // visibilitychange when it opens/closes, so the safety
+                        // timer never gets a chance to clear the banner if the
+                        // user cancels — the result was a stuck "Preparing Your
+                        // Video" banner appearing the moment Photo/Video was
+                        // tapped, before any file was selected. The banner now
+                        // shows ONLY after handleFiles fires (real file picked),
+                        // and clears via the deferred staging promise + 30s
+                        // ceiling already wired up below.
                         _pickerOpenRef.current = true;
-                        _hasFileArrivedRef.current = false;
-                        setPreparingStage('picker');
                         fileRef.current?.click();
                     }}
                     disabled={media.length >= MAX_MEDIA || uploading}
