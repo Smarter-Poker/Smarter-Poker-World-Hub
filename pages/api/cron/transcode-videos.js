@@ -235,11 +235,30 @@ export default async function handler(req, res) {
         // a ~400 MB file for a 60s clip, which is wasteful (no phone or
         // laptop displays the difference between 1080p and 4K at typical
         // viewing distances on a feed video).
-        //   • scale='min(1920,iw)':'-2'  →  cap longest edge at 1920, keep
-        //                                     aspect, force even height (libx264 req)
+        //
+        // AUDIT-PASS-MAX (2026-05-01 final sweep): the previous filter
+        //   `scale='min(1920,iw)':'-2'`
+        // ONLY capped width. For iPhone portrait 4K (2160×3840) the output
+        // came out 1920×3413 — width capped, but height proportionally
+        // ballooned, leaving files ~2.5× the target size. The proper rule
+        // is "cap the LONGER edge at 1920, scale the shorter edge to keep
+        // aspect, force even dimensions (libx264 requirement)."
+        //
+        // Branch on orientation:
+        //   landscape (iw > ih) → width = min(1920, iw), height = -2 (auto)
+        //   portrait/square     → width = -2 (auto),     height = min(1920, ih)
+        //
+        // Result:
+        //   3840×2160 → 1920×1080  ✓
+        //   2160×3840 → 1080×1920  ✓
+        //   1280×720  → 1280×720   ✓ (no upscale)
+        //   720×1280  → 720×1280   ✓ (no upscale)
+        //
         //   • level 4.0 (was 3.1) — required for 1080p; 3.1 caps at 720p
         //   • profile main (was baseline) — better quality at 1080p without
         //                                    sacrificing universal device support
+        const SCALE_1080P =
+            "scale='if(gt(iw,ih), min(1920,iw), -2)':'if(gt(iw,ih), -2, min(1920,ih))'";
         const ffArgs = isAlreadyH264
             ? [
                 '-y', '-hide_banner', '-loglevel', 'error',
@@ -251,7 +270,7 @@ export default async function handler(req, res) {
             : [
                 '-y', '-hide_banner', '-loglevel', 'error',
                 '-i', inFile,
-                '-vf', "scale='min(1920,iw)':'-2'",
+                '-vf', SCALE_1080P,
                 '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
                 '-pix_fmt', 'yuv420p', '-profile:v', 'main', '-level', '4.0',
                 '-c:a', 'aac', '-b:a', '128k',
