@@ -325,7 +325,10 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, onVoiceSend,
         setLoadingGifs(true);
         setGifError('');
         try {
-            const resp = await fetch('/api/messenger/gif-search?limit=20');
+            const gifToken = getAccessToken();
+            const resp = await fetch('/api/messenger/gif-search?limit=20', {
+                headers: gifToken ? { Authorization: `Bearer ${gifToken}` } : {},
+            });
             const data = await resp.json();
             if (data.success) {
                 setGifs(data.gifs);
@@ -350,7 +353,10 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, onVoiceSend,
             setLoadingGifs(true);
             setGifError('');
             try {
-                const resp = await fetch(`/api/messenger/gif-search?q=${encodeURIComponent(query)}&limit=20`);
+                const gifToken = getAccessToken();
+                const resp = await fetch(`/api/messenger/gif-search?q=${encodeURIComponent(query)}&limit=20`, {
+                    headers: gifToken ? { Authorization: `Bearer ${gifToken}` } : {},
+                });
                 const data = await resp.json();
                 if (data.success) {
                     setGifs(data.gifs);
