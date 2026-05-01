@@ -1,53 +1,36 @@
-fix(compose): wire 3 sheets to real endpoints + fix shareToGroups persistence
+fix(transcode): MAX-RIGOR pass — orientation-aware 1080p cap
 
-Audit caught four wiring bugs in the V2 compose flow that would have
-silently 404'd or returned empty results:
+Pass-1 of the FINAL maximum-rigor 4-pass audit found that the C.1
+1080p cap only worked correctly for landscape video. Portrait iPhone
+4K (2160w × 3840h) re-encoded as 1920w × 3413h — width capped,
+height proportionally ballooned, file ~2.5x the intended target.
 
-  1. TagPeopleSheet was calling /api/social/users/search — that endpoint
-     does not exist. Switched to direct supabase.from('profiles')
-     .select(id, username, full_name, avatar_url) .or(username.ilike,
-     full_name.ilike) — the same pattern the existing global search at
-     pages/hub/social-media/index.js:5708 already uses. profiles_select
-     RLS is USING(true) so authenticated reads work.
+Math:
+  scale='min(1920,iw)':'-2'
+    iw=2160, ih=3840
+    w' = min(1920, 2160) = 1920  (downscale width)
+    h' = -2 = auto = (ih * w' / iw) = 3840 * 1920 / 2160 = 3413
+    output: 1920 x 3413  (NOT 1080 x 1920 as intended)
 
-  2. LocationPickerSheet was calling /api/venues/search — also doesn't
-     exist. Switched to /api/poker/venues with the documented params
-     (search=, lat=, lng=, radius=, limit=). Also fixed the response
-     parser: that endpoint returns {success, data: [...]}, not
-     {venues: [...]}; defensive fallback chain handles future variants.
-     Fixed venue picker to map venue.latitude/longitude (the actual
-     column names) into store.location.lat/lng — was hard-coded to
-     v.lat/v.lng which were undefined, leading to silent location
-     metadata loss.
+Fix: branch on orientation, cap whichever edge is the longer one:
+  landscape (iw > ih)  → w = min(1920, iw), h = -2
+  portrait/square      → w = -2,           h = min(1920, ih)
 
-  3. ShareToGroupsSheet was calling /api/social/home-groups — also
-     missing. Switched to direct Supabase reads: union of
-     commander_home_groups WHERE owner_id = me AND is_active, with
-     commander_home_group_follows JOIN commander_home_groups WHERE
-     user_id = me AND is_active. Deduped by group id.
+Verified:
+  3840 x 2160 (landscape 4K)      → 1920 x 1080   ✓
+  2160 x 3840 (portrait 4K iPhone)→ 1080 x 1920   ✓
+  1280 x 720  (already <= cap)    → 1280 x 720    ✓ (no upscale)
+   720 x 1280 (portrait 720p)     →  720 x 1280   ✓ (no upscale)
+  2160 x 2160 (square 4K)         → 1920 x 1920   ✓
 
-  4. compose.js was calling /api/social/home-groups/post in a
-     fire-and-forget loop to mirror the post into each picked group —
-     that endpoint also doesn't exist. Real "mirror this post into N
-     home group streams" needs the future Hetzner Open Claw worker
-     (per CLUB-ARENA-OFFICIAL-UPGRADE-INTEGRATION.md). For now, persist
-     the picked group IDs onto the post's metadata.share_to_groups
-     JSONB so the future worker can pick them up — no data loss.
+The remux fast-path for already-H.264 sources is untouched — no
+scale filter applied, files served at native resolution.
 
-Verified clean:
-  • social_posts RLS: stale "Anyone can view posts" policy is gone;
-    new "Audience-aware view" calls fn_can_view_post.
-  • fn_can_view_post(uuid, NULL, NULL) returns TRUE — no regression
-    for legacy posts that never had audience_mode set.
-  • fn_can_view_post(uuid, 'public', NULL) → TRUE
-  • fn_can_view_post(uuid, 'only_me', NULL) → FALSE for non-author
-  • fn_can_view_post(uuid, 'invalid_mode', NULL) → FALSE (fail-closed)
-  • profiles_select RLS USING(true) — TagPeopleSheet works for any
-    authenticated viewer.
-  • All modified files pass esbuild --loader:.jsx=jsx parse.
-  • SharedPostCreator router.push gated on context==='social-media' so
-    club-page and other inline composers are unaffected.
-
-The /api/social/home-groups/post mirror is the only deferred piece;
-its absence now degrades gracefully (data preserved in metadata,
-no 404 on every post).
+Passes after fix:
+  Pass 1 (wiring) — clean. Filter expression valid ffmpeg syntax.
+  Pass 2 (real-time) — clean. Cron path unchanged; realtime UPDATE
+    on social_posts is pre-existing INSERT-only gap (not regression).
+  Pass 3 (adversarial) — clean. Filename passed to ffmpeg as separate
+    arg (no shell injection). Max output bounded at 1920x1920.
+  Pass 4 (edge cases) — clean. Equal w/h handled by ih branch.
+    Sources <= cap not upscaled. 8K → 1920 max edge.

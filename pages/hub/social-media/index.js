@@ -78,6 +78,7 @@ import { SharedPostCreator } from '../../../src/components/social/SharedPostCrea
 import GhostPostCard from '../../../src/components/social/GhostPostCard';
 import dynamic from 'next/dynamic';
 const SharePostModal = dynamic(() => import('../../../src/components/social/SharePostModal'), { ssr: false });
+const ShareStreakLeaderboard = dynamic(() => import('../../../src/components/social/ShareStreakLeaderboard'), { ssr: false });
 // Shared utilities — single source of truth (extracted from this file)
 import { SOCIAL_COLORS, SOCIAL_COLORS as C, timeAgo, decodeHtmlEntities, isYouTubeUrl, getYouTubeVideoId, getYouTubeEmbedUrl, getYouTubeThumbnail, validateYouTubeVideo, sniffMimeType } from '../../../src/lib/socialHelpers';
 import { SharedAvatar as Avatar } from '../../../src/components/social/SharedAvatar';
@@ -6770,6 +6771,8 @@ function SocialMediaPage() {
                                                 />
                                                 {/* Insert Reels carousel after 3rd post */}
                                                 {index === 2 && <ReelsFeedCarousel key="reels-carousel" />}
+                                                {/* Insert Share Streak Leaderboard after 5th post */}
+                                                {index === 4 && <ShareStreakLeaderboard key="share-streak-lb" currentUserId={user?.id} />}
                                             </React.Fragment>
                                         ));
                                         })()}
