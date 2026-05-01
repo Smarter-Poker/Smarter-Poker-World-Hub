@@ -230,6 +230,16 @@ export default async function handler(req, res) {
         const codec = await probeCodec(inFile);
         const isAlreadyH264 = codec === 'h264';
 
+        // PHASE-C.1 (2026-05-01): cap output at 1080p when re-encoding.
+        // iPhone records 4K HEVC by default — re-encoding to 4K H.264 produces
+        // a ~400 MB file for a 60s clip, which is wasteful (no phone or
+        // laptop displays the difference between 1080p and 4K at typical
+        // viewing distances on a feed video).
+        //   • scale='min(1920,iw)':'-2'  →  cap longest edge at 1920, keep
+        //                                     aspect, force even height (libx264 req)
+        //   • level 4.0 (was 3.1) — required for 1080p; 3.1 caps at 720p
+        //   • profile main (was baseline) — better quality at 1080p without
+        //                                    sacrificing universal device support
         const ffArgs = isAlreadyH264
             ? [
                 '-y', '-hide_banner', '-loglevel', 'error',
@@ -241,8 +251,9 @@ export default async function handler(req, res) {
             : [
                 '-y', '-hide_banner', '-loglevel', 'error',
                 '-i', inFile,
+                '-vf', "scale='min(1920,iw)':'-2'",
                 '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
-                '-pix_fmt', 'yuv420p', '-profile:v', 'baseline', '-level', '3.1',
+                '-pix_fmt', 'yuv420p', '-profile:v', 'main', '-level', '4.0',
                 '-c:a', 'aac', '-b:a', '128k',
                 '-movflags', '+faststart',
                 outFile,

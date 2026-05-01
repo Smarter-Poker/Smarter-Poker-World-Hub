@@ -203,6 +203,8 @@ export default function ComposePage() {
             // 4. Persist post via fn_create_social_post RPC, with new fields in metadata
             const contentType = state.media.some(m => m.type === 'video') ? 'video' : 'image';
 
+            // PHASE-B (2026-05-01): RPC now accepts V2 fields atomically.
+            // No more separate UPDATE patch — single round-trip + transactional.
             const { data: rpcResult, error: rpcError } = await supabase.rpc('fn_create_social_post', {
                 p_author_id: user.id,
                 p_content: state.draft?.trim() || '',
@@ -211,6 +213,13 @@ export default function ComposePage() {
                 p_visibility: state.visibility || 'public',
                 p_achievement_data: null,
                 p_thumbnail_url: thumbnailUrl,
+                p_ai_label: !!state.aiLabel,
+                p_audience_mode: state.audienceMode || null,
+                p_audience_list: state.audienceList?.length ? state.audienceList : null,
+                p_share_to_story: !!state.shareToStory,
+                p_metadata_location: state.location || null,
+                p_topics: state.topics?.length ? state.topics : null,
+                p_cover_frame_index: state.coverFrameIndex,
             });
 
             if (rpcError || !rpcResult?.success) {
@@ -219,30 +228,6 @@ export default function ComposePage() {
             }
 
             const postId = rpcResult.id;
-
-            // 5. Patch the post row with the V2 columns the RPC didn't take.
-            // (We extend the RPC in a follow-up; for now do a separate UPDATE so
-            // we can ship the UI without a backend coupling.)
-            const updatePayload = {};
-            if (state.coverFrameIndex != null) updatePayload.cover_frame_index = state.coverFrameIndex;
-            if (state.aiLabel) updatePayload.ai_label = true;
-            if (state.audienceMode && state.audienceMode !== 'public') {
-                updatePayload.audience_mode = state.audienceMode;
-                if (state.audienceList?.length) updatePayload.audience_list = state.audienceList;
-            }
-            if (state.shareToStory) updatePayload.share_to_story = true;
-            if (state.location) updatePayload.metadata_location = state.location;
-            if (state.topics?.length) updatePayload.topics = state.topics;
-            if (Object.keys(updatePayload).length > 0 && postId) {
-                try {
-                    await supabase.from('social_posts')
-                        .update(updatePayload)
-                        .eq('id', postId);
-                } catch (patchErr) {
-                    // V2 fields are nice-to-have; don't fail the whole post for these.
-                    console.warn('[Compose] V2 metadata patch failed:', patchErr?.message || patchErr);
-                }
-            }
 
             // 6. Optional: also publish as 24h story
             if (state.shareToStory && videoUrl) {
