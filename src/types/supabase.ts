@@ -3587,8 +3587,18 @@ export type Database = {
         }[]
       }
       fn_get_or_create_conversation: {
-        Args: { user1_id: string; user2_id: string }
-        Returns: string
+        // Live signature (verified 2026-04-30 against pg_proc):
+        //   p_user_id uuid, p_other_user_id uuid, p_conversation_type text DEFAULT 'direct'
+        //   RETURNS jsonb
+        // Previous types here (user1_id/user2_id, returns string) were stale —
+        // every caller had to cast and the wrong shape masked the real bug
+        // tracked in task #93/#94 (messenger conversation enumeration).
+        Args: {
+          p_user_id: string
+          p_other_user_id: string
+          p_conversation_type?: string
+        }
+        Returns: Json
       }
       fn_get_social_feed: {
         Args: {
@@ -3651,8 +3661,9 @@ export type Database = {
         | { Args: { p_table_id: string }; Returns: Json }
         | { Args: { p_table_id: string; p_user_id: string }; Returns: Json }
       fn_mark_messages_read: {
+        // Live signature: returns jsonb {success, marked_count, ...}, not bare integer.
         Args: { p_conversation_id: string; p_user_id: string }
-        Returns: number
+        Returns: Json
       }
       fn_seat_player:
         | {
@@ -3673,12 +3684,16 @@ export type Database = {
             Returns: Json
           }
       fn_send_message: {
+        // Live signature has two optional args + jsonb return that the old
+        // generated types missed.
         Args: {
           p_content: string
           p_conversation_id: string
           p_sender_id: string
+          p_message_type?: string
+          p_metadata?: Json
         }
-        Returns: string
+        Returns: Json
       }
       geometry: { Args: { "": string }; Returns: unknown }
       geometry_above: {
