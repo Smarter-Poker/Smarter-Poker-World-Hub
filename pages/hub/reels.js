@@ -111,6 +111,8 @@ export default function ReelsPage() {
     const [viewCounts, setViewCounts] = useState({});
     const [videoProgress, setVideoProgress] = useState(0);
     const viewedReelsRef = useRef(new Set());
+    const autoUnmuteRetryTimersRef = useRef([]); // Cancelled on every reel change — prevents stale-iframe postMessage
+    const playVideoOnLoadTimersRef = useRef([]);  // Cancelled on every reel change — prevents premature playVideo to new iframe
     const [refreshing, setRefreshing] = useState(false);
     // #4 Not Interested - persist disliked reel IDs in localStorage
     const [notInterestedIds, setNotInterestedIds] = useState(() => {
@@ -1044,7 +1046,7 @@ export default function ReelsPage() {
             }
             const { error } = await supabase.from('social_comments').insert(payload);
             if (error) throw error;
-            busEmit.socialCommentAdded(currentReel.id, user.id);
+            busEmit.socialCommentAdded && busEmit.socialCommentAdded(currentReel.id, user.id);
             // DB trigger handles comment_count increment atomically
             setCommentCounts(prev => ({ ...prev, [currentReel.id]: (prev[currentReel.id] || 0) + 1 }));
         } catch (err) {
@@ -1260,11 +1262,27 @@ export default function ReelsPage() {
         setYtReady(false); // Reset — suppress play button until YT fires onStateChange for new video
         setYtError(null); // Clear YouTube error state on reel change
 
+        // Cancel any pending autoUnmute retry timers from the PREVIOUS reel's onStateChange(1).
+        // Without this, they fire on the new iframe and can cause stale postMessage or setMuted() re-render.
+        autoUnmuteRetryTimersRef.current.forEach(t => clearTimeout(t));
+        autoUnmuteRetryTimersRef.current = [];
+        // Cancel any pending playVideo onLoad retry timers from the previous iframe's onLoad.
+        // The key prop causes the iframe to remount on index change, but old timers still fire.
+        playVideoOnLoadTimersRef.current.forEach(t => clearTimeout(t));
+        playVideoOnLoadTimersRef.current = [];
+
         // Mobile fallback: iOS Safari may never fire onStateChange via postMessage.
         // If ytReady is still false after 3s, force it true so the play button appears
         // and the user can manually tap to start playback.
         const ytReadyFallback = setTimeout(() => setYtReady(true), 3000);
-        return () => clearTimeout(ytReadyFallback);
+        return () => {
+            clearTimeout(ytReadyFallback);
+            // Also cancel any in-flight retry timers on unmount
+            autoUnmuteRetryTimersRef.current.forEach(t => clearTimeout(t));
+            autoUnmuteRetryTimersRef.current = [];
+            playVideoOnLoadTimersRef.current.forEach(t => clearTimeout(t));
+            playVideoOnLoadTimersRef.current = [];
+        };
     }, [currentIndex]);
 
     const handleSave = async () => {
@@ -1515,12 +1533,16 @@ export default function ReelsPage() {
                         setYtReady(true); // YouTube confirmed playback — safe to show play button now
                         setIsPaused(false);
                         setYtError(null); // Clear any previous error on successful play
-                        // Auto-unmute after playback confirmed — with retry loop
-                        // because the iframe just remounted and the API may not be fully ready
+                        // Auto-unmute after playback confirmed.
+                        // Cancel previous retry batch before scheduling new one
+                        // so reel changes don't accumulate stale timers on the wrong iframe.
+                        autoUnmuteRetryTimersRef.current.forEach(t => clearTimeout(t));
                         if (userWantsSoundRef.current) {
                             autoUnmute();
                             // Retry: iframe API sometimes isn't ready for unMute on first call
-                            [100, 300, 600].forEach(d => setTimeout(() => autoUnmute(), d));
+                            autoUnmuteRetryTimersRef.current = [100, 300, 600].map(d => setTimeout(() => autoUnmute(), d));
+                        } else {
+                            autoUnmuteRetryTimersRef.current = [];
                         }
                         setShowOverlay(true);
                         clearTimeout(hudTimerRef.current);
@@ -1851,7 +1873,9 @@ export default function ReelsPage() {
                                     // CRITICAL: Do NOT send unMute here — on mobile Safari, unmuting before
                                     // playback starts causes autoplay to fail. Unmute only after
                                     // onStateChange confirms Playing (info === 1).
-                                    [300, 800, 1500, 3000].forEach(delay => setTimeout(() => {
+                                    // Cancel previous batch before scheduling new one.
+                                    playVideoOnLoadTimersRef.current.forEach(t => clearTimeout(t));
+                                    playVideoOnLoadTimersRef.current = [300, 800, 1500, 3000].map(delay => setTimeout(() => {
                                         try {
                                             iframeWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
                                             iframeWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
