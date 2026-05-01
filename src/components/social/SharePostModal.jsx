@@ -495,14 +495,8 @@ function GroupsTab({ post, onClose }) {
     useEffect(() => {
         let cancelled = false;
         const fetchGroups = async () => {
-            const sb = getSupabase();
-            if (!sb) return;
-
-            let currentUser = null;
-            try {
-                const { data: { session } } = await sb.auth.getSession();
-                currentUser = session?.user;
-            } catch (err) {}
+            // Use synchronous getAuthUser — no banned auth.getSession()
+            const currentUser = getAuthUser();
             if (!currentUser) { if (!cancelled) setLoading(false); return; }
 
             const cacheKey = `sp-groups-${currentUser.id}`;
@@ -521,19 +515,20 @@ function GroupsTab({ post, onClose }) {
             } catch (_) {}
 
             try {
-                // Fetch messenger conversations where type is 'group' or 'announcement'
+                // Fetch group conversations from social_* tables
+                const sb = getSupabase();
                 const { data, error } = await sb
-                    .from('messenger_participants')
-                    .select('conversation_id, messenger_conversations!inner(id, title, avatar_url, type)')
+                    .from('social_conversation_participants')
+                    .select('conversation_id, social_conversations!inner(id, is_group, group_name)')
                     .eq('user_id', currentUser.id)
-                    .in('messenger_conversations.type', ['group', 'announcement']);
+                    .eq('social_conversations.is_group', true);
 
                 if (!error && data) {
                     const parsedGroups = data.map(d => ({
                         id: d.conversation_id,
-                        name: d.messenger_conversations.title || 'Unnamed Group',
-                        avatar_url: d.messenger_conversations.avatar_url,
-                        type: d.messenger_conversations.type
+                        name: d.social_conversations.group_name || 'Unnamed Group',
+                        avatar_url: null,
+                        type: 'group'
                     }));
                     if (!cancelled) {
                         setGroups(parsedGroups);
