@@ -24,20 +24,32 @@ export default async function handler(req, res) {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
-    const safeQ = (v) => v ? (Array.isArray(v) ? String(v[0]) : typeof v === 'object' ? null : String(v)) : v;
+    // venue_ids can arrive as:
+    //   - "1,2,3"            (string, common case)
+    //   - "[1,2,3]"          (JSON-encoded string)
+    //   - ["1","2","3"]      (Next.js parses repeated ?venue_ids=1&venue_ids=2 to array)
+    //   - undefined/null
+    // Normalize to a string-array up front. Previous version called
+    // .split(',') unconditionally on line 39, which crashed with
+    // "TypeError: r.split is not a function" when JSON.parse succeeded
+    // or the query already arrived as an array — observed in prod logs.
     let venue_ids = req.query.venue_ids;
-    if (typeof venue_ids === 'string') {
-        try { venue_ids = JSON.parse(venue_ids); } catch (e) { venue_ids = venue_ids.split(','); }
-    } else if (!Array.isArray(venue_ids)) {
-        venue_ids = [];
-    }
-    if (!venue_ids) {
+    let ids;
+    if (Array.isArray(venue_ids)) {
+        ids = venue_ids;
+    } else if (typeof venue_ids === 'string') {
+        try {
+            const parsed = JSON.parse(venue_ids);
+            ids = Array.isArray(parsed) ? parsed : String(parsed).split(',');
+        } catch (_e) {
+            ids = venue_ids.split(',');
+        }
+    } else {
         return res.status(400).json({ success: false, error: 'venue_ids is required (comma-separated)' });
     }
 
-    // Parse and validate venue IDs
-    const ids = venue_ids.split(',')
-        .map(s => s.trim())
+    ids = ids
+        .map(s => String(s).trim())
         .filter(s => s.length > 0)
         .slice(0, 50); // Cap at 50 venues per request
 
