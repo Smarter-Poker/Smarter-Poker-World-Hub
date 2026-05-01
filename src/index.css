@@ -70,6 +70,33 @@ body {
   overflow-y: visible;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   DESKTOP SCROLL FAILSAFE
+   On desktop (≥768px), always allow body/html scrolling UNLESS the reels
+   page explicitly adds .reels-lock to the body. This overrides any stale
+   inline style set by modals/overlays that forgot to clean up after
+   themselves. On mobile the Reels page uses native-feel locked scroll so
+   we leave that path unchanged.
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (min-width: 768px) {
+  html:not(.reels-lock),
+  body:not(.reels-lock) {
+    overflow: auto !important;
+    position: static !important;
+    height: auto !important;
+    top: auto !important;
+  }
+}
+
+/* Reels full-screen lock — applied via JS class instead of inline styles */
+body.reels-lock,
+html.reels-lock {
+  overflow: hidden !important;
+  position: fixed !important;
+  width: 100% !important;
+  touch-action: none !important;
+}
+
 /* 3D World pages - lock viewport for canvas */
 .world-3d-container {
   width: 100%;
