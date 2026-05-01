@@ -341,6 +341,21 @@ function ReelViewer({ reels, startIndex, onClose }) {
     const [showMoreMenu, setShowMoreMenu] = useState(false);
     const [showReactionPicker, setShowReactionPicker] = useState(false);
     const reactionTimerRef = useRef(null);
+    // BUG FIX (RFC-1): track all toast/modal/animation dismiss timers so they can be
+    // cancelled on unmount and prevent setState-after-unmount.
+    const shareToastTimerRef = useRef(null);
+    const sharedToFeedTimerRef = useRef(null);
+    const reportModalTimerRef = useRef(null);
+    const likeBounceTimerRef = useRef(null);
+    const showHeartTimerRef = useRef(null);
+    const copyToastTimerRef = useRef(null);
+    // Array ref for the onLoad retry batch (300/800/1500ms) — prevents stale postMessage
+    // to wrong iframe when user swipes before the retry loop fires.
+    const ytAutoplayTimersRef = useRef([]);
+    // Unmute-after-loadVideoById timer (100ms) — tracked so it can be cancelled on unmount.
+    const unmuteTimerRef = useRef(null);
+    // Comment input focus timer (100ms) — prevents focus() on unmounted input.
+    const commentFocusTimerRef = useRef(null);
     // GIF + Image state for reel comments
     const [showReelGifPicker, setShowReelGifPicker] = useState(false);
     const [reelCommentMediaUrl, setReelCommentMediaUrl] = useState(null);
@@ -549,8 +564,12 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 // Use loadVideoById — switches video without reloading the player
                 sendYTCmd('loadVideoById', [videoId]);
                 // Unmute if user has interacted
+                // BUG FIX (RFC-2): track unmute timer so it can be cancelled on unmount
+                // (and when currentIndex changes again before 100ms elapses).
                 if (userInteractedRef.current && userWantsSoundRef.current) {
-                    setTimeout(() => {
+                    if (unmuteTimerRef.current) clearTimeout(unmuteTimerRef.current);
+                    unmuteTimerRef.current = setTimeout(() => {
+                        unmuteTimerRef.current = null;
                         sendYTCmd('unMute');
                         sendYTCmd('setVolume', [100]);
                         setMuted(false);
@@ -598,6 +617,18 @@ function ReelViewer({ reels, startIndex, onClose }) {
             document.body.style.width = '';
             document.body.style.touchAction = '';
             document.documentElement.style.overflow = '';
+            // BUG FIX (RFC-1): cancel all tracked timers to prevent setState-after-unmount
+            clearTimeout(shareToastTimerRef.current);
+            clearTimeout(sharedToFeedTimerRef.current);
+            clearTimeout(reportModalTimerRef.current);
+            clearTimeout(likeBounceTimerRef.current);
+            clearTimeout(showHeartTimerRef.current);
+            clearTimeout(copyToastTimerRef.current);
+            clearTimeout(unmuteTimerRef.current);
+            clearTimeout(commentFocusTimerRef.current);
+            // Cancel any pending YT autoplay retry batch
+            ytAutoplayTimersRef.current.forEach(t => clearTimeout(t));
+            ytAutoplayTimersRef.current = [];
         };
     }, []);
 
@@ -658,8 +689,10 @@ function ReelViewer({ reels, startIndex, onClose }) {
         setLiked(prev => ({ ...prev, [currentId]: !prev[currentId] }));
         setLikeCounts(prev => ({ ...prev, [currentId]: Math.max(0, (prev[currentId] || 0) + (wasLiked ? -1 : 1)) }));
         // #7 Animated Like Counter - trigger bounce
+        // BUG FIX (RFC-3): cancel previous bounce timer before starting a new one.
         setLikeBounceId(currentId);
-        setTimeout(() => setLikeBounceId(null), 400);
+        if (likeBounceTimerRef.current) clearTimeout(likeBounceTimerRef.current);
+        likeBounceTimerRef.current = setTimeout(() => { likeBounceTimerRef.current = null; setLikeBounceId(null); }, 400);
 
         // Resolve userId fresh to avoid stale closure if authUser not yet hydrated
         const userId = authUser?.id || getAuthUser()?.id;
@@ -762,7 +795,9 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     setCommentLikeCounts(clCounts);
                 } catch (e) { console.warn('[ReelsFeedCarousel] Handled exception:', e); }
             } catch { setReelComments([]); }
-            setTimeout(() => commentInputRef.current?.focus(), 100);
+            // BUG FIX (RFC-4): cancel previous focus timer — prevents focus() on unmounted input.
+            if (commentFocusTimerRef.current) clearTimeout(commentFocusTimerRef.current);
+            commentFocusTimerRef.current = setTimeout(() => { commentFocusTimerRef.current = null; commentInputRef.current?.focus(); }, 100);
         }
     };
 
@@ -1003,8 +1038,10 @@ function ReelViewer({ reels, startIndex, onClose }) {
         try {
             if (platform === 'copy') {
                 await navigator.clipboard.writeText(url);
+                // BUG FIX (RFC-5): cancel previous share toast timer before scheduling a new one.
+                if (shareToastTimerRef.current) clearTimeout(shareToastTimerRef.current);
                 setShareToast(true);
-                setTimeout(() => setShareToast(false), 2000);
+                shareToastTimerRef.current = setTimeout(() => { shareToastTimerRef.current = null; setShareToast(false); }, 2000);
             } else if (platform === 'native' && navigator.share) {
                 await navigator.share({ title, url });
             } else if (platform === 'x') {
@@ -1020,8 +1057,10 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 if (authUser?.id) busEmit.socialPostShared(currentReel.id, authUser.id);
             }
         } catch {
+            // BUG FIX (RFC-5 fallback): same cancel-before-reschedule pattern in error path
+            if (shareToastTimerRef.current) clearTimeout(shareToastTimerRef.current);
             setShareToast(true);
-            setTimeout(() => setShareToast(false), 2000);
+            shareToastTimerRef.current = setTimeout(() => { shareToastTimerRef.current = null; setShareToast(false); }, 2000);
         }
     };
 
@@ -1041,7 +1080,9 @@ function ReelViewer({ reels, startIndex, onClose }) {
             if (existing && existing.length > 0) {
                 setSharedToFeed(true);
                 setSharingToFeed(false);
-                setTimeout(() => setSharedToFeed(false), 3000);
+                // BUG FIX (RFC-6): cancel-before-reschedule, prevent setState-after-unmount
+                if (sharedToFeedTimerRef.current) clearTimeout(sharedToFeedTimerRef.current);
+                sharedToFeedTimerRef.current = setTimeout(() => { sharedToFeedTimerRef.current = null; setSharedToFeed(false); }, 3000);
                 return;
             }
             const postContent = caption + '\n\n' + reelLink;
@@ -1058,7 +1099,9 @@ function ReelViewer({ reels, startIndex, onClose }) {
             busEmit.socialPostShared(currentReel.id, authUser.id);
             busEmit.dataMutated('social');
             setSharedToFeed(true);
-            setTimeout(() => { setSharedToFeed(false); }, 3000);
+            // BUG FIX (RFC-6): cancel-before-reschedule on success path
+            if (sharedToFeedTimerRef.current) clearTimeout(sharedToFeedTimerRef.current);
+            sharedToFeedTimerRef.current = setTimeout(() => { sharedToFeedTimerRef.current = null; setSharedToFeed(false); }, 3000);
         } catch (err) {
             console.warn('Share to feed failed:', err.message);
             showErrorToast('Share failed \u2014 try again');
@@ -1076,7 +1119,9 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 interaction_type: 'report', metadata: { reason: reportReason.trim() }
             });
             setReportSubmitted(true);
-            setTimeout(() => { setShowReportModal(false); setReportSubmitted(false); setReportReason(''); }, 2000);
+            // BUG FIX (RFC-7): track report modal dismiss timer — prevents setState-after-unmount.
+            if (reportModalTimerRef.current) clearTimeout(reportModalTimerRef.current);
+            reportModalTimerRef.current = setTimeout(() => { reportModalTimerRef.current = null; setShowReportModal(false); setReportSubmitted(false); setReportReason(''); }, 2000);
         } catch (err) {
             // Roll back the optimistic submitted state and show an error
             setReportSubmitted(false);
@@ -1468,8 +1513,11 @@ function ReelViewer({ reels, startIndex, onClose }) {
                                         sendYTCmd('setVolume', [100]);
                                         setMuted(false);
                                     }
-                                    // Retry loop for slow YouTube API init
-                                    [300, 800, 1500].forEach(delay => setTimeout(() => {
+                                    // BUG FIX (RFC-8): cancel any previous retry batch before
+                                    // scheduling new ones — prevents stale postMessage to old iframe
+                                    // when user swipes while the timers are pending.
+                                    ytAutoplayTimersRef.current.forEach(t => clearTimeout(t));
+                                    ytAutoplayTimersRef.current = [300, 800, 1500].map(delay => setTimeout(() => {
                                         sendYTCmd('playVideo');
                                         if (userInteractedRef.current && userWantsSoundRef.current) {
                                             sendYTCmd('unMute');
@@ -1636,8 +1684,10 @@ function ReelViewer({ reels, startIndex, onClose }) {
                             onClick={() => {
                                 handleLike();
                                 if (!liked[currentReel.id]) {
+                                    // BUG FIX (RFC-9): cancel previous heart timer, use tracked ref
                                     setShowHeart(true);
-                                    setTimeout(() => setShowHeart(false), 800);
+                                    if (showHeartTimerRef.current) clearTimeout(showHeartTimerRef.current);
+                                    showHeartTimerRef.current = setTimeout(() => { showHeartTimerRef.current = null; setShowHeart(false); }, 800);
                                 }
                             }}
                             onPointerDown={() => {
@@ -1684,9 +1734,11 @@ function ReelViewer({ reels, startIndex, onClose }) {
                                     { emoji: '\uD83D\uDE21', label: 'Angry', type: 'angry' },
                                 ].map(r => (
                                     <button key={r.type} onClick={() => {
-                                        if (r.type === 'like') { handleLike(); if (!liked[currentReel.id]) { setShowHeart(true); setTimeout(() => setShowHeart(false), 800); } }
+                                        // BUG FIX (RFC-9): use showHeartTimerRef for all reaction-picker heart animations
+                                        const triggerHeart = () => { if (!liked[currentReel.id]) { setShowHeart(true); if (showHeartTimerRef.current) clearTimeout(showHeartTimerRef.current); showHeartTimerRef.current = setTimeout(() => { showHeartTimerRef.current = null; setShowHeart(false); }, 800); } };
+                                        if (r.type === 'like') { handleLike(); triggerHeart(); }
                                         else if (r.type === 'dislike') handleDislike();
-                                        else { handleLike(); if (!liked[currentReel.id]) { setShowHeart(true); setTimeout(() => setShowHeart(false), 800); } }
+                                        else { handleLike(); triggerHeart(); }
                                         setShowReactionPicker(false);
                                         haptic(10);
                                     }} aria-label={r.label} style={{
@@ -1776,7 +1828,10 @@ function ReelViewer({ reels, startIndex, onClose }) {
                                 <button onClick={() => {
                                     const url = `${window.location.origin}/hub/reels?id=${currentReel?.id || ''}`;
                                     navigator.clipboard.writeText(url).then(() => {
-                                        setCopyToast(true); setTimeout(() => setCopyToast(false), 2000);
+                                        // BUG FIX (RFC-10): cancel previous copyToast timer before starting a new one.
+                                        setCopyToast(true);
+                                        if (copyToastTimerRef.current) clearTimeout(copyToastTimerRef.current);
+                                        copyToastTimerRef.current = setTimeout(() => { copyToastTimerRef.current = null; setCopyToast(false); }, 2000);
                                     }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                                     setShowMoreMenu(false);
                                 }} style={{
