@@ -337,7 +337,7 @@ function SendToFriendTab({ post, authorUsername, currentUser, onClose, onShared 
             } catch (_) {}
 
             toast.success(`Sent to ${successCount} friend${successCount > 1 ? 's' : ''}!`);
-            // Increment share count
+            // Increment share count + trigger streak reward
             try {
                 const token = getAccessToken();
                 if (token) {
@@ -345,7 +345,15 @@ function SendToFriendTab({ post, authorUsername, currentUser, onClose, onShared 
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                         body: JSON.stringify({ post_id: post?.id, destination: 'messenger' }),
-                    }).catch(() => {});
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data?.streak?.diamonds_awarded > 0) {
+                            const streakDay = data.streak.streak_length;
+                            toast.success(`💎 +${data.streak.diamonds_awarded} Diamond${data.streak.diamonds_awarded > 1 ? 's' : ''} — ${streakDay}-Day Share Streak!`);
+                        }
+                    })
+                    .catch(() => {});
                 }
             } catch (_) {}
             onShared?.('messenger');
