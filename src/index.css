@@ -65,25 +65,7 @@ body {
   position: relative;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   GLOBAL SCROLL FAILSAFE — ALL SCREEN SIZES
-   Always allow body/html scrolling UNLESS the reels page explicitly adds
-   .reels-lock to the body. This overrides any stale inline style set by
-   modals/overlays that forgot to clean up after themselves.
 
-   FIX (2026-05-01): The previous @media (min-width: 768px) guard left mobile
-   completely unprotected. Mobile users hitting any page after a modal or Reels
-   session would find the page frozen. The .reels-lock class-based gate is the
-   correct mechanism on ALL screen sizes — no media query needed.
-   ═══════════════════════════════════════════════════════════════════════════ */
-html:not(.reels-lock),
-body:not(.reels-lock) {
-  overflow-y: visible !important;
-  overflow-x: hidden !important;
-  position: static !important;
-  height: auto !important;
-  top: auto !important;
-}
 
 /* Reels full-screen lock — applied via JS class instead of inline styles */
 body.reels-lock,
