@@ -295,10 +295,6 @@ function SendToFriendTab({ post, authorUsername, currentUser, onClose, onShared 
         setSending(true);
 
         const postUrl = `${window.location.origin}/hub/post/${post?.id}`;
-        const shareText = message.trim()
-            ? `${message.trim()}\n\n${postUrl}`
-            : `Check out this post on Smarter.Poker\n\n${postUrl}`;
-
         let successCount = 0;
         for (const friendId of selected) {
             try {

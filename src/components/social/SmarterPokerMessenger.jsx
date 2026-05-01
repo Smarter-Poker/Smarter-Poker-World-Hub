@@ -340,7 +340,7 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
             )}
 
             {/* P4-3 + P5-7 + P7-5: Rich text via markdown + auto-links + Mentions */}
-            {message.message_type !== 'sticker' && !message.file && !message.contactCard && !message.isVoice && !message.image && !message.poll && (
+            {message.message_type !== 'sticker' && message.message_type !== 'shared_post' && !message.file && !message.contactCard && !message.isVoice && !message.image && !message.poll && (
                 <span dangerouslySetInnerHTML={{ __html: parseMarkdown(message.text) }} />
             )}
 

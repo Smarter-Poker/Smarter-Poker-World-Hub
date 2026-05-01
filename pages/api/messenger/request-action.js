@@ -85,17 +85,27 @@ export default async function handler(req, res) {
         }
 
         if (action === 'decline') {
-            // Delete messages first (FK constraint)
-            await supabase
+            // Delete messages first (FK constraint — must precede participant/conversation deletion)
+            const { error: msgErr } = await supabase
                 .from('social_messages')
                 .delete()
                 .eq('conversation_id', requestId);
 
+            if (msgErr) {
+                console.warn('[request-action] Decline: message delete error:', msgErr);
+                return res.status(500).json({ success: false, error: 'Failed to decline request' });
+            }
+
             // Delete participants
-            await supabase
+            const { error: partErr } = await supabase
                 .from('social_conversation_participants')
                 .delete()
                 .eq('conversation_id', requestId);
+
+            if (partErr) {
+                console.warn('[request-action] Decline: participant delete error:', partErr);
+                return res.status(500).json({ success: false, error: 'Failed to decline request' });
+            }
 
             // Delete the conversation
             const { error } = await supabase

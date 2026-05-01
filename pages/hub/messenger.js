@@ -4080,12 +4080,19 @@ function MessengerPage() {
                 if (refreshUnread) refreshUnread();
                 broadcastSync('smarter_poker_unread_sync', 'refresh_unread');
 
-                // Fire-and-forget RPC with rollback on failure
-                supabase.rpc('fn_delete_message', {
-                    p_message_id: messageId,
-                    p_user_id: user.id,
-                }).then(({ data: success, error }) => {
-                    if (error || !success) {
+                // Route through authenticated API — anon supabase.rpc may silently fail if
+                // fn_delete_message lacks EXECUTE grant or SECURITY DEFINER.
+                const deleteToken = getAccessToken();
+                fetch('/api/messenger/delete-message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(deleteToken ? { Authorization: `Bearer ${deleteToken}` } : {}),
+                    },
+                    body: JSON.stringify({ messageId }),
+                }).then(async (delResp) => {
+                    const delResult = await delResp.json().catch(() => ({}));
+                    if (!delResp.ok || !delResult.success) {
                         // Rollback on failure
                         setMessages(prevMessages);
                         setToast({ type: 'error', message: 'Could Not Delete Message' });
@@ -4201,13 +4208,19 @@ function MessengerPage() {
 
         setToast({ type: 'info', message: 'Message Unsent' });
 
-        // Delete via API
+        // Delete via authenticated API (not anon supabase.rpc which may lack grants)
         try {
-            const { error } = await supabase.rpc('fn_delete_message', {
-                p_message_id: messageId,
-                p_user_id: user.id,
+            const unsendToken = getAccessToken();
+            const unsendResp = await fetch('/api/messenger/delete-message', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(unsendToken ? { Authorization: `Bearer ${unsendToken}` } : {}),
+                },
+                body: JSON.stringify({ messageId }),
             });
-            if (error) throw error;
+            const unsendResult = await unsendResp.json().catch(() => ({}));
+            if (!unsendResp.ok || !unsendResult.success) throw new Error(unsendResult.error || 'Delete failed');
             // DEEP SWEEP FIX: Data mutated
             busEmit.dataMutated('messenger');
         } catch (e) {
@@ -5020,10 +5033,18 @@ function MessengerPage() {
             });
 
             try {
-                await supabase.rpc('fn_send_message', {
-                    p_conversation_id: activeConversation.id,
-                    p_sender_id: user.id,
-                    p_content: `[CALL_RECEIPT]${receiptPayload}`,
+                // Route through authenticated API (not anon supabase.rpc) to bypass RLS
+                const endReceiptToken = getAccessToken();
+                await fetch('/api/messenger/send-message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(endReceiptToken ? { Authorization: `Bearer ${endReceiptToken}` } : {}),
+                    },
+                    body: JSON.stringify({
+                        conversationId: activeConversation.id,
+                        content: `[CALL_RECEIPT]${receiptPayload}`,
+                    }),
                 });
             } catch (e) {
                 console.warn('[Messenger] Call receipt save failed (non-blocking):', e?.message || e);

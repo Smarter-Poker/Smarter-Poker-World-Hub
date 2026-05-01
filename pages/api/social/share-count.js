@@ -18,7 +18,8 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PU
 
 let _supabase = null;
 function getSupabase() {
-    if (!_supabase) _supabase = createClient(supabaseUrl, supabaseKey);
+    if (_supabase) return _supabase;
+    _supabase = createClient(supabaseUrl, supabaseKey);
     return _supabase;
 }
 
