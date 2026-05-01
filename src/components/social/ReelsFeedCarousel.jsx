@@ -584,17 +584,15 @@ function ReelViewer({ reels, startIndex, onClose }) {
         return () => { if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current); };
     }, [showOverlay, paused]);
 
-    // Lock body scroll while ReelViewer is mounted
+    // Lock body scroll while ReelViewer is mounted — class-based so the CSS
+    // desktop failsafe in index.css can permit scroll on all OTHER pages.
     useEffect(() => {
-        document.body.style.overflow = 'hidden';
-        document.body.style.position = 'fixed';
-        document.body.style.width = '100%';
-        document.body.style.touchAction = 'none';
-        document.documentElement.style.overflow = 'hidden';
+        document.body.classList.add('reels-lock');
+        document.documentElement.classList.add('reels-lock');
         return () => {
-            // Always clear — don't try to restore "original" values because
-            // another component may have set overflow:hidden between mount
-            // and unmount, making the saved value stale.
+            document.body.classList.remove('reels-lock');
+            document.documentElement.classList.remove('reels-lock');
+            // Clear any legacy inline styles that may still be on the elements
             document.body.style.overflow = '';
             document.body.style.position = '';
             document.body.style.width = '';
