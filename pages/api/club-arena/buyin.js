@@ -63,6 +63,43 @@ export default async function handler(req, res) {
     // Rate limit
     if (!applyRateLimit(req, res, 'club-arena/buyin')) return;
 
+    // Round 70: Blacklist enforcement gate. Banned users cannot buy in.
+    // Checks blacklists for (user, club) AND (user, union via club->union_id).
+    // Active = expires_at IS NULL OR expires_at > now().
+    try {
+      const { data: club } = await supabaseAdmin
+        .from('clubs')
+        .select('union_id')
+        .eq('id', clubId)
+        .maybeSingle();
+
+      const banQuery = supabaseAdmin
+        .from('blacklists')
+        .select('id, reason, expires_at')
+        .eq('user_id', user.id)
+        .or('expires_at.is.null,expires_at.gt.' + new Date().toISOString());
+
+      // Match either club-level or union-level ban
+      const orParts = [`club_id.eq.${clubId}`];
+      if (club?.union_id) orParts.push(`union_id.eq.${club.union_id}`);
+      const { data: bans } = await banQuery.or(orParts.join(','));
+
+      if (bans && bans.length > 0) {
+        return res.status(403).json({
+          success: false,
+          error: 'banned',
+          reason: bans[0].reason || 'Banned from this club',
+          expires_at: bans[0].expires_at,
+        });
+      }
+    } catch (banErr) {
+      // Never block buyin on blacklist-check error — log and proceed.
+      // (Belt-and-suspenders: even if Supabase blips during the gate check,
+      // legitimate buyins shouldn't be denied; a miss here is no worse than
+      // the pre-Round-70 baseline.)
+      console.warn('[buyin] blacklist check skipped:', banErr?.message || banErr);
+    }
+
     // Settlement lock check — block during Monday 4:00-4:10 AM CST
     const lockCheck = await checkSettlementLock(supabaseAdmin, clubId);
     if (lockCheck.locked) return sendLockedResponse(res, lockCheck);
