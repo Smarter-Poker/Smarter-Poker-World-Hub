@@ -1,0 +1,116 @@
+name: Deploy YT Transcode Worker (Hetzner)
+
+# Auto-deploys scripts/yt-transcode-worker/* to the Hetzner box on every
+# push to main. Also runnable manually via workflow_dispatch.
+#
+# Required repository secrets (set once via GitHub Settings → Secrets):
+#   HETZNER_SSH_PRIVATE_KEY  — private key matching the public key in Hetzner Cloud
+#   HETZNER_HOST             — public IP or hostname of the Ashburn CX22
+#   HETZNER_SSH_USER         — defaults to 'openclaw' if unset
+#   SUPABASE_SERVICE_ROLE_KEY — written to /etc/sp-yt-transcode.env on first run
+#
+# Note: this workflow uses `on: push`, NOT `schedule:`, so it does not violate
+# the cron-governance rule in CLAUDE.md §11.5.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/yt-transcode-worker/**'
+      - '.github/workflows/deploy-yt-worker.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-yt-worker
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
+
+      - name: Trust Hetzner host key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.HETZNER_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Bootstrap (idempotent — apt + pip + dirs)
+        env:
+          HOST: ${{ secrets.HETZNER_HOST }}
+          USER: ${{ secrets.HETZNER_SSH_USER || 'openclaw' }}
+        run: |
+          ssh "$USER@$HOST" 'bash -s' <<'EOSSH'
+          set -e
+          # Install once, fast-no-op afterwards
+          if ! command -v yt-dlp >/dev/null 2>&1; then
+            sudo apt-get update -y
+            sudo apt-get install -y python3 python3-pip ffmpeg
+            sudo pip3 install --upgrade --break-system-packages yt-dlp || sudo pip3 install --upgrade yt-dlp
+          fi
+          # Always upgrade yt-dlp (YouTube changes their player frequently)
+          sudo pip3 install --upgrade --break-system-packages yt-dlp 2>/dev/null \
+            || sudo pip3 install --upgrade yt-dlp
+          sudo mkdir -p /opt/smarter-poker/yt-transcode-worker
+          sudo chown "$(whoami):$(whoami)" /opt/smarter-poker/yt-transcode-worker
+          yt-dlp --version
+          ffmpeg -version | head -1
+          EOSSH
+
+      - name: Sync worker code
+        env:
+          HOST: ${{ secrets.HETZNER_HOST }}
+          USER: ${{ secrets.HETZNER_SSH_USER || 'openclaw' }}
+        run: |
+          rsync -azv --delete \
+            --exclude=node_modules \
+            --exclude=DEPLOY.md \
+            -e "ssh -o StrictHostKeyChecking=accept-new" \
+            scripts/yt-transcode-worker/ \
+            "$USER@$HOST:/opt/smarter-poker/yt-transcode-worker/"
+          ssh "$USER@$HOST" 'cd /opt/smarter-poker/yt-transcode-worker && npm install --omit=dev'
+
+      - name: Write env file (root-owned, 0600)
+        env:
+          HOST: ${{ secrets.HETZNER_HOST }}
+          USER: ${{ secrets.HETZNER_SSH_USER || 'openclaw' }}
+          SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          ssh "$USER@$HOST" "sudo tee /etc/sp-yt-transcode.env >/dev/null" <<EOF
+          NEXT_PUBLIC_SUPABASE_URL=https://kuklfnapbkmacvwxktbh.supabase.co
+          SUPABASE_SERVICE_ROLE_KEY=$SERVICE_KEY
+          WORKER_ID=hetzner-ash-yt-01
+          MAX_CONCURRENT_YT=3
+          EOF
+          ssh "$USER@$HOST" 'sudo chmod 600 /etc/sp-yt-transcode.env && sudo chown root:root /etc/sp-yt-transcode.env'
+
+      - name: Install / update systemd unit
+        env:
+          HOST: ${{ secrets.HETZNER_HOST }}
+          USER: ${{ secrets.HETZNER_SSH_USER || 'openclaw' }}
+        run: |
+          scp scripts/yt-transcode-worker/sp-yt-transcode.service \
+            "$USER@$HOST:/tmp/sp-yt-transcode.service"
+          ssh "$USER@$HOST" '
+            sudo mv /tmp/sp-yt-transcode.service /etc/systemd/system/sp-yt-transcode.service
+            sudo systemctl daemon-reload
+            sudo systemctl enable sp-yt-transcode
+            sudo systemctl restart sp-yt-transcode
+            sleep 3
+            sudo systemctl is-active sp-yt-transcode
+          '
+
+      - name: Tail recent logs (sanity check)
+        env:
+          HOST: ${{ secrets.HETZNER_HOST }}
+          USER: ${{ secrets.HETZNER_SSH_USER || 'openclaw' }}
+        run: |
+          ssh "$USER@$HOST" 'sudo journalctl -u sp-yt-transcode -n 30 --no-pager'

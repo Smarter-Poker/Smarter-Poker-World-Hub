@@ -1,0 +1,17 @@
+{
+  "name": "sp-yt-transcode-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Smarter Poker YouTube → native MP4 conversion worker (Hetzner)",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
