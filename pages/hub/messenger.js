@@ -4019,22 +4019,8 @@ function MessengerPage() {
                 reactions: { ...existing, [emoji]: updated },
             };
         }));
-        try {
-            // Route through API — fn_toggle_message_reaction is 403 for authenticated role (missing GRANT EXECUTE)
-            const token = getAccessToken();
-            await fetch('/api/messenger/react-message', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                },
-                body: JSON.stringify({ messageId, reaction: emoji }),
-            });
-            // DEEP SWEEP FIX: Push native global Message Reacted event
-            busEmit.messageReacted(activeConversation?.id, messageId, emoji);
-        } catch (e) {
-            console.warn('Reaction error:', e);
-            // Roll back optimistic update on failure
+
+        const rollbackReaction = () => {
             setMessages(prev => prev.map(m => {
                 if (!m || m.id !== messageId) return m;
                 const existing = m.reactions || {};
@@ -4046,6 +4032,30 @@ function MessengerPage() {
                     : [...userList, user.id];
                 return { ...m, reactions: { ...existing, [emoji]: reverted } };
             }));
+        };
+
+        try {
+            // Route through API — fn_toggle_message_reaction is 403 for authenticated role (missing GRANT EXECUTE)
+            const token = getAccessToken();
+            const resp = await fetch('/api/messenger/react-message', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                body: JSON.stringify({ messageId, reaction: emoji }),
+            });
+            const result = await resp.json().catch(() => ({}));
+            if (!resp.ok || !result.success) {
+                // API returned failure — roll back optimistic update
+                rollbackReaction();
+                return;
+            }
+            // DEEP SWEEP FIX: Push native global Message Reacted event
+            busEmit.messageReacted(activeConversation?.id, messageId, emoji);
+        } catch (e) {
+            console.warn('Reaction error:', e);
+            rollbackReaction();
         }
     };
 
@@ -4241,7 +4251,24 @@ function MessengerPage() {
     const handleForwardSend = async (targetConversation) => {
         if (!forwardingMessage || !targetConversation || !user) return;
         try {
-            const content = `[Forwarded] ${forwardingMessage.content}`;
+            // Strip tokens that don't make sense when forwarded to a different conversation
+            let rawContent = forwardingMessage.content || '';
+
+            // Call receipts — never forward (contain call state for THIS conversation's call)
+            if (rawContent.startsWith('[CALL_RECEIPT]')) {
+                setToast({ type: 'info', message: 'Call Receipts Cannot Be Forwarded' });
+                setForwardingMessage(null);
+                return;
+            }
+
+            // Strip [REPLY:...] prefix — the reply context is meaningless in a different thread
+            rawContent = rawContent.replace(/^\[REPLY:[^\]]+\]\s*/, '');
+
+            // If content is now empty (was reply-only), use placeholder
+            const content = rawContent.trim()
+                ? `[Forwarded] ${rawContent.trim()}`
+                : '[Forwarded Message]';
+
             const token = getAccessToken();
             const resp = await fetch('/api/messenger/send-message', {
                 method: 'POST',
@@ -4251,7 +4278,6 @@ function MessengerPage() {
                 },
                 body: JSON.stringify({
                     conversationId: targetConversation.id,
-                    senderId: user.id,
                     content,
                 }),
             });
@@ -5347,10 +5373,17 @@ function MessengerPage() {
                             setPushPromptHandled(true);
                             try { localStorage.setItem('messenger_push_prompt_handled', '1'); } catch (e) { console.warn('[App] Handled exception:', e); }
                             if (user?.id) {
-                                // Safe JSONB merge — preserves existing messenger_preferences
-                                const { data: cur } = await supabase.from('profiles').select('messenger_preferences').eq('id', user.id).maybeSingle();
-                                const merged = { ...(cur?.messenger_preferences || {}), pushPromptHandled: true };
-                                supabase.from('profiles').update({ messenger_preferences: merged }).eq('id', user.id).then(() => {}).catch(e => console.warn('Exception:', e));
+                                // Try atomic RPC merge first (single UPDATE, no read-write race)
+                                // Fallback to SELECT+UPDATE — OK here since pushPromptHandled only goes false→true
+                                supabase.rpc('fn_merge_messenger_preferences', {
+                                    p_user_id: user.id,
+                                    p_key: 'pushPromptHandled',
+                                    p_value: true,
+                                }).catch(async () => {
+                                    const { data: cur } = await supabase.from('profiles').select('messenger_preferences').eq('id', user.id).maybeSingle();
+                                    const merged = { ...(cur?.messenger_preferences || {}), pushPromptHandled: true };
+                                    supabase.from('profiles').update({ messenger_preferences: merged }).eq('id', user.id).catch(() => {});
+                                });
                             }
                             setShowPushPrompt(false);
                             if (success) {
@@ -5373,10 +5406,16 @@ function MessengerPage() {
                             setPushPromptHandled(true);
                             try { localStorage.setItem('messenger_push_prompt_handled', '1'); } catch (e) { console.warn('[App] Handled exception:', e); }
                             if (user?.id) {
-                                // Safe JSONB merge — preserves existing messenger_preferences
-                                const { data: cur } = await supabase.from('profiles').select('messenger_preferences').eq('id', user.id).maybeSingle();
-                                const merged = { ...(cur?.messenger_preferences || {}), pushPromptHandled: true };
-                                supabase.from('profiles').update({ messenger_preferences: merged }).eq('id', user.id).then(() => {}).catch(e => console.warn('Exception:', e));
+                                // Atomic JSONB merge — fallback to SELECT+UPDATE if RPC not deployed
+                                supabase.rpc('fn_merge_messenger_preferences', {
+                                    p_user_id: user.id,
+                                    p_key: 'pushPromptHandled',
+                                    p_value: true,
+                                }).catch(async () => {
+                                    const { data: cur } = await supabase.from('profiles').select('messenger_preferences').eq('id', user.id).maybeSingle();
+                                    const merged = { ...(cur?.messenger_preferences || {}), pushPromptHandled: true };
+                                    supabase.from('profiles').update({ messenger_preferences: merged }).eq('id', user.id).catch(() => {});
+                                });
                             }
                             setShowPushPrompt(false);
                         }}

@@ -155,7 +155,9 @@ export default async function handler(req, res) {
             .select('conversation_id, social_conversations!inner(id, is_group)')
             .eq('user_id', user.id)
             .eq('social_conversations.is_group', false)
-            .limit(50);
+            // Cap at 500 — users with >500 convs may hit duplicate but this path is only
+            // active when fn_get_or_create_conversation RPC isn't deployed (migration pending).
+            .limit(500);
 
         const myConvIds = (existing || []).map(p => p.conversation_id);
 
