@@ -4,7 +4,12 @@ import { useComposeStore } from '../../../../stores/composeStore';
 
 /**
  * LocationPickerSheet — search + GPS-suggested venues.
- * Reuses the existing /api/venues/search endpoint (used by check-in modal).
+ *
+ * Calls /api/poker/venues — that endpoint accepts `search`, `lat`, `lng`,
+ * `radius`, and `limit` params and is the single source of truth for the
+ * verified poker-venues database. (The earlier draft of this sheet
+ * targeted /api/venues/search which doesn't exist.)
+ *
  * Stores the picked venue into composeStore.location as
  *   { name, lat, lng, place_id }
  */
@@ -19,13 +24,12 @@ export default function LocationPickerSheet({ onClose }) {
         let cancelled = false;
         const run = async () => {
             const q = query.trim();
-            // For empty query, attempt a GPS-based "nearby" search if geolocation
-            // is available. Otherwise show recent picks.
             try {
                 setLoading(true);
-                let url = '/api/venues/search?limit=20';
+                const params = new URLSearchParams();
+                params.set('limit', '20');
                 if (q) {
-                    url += `&q=${encodeURIComponent(q)}`;
+                    params.set('search', q);
                 } else if (typeof navigator !== 'undefined' && navigator.geolocation) {
                     const pos = await new Promise((res) => {
                         navigator.geolocation.getCurrentPosition(
@@ -35,14 +39,23 @@ export default function LocationPickerSheet({ onClose }) {
                         );
                     });
                     if (pos?.coords) {
-                        url += `&lat=${pos.coords.latitude}&lng=${pos.coords.longitude}`;
+                        params.set('lat', String(pos.coords.latitude));
+                        params.set('lng', String(pos.coords.longitude));
+                        params.set('radius', '50');
                     }
                 }
-                const res = await fetch(url);
+                const res = await fetch(`/api/poker/venues?${params.toString()}`);
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const json = await res.json();
+                // /api/poker/venues returns { success, data: [...] }. Accept the
+                // alternate { venues: [...] } / bare-array shapes as a defensive
+                // fallback in case the endpoint contract evolves.
+                const list = Array.isArray(json?.data) ? json.data
+                    : Array.isArray(json?.venues) ? json.venues
+                    : Array.isArray(json) ? json
+                    : [];
                 if (!cancelled) {
-                    setResults(Array.isArray(json?.venues) ? json.venues : []);
+                    setResults(list);
                 }
             } catch (_) {
                 if (!cancelled) setResults([]);
@@ -55,11 +68,13 @@ export default function LocationPickerSheet({ onClose }) {
     }, [query]);
 
     const handlePick = (venue) => {
+        // /api/poker/venues uses `latitude/longitude` columns; some legacy
+        // call sites also expose `lat/lng`. Honor either shape.
         setLocation({
             name: venue.name,
-            lat: venue.lat ?? null,
-            lng: venue.lng ?? null,
-            place_id: venue.id ?? venue.place_id ?? null,
+            lat: venue.latitude ?? venue.lat ?? null,
+            lng: venue.longitude ?? venue.lng ?? null,
+            place_id: venue.id ?? venue.place_id ?? venue.slug ?? null,
         });
         onClose?.();
     };

@@ -243,25 +243,25 @@ export default function ComposePage() {
                 }
             }
 
-            // 7. Optional: mirror to home groups (parallel inserts)
-            if (state.shareToGroups?.length) {
-                const token = getAccessToken();
-                await Promise.allSettled(state.shareToGroups.map(g =>
-                    fetch('/api/social/home-groups/post', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                        },
-                        body: JSON.stringify({
-                            home_group_id: g.id,
-                            content: state.draft?.trim() || '',
-                            content_type: contentType,
-                            media_urls: uploadedUrls,
-                            thumbnail_url: thumbnailUrl,
-                        }),
-                    }).catch(() => null),
-                ));
+            // 7. Persist share_to_groups selection.
+            // No /api/social/home-groups/post endpoint exists yet — the
+            // proper "mirror this post into each home group's stream" is
+            // backend infrastructure that lives in the future Hetzner
+            // Open Claw worker (see CLUB-ARENA-OFFICIAL-UPGRADE-INTEGRATION.md).
+            // For now, persist the chosen group IDs onto the post's
+            // metadata JSONB so the future mirror-job can pick them up.
+            if (state.shareToGroups?.length && postId) {
+                try {
+                    await supabase.from('social_posts')
+                        .update({
+                            metadata: {
+                                share_to_groups: state.shareToGroups.map(g => ({ id: g.id, name: g.name })),
+                            },
+                        })
+                        .eq('id', postId);
+                } catch (groupsErr) {
+                    console.warn('[Compose] share_to_groups metadata save failed:', groupsErr?.message || groupsErr);
+                }
             }
 
             // 8. Notify the rest of the app

@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import SheetShell from './SheetShell';
 import { useComposeStore } from '../../../../stores/composeStore';
-import { getAccessToken } from '../../../../lib/authUtils';
+import { supabase } from '../../../../lib/supabase';
 
 /**
  * TagPeopleSheet — search and tag friends as co-authors of the post.
- * Hits /api/social/users/search (existing endpoint).
+ *
+ * Reads directly from `profiles` via supabase-js (same pattern as the
+ * global search at pages/hub/social-media/index.js:5708 — no dedicated
+ * search API endpoint exists). RLS on profiles permits authenticated
+ * SELECT so the search works for any logged-in user.
  */
 export default function TagPeopleSheet({ onClose }) {
     const coAuthors = useComposeStore(s => s.coAuthors);
@@ -16,17 +20,25 @@ export default function TagPeopleSheet({ onClose }) {
 
     useEffect(() => {
         let cancelled = false;
-        if (!query.trim()) { setResults([]); return; }
+        const q = query.trim();
+        if (q.length < 2) { setResults([]); return; }
         const t = setTimeout(async () => {
             try {
                 setLoading(true);
-                const token = getAccessToken();
-                const res = await fetch(`/api/social/users/search?q=${encodeURIComponent(query.trim())}&limit=20`, {
-                    headers: token ? { Authorization: `Bearer ${token}` } : {},
-                });
-                const json = await res.json();
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('id, username, full_name, avatar_url')
+                    .or(`username.ilike.%${q}%,full_name.ilike.%${q}%`)
+                    .limit(20);
+                if (error) throw error;
                 if (!cancelled) {
-                    setResults(Array.isArray(json?.users) ? json.users : []);
+                    // Map to the shape the rest of this sheet expects
+                    setResults((data || []).map(u => ({
+                        id: u.id,
+                        name: u.full_name || u.username,
+                        username: u.username,
+                        avatar_url: u.avatar_url,
+                    })));
                 }
             } catch (_) {
                 if (!cancelled) setResults([]);

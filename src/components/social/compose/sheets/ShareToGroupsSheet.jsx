@@ -1,13 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import SheetShell from './SheetShell';
 import { useComposeStore } from '../../../../stores/composeStore';
-import { getAccessToken } from '../../../../lib/authUtils';
+import { supabase } from '../../../../lib/supabase';
+import { getAuthUserId } from '../../../../lib/authUtils';
 
 /**
  * ShareToGroupsSheet — pick home groups to mirror this post into.
- * Hits /api/social/home-groups (existing endpoint that returns the user's
- * memberships). User can pick N; each picked group gets a mirror insert
- * after the primary post lands.
+ *
+ * Reads the user's home groups directly from Supabase: the union of
+ * groups they OWN and groups they FOLLOW (commander_home_group_follows).
+ * No dedicated /api/social/home-groups endpoint exists; querying RLS-
+ * protected tables directly is the established pattern (see
+ * pages/hub/social-media/index.js global search).
  */
 export default function ShareToGroupsSheet({ onClose }) {
     const shareToGroups = useComposeStore(s => s.shareToGroups);
@@ -19,13 +23,37 @@ export default function ShareToGroupsSheet({ onClose }) {
         let cancelled = false;
         (async () => {
             try {
-                const token = getAccessToken();
-                const res = await fetch('/api/social/home-groups?limit=100', {
-                    headers: token ? { Authorization: `Bearer ${token}` } : {},
+                const userId = getAuthUserId();
+                if (!userId) {
+                    if (!cancelled) { setGroups([]); setLoading(false); }
+                    return;
+                }
+                // 1. Groups the user owns
+                const ownedQ = supabase
+                    .from('commander_home_groups')
+                    .select('id, name, member_count, profile_photo_url')
+                    .eq('owner_id', userId)
+                    .eq('is_active', true)
+                    .limit(100);
+
+                // 2. Groups the user follows
+                const followsQ = supabase
+                    .from('commander_home_group_follows')
+                    .select('group_id, commander_home_groups!inner(id, name, member_count, profile_photo_url, is_active)')
+                    .eq('user_id', userId)
+                    .limit(100);
+
+                const [{ data: owned }, { data: follows }] = await Promise.all([ownedQ, followsQ]);
+
+                const map = new Map();
+                (owned || []).forEach(g => map.set(g.id, g));
+                (follows || []).forEach(f => {
+                    const g = f.commander_home_groups;
+                    if (g && g.is_active && !map.has(g.id)) map.set(g.id, g);
                 });
-                const json = await res.json();
+
                 if (!cancelled) {
-                    setGroups(Array.isArray(json?.groups) ? json.groups : []);
+                    setGroups(Array.from(map.values()));
                 }
             } catch (_) {
                 if (!cancelled) setGroups([]);
