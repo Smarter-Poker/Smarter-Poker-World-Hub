@@ -83,10 +83,33 @@ except:
 "
 ```
 
-## Step 4: Visual Spot Check (Optional)
+## Step 4: Visual Spot Check (Playwright — NOT browser_subagent)
 
-Use the browser tool to load the homepage and take a screenshot:
-1. Open https://smarter.poker
-2. Verify header renders correctly
-3. Check that the hub grid loads
-4. Verify no console errors
+> **NEVER use `browser_subagent` here — it requires the IDE browser panel to be open.**
+> Use `scripts/playwright-test.js` instead — it has its own Chromium and always works.
+
+// turbo
+```bash
+# Homepage screenshot + console error check
+node scripts/playwright-test.js \
+  --url https://smarter.poker \
+  --screenshot /tmp/smoke-homepage.png \
+  --check-console
+
+# Social Media hub check
+node scripts/playwright-test.js \
+  --url https://smarter.poker/hub/social-media \
+  --screenshot /tmp/smoke-social.png \
+  --check-console
+
+# Training hub check  
+node scripts/playwright-test.js \
+  --url https://smarter.poker/hub/training \
+  --screenshot /tmp/smoke-training.png \
+  --check-console
+```
+
+Interpret output:
+- `PLAYWRIGHT_TEST:PASS` = page loaded successfully
+- `CONSOLE_ERRORS:0` = no JS errors
+- Screenshots saved to `/tmp/smoke-*.png` — view with `view_file`

@@ -842,13 +842,17 @@ export default function ReelsPage() {
     const handleReport = async () => {
         if (!currentReel?.id || !user?.id || !reportReason.trim()) return;
         try {
-            await supabase.from('social_interactions').insert({
+            const { error } = await supabase.from('social_interactions').insert({
                 user_id: user.id, post_id: currentReel.id,
                 interaction_type: 'report', metadata: { reason: reportReason.trim() }
             });
+            // AUDIT FIX: do NOT show success UI if the insert failed silently
+            if (error) throw error;
             setReportSubmitted(true);
             setTimeout(() => { setShowReportModal(false); setReportSubmitted(false); setReportReason(''); }, 2000);
-        } catch { /* silent */ }
+        } catch {
+            showErrorToast('Report failed \u2014 please try again');
+        }
     };
 
     const handleCommentImageUpload = async (file) => {
@@ -1143,9 +1147,16 @@ export default function ReelsPage() {
                 incrementMetric(currentReel, 'share_count', 1);
             }
             if (user?.id) busEmit.socialPostShared(currentReel.id, user.id);
-        } catch {
-            setShareToast(true);
-            setTimeout(() => setShareToast(false), 2000);
+        } catch (err) {
+            // AUDIT FIX: do NOT show 'Link Copied' toast on failures unrelated to clipboard.
+            // navigator.share() throws AbortError on user-cancel (not an error) and
+            // other errors on share failures. Only show the copy toast for actual copy failures.
+            if (platform === 'copy') {
+                showErrorToast('Copy failed — try again');
+            }
+            // For native/social platform failures: window.open already fired or user cancelled;
+            // no toast needed — the user saw the native OS dialog.
+            console.warn('[Reels] Share action failed:', err?.message || err);
         }
     };
 

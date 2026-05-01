@@ -56,10 +56,12 @@ git add -A && git commit -m "BACKUP: Pre-Supabase-fix state" && git tag pre-supa
 ## 📋 PHASE 1: RECONNAISSANCE (READ-ONLY)
 
 ### Step 1.1: Capture Console Errors
-```javascript
-// Run in browser console on production site
-// Or use browser_subagent to capture
-console.log('Capturing Supabase errors...');
+```bash
+# Use playwright-test.js to capture JS console errors — NOT browser_subagent
+node scripts/playwright-test.js \
+  --url https://smarter.poker/hub/YOUR_PAGE \
+  --check-console \
+  --screenshot /tmp/supabase-error-check.png
 ```
 **RISK: NONE** - Just reading browser output
 

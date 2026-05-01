@@ -36,6 +36,21 @@ description: Live testing guidelines. Fast execution for minor UI/CSS updates vi
 - **Email:** `daniel@bekavactrading.com`
 - **Password:** `Bek454545!!`
 
+## Browser Automation for Agents
+
+> **`browser_subagent` is broken** — it requires the Antigravity IDE browser panel to be open. Use `scripts/playwright-test.js` for ALL agent-driven browser testing.
+
+```bash
+# Basic page load + screenshot
+node scripts/playwright-test.js --url https://smarter.poker/hub/social-media --screenshot /tmp/out.png
+
+# With login + console error check
+node scripts/playwright-test.js --url https://smarter.poker/hub/bankroll --login --check-console
+
+# Local dev server visual check (UI/CSS only)
+node scripts/playwright-test.js --url http://localhost:3000/hub/social-media --screenshot /tmp/local.png
+```
+
 ## Rationale
 
 Testing against localhost for complex full-app states introduces environment parity issues. However, waiting for Vercel production deployments to verify purely visual CSS or minor layout adjustments needlessly throttles agent velocity. Balancing local dev-server checks for UI with production checks for logic optimizes both speed and reliability.

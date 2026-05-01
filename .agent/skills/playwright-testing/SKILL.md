@@ -1,11 +1,34 @@
 ---
 name: Playwright MCP — Browser Automation & E2E Testing
-description: Automated browser testing via the Playwright MCP server. Use for E2E testing, visual regression, screenshot capture, and UI verification on any Smarter.Poker page.
+description: THE ONLY authorized automated browser testing tool. Replaces browser_subagent entirely. Use Playwright MCP for ALL agent-driven navigation, screenshots, E2E flows, and UI verification on any Smarter.Poker page.
 ---
 
 # Playwright MCP — Browser Automation & E2E Testing
 
-> **Automated browser control** — Navigate pages, click elements, fill forms, take screenshots, and run E2E test assertions directly from the agent.
+> **This is the ONLY tool authorized for automated browser testing.**
+> `browser_subagent` is broken — it requires the IDE's browser panel to be open and will fail silently when it's not. **Always use Playwright MCP instead.**
+
+---
+
+## Why Playwright MCP — Not browser_subagent
+
+| | `browser_subagent` | Playwright MCP |
+|---|---|---|
+| Requires IDE browser open? | ✅ Yes — fails when closed | ❌ No — fully independent |
+| Own Chromium install? | ❌ No | ✅ Yes (`ms-playwright/chromium`) |
+| Works when IDE is idle? | ❌ No | ✅ Always |
+| Reliable for agents? | ❌ Never | ✅ Always |
+
+---
+
+## Installation Status
+
+**MCP server:** `playwright` (user scope)
+**Command:** `npx -y @playwright/mcp@latest`
+**Status:** ✓ Connected
+**Browser:** Chromium installed at `/Users/smarter.poker/Library/Caches/ms-playwright/chromium-1208/`
+
+---
 
 ## When to Use This Skill
 
@@ -13,23 +36,21 @@ description: Automated browser testing via the Playwright MCP server. Use for E2
 - **Visual regression** — Screenshot pages and compare against expected layouts
 - **E2E flows** — Login, signup, bankroll entry, social post creation
 - **UI debugging** — Inspect DOM, check console errors, validate responsive layouts
+- **Smoke testing** — Any time `browser_subagent` would have been used
 
-## Installation Status
-
-**MCP server:** `playwright` (user scope)
-**Command:** `npx -y @playwright/mcp@latest`
-**Status:** ✓ Connected
-**Browser:** Chromium installed via `npx playwright install chromium`
+---
 
 ## GitHub
 
 - **Repo:** https://github.com/playwright-community/mcp
 - **npm:** `@playwright/mcp`
 
+---
+
 ## Available Tools (via MCP)
 
 | Tool | Purpose |
-|------|---------|
+|------|---------| 
 | `browser_navigate` | Go to a URL |
 | `browser_click` | Click an element |
 | `browser_type` | Type into an input |
@@ -38,16 +59,36 @@ description: Automated browser testing via the Playwright MCP server. Use for E2
 | `browser_wait` | Wait for element/condition |
 | `browser_get_text` | Extract text content |
 
+---
+
+## Reusable Agent Script — `scripts/playwright-test.js`
+
+A production-ready helper script lives at `scripts/playwright-test.js`. **Always use this instead of writing custom node code.**
+
+```bash
+# Navigate + screenshot
+node scripts/playwright-test.js --url https://smarter.poker --screenshot /tmp/out.png
+
+# Navigate + check for JS console errors
+node scripts/playwright-test.js --url https://smarter.poker/hub/social-media --check-console
+
+# Navigate + login as test account first
+node scripts/playwright-test.js --url https://smarter.poker/hub/bankroll --login --screenshot /tmp/bankroll.png
+
+# Extract text from a CSS selector
+node scripts/playwright-test.js --url https://smarter.poker --text "h1"
+
+# Extra wait for slow pages (ms)
+node scripts/playwright-test.js --url https://smarter.poker/hub/training --wait 5000 --check-console
+```
+
+Output always contains `PLAYWRIGHT_TEST:PASS` or `PLAYWRIGHT_TEST:FAIL` and `CONSOLE_ERRORS:<count>`. Exit code 0 = success.
+
+---
+
 ## Usage Examples
 
-**Screenshot a page:**
-> "Use Playwright to navigate to https://smarter.poker/hub/poker-near-me and take a screenshot"
-
-**E2E login flow:**
-> "Use Playwright to test the login flow: go to /login, enter test credentials, submit, and verify the dashboard loads"
-
-**Console error check:**
-> "Navigate to /hub/training with Playwright and check for any JavaScript console errors"
+---
 
 ## Smarter.Poker Test Targets
 
@@ -61,3 +102,10 @@ description: Automated browser testing via the Playwright MCP server. Use for E2
 | Trivia | `/hub/trivia` | Game modes, question display |
 | Bankroll | `/hub/bankroll` | Dashboard metrics |
 | Login | `/login` | Form renders, auth flow |
+
+---
+
+## Test Credentials
+
+- **Email:** `daniel@bekavactrading.com`
+- **Password:** `Bek454545!!`

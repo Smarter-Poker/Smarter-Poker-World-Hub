@@ -684,14 +684,10 @@ export function ReelsViewer({ onClose }) {
             }
             return prev + 1;
         });
-        // Swipe up = user gesture → auto-unmute the incoming video
-        autoUnmute();
     }, [reels.length, hasMore, loadingMore]);
 
     const goPrev = useCallback(() => {
         setCurrentIndex(prev => prev > 0 ? prev - 1 : prev);
-        // Swipe down = user gesture → auto-unmute the incoming video
-        autoUnmute();
     }, []);
 
     // Infinite scroll - load more reels when near end
@@ -1315,11 +1311,26 @@ export function ReelsViewer({ onClose }) {
             const diffX = startX - endX;
             if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 50) {
                 try { navigator?.vibrate?.(10); } catch (e) { console.warn('Handled exception:', e); }
+                // Unmute synchronously here — this IS the user gesture context.
+                // Calling it inside goNext() goes through React state + setTimeout which
+                // breaks the browser's gesture chain and setMuted() causes a mid-slide re-render.
+                if (userWantsSoundRef.current) {
+                    sendYTCmd('unMute');
+                    sendYTCmd('setVolume', [100]);
+                    setMuted(false);
+                    userInteractedRef.current = true;
+                }
                 if (diffY > 0) goNext();   // Swipe up = next
                 else goPrev();              // Swipe down = prev
             }
             if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
                 try { navigator?.vibrate?.(10); } catch (e) { console.warn('Handled exception:', e); }
+                if (userWantsSoundRef.current) {
+                    sendYTCmd('unMute');
+                    sendYTCmd('setVolume', [100]);
+                    setMuted(false);
+                    userInteractedRef.current = true;
+                }
                 if (diffX > 0) goNext();   // Swipe left = next
                 else goPrev();              // Swipe right = prev
             }

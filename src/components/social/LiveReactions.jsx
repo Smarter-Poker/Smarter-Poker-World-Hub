@@ -32,6 +32,10 @@ export function LiveReactions({ streamId, userId, isBroadcaster }) {
     const [reactionCounts, setReactionCounts] = useState({});
     const channelRef = useRef(null);
     const floaterIdRef = useRef(0);
+    // BUG FIX (L2): store active floater timer IDs so we can cancel them on
+    // unmount. Without this, if the component unmounts while a floater is
+    // in-flight, setFloaters fires on an unmounted component.
+    const floaterTimersRef = useRef(new Map());
 
     const addFloater = useCallback((emoji) => {
         const id = ++floaterIdRef.current;
@@ -39,9 +43,16 @@ export function LiveReactions({ streamId, userId, isBroadcaster }) {
         const left = 15 + Math.random() * 50;
         const duration = 2.5 + Math.random() * 1.5;
         setFloaters(prev => [...prev, { emoji, id, left, duration }]);
-        setTimeout(() => {
+        const timerId = setTimeout(() => {
+            floaterTimersRef.current.delete(id);
             setFloaters(prev => prev.filter(f => f.id !== id));
         }, Math.round(duration * 1000) + 100);
+        floaterTimersRef.current.set(id, timerId);
+    }, []);
+
+    // Cancel all pending floater timers on unmount
+    useEffect(() => {
+        return () => { floaterTimersRef.current.forEach(t => clearTimeout(t)); };
     }, []);
 
     useEffect(() => {
@@ -72,7 +83,10 @@ export function LiveReactions({ streamId, userId, isBroadcaster }) {
         await channelRef.current.send({
             type: 'broadcast',
             event: 'reaction',
-            payload: { emoji, userId },
+            // BUG FIX (L1): removed userId from payload. Reactions are ephemeral
+            // and anonymous — broadcasting the viewer's identity to all channel
+            // subscribers is unnecessary and a privacy leak.
+            payload: { emoji },
         });
         // NOTE: reaction counts are ephemeral (broadcast only, no DB persistence)
     };

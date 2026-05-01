@@ -11,6 +11,9 @@ export function LiveViewerList({ streamId, viewerCount, isOpen, onClose }) {
 
     useEffect(() => {
         if (!isOpen || !streamId) return;
+        // BUG FIX (L3): mounted flag prevents stale setState if isOpen toggles
+        // false while the two-step query is still in-flight.
+        let mounted = true;
         setLoading(true);
         // FIX: profiles!viewer_id FK hint unreliable — do 2-step query
         supabase
@@ -19,15 +22,18 @@ export function LiveViewerList({ streamId, viewerCount, isOpen, onClose }) {
             .eq('stream_id', streamId)
             .limit(50)
             .then(async ({ data: rows }) => {
+                if (!mounted) return;
                 if (!rows?.length) { setViewers([]); setLoading(false); return; }
                 const ids = rows.map(r => r.viewer_id);
                 const { data: profiles } = await supabase
                     .from('profiles')
                     .select('id, username, full_name, avatar_url')
                     .in('id', ids);
+                if (!mounted) return;
                 setViewers(profiles || []);
                 setLoading(false);
             });
+        return () => { mounted = false; };
     }, [isOpen, streamId]);
 
     if (!isOpen) return null;
