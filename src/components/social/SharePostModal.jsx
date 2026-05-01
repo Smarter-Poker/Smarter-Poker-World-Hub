@@ -294,66 +294,36 @@ function SendToFriendTab({ post, authorUsername, currentUser, onClose, onShared 
         if (!currentUser?.id) return;
         setSending(true);
 
+        const token = getAccessToken();
+        if (!token) { setSending(false); toast.error('Please sign in to share'); return; }
+
         const postUrl = `${window.location.origin}/hub/post/${post?.id}`;
         let successCount = 0;
         for (const friendId of selected) {
             try {
-                const { data: existingConv } = await supabase
-                    .from('messenger_participants')
-                    .select('conversation_id, messenger_conversations!inner(type)')
-                    .eq('user_id', currentUser.id)
-                    .eq('messenger_conversations.type', 'direct');
-
-                const { data: friendConv } = await supabase
-                    .from('messenger_participants')
-                    .select('conversation_id, messenger_conversations!inner(type)')
-                    .eq('user_id', friendId)
-                    .eq('messenger_conversations.type', 'direct');
-
-                const myConvIds = new Set((existingConv || []).map(c => c.conversation_id));
-                const sharedConv = (friendConv || []).find(c => myConvIds.has(c.conversation_id));
-
-                let convId = sharedConv?.conversation_id;
-
-                if (!convId) {
-                    // Create new conversation
-                    const { data: newConv, error: convErr } = await supabase
-                        .from('messenger_conversations')
-                        .insert({
-                            type: 'direct',
-                            created_by: currentUser.id,
-                            last_message_text: `📎 ${(post?.author?.name || post?.author?.username || 'Player')} on Smarter.Poker`.slice(0, 100),
-                            last_message_at: new Date().toISOString(),
-                        })
-                        .select('id')
-                        .maybeSingle();
-                    if (convErr) throw convErr;
-                    if (!newConv?.id) throw new Error('Failed to create conversation');
-                    convId = newConv.id;
-
-                    // Add both participants
-                    await supabase.from('messenger_participants').insert([
-                        { conversation_id: convId, user_id: currentUser.id, role: 'owner' },
-                        { conversation_id: convId, user_id: friendId, role: 'owner' },
-                    ]);
-                }
-
-                // Send the shared post message with rich preview
-                const richPayload = buildRichSharePayload(post, postUrl, message.trim());
-                await supabase.from('messenger_messages').insert({
-                    conversation_id: convId,
-                    sender_id: currentUser.id,
-                    text: richPayload.text,
-                    message_type: 'shared_post',
-                    media_metadata: richPayload.media_metadata,
-                    status: 'sent',
+                // 1. Get or create direct conversation via RPC (social_* tables)
+                const { data: convResult, error: convErr } = await supabase.rpc('fn_get_or_create_conversation', {
+                    p_user_id: currentUser.id,
+                    p_other_user_id: friendId,
+                    p_conversation_type: 'direct',
                 });
+                if (convErr) throw convErr;
+                const convId = convResult?.conversation_id || convResult?.id || convResult;
+                if (!convId) throw new Error('Failed to get or create conversation');
 
-                // Update conversation last message with preview title
-                await supabase.from('messenger_conversations').update({
-                    last_message_text: `📎 ${richPayload.media_metadata.preview_title}`.slice(0, 100),
-                    last_message_at: new Date().toISOString(),
-                }).eq('id', convId);
+                // 2. Send via authenticated API (handles social_messages + participant verify + rate limit)
+                const richPayload = buildRichSharePayload(post, postUrl, message.trim());
+                const sendRes = await fetch('/api/messenger/send-message', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({
+                        conversationId: convId,
+                        content: richPayload.text,
+                        message_type: 'shared_post',
+                        media_metadata: richPayload.media_metadata,
+                    }),
+                });
+                if (!sendRes.ok) throw new Error(`Send failed: ${sendRes.status}`);
 
                 successCount++;
             } catch (err) {
@@ -585,37 +555,26 @@ function GroupsTab({ post, onClose }) {
         if (selected.size === 0) return;
         setSending(true);
 
-        const sb = getSupabase();
-        let currentUser = null;
-        let token = null;
-        try {
-            const { data: { session } } = await sb.auth.getSession();
-            currentUser = session?.user;
-            token = session?.access_token;
-        } catch (e) {}
+        const token = getAccessToken();
+        if (!token) { setSending(false); return; }
 
-        if (!currentUser) { setSending(false); return; }
-
-        const postUrl = `${window.location.origin}/hub/post/${post.id}`;
+        const postUrl = `${window.location.origin}/hub/post/${post?.id}`;
         let successCount = 0;
         for (const groupId of selected) {
             try {
-                // Send the shared post message with rich preview
+                // Send to group conversation via authenticated API (social_messages)
                 const richPayload2 = buildRichSharePayload(post, postUrl, message.trim());
-                await sb.from('messenger_messages').insert({
-                    conversation_id: groupId,
-                    sender_id: currentUser.id,
-                    text: richPayload2.text,
-                    message_type: 'shared_post',
-                    media_metadata: { ...richPayload2.media_metadata, shared_from: 'share_modal_group' },
-                    status: 'sent',
+                const sendRes = await fetch('/api/messenger/send-message', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({
+                        conversationId: groupId,
+                        content: richPayload2.text,
+                        message_type: 'shared_post',
+                        media_metadata: { ...richPayload2.media_metadata, shared_from: 'share_modal_group' },
+                    }),
                 });
-
-                // Update conversation last message with preview title
-                await sb.from('messenger_conversations').update({
-                    last_message_text: `📎 ${richPayload2.media_metadata.preview_title}`.slice(0, 100),
-                    last_message_at: new Date().toISOString(),
-                }).eq('id', groupId);
+                if (!sendRes.ok) throw new Error(`Group send failed: ${sendRes.status}`);
 
                 successCount++;
             } catch (err) {

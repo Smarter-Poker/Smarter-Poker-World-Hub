@@ -27,7 +27,7 @@ export default async function handler(req, res) {
           return res.status(500).json({ success: false, error: 'Service key not configured' });
       }
 
-      const { conversationId, content: rawContent } = req.body;
+      const { conversationId, content: rawContent, message_type: rawMessageType, media_metadata: rawMetadata } = req.body;
 
       if (!conversationId || !rawContent) {
           return res.status(400).json({ success: false, error: 'Missing conversationId or content' });
@@ -44,6 +44,21 @@ export default async function handler(req, res) {
               error: 'Payload too large',
               message: 'Messages cannot exceed 2,000 characters.'
           });
+      }
+
+      // Allowlist message_type to prevent injection of arbitrary types
+      const ALLOWED_MESSAGE_TYPES = new Set(['text', 'shared_post', 'gif', 'image', 'system']);
+      const messageType = ALLOWED_MESSAGE_TYPES.has(rawMessageType) ? rawMessageType : 'text';
+
+      // Validate metadata: must be a plain object, cap serialized size at 8KB
+      let safeMetadata = {};
+      if (rawMetadata && typeof rawMetadata === 'object' && !Array.isArray(rawMetadata)) {
+          const metaStr = JSON.stringify(rawMetadata);
+          if (metaStr.length <= 8192) {
+              safeMetadata = rawMetadata;
+          } else {
+              console.warn('[send-message] media_metadata too large, truncating to empty');
+          }
       }
 
       // 3. XSS Neutralization
@@ -77,6 +92,8 @@ export default async function handler(req, res) {
               p_conversation_id: conversationId,
               p_sender_id: userId,
               p_content: content,
+              p_message_type: messageType,
+              p_metadata: safeMetadata,
           });
 
           if (error) throw error;
