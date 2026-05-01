@@ -54,9 +54,6 @@ body {
   min-height: 100%;
   margin: 0;
   padding: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
   /* Prevent Safari/iPadOS native pull-to-refresh gesture */
   overscroll-behavior-y: none;
 }
@@ -81,7 +78,8 @@ body {
    ═══════════════════════════════════════════════════════════════════════════ */
 html:not(.reels-lock),
 body:not(.reels-lock) {
-  overflow: auto !important;
+  overflow-y: visible !important;
+  overflow-x: hidden !important;
   position: static !important;
   height: auto !important;
   top: auto !important;
