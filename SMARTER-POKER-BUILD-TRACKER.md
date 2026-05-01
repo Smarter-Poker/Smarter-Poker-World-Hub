@@ -765,10 +765,30 @@ canonical during a transition.
 
 ---
 
+## PHASE 36 — Deep Audit Pass (Completed 2026-05-01)
+
+After all the API/RPC/DB work landed, swept the platform looking for
+silent leaks the prior phases might have missed.
+
+| What was audited | Findings | Action taken |
+|---|---|---|
+| All 7 client realtime subscription filters | 0 invalid column refs (the `receiver_id` bug was the only one) | Verified live — no fixes needed |
+| Parallel session's recent SECDEF RPCs | All have `search_path` locked | None |
+| `fn_get_or_create_conversation(user1_id,user2_id)` live execution | TWO bugs: (a) inserts `role='owner'` violating CHECK constraint, (b) FK target mismatch (`messenger_conversations` row referenced via `messenger_participants` whose FK targets `conversations`) | Documented in `.agent/audits/2026-05-01-conversation-schema-pivot.md`. Not shipped — only caller is dead code (zero production impact) and fix requires architectural decisions in the parallel session's lane. |
+| `diamond_reward_claims` orphans (claim row with no matching transaction) | **59 orphans across 4 reward types** | Retro-credited via 2 migrations (`retrocredit_orphaned_daily_login_claims` + `retrocredit_all_reward_type_orphans`). 1,759 💎 restored to affected users. KingFish (Dan): 1,400 💎. mason: 10. SeanHovater: 10. AudreyGaliunas: 5. plus the older Feb-Apr orphans. |
+| `commander_promotion_awards` (status='paid' AND paid_at IS NULL) | 20 inconsistent seed/test rows | Backfilled `paid_at = created_at` (`backfill_promotion_awards_paid_at` migration). |
+| Money-tracking tables (cashout_requests, agent_commissions, rakeback_periods, bbj_payouts, tournament_bounties) | All clean — 0 inconsistencies | None needed |
+| profile.diamonds vs sum(diamond_transactions) | 1.95M drift, all "excess" direction (572 profiles have more diamonds than ledger). 0 users owed. | Tracked as task #126 (audit-completeness, not user-impact, deferred). |
+
+**Net economic effect for users this session: +1,759 💎 restored.**
+
+---
+
 ## FUTURE PHASES (Not Yet Started)
-- **Phase 36: Club Arena E2E broader** — Game flow, poker hands, full V8 Bible compliance E2E. Deferred from Phase 32 (scoped) since V8 itself is 89% verified — write E2E after the remaining 15 V8 items resolve.
-- **Phase 37: Drop unused indexes** — soak through 2026-05-14, then drop the 20 indexes flagged in Phase 29 if `pg_stat_user_indexes.idx_scan` still 0 (task #106).
-- **Phase 38: Finish messenger pivot** — when `messenger_*` is fully populated and all callers migrated, drop `social_conversations` schema + `(p_user_id, p_other_user_id, p_conversation_type) → jsonb` overload. Owned by the parallel session.
+- **Phase 37: Club Arena E2E broader** — Game flow, poker hands, full V8 Bible compliance E2E. Deferred since V8 itself is 89% verified — write E2E after the remaining 15 V8 items resolve.
+- **Phase 38: Drop unused indexes** — soak through 2026-05-14, then drop the 20 indexes flagged in Phase 29 if `pg_stat_user_indexes.idx_scan` still 0 (task #106).
+- **Phase 39: Finish messenger pivot** — when `messenger_*` is fully populated and all callers migrated, drop `social_conversations` schema + `(p_user_id, p_other_user_id, p_conversation_type) → jsonb` overload. Owned by the parallel session.
+- **Phase 40: Diamond ledger reconciliation** — backfill `diamond_transactions` rows for the 1.95M-diamond drift (signup grants, admin grants, engine-direct UPDATEs that bypassed `add_diamonds_to_balance`). Audit-completeness only, not user-impact (task #126).
 
 ---
 
