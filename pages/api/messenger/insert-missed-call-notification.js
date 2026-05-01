@@ -49,6 +49,32 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, skipped: true });
     }
 
+    // Verify the caller and callee actually share a conversation
+    // This prevents any authenticated user from spamming missed-call notifications to arbitrary users.
+    const { data: callerConvs } = await getSupabase()
+        .from('social_conversation_participants')
+        .select('conversation_id')
+        .eq('user_id', user.id)
+        .limit(500);
+
+    const callerConvIds = (callerConvs || []).map(p => p.conversation_id);
+
+    let sharedConv = false;
+    if (callerConvIds.length > 0) {
+        const { data: shared } = await getSupabase()
+            .from('social_conversation_participants')
+            .select('conversation_id')
+            .eq('user_id', calleeId)
+            .in('conversation_id', callerConvIds)
+            .limit(1);
+        sharedConv = !!(shared && shared.length > 0);
+    }
+
+    if (!sharedConv) {
+        // They have no shared conversation — likely spam or stale state. Silently ignore.
+        return res.status(200).json({ success: true, skipped: true });
+    }
+
     // Look up the caller's display name
     const { data: profile } = await getSupabase()
         .from('profiles')

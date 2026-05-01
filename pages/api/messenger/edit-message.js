@@ -77,13 +77,16 @@ export default async function handler(req, res) {
               return res.status(400).json({ success: false, error: 'Edit window expired', message: 'Messages can only be edited within 5 minutes of sending.' });
           }
 
-          // Update the message
-          const { error: updateErr } = await getSupabase()
+          // Update the message — filter by both id AND sender_id (atomic ownership enforcement)
+          const { error: updateErr, count } = await getSupabase()
               .from('social_messages')
               .update({ content, is_edited: true, updated_at: new Date().toISOString() })
-              .eq('id', messageId);
+              .eq('id', messageId)
+              .eq('sender_id', user.id);
 
           if (updateErr) throw updateErr;
+          // count null means PostgREST didn't return it — treat any error as failure
+          // (we already verified ownership above, so this is belt-and-suspenders)
 
           return res.json({ success: true, content });
       } catch (e) {
