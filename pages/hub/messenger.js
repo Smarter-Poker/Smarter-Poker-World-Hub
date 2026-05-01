@@ -227,6 +227,23 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, onVoiceSend,
     const fileInputRef = useRef(null);
     const gifSearchTimer = useRef(null);
 
+    // Unmount cleanup: stop recording if user navigates away mid-recording
+    // Without this, the mic stays open and the interval keeps firing setState on unmounted component.
+    useEffect(() => {
+        return () => {
+            clearInterval(recordingTimerRef.current);
+            if (recordingMaxTimerRef.current) clearTimeout(recordingMaxTimerRef.current);
+            if (mediaRecorderRef.current?.state === 'recording') {
+                try {
+                    mediaRecorderRef.current.ondataavailable = null;
+                    mediaRecorderRef.current.onstop = null;
+                    mediaRecorderRef.current.stop();
+                    mediaRecorderRef.current.stream?.getTracks().forEach(t => t.stop());
+                } catch (_) { /* ignore — component is unmounting */ }
+            }
+        };
+    }, []);
+
     // Auto-focus textarea when autoFocus prop is set (deep-link compose)
     useEffect(() => {
         if (autoFocus && inputRef.current) {
@@ -3746,6 +3763,18 @@ function MessengerPage() {
         }
     };
 
+    // Jarvis history is persisted to localStorage but capped at 200 messages.
+    // Without a cap, QuotaExceededError eventually throws silently, corrupting history.
+    const JARVIS_HISTORY_CAP = 200;
+    const saveJarvisHistory = (messages) => {
+        try {
+            const capped = messages.slice(-JARVIS_HISTORY_CAP);
+            localStorage.setItem('jarvis_messenger_history', JSON.stringify(capped));
+        } catch (e) {
+            console.warn('[Jarvis] localStorage quota exceeded — history not saved:', e?.message);
+        }
+    };
+
     const handleSendMessage = async (content) => {
         if (!user || !activeConversation || !content.trim()) return;
 
@@ -3785,7 +3814,7 @@ function MessengerPage() {
 
             setMessages(prev => {
                 const updated = [...prev, userMsg];
-                localStorage.setItem('jarvis_messenger_history', JSON.stringify(updated));
+                saveJarvisHistory(updated);
                 return updated;
             });
 
@@ -3834,7 +3863,7 @@ function MessengerPage() {
                         isJarvis: true
                     };
                     const updated = [...withoutTyping, jarvisMsg];
-                    localStorage.setItem('jarvis_messenger_history', JSON.stringify(updated));
+                    saveJarvisHistory(updated);
                     return updated;
                 });
             } catch (error) {
@@ -3850,7 +3879,7 @@ function MessengerPage() {
                         isJarvis: true
                     };
                     const updated = [...withoutTyping, errorMsg];
-                    localStorage.setItem('jarvis_messenger_history', JSON.stringify(updated));
+                    saveJarvisHistory(updated);
                     return updated;
                 });
             }
@@ -3999,7 +4028,7 @@ function MessengerPage() {
                 const updated = deleteType === 'all'
                     ? []
                     : prev.filter(m => m.id !== messageId);
-                localStorage.setItem('jarvis_messenger_history', JSON.stringify(updated));
+                saveJarvisHistory(updated);
                 return updated;
             });
             setToast({ type: 'success', message: deleteType === 'all' ? 'All messages deleted' : 'Message deleted' });
@@ -4646,7 +4675,8 @@ function MessengerPage() {
         const handleVisibility = () => {
             if (document.hidden) {
                 presenceChannel.untrack();
-            } else {
+            } else if (preferencesRef.current.activeStatus !== false) {
+                // Only re-track if active status is enabled (respect user preference)
                 presenceChannel.track({
                     online_at: new Date().toISOString(),
                     user_id: user.id,
