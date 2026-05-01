@@ -8,6 +8,7 @@ import React, { useState, useEffect } from 'react';
 import { SP_COLORS, SPAvatar } from './SmarterPokerStyleCard';
 import { NotificationBell, NotificationsDropdown } from './SmarterPokerNotifications';
 import { supabase } from '../../lib/supabase';
+import { getAuthUser } from '../../lib/authUtils';
 import { useRouter } from 'next/router';
 import { useUnreadCount, UnreadBadge } from '../../hooks/useUnreadCount';
 import { eventBus, EventType } from '../../engine/EventBus';
@@ -332,8 +333,7 @@ export const SmarterPokerLayout = ({ children, currentUser: propUser, onNavigate
     useEffect(() => {
         const checkAuth = async () => {
             try {
-                const { data: authData } = await supabase.auth.getUser();
-                const user = authData?.user;
+                const user = getAuthUser();
                 if (user) {
                     setAuthUser(user);
                     const { data: profile } = await supabase
