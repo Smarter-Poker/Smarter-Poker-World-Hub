@@ -169,7 +169,10 @@ export default async function handler(req, res) {
               p_amount: FOLLOW_REWARD,
               p_type: 'follow',
               p_description: `Follow reward — ${FOLLOW_REWARD}diamonds`,
-              p_reference_id: followingId
+              // Action-namespaced + actor-scoped — keeps the per-(actor,target)
+              // dedup we want, without colliding with reaction.js / referral.js
+              // which also use bare ids as reference_id.
+              p_reference_id: `follow_${userId}_${followingId}`
           });
 
           if (rpcError) {

@@ -207,12 +207,14 @@ export default async function handler(req, res) {
           }
 
           // ── CREDIT DIAMONDS (atomic: balance + transaction in one RPC) ──
+          // Action-namespaced + actor-scoped reference_id so bare venueId
+          // doesn't collide with anything else keyed by the same id.
           const { error: rpcError } = await getSupabase().rpc('add_diamonds_to_balance', {
               p_user_id: userId,
               p_amount: diamonds,
               p_type: 'venue_review',
               p_description: `Venue review reward at ${venue.name || 'venue'} — ${diamonds}diamonds (${Math.round(distance)}m away)`,
-              p_reference_id: String(venueId)
+              p_reference_id: `venue_review_${userId}_${venueId}`
           });
 
           if (rpcError) {

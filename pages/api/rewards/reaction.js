@@ -162,7 +162,9 @@ export default async function handler(req, res) {
               p_amount: REACTION_REWARD,
               p_type: 'reaction',
               p_description: `Reaction reward — ${REACTION_REWARD}diamonds`,
-              p_reference_id: postId
+              // Action-namespaced + actor-scoped to avoid collision with
+              // bare-postId reference_ids elsewhere (comment.js, share.js, etc.).
+              p_reference_id: `reaction_${userId}_${postId}`
           });
 
           if (rpcError) {

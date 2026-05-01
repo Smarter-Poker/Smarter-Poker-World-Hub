@@ -136,7 +136,9 @@ export default async function handler(req, res) {
               p_amount: WATCH_REWARD,
               p_type: 'video_watch',
               p_description: `Video watch reward — ${WATCH_REWARD}diamonds`,
-              p_reference_id: videoId
+              // Action-namespaced + actor-scoped to avoid colliding with
+              // bare videoId reference_ids in video-favorite.js.
+              p_reference_id: `video_watch_${userId}_${videoId}`
           });
 
           if (rpcError) {

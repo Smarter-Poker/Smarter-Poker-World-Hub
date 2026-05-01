@@ -42,6 +42,20 @@ import { applyRateLimit, LIMITS } from '../../src/lib/apiRateLimit';
 const { applyCors } = require('../../src/lib/cors');
 import { reportApiError } from '../../src/lib/sentryWrap';
 
+// Wrap fetch with an AbortController so a hanging upstream (Cloudflare,
+// slow CDN, dead origin) can't pin the function until Vercel's 504.
+// Without this we'd see one /api/link-preview 504/day in prod logs from
+// pages that stall on the body read.
+async function fetchWithTimeout(url, options = {}, timeoutMs = 5000) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    try {
+        return await fetch(url, { ...options, signal: ctrl.signal });
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
 export default async function handler(req, res) {
   try {
 
@@ -79,7 +93,7 @@ export default async function handler(req, res) {
     if (isSocialPlatform) {
         try {
             const microlinkUrl = `https://api.microlink.io?url=${encodeURIComponent(url)}`;
-            const microlinkRes = await fetch(microlinkUrl);
+            const microlinkRes = await fetchWithTimeout(microlinkUrl, {}, 6000);
             if (!microlinkRes.ok) throw new Error(`Request failed (${microlinkRes.status})`);
             const microlinkData = await microlinkRes.json();
 
@@ -113,7 +127,7 @@ export default async function handler(req, res) {
 
     try {
         // Use realistic browser headers to bypass Cloudflare and similar protections
-        const response = await fetch(url, {
+        const response = await fetchWithTimeout(url, {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
@@ -127,7 +141,7 @@ export default async function handler(req, res) {
                 'Sec-Fetch-User': '?1',
                 'Upgrade-Insecure-Requests': '1',
             },
-        });
+        }, 6000);
 
         if (!response.ok) {
             throw new Error(`Failed to fetch URL: ${response.status}`);
@@ -151,9 +165,9 @@ export default async function handler(req, res) {
         // Try using Microlink.io API as fallback - bypasses Cloudflare
         try {
             const microlinkUrl = `https://api.microlink.io?url=${encodeURIComponent(url)}`;
-            const externalResponse = await fetch(microlinkUrl, {
+            const externalResponse = await fetchWithTimeout(microlinkUrl, {
                 headers: { 'Accept': 'application/json' }
-            });
+            }, 6000);
 
             if (externalResponse.ok) {
                 const data = await externalResponse.json();

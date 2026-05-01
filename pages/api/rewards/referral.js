@@ -99,13 +99,16 @@ export default async function handler(req, res) {
               throw claimInsertErr;
           }
 
-          // Award diamonds
+          // Award diamonds. Namespace + actor-scope the reference_id so
+          // (a) the social/referral.js path's `referral_credit_<referee>`
+          //     doesn't collide with this rewards/referral.js path
+          // (b) per-(referrer, referee) dedup is preserved.
           const { error: rpcError } = await getSupabase().rpc('add_diamonds_to_balance', {
               p_user_id: referrerId,
               p_amount: REFERRAL_REWARD,
               p_type: 'referral',
               p_description: `Referral reward — ${REFERRAL_REWARD}diamonds (bypasses daily cap)`,
-              p_reference_id: referredUserId
+              p_reference_id: `referral_reward_${referrerId}_${referredUserId}`
           });
 
           if (rpcError) {

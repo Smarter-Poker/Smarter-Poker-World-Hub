@@ -206,13 +206,16 @@ export default async function handler(req, res) {
                     }
                 };
 
-                // Award diamonds to referrer
+                // Award diamonds to referrer.
+                // reference_id pattern: referral_credit_{referee} ensures one credit
+                // per referee + survives retries via the function's idempotency check.
+                const referrerCreditRefId = `referral_credit_${user.id}`;
                 const { error: referrerErr } = await supabase.rpc('add_diamonds_to_balance', {
                     p_user_id: referrer.id,
                     p_amount: REFERRAL_BONUS_REFERRER,
                     p_type: 'referral_bonus',
                     p_description: `Referral Bonus — New Player Joined`,
-                    p_reference_id: user.id,
+                    p_reference_id: referrerCreditRefId,
                 });
                 if (referrerErr) {
                     await rollbackReferral('referrer credit failed');
@@ -220,13 +223,16 @@ export default async function handler(req, res) {
                     return res.status(500).json({ error: 'Failed to credit referrer — please retry' });
                 }
 
-                // Award diamonds to referee
+                // Award diamonds to referee.
+                // Distinct reference_id (welcome_bonus_*) so the function-side
+                // idempotency check doesn't mistake this for the referrer credit.
+                const refereeCreditRefId = `welcome_bonus_${user.id}`;
                 const { error: refereeErr } = await supabase.rpc('add_diamonds_to_balance', {
                     p_user_id: user.id,
                     p_amount: REFERRAL_BONUS_REFEREE,
                     p_type: 'referral_bonus',
                     p_description: `Welcome Bonus — Referred By ${referrer.username || 'A Friend'}`,
-                    p_reference_id: referrer.id,
+                    p_reference_id: refereeCreditRefId,
                 });
                 if (refereeErr) {
                     // Compensate the referrer credit we just made, then roll back the referral
@@ -238,12 +244,19 @@ export default async function handler(req, res) {
                         // only caught network exceptions, so a real reversal
                         // failure left the referrer overpaid forever with no
                         // log to reconcile from. Money-loss class.
+                        // Reversal MUST use a DIFFERENT reference_id from the original
+                        // referrer credit at line 215 — otherwise the function's
+                        // idempotency check (added 2026-04-30 in
+                        // 20260430_consolidate_add_diamonds_to_balance.sql) would
+                        // see the existing tx and silently skip the reversal,
+                        // leaving the referrer overpaid forever.
+                        const reversalRefId = `referral_credit_${user.id}_reversal`;
                         const { error: revErr } = await supabase.rpc('add_diamonds_to_balance', {
                             p_user_id: referrer.id,
                             p_amount: -REFERRAL_BONUS_REFERRER,
                             p_type: 'referral_bonus_reversal',
                             p_description: `Referral bonus reversal — referee credit failed`,
-                            p_reference_id: user.id,
+                            p_reference_id: reversalRefId,
                         });
                         if (revErr) {
                             console.warn('[Referral] CRITICAL: reversal RPC failed — referrer', referrer.id, 'is overpaid by', REFERRAL_BONUS_REFERRER, ':', revErr?.message || revErr);
