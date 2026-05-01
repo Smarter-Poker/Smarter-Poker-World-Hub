@@ -66,12 +66,6 @@ body {
   width: 100%;
   min-height: 100vh;
   position: relative;
-  overflow-x: hidden;
-  /* FIX (mobile scroll): CSS spec forces overflow-y to auto when overflow-x
-     is hidden and overflow-y is visible on the same element — which made
-     #__next a double scroll container and confused touch scroll on mobile.
-     Explicit auto is the correct value. */
-  overflow-y: auto;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
