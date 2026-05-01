@@ -5418,7 +5418,25 @@ function SocialMediaPage() {
             } catch (secondaryErr) { console.warn('[App] Handled exception:', secondaryErr?.message || secondaryErr); }
 
             return true;
-        } catch (e) { console.warn('Post error:', e); return false; }
+        } catch (e) {
+            // AUDIT-14 (2026-04-30 per Dan: "Unable to post at this time" with
+            // no further detail). The previous catch swallowed the actual
+            // error message and returned false → SharedPostCreator showed the
+            // generic 'Unable to post at this time. Please try again later.'
+            // banner with no clue what actually broke. Surface the real error
+            // via toast.error AND console.error so Dan can read what failed
+            // on the next attempt. Most common causes:
+            //   • RLS denied on fn_create_social_post (auth.uid() check fails)
+            //   • Direct insert RLS denied
+            //   • Token expired between upload and post
+            //   • Network failure mid-RPC
+            const msg = e?.message || e?.error_description || String(e) || 'unknown';
+            console.error('[Social] Post error:', e);
+            try {
+                toast.error(`Post failed: ${String(msg).slice(0, 200)}`, 8000);
+            } catch (_) {}
+            return false;
+        }
         finally { setIsPosting(false); }
     };
 
