@@ -229,35 +229,54 @@ export default function ComposePage() {
 
             const postId = rpcResult.id;
 
-            // 6. Optional: also publish as 24h story
-            if (state.shareToStory && videoUrl) {
+            // 5. Optional: also publish as 24h story.
+            // AUDIT (2026-05-01 secondary pass): bug fixes —
+            //   • The story RPC's caption param is `p_content`, not
+            //     `p_caption`. The previous call name-mismatched and
+            //     silently dropped the caption.
+            //   • Story creation was gated on `videoUrl` so an image-only
+            //     post with share-to-story enabled silently no-op'd. Use
+            //     the first uploaded URL as the media regardless of type
+            //     and pass the actual media_type.
+            if (state.shareToStory && uploadedUrls.length > 0) {
                 try {
+                    const storyMedia = videoUrl || uploadedUrls[0];
+                    const storyMediaType = videoUrl ? 'video' : 'image';
                     await supabase.rpc('fn_create_story', {
                         p_user_id: user.id,
-                        p_media_url: videoUrl,
-                        p_media_type: 'video',
-                        p_caption: state.draft?.trim() || null,
+                        p_content: state.draft?.trim() || '',
+                        p_media_url: storyMedia,
+                        p_media_type: storyMediaType,
                     });
                 } catch (storyErr) {
                     console.warn('[Compose] share-to-story failed:', storyErr?.message || storyErr);
                 }
             }
 
-            // 7. Persist share_to_groups selection.
+            // 6. Persist share_to_groups selection.
             // No /api/social/home-groups/post endpoint exists yet — the
             // proper "mirror this post into each home group's stream" is
             // backend infrastructure that lives in the future Hetzner
             // Open Claw worker (see CLUB-ARENA-OFFICIAL-UPGRADE-INTEGRATION.md).
-            // For now, persist the chosen group IDs onto the post's
-            // metadata JSONB so the future mirror-job can pick them up.
+            //
+            // AUDIT (2026-05-01 secondary pass): bug fix — the previous
+            // version did `.update({metadata: {share_to_groups: ...}})`
+            // which OVERWRITES whatever metadata the RPC just stored
+            // (achievement data, transcode pointers, etc). Read-merge-
+            // write so we add the field without nuking siblings.
             if (state.shareToGroups?.length && postId) {
                 try {
+                    const { data: existing } = await supabase
+                        .from('social_posts')
+                        .select('metadata')
+                        .eq('id', postId)
+                        .maybeSingle();
+                    const merged = {
+                        ...(existing?.metadata && typeof existing.metadata === 'object' ? existing.metadata : {}),
+                        share_to_groups: state.shareToGroups.map(g => ({ id: g.id, name: g.name })),
+                    };
                     await supabase.from('social_posts')
-                        .update({
-                            metadata: {
-                                share_to_groups: state.shareToGroups.map(g => ({ id: g.id, name: g.name })),
-                            },
-                        })
+                        .update({ metadata: merged })
                         .eq('id', postId);
                 } catch (groupsErr) {
                     console.warn('[Compose] share_to_groups metadata save failed:', groupsErr?.message || groupsErr);
