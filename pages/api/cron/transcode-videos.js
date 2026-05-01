@@ -138,7 +138,7 @@ export default async function handler(req, res) {
     //    original social_page_posts row).
     const { data: queue, error: qErr } = await supa
         .from('social_posts')
-        .select('id, author_id, media_urls, original_media_url, content_type, metadata')
+        .select('id, author_id, media_urls, original_media_url, content_type, metadata, thumbnail_url')
         .eq('transcode_status', 'queued')
         .order('created_at', { ascending: true })
         .limit(1);
@@ -231,6 +231,63 @@ export default async function handler(req, res) {
         await runFfmpeg(ffArgs);
         const outSize = (await stat(outFile)).size;
 
+        // ─── 4b. THUMBNAIL EXTRACTION (AUDIT-20, 2026-04-30 per Dan: "POSTED
+        //         BY STILL ONLY SHOWED THE BLACK SCREEN, NO THUMBNAIL").
+        // The client-side generateThumbnail can't reliably read iPhone HEVC
+        // frames into a canvas (Safari hardware-decode path doesn't expose
+        // pixels), so iPhone uploads land with thumbnail_url=NULL. The feed
+        // then renders a black gradient placeholder. Cron-side ffmpeg has
+        // no such limitation — extract one frame here while the source is
+        // already on disk, upload it, and back-prop into the same DB UPDATE
+        // as the transcode result so feed cards swap from black → poster
+        // the moment realtime fires.
+        let thumbPublicUrl = null;
+        try {
+            const thumbFile = join(work, 'thumb.jpg');
+            // Seek to 1s (covers black-fade-in intros), single frame, scale
+            // longest edge to 480px, JPEG q=2 (~visually lossless ~50KB).
+            // -ss BEFORE -i is the "fast seek" path — keyframe-accurate
+            // enough for thumbnails and 10-50× faster than post-decode seek.
+            await runFfmpeg([
+                '-y', '-hide_banner', '-loglevel', 'error',
+                '-ss', '1',
+                '-i', inFile,
+                '-vframes', '1',
+                '-vf', "scale='if(gt(iw,ih),480,-2)':'if(gt(iw,ih),-2,480)'",
+                '-q:v', '2',
+                thumbFile,
+            ]);
+            const thumbBuf = await readFile(thumbFile);
+            if (thumbBuf && thumbBuf.length > 100) {
+                // Mirror the video's storage path: same prefix, swap base name
+                // to thumb_<ts>.jpg and folder thumbnails/. Cosmetic only —
+                // any path under social-media bucket works.
+                const thumbBucketPath = dstBucketPath
+                    .replace(/^videos\//, 'thumbnails/')
+                    .replace(/\.mp4$/, `_thumb_${Date.now()}.jpg`);
+                const thumbUploadUrl = `${SUPABASE_URL}/storage/v1/object/social-media/${thumbBucketPath}`;
+                const thumbUp = await fetch(thumbUploadUrl, {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${SERVICE_KEY}`,
+                        apikey: SERVICE_KEY,
+                        'Content-Type': 'image/jpeg',
+                        'x-upsert': 'true',
+                    },
+                    body: thumbBuf,
+                });
+                if (thumbUp.ok) {
+                    thumbPublicUrl = `${SUPABASE_URL}/storage/v1/object/public/social-media/${thumbBucketPath}`;
+                } else {
+                    const txt = await thumbUp.text().catch(() => '');
+                    console.warn(`[transcode] thumbnail upload failed ${thumbUp.status}: ${txt.slice(0, 200)}`);
+                }
+            }
+        } catch (thumbErr) {
+            // Best-effort — never block the transcode itself.
+            console.warn('[transcode] thumbnail extraction skipped:', thumbErr?.message || thumbErr);
+        }
+
         // 5. Upload to storage (POST to /storage/v1/object/<bucket>/<path>).
         const outBuf = await readFile(outFile);
         const uploadUrl = `${SUPABASE_URL}/storage/v1/object/social-media/${dstBucketPath}`;
@@ -256,13 +313,20 @@ export default async function handler(req, res) {
             ? [newPublicUrl, ...post.media_urls.slice(1)]
             : [newPublicUrl];
 
-        await supa.from('social_posts').update({
+        // AUDIT-20: include thumbnail_url ONLY if extraction succeeded AND
+        // the row doesn't already have one (don't overwrite a client-side
+        // thumbnail that may be better than our 1s seek).
+        const updatePayload = {
             media_urls: newMediaUrls,
             transcode_status: 'done',
             transcode_error: null,
             transcoded_at: new Date().toISOString(),
             original_media_url: srcUrl,
-        }).eq('id', post.id);
+        };
+        if (thumbPublicUrl && !post.thumbnail_url) {
+            updatePayload.thumbnail_url = thumbPublicUrl;
+        }
+        await supa.from('social_posts').update(updatePayload).eq('id', post.id);
 
         await supa.from('social_reels')
             .update({ video_url: newPublicUrl })
