@@ -45,7 +45,6 @@ SELECT
     ls.ended_at,
     COALESCE(
         EXTRACT(EPOCH FROM (COALESCE(ls.ended_at, now()) - ls.started_at))::INTEGER,
-        ls.duration_seconds,
         0
     ) AS duration_seconds,
     COALESCE(ls.peak_viewers, 0) AS peak_viewers,
