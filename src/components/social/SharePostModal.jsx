@@ -212,7 +212,20 @@ function SendToFriendTab({ post, authorUsername, currentUser, onClose, onShared 
                 });
                 const json = await res.json();
                 if (!cancelled && json.success) {
-                    const fList = json.data?.friends || [];
+                    let fList = json.data?.friends || [];
+                    try {
+                        const recents = JSON.parse(localStorage.getItem(`recent_shares_${currentUser.id}`) || '[]');
+                        if (recents.length > 0) {
+                            fList.sort((a, b) => {
+                                const idxA = recents.indexOf(a.id);
+                                const idxB = recents.indexOf(b.id);
+                                if (idxA === -1 && idxB === -1) return 0;
+                                if (idxA === -1) return 1;
+                                if (idxB === -1) return -1;
+                                return idxA - idxB;
+                            });
+                        }
+                    } catch (_) {}
                     setFriends(fList);
                     try {
                         sessionStorage.setItem(cacheKey, JSON.stringify({ data: fList, ts: Date.now() }));
@@ -313,6 +326,14 @@ function SendToFriendTab({ post, authorUsername, currentUser, onClose, onShared 
         }
 
         if (successCount > 0) {
+            // Update recent shares cache for optimized sorting later
+            try {
+                const cacheKey = `recent_shares_${currentUser.id}`;
+                let recents = JSON.parse(localStorage.getItem(cacheKey) || '[]');
+                recents = [...selected, ...recents.filter(id => !selected.has(id))].slice(0, 50);
+                localStorage.setItem(cacheKey, JSON.stringify(recents));
+            } catch (_) {}
+
             toast.success(`Sent to ${successCount} friend${successCount > 1 ? 's' : ''}!`);
             // Increment share count
             try {
