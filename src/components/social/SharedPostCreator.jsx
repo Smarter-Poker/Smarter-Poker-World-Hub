@@ -380,7 +380,16 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                 }));
                 useComposeStore.getState().reset();
                 useComposeStore.getState().addMedia(items);
-                useComposeStore.getState().setStep('edit');
+                // FB-PARITY-FIX (2026-05-01 per Dan): land the user on the
+                // AlbumPicker REVIEW screen — that's where our big blue
+                // "Next" button lives, matching the in-picker "Next" Dan
+                // pointed to in the FB screenshots. AlbumPicker won't
+                // re-fire the iOS picker because media.length > 0 already.
+                // After Next tap, AlbumPicker calls onNext → setStep('edit')
+                // and the user lands on the staging area (description,
+                // thumbnail editor) — that's the 1:1 FB sequence:
+                //   iOS Photos picker → "Next" → edit/staging
+                useComposeStore.getState().setStep('picker');
                 if (fileRef.current) fileRef.current.value = '';
                 setPreparingStage(null);
                 router.push('/hub/social-media/compose');
