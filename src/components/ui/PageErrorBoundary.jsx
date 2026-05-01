@@ -36,6 +36,27 @@ export default class PageErrorBoundary extends React.Component {
             errorInfo?.componentStack
         );
 
+        // AUDIT-11 (2026-04-30 per Dan: silent crash → World Hub redirect):
+        // Persist the error to sessionStorage so it survives the user
+        // tapping "Go to Hub" and returning later. This is the only way to
+        // collect ground-truth diagnostic data from Dan's iPhone — Sentry
+        // is server-side and not visible to the user, dev-only error
+        // display below has been hidden in prod, and toasts disappear
+        // before the user can read them on a small screen.
+        try {
+            if (typeof sessionStorage !== 'undefined') {
+                const log = JSON.parse(sessionStorage.getItem('sp-page-crash-log') || '[]');
+                log.push({
+                    t: new Date().toISOString(),
+                    url: typeof window !== 'undefined' ? window.location.href : 'SSR',
+                    message: String(error?.message || error).slice(0, 500),
+                    stack: String(error?.stack || '').slice(0, 1500),
+                    componentStack: String(errorInfo?.componentStack || '').slice(0, 1500),
+                });
+                sessionStorage.setItem('sp-page-crash-log', JSON.stringify(log.slice(-10)));
+            }
+        } catch (_) { /* sessionStorage may be unavailable */ }
+
         // Report to Sentry silently — never let reporting crash the boundary
         try {
             Sentry.captureException(error, {
@@ -138,9 +159,13 @@ export default class PageErrorBoundary extends React.Component {
                         </button>
                     </div>
 
-                    {/* Dev-only error details — visible in development mode only */}
-                    {process.env.NODE_ENV === 'development' && this.state.error && (
-                        <details style={{
+                    {/* AUDIT-11: error details now visible in PRODUCTION too. Dan
+                         has been seeing this fallback on his iPhone with no idea
+                         what threw — Sentry is server-side and unavailable to him,
+                         dev-only made the actual error invisible. Show it directly
+                         so the next time it fires he can read/screenshot the cause. */}
+                    {this.state.error && (
+                        <details open style={{
                             marginTop: 16,
                             maxWidth: 700,
                             width: '100%',
@@ -153,19 +178,27 @@ export default class PageErrorBoundary extends React.Component {
                                 fontWeight: 600,
                                 marginBottom: 8,
                             }}>
-                                🔍 Error Details (dev only)
+                                Error details (tap to copy)
                             </summary>
-                            <pre style={{
-                                padding: 16,
-                                background: '#1a0000',
-                                border: '1px solid #ff000044',
-                                borderRadius: 8,
-                                color: '#ff6b6b',
-                                fontSize: 11,
-                                overflowX: 'auto',
-                                whiteSpace: 'pre-wrap',
-                                wordBreak: 'break-word',
-                            }}>
+                            <pre
+                                onClick={() => {
+                                    try {
+                                        const txt = String(this.state.error) + '\n\n' + (this.state.errorInfo?.componentStack || '');
+                                        navigator.clipboard.writeText(txt);
+                                    } catch (_) {}
+                                }}
+                                style={{
+                                    padding: 16,
+                                    background: '#1a0000',
+                                    border: '1px solid #ff000044',
+                                    borderRadius: 8,
+                                    color: '#ff6b6b',
+                                    fontSize: 11,
+                                    overflowX: 'auto',
+                                    whiteSpace: 'pre-wrap',
+                                    wordBreak: 'break-word',
+                                    cursor: 'copy',
+                                }}>
                                 {String(this.state.error)}
                                 {this.state.errorInfo?.componentStack && (
                                     '\n\nComponent Stack:\n' + this.state.errorInfo.componentStack
