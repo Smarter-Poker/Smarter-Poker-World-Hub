@@ -156,10 +156,18 @@ export default async function handler(req, res) {
       const user = authData?.user;
       if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
-      const { clubId, limit = 12, enabled } = req.body;
+      const { clubId, enabled } = req.body;
+      // Round 81: clamp user-supplied limit. Default 12, max 200, min 1.
+      // settlement_periods queries can pull large historical sets — without
+      // clamping, a malicious caller could request limit=999999 and exhaust
+      // the underlying RPC + downstream batch commission query.
+      const rawLimit = parseInt(req.body.limit, 10);
+      const limit = Number.isFinite(rawLimit) ? Math.max(1, Math.min(200, rawLimit)) : 12;
       if (!clubId) return res.status(400).json({ error: 'clubId required' });
 
       // Verify ownership/admin
+      // Round 72: production de-facto admin role is super_agent (admin enum
+      // exists but has 0 rows). Accept the canonical admin trio.
       const { data: membership } = await getSupabase()
           .from('club_members')
           .select('role')
@@ -167,7 +175,7 @@ export default async function handler(req, res) {
           .eq('user_id', user.id)
           .maybeSingle();
 
-      if (!membership || !['owner', 'admin'].includes(membership.role)) {
+      if (!membership || !['owner', 'admin', 'super_agent'].includes(membership.role)) {
           return res.status(403).json({ error: 'Owner/admin only' });
       }
 

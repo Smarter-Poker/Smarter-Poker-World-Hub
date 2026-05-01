@@ -9,7 +9,7 @@ import { useRouter } from 'next/router';
 import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
-import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import { getAuthUser } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -357,12 +357,8 @@ export default function TournamentsPage() {
         //  trivia_tournament_entries and trivia_tournaments — both now
         //  RLS-locked to service_role per Phase 37.)
         try {
-<<<<<<< Updated upstream
-            const token = getAccessToken();
-=======
             const { data: { session } } = await supabase.auth.getSession();
             const token = session?.access_token;
->>>>>>> Stashed changes
             if (!token) {
                 console.warn('[Tournaments] No session token — cannot register');
                 return;
@@ -380,10 +376,7 @@ export default function TournamentsPage() {
                 if (resp.status === 402 || json.error === 'insufficient_diamonds') {
                     setShowOutOfDiamonds(true);
                 } else if (json.error === 'already_entered') {
-<<<<<<< Updated upstream
-=======
                     // Idempotent — re-load to surface the existing entry
->>>>>>> Stashed changes
                     await loadData();
                 } else {
                     console.warn('[Tournaments] Entry failed:', json.error || resp.status);
