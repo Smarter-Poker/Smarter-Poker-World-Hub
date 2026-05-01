@@ -1096,7 +1096,6 @@ const PostCard = React.memo(function PostCard({ post, currentUserId, currentUser
                     const icons = sortedReactions.slice(0, 3).map(r => emojiMap[r[0]] || '👍').join('');
                     return `${icons} ${fmtCount(likeCount)}`;
                 })()}</span>
-                })()}</span>
                 <span style={{ cursor: 'pointer', display: 'flex', gap: 12 }}>
                     {commentCount > 0 && <span onClick={handleToggleComments}>{`${fmtCount(commentCount)} ${commentCount === 1 ? 'comment' : 'comments'}`}</span>}
                     {shareCount > 0 && <span>{`${fmtCount(shareCount)} ${shareCount === 1 ? 'share' : 'shares'}`}</span>}
