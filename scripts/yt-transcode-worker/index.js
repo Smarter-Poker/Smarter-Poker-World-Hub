@@ -140,6 +140,8 @@ async function processJob(job) {
       '--no-playlist',
       '--no-warnings',
       '--restrict-filenames',
+      // Use iOS + web player clients — avoids cookie requirement on headless servers
+      '--extractor-args', 'youtube:player_client=ios,web',
       '-o', rawFile,
       ytUrl,
     ], YT_DOWNLOAD_TIMEOUT);
@@ -209,16 +211,18 @@ async function processJob(job) {
 
     // Reel stays as YouTube iframe — backfill --requeue-failed can retry later.
     if (job.reel_id) {
-      await supa.from('social_reels')
+      // Supabase v2: query builder is not a Promise — must await, not .catch()
+      const { error: reelFailErr } = await supa.from('social_reels')
         .update({ media_status: 'failed' })
-        .eq('id', job.reel_id)
-        .catch(() => {});
+        .eq('id', job.reel_id);
+      if (reelFailErr) warn(`  reel fail-mark warn:`, reelFailErr.message);
     }
-    await supa.from('video_transcode_jobs').update({
+    const { error: jobFailErr } = await supa.from('video_transcode_jobs').update({
       status: 'failed',
       completed_at: new Date().toISOString(),
       error_message: msg,
-    }).eq('id', job.id).catch(() => {});
+    }).eq('id', job.id);
+    if (jobFailErr) warn(`  job fail-mark warn:`, jobFailErr.message);
 
   } finally {
     try { await rm(dir, { recursive: true, force: true }); } catch (_) {}
