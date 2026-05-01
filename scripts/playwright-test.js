@@ -118,7 +118,7 @@ async function main() {
 
     // ── Navigate to target ──
     console.log(`   🌐 Navigating to: ${TARGET_URL}`);
-    await page.goto(TARGET_URL, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.goto(TARGET_URL, { waitUntil: 'load', timeout: 30000 });
 
     if (EXTRA_WAIT > 0) {
       await page.waitForTimeout(EXTRA_WAIT);

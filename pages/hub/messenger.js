@@ -3196,6 +3196,12 @@ function MessengerPage() {
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccessToken()}` },
                 body: JSON.stringify({ callId: incomingCall.pendingCallId }),
             }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+        } else {
+            fetch('/api/calls/cancel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccessToken()}` },
+                body: JSON.stringify({ callerId: incomingCall.callerId, calleeId: user.id }),
+            }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         }
 
         setIncomingCall(null);
@@ -3246,6 +3252,12 @@ function MessengerPage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccessToken()}` },
                 body: JSON.stringify({ callId: incomingCall.pendingCallId }),
+            }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+        } else {
+            fetch('/api/calls/cancel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccessToken()}` },
+                body: JSON.stringify({ callerId: incomingCall.callerId, calleeId: user.id }),
             }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
         }
 

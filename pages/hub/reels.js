@@ -144,7 +144,14 @@ export default function ReelsPage() {
     const COMMENT_MAX_LENGTH = 280;
     // #10 Error Toast for failed operations
     const [errorToast, setErrorToast] = useState(null);
-    const showErrorToast = (msg) => { setErrorToast(msg); setTimeout(() => setErrorToast(null), 3000); };
+    // BUG FIX (R3): errorToastTimerRef — tracks the dismiss timer so it can be
+    // cancelled on unmount instead of calling setErrorToast on an unmounted page.
+    const errorToastTimerRef = useRef(null);
+    const showErrorToast = (msg) => {
+        setErrorToast(msg);
+        clearTimeout(errorToastTimerRef.current);
+        errorToastTimerRef.current = setTimeout(() => setErrorToast(null), 3000);
+    };
     // #6 Comment Like Counts (per-comment)
     const [commentLikeCounts, setCommentLikeCounts] = useState({});
     // UX Overhaul - More menu + Reaction picker
@@ -342,6 +349,12 @@ export default function ReelsPage() {
             clearTimeout(shareToastTimerRef.current);
             clearTimeout(sharedToFeedTimerRef.current);
             clearTimeout(reportModalTimerRef.current);
+            // BUG FIX (R4): also cancel hudTimerRef, errorToastTimerRef, longPressTimerRef,
+            // reactionTimerRef — all were missing from unmount, could fire after navigation.
+            clearTimeout(hudTimerRef.current);
+            clearTimeout(errorToastTimerRef.current);
+            clearTimeout(longPressTimerRef.current);
+            clearTimeout(reactionTimerRef.current);
         };
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [router.isReady]);
