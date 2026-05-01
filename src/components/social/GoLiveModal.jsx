@@ -72,6 +72,8 @@ export function GoLiveModal({ isOpen, onClose, user }) {
     const shareToastTimerRef = useRef(null);
     // BUG FIX (GLM-5): track in-flight getUserMedia mount guard
     const mediaAccessMountedRef = useRef(true);
+    // BUG FIX (GLM-6): track error-clear timer so it cancels on unmount
+    const errorTimerRef = useRef(null);
 
     useEffect(() => {
         mediaAccessMountedRef.current = true;
@@ -87,6 +89,8 @@ export function GoLiveModal({ isOpen, onClose, user }) {
             if (giftFlashTimerRef.current) clearTimeout(giftFlashTimerRef.current);
             // BUG FIX (GLM-3): cancel share toast timer on modal close
             if (shareToastTimerRef.current) clearTimeout(shareToastTimerRef.current);
+            // BUG FIX (GLM-6): cancel error clear timer on modal close
+            if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
             // FIX: countdown interval cleanup was AFTER the return — unreachable dead code
             if (timerRef._cdInterval) { clearInterval(timerRef._cdInterval); timerRef._cdInterval = null; }
             // FIX: if modal is force-closed during live broadcast, end the broadcast to prevent zombie room
@@ -430,7 +434,12 @@ export function GoLiveModal({ isOpen, onClose, user }) {
             if (!resp.ok) {
                 setComments(prev => prev.filter(c => c.id !== optimisticId));
                 setError(json.error || 'Comment failed');
-                setTimeout(() => setError(''), 3000);
+                // BUG FIX (GLM-6): track timer so cancel on unmount avoids stale setState
+                if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+                errorTimerRef.current = setTimeout(() => {
+                    errorTimerRef.current = null;
+                    setError('');
+                }, 3000);
             } else if (json.comment) {
                 setComments(prev => prev.map(c => c.id === optimisticId ? json.comment : c));
             }
