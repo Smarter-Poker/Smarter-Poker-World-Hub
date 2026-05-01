@@ -13,6 +13,7 @@ import { MAX_MEDIA, compressImage, getYouTubeVideoId, validateYouTubeVideo, snif
 import bgUpload from '../../../src/lib/backgroundVideoUpload';
 import { validateVideoFile, generateThumbnail, generateFrames, compressVideo } from '../../../src/lib/videoCompressor';
 import { uploadThumbnail } from '../../../src/lib/thumbnailUploader';
+import { useComposeStore } from '../../../src/stores/composeStore';
 
 
 export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages, authorOverride, context = 'social-media' }) {
@@ -353,6 +354,42 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         const files = Array.from(e.target.files);
         if (!files.length) { setPreparingStage(null); return; }
         if (!user?.id) { setError('Please log in to upload media.'); setPreparingStage(null); return; }
+
+        // ── COMPOSE-V2 fork (2026-05-01 iOS-USER-GESTURE FIX) ──────────────
+        // On the main social feed, the file input was clicked here to satisfy
+        // iOS Safari's user-gesture requirement (programmatic .click() from a
+        // useEffect on the /compose page is BLOCKED by Safari). Now that we
+        // have the File handles in hand, hand them to the compose store and
+        // route to /hub/social-media/compose where AlbumPicker renders the
+        // review screen. AlbumPicker no longer needs to auto-click anything —
+        // the media is already in the store.
+        if (context === 'social-media' && router) {
+            try {
+                const items = await Promise.all(files.map(async (file) => {
+                    let type = 'photo';
+                    if (file.type?.startsWith('video/')) type = 'video';
+                    else if (file.type?.startsWith('image/')) type = 'photo';
+                    else {
+                        const ext = (file.name || '').toLowerCase().split('.').pop();
+                        if (['mov','mp4','m4v','3gp','3g2','mkv','avi','webm','hevc'].includes(ext)) type = 'video';
+                    }
+                    const url = (typeof URL !== 'undefined' && URL.createObjectURL)
+                        ? URL.createObjectURL(file) : null;
+                    const id = `${file.name}|${file.size}|${file.lastModified}|${Math.random().toString(36).slice(2, 8)}`;
+                    return { id, type, file, url, thumbnail: null, durationSec: 0, width: 0, height: 0 };
+                }));
+                useComposeStore.getState().reset();
+                useComposeStore.getState().addMedia(items);
+                useComposeStore.getState().setStep('edit');
+                if (fileRef.current) fileRef.current.value = '';
+                setPreparingStage(null);
+                router.push('/hub/social-media/compose');
+                return;
+            } catch (composeRouteErr) {
+                console.warn('[SharedPostCreator] compose route handoff failed, falling back to inline:', composeRouteErr?.message || composeRouteErr);
+                // Fall through to existing inline staging on failure.
+            }
+        }
 
         // Check total media limit
         const remaining = MAX_MEDIA - media.length;
@@ -1703,14 +1740,23 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         // AUDIT-13: reset and start the timing baseline. tap=0 by definition.
                         _timingsRef.current = { tap: performance.now() };
                         setTimingDisplay('tap=0');
-                        // COMPOSE-V2 (2026-05-01): on the main social feed, route the
-                        // tap into the new multi-screen FB-style flow at /compose
-                        // (Picker → Edit → Cover → Post). Other contexts (club page,
-                        // group, etc.) keep the inline staging composer.
-                        if (context === 'social-media' && router) {
-                            try { router.push('/hub/social-media/compose'); } catch (_) {}
-                            return;
-                        }
+                        // COMPOSE-V2 + iOS-USER-GESTURE FIX (2026-05-01):
+                        // The Photo/Video click must fire fileRef.click()
+                        // SYNCHRONOUSLY inside the user-gesture window, otherwise
+                        // iOS Safari refuses to open the Photos picker. Earlier
+                        // we redirected to /compose first which broke that —
+                        // AlbumPicker's useEffect-based auto-click was rejected
+                        // by Safari, leaving the user staring at an empty page.
+                        //
+                        // New flow on context==='social-media':
+                        //   1. Click the file input HERE (preserves user gesture)
+                        //   2. iOS Photos picker opens, user picks files
+                        //   3. handleFiles below detects context==='social-media',
+                        //      writes the files into composeStore.addMedia, then
+                        //      router.push('/hub/social-media/compose')
+                        //   4. AlbumPicker mounts with media already in store —
+                        //      no auto-click needed; user lands directly on the
+                        //      review-and-Next screen.
                         setPreparingStage('picker');
                         fileRef.current?.click();
                     }}
