@@ -45,6 +45,19 @@ export default async function handler(req, res) {
 
 
       try {
+          // Verify the user is a participant before marking read \u2014 defense-in-depth guard
+          // (fn_mark_messages_read may not enforce membership internally)
+          const { data: participant, error: partErr } = await getSupabase()
+              .from('social_conversation_participants')
+              .select('id')
+              .eq('conversation_id', conversationId)
+              .eq('user_id', userId)
+              .maybeSingle();
+
+          if (partErr || !participant) {
+              return res.status(403).json({ success: false, error: 'Not a participant in this conversation' });
+          }
+
           // PRIMARY: Call fn_mark_messages_read RPC — this populates social_message_reads (per-message)
           // AND updates last_read_at on social_conversation_participants in one atomic operation.
           // The fn_get_user_conversations RPC counts unread from social_message_reads, so this is required
