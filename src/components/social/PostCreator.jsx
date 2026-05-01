@@ -31,6 +31,15 @@ export const PostCreator = ({
 
   const textareaRef = useRef(null);
   const modalRef = useRef(null);
+  // WH-1 BUG FIX: bare 1.5s success-close timer had no cleanup. If parent
+  // unmounts modal before delay elapses, setState fires on dead component.
+  const successTimerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    };
+  }, []);
 
   // Character count
   const charCount = content.length;
@@ -92,7 +101,9 @@ export const PostCreator = ({
       setShowSuccess(true);
       triggerSuccessParticles();
 
-      setTimeout(() => {
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+      successTimerRef.current = setTimeout(() => {
+        successTimerRef.current = null;
         setContent('');
         setShowSuccess(false);
         onPostCreated?.(newPost);

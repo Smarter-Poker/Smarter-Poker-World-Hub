@@ -174,6 +174,16 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
     const [socialLinks, setSocialLinks] = useState(meta.social_links || { facebook: '', instagram: '', twitter: '' });
     const [metaSaving, setMetaSaving] = useState(false);
     const [metaSaved, setMetaSaved] = useState('');
+    // WH-3/4/5 BUG FIX: three bare 2s setTimeout(() => setMetaSaved(''), 2000) calls
+    // in handleCoverUpload, handleLogoUpload, and saveMetadata had no cleanup.
+    // If the user navigates away while an upload is in flight, setMetaSaved fires
+    // on an unmounted component. Track with a single shared ref.
+    const metaSavedTimerRef = useRef(null);
+    useEffect(() => {
+        return () => {
+            if (metaSavedTimerRef.current) clearTimeout(metaSavedTimerRef.current);
+        };
+    }, []);
 
     // Fetch tournaments on mount (always, so floating Live Event button works on all tabs)
     useEffect(() => {
@@ -253,7 +263,8 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                     if (json.success && json.data) {
                         onPageUpdated(json.data);
                         setMetaSaved('Cover photo updated!');
-                        setTimeout(() => setMetaSaved(''), 2000);
+                        if (metaSavedTimerRef.current) clearTimeout(metaSavedTimerRef.current);
+                        metaSavedTimerRef.current = setTimeout(() => { metaSavedTimerRef.current = null; setMetaSaved(''); }, 2000);
                     }
                 } catch (saveErr) { console.warn('Cover save error:', saveErr); }
                 setMetaSaving(false);
@@ -300,7 +311,8 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                     if (json.success && json.data) {
                         onPageUpdated(json.data);
                         setMetaSaved('Logo updated!');
-                        setTimeout(() => setMetaSaved(''), 2000);
+                        if (metaSavedTimerRef.current) clearTimeout(metaSavedTimerRef.current);
+                        metaSavedTimerRef.current = setTimeout(() => { metaSavedTimerRef.current = null; setMetaSaved(''); }, 2000);
                     }
                 } catch (saveErr) { console.warn('Logo save error:', saveErr); }
                 setMetaSaving(false);
@@ -449,7 +461,8 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
             if (json.success && json.data) {
                 onPageUpdated(json.data);
                 setMetaSaved(label || 'Saved!');
-                setTimeout(() => setMetaSaved(''), 2000);
+                if (metaSavedTimerRef.current) clearTimeout(metaSavedTimerRef.current);
+                metaSavedTimerRef.current = setTimeout(() => { metaSavedTimerRef.current = null; setMetaSaved(''); }, 2000);
 
                 // Auto-geocode locations in background (fire-and-forget)
                 try {

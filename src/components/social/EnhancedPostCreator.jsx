@@ -191,6 +191,9 @@ export const EnhancedPostCreator = ({
   const xhrRef = useRef(null);          // holds active video XHR so we can abort on unmount
   const draftTimeout = useRef(null);    // debounce handle for draft auto-save
   const mountedRef = useRef(true);      // unmount guard for background upload callbacks
+  // WH-2 BUG FIX: 1.5s success-close timer was not tracked. Added successTimerRef
+  // so the existing unmount cleanup can cancel it if user navigates away first.
+  const successTimerRef = useRef(null);
   const compressionRef = useRef({});    // { [fileKey]: { controller, promise, result } }
   const thumbnailRef = useRef({});      // { [fileKey]: dataUrl }
   // RACE FIX (2026-04-29): mirror SharedPostCreator — track in-flight
@@ -300,6 +303,7 @@ export const EnhancedPostCreator = ({
     return () => {
       if (xhrRef.current) { try { xhrRef.current.abort(); } catch (_) { } }
       if (draftTimeout.current) clearTimeout(draftTimeout.current);
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
     };
   }, []);
 
@@ -791,7 +795,9 @@ export const EnhancedPostCreator = ({
         setShowSuccess(true);
         triggerSuccessParticles();
         toast.success('Posted Successfully!', 2000);
-        setTimeout(() => {
+        if (successTimerRef.current) clearTimeout(successTimerRef.current);
+        successTimerRef.current = setTimeout(() => {
+          successTimerRef.current = null;
           setContent('');
           setMediaFiles([]);
           setUploadProgress({});
