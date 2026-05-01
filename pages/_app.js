@@ -271,6 +271,24 @@ function NavigationGuard({ children }) {
   const router = useRouter();
   const [isNavigating, setIsNavigating] = useState(false);
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // MOUNT-TIME SCROLL UNLOCK — runs on every fresh page load / hydration.
+  // The routeChangeComplete valve only fires during in-app navigation.
+  // If a user loads a page fresh (bookmark, direct URL, browser refresh)
+  // after a Reels session left .reels-lock or overflow:hidden stranded,
+  // scroll stays broken forever. This effect fires once on mount and
+  // guarantees a clean scroll state before the page becomes interactive.
+  // ═══════════════════════════════════════════════════════════════════════
+  useEffect(() => {
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.body.style.width = '';
+    document.body.style.touchAction = '';
+    document.body.classList.remove('reels-lock');
+    document.documentElement.style.overflow = '';
+    document.documentElement.classList.remove('reels-lock');
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     // ═══════════════════════════════════════════════════════════════════════
     // AUTH MIGRATION v6: Migrate to explicit 'smarter-poker-auth' key
@@ -409,14 +427,17 @@ function NavigationGuard({ children }) {
       // SCROLL SAFETY VALVE — Clear any stale overflow:hidden left by
       // modals, reels, or overlays that failed to restore body scroll
       // during their unmount cleanup. This prevents the "can't scroll"
-      // regression on desktop that occurs when components set
+      // regression on mobile and desktop when components set
       // document.body.style.overflow = 'hidden' but don't reset it.
+      // Also clears .reels-lock class in case Reels left it on body.
       // ═══════════════════════════════════════════════════════════════════
       document.body.style.overflow = '';
       document.body.style.position = '';
       document.body.style.width = '';
       document.body.style.touchAction = '';
+      document.body.classList.remove('reels-lock');      // FIX: clear Reels class lock
       document.documentElement.style.overflow = '';
+      document.documentElement.classList.remove('reels-lock'); // FIX: clear html lock too
     };
 
     router.events.on('routeChangeStart', handleStart);
