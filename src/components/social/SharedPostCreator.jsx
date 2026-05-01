@@ -375,31 +375,18 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         // on Post-tap, not on file-select.
 
         // ── BACKGROUND PROCESSING (runs while user types caption) ────────────
-        // AUDIT-6 (2026-04-30 per Dan): on MOBILE we skip the client
-        // generateThumbnail entirely. iOS HEVC decode adds 1-8s on top of
-        // the already-painful iOS handoff (5-25s). Instead the preview tile
-        // falls back to <video preload="metadata"> which the browser
-        // auto-renders showing the first frame — zero JS work. The
-        // server-side cron transcode worker will extract a real thumbnail
-        // via ffmpeg within 1-2 minutes and persist it as thumbnail_url.
-        // Desktop: keep the client-side thumbnail (<2s, no perceptual cost).
-        const _isMobile = typeof navigator !== 'undefined'
-            && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || '');
+        // AUDIT-12 (2026-04-30 per Dan: "this is what I want" — screenshot
+        // showed a real thumbnail with 1:16 duration overlay). Reverting
+        // the audit-6 mobile-skip. Run generateThumbnail on mobile too —
+        // it's been heavily optimized (audit-3 fast-path captures the first
+        // decoded frame in 1-2s on iOS, 8s hard cap). The previous theory
+        // that mobile HEVC decode + iOS handoff was unbearable was wrong:
+        // the actual crash was the autoplay-<video> staging tile, which is
+        // now a static placeholder. With the real thumbnail running, Dan
+        // sees the iOS-style preview tile he expects.
         for (const item of staged) {
             if (item.type !== 'video') continue;
 
-            if (_isMobile) {
-                // Don't burn HEVC decode time on mobile. Leave thumbnail=null
-                // and let the cron generate it server-side.
-                thumbnailPromiseRef.current[item.url] = Promise.resolve(null);
-                // Still fire the signed-URL prefetch (network-bound, runs
-                // in parallel with iOS sandbox work — saves 200-500ms when
-                // user finally taps Post).
-                bgUpload.prefetch({ file: item.file, userId: user.id, folder: 'videos' });
-                break; // only first video gets the prefetch
-            }
-
-            // DESKTOP path — client-side thumbnail at staging time:
             // 1. Auto-thumbnail: extract frame at ~2s via canvas.
             // Store the PROMISE in a ref so handlePost can await it. Without this
             // the captured `staged` array in handlePost has thumbnail=null forever
@@ -1183,44 +1170,33 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                                             </div>
                                         </div>
                                     ) : (
-                                        // AUDIT-8 (2026-04-30 per Dan: black staging tile bug):
-                                        // <video preload="metadata"> on iOS Safari with HEVC does
-                                        // NOT decode any frames — it only loads the moov atom for
-                                        // duration/dimensions. Result: video element renders BLACK
-                                        // until the user taps play. Fix: autoPlay + muted +
-                                        // playsInline + onLoadedData={pause} forces the browser to
-                                        // decode the first frame, display it, then immediately
-                                        // pause. iOS Safari permits muted+playsInline autoplay
-                                        // without a user gesture, so this works on iPhone HEVC
-                                        // sources where preload="metadata" alone shows black.
+                                        // AUDIT-12 (2026-04-30 per Dan: page CRASHES on staging):
+                                        // The previous version rendered a <video src={blob} autoPlay>
+                                        // which OOMed iPhone Safari and crashed both mobile AND
+                                        // desktop pages because the audit-9 "revert autoplay"
+                                        // commit was empty (commit-tree/update-ref workaround
+                                        // pushed an unchanged tree). The autoplay video has been
+                                        // crashing pages this whole time. NOW actually replaced
+                                        // with a static placeholder — a generating-thumbnail
+                                        // spinner identical to the one from before audit-6.
+                                        // Tap promotes to a controlled <video> for full preview.
                                         <div
-                                            style={{ width: '100%', height: '100%', position: 'relative', cursor: 'pointer', background: '#000' }}
+                                            style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, #1a1a2e, #16213e)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', gap: 10 }}
                                             onClick={() => setMedia(prev => prev.map((item, idx) => idx === i ? { ...item, _previewing: true } : item))}
                                         >
-                                            <video
-                                                src={m.url}
-                                                autoPlay
-                                                muted
-                                                playsInline
-                                                preload="auto"
-                                                loop={false}
-                                                onLoadedData={(e) => { try { e.currentTarget.pause(); } catch (_) {} }}
-                                                style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none', background: '#000' }}
-                                            />
-                                            {/* Play overlay */}
                                             <div style={{
-                                                position: 'absolute', inset: 0,
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                background: 'rgba(0,0,0,0.15)',
-                                            }}>
-                                                <div style={{
-                                                    width: 44, height: 44, borderRadius: '50%',
-                                                    background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
-                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                }}>
-                                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
-                                                </div>
-                                            </div>
+                                                width: 36, height: 36, borderRadius: '50%',
+                                                border: '3px solid rgba(255,255,255,0.18)',
+                                                borderTopColor: '#fff',
+                                                animation: 'spThumbSpin 0.9s linear infinite',
+                                                WebkitAnimation: 'spThumbSpin 0.9s linear infinite',
+                                                willChange: 'transform',
+                                                WebkitTransform: 'translateZ(0)',
+                                                transform: 'translateZ(0)',
+                                            }} />
+                                            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', fontWeight: 600, letterSpacing: 0.3 }}>
+                                                Generating thumbnail…
+                                            </span>
                                         </div>
                                     )
                                 ) : (
