@@ -29,7 +29,17 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
     const [uploading, setUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(null); // null | { pct: number, label: string }
     const [error, setError] = useState('');
-    const [preparingMedia, setPreparingMedia] = useState(false); // true while iOS file picker is open / transcoding
+    // STAGE-AWARE BANNER (audit-6 2026-04-30 per Dan):
+    // 'picker'  — user just tapped Photo/Video, OS file picker is opening
+    // 'loading' — picker dismissed, iOS handing the file off (sandbox copy + iCloud pull)
+    // 'staging' — JS has the File handle, generating thumbnail / preparing upload
+    // null      — banner hidden
+    const [preparingStage, setPreparingStage] = useState(null);
+    // Compatibility shim for legacy callers that still expect a boolean.
+    const preparingMedia = preparingStage !== null;
+    const setPreparingMedia = (val) => setPreparingStage(val ? 'staging' : null);
+    const _hasFileArrivedRef = useRef(false); // tracks whether change event fired since picker opened — used to detect cancel
+    const _focusGraceTimerRef = useRef(null); // 5s watchdog after picker closes; stored as ref so it survives the 'picker'->'loading' useEffect re-run
     const [mentionQuery, setMentionQuery] = useState('');
     const [mentionResults, setMentionResults] = useState([]);
     const [showMentions, setShowMentions] = useState(false);
@@ -217,15 +227,22 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
     // until the 90s ultimate backstop fired.
     useEffect(() => {
         if (preparingStage !== 'picker') return;
-        let cancelTimer = null;
         const onFocus = () => {
             if (!mountedRef.current) return;
             // Picker just dismissed. Switch to 'loading' state — iOS is now
             // doing its sandbox-copy / iCloud-pull work before firing change.
             setPreparingStage(prev => prev === 'picker' ? 'loading' : prev);
-            // Watchdog: if no file arrives within 5s of focus return, the
-            // user cancelled the picker. Clear the banner.
-            cancelTimer = setTimeout(() => {
+            // Schedule the watchdog in a REF, not a closure variable. If we
+            // used a closure var, the useEffect cleanup (which fires the
+            // moment setPreparingStage transitions out of 'picker') would
+            // clearTimeout the watchdog 0-1ms after we set it — the bug
+            // caught in audit-7. Storing in a ref lets the watchdog survive
+            // the 'picker' → 'loading' transition; the watchdog is cleared
+            // when handleFiles fires (file arrived) or naturally fires
+            // after 5s and self-determines whether a cancel happened.
+            if (_focusGraceTimerRef.current) clearTimeout(_focusGraceTimerRef.current);
+            _focusGraceTimerRef.current = setTimeout(() => {
+                _focusGraceTimerRef.current = null;
                 if (!mountedRef.current) return;
                 if (!_hasFileArrivedRef.current) {
                     setPreparingStage(null);
@@ -235,7 +252,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         };
         window.addEventListener('focus', onFocus);
         return () => {
-            clearTimeout(cancelTimer);
+            // DO NOT clear _focusGraceTimerRef here — see comment above.
             window.removeEventListener('focus', onFocus);
         };
     }, [preparingStage]);
@@ -259,9 +276,16 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         // AUDIT-6: mark that the change event fired so the focus-watchdog in
         // the useEffect above does NOT clear the banner. Then transition to
         // 'staging' — JS now has the File handle, the slow iOS handoff is
-        // over, we're doing our own work.
+        // over, we're doing our own work. Also explicitly clear the
+        // watchdog timer here — it would fire harmlessly (the
+        // _hasFileArrivedRef check skips), but clearing now frees the
+        // setTimeout reference immediately instead of leaking it for ~5s.
         if (e?.target?.files?.length > 0) {
             _hasFileArrivedRef.current = true;
+            if (_focusGraceTimerRef.current) {
+                clearTimeout(_focusGraceTimerRef.current);
+                _focusGraceTimerRef.current = null;
+            }
             setPreparingStage('staging');
         }
 
@@ -1503,6 +1527,13 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         // picker dismisses without a change event, banner
                         // clears automatically. 90s ultimate-backstop in the
                         // sibling useEffect is the safety net.
+                        // AUDIT-7: clear any stale watchdog from a previous
+                        // picker session so it can't fire mid-new-session
+                        // and mistakenly clear the new banner.
+                        if (_focusGraceTimerRef.current) {
+                            clearTimeout(_focusGraceTimerRef.current);
+                            _focusGraceTimerRef.current = null;
+                        }
                         _pickerOpenRef.current = true;
                         _hasFileArrivedRef.current = false;
                         setPreparingStage('picker');

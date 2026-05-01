@@ -183,6 +183,7 @@ export const EnhancedPostCreator = ({
   const preparingMedia = preparingStage !== null;
   const setPreparingMedia = (val) => setPreparingStage(val ? 'staging' : null);
   const _hasFileArrivedRef = useRef(false);
+  const _focusGraceTimerRef = useRef(null); // AUDIT-7 — see SharedPostCreator for rationale
 
   const textareaRef = useRef(null);
   const modalRef = useRef(null);
@@ -233,11 +234,19 @@ export const EnhancedPostCreator = ({
   // useEffect for full rationale.
   useEffect(() => {
     if (preparingStage !== 'picker') return;
-    let cancelTimer = null;
     const onFocus = () => {
       if (!mountedRef.current) return;
       setPreparingStage(prev => prev === 'picker' ? 'loading' : prev);
-      cancelTimer = setTimeout(() => {
+      // AUDIT-7: store watchdog in a ref, NOT a closure variable. The
+      // useEffect cleanup fires the moment setPreparingStage transitions
+      // out of 'picker'; if the timer is in a closure var, the cleanup
+      // clearTimeout's it 0-1ms after we set it (silently killing the
+      // cancel detection). Ref storage lets the watchdog survive the
+      // 'picker' → 'loading' transition and self-determine whether a
+      // cancel happened at the 5s mark.
+      if (_focusGraceTimerRef.current) clearTimeout(_focusGraceTimerRef.current);
+      _focusGraceTimerRef.current = setTimeout(() => {
+        _focusGraceTimerRef.current = null;
         if (!mountedRef.current) return;
         if (!_hasFileArrivedRef.current) {
           setPreparingStage(null);
@@ -247,7 +256,7 @@ export const EnhancedPostCreator = ({
     };
     window.addEventListener('focus', onFocus);
     return () => {
-      clearTimeout(cancelTimer);
+      // DO NOT clear _focusGraceTimerRef here.
       window.removeEventListener('focus', onFocus);
     };
   }, [preparingStage]);
@@ -336,9 +345,14 @@ export const EnhancedPostCreator = ({
       setPreparingStage(null);
       return;
     }
-    // AUDIT-6: mark file arrival so the focus-watchdog leaves the banner up,
-    // and transition stage to 'staging' (the iOS handoff is over).
+    // AUDIT-6/7: mark file arrival so the focus-watchdog (if pending) bails,
+    // explicitly clear the pending watchdog timer to free its setTimeout
+    // reference now, and transition stage to 'staging' (iOS handoff over).
     _hasFileArrivedRef.current = true;
+    if (_focusGraceTimerRef.current) {
+      clearTimeout(_focusGraceTimerRef.current);
+      _focusGraceTimerRef.current = null;
+    }
     setPreparingStage('staging');
 
     // Limit total files
@@ -1071,7 +1085,7 @@ export const EnhancedPostCreator = ({
 
           <button
             className="inline-action-btn"
-            onClick={() => { _pickerOpenRef.current = true; _hasFileArrivedRef.current = false; setPreparingStage('picker'); fileInputRef.current?.click(); /* AUDIT-6: instant on-tap banner; cancel handled by window.focus + 5s grace in the useEffect on preparingStage */ }}
+            onClick={() => { if (_focusGraceTimerRef.current) { clearTimeout(_focusGraceTimerRef.current); _focusGraceTimerRef.current = null; } _pickerOpenRef.current = true; _hasFileArrivedRef.current = false; setPreparingStage('picker'); fileInputRef.current?.click(); /* AUDIT-6/7: instant on-tap banner + clear stale watchdog from previous picker session */ }}
             disabled={isSubmitting || mediaFiles.length >= MAX_MEDIA_FILES}
           >
             <span className="icon">📷</span> Photo/Video
@@ -1462,7 +1476,7 @@ export const EnhancedPostCreator = ({
             <button
               className="tool-btn interactive"
               title="Add Photo/Video"
-              onClick={() => { _pickerOpenRef.current = true; _hasFileArrivedRef.current = false; setPreparingStage('picker'); fileInputRef.current?.click(); /* AUDIT-6: instant on-tap banner; cancel handled by window.focus + 5s grace in the useEffect on preparingStage */ }}
+              onClick={() => { if (_focusGraceTimerRef.current) { clearTimeout(_focusGraceTimerRef.current); _focusGraceTimerRef.current = null; } _pickerOpenRef.current = true; _hasFileArrivedRef.current = false; setPreparingStage('picker'); fileInputRef.current?.click(); /* AUDIT-6/7: instant on-tap banner + clear stale watchdog from previous picker session */ }}
               disabled={isSubmitting || mediaFiles.length >= MAX_MEDIA_FILES}
             >
               📷
