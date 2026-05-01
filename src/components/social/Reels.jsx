@@ -347,7 +347,12 @@ export function ReelsViewer({ onClose }) {
         };
         window.addEventListener('message', handleYTMessage);
         return () => window.removeEventListener('message', handleYTMessage);
-    }, [currentIndex]);
+    // BUG FIX: include goNext so YT onStateChange(0) "video ended" auto-advance
+    // does not fire the stale goNext from when currentIndex last changed.
+    // Without this, if loadMoreReels() completes between index changes, YT fires
+    // the old goNext that doesn't know about new items in the list.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentIndex, goNext]);
 
     // Reset paused state when changing reels + track view
     // dep: currentIndex ONLY - we do NOT add `reels` because setReels() alone
@@ -468,13 +473,17 @@ export function ReelsViewer({ onClose }) {
     const handleReport = async () => {
         if (!currentReel?.id || !currentUserId || !reportReason.trim()) return;
         try {
-            await supabase.from('social_interactions').insert({
+            const { error } = await supabase.from('social_interactions').insert({
                 user_id: currentUserId, post_id: currentReel.id,
                 interaction_type: 'report', metadata: { reason: reportReason.trim() }
             });
+            // BUG FIX: do NOT show success UI if the insert failed silently
+            if (error) throw error;
             setReportSubmitted(true);
             setTimeout(() => { setShowReportModal(false); setReportSubmitted(false); setReportReason(''); }, 2000);
-        } catch { /* silent */ }
+        } catch {
+            showErrorToast('Report failed \u2014 please try again');
+        }
     };
 
     const handleFollow = async () => {
@@ -629,10 +638,10 @@ export function ReelsViewer({ onClose }) {
                 cc[r.id] = r.comment_count || 0;
                 vc[r.id] = r.view_count || 0;
             });
-            // Merge with existing counts to preserve any optimistic updates
-            setLikeCounts(prev => ({ ...lc, ...prev }));
-            setViewCounts(prev => ({ ...vc, ...prev }));
-            setCommentCounts(prev => ({ ...cc, ...prev }));
+            // DB is source of truth on a full reload — DB values win over stale optimistic counts
+            setLikeCounts(prev => ({ ...prev, ...lc }));
+            setViewCounts(prev => ({ ...prev, ...vc }));
+            setCommentCounts(prev => ({ ...prev, ...cc }));
         } catch (e) {
             console.warn('Load reels error:', e);
             setLoadError(true);
@@ -850,16 +859,24 @@ export function ReelsViewer({ onClose }) {
 
         try {
             if (wasDisliked) {
-                await supabase.from('social_likes').delete().eq('post_id', currentReel.id).eq('user_id', userId).eq('reaction_type', 'dislike');
+                const { error } = await supabase.from('social_likes').delete().eq('post_id', currentReel.id).eq('user_id', userId).eq('reaction_type', 'dislike');
+                if (error) throw error;
                 // #4 Not Interested - remove from filter
                 setNotInterestedIds(prev => { const n = new Set(prev); n.delete(currentReel.id); if (typeof window !== 'undefined') localStorage.setItem('reels-not-interested', JSON.stringify([...n])); return n; });
             } else {
-                await supabase.from('social_likes').insert({ post_id: currentReel.id, user_id: userId, reaction_type: 'dislike' });
+                const { error } = await supabase.from('social_likes').insert({ post_id: currentReel.id, user_id: userId, reaction_type: 'dislike' });
+                if (error) throw error;
                 // #4 Not Interested - add to filter
                 setNotInterestedIds(prev => { const n = new Set(prev); n.add(currentReel.id); if (typeof window !== 'undefined') localStorage.setItem('reels-not-interested', JSON.stringify([...n])); return n; });
             }
         } catch {
+            // BUG FIX: show error toast on dislike failure (was silently rolling back with no user feedback)
             setDisliked(prev => ({ ...prev, [currentReel.id]: wasDisliked }));
+            if (!wasDisliked && liked[currentReel.id]) {
+                setLiked(prev => ({ ...prev, [currentReel.id]: true }));
+                setLikeCounts(prev => ({ ...prev, [currentReel.id]: (prev[currentReel.id] || 0) + 1 }));
+            }
+            showErrorToast('Dislike failed \u2014 try again');
         }
     };
 
@@ -992,7 +1009,8 @@ export function ReelsViewer({ onClose }) {
             if (parentId) { payload.parent_id = parentId; }
             const { error } = await supabase.from('social_comments').insert(payload);
             if (error) throw error;
-            busEmit.socialCommentAdded(currentReel.id, currentUserId);
+            // BUG FIX: guard busEmit call (socialCommentAdded may be undefined in some build configs)
+            busEmit.socialCommentAdded && busEmit.socialCommentAdded(currentReel.id, currentUserId);
             // DB trigger (trig_update_reel_comment_count / trig_update_post_comment_count)
             // handles comment_count increment atomically - no RPC needed here
             setCommentCounts(prev => ({ ...prev, [currentReel.id]: (prev[currentReel.id] || 0) + 1 }));
@@ -1447,9 +1465,18 @@ export function ReelsViewer({ onClose }) {
         progressRAF.current = requestAnimationFrame(updateProgressRef.current);
     };
 
-    // Cleanup RAF on unmount to prevent memory leak
+    // Cleanup RAF + all timer refs on unmount to prevent memory leaks and
+    // stale state updates on unmounted component (React warning prevention)
     useEffect(() => {
-        return () => { if (progressRAF.current) cancelAnimationFrame(progressRAF.current); };
+        return () => {
+            if (progressRAF.current) cancelAnimationFrame(progressRAF.current);
+            // BUG FIX: clear long-press timer on unmount (was never cleared)
+            if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+            // BUG FIX: clear overlay auto-hide timer on unmount
+            if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+            // BUG FIX: clear reaction picker timer on unmount
+            if (reactionTimerRef.current) clearTimeout(reactionTimerRef.current);
+        };
     }, []);
 
     return (
@@ -2091,7 +2118,10 @@ export function ReelsViewer({ onClose }) {
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> 
                                 Share / Repost
                             </button>
-                            <button onClick={(e) => { e.stopPropagation(); setShowContextMenu(false); handleReport(); }} style={{
+                            {/* BUG FIX: context menu Report must open the report modal (which has reason selection),
+                                NOT call handleReport() directly. Direct call always fails silently because
+                                reportReason is '' when triggered from context menu — no reason has been selected. */}
+                            <button onClick={(e) => { e.stopPropagation(); setShowContextMenu(false); setShowReportModal(true); }} style={{
                                 background: 'transparent', border: 'none',
                                 padding: '16px 20px', color: '#ff3b30', fontSize: 16, fontWeight: 600, textAlign: 'left',
                                 display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
