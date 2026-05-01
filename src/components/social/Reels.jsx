@@ -203,13 +203,26 @@ export function ReelsViewer({ onClose }) {
     const COMMENT_MAX_LENGTH = 280;
     // #10 Error Toast
     const [errorToast, setErrorToast] = useState(null);
-    const showErrorToast = (msg) => { setErrorToast(msg); setTimeout(() => setErrorToast(null), 3000); };
+    // BUG FIX (R1): errorToastTimerRef — tracks the dismiss timer so it can be
+    // cancelled on unmount and never fires setErrorToast on an unmounted component.
+    const errorToastTimerRef = useRef(null);
+    const showErrorToast = (msg) => {
+        setErrorToast(msg);
+        clearTimeout(errorToastTimerRef.current);
+        errorToastTimerRef.current = setTimeout(() => setErrorToast(null), 3000);
+    };
     // #6 Comment Like Counts
     const [commentLikeCounts, setCommentLikeCounts] = useState({});
     // UX Overhaul - More menu + Reaction picker
     const [showMoreMenu, setShowMoreMenu] = useState(false);
     const [showReactionPicker, setShowReactionPicker] = useState(false);
     const reactionTimerRef = useRef(null);
+    const shareToastTimerRef = useRef(null);   // Prevents double-fire if share is re-triggered within 2s
+    const sharedToFeedTimerRef = useRef(null); // Prevents setState-after-unmount in handleShareToFeed
+    const reportModalTimerRef = useRef(null);  // Prevents setState-after-unmount in handleReport
+    // BUG FIX (R2): showHeartTimerRef — tracks the 800ms heart-flash timer so it
+    // can be cancelled on unmount (was firing setState on unmounted component).
+    const showHeartTimerRef = useRef(null);
 
     useEffect(() => {
         loadReels();
@@ -487,7 +500,8 @@ export function ReelsViewer({ onClose }) {
             // BUG FIX: do NOT show success UI if the insert failed silently
             if (error) throw error;
             setReportSubmitted(true);
-            setTimeout(() => { setShowReportModal(false); setReportSubmitted(false); setReportReason(''); }, 2000);
+            clearTimeout(reportModalTimerRef.current);
+            reportModalTimerRef.current = setTimeout(() => { setShowReportModal(false); setReportSubmitted(false); setReportReason(''); }, 2000);
         } catch {
             showErrorToast('Report failed \u2014 please try again');
         }
@@ -538,6 +552,13 @@ export function ReelsViewer({ onClose }) {
             document.body.style.width = '';
             document.body.style.touchAction = '';
             document.documentElement.style.overflow = '';
+            // Cancel all pending UI timers to avoid setState-after-unmount
+            clearTimeout(shareToastTimerRef.current);
+            clearTimeout(sharedToFeedTimerRef.current);
+            clearTimeout(reportModalTimerRef.current);
+            // R1+R2: also cancel error toast and heart-flash timers
+            clearTimeout(errorToastTimerRef.current);
+            clearTimeout(showHeartTimerRef.current);
         };
     }, []);
 
@@ -1151,7 +1172,8 @@ export function ReelsViewer({ onClose }) {
             if (platform === 'copy') {
                 await navigator.clipboard.writeText(url);
                 setShareToast(true);
-                setTimeout(() => setShareToast(false), 2000);
+                clearTimeout(shareToastTimerRef.current);
+                shareToastTimerRef.current = setTimeout(() => setShareToast(false), 2000);
             } else if (platform === 'native' && navigator.share) {
                 await navigator.share({ title, url });
             } else if (platform === 'x') {
@@ -1217,7 +1239,8 @@ export function ReelsViewer({ onClose }) {
                 busEmit.dataMutated('social');
             }
             setSharedToFeed(true);
-            setTimeout(() => { setSharedToFeed(false); }, 3000);
+            clearTimeout(sharedToFeedTimerRef.current);
+            sharedToFeedTimerRef.current = setTimeout(() => { setSharedToFeed(false); }, 3000);
         } catch (err) {
             console.warn('Share to feed failed:', err.message);
             showErrorToast('Share failed \u2014 try again');
@@ -1721,7 +1744,8 @@ export function ReelsViewer({ onClose }) {
                                 handleLike();
                                 if (!liked[currentReel?.id]) {
                                     setShowHeart(true);
-                                    setTimeout(() => setShowHeart(false), 800);
+                                    clearTimeout(showHeartTimerRef.current);
+                                    showHeartTimerRef.current = setTimeout(() => setShowHeart(false), 800);
                                 }
                             }}
                             onPointerDown={() => {

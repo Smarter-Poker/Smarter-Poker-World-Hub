@@ -151,6 +151,9 @@ export default function ReelsPage() {
     const [showMoreMenu, setShowMoreMenu] = useState(false);
     const [showReactionPicker, setShowReactionPicker] = useState(false);
     const reactionTimerRef = useRef(null);
+    const shareToastTimerRef = useRef(null);   // Prevents double-fire if share re-triggered within 2s
+    const sharedToFeedTimerRef = useRef(null); // Prevents setState-after-unmount in handleShareToFeed
+    const reportModalTimerRef = useRef(null);  // Prevents setState-after-unmount in handleReport
     // Phase 10 - Universal HUD auto-hide (5s timeout for usability)
     const [showOverlay, setShowOverlay] = useState(false);
     const hudTimerRef = useRef(null);
@@ -335,6 +338,10 @@ export default function ReelsPage() {
             document.body.style.width = '';
             document.body.style.touchAction = '';
             document.documentElement.style.overflow = '';
+            // Cancel pending UI timers to avoid setState-after-unmount on navigation
+            clearTimeout(shareToastTimerRef.current);
+            clearTimeout(sharedToFeedTimerRef.current);
+            clearTimeout(reportModalTimerRef.current);
         };
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [router.isReady]);
@@ -849,7 +856,8 @@ export default function ReelsPage() {
             // AUDIT FIX: do NOT show success UI if the insert failed silently
             if (error) throw error;
             setReportSubmitted(true);
-            setTimeout(() => { setShowReportModal(false); setReportSubmitted(false); setReportReason(''); }, 2000);
+            clearTimeout(reportModalTimerRef.current);
+            reportModalTimerRef.current = setTimeout(() => { setShowReportModal(false); setReportSubmitted(false); setReportReason(''); }, 2000);
         } catch {
             showErrorToast('Report failed \u2014 please try again');
         }
@@ -1133,7 +1141,8 @@ export default function ReelsPage() {
             if (platform === 'copy') {
                 await navigator.clipboard.writeText(url);
                 setShareToast(true);
-                setTimeout(() => setShareToast(false), 2000);
+                clearTimeout(shareToastTimerRef.current);
+                shareToastTimerRef.current = setTimeout(() => setShareToast(false), 2000);
             } else if (platform === 'native' && navigator.share) {
                 await navigator.share({ title, url });
             } else if (platform === 'x') {
@@ -1201,7 +1210,8 @@ export default function ReelsPage() {
                 busEmit.dataMutated('social');
             }
             setSharedToFeed(true);
-            setTimeout(() => { setSharedToFeed(false); }, 3000);
+            clearTimeout(sharedToFeedTimerRef.current);
+            sharedToFeedTimerRef.current = setTimeout(() => { setSharedToFeed(false); }, 3000);
         } catch (err) {
             console.error('[ShareToFeed] Failed:', err?.message || err);
             showErrorToast('Share failed — ' + (err?.message || 'try again'));
