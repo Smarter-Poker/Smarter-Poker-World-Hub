@@ -571,6 +571,11 @@ export function ReelsViewer({ onClose }) {
             clearTimeout(commentFocusTimerRef.current);
             // RLXS-4: cancel copy-link toast timer
             clearTimeout(copyToastTimerRef.current);
+            // WH-6 BUG FIX: cancel any pending interaction retry batch
+            if (onLoadRetryTimersRef.current) {
+                onLoadRetryTimersRef.current.forEach(t => clearTimeout(t));
+                onLoadRetryTimersRef.current = [];
+            }
         };
     }, []);
 
