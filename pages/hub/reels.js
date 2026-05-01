@@ -163,6 +163,15 @@ export default function ReelsPage() {
     const shareToastTimerRef = useRef(null);   // Prevents double-fire if share re-triggered within 2s
     const sharedToFeedTimerRef = useRef(null); // Prevents setState-after-unmount in handleShareToFeed
     const reportModalTimerRef = useRef(null);  // Prevents setState-after-unmount in handleReport
+    // BUG FIX (R-2): track likeBounce dismiss timer — prevents stale setState if user navigates
+    // away during the 400ms bounce animation.
+    const likeBounceTimerRef = useRef(null);
+    // BUG FIX (R-4/R-5): track showHeart dismiss timer — 800ms setShowHeart(false) was bare at
+    // every like call-site (button onClick + 2× reaction picker). All consolidated here.
+    const showHeartTimerRef = useRef(null);
+    // BUG FIX (R-6): track copyToast dismiss timer — prevents setState-after-unmount when
+    // user copies link then immediately navigates away.
+    const copyToastTimerRef = useRef(null);
     // Phase 10 - Universal HUD auto-hide (5s timeout for usability)
     const [showOverlay, setShowOverlay] = useState(false);
     const hudTimerRef = useRef(null);
@@ -357,6 +366,10 @@ export default function ReelsPage() {
             clearTimeout(errorToastTimerRef.current);
             clearTimeout(longPressTimerRef.current);
             clearTimeout(reactionTimerRef.current);
+            // BUG FIX (R-2/R-4/R-6): cancel the new tracked timers on unmount
+            clearTimeout(likeBounceTimerRef.current);
+            clearTimeout(showHeartTimerRef.current);
+            clearTimeout(copyToastTimerRef.current);
         };
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [router.isReady]);
@@ -779,8 +792,12 @@ export default function ReelsPage() {
         setLiked(prev => ({ ...prev, [postId]: !wasLiked }));
         setLikeCounts(prev => ({ ...prev, [postId]: Math.max(0, (prev[postId] || currentReel.like_count || 0) + (wasLiked ? -1 : 1)) }));
         // #7 Animated Like Counter - trigger bounce
+        // BUG FIX (R-2): cancel previous bounce timer before starting a new one.
+        // Rapid double-taps could accumulate N bare timeouts all firing setLikeBounceId(null),
+        // and the last one would fire 400ms after unmount if the user navigated away.
         setLikeBounceId(postId);
-        setTimeout(() => setLikeBounceId(null), 400);
+        if (likeBounceTimerRef.current) clearTimeout(likeBounceTimerRef.current);
+        likeBounceTimerRef.current = setTimeout(() => { likeBounceTimerRef.current = null; setLikeBounceId(null); }, 400);
         haptic(wasLiked ? 5 : 15);
         // Mutual exclusion: remove dislike when liking
         if (!wasLiked && disliked[postId]) {
@@ -1506,6 +1523,9 @@ export default function ReelsPage() {
         };
 
         // Mouse wheel with debounce
+        // BUG FIX (R-3): capture the wheelTimeout ID in the outer closure scope so the
+        // cleanup function can clear it on unmount. Without this, the 400ms timeout fires
+        // into a stale closure if the user navigates away during the cooldown.
         let wheelTimeout = null;
         const handleWheel = (e) => {
             if (wheelTimeout) return;
@@ -1584,6 +1604,8 @@ export default function ReelsPage() {
             document.removeEventListener('touchend', handleTouchEnd, { capture: true });
             window.removeEventListener('wheel', handleWheel);
             window.removeEventListener('message', handleYTMessage);
+            // BUG FIX (R-3): clear the wheelTimeout closure variable on unmount
+            if (wheelTimeout) clearTimeout(wheelTimeout);
         };
     }, []);
   // Realtime subscription - only reload on new social_reels; social_posts inserts are too
@@ -2203,8 +2225,12 @@ export default function ReelsPage() {
                             onClick={() => {
                                 handleLike();
                                 if (!liked[currentReel?.id]) {
+                                    // BUG FIX (R-4): cancel previous heart hide timer before scheduling
+                                    // a new one. Rapid taps accumulated N bare timeouts that all fired
+                                    // setShowHeart(false) on an unmounted component.
                                     setShowHeart(true);
-                                    setTimeout(() => setShowHeart(false), 800);
+                                    if (showHeartTimerRef.current) clearTimeout(showHeartTimerRef.current);
+                                    showHeartTimerRef.current = setTimeout(() => { showHeartTimerRef.current = null; setShowHeart(false); }, 800);
                                 }
                             }}
                             onPointerDown={() => {
@@ -2251,9 +2277,11 @@ export default function ReelsPage() {
                                     { emoji: '\uD83D\uDE21', label: 'Angry', type: 'angry' },
                                 ].map(r => (
                                     <button key={r.type} onClick={() => {
-                                        if (r.type === 'like') { handleLike(); if (!liked[currentReel?.id]) { setShowHeart(true); setTimeout(() => setShowHeart(false), 800); } }
+                                        // BUG FIX (R-5): use showHeartTimerRef for all reaction-picker heart animations
+                                        const triggerHeart = () => { if (!liked[currentReel?.id]) { setShowHeart(true); if (showHeartTimerRef.current) clearTimeout(showHeartTimerRef.current); showHeartTimerRef.current = setTimeout(() => { showHeartTimerRef.current = null; setShowHeart(false); }, 800); } };
+                                        if (r.type === 'like') { handleLike(); triggerHeart(); }
                                         else if (r.type === 'dislike') handleDislike();
-                                        else { handleLike(); if (!liked[currentReel?.id]) { setShowHeart(true); setTimeout(() => setShowHeart(false), 800); } }
+                                        else { handleLike(); triggerHeart(); }
                                         setShowReactionPicker(false);
                                         haptic(10);
                                     }} aria-label={r.label} style={{
@@ -2398,8 +2426,11 @@ export default function ReelsPage() {
                                 <button onClick={() => {
                                     const url = `${window.location.origin}/hub/reels?id=${currentReel?.id || ''}`;
                                     navigator.clipboard.writeText(url).then(() => {
+                                        // BUG FIX (R-6): cancel previous copyToast timer before starting a new one.
+                                        // Prevents setState-after-unmount if user copies then immediately navigates.
                                         setCopyToast(true);
-                                        setTimeout(() => setCopyToast(false), 2000);
+                                        if (copyToastTimerRef.current) clearTimeout(copyToastTimerRef.current);
+                                        copyToastTimerRef.current = setTimeout(() => { copyToastTimerRef.current = null; setCopyToast(false); }, 2000);
                                     }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                                     setShowMoreMenu(false);
                                 }} style={{
