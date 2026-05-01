@@ -466,62 +466,10 @@ export const SmarterPokerLayout = ({ children, currentUser: propUser, onNavigate
 
     // 3. Chat State management - Replaced legacy ChatDock with Messenger Deep Linking
     const handleOpenChat = (participant) => {
-<<<<<<< Updated upstream
         if (!participant) return;
         const targetUsername = participant.username || participant.name || participant.id;
         if (targetUsername && participant.id) {
             router.push(`/hub/messenger?compose=${encodeURIComponent(targetUsername)}&uid=${participant.id}`);
-=======
-        // Redirect to the full messenger page with deep-link compose parameters
-        // This ensures a true conversation thread opens with auto-focus, replacing the legacy local ChatDock
-        const targetUsername = participant.username || participant.name || participant.id;
-        if (targetUsername && participant.id) {
-            router.push(`/hub/messenger?compose=${encodeURIComponent(targetUsername)}&uid=${participant.id}`);
-        }
-    };
-
-    const handleCloseChat = (chatId) => {
-        setOpenChats(openChats.filter(c => c.conversation.id !== chatId));
-    };
-
-    const handleMinimizeChat = (chatId) => {
-        setOpenChats(openChats.map(c =>
-            c.conversation.id === chatId
-                ? { ...c, minimized: !c.minimized }
-                : c
-        ));
-    };
-
-    const handleSendMessage = async (chatId, text) => {
-        if (!authUser?.id || !text.trim()) return;
-
-        // Optimistic local update
-        setOpenChats(prev => prev.map(c => {
-            if (c.conversation.id === chatId) {
-                return {
-                    ...c,
-                    messages: [...c.messages, {
-                        id: Date.now(),
-                        text,
-                        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                        senderId: authUser.id
-                    }]
-                };
-            }
-            return c;
-        }));
-
-        // Persist to Supabase
-        try {
-            const participantId = chatId.replace('chat_', '');
-            await supabase.from('social_messages').insert({
-                sender_id: authUser.id,
-                receiver_id: participantId,
-                content: text,
-            });
-        } catch {
-            // Message table may not exist - fail silently
->>>>>>> Stashed changes
         }
     };
 

@@ -390,6 +390,10 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, onVoiceSend,
             audioChunksRef.current = [];
             mediaRecorderRef.current = mediaRecorder;
 
+            // Capture start time in a ref so onstop can compute real elapsed duration.
+            // Using recordingDuration state would be a stale closure (always 0 at onstop time).
+            const recordingStartTime = Date.now();
+
             mediaRecorder.ondataavailable = (e) => {
                 if (e.data.size > 0) audioChunksRef.current.push(e.data);
             };
@@ -398,8 +402,10 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, onVoiceSend,
                 // Stop all audio tracks
                 stream.getTracks().forEach(t => t.stop());
                 const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+                // Compute real duration from start time — recordingDuration state would be stale
+                const realDuration = Math.floor((Date.now() - recordingStartTime) / 1000);
                 if (blob.size > 500 && onVoiceSend) { // Min 500 bytes to avoid accidental taps
-                    onVoiceSend(blob, recordingDuration);
+                    onVoiceSend(blob, realDuration);
                 }
                 clearInterval(recordingTimerRef.current);
                 setRecordingDuration(0);
@@ -3663,6 +3669,8 @@ function MessengerPage() {
         if (paginationLockRef.current) return;
         paginationLockRef.current = true;
         setLoadingOlderMessages(true);
+        // Capture conversation at pagination start — user may switch before fetch resolves
+        const paginationConvId = activeConversation.id;
         try {
             const container = messagesContainerRef.current;
             const prevScrollHeight = container?.scrollHeight || 0;
@@ -3675,7 +3683,7 @@ function MessengerPage() {
                     ...(msgToken ? { Authorization: `Bearer ${msgToken}` } : {}),
                 },
                 body: JSON.stringify({
-                    conversationId: activeConversation.id,
+                    conversationId: paginationConvId,
                     userId: user.id,
                     before: oldestMsg.created_at,
                     limit: 50,
@@ -3683,6 +3691,8 @@ function MessengerPage() {
             });
             if (!response.ok) throw new Error(`Request failed (${response.status})`);
             const result = await response.json();
+            // Staleness guard: discard if user switched conversations while paginating
+            if (activeConversationRef.current?.id !== paginationConvId) return;
             if (result.success && result.messages?.length > 0) {
                 // Filter out hidden messages — re-read from localStorage for freshness
                 const freshHiddenIds = (() => {
@@ -3764,6 +3774,9 @@ function MessengerPage() {
         ));
 
         // Check online presence of the other user
+        // Capture at dispatch time — if user switches conversations before await resolves,
+        // discard the result so we don't stamp the new conversation's UI with stale data.
+        const selectedConvId = conversation.id;
         if (conversation.otherUser?.id) {
             try {
                 const { data: profile } = await supabase
@@ -3771,6 +3784,8 @@ function MessengerPage() {
                     .select('last_seen_at')
                     .eq('id', conversation.otherUser.id)
                     .maybeSingle();
+                // Staleness guard: bail if user already switched to a different conversation
+                if (activeConversationRef.current?.id !== selectedConvId) return;
                 if (profile?.last_seen_at) {
                     const diff = Date.now() - new Date(profile.last_seen_at).getTime();
                     setOtherUserLastSeen(profile.last_seen_at);

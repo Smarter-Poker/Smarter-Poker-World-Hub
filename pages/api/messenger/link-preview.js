@@ -92,23 +92,86 @@ export default async function handler(req, res) {
                 'Accept': 'text/html',
             },
             signal: controller.signal,
-            redirect: 'follow',
+            // SSRF: Do NOT follow redirects blindly — a public URL could redirect to a private IP.
+            // We handle redirects manually and re-validate each hop against the private IP blocklist.
+            redirect: 'manual',
         });
 
         clearTimeout(timeout);
 
-        if (!response.ok) {
-            return res.json({ success: false, error: `HTTP ${response.status}` });
+        // Manual redirect handling — re-validate each hop against SSRF blocklist
+        // (redirect:'manual' stops at the first redirect, so we follow manually)
+        let finalResponse = response;
+        const MAX_REDIRECTS = 5;
+        let redirectCount = 0;
+        while ([301, 302, 303, 307, 308].includes(finalResponse.status) && redirectCount < MAX_REDIRECTS) {
+            const location = finalResponse.headers.get('location');
+            if (!location) break;
+            let redirectUrl;
+            try {
+                redirectUrl = new URL(location, url);
+            } catch {
+                return res.json({ success: false, error: 'Invalid redirect URL' });
+            }
+            if (!['http:', 'https:'].includes(redirectUrl.protocol)) {
+                return res.json({ success: false, error: 'Redirect to non-HTTP URL blocked' });
+            }
+            const rHost = redirectUrl.hostname.toLowerCase();
+            const isRedirectPrivate =
+                rHost === 'localhost' || rHost === '0.0.0.0' || rHost === '::1' || rHost === '127.0.0.1' ||
+                rHost.startsWith('169.254.') || rHost.startsWith('192.168.') || rHost.startsWith('10.') ||
+                /^172\.(1[6-9]|2\d|3[01])\./.test(rHost);
+            if (isRedirectPrivate) {
+                return res.json({ success: false, error: 'Redirect to private URL blocked' });
+            }
+            const redirController = new AbortController();
+            const redirTimeout = setTimeout(() => redirController.abort(), 5000);
+            finalResponse = await fetch(redirectUrl.href, {
+                headers: { 'User-Agent': 'SmarterPoker-LinkPreview/1.0 (bot; +https://smarter.poker)', 'Accept': 'text/html' },
+                signal: redirController.signal,
+                redirect: 'manual',
+            });
+            clearTimeout(redirTimeout);
+            redirectCount++;
         }
 
-        const contentType = response.headers.get('content-type') || '';
+        if (!finalResponse.ok) {
+            return res.json({ success: false, error: `HTTP ${finalResponse.status}` });
+        }
+
+        const contentType = finalResponse.headers.get('content-type') || '';
         if (!contentType.includes('text/html')) {
             return res.json({ success: false, error: 'Not an HTML page' });
         }
 
-        // Read limited amount of HTML
-        const html = await response.text();
-        const limitedHtml = html.slice(0, MAX_CONTENT_LENGTH);
+        // Guard against large responses — reject if server declares >500KB upfront
+        const declaredLength = parseInt(finalResponse.headers.get('content-length') || '0', 10);
+        if (declaredLength > MAX_CONTENT_LENGTH) {
+            return res.json({ success: false, error: 'Page too large for preview' });
+        }
+
+        // Stream body and stop reading after MAX_CONTENT_LENGTH bytes.
+        // Using response.text() materializes the ENTIRE body before we slice —
+        // a 50MB+ response would OOM the serverless function.
+        let limitedHtml = '';
+        const reader = finalResponse.body?.getReader();
+        if (reader) {
+            const decoder = new TextDecoder();
+            let bytesRead = 0;
+            while (bytesRead < MAX_CONTENT_LENGTH) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                bytesRead += value.byteLength;
+                limitedHtml += decoder.decode(value, { stream: true });
+                if (bytesRead >= MAX_CONTENT_LENGTH) {
+                    reader.cancel();
+                    break;
+                }
+            }
+        } else {
+            // Fallback for environments where ReadableStream isn't available
+            limitedHtml = (await finalResponse.text()).slice(0, MAX_CONTENT_LENGTH);
+        }
 
         // Parse OG meta tags
         const preview = parseOGMeta(limitedHtml, parsedUrl);

@@ -76,10 +76,12 @@ export default async function handler(req, res) {
         });
 
         if (rpcErr) {
-            // Inline fallback: toggle manually
+            // Inline fallback: toggle manually using idempotent operations
+            // TOCTOU fix: use upsert (INSERT ON CONFLICT DO NOTHING) + unconditional DELETE
+            // rather than SELECT→INSERT/DELETE which races on rapid double-taps.
             console.warn('[react-message] RPC error, using inline fallback:', rpcErr.message);
 
-            // Check if reaction already exists
+            // Check if reaction already exists — needed to determine toggle direction
             const { data: existing } = await supabase
                 .from('message_reactions')
                 .select('id')
@@ -89,14 +91,16 @@ export default async function handler(req, res) {
                 .maybeSingle();
 
             if (existing) {
+                // Delete — idempotent (delete by specific id)
                 await supabase.from('message_reactions').delete().eq('id', existing.id);
             } else {
-                await supabase.from('message_reactions').insert({
+                // Insert — use upsert with ignoreDuplicates to be idempotent on race
+                await supabase.from('message_reactions').upsert({
                     message_id: messageId,
                     user_id: user.id,
                     reaction,
                     created_at: new Date().toISOString(),
-                });
+                }, { onConflict: 'message_id,user_id,reaction', ignoreDuplicates: true });
             }
         }
 
