@@ -27,6 +27,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     // which includes the broadcaster:profiles join. The prop may be partial (e.g. from Stories.loadLiveUsers).
     const [streamData, setStreamData] = useState(stream);
     const [remoteStream, setRemoteStream] = useState(null);
+    const pendingStreamRef = useRef(null); // BUG FIX (LSV-1): hold stream until video element is mounted
     const [viewerCount, setViewerCount] = useState(stream?.viewer_count || 0);
     const [isConnecting, setIsConnecting] = useState(true);
     const [isReconnecting, setIsReconnecting] = useState(false);
@@ -83,16 +84,19 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
 
                 // Join the stream — joinStream returns the full DB row with broadcaster join
                 const freshStream = await liveStreamService.joinStream(stream.id, userId, (remoteMediaStream) => {
+                    // BUG FIX (LSV-1): store in ref first, then state. The video element
+                    // may not be in the DOM yet when this callback fires (if the connecting
+                    // overlay is still showing). The useEffect below assigns srcObject after
+                    // the video element is guaranteed to be present.
+                    pendingStreamRef.current = remoteMediaStream;
                     setRemoteStream(remoteMediaStream);
-                    if (videoRef.current) {
-                        videoRef.current.srcObject = remoteMediaStream;
-                    }
                     setIsConnecting(false);
                 });
                 // Update streamData with the full DB response (includes broadcaster profile)
                 if (freshStream) setStreamData(freshStream);
 
-                setIsConnecting(false);
+                // Don't set isConnecting false here — let the remoteStream callback do it
+                // so we don't show a blank video before the track is ready.
 
                 // Load diamond balance for gift panel
                 if (userId) {
@@ -139,12 +143,24 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                 supabase.removeChannel(commentChannelRef.current);
                 commentChannelRef.current = null;
             }
-            const ch = supabase.channel(`live-comments-${stream.id}`)
+            const ch = supabase.channel(`live-comments-viewer-${stream.id}`)
                 .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'live_comments', filter: `stream_id=eq.${stream.id}` },
                     (payload) => {
-                        // Skip if this is our own comment (already added optimistically)
-                        if (payload.new.user_id === userId) return;
-                        setComments(prev => [...prev, payload.new]);
+                        // BUG FIX (LSV-2): Only deduplicate against optimistic comments,
+                        // not ALL comments from this user. The optimistic comment has an id
+                        // starting with 'optimistic-'. If there's a matching optimistic entry,
+                        // replace it (already done in handleSendComment). Otherwise, add it.
+                        setComments(prev => {
+                            const hasOptimistic = prev.some(c => c.id?.toString().startsWith('optimistic-') && c.user_id === payload.new.user_id && c.text === payload.new.text);
+                            if (hasOptimistic) {
+                                // Replace the optimistic placeholder with the real DB row
+                                return prev.map(c =>
+                                    (c.id?.toString().startsWith('optimistic-') && c.user_id === payload.new.user_id && c.text === payload.new.text)
+                                        ? payload.new : c
+                                );
+                            }
+                            return [...prev, payload.new];
+                        });
                     }
                 ).subscribe();
             commentChannelRef.current = ch;
@@ -223,12 +239,22 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     }, [stream?.id, userId]);
 
 
-    // Update video element when remote stream changes
+    // BUG FIX (LSV-1): Assign srcObject after both the video element AND the stream are ready.
+    // We use the pendingStreamRef so we never miss a stream that arrived before the video mounted.
     useEffect(() => {
         if (videoRef.current && remoteStream) {
             videoRef.current.srcObject = remoteStream;
+            pendingStreamRef.current = null;
         }
     }, [remoteStream]);
+
+    // Secondary guard: after isConnecting goes false, force-assign if pending stream exists
+    useEffect(() => {
+        if (!isConnecting && pendingStreamRef.current && videoRef.current) {
+            videoRef.current.srcObject = pendingStreamRef.current;
+            pendingStreamRef.current = null;
+        }
+    }, [isConnecting]);
 
     // Auto-scroll comments
     useEffect(() => {
@@ -343,11 +369,14 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                 autoPlay
                 playsInline
                 style={{
-                    maxWidth: '100%',
-                    maxHeight: '100%',
-                    width: 'auto',
+                    position: 'absolute',
+                    inset: 0,
+                    width: '100%',
                     height: '100%',
-                    objectFit: 'contain',
+                    // BUG FIX (LSV-3): Use 'cover' so video fills the entire screen
+                    // without the user having to manually shrink/zoom. 'contain' added
+                    // black bars and made the stream look like it didn't fill the screen.
+                    objectFit: 'cover',
                 }}
             />
 
@@ -621,8 +650,10 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                     value={commentInput}
                     onChange={e => setCommentInput(e.target.value)}
                     onKeyDown={e => { if(e.key==='Enter') handleSendComment(); }}
-                    placeholder="Say something..."
-                    style={{ flex:1, padding:'9px 14px', borderRadius:22, border:'1.5px solid rgba(255,255,255,.3)', background:'rgba(0,0,0,.5)', color:'white', fontSize:14, outline:'none' }}
+                    // BUG FIX (LSV-4): if not authed, show a hint instead of silently failing
+                    placeholder={userId ? 'Say something...' : 'Sign in to chat...'}
+                    disabled={!userId}
+                    style={{ flex:1, padding:'9px 14px', borderRadius:22, border:'1.5px solid rgba(255,255,255,.3)', background: userId ? 'rgba(0,0,0,.5)' : 'rgba(0,0,0,.3)', color:'white', fontSize:14, outline:'none', opacity: userId ? 1 : 0.6 }}
                 />
                 {/* Diamond gift button */}
                 {(streamData?.broadcaster_id || stream?.broadcaster_id) && (streamData?.broadcaster_id || stream?.broadcaster_id) !== userId && (

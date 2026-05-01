@@ -63,10 +63,11 @@ export default async function handler(req, res) {
                 author_id: user.id,
                 content: caption || `🔴 Live replay: ${stream.title || 'Stream'}`,
                 content_type: 'video',
+                media_type: 'video',   // BUG FIX (ESM-1): needed for feed to detect video thumbnail
                 media_urls: stream.video_url ? [stream.video_url] : [],
                 thumbnail_url: stream.thumbnail_url || null,
                 visibility: 'public',
-                metadata: { stream_id, source: 'live_replay' },
+                metadata: { stream_id, source: 'live_replay', lives_id: stream_id },
             }).select('id').maybeSingle();
 
             if (postErr) {

@@ -34,6 +34,53 @@ export function EndStreamModal({
     const [uploadProgress, setUploadProgress] = useState(0);
     const [error, setError] = useState('');
     const videoRef = useRef(null);
+    // BUG FIX (ESM-2): if thumbnailUrl prop is null, we auto-extract a frame
+    // from the recorded blob and upload it so the social post gets a thumbnail.
+    const [resolvedThumbUrl, setResolvedThumbUrl] = useState(thumbnailUrl || null);
+    const thumbExtractedRef = useRef(false);
+
+    // Extract a thumbnail from the blob if we don't have one from the streamer
+    useEffect(() => {
+        if (resolvedThumbUrl || thumbExtractedRef.current || !videoBlob || !user?.id || !streamId) return;
+        thumbExtractedRef.current = true;
+        const vidEl = document.createElement('video');
+        vidEl.muted = true;
+        vidEl.playsInline = true;
+        const blobUrl = URL.createObjectURL(videoBlob);
+        vidEl.src = blobUrl;
+        vidEl.onloadedmetadata = () => {
+            vidEl.currentTime = Math.min(1, vidEl.duration * 0.1);
+        };
+        vidEl.onseeked = async () => {
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = vidEl.videoWidth || 640;
+                canvas.height = vidEl.videoHeight || 360;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(vidEl, 0, 0, canvas.width, canvas.height);
+                canvas.toBlob(async (blob) => {
+                    if (!blob) return;
+                    const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+                    const path = `live-thumbnails/${user.id}/${streamId}-auto.jpg`;
+                    const tok = (await getAccessToken()) || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+                    const res = await fetch(`${SUPABASE_URL}/storage/v1/object/live-recordings/${path}`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${tok}`, 'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, 'Content-Type': 'image/jpeg', 'x-upsert': 'true' },
+                        body: blob,
+                    });
+                    if (res.ok) {
+                        // Get public URL from supabase SDK pattern
+                        const pubUrl = `${SUPABASE_URL}/storage/v1/object/public/live-recordings/${path}`;
+                        setResolvedThumbUrl(pubUrl);
+                        // Also update the live_streams row so end-stream API picks it up
+                        await supabase.from('live_streams').update({ thumbnail_url: pubUrl }).eq('id', streamId);
+                    }
+                }, 'image/jpeg', 0.8);
+            } catch (e) { console.warn('[EndStreamModal] thumb extract failed:', e); }
+            URL.revokeObjectURL(blobUrl);
+        };
+        vidEl.onerror = () => URL.revokeObjectURL(blobUrl);
+    }, [videoBlob, user?.id, streamId, resolvedThumbUrl]);
 
     // Set video source when blob is available
     // FIX: revoke previous objectURL on change/unmount to prevent memory leak
@@ -132,7 +179,8 @@ export function EndStreamModal({
                 .from('live_streams')
                 .update({
                     video_url: videoUrl,
-                    thumbnail_url: thumbnailUrl,
+                    // BUG FIX (ESM-2): use resolvedThumbUrl (may be auto-extracted from blob)
+                    thumbnail_url: resolvedThumbUrl || thumbnailUrl || null,
                 })
                 .eq('id', streamId);
 
@@ -169,7 +217,8 @@ export function EndStreamModal({
                 .from('live_streams')
                 .update({
                     video_url: videoUrl,
-                    thumbnail_url: thumbnailUrl,
+                    // BUG FIX (ESM-2): use resolvedThumbUrl (may be auto-extracted from blob)
+                    thumbnail_url: resolvedThumbUrl || thumbnailUrl || null,
                 })
                 .eq('id', streamId);
 
