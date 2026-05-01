@@ -4656,19 +4656,22 @@ function MessengerPage() {
 
         messageSearchTimeout.current = setTimeout(async () => {
             try {
-                const { data, error } = await supabase.rpc('fn_search_messages', {
-                    p_conversation_id: activeConversation.id,
-                    p_user_id: user.id,
-                    p_query: query,
+                const resp = await authedFetch('/api/messenger/search-messages', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        conversationId: activeConversation.id,
+                        query,
+                    }),
                 });
-
-                if (error) throw error;
-                setMessageSearchResults(data || []);
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                const data = await resp.json();
+                setMessageSearchResults(data.results || []);
             } catch (e) {
                 console.warn('Message search error:', e);
             }
         }, 300);
-    }, [activeConversation, user]);
+    }, [activeConversation]);
 
     // ════════════════════════════════════════════════════════████████████████
     // 🟢🔴 REAL-TIME PRESENCE: WebSocket-based online/offline tracking

@@ -18,13 +18,10 @@ function getSupabase() {
 
 export default async function handler(req, res) {
   try {
-    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-      if (!applyRateLimit(req, res, LIMITS.write)) return;
-    }
-
       if (req.method !== 'DELETE' && req.method !== 'POST') {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
 
       // Require JWT auth
       const token = req.headers.authorization?.replace('Bearer ', '');

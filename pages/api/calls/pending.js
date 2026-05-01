@@ -2,6 +2,7 @@
 // GET /api/calls/pending?userId=xxx
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 let _supabase = null;
@@ -20,6 +21,8 @@ export default async function handler(req, res) {
       if (req.method !== 'GET') {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
+      // Presence polling is high-frequency — use read limit
+      if (!applyRateLimit(req, res, LIMITS.read)) return;
 
       // ── Auth: verify JWT identity ──
       const token = req.headers.authorization?.replace('Bearer ', '');
