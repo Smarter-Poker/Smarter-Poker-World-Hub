@@ -518,23 +518,14 @@ export const SPPostCard = ({
                                                                 />
                                                             );
                                                         }
-                                                        // Uploaded video without a server-generated thumbnail
-                                                        // yet: render the actual video element. autoPlay+muted
-                                                        // +playsInline pulls the first frame on iOS Safari
-                                                        // (works for native MP4; HEVC-only sources will look
-                                                        // black on Chrome but render correctly on iOS until
-                                                        // the cron transcodes to H.264).
+                                                        // AUDIT-9 (per Dan: iPhone CRASH on staging):
+                                                        // Reverted the autoplay video fallback. Rendering an
+                                                        // autoplay <video> for HEVC content on iPhone can OOM
+                                                        // the tab, especially with multiple feed cards.
+                                                        // Static placeholder is safe; cron will fill the
+                                                        // thumbnail within 1-2 minutes.
                                                         return (
-                                                            <video
-                                                                src={mediaUrl}
-                                                                autoPlay
-                                                                muted
-                                                                playsInline
-                                                                preload="auto"
-                                                                loop={false}
-                                                                onLoadedData={(e) => { try { e.currentTarget.pause(); } catch (_) {} }}
-                                                                style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#000' }}
-                                                            />
+                                                            <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, #1a1a2e, #16213e)' }} />
                                                         );
                                                     })()}
                                                     {/* Play Button Overlay */}
