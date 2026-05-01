@@ -2572,15 +2572,18 @@ function MessengerPage() {
     // URL format: /hub/messenger?compose=username&uid=userId
     // ═══════════════════════════════════════════════════════════════════════════
     const router = useRouter();
-    const deepLinkHandled = useRef(false);
+    // Track the last-handled uid (not a boolean) so re-clicking Message for a
+    // different user in the same session correctly opens THAT conversation.
+    const lastHandledUid = useRef(null);
     const [composeFocus, setComposeFocus] = useState(false);
     useEffect(() => {
-        if (deepLinkHandled.current) return;
         if (!user?.id) return;
         const { compose, uid } = router.query;
         if (!compose || !uid) return;
+        // Prevent handling the same deep-link twice (deduplication)
+        if (lastHandledUid.current === uid) return;
 
-        deepLinkHandled.current = true;
+        lastHandledUid.current = uid;
 
         // Look up the target user's profile and start a conversation
         const openCompose = async () => {
@@ -2599,14 +2602,18 @@ function MessengerPage() {
                 } else {
                     console.warn('[Messenger] Deep-link target not found:', compose, uid);
                     setToast({ type: 'error', message: 'User not found' });
+                    // Reset lock so user can retry
+                    lastHandledUid.current = null;
                 }
+                // Clean up the URL query params without navigation or React state reset
+                // We use history API directly because router.replace triggers _app.js remount via router.asPath key
+                window.history.replaceState(null, '', '/hub/messenger');
             } catch (e) {
                 console.warn('[Messenger] Deep-link compose error:', e?.message || e);
+                setToast({ type: 'error', message: 'Failed to start conversation. Please try again.' });
+                lastHandledUid.current = null; // Reset so user can retry
+                window.history.replaceState(null, '', '/hub/messenger');
             }
-
-            // Clean up the URL query params without navigation or React state reset
-            // We use history API directly because router.replace triggers _app.js remount via router.asPath key
-            window.history.replaceState(null, '', '/hub/messenger');
         };
 
         openCompose();
@@ -4373,15 +4380,21 @@ function MessengerPage() {
                 isRequest: isRequest || false,
             };
 
-            // Add to list if not exists.
-            // Note: conversations in closure might be stale (empty), so we rely on prev to update the list.
-            // We use newConv to start the chat immediately, which works fine as it has the correct ID.
+            // Add to list if not exists. If it DOES exist, grab the hydrated version
+            // (which has last_message_preview, unreadCount, etc.) so the sidebar
+            // preview doesn't blank out when the user opens an existing thread.
+            let convToSelect = newConv;
             setConversations(prev => {
-                if (prev.find(c => c.id === convId)) return prev;
+                const existing = prev.find(c => c.id === convId);
+                if (existing) {
+                    // Merge in the latest otherUser profile in case avatar/name changed
+                    convToSelect = { ...existing, otherUser };
+                    return prev;
+                }
                 return [newConv, ...prev];
             });
 
-            handleSelectConversation(newConv);
+            handleSelectConversation(convToSelect);
 
             // Show toast if this is a message request (non-friend)
             if (isRequest) {

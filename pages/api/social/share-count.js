@@ -46,13 +46,23 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'post_id is required' });
     }
 
-    // Fire-and-forget analytics insert
+    // Fire-and-forget analytics insert + streak reward
     getSupabase().from('share_events').insert({
         post_id,
         user_id: user.id,
         destination,
         platform: platform || null,
-    }).then(() => {}).catch(() => {});
+    }).then(() => {
+        // After inserting share event, award streak diamond reward (non-blocking)
+        getSupabase()
+            .rpc('fn_award_share_streak_diamonds', { p_user_id: user.id })
+            .then(({ data: streakResult }) => {
+                if (streakResult?.awarded) {
+                    console.log(`[share-streak] Awarded ${streakResult.diamonds} diamonds to ${user.id} (day ${streakResult.streak}, ${streakResult.tier} tier)`);
+                }
+            })
+            .catch(() => {});
+    }).catch(() => {});
 
     try {
         // Detect whether this is a native reel (social_reels) or post (social_posts)
@@ -93,7 +103,20 @@ export default async function handler(req, res) {
             }
         }
 
-        return res.status(200).json({ success: true });
+        // Check today's streak reward status to include in response
+        let streakData = null;
+        try {
+            const { data: sr } = await getSupabase()
+                .from('share_streak_rewards')
+                .select('streak_length, diamonds_awarded, reward_day')
+                .eq('user_id', user.id)
+                .order('reward_day', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+            if (sr) streakData = sr;
+        } catch (_) {}
+
+        return res.status(200).json({ success: true, streak: streakData });
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         console.warn('Share count API error:', err);
