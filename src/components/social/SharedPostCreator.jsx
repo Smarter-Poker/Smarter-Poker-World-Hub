@@ -40,6 +40,32 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
     const setPreparingMedia = (val) => setPreparingStage(val ? 'staging' : null);
     const _hasFileArrivedRef = useRef(false); // tracks whether change event fired since picker opened — used to detect cancel
     const _focusGraceTimerRef = useRef(null); // 5s watchdog after picker closes; stored as ref so it survives the 'picker'->'loading' useEffect re-run
+    // AUDIT-13 (2026-04-30 per Dan: "3s on Mac, 25s on iPhone — why?"):
+    // Timing instrumentation. Records timestamps at each phase of the
+    // upload-staging flow so we can see EXACTLY where the seconds go.
+    // Displayed inline at the bottom of the banner during staging and
+    // also written to sessionStorage 'sp-upload-timings' for Dan to copy.
+    const _timingsRef = useRef({});
+    const [timingDisplay, setTimingDisplay] = useState('');
+    const _bumpTiming = (key) => {
+        const t0 = _timingsRef.current.tap || performance.now();
+        const now = performance.now();
+        _timingsRef.current[key] = Math.round(now - t0);
+        // Format for inline display
+        const t = _timingsRef.current;
+        const fmt = (ms) => ms == null ? '–' : (ms >= 1000 ? `${(ms/1000).toFixed(1)}s` : `${ms}ms`);
+        const line = [
+            t.tap != null ? `tap=0` : null,
+            t.focus != null ? `focus=${fmt(t.focus)}` : null,
+            t.change != null ? `change=${fmt(t.change)}` : null,
+            t.setMedia != null ? `setMedia=${fmt(t.setMedia)}` : null,
+            t.thumb != null ? `thumb=${fmt(t.thumb)}` : null,
+        ].filter(Boolean).join(' · ');
+        setTimingDisplay(line);
+        try {
+            sessionStorage.setItem('sp-upload-timings', JSON.stringify(_timingsRef.current));
+        } catch (_) {}
+    };
     const [mentionQuery, setMentionQuery] = useState('');
     const [mentionResults, setMentionResults] = useState([]);
     const [showMentions, setShowMentions] = useState(false);
@@ -229,6 +255,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         if (preparingStage !== 'picker') return;
         const onFocus = () => {
             if (!mountedRef.current) return;
+            _bumpTiming('focus'); // AUDIT-13: T-elapsed when picker dismisses
             // Picker just dismissed. Switch to 'loading' state — iOS is now
             // doing its sandbox-copy / iCloud-pull work before firing change.
             setPreparingStage(prev => prev === 'picker' ? 'loading' : prev);
@@ -284,6 +311,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
     };
     const handleFiles = async (e) => {
         try {
+        _bumpTiming('change'); // AUDIT-13: T-elapsed when iOS dispatched the change event (handoff complete)
         _logUploadStep('handleFiles:enter', { files: e?.target?.files?.length });
         // Picker closed AND a file was actually selected (no-files handled below).
         _pickerOpenRef.current = false;
@@ -366,6 +394,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
             return;
         }
         _logUploadStep('handleFiles:setMedia', { count: staged.length, types: staged.map(s => s.type) });
+        _bumpTiming('setMedia'); // AUDIT-13: T-elapsed at setMedia (validation+blob URL creation done)
         setMedia(prev => [...prev, ...staged]);
 
         // ⚡ INSTANT FEEDBACK is now handled by the inline "Preparing Your Video"
@@ -395,6 +424,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
             // HEVC decode (~30s) never finished before user tapped Post.
             const thumbPromise = generateThumbnail(item.file)
                 .then(thumb => {
+                    _bumpTiming('thumb'); // AUDIT-13: T-elapsed at thumbnail resolution
                     if (mountedRef.current && thumb) {
                         setMedia(prev => prev.map(m =>
                             m.url === item.url ? { ...m, thumbnail: thumb } : m
@@ -403,6 +433,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                     return thumb || null;
                 })
                 .catch(err => {
+                    _bumpTiming('thumb');
                     console.warn('[SharedPostCreator] generateThumbnail failed:', err?.message || err);
                     return null;
                 });
@@ -1536,13 +1567,21 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         WebkitTransform: 'translateZ(0)',
                         transform: 'translateZ(0)',
                     }} />
-                    <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: 0.2, flex: 1 }}>
-                        {preparingStage === 'picker'
-                            ? 'Opening Photos…'
-                            : preparingStage === 'loading'
-                            ? 'Loading your video — this can take 5–25s on iPhone for HEVC clips…'
-                            : 'Preparing your video — this may take a moment for longer clips…'}
-                    </span>
+                    <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: 0.2, flex: 1, lineHeight: 1.3 }}>
+                        <div>
+                            {preparingStage === 'picker'
+                                ? 'Opening Photos…'
+                                : preparingStage === 'loading'
+                                ? 'Loading your video — this can take 5–25s on iPhone for HEVC clips…'
+                                : 'Preparing your video — this may take a moment for longer clips…'}
+                        </div>
+                        {timingDisplay && (
+                            // AUDIT-13 timing display so Dan can see WHERE the seconds go
+                            <div style={{ fontSize: 11, fontWeight: 500, opacity: 0.85, marginTop: 4, fontFamily: 'monospace' }}>
+                                {timingDisplay}
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
             <div style={{ borderTop: `1px solid ${C.border}` }}>
@@ -1568,6 +1607,9 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                         }
                         _pickerOpenRef.current = true;
                         _hasFileArrivedRef.current = false;
+                        // AUDIT-13: reset and start the timing baseline. tap=0 by definition.
+                        _timingsRef.current = { tap: performance.now() };
+                        setTimingDisplay('tap=0');
                         setPreparingStage('picker');
                         fileRef.current?.click();
                     }}
