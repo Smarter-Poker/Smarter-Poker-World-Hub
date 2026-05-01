@@ -13,6 +13,7 @@ import { LiveViewerList } from './LiveViewerList';
 import { LiveDiamondGift } from './LiveDiamondGift';
 import { supabase } from '../../lib/supabase';
 import { busEmit } from '../../engine/EventBus';
+import { getAccessToken } from '../../lib/authUtils';
 
 const C = {
     red: '#FA383E',
@@ -53,6 +54,10 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     // BUG FIX (L7): track the active giftFlash timer so a new gift arrival
     // cancels the previous one instead of racing to clear the display.
     const giftFlashTimerRef = useRef(null);
+    // BUG FIX (LV-1): track commentError clear timer to cancel on unmount
+    const commentErrorTimerRef = useRef(null);
+    // BUG FIX (V5): track the onStreamEnded close timer so unmount can cancel it
+    const streamEndedTimerRef = useRef(null);
 
     useEffect(() => {
         if (!stream?.id || !userId) return;
@@ -65,7 +70,11 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                 // Set up callbacks
                 liveStreamService.onStreamEnded = () => {
                     setError('Stream has ended');
-                    setTimeout(onClose, 2000);
+                    // BUG FIX (V5): store timer ref so unmount can cancel it
+                    streamEndedTimerRef.current = setTimeout(() => {
+                        streamEndedTimerRef.current = null;
+                        onClose();
+                    }, 2000);
                 };
                 liveStreamService.onViewerCountChange = (count) => setViewerCount(count);
                 liveStreamService.onReconnecting = () => setIsReconnecting(true);
@@ -201,6 +210,10 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
             if (pinChannelRef.current) supabase.removeChannel(pinChannelRef.current);
             // BUG FIX (L7): cancel any pending giftFlash timer on unmount
             if (giftFlashTimerRef.current) clearTimeout(giftFlashTimerRef.current);
+            // BUG FIX (LV-1): cancel any pending commentError clear timer on unmount
+            if (commentErrorTimerRef.current) clearTimeout(commentErrorTimerRef.current);
+            // BUG FIX (V5): cancel onStreamEnded close timer on unmount
+            if (streamEndedTimerRef.current) clearTimeout(streamEndedTimerRef.current);
             liveStreamService.onStreamEnded = null;
             liveStreamService.onViewerCountChange = null;
             liveStreamService.onReconnecting = null;
@@ -259,9 +272,15 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
         const optimisticComment = { id: optimisticId, stream_id: stream.id, user_id: userId, author_name: localDisplayName, text, created_at: new Date().toISOString() };
         setComments(prev => [...prev, optimisticComment]);
         try {
+            // BUG FIX (V1): include Authorization header — getServerUserWithFallback
+            // requires a bearer token on browsers where cookie-based fallback fails
+            const token = getAccessToken();
             const resp = await fetch('/api/live/comment', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
                 credentials: 'same-origin',
                 body: JSON.stringify({ stream_id: stream.id, text }),
             });
@@ -270,7 +289,12 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                 // Remove optimistic comment and show error
                 setComments(prev => prev.filter(c => c.id !== optimisticId));
                 setCommentError(json.error || 'Comment failed');
-                setTimeout(() => setCommentError(''), 3000);
+                // BUG FIX (LV-1): track timer ref to prevent setState on unmounted component
+                if (commentErrorTimerRef.current) clearTimeout(commentErrorTimerRef.current);
+                commentErrorTimerRef.current = setTimeout(() => {
+                    commentErrorTimerRef.current = null;
+                    setCommentError('');
+                }, 3000);
             } else if (json.comment) {
                 // Replace optimistic comment with real DB row (has server-resolved author_name)
                 setComments(prev => prev.map(c => c.id === optimisticId ? json.comment : c));
@@ -278,7 +302,12 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
         } catch (err) {
             setComments(prev => prev.filter(c => c.id !== optimisticId));
             setCommentError('Network error — please retry');
-            setTimeout(() => setCommentError(''), 3000);
+            // BUG FIX (LV-1): same fix for catch branch
+            if (commentErrorTimerRef.current) clearTimeout(commentErrorTimerRef.current);
+            commentErrorTimerRef.current = setTimeout(() => {
+                commentErrorTimerRef.current = null;
+                setCommentError('');
+            }, 3000);
             console.warn('[LiveStreamViewer] comment failed:', err);
         }
     };

@@ -46,6 +46,8 @@ export function GoLiveModal({ isOpen, onClose, user }) {
     const [pinnedComment, setPinnedComment] = useState(null); // #18: pinned comment
     const [commentMenu, setCommentMenu] = useState(null); // #19: comment action menu
     const [isMuted, setIsMuted] = useState(false); // #6: mic mute toggle
+    // BUG FIX (GLM-3): separate toast state for share link (not reusing error)
+    const [shareToast, setShareToast] = useState('');
 
     // Thumbnail state
     const [thumbnailFile, setThumbnailFile] = useState(null);
@@ -64,15 +66,27 @@ export function GoLiveModal({ isOpen, onClose, user }) {
     const commentInputRef = useRef(null); // #10: blur after send to dismiss keyboard
     const hideControlsRef = useRef(null);
     const commentChannelRef = useRef(null);
+    // BUG FIX (GLM-1): track giftFlash timer ref to prevent broadcaster-side timer storm
+    const giftFlashTimerRef = useRef(null);
+    // BUG FIX (GLM-3): track share toast timer ref
+    const shareToastTimerRef = useRef(null);
+    // BUG FIX (GLM-5): track in-flight getUserMedia mount guard
+    const mediaAccessMountedRef = useRef(true);
 
     useEffect(() => {
+        mediaAccessMountedRef.current = true;
         if (isOpen) { requestMediaAccess(); }
         return () => {
+            mediaAccessMountedRef.current = false;
             streamRef.current?.getTracks().forEach(t => t.stop());
             if (timerRef.current) clearInterval(timerRef.current);
             if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current?.stop();
             if (hideControlsRef.current) clearTimeout(hideControlsRef.current);
             if (commentChannelRef.current) supabase.removeChannel(commentChannelRef.current);
+            // BUG FIX (GLM-1): cancel any in-flight giftFlash timer on modal close
+            if (giftFlashTimerRef.current) clearTimeout(giftFlashTimerRef.current);
+            // BUG FIX (GLM-3): cancel share toast timer on modal close
+            if (shareToastTimerRef.current) clearTimeout(shareToastTimerRef.current);
             // FIX: countdown interval cleanup was AFTER the return — unreachable dead code
             if (timerRef._cdInterval) { clearInterval(timerRef._cdInterval); timerRef._cdInterval = null; }
             // FIX: if modal is force-closed during live broadcast, end the broadcast to prevent zombie room
@@ -124,11 +138,20 @@ export function GoLiveModal({ isOpen, onClose, user }) {
         });
         giftCh.on('broadcast', { event: 'gift' }, ({ payload }) => {
             if (payload?.sender_name && payload?.amount) {
+                // BUG FIX (GLM-1): cancel previous timer before setting new one (timer storm)
+                if (giftFlashTimerRef.current) clearTimeout(giftFlashTimerRef.current);
                 setGiftFlash({ name: payload.sender_name, amount: payload.amount });
-                setTimeout(() => setGiftFlash(null), 4000);
+                giftFlashTimerRef.current = setTimeout(() => {
+                    giftFlashTimerRef.current = null;
+                    setGiftFlash(null);
+                }, 4000);
             }
         }).subscribe();
-        return () => { supabase.removeChannel(giftCh); };
+        return () => {
+            supabase.removeChannel(giftCh);
+            // BUG FIX (GLM-1): also clear on effect cleanup
+            if (giftFlashTimerRef.current) { clearTimeout(giftFlashTimerRef.current); giftFlashTimerRef.current = null; }
+        };
     }, [streamId]);
 
     useEffect(() => {
@@ -143,17 +166,28 @@ export function GoLiveModal({ isOpen, onClose, user }) {
     }, [comments]);
 
     const requestMediaAccess = async () => {
+        // BUG FIX (GLM-5): guard against the case where getUserMedia resolves AFTER
+        // the modal closes — the resulting track would never be stopped, leaking the
+        // camera/mic for the duration of the user session.
+        let stream;
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({
+            stream = await navigator.mediaDevices.getUserMedia({
                 video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
                 audio: true,
             });
+            // If the modal was closed while getUserMedia was pending, stop immediately
+            if (!mediaAccessMountedRef.current) {
+                stream.getTracks().forEach(t => t.stop());
+                return;
+            }
             streamRef.current = stream;
             if (videoRef.current) videoRef.current.srcObject = stream;
             setStage('preview');
             setError('');
         } catch (err) {
-            setError('Camera access denied. Please allow camera and microphone permissions.');
+            if (mediaAccessMountedRef.current) {
+                setError('Camera access denied. Please allow camera and microphone permissions.');
+            }
         }
     };
 
@@ -341,8 +375,13 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                 await navigator.share({ title: title || 'Live Stream', url });
             } else {
                 await navigator.clipboard.writeText(url);
-                setError('Link copied to clipboard!'); // Reuse error for brief flash
-                setTimeout(() => setError(''), 2500);
+                // BUG FIX (GLM-3): use dedicated toast state + tracked timer, not error state
+                if (shareToastTimerRef.current) clearTimeout(shareToastTimerRef.current);
+                setShareToast('Link copied to clipboard!');
+                shareToastTimerRef.current = setTimeout(() => {
+                    shareToastTimerRef.current = null;
+                    setShareToast('');
+                }, 2500);
             }
         } catch { /* ignore user cancel */ }
     };
@@ -368,26 +407,37 @@ export function GoLiveModal({ isOpen, onClose, user }) {
         const text = commentInput.trim();
         setCommentInput('');
         commentInputRef.current?.blur(); // #10: dismiss mobile keyboard
-        const authorName = user.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'Viewer';
-        const newComment = { id: Date.now(), user_id: user.id, author_name: authorName, text, created_at: new Date().toISOString() };
+        const authorName = user.username || user.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'Broadcaster';
+        const optimisticId = `opt-${Date.now()}`;
+        const newComment = { id: optimisticId, user_id: user.id, author_name: authorName, text, created_at: new Date().toISOString() };
         setComments(prev => [...prev, newComment]);
         try {
-            // Direct insert (RPC was never deployed to DB)
-            const { data, error } = await supabase.from('live_comments').insert({
-                stream_id: streamId,
-                user_id: user.id,
-                author_name: authorName,
-                text,
-            }).select().maybeSingle();
-            if (error) {
-                setComments(prev => prev.filter(c => c.id !== newComment.id));
-                setError(error.message || 'Comment failed');
+            // BUG FIX (GLM-2): broadcaster comments now go through /api/live/comment
+            // (just like viewers do) so ban-check, slow-mode, and server-side author_name
+            // resolution all apply uniformly. Direct anon-key insert bypassed all of this.
+            const { getAccessToken } = await import('../../lib/authUtils');
+            const token = getAccessToken();
+            const resp = await fetch('/api/live/comment', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({ stream_id: streamId, text }),
+            });
+            const json = await resp.json();
+            if (!resp.ok) {
+                setComments(prev => prev.filter(c => c.id !== optimisticId));
+                setError(json.error || 'Comment failed');
                 setTimeout(() => setError(''), 3000);
-            } else if (data) {
-                // Replace optimistic with real DB row
-                setComments(prev => prev.map(c => c.id === newComment.id ? data : c));
+            } else if (json.comment) {
+                setComments(prev => prev.map(c => c.id === optimisticId ? json.comment : c));
             }
-        } catch (err) { console.warn('[GoLive] comment failed:', err); }
+        } catch (err) {
+            setComments(prev => prev.filter(c => c.id !== optimisticId));
+            console.warn('[GoLive] comment failed:', err);
+        }
     };
 
     const handleEndStreamModalClose = (action) => {
@@ -801,10 +851,10 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                             </div>
                         )}
 
-                        {/* Link copied flash */}
-                        {error && error.includes('clipboard') && (
+                        {/* BUG FIX (GLM-3): use dedicated shareToast state, not error state */}
+                        {shareToast && (
                             <div style={{ position:'absolute', top:70, left:'50%', transform:'translateX(-50%)', background:'rgba(0,200,100,0.9)', color:'white', padding:'8px 20px', borderRadius:20, fontSize:13, fontWeight:600, zIndex:30 }}>
-                                {error}
+                                {shareToast}
                             </div>
                         )}
                     </div>

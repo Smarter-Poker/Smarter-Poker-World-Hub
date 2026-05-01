@@ -3,7 +3,7 @@
  * Lets broadcasters pick a date/time, title, thumbnail, and description.
  * Notifies followers automatically when scheduled.
  */
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { getAccessToken } from '../../lib/authUtils';
 
@@ -27,6 +27,15 @@ export function ScheduleLiveModal({ isOpen, onClose, user }) {
     const [success, setSuccess] = useState(false);
     const [error, setError] = useState('');
     const thumbnailRef = useRef(null);
+    // BUG FIX (ESM-1): track auto-close timer so it can be cancelled on unmount
+    const closeTimerRef = useRef(null);
+
+    // Cancel the auto-close timer if the component unmounts before it fires
+    useEffect(() => {
+        return () => {
+            if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+        };
+    }, []);
 
     if (!isOpen) return null;
 
@@ -70,7 +79,12 @@ export function ScheduleLiveModal({ isOpen, onClose, user }) {
             const data = await resp.json();
             if (!resp.ok) throw new Error(data.error || 'Failed to schedule');
             setSuccess(true);
-            setTimeout(() => { onClose(data.data); }, 2000);
+            // BUG FIX (ESM-1): track timer so parent unmounting before 2s doesn't leak
+            if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+            closeTimerRef.current = setTimeout(() => {
+                closeTimerRef.current = null;
+                onClose(data.data);
+            }, 2000);
         } catch (err) {
             setError(err.message);
         } finally {
