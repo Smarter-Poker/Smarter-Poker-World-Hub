@@ -101,7 +101,7 @@ export default async function handler(req, res) {
             .eq('user_id', user.id)
             .maybeSingle();
 
-          if (!member || !['owner', 'admin', 'manager'].includes(member.role)) {
+          if (!member || !['owner', 'admin', 'super_agent'].includes(member.role)) {
             return res.status(403).json({ success: false, error: 'Only club admins can create tournaments' });
           }
 
@@ -487,7 +487,7 @@ export default async function handler(req, res) {
             .eq('user_id', user.id)
             .maybeSingle();
 
-          if (!member || !['owner', 'admin', 'manager'].includes(member.role)) {
+          if (!member || !['owner', 'admin', 'super_agent'].includes(member.role)) {
             return res.status(403).json({ success: false, error: 'Admin only' });
           }
 
@@ -626,7 +626,7 @@ export default async function handler(req, res) {
             .eq('user_id', user.id)
             .maybeSingle();
 
-          if (!cancelMember || !['owner', 'admin', 'manager'].includes(cancelMember.role)) {
+          if (!cancelMember || !['owner', 'admin', 'super_agent'].includes(cancelMember.role)) {
             return res.status(403).json({ success: false, error: 'Only club admins can cancel tournaments' });
           }
 
@@ -723,7 +723,7 @@ export default async function handler(req, res) {
             .eq('user_id', user.id)
             .maybeSingle();
 
-          if (!updMember || !['owner', 'admin', 'manager'].includes(updMember.role)) {
+          if (!updMember || !['owner', 'admin', 'super_agent'].includes(updMember.role)) {
             return res.status(403).json({ success: false, error: 'Only club admins can edit tournaments' });
           }
 

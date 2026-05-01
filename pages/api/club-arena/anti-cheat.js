@@ -151,7 +151,10 @@ try {
         }
       }
 
-      // Verify caller is club owner/admin/manager
+      // Verify caller is club owner / admin / super_agent.
+      // Round 72: dropped 'manager' (0 rows in production), added
+      // 'super_agent' (the de-facto admin role used elsewhere — waitlist,
+      // club-analytics, lobby-ordering all gate on this trio).
       const { data: membership } = await getSupabase()
         .from('club_members')
         .select('role')
@@ -159,7 +162,7 @@ try {
         .eq('user_id', userId)
         .maybeSingle();
 
-      if (!membership || !['owner', 'admin', 'manager'].includes(membership.role)) {
+      if (!membership || !['owner', 'admin', 'super_agent'].includes(membership.role)) {
         return res.status(403).json({ error: 'Not authorized. Club admin access required.' });
       }
 
