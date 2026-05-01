@@ -38,6 +38,11 @@ export default async function handler(req, res) {
         if (!messageId) return res.status(400).json({ success: false, error: 'messageId required' });
         if (!reaction) return res.status(400).json({ success: false, error: 'reaction required' });
 
+        // Enforce reaction whitelist — prevents arbitrary string injection
+        if (!ALLOWED_REACTIONS.has(reaction)) {
+            return res.status(400).json({ success: false, error: 'Invalid reaction emoji' });
+        }
+
         const supabase = getSupabase();
 
         // Try the RPC first (works with service role)

@@ -3620,6 +3620,7 @@ function MessengerPage() {
 
     const handleSelectConversation = async (conversation) => {
         setActiveConversation(conversation);
+        setComposeFocus(false); // Reset auto-focus so switching chats doesn't pop the mobile keyboard
         setShowScrollDown(false); // Phase 3 BUGFIX: Reset FAB when switching conversations
         if (isMobile) setShowSidebar(false);
 
@@ -3885,6 +3886,20 @@ function MessengerPage() {
     // Handle message reaction
     const handleReaction = async (messageId, emoji) => {
         if (!user) return;
+        // Optimistic UI: immediately toggle the reaction locally
+        setMessages(prev => prev.map(m => {
+            if (!m || m.id !== messageId) return m;
+            const existing = m.reactions || {};
+            const userList = existing[emoji] || [];
+            const hasReacted = userList.includes(user.id);
+            const updated = hasReacted
+                ? userList.filter(id => id !== user.id)
+                : [...userList, user.id];
+            return {
+                ...m,
+                reactions: { ...existing, [emoji]: updated },
+            };
+        }));
         try {
             // Route through API — fn_toggle_message_reaction is 403 for authenticated role (missing GRANT EXECUTE)
             const token = getAccessToken();
@@ -3900,7 +3915,18 @@ function MessengerPage() {
             busEmit.messageReacted(activeConversation?.id, messageId, emoji);
         } catch (e) {
             console.warn('Reaction error:', e);
-            // Reactions are optimistically updated, so failure is already handled in UI
+            // Roll back optimistic update on failure
+            setMessages(prev => prev.map(m => {
+                if (!m || m.id !== messageId) return m;
+                const existing = m.reactions || {};
+                const userList = existing[emoji] || [];
+                // Reverse the toggle
+                const wasAdded = userList.includes(user.id);
+                const reverted = wasAdded
+                    ? userList.filter(id => id !== user.id)
+                    : [...userList, user.id];
+                return { ...m, reactions: { ...existing, [emoji]: reverted } };
+            }));
         }
     };
 
@@ -4405,6 +4431,8 @@ function MessengerPage() {
             }
         } catch (e) {
             console.warn('Start conversation error:', e);
+            setToast({ type: 'error', message: 'Could not create conversation. Please try again later.' });
+            throw e; // re-throw so the caller (openCompose) can catch and handle it
         }
     };
 
