@@ -76,7 +76,8 @@ import CheckInModal from '../../../src/components/social/CheckInModal';
 import TrendingVenues from '../../../src/components/social/TrendingVenues';
 import { SharedPostCreator } from '../../../src/components/social/SharedPostCreator';
 import GhostPostCard from '../../../src/components/social/GhostPostCard';
-import SharePostModal from '../../../src/components/social/SharePostModal';
+import dynamic from 'next/dynamic';
+const SharePostModal = dynamic(() => import('../../../src/components/social/SharePostModal'), { ssr: false });
 // Shared utilities — single source of truth (extracted from this file)
 import { SOCIAL_COLORS, SOCIAL_COLORS as C, timeAgo, decodeHtmlEntities, isYouTubeUrl, getYouTubeVideoId, getYouTubeEmbedUrl, getYouTubeThumbnail, validateYouTubeVideo, sniffMimeType } from '../../../src/lib/socialHelpers';
 import { SharedAvatar as Avatar } from '../../../src/components/social/SharedAvatar';
@@ -275,6 +276,8 @@ const PostCard = React.memo(function PostCard({ post, currentUserId, currentUser
     const [newComment, setNewComment] = useState('');
     const [loadingComments, setLoadingComments] = useState(false);
     const [commentCount, setCommentCount] = useState(post.commentCount || 0);
+    const [shareCount, setShareCount] = useState(post.shareCount || 0);
+    const [hasShared, setHasShared] = useState(false); // Can be hydrated from props if needed later
     const [hasMoreComments, setHasMoreComments] = useState(false);
     const [typists, setTypists] = useState({}); // { [userId]: { name, avatar_url, timestamp } }
     const [displayContent, setDisplayContent] = useState(post.content);
@@ -1093,7 +1096,11 @@ const PostCard = React.memo(function PostCard({ post, currentUserId, currentUser
                     const icons = sortedReactions.slice(0, 3).map(r => emojiMap[r[0]] || '👍').join('');
                     return `${icons} ${fmtCount(likeCount)}`;
                 })()}</span>
-                <span style={{ cursor: 'pointer' }} onClick={handleToggleComments}>{commentCount > 0 && `${fmtCount(commentCount)} ${commentCount === 1 ? 'comment' : 'comments'}`}</span>
+                })()}</span>
+                <span style={{ cursor: 'pointer', display: 'flex', gap: 12 }}>
+                    {commentCount > 0 && <span onClick={handleToggleComments}>{`${fmtCount(commentCount)} ${commentCount === 1 ? 'comment' : 'comments'}`}</span>}
+                    {shareCount > 0 && <span>{`${fmtCount(shareCount)} ${shareCount === 1 ? 'share' : 'shares'}`}</span>}
+                </span>
             </div>
             {/* Action buttons row — overflow:visible so reaction picker escapes card border-radius clip */}
             <div style={{ borderTop: `1px solid ${C.border}`, display: 'flex', overflow: 'visible' }}>
@@ -1149,10 +1156,15 @@ const PostCard = React.memo(function PostCard({ post, currentUserId, currentUser
                 </div>
                 <button onClick={handleToggleComments} aria-label="Toggle comments" style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: showComments ? C.blue : C.textSec, fontWeight: 500, fontSize: 13 }}> Comment</button>
                 <button
-                    onClick={() => onShare ? onShare(post) : null}
-                    style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontWeight: 500, fontSize: 13 }}
+                    onClick={() => {
+                        if (onShare) onShare({ ...post, shareCount }, () => {
+                            setShareCount(s => s + 1);
+                            setHasShared(true);
+                        });
+                    }}
+                    style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: hasShared ? C.blue : C.textSec, fontWeight: 500, fontSize: 13 }}
                     aria-label="Share this post"
-                >↗️ Share</button>
+                >↗️ {hasShared ? 'Shared' : 'Share'}</button>
                 <button
                     onClick={handleBookmark}
                     style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: bookmarked ? '#FFB800' : C.textSec, fontWeight: 500, fontSize: 13 }}
@@ -4047,8 +4059,7 @@ function SocialMediaPage() {
     const [posts, setPosts] = useState([]);
     const [contacts, setContacts] = useState([]);
     const [searchResults, setSearchResults] = useState([]);
-    const [openChats, setOpenChats] = useState([]);
-    const [chatMsgs, setChatMsgs] = useState({});
+
     // showMoreMenu state removed — all sidebar items now always visible
     const [showInviteModal, setShowInviteModal] = useState(false);
     const [isPosting, setIsPosting] = useState(false);
@@ -6739,7 +6750,7 @@ function SocialMediaPage() {
                                                         ));
                                                     }}
                                                     onBlock={handleBlockUser}
-                                                    onShare={(postObj) => setShareModalPost(postObj)}
+                                                    onShare={(postObj, onSuccess) => setShareModalPost({ ...postObj, _onSuccess: onSuccess })}
                                                     onOpenArticle={(url) => {
                                                         // All articles open in-app via the proxy reader.
                                                         // Cardplayer.com is handled via RSS fallback in /api/proxy — no redirect needed.
@@ -7043,6 +7054,7 @@ function SocialMediaPage() {
                     currentUser={user ? { id: user.id, username: user.username || user.name, avatar_url: user.avatar } : null}
                     onClose={() => setShareModalPost(null)}
                     onShared={(platform) => {
+                        if (shareModalPost._onSuccess) shareModalPost._onSuccess();
                         // Refresh feed after sharing to feed
                         if (platform === 'feed') {
                             setPosts(prev => [...prev]); // trigger re-render

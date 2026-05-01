@@ -3492,46 +3492,7 @@ export const ConversationList = ({
     );
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
-// 💬 CHAT DOCK (Bottom right floating chats)
-// ═══════════════════════════════════════════════════════════════════════════
 
-export const ChatDock = ({
-    openChats = [],
-    currentUser,
-    onClose,
-    onMinimize,
-    onSend
-}) => {
-    return (
-        <div className="chat-dock">
-            {openChats.map((chat, i) => (
-                <ChatWindow
-                    key={chat.conversation.id || i}
-                    conversation={chat.conversation}
-                    messages={chat.messages}
-                    currentUser={currentUser}
-                    minimized={chat.minimized}
-                    onClose={() => onClose?.(chat.conversation.id)}
-                    onMinimize={() => onMinimize?.(chat.conversation.id)}
-                    onSend={(text) => onSend?.(chat.conversation.id, text)}
-                />
-            ))}
-
-            <style>{`
-                .chat-dock {
-                    position: fixed;
-                    bottom: 0;
-                    right: 80px;
-                    display: flex;
-                    gap: 8px;
-                    align-items: flex-end;
-                    z-index: 1000;
-                }
-            `}</style>
-        </div>
-    );
-};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 📤 EXPORTS
@@ -3539,6 +3500,5 @@ export const ChatDock = ({
 
 export default {
     ChatWindow,
-    ConversationList,
-    ChatDock
+    ConversationList
 };

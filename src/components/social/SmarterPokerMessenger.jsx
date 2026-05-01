@@ -5,7 +5,8 @@
  * Chat system with conversation list and message threads
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, lazy, Suspense } from 'react';
+const SharedPostCard = lazy(() => import('./SharedPostCard'));
 import Link from 'next/link';
 import { SPAvatar, SP_COLORS } from './SmarterPokerStyleCard';
 import { busEmit, eventBus, EventType } from '../../engine/EventBus';
@@ -341,6 +342,16 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
             {/* P4-3 + P5-7 + P7-5: Rich text via markdown + auto-links + Mentions */}
             {message.message_type !== 'sticker' && !message.file && !message.contactCard && !message.isVoice && !message.image && !message.poll && (
                 <span dangerouslySetInnerHTML={{ __html: parseMarkdown(message.text) }} />
+            )}
+
+            {/* Shared Post Rich Embed Card */}
+            {message.media_metadata?.shared_post_id && (
+                <Suspense fallback={null}>
+                    <SharedPostCard
+                        postId={message.media_metadata.shared_post_id}
+                        isOwn={message.isOwn}
+                    />
+                </Suspense>
             )}
 
             {/* P10-7 + P11-7: Link Preview Card */}
@@ -3475,46 +3486,7 @@ export const ConversationList = ({
     );
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
-// 💬 CHAT DOCK (Bottom right floating chats)
-// ═══════════════════════════════════════════════════════════════════════════
 
-export const ChatDock = ({
-    openChats = [],
-    currentUser,
-    onClose,
-    onMinimize,
-    onSend
-}) => {
-    return (
-        <div className="chat-dock">
-            {openChats.map((chat, i) => (
-                <ChatWindow
-                    key={chat.conversation.id || i}
-                    conversation={chat.conversation}
-                    messages={chat.messages}
-                    currentUser={currentUser}
-                    minimized={chat.minimized}
-                    onClose={() => onClose?.(chat.conversation.id)}
-                    onMinimize={() => onMinimize?.(chat.conversation.id)}
-                    onSend={(text) => onSend?.(chat.conversation.id, text)}
-                />
-            ))}
-
-            <style>{`
-                .chat-dock {
-                    position: fixed;
-                    bottom: 0;
-                    right: 80px;
-                    display: flex;
-                    gap: 8px;
-                    align-items: flex-end;
-                    z-index: 1000;
-                }
-            `}</style>
-        </div>
-    );
-};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 📤 EXPORTS
@@ -3522,6 +3494,5 @@ export const ChatDock = ({
 
 export default {
     ChatWindow,
-    ConversationList,
-    ChatDock
+    ConversationList
 };

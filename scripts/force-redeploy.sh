@@ -55,7 +55,13 @@ echo "  ✅ Local and remote are in sync"
 echo ""
 
 # Step 3: Trigger force redeploy
-echo "Step 3: Triggering force redeploy (clears build cache)..."
+echo "Step 3: Ensuring correct Vercel project link..."
+mkdir -p .vercel
+cat > .vercel/project.json << 'EOF'
+{"projectId":"prj_op66GkZyZcygXQKm76iyycfVFAQx","orgId":"team_SVD8r7AOPH065G3usBxVvrBc","projectName":"hub-vanguard"}
+EOF
+
+echo "Step 4: Triggering force redeploy (clears build cache)..."
 npx -y vercel --force --prod 2>&1 | tail -20
 
 echo ""

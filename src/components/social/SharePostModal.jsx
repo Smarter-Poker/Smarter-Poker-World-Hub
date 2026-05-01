@@ -20,6 +20,7 @@ import { supabase } from '../../lib/supabase';
 import { getAccessToken } from '../../lib/authUtils';
 import toast from '../../stores/toastStore';
 import { SharedAvatar as Avatar } from './SharedAvatar';
+import confetti from 'canvas-confetti';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -109,10 +110,22 @@ function ShareToFeedTab({ post, authorUsername, currentUser, onClose, onShared }
             const json = await res.json();
             if (!res.ok || !json.success) throw new Error(json.error || 'Share failed');
 
+            if (json.already_shared) {
+                toast.error('You already shared this post');
+                onClose();
+                return;
+            }
+
+            // Success animation
+            confetti({
+                particleCount: 100, spread: 70, origin: { y: 0.6 },
+                colors: ['#1877F2', '#22C55E', '#FFFFFF'],
+            });
+
             toast.success('Shared to your feed!');
             busEmit.dataMutated?.('social_posts');
             onShared?.('feed');
-            onClose();
+            setTimeout(onClose, 800);
         } catch (err) {
             console.warn('[ShareToFeed] Error:', err);
             toast.error(err.message || 'Could not share to feed');
@@ -177,6 +190,21 @@ function SendToFriendTab({ post, authorUsername, currentUser, onClose, onShared 
         if (!currentUser?.id) return;
         let cancelled = false;
         (async () => {
+            const cacheKey = `sp-friends-share-${currentUser.id}`;
+            try {
+                const cached = sessionStorage.getItem(cacheKey);
+                if (cached) {
+                    const { data, ts } = JSON.parse(cached);
+                    if (Date.now() - ts < 300000) { // 5 min cache
+                        if (!cancelled) {
+                            setFriends(data);
+                            setLoading(false);
+                        }
+                        return;
+                    }
+                }
+            } catch (_) {}
+
             try {
                 const token = getAccessToken();
                 const res = await fetch('/api/friends?action=list', {
@@ -184,7 +212,11 @@ function SendToFriendTab({ post, authorUsername, currentUser, onClose, onShared 
                 });
                 const json = await res.json();
                 if (!cancelled && json.success) {
-                    setFriends(json.data?.friends || []);
+                    const fList = json.data?.friends || [];
+                    setFriends(fList);
+                    try {
+                        sessionStorage.setItem(cacheKey, JSON.stringify({ data: fList, ts: Date.now() }));
+                    } catch (_) {}
                 }
             } catch (e) { console.warn('[SendToFriend] Load friends error:', e); }
             if (!cancelled) setLoading(false);
@@ -416,6 +448,68 @@ function SendToFriendTab({ post, authorUsername, currentUser, onClose, onShared 
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// TAB 3: GROUPS / CLUBS
+// ═══════════════════════════════════════════════════════════════════════════
+function GroupsTab() {
+    return (
+        <div style={{ padding: '20px 0', textAlign: 'center', color: C.textSec }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>👥</div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: C.text, marginBottom: 6 }}>Share to Clubs</div>
+            <div style={{ fontSize: 13, maxWidth: 280, margin: '0 auto' }}>
+                Sharing to specific poker clubs and study groups is coming soon!
+            </div>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TAB 4: WHO SHARED
+// ═══════════════════════════════════════════════════════════════════════════
+function WhoSharedTab({ post }) {
+    const [data, setData] = useState({ sharers: [], streak: null, loading: true });
+
+    useEffect(() => {
+        if (!post?.id) return;
+        let active = true;
+        fetch(`/api/social/who-shared?post_id=${post.id}`)
+            .then(res => res.json())
+            .then(res => {
+                if (active && res.success) setData({ sharers: res.sharers || [], streak: res.streak, loading: false });
+            }).catch(() => { if (active) setData(p => ({ ...p, loading: false })); });
+        return () => { active = false; };
+    }, [post?.id]);
+
+    if (data.loading) return <div style={{ padding: 20, textAlign: 'center', color: C.textSec, fontSize: 13 }}>Loading...</div>;
+
+    return (
+        <div>
+            {data.streak?.is_active && (
+                <div style={{ background: 'linear-gradient(135deg, #1877F2 0%, #22C55E 100%)', borderRadius: 10, padding: '12px 16px', color: '#fff', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ fontSize: 24 }}>🔥</div>
+                    <div>
+                        <div style={{ fontSize: 14, fontWeight: 700 }}>{data.streak.streak_days} Day Share Streak!</div>
+                        <div style={{ fontSize: 12, opacity: 0.9 }}>You're on fire keeping the community active.</div>
+                    </div>
+                </div>
+            )}
+            
+            <div style={{ fontSize: 13, fontWeight: 600, color: C.textSec, marginBottom: 12 }}>
+                {data.sharers.length > 0 ? 'Recently shared by' : 'No shares yet'}
+            </div>
+            
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                {data.sharers.map(u => (
+                    <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 6, background: C.bg, padding: '4px 8px 4px 4px', borderRadius: 20 }}>
+                        <Avatar src={u.avatar_url} name={u.display_name || u.username} size={24} />
+                        <span style={{ fontSize: 12, fontWeight: 500, color: C.text }}>{u.username}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // MAIN MODAL
 // ═══════════════════════════════════════════════════════════════════════════
 export default function SharePostModal({ post, authorUsername, currentUser, onClose, onShared }) {
@@ -428,14 +522,30 @@ export default function SharePostModal({ post, authorUsername, currentUser, onCl
         : '';
     const shareText = post?.content?.slice(0, 120) || 'Check out this post on Smarter.Poker';
 
+    // Swipe-to-dismiss gesture state
+    const [touchY, setTouchY] = useState(null);
+    const [dragY, setDragY] = useState(0);
+
+    const handleTouchStart = (e) => setTouchY(e.touches[0].clientY);
+    const handleTouchMove = (e) => {
+        if (touchY === null) return;
+        const diff = e.touches[0].clientY - touchY;
+        if (diff > 0) setDragY(diff);
+    };
+    const handleTouchEnd = () => {
+        if (dragY > 100) onClose();
+        else setDragY(0);
+        setTouchY(null);
+    };
+
+    const handleBackdrop = (e) => {
+        if (e.target === e.currentTarget) onClose();
+    };
+
     useEffect(() => {
         const handleEsc = (e) => { if (e.key === 'Escape') onClose(); };
         document.addEventListener('keydown', handleEsc);
         return () => document.removeEventListener('keydown', handleEsc);
-    }, [onClose]);
-
-    const handleBackdrop = useCallback((e) => {
-        if (e.target === modalRef.current) onClose();
     }, [onClose]);
 
     const handleExternalShare = async (platform) => {
@@ -464,9 +574,11 @@ export default function SharePostModal({ post, authorUsername, currentUser, onCl
     };
 
     const TABS = [
-        { id: 'feed', label: 'Share To Feed', icon: '📝' },
-        { id: 'messenger', label: 'Send To Friend', icon: '💬' },
-        { id: 'external', label: 'More Options', icon: '🔗' },
+        { id: 'feed', label: 'Feed', icon: '📝' },
+        { id: 'messenger', label: 'Friend', icon: '💬' },
+        { id: 'groups', label: 'Groups', icon: '👥' },
+        { id: 'who', label: 'Stats', icon: '📊' },
+        { id: 'external', label: 'More', icon: '🔗' },
     ];
 
     return (
@@ -545,6 +657,9 @@ export default function SharePostModal({ post, authorUsername, currentUser, onCl
                             onShared={onShared}
                         />
                     )}
+
+                    {tab === 'groups' && <GroupsTab />}
+                    {tab === 'who' && <WhoSharedTab post={post} />}
 
                     {tab === 'external' && (
                         <div>

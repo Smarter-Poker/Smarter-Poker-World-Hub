@@ -121,6 +121,13 @@ export default async function handler(req, res) {
             } catch (_) { /* non-critical */ }
         }
 
+        // Analytics: log this share
+        try {
+            await supabase.from('share_events').insert({
+                post_id: original_post_id, user_id: user.id, destination: 'feed',
+            });
+        } catch (_) { /* non-critical */ }
+
         return res.json({ success: true, postId: post?.id });
     } catch (err) {
         console.warn('[share-to-feed] Error:', err.message);

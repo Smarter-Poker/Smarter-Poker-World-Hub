@@ -565,7 +565,7 @@ function ProfileVideoCard({ url, postId, style = {} }) {
 }
 
 // Post Card Component
-function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, currentUserId, horseProfileIds = new Set() }) {
+function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, currentUserId, currentUser, horseProfileIds = new Set() }) {
     const router = useRouter();
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deleting, setDeleting] = useState(false);
@@ -578,6 +578,8 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
     const [likeAnimating, setLikeAnimating] = useState(false);
     const [likeCount, setLikeCount] = useState(post.like_count || 0);
     const [commentCount, setCommentCount] = useState(post.comment_count || 0);
+    const [shareCount, setShareCount] = useState(post.share_count || 0);
+    const [hasShared, setHasShared] = useState(false);
     const [showComments, setShowComments] = useState(false);
     const [typists, setTypists] = useState({}); // { [userId]: { name, avatar_url, timestamp } }
     const [editingCommentId, setEditingCommentId] = useState(null);
@@ -861,7 +863,11 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
             )}
             <div style={{ padding: '8px 12px', display: 'flex', justifyContent: 'space-between', color: C.textSec, fontSize: 13 }}>
                 <span>{likeCount > 0 && `${currentReaction ? {like:'👍',love:'❤️',haha:'😂',wow:'😮',sad:'😢',angry:'😡'}[currentReaction] || '👍' : '👍'} ${likeCount}`}</span>
-                <span>{commentCount > 0 && `${commentCount} comments`}{shareMsg && ` · ${shareMsg}`}</span>
+                <span style={{ cursor: 'pointer', display: 'flex', gap: 12 }}>
+                    {commentCount > 0 && <span onClick={handleComment}>{`${commentCount} ${commentCount === 1 ? 'comment' : 'comments'}`}</span>}
+                    {shareCount > 0 && <span>{`${shareCount} ${shareCount === 1 ? 'share' : 'shares'}`}</span>}
+                    {shareMsg && <span>{shareMsg}</span>}
+                </span>
             </div>
             <div style={{ borderTop: `1px solid ${C.border}`, display: 'flex' }}>
                 <ReactionPicker
@@ -909,7 +915,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
                     }}
                 />
                 <button onClick={handleComment} style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: showComments ? C.blue : C.textSec, fontWeight: 500, fontSize: 13 }}> Comment</button>
-                <button onClick={() => setShowShareModal(true)} style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontWeight: 500, fontSize: 13 }}>↗️ Share</button>
+                <button onClick={() => setShowShareModal(true)} style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: hasShared ? C.blue : C.textSec, fontWeight: 500, fontSize: 13 }}>↗️ {hasShared ? 'Shared' : 'Share'}</button>
             </div>
             
             {/* Display Animated Typing Indicators (Phase 11) */}
@@ -1046,10 +1052,15 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
             {/* Share Post Modal */}
             {showShareModal && (
                 <SharePostModal
-                    post={editablePost}
+                    post={{ ...editablePost, shareCount }}
                     authorUsername={author?.username}
+                    currentUser={currentUser || (currentUserId ? { id: currentUserId } : null)}
                     onClose={() => setShowShareModal(false)}
-                    onShared={handleShareComplete}
+                    onShared={(platform) => {
+                        setShareCount(s => s + 1);
+                        setHasShared(true);
+                        handleShareComplete(platform);
+                    }}
                 />
             )}
 
@@ -2889,7 +2900,7 @@ export default function UserProfilePage() {
 
                                 {/* Posts Feed */}
                                 {posts.length > 0 ? (
-                                    posts.map(post => <PostCard key={post.id} post={post} author={profile} isOwnProfile={isOwnProfile} onDelete={handleDeletePost} onPostEdited={(updatedPost) => { setPosts(prev => prev.map(p => p.id === updatedPost.id ? { ...p, ...updatedPost } : p)); invalidateProfileCache(); }} currentUserId={currentUser?.id} horseProfileIds={horseProfileIds} />)
+                                    posts.map(post => <PostCard key={post.id} post={post} author={profile} isOwnProfile={isOwnProfile} onDelete={handleDeletePost} onPostEdited={(updatedPost) => { setPosts(prev => prev.map(p => p.id === updatedPost.id ? { ...p, ...updatedPost } : p)); invalidateProfileCache(); }} currentUserId={currentUser?.id} currentUser={currentUser} horseProfileIds={horseProfileIds} />)
                                 ) : (
                                     <div style={{ background: C.card, borderRadius: 12, padding: 40, textAlign: 'center', color: C.textSec }}>
                                         <div style={{ fontSize: 40, marginBottom: 12, opacity: 0.6 }}>📝</div>

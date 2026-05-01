@@ -56,7 +56,6 @@ export {
 export {
     ChatWindow,
     ConversationList,
-    ChatDock,
     default as SmarterPokerMessengerDefault
 } from './SmarterPokerMessenger';
 

@@ -40,11 +40,19 @@ export default async function handler(req, res) {
     const user = authData?.user;
     if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
-    const { post_id } = req.body;
+    const { post_id, destination = 'external', platform } = req.body;
 
     if (!post_id) {
         return res.status(400).json({ error: 'post_id is required' });
     }
+
+    // Fire-and-forget analytics insert
+    getSupabase().from('share_events').insert({
+        post_id,
+        user_id: user.id,
+        destination,
+        platform: platform || null,
+    }).then(() => {}).catch(() => {});
 
     try {
         // Detect whether this is a native reel (social_reels) or post (social_posts)

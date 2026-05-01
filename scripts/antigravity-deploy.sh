@@ -118,6 +118,12 @@ elif ! command -v vercel &> /dev/null; then
     echo "   ⚠️  Vercel CLI not installed. Relying on GitHub Actions auto-deploy."
     VERCEL_OK="github-actions"
 else
+    echo "   Ensuring correct Vercel project link (hub-vanguard)..."
+    mkdir -p .vercel
+    cat > .vercel/project.json << 'EOF'
+{"projectId":"prj_op66GkZyZcygXQKm76iyycfVFAQx","orgId":"team_SVD8r7AOPH065G3usBxVvrBc","projectName":"hub-vanguard"}
+EOF
+
     if vercel --prod --yes 2>&1; then
         VERCEL_OK="true"
     else
