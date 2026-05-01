@@ -3276,8 +3276,13 @@ export const ConversationList = ({
     const [searchQuery, setSearchQuery] = useState('');
 
     const filteredConversations = conversations.filter(conv => {
-        const otherUser = conv.participants?.find(p => p.id !== currentUser?.id);
-        return otherUser?.name?.toLowerCase().includes(searchQuery.toLowerCase());
+        // API returns otherUser directly; conv.participants is legacy shape
+        const otherUser = conv.otherUser || conv.participants?.find(p => p.id !== currentUser?.id);
+        const name = otherUser?.name || otherUser?.username || otherUser?.display_name || '';
+        const title = conv.title || conv.group_name || '';
+        if (!searchQuery) return true;
+        return name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+               title.toLowerCase().includes(searchQuery.toLowerCase());
     });
 
     return (
@@ -3306,30 +3311,33 @@ export const ConversationList = ({
             {/* Conversation Items */}
             <div className="conv-items">
                 {filteredConversations.map((conv, i) => {
-                    const otherUser = conv.participants?.find(p => p.id !== currentUser?.id);
-                    const lastMessage = conv.lastMessage;
+                    // API returns otherUser directly; fall back to participants for legacy data
+                    const otherUser = conv.otherUser || conv.participants?.find(p => p.id !== currentUser?.id);
+                    const displayName = conv.title || conv.group_name || otherUser?.name || otherUser?.username || otherUser?.display_name || 'Unknown';
+                    const avatarUrl = otherUser?.avatar_url || otherUser?.avatar || null;
+                    // last_message_preview is the server column; lastMessage.text is legacy client shape
+                    const previewText = conv.last_message_preview || conv.lastMessage?.text || '';
+                    const isUnread = (conv.unreadCount ?? conv.unread_count ?? 0) > 0;
 
                     return (
                         <div
                             key={conv.id || i}
-                            className={`conv-item ${conv.unread ? 'unread' : ''}`}
+                            className={`conv-item ${isUnread ? 'unread' : ''}`}
                             onClick={() => onSelectConversation?.(conv)}
                         >
                             <SPAvatar
-                                src={otherUser?.avatar}
+                                src={avatarUrl}
                                 size={56}
                                 online={otherUser?.online}
                             />
                             <div className="conv-info">
-                                <span className="conv-name">{otherUser?.name}</span>
+                                <span className="conv-name">{displayName}</span>
                                 <span className="conv-preview">
-                                    {lastMessage?.isOwn && 'You: '}
-                                    {lastMessage?.text?.slice(0, 30)}
-                                    {lastMessage?.text?.length > 30 && '...'}
-                                    <span className="conv-time"> · {lastMessage?.time}</span>
+                                    {previewText?.slice(0, 40)}
+                                    {previewText?.length > 40 && '...'}
                                 </span>
                             </div>
-                            {conv.unread && <div className="unread-dot" />}
+                            {isUnread && <div className="unread-dot" />}
                         </div>
                     );
                 })}
