@@ -5752,6 +5752,17 @@ function SocialMediaPage() {
 
     // 📡 Supabase Realtime: Forward incoming messages to the global EventBus
     // (Messenger page handles all rendering — this just keeps unread counts fresh)
+    //
+    // NOTE: previous version filtered by `receiver_id=eq.${user.id}`, but
+    // social_messages has NO receiver_id column (schema is conversation-based:
+    // sender_id + conversation_id only). That bogus filter caused Postgres
+    // realtime to emit "invalid column for filter receiver_id" errors at
+    // ~4/min in prod logs and the subscription never fired any events.
+    // Membership gating is handled inside the handler via sender_id check
+    // and downstream by Messenger page (it knows which conversations belong
+    // to the user). A proper RLS-bound realtime filter is a future
+    // optimization; for now subscribing to all INSERTs and filtering in JS
+    // is the correct shape given the conversation-based schema.
     const openChatsRef = useRef([]);
     useEffect(() => {
         if (!user?.id) return;
@@ -5759,7 +5770,7 @@ function SocialMediaPage() {
             .channel(`social-media-realtime-${user.id}`)
             .on(
                 'postgres_changes',
-                { event: 'INSERT', schema: 'public', table: 'social_messages', filter: `receiver_id=eq.${user.id}` },
+                { event: 'INSERT', schema: 'public', table: 'social_messages' },
                 (payload) => {
                     const newMsg = payload.new;
                     if (!newMsg) return;
