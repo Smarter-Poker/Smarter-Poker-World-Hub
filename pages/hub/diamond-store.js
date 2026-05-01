@@ -151,13 +151,19 @@ export default function DiamondStorePage() {
 
     // 🎬 INTRO VIDEO STATE - Video plays while page loads in background
     // Only show once per session (not on every reload)
-    const [showIntro, setShowIntro] = useState(() => {
-        if (typeof window !== 'undefined') {
-            return !sessionStorage.getItem('marketplace-intro-seen');
-        }
-        return false;
-    });
+    // NOTE: Always initialize to false (server-safe) to prevent hydration mismatch.
+    // Read sessionStorage in useEffect after client mount.
+    const [showIntro, setShowIntro] = useState(false);
     const introVideoRef = useRef(null);
+
+    // After mount: check if user has seen the intro already
+    useEffect(() => {
+        try {
+            if (!sessionStorage.getItem('marketplace-intro-seen')) {
+                setShowIntro(true);
+            }
+        } catch (_) {}
+    }, []);
 
     // Mark intro as seen when it ends
     const handleIntroEnd = useCallback(() => {
