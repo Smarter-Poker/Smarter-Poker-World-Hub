@@ -277,7 +277,23 @@ const STORAGE_KEY = 'sp-bg-upload-intent';
 const TUS_URL_KEY_PREFIX = 'sp-tus-url:'; // stores resumable TUS upload URL per file key
 
 // ─── TUS chunk size ────────────────────────────────────────────────────────────
-const TUS_CHUNK_SIZE = 6 * 1024 * 1024; // 6 MB — Supabase recommended
+// AUDIT-19 (2026-04-30 per Dan: "1 MB/s on a 100 MB/s connection — 4:40
+// for a 1:16 video is unacceptable").
+// Root cause of throttling: every TUS chunk is a separate HTTP PATCH with
+// its own RTT. With 6 MB chunks and ~500 ms RTT to Supabase Storage, a
+// 280 MB iPhone HEVC video takes 280/6 ≈ 47 round-trips × ~6.5 s = 305 s
+// (matches Dan's 4:40). That's 1 MB/s effective — not a bandwidth cap,
+// it's PATCH-overhead-per-chunk.
+//
+// Fix: bump chunk size to 16 MB. Cuts round-trip count by 2.7× and pushes
+// effective throughput toward the actual link limit. Each chunk takes
+// longer to upload but the protocol overhead amortizes properly.
+//
+// Why not larger? 32 MB risks Vercel/Supabase intermediate-proxy timeouts
+// on slow uplinks (a user on 1 Mbps cellular would take 4 minutes for one
+// chunk and the underlying TCP socket may close). 16 MB is the sweet spot
+// for "fast WiFi finishes quickly, slow cellular still completes."
+const TUS_CHUNK_SIZE = 16 * 1024 * 1024; // 16 MB — was 6 MB pre-AUDIT-19
 
 // ─── Client-side hard timeout for the entire upload session ───────────────────
 const UPLOAD_HARD_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes — surfaces real error, never hangs

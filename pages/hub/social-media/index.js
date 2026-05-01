@@ -76,6 +76,7 @@ import CheckInModal from '../../../src/components/social/CheckInModal';
 import TrendingVenues from '../../../src/components/social/TrendingVenues';
 import { SharedPostCreator } from '../../../src/components/social/SharedPostCreator';
 import GhostPostCard from '../../../src/components/social/GhostPostCard';
+import SharePostModal from '../../../src/components/social/SharePostModal';
 // Shared utilities — single source of truth (extracted from this file)
 import { SOCIAL_COLORS, SOCIAL_COLORS as C, timeAgo, decodeHtmlEntities, isYouTubeUrl, getYouTubeVideoId, getYouTubeEmbedUrl, getYouTubeThumbnail, validateYouTubeVideo, sniffMimeType } from '../../../src/lib/socialHelpers';
 import { SharedAvatar as Avatar } from '../../../src/components/social/SharedAvatar';
@@ -241,7 +242,7 @@ function LinkPreviewCard({ url }) {
     );
 }
 
-const PostCard = React.memo(function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onLike, onDelete, onComment, onOpenArticle, onBlock, horseProfileIds = new Set() }) {
+const PostCard = React.memo(function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onLike, onDelete, onComment, onOpenArticle, onBlock, onShare, horseProfileIds = new Set() }) {
     const router = useRouter();
     const [liked, setLiked] = useState(post.isLiked);
     const [likeCount, setLikeCount] = useState(post.likeCount);
@@ -1148,34 +1149,7 @@ const PostCard = React.memo(function PostCard({ post, currentUserId, currentUser
                 </div>
                 <button onClick={handleToggleComments} aria-label="Toggle comments" style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: showComments ? C.blue : C.textSec, fontWeight: 500, fontSize: 13 }}> Comment</button>
                 <button
-                    onClick={() => {
-                        const shareUrl = `${window.location.origin}/hub/post/${post.id}`;
-                        if (navigator.share) {
-                            navigator.share({
-                                title: 'Check out this post on Smarter.Poker',
-                                text: post.content?.slice(0, 100) || 'A post from Smarter.Poker',
-                                url: shareUrl,
-                            }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-                        } else {
-                            navigator.clipboard.writeText(shareUrl).then(() => {
-                                toast.success('Link copied to clipboard!');
-                            }).catch(() => {
-                                toast.error('Could not copy link');
-                            });
-                        }
-                        // Sync denormalized share_count (fire-and-forget with manual fallback)
-                        (async () => {
-                            try {
-                                const { error: rpcErr } = await supabase.rpc('increment_post_count', { p_post_id: post.id, p_field: 'share_count' });
-                                if (rpcErr) throw rpcErr;
-                            } catch {
-                                try {
-                                    const { data: p } = await supabase.from('social_posts').select('share_count').eq('id', post.id).maybeSingle();
-                                    if (p) await supabase.from('social_posts').update({ share_count: (p.share_count || 0) + 1 }).eq('id', post.id);
-                                } catch (e) { console.warn('[Social] share_count fallback failed:', e.message); }
-                            }
-                        })();
-                    }}
+                    onClick={() => onShare ? onShare(post) : null}
                     style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontWeight: 500, fontSize: 13 }}
                     aria-label="Share this post"
                 >↗️ Share</button>
@@ -4084,6 +4058,7 @@ function SocialMediaPage() {
     const [horseProfileIds, setHorseProfileIds] = useState(new Set());
     const [blockedUserIds, setBlockedUserIds] = useState(new Set());
     const undoDeleteRef = useRef(null);
+    const [shareModalPost, setShareModalPost] = useState(null);
 
     // Phase 15: Load horse profile IDs for online presence indicators
     useEffect(() => {
@@ -6798,6 +6773,7 @@ function SocialMediaPage() {
                                                         ));
                                                     }}
                                                     onBlock={handleBlockUser}
+                                                    onShare={(postObj) => setShareModalPost(postObj)}
                                                     onOpenArticle={(url) => {
                                                         // All articles open in-app via the proxy reader.
                                                         // Cardplayer.com is handled via RSS fallback in /api/proxy — no redirect needed.
@@ -7095,6 +7071,22 @@ function SocialMediaPage() {
                 onSearch={handleSearch}
                 searchResults={searchResults}
             />
+
+            {/* Share Post Modal (V2: Share To Feed + Send To Friend) */}
+            {shareModalPost && (
+                <SharePostModal
+                    post={shareModalPost}
+                    authorUsername={shareModalPost?.author?.username}
+                    currentUser={user ? { id: user.id, username: user.username || user.name, avatar_url: user.avatar } : null}
+                    onClose={() => setShareModalPost(null)}
+                    onShared={(platform) => {
+                        // Refresh feed after sharing to feed
+                        if (platform === 'feed') {
+                            setPosts(prev => [...prev]); // trigger re-render
+                        }
+                    }}
+                />
+            )}
         </PageTransition>
     );
 }
