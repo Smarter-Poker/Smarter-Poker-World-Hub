@@ -1530,25 +1530,32 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
                 defines `spin` — without these, the "spinner" was a static
                 un-animated ring, hence Dan's "zero clock spinner" report. */}
             {preparingMedia && (
+                // AUDIT-10 (2026-04-30 per Dan: "screen stays the same"):
+                // ROOT CAUSE FINALLY IDENTIFIED. The banner was position: sticky
+                // anchored to the composer card. On iPhone, the file picker
+                // routinely scrolls the page (or pushes layout via the bottom
+                // sheet UI) during the 25-30s iOS handoff window, leaving the
+                // composer — and therefore the sticky banner — entirely below
+                // the fold. The banner WAS rendering the whole time; it was
+                // just off-screen. Pinning to the viewport with position:fixed
+                // + very high z-index makes it unmissable regardless of scroll
+                // position or layout shift.
                 <div style={{
-                    position: 'sticky', top: 0, zIndex: 50,
+                    position: 'fixed', top: 0, left: 0, right: 0, zIndex: 999999,
                     padding: '14px 16px',
                     background: 'linear-gradient(135deg, #1877F2, #2D88FF)',
                     color: '#fff', display: 'flex', alignItems: 'center', gap: 12,
                     boxShadow: '0 2px 8px rgba(24,119,242,0.35)',
+                    // iOS safe-area top inset so the banner doesn't get hidden
+                    // behind the iPhone notch/Dynamic Island. env() falls back
+                    // to 0 on devices/browsers that don't support it.
+                    paddingTop: 'calc(14px + env(safe-area-inset-top, 0px))',
                 }}>
                     <div style={{
                         width: 22, height: 22, border: '3px solid rgba(255,255,255,0.35)',
                         borderTopColor: '#fff', borderRadius: '50%',
                         animation: 'spPrepSpin 0.8s linear infinite',
                         WebkitAnimation: 'spPrepSpin 0.8s linear infinite',
-                        // iOS Safari: force GPU compositing so the rotation
-                        // keeps painting even while the main thread is busy
-                        // (e.g. HEVC decode for thumbnail generation).
-                        // Without this, the ring stays static during the
-                        // staging window — exactly Dan's "no clock animation"
-                        // report. Hint the browser the element will animate
-                        // its transform so it lifts to its own GPU layer.
                         willChange: 'transform',
                         WebkitTransform: 'translateZ(0)',
                         transform: 'translateZ(0)',
