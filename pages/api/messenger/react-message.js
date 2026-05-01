@@ -45,6 +45,29 @@ export default async function handler(req, res) {
 
         const supabase = getSupabase();
 
+        // Verify the user is a participant in the conversation containing this message
+        // This is required because service role bypasses RLS — we must enforce access manually.
+        const { data: msgRow } = await supabase
+            .from('social_messages')
+            .select('conversation_id')
+            .eq('id', messageId)
+            .maybeSingle();
+
+        if (!msgRow) {
+            return res.status(404).json({ success: false, error: 'Message not found' });
+        }
+
+        const { data: participant } = await supabase
+            .from('social_conversation_participants')
+            .select('id')
+            .eq('conversation_id', msgRow.conversation_id)
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+        if (!participant) {
+            return res.status(403).json({ success: false, error: 'Not a participant in this conversation' });
+        }
+
         // Try the RPC first (works with service role)
         const { error: rpcErr } = await supabase.rpc('fn_toggle_message_reaction', {
             p_message_id: messageId,

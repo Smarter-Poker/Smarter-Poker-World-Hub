@@ -2496,17 +2496,19 @@ function MessengerPage() {
     // Phase 3: Connection status monitor (navigator.onLine + Supabase health)
     // On reconnect, reload conversations and the active conversation to catch missed messages.
     const goOnlineUserRef = useRef(null);
+    const loadConversationsRef = useRef(null);
+    const loadMessagesRef = useRef(null);
     useEffect(() => { goOnlineUserRef.current = user; }, [user]);
     useEffect(() => {
         const goOnline = () => {
             setConnectionStatus('connected');
-            // Reload missed messages after reconnect
+            // Reload missed messages after reconnect — use refs to avoid stale closures
             const currentUser = goOnlineUserRef.current;
             if (currentUser?.id) {
-                loadConversations(currentUser.id);
+                loadConversationsRef.current?.(currentUser.id);
                 const activeConv = activeConversationRef.current;
                 if (activeConv?.id && !activeConv.isJarvis) {
-                    loadMessages(activeConv.id);
+                    loadMessagesRef.current?.(activeConv.id);
                 }
             }
         };
@@ -3512,6 +3514,8 @@ function MessengerPage() {
             }
         }
     };
+    // Keep ref in sync so the reconnect handler always calls the latest version
+    loadConversationsRef.current = loadConversations;
 
     const loadMessages = async (conversationId) => {
         // Optimistic UI check for instant loading
@@ -3591,6 +3595,8 @@ function MessengerPage() {
         }
         setLoadingMessages(false);
     };
+    // Keep ref in sync so the reconnect handler always calls the latest version
+    loadMessagesRef.current = loadMessages;
 
     // Load older messages (pagination — triggered when scrolling to top)
     // FIX #3: useRef-based lock prevents duplicate pagination from rapid scroll
