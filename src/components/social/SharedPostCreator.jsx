@@ -265,7 +265,26 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
      *   4. Background video compression for files > 50MB
      *   5. Signed URL prefetch for first video
      */
+    // AUDIT-9 (2026-04-30 per Dan: silent fail on iPhone). The change event
+    // fires after a 25-30s iOS handoff, but somewhere between that fire and
+    // staging-tile-rendered, the flow was failing without surfacing any
+    // error or toast — looking like the app froze. The real handler below
+    // is now wrapped so ANY thrown error is captured and shown to the user
+    // both via setError (composer red banner) and toast (top-of-screen).
+    // A diagnostic trail is also written to sessionStorage so Dan can
+    // copy-paste it back to me on the next failure.
+    const _logUploadStep = (step, extra) => {
+        try {
+            const trail = JSON.parse(sessionStorage.getItem('sp-upload-debug') || '[]');
+            trail.push({ t: new Date().toISOString(), step, ...extra });
+            // Keep only the last 30 entries to avoid unbounded growth.
+            sessionStorage.setItem('sp-upload-debug', JSON.stringify(trail.slice(-30)));
+            if (typeof console !== 'undefined') console.log('[SharedPostCreator]', step, extra || '');
+        } catch (_) { /* sessionStorage may be unavailable */ }
+    };
     const handleFiles = async (e) => {
+        try {
+        _logUploadStep('handleFiles:enter', { files: e?.target?.files?.length });
         // Picker closed AND a file was actually selected (no-files handled below).
         _pickerOpenRef.current = false;
 
@@ -337,7 +356,16 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         // banner here too — the bottom Promise.race only runs for the
         // happy path. Without this, an all-rejected batch leaves the
         // 'Preparing your video' banner up for the full 60s backstop.
-        if (!staged.length) { setPreparingMedia(false); return; }
+        if (!staged.length) {
+            _logUploadStep('handleFiles:exit-no-staged', { reason: 'all files rejected by validation' });
+            setPreparingMedia(false);
+            // AUDIT-9: previously the banner just disappeared with no
+            // explanation. Surface a visible error so the user knows WHY.
+            try { toast.error('No file was staged — file may be too large (>5GB) or unsupported format'); } catch (_) {}
+            setError('No file was staged. The file may be too large or in an unsupported format.');
+            return;
+        }
+        _logUploadStep('handleFiles:setMedia', { count: staged.length, types: staged.map(s => s.type) });
         setMedia(prev => [...prev, ...staged]);
 
         // ⚡ INSTANT FEEDBACK is now handled by the inline "Preparing Your Video"
@@ -439,6 +467,25 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
             });
         } else {
             setPreparingMedia(false);
+        }
+        _logUploadStep('handleFiles:exit-success');
+        } catch (err) {
+            // AUDIT-9 (2026-04-30 per Dan): NEVER let handleFiles fail
+            // silently. Whatever throws here MUST surface to the user as
+            // a visible error so they don't sit staring at a frozen UI
+            // wondering if the app is broken (the symptom Dan reported).
+            const msg = err?.message ? String(err.message).slice(0, 300) : 'Unknown staging error';
+            _logUploadStep('handleFiles:THREW', { message: msg, stack: (err?.stack || '').slice(0, 500) });
+            try { console.error('[SharedPostCreator] handleFiles threw:', err); } catch (_) {}
+            if (mountedRef.current) {
+                setPreparingStage(null);
+                _pickerOpenRef.current = false;
+                _hasFileArrivedRef.current = false;
+                setError(`Staging failed: ${msg}`);
+                try { toast.error(`Video staging failed: ${msg}`, 6000); } catch (_) {}
+            }
+            // Clear the file input so the user can try again with the same file
+            if (fileRef.current) fileRef.current.value = '';
         }
     };
 
