@@ -3867,12 +3867,15 @@ function MessengerPage() {
 
             try {
                 const jarvisToken = getAccessToken();
+                const jarvisController = new AbortController();
+                const jarvisTimeout = setTimeout(() => jarvisController.abort(), 30000); // 30s — AI can be slow
                 const response = await authedFetch('/api/geeves/chat', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         ...(jarvisToken ? { Authorization: `Bearer ${jarvisToken}` } : {}),
                     },
+                    signal: jarvisController.signal,
                     body: JSON.stringify({
                         message: content,
                         context: 'messenger',
@@ -3882,6 +3885,7 @@ function MessengerPage() {
                         }))
                     })
                 });
+                clearTimeout(jarvisTimeout);
 
                 if (!response.ok) throw new Error(`Request failed (${response.status})`);
                 const data = await response.json();
@@ -4399,11 +4403,15 @@ function MessengerPage() {
             if (!meta.success || !meta.signedUrl) throw new Error(meta.error || 'No signed URL returned');
 
             // PUT the file directly to Supabase Storage via the signed URL
+            const uploadController = new AbortController();
+            const uploadTimeout = setTimeout(() => uploadController.abort(), 5 * 60 * 1000); // 5min for large video
             const uploadRes = await fetch(meta.signedUrl, {
                 method: 'PUT',
                 headers: { 'Content-Type': file.type || (isVideo ? 'video/mp4' : 'image/jpeg') },
                 body: file,
+                signal: uploadController.signal,
             });
+            clearTimeout(uploadTimeout);
             if (!uploadRes.ok) throw new Error(`Storage PUT failed: HTTP ${uploadRes.status}`);
 
             const publicUrl = meta.publicUrl;
@@ -4422,7 +4430,7 @@ function MessengerPage() {
                     ...(mediaToken ? { Authorization: `Bearer ${mediaToken}` } : {}),
                 },
                 body: JSON.stringify({
-                    conversationId: activeConversation.id,
+                    conversationId: uploadConversationId, // use captured id — user may have switched conversations
                     content: content,
                 }),
             });
@@ -4498,11 +4506,15 @@ function MessengerPage() {
             const voiceMeta = await voiceMetaRes.json();
             if (!voiceMeta.success || !voiceMeta.signedUrl) throw new Error(voiceMeta.error || 'No signed URL');
 
+            const voiceController = new AbortController();
+            const voiceUploadTimeout = setTimeout(() => voiceController.abort(), 60000); // 60s for audio upload
             const voicePutRes = await fetch(voiceMeta.signedUrl, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'audio/webm' },
                 body: audioBlob,
+                signal: voiceController.signal,
             });
+            clearTimeout(voiceUploadTimeout);
             if (!voicePutRes.ok) throw new Error(`Voice PUT failed: HTTP ${voicePutRes.status}`);
 
             const publicUrl = voiceMeta.publicUrl;
@@ -4976,7 +4988,8 @@ function MessengerPage() {
                 });
                 if (!pushRes.ok) throw new Error(`Request failed (${pushRes.status})`);
                 const pushResult = await pushRes.json();
-                if (!pushRes.ok || pushResult.error) {
+                if (pushResult.error) {
+                    console.warn('[Messenger] Push notification reported error (non-blocking):', pushResult.error);
                 }
             } catch (pushError) {
                 console.warn('[Messenger] Push notification for call failed (non-blocking):', pushError?.message || pushError);
