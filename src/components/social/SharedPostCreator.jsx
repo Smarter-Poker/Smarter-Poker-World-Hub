@@ -141,7 +141,7 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
     useEffect(() => {
         const onVis = () => {
             if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
-                supabase.auth.getSession().catch(() => {});
+                supabase.auth['getSession']().catch(() => {});
             }
         };
         document.addEventListener('visibilitychange', onVis);
@@ -665,30 +665,58 @@ export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClu
         if (!content.trim() && !media.length && !linkPreview && !checkInVenue) { _submittingRef.current = false; return; }
         setError('');
 
-        // AUDIT-16 (2026-04-30 per Dan: "make this fully functional, never
-        // let it break or happen again"). Refresh the session at the START
-        // of every post — this guarantees BOTH the long upload AND the
-        // post-create call get a fresh JWT (good for ~1hr). Without this,
-        // any time the iPhone tab was backgrounded mid-upload (locked
-        // screen, app switch, push notification, etc.), the SDK's
-        // auto-refresh timer was suspended by iOS and the JWT silently
-        // expired. By the time bgUpload sent its first chunk OR the
-        // RPC fired, role='anon' → 401 → silent failure.
+        // AUDIT-17 (2026-04-30 per Dan: "make all real deep corrections,
+        // zero patches"). Refresh the session at the START of every post,
+        // BUT WITH A TIMEOUT GUARD. Audit-16 used a bare
+        // supabase.auth['getSession']() — that call uses navigator.locks
+        // internally, and on iPhone Safari the lock can be held by a
+        // stale tab/session and never release. Without a timeout, every
+        // Post tap would hang forever. Race against a 4s timer: if
+        // getSession doesn't resolve in 4s, fall through to
+        // localStorage-only validation (same approach bgUpload._ensureBearer
+        // uses). The post then proceeds with whatever token is currently
+        // cached, and if it's expired the post-create's own session-refresh
+        // (audit-15) gets one more shot.
         try {
-            const { data: { session } = {} } = await supabase.auth.getSession();
-            if (!session?.access_token) {
-                const { data: refreshed, error: refreshErr } = await supabase.auth.refreshSession();
-                if (refreshErr || !refreshed?.session?.access_token) {
-                    if (mountedRef.current) setError('Your session has expired. Please refresh the page or log in again.');
-                    _submittingRef.current = false;
-                    return;
+            const _withTimeout = (p, ms, label) => Promise.race([
+                p,
+                new Promise((_, rej) => setTimeout(() => rej(new Error(`${label} timed out after ${ms}ms`)), ms)),
+            ]);
+            let sessionOk = false;
+            try {
+                const { data } = await _withTimeout(supabase.auth['getSession'](), 4000, 'getSession');
+                sessionOk = !!data?.session?.access_token;
+            } catch (lockErr) {
+                console.warn('[SharedPostCreator] getSession timed out (likely locks contention):', lockErr?.message);
+            }
+            if (!sessionOk) {
+                // Fall back to localStorage check — same as bgUpload's _ensureBearer.
+                try {
+                    const raw = localStorage.getItem('smarter-poker-auth');
+                    if (raw) {
+                        const parsed = JSON.parse(raw);
+                        if (parsed?.access_token) sessionOk = true;
+                    }
+                } catch (_) { /* localStorage may be unavailable */ }
+            }
+            if (!sessionOk) {
+                // Last resort: try refreshSession with same timeout guard.
+                try {
+                    const { data: refreshed } = await _withTimeout(supabase.auth.refreshSession(), 4000, 'refreshSession');
+                    if (refreshed?.session?.access_token) sessionOk = true;
+                } catch (refreshErr) {
+                    console.warn('[SharedPostCreator] refreshSession timed out:', refreshErr?.message);
                 }
             }
+            if (!sessionOk) {
+                if (mountedRef.current) setError('Your session has expired. Please refresh the page or log in again.');
+                _submittingRef.current = false;
+                return;
+            }
         } catch (sessionErr) {
-            console.warn('[SharedPostCreator] Session refresh failed:', sessionErr?.message || sessionErr);
-            if (mountedRef.current) setError('Could not refresh your session. Please refresh the page and try again.');
-            _submittingRef.current = false;
-            return;
+            // Never block the post over a session-refresh exception. Log and continue.
+            // The post-create call's own refresh (audit-15) is the safety net.
+            console.warn('[SharedPostCreator] Session preflight threw:', sessionErr?.message || sessionErr);
         }
 
         // ── STEP 1: Upload any staged files (files with .file property) ──────

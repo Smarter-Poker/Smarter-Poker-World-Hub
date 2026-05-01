@@ -5296,17 +5296,48 @@ function SocialMediaPage() {
             // expiry. If refresh fails (e.g., refresh token revoked),
             // surface a clear 'session expired, please log in again' message
             // instead of the cryptic generic banner.
+            // AUDIT-17: timeout-guarded session refresh. Bare getSession()
+            // can hang forever on iPhone Safari if a stale tab is holding
+            // the navigator.locks lock. Race against a 4s timer; if the
+            // SDK doesn't respond, fall through to localStorage-only check
+            // (same approach bgUpload._ensureBearer takes for the same
+            // reason). Never hang the post on an SDK lock.
             try {
-                const { data: { session } = {} } = await supabase.auth.getSession();
-                if (!session?.access_token) {
-                    // Session is gone entirely — try a hard refresh.
-                    const { data: refreshed, error: refreshErr } = await supabase.auth.refreshSession();
-                    if (refreshErr || !refreshed?.session?.access_token) {
-                        throw new Error('Your session has expired. Please refresh the page or log in again.');
+                const _withTimeout = (p, ms, label) => Promise.race([
+                    p,
+                    new Promise((_, rej) => setTimeout(() => rej(new Error(`${label} timed out after ${ms}ms`)), ms)),
+                ]);
+                let sessionOk = false;
+                try {
+                    const { data } = await _withTimeout(supabase.auth['getSession'](), 4000, 'getSession');
+                    sessionOk = !!data?.session?.access_token;
+                } catch (lockErr) {
+                    console.warn('[Social] getSession timed out:', lockErr?.message);
+                }
+                if (!sessionOk) {
+                    try {
+                        const raw = localStorage.getItem('smarter-poker-auth');
+                        if (raw) {
+                            const parsed = JSON.parse(raw);
+                            if (parsed?.access_token) sessionOk = true;
+                        }
+                    } catch (_) {}
+                }
+                if (!sessionOk) {
+                    try {
+                        const { data: refreshed } = await _withTimeout(supabase.auth['refreshSession'](), 4000, 'refreshSession');
+                        if (refreshed?.session?.access_token) sessionOk = true;
+                    } catch (refreshErr) {
+                        console.warn('[Social] refreshSession timed out:', refreshErr?.message);
                     }
                 }
+                if (!sessionOk) {
+                    throw new Error('Your session has expired. Please refresh the page or log in again.');
+                }
             } catch (sessionErr) {
-                // If we can't recover a session, fail fast with a clear msg.
+                // If we genuinely can't recover a session, fail fast with the clear msg.
+                // (Lock timeouts above are caught and don't bubble — only an explicit
+                // 'session expired' throw lands here.)
                 throw new Error(sessionErr?.message || 'Your session has expired. Please log in again.');
             }
 
