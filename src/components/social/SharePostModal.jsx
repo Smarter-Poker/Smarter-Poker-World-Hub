@@ -303,12 +303,12 @@ function SendToFriendTab({ post, authorUsername, currentUser, onClose, onShared 
             try {
                 // 1. Get or create direct conversation via RPC (social_* tables)
                 const { data: convResult, error: convErr } = await supabase.rpc('fn_get_or_create_conversation', {
-                    p_user_id: currentUser.id,
-                    p_other_user_id: friendId,
-                    p_conversation_type: 'direct',
+                    user1_id: currentUser.id,
+                    user2_id: friendId,
                 });
                 if (convErr) throw convErr;
-                const convId = convResult?.conversation_id || convResult?.id || convResult;
+                // fn_get_or_create_conversation returns a UUID directly
+                const convId = convResult;
                 if (!convId) throw new Error('Failed to get or create conversation');
 
                 // 2. Send via authenticated API (handles social_messages + participant verify + rate limit)

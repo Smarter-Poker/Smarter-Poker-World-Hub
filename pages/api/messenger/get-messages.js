@@ -62,6 +62,8 @@ export default async function handler(req, res) {
               .select(`
                   id,
                   content,
+                  message_type,
+                  media_metadata,
                   created_at,
                   updated_at,
                   sender_id,
