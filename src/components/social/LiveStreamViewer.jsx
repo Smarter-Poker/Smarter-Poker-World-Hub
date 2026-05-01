@@ -50,6 +50,9 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
     const giftChannelRef = useRef(null);
     const commentInputRef = useRef(null); // #10: blur after send to dismiss keyboard
     const pinChannelRef = useRef(null); // #18: pinned comment subscription
+    // BUG FIX (L7): track the active giftFlash timer so a new gift arrival
+    // cancels the previous one instead of racing to clear the display.
+    const giftFlashTimerRef = useRef(null);
 
     useEffect(() => {
         if (!stream?.id || !userId) return;
@@ -146,8 +149,14 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
             });
             giftCh.on('broadcast', { event: 'gift' }, ({ payload }) => {
                 if (payload?.sender_name && payload?.amount) {
+                    // BUG FIX (L7): cancel the previous flash timer before starting a new one.
+                    // Without this, rapid gifts cause the first timer to clear the second gift.
+                    if (giftFlashTimerRef.current) clearTimeout(giftFlashTimerRef.current);
                     setGiftFlash({ name: payload.sender_name, amount: payload.amount, avatar: payload.sender_avatar });
-                    setTimeout(() => setGiftFlash(null), 4000);
+                    giftFlashTimerRef.current = setTimeout(() => {
+                        giftFlashTimerRef.current = null;
+                        setGiftFlash(null);
+                    }, 4000);
                 }
             }).subscribe();
             giftChannelRef.current = giftCh;
@@ -190,6 +199,8 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
             if (commentChannelRef.current) supabase.removeChannel(commentChannelRef.current);
             if (giftChannelRef.current) supabase.removeChannel(giftChannelRef.current);
             if (pinChannelRef.current) supabase.removeChannel(pinChannelRef.current);
+            // BUG FIX (L7): cancel any pending giftFlash timer on unmount
+            if (giftFlashTimerRef.current) clearTimeout(giftFlashTimerRef.current);
             liveStreamService.onStreamEnded = null;
             liveStreamService.onViewerCountChange = null;
             liveStreamService.onReconnecting = null;
@@ -613,8 +624,12 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                     onGiftSent={(amount, newBalance) => {
                         setUserDiamondBalance(newBalance);
                         // Local gift flash for sender
+                        if (giftFlashTimerRef.current) clearTimeout(giftFlashTimerRef.current);
                         setGiftFlash({ name: 'You', amount });
-                        setTimeout(() => setGiftFlash(null), 3000);
+                        giftFlashTimerRef.current = setTimeout(() => {
+                            giftFlashTimerRef.current = null;
+                            setGiftFlash(null);
+                        }, 3000);
                     }}
                     onClose={() => setShowGifts(false)}
                 />

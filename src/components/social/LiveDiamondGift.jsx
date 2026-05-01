@@ -2,7 +2,7 @@
  * LiveDiamondGift — Diamond gifting UI for live streams
  * Viewers send diamonds to broadcasters with animated confirmation.
  */
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getAccessToken } from '../../lib/authUtils';
 
 const GIFT_AMOUNTS = [
@@ -18,6 +18,14 @@ export function LiveDiamondGift({ streamId, receiverId, userId, userBalance, onG
     const [sending, setSending] = useState(false);
     const [success, setSuccess] = useState(false);
     const [error, setError] = useState('');
+    // BUG FIX (L4): track success timeout so we can cancel it on unmount.
+    // Without this, if the parent unmounts within 1.5s of a successful gift,
+    // onGiftSent and onClose fire on a stale closed component.
+    const successTimerRef = useRef(null);
+
+    useEffect(() => {
+        return () => { if (successTimerRef.current) clearTimeout(successTimerRef.current); };
+    }, []);
 
     const handleSend = async () => {
         if (!selected || sending) return;
@@ -41,7 +49,8 @@ export function LiveDiamondGift({ streamId, receiverId, userId, userBalance, onG
             const data = await resp.json();
             if (!resp.ok) throw new Error(data.error || 'Gift failed');
             setSuccess(true);
-            setTimeout(() => {
+            successTimerRef.current = setTimeout(() => {
+                successTimerRef.current = null;
                 onGiftSent?.(selected, data.newBalance);
                 onClose();
             }, 1500);
